@@ -1,3 +1,4 @@
+from pathlib import Path
 import streamlit as st
 from parser import parse_itinerary
 from generator import (
@@ -21,7 +22,7 @@ st.title("Itinerary Creator")
 
 st.write(
     "Paste raw Excel itinerary text below. "
-    "The app will turn it into a polished itinerary preview."
+    "The app will turn it into a polished A4 itinerary preview."
 )
 
 raw_text = st.text_area(
@@ -95,12 +96,6 @@ def build_itinerary_html(parsed_rows, grouped_days):
             text-transform: uppercase;
             color: #2f2f2f;
             margin-top: 24px;
-        }}
-
-        .page-title {{
-            font-size: 34px;
-            margin-bottom: 22px;
-            color: #1f3446;
         }}
 
         .glance-card {{
@@ -382,6 +377,33 @@ def build_itinerary_html(parsed_rows, grouped_days):
     return html
 
 
+def build_full_html_document(itinerary_html):
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Itinerary Preview</title>
+</head>
+<body style="margin: 0;">
+{itinerary_html}
+</body>
+</html>
+"""
+
+
+def save_html_file(itinerary_html):
+    outputs_folder = Path("outputs")
+    outputs_folder.mkdir(exist_ok=True)
+
+    output_path = outputs_folder / "itinerary_preview.html"
+    full_html = build_full_html_document(itinerary_html)
+
+    output_path.write_text(full_html, encoding="utf-8")
+
+    return output_path
+
+
 if st.button("Generate itinerary"):
     if raw_text.strip():
         parsed_rows = parse_itinerary(raw_text)
@@ -395,6 +417,19 @@ if st.button("Generate itinerary"):
         st.subheader("A4 itinerary preview")
 
         itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
+
+        export_path = save_html_file(itinerary_html)
+
+        st.success(f"HTML file created: {export_path}")
+
+        with open(export_path, "rb") as html_file:
+            st.download_button(
+                label="Download HTML preview",
+                data=html_file,
+                file_name="itinerary_preview.html",
+                mime="text/html"
+            )
+
         st.html(itinerary_html)
 
     else:
