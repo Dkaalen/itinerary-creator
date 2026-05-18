@@ -34,6 +34,19 @@ def get_unique_cities(parsed_rows):
     return cities
 
 
+def get_day_number(day_text):
+    """
+    Extracts the number from text like 'Day 1'.
+    """
+
+    digits = "".join(character for character in day_text if character.isdigit())
+
+    if digits:
+        return int(digits)
+
+    return 0
+
+
 def get_day_count(grouped_days):
     """
     Counts the number of itinerary days.
@@ -217,6 +230,131 @@ def create_trip_glance(parsed_rows, grouped_days):
         "Travel Style": travel_style,
         "Hotel Level": hotel_level,
     }
+
+
+def describe_city_experience(rows):
+    """
+    Creates a short Journey Arc description for a city/chapter.
+    """
+
+    text = " ".join(row.get("details", "").lower() for row in rows)
+
+    experiences = []
+
+    if any(row.get("type") == "Arrival" for row in rows):
+        experiences.append("arrival")
+
+    if any(row.get("type") == "Departure" for row in rows):
+        experiences.append("departure")
+
+    if "walking tour" in text or "guided" in text or "guide" in text:
+        experiences.append("guided sightseeing")
+
+    if "northern light" in text or "aurora" in text:
+        experiences.append("Northern Lights experiences")
+
+    if "fjord" in text:
+        experiences.append("fjord scenery")
+
+    if "cruise" in text:
+        experiences.append("coastal cruising")
+
+    if "train" in text or "rail" in text:
+        experiences.append("scenic rail travel")
+
+    if "food" in text or "dinner" in text or "tasting" in text:
+        experiences.append("local food culture")
+
+    if "blue lagoon" in text:
+        experiences.append("geothermal bathing")
+
+    if "glacier" in text or "waterfall" in text or "black sand" in text:
+        experiences.append("dramatic natural landscapes")
+
+    if any(row.get("type") == "Hotel" for row in rows):
+        experiences.append("comfortable hotel stay")
+
+    if not experiences:
+        experiences.append("time to explore at your own pace")
+
+    clean_experiences = []
+
+    for experience in experiences:
+        if experience not in clean_experiences:
+            clean_experiences.append(experience)
+
+    return ", ".join(clean_experiences[:4]).capitalize()
+
+
+def create_journey_arc(grouped_days):
+    """
+    Creates Journey Arc chapters based on city changes.
+    Each chapter is usually one destination/city.
+    """
+
+    chapters = []
+
+    current_city = None
+    current_days = []
+    current_rows = []
+
+    for day, rows in grouped_days.items():
+        city = rows[0].get("city", "").strip() if rows else ""
+
+        if not city:
+            city = "Journey"
+
+        if current_city is None:
+            current_city = city
+            current_days = [day]
+            current_rows = rows
+
+        elif city == current_city:
+            current_days.append(day)
+            current_rows.extend(rows)
+
+        else:
+            chapters.append({
+                "chapter": current_city,
+                "days": format_day_range(current_days),
+                "experience": describe_city_experience(current_rows),
+            })
+
+            current_city = city
+            current_days = [day]
+            current_rows = rows
+
+    if current_city is not None:
+        chapters.append({
+            "chapter": current_city,
+            "days": format_day_range(current_days),
+            "experience": describe_city_experience(current_rows),
+        })
+
+    return chapters
+
+
+def format_day_range(days):
+    """
+    Converts ['Day 1', 'Day 2', 'Day 3'] to '1 - 3'.
+    """
+
+    if not days:
+        return ""
+
+    day_numbers = [get_day_number(day) for day in days]
+    day_numbers = [number for number in day_numbers if number > 0]
+
+    if not day_numbers:
+        return "TBA"
+
+    first_day = min(day_numbers)
+    last_day = max(day_numbers)
+
+    if first_day == last_day:
+        return str(first_day)
+
+    return f"{first_day} - {last_day}"
 
 
 def create_day_title(day_rows):

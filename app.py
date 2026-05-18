@@ -8,6 +8,7 @@ from generator import (
     create_trip_subtitle,
     create_destinations_line,
     create_trip_glance,
+    create_journey_arc,
 )
 
 st.set_page_config(
@@ -35,6 +36,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
     trip_subtitle = create_trip_subtitle(parsed_rows, grouped_days)
     destinations_line = create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
+    journey_arc = create_journey_arc(grouped_days)
 
     html = f"""
     <style>
@@ -123,6 +125,46 @@ def build_itinerary_html(parsed_rows, grouped_days):
             color: #2f2f2f;
         }}
 
+        .journey-arc {{
+            margin-bottom: 34px;
+            padding: 28px;
+            background: rgba(255, 255, 255, 0.28);
+            border: 1px solid #d8cec2;
+        }}
+
+        .journey-title {{
+            font-size: 30px;
+            margin-bottom: 18px;
+            color: #1f3446;
+        }}
+
+        .journey-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #2f2f2f;
+        }}
+
+        .journey-table th {{
+            text-align: left;
+            color: #1f3446;
+            font-weight: 700;
+            padding: 10px 8px;
+            border-bottom: 1px solid #c9beb1;
+        }}
+
+        .journey-table td {{
+            padding: 12px 8px;
+            vertical-align: top;
+            border-bottom: 1px solid rgba(216, 206, 194, 0.7);
+            line-height: 1.45;
+        }}
+
+        .journey-days {{
+            white-space: nowrap;
+        }}
+
         .day-card {{
             padding: 34px 0;
             border-bottom: 1px solid #d8cec2;
@@ -209,6 +251,33 @@ def build_itinerary_html(parsed_rows, grouped_days):
         """
 
     html += """
+        </div>
+
+        <div class="journey-arc">
+            <div class="journey-title">Your Journey Arc</div>
+            <table class="journey-table">
+                <thead>
+                    <tr>
+                        <th>Chapter</th>
+                        <th>Days</th>
+                        <th>What You’ll Experience</th>
+                    </tr>
+                </thead>
+                <tbody>
+    """
+
+    for chapter in journey_arc:
+        html += f"""
+                    <tr>
+                        <td>{chapter["chapter"]}</td>
+                        <td class="journey-days">{chapter["days"]}</td>
+                        <td>{chapter["experience"]}</td>
+                    </tr>
+        """
+
+    html += """
+                </tbody>
+            </table>
         </div>
     """
 
