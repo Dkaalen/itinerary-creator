@@ -40,23 +40,28 @@ def build_itinerary_html(parsed_rows, grouped_days):
 
     html = f"""
     <style>
-        .itinerary-wrapper {{
+        .preview-background {{
+            background: #11151b;
+            padding: 32px 0 60px 0;
+        }}
+
+        .a4-page {{
+            width: 794px;
+            min-height: 1123px;
             background: #f4efe8;
             color: #1f3446;
-            padding: 48px;
-            max-width: 850px;
-            margin: 32px auto;
+            margin: 0 auto 32px auto;
+            padding: 64px;
+            box-sizing: border-box;
             font-family: Georgia, 'Times New Roman', serif;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+            page-break-after: always;
         }}
 
         .cover-page {{
-            min-height: 700px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1px solid #d8cec2;
-            padding-bottom: 48px;
-            margin-bottom: 24px;
         }}
 
         .cover-kicker {{
@@ -92,6 +97,12 @@ def build_itinerary_html(parsed_rows, grouped_days):
             margin-top: 24px;
         }}
 
+        .page-title {{
+            font-size: 34px;
+            margin-bottom: 22px;
+            color: #1f3446;
+        }}
+
         .glance-card {{
             background: rgba(255, 255, 255, 0.42);
             padding: 28px;
@@ -107,12 +118,12 @@ def build_itinerary_html(parsed_rows, grouped_days):
 
         .glance-row {{
             display: grid;
-            grid-template-columns: 180px 1fr;
+            grid-template-columns: 165px 1fr;
             gap: 18px;
             font-family: Arial, sans-serif;
             font-size: 14px;
             line-height: 1.45;
-            padding: 7px 0;
+            padding: 8px 0;
             border-bottom: 1px solid rgba(216, 206, 194, 0.7);
         }}
 
@@ -126,7 +137,6 @@ def build_itinerary_html(parsed_rows, grouped_days):
         }}
 
         .journey-arc {{
-            margin-bottom: 34px;
             padding: 28px;
             background: rgba(255, 255, 255, 0.28);
             border: 1px solid #d8cec2;
@@ -165,22 +175,17 @@ def build_itinerary_html(parsed_rows, grouped_days):
             white-space: nowrap;
         }}
 
-        .day-card {{
-            padding: 34px 0;
-            border-bottom: 1px solid #d8cec2;
-        }}
-
         .day-label {{
-            font-size: 34px;
+            font-size: 36px;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             color: #1f3446;
         }}
 
         .day-title {{
-            font-size: 27px;
+            font-size: 29px;
             font-weight: 500;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: #1f3446;
         }}
 
@@ -190,7 +195,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #7b746c;
-            margin-bottom: 18px;
+            margin-bottom: 22px;
         }}
 
         .intro {{
@@ -205,7 +210,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
             font-size: 14px;
             font-weight: 700;
             margin-top: 20px;
-            margin-bottom: 6px;
+            margin-bottom: 7px;
             color: #1f3446;
         }}
 
@@ -213,7 +218,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
             font-size: 15px;
             line-height: 1.45;
             color: #2f2f2f;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }}
 
         ul {{
@@ -227,57 +232,79 @@ def build_itinerary_html(parsed_rows, grouped_days):
             margin-bottom: 4px;
             color: #2f2f2f;
         }}
+
+        @media print {{
+            @page {{
+                size: A4 portrait;
+                margin: 0;
+            }}
+
+            .preview-background {{
+                background: white;
+                padding: 0;
+            }}
+
+            .a4-page {{
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }}
+        }}
     </style>
 
-    <div class="itinerary-wrapper">
+    <div class="preview-background">
 
-        <div class="cover-page">
+        <div class="a4-page cover-page">
             <div class="cover-kicker">Curated Travel Itinerary</div>
             <div class="cover-title">{trip_title}</div>
             <div class="cover-subtitle">{trip_subtitle}</div>
             <div class="cover-destinations">{destinations_line}</div>
         </div>
 
-        <div class="glance-card">
-            <div class="glance-title">Your Trip at a Glance</div>
+        <div class="a4-page">
+            <div class="glance-card">
+                <div class="glance-title">Your Trip at a Glance</div>
     """
 
     for label, value in trip_glance.items():
         html += f"""
-            <div class="glance-row">
-                <div class="glance-label">{label}</div>
-                <div class="glance-value">{value}</div>
-            </div>
+                <div class="glance-row">
+                    <div class="glance-label">{label}</div>
+                    <div class="glance-value">{value}</div>
+                </div>
         """
 
     html += """
-        </div>
+            </div>
 
-        <div class="journey-arc">
-            <div class="journey-title">Your Journey Arc</div>
-            <table class="journey-table">
-                <thead>
-                    <tr>
-                        <th>Chapter</th>
-                        <th>Days</th>
-                        <th>What You’ll Experience</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="journey-arc">
+                <div class="journey-title">Your Journey Arc</div>
+                <table class="journey-table">
+                    <thead>
+                        <tr>
+                            <th>Chapter</th>
+                            <th>Days</th>
+                            <th>What You’ll Experience</th>
+                        </tr>
+                    </thead>
+                    <tbody>
     """
 
     for chapter in journey_arc:
         html += f"""
-                    <tr>
-                        <td>{chapter["chapter"]}</td>
-                        <td class="journey-days">{chapter["days"]}</td>
-                        <td>{chapter["experience"]}</td>
-                    </tr>
+                        <tr>
+                            <td>{chapter["chapter"]}</td>
+                            <td class="journey-days">{chapter["days"]}</td>
+                            <td>{chapter["experience"]}</td>
+                        </tr>
         """
 
     html += """
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     """
 
@@ -333,7 +360,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
                 included_items.append(title)
 
         html += f"""
-        <div class="day-card">
+        <div class="a4-page">
             <div class="day-label">{day}</div>
             <div class="day-title">{day_title}</div>
             <div class="city">{city}</div>
@@ -365,7 +392,7 @@ if st.button("Generate itinerary"):
         with st.expander("Structured parser preview"):
             st.dataframe(parsed_rows, use_container_width=True)
 
-        st.subheader("Styled itinerary preview")
+        st.subheader("A4 itinerary preview")
 
         itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
         st.html(itinerary_html)
