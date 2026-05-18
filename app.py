@@ -1,6 +1,6 @@
 import streamlit as st
 from parser import parse_itinerary
-from generator import group_rows_by_day, create_day_title
+from generator import group_rows_by_day, create_day_title, create_day_intro
 
 st.set_page_config(
     page_title="Itinerary Creator",
@@ -35,6 +35,7 @@ if st.button("Generate itinerary"):
 
         for day, rows in grouped_days.items():
             day_title = create_day_title(rows)
+            day_intro = create_day_intro(rows)
             city = rows[0].get("city", "")
 
             st.markdown("---")
@@ -43,6 +44,8 @@ if st.button("Generate itinerary"):
 
             if city:
                 st.caption(city)
+
+            st.write(day_intro)
 
             included_items = []
 
@@ -55,7 +58,7 @@ if st.button("Generate itinerary"):
                 includes = row.get("includes", [])
 
                 if item_type in ["Arrival", "Departure"]:
-                    st.write(title)
+                    included_items.append(title)
 
                 elif item_type == "Transfer":
                     included_items.append(title)
@@ -83,10 +86,13 @@ if st.button("Generate itinerary"):
 
                 elif item_type == "Leisure":
                     st.markdown("**Your free time**")
-                    st.write(title)
+                    st.write(
+                        "Take this time at your own pace. You may want to explore nearby sights, "
+                        "enjoy a relaxed meal, or simply settle into the destination."
+                    )
 
                 else:
-                    st.write(title)
+                    included_items.append(title)
 
             if included_items:
                 st.markdown("**Included today**")
