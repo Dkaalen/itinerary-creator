@@ -20,10 +20,22 @@ def group_rows_by_day(parsed_rows):
 
 def create_day_title(day_rows):
     """
-    Creates a simple day title based on the most important row.
+    Creates a clean day title based on the most important row.
+    Arrival and departure days get special title logic.
     """
 
-    priority_order = ["Activity", "Transfer", "Hotel", "Arrival", "Departure", "Leisure"]
+    city = day_rows[0].get("city", "").strip() if day_rows else ""
+
+    has_arrival = any(row.get("type") == "Arrival" for row in day_rows)
+    has_departure = any(row.get("type") == "Departure" for row in day_rows)
+
+    if has_arrival and city:
+        return f"Welcome to {city}"
+
+    if has_departure and city:
+        return f"Departure from {city}"
+
+    priority_order = ["Activity", "Transfer", "Hotel", "Leisure"]
 
     for item_type in priority_order:
         for row in day_rows:
