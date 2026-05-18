@@ -1,6 +1,7 @@
 from pathlib import Path
 import streamlit as st
 from parser import parse_itinerary
+from pdf_exporter import export_html_to_pdf
 from generator import (
     group_rows_by_day,
     create_day_title,
@@ -404,6 +405,17 @@ def save_html_file(itinerary_html):
     return output_path
 
 
+def save_pdf_file(html_path):
+    outputs_folder = Path("outputs")
+    outputs_folder.mkdir(exist_ok=True)
+
+    pdf_path = outputs_folder / "itinerary_preview.pdf"
+
+    export_html_to_pdf(html_path, pdf_path)
+
+    return pdf_path
+
+
 if st.button("Generate itinerary"):
     if raw_text.strip():
         parsed_rows = parse_itinerary(raw_text)
@@ -418,16 +430,26 @@ if st.button("Generate itinerary"):
 
         itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
 
-        export_path = save_html_file(itinerary_html)
+        html_path = save_html_file(itinerary_html)
+        pdf_path = save_pdf_file(html_path)
 
-        st.success(f"HTML file created: {export_path}")
+        st.success(f"HTML file created: {html_path}")
+        st.success(f"PDF file created: {pdf_path}")
 
-        with open(export_path, "rb") as html_file:
+        with open(html_path, "rb") as html_file:
             st.download_button(
                 label="Download HTML preview",
                 data=html_file,
                 file_name="itinerary_preview.html",
                 mime="text/html"
+            )
+
+        with open(pdf_path, "rb") as pdf_file:
+            st.download_button(
+                label="Download PDF preview",
+                data=pdf_file,
+                file_name="itinerary_preview.pdf",
+                mime="application/pdf"
             )
 
         st.html(itinerary_html)
