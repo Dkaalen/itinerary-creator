@@ -1,6 +1,14 @@
 import streamlit as st
 from parser import parse_itinerary
-from generator import group_rows_by_day, create_day_title, create_day_intro
+from generator import (
+    group_rows_by_day,
+    create_day_title,
+    create_day_intro,
+    create_trip_title,
+    create_trip_subtitle,
+    create_destinations_line,
+    create_trip_glance,
+)
 
 st.set_page_config(
     page_title="Itinerary Creator",
@@ -17,88 +25,191 @@ st.write(
 
 raw_text = st.text_area(
     "Raw Excel text",
-    height=260,
+    height=300,
     placeholder="Paste itinerary rows here..."
 )
 
 
-def build_itinerary_html(grouped_days):
-    html = """
+def build_itinerary_html(parsed_rows, grouped_days):
+    trip_title = create_trip_title(parsed_rows, grouped_days)
+    trip_subtitle = create_trip_subtitle(parsed_rows, grouped_days)
+    destinations_line = create_destinations_line(parsed_rows)
+    trip_glance = create_trip_glance(parsed_rows, grouped_days)
+
+    html = f"""
     <style>
-        .itinerary-wrapper {
+        .itinerary-wrapper {{
             background: #f4efe8;
             color: #1f3446;
             padding: 48px;
             max-width: 850px;
             margin: 32px auto;
             font-family: Georgia, 'Times New Roman', serif;
-        }
+        }}
 
-        .day-card {
+        .cover-page {{
+            min-height: 700px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: 1px solid #d8cec2;
+            padding-bottom: 48px;
+            margin-bottom: 24px;
+        }}
+
+        .cover-kicker {{
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #7b746c;
+            margin-bottom: 18px;
+        }}
+
+        .cover-title {{
+            font-size: 54px;
+            line-height: 1.05;
+            font-weight: 700;
+            color: #1f3446;
+            margin-bottom: 18px;
+        }}
+
+        .cover-subtitle {{
+            font-size: 24px;
+            line-height: 1.25;
+            color: #1f3446;
+            margin-bottom: 18px;
+        }}
+
+        .cover-destinations {{
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #2f2f2f;
+            margin-top: 24px;
+        }}
+
+        .glance-card {{
+            background: rgba(255, 255, 255, 0.42);
+            padding: 28px;
+            margin-bottom: 34px;
+            border: 1px solid #d8cec2;
+        }}
+
+        .glance-title {{
+            font-size: 30px;
+            margin-bottom: 16px;
+            color: #1f3446;
+        }}
+
+        .glance-row {{
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 18px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.45;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(216, 206, 194, 0.7);
+        }}
+
+        .glance-label {{
+            font-weight: 700;
+            color: #1f3446;
+        }}
+
+        .glance-value {{
+            color: #2f2f2f;
+        }}
+
+        .day-card {{
             padding: 34px 0;
             border-bottom: 1px solid #d8cec2;
-        }
+        }}
 
-        .day-label {
+        .day-label {{
             font-size: 34px;
             font-weight: 700;
             margin-bottom: 4px;
             color: #1f3446;
-        }
+        }}
 
-        .day-title {
+        .day-title {{
             font-size: 27px;
             font-weight: 500;
             margin-bottom: 10px;
             color: #1f3446;
-        }
+        }}
 
-        .city {
+        .city {{
             font-family: Arial, sans-serif;
             font-size: 12px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #7b746c;
             margin-bottom: 18px;
-        }
+        }}
 
-        .intro {
+        .intro {{
             font-size: 16px;
             line-height: 1.55;
             margin-bottom: 24px;
             color: #2f2f2f;
-        }
+        }}
 
-        .section-title {
+        .section-title {{
             font-family: Arial, sans-serif;
             font-size: 14px;
             font-weight: 700;
             margin-top: 20px;
             margin-bottom: 6px;
             color: #1f3446;
-        }
+        }}
 
-        .body-text {
+        .body-text {{
             font-size: 15px;
             line-height: 1.45;
             color: #2f2f2f;
             margin-bottom: 5px;
-        }
+        }}
 
-        ul {
+        ul {{
             margin-top: 6px;
             margin-bottom: 14px;
-        }
+        }}
 
-        li {
+        li {{
             font-size: 15px;
             line-height: 1.45;
             margin-bottom: 4px;
             color: #2f2f2f;
-        }
+        }}
     </style>
 
     <div class="itinerary-wrapper">
+
+        <div class="cover-page">
+            <div class="cover-kicker">Curated Travel Itinerary</div>
+            <div class="cover-title">{trip_title}</div>
+            <div class="cover-subtitle">{trip_subtitle}</div>
+            <div class="cover-destinations">{destinations_line}</div>
+        </div>
+
+        <div class="glance-card">
+            <div class="glance-title">Your Trip at a Glance</div>
+    """
+
+    for label, value in trip_glance.items():
+        html += f"""
+            <div class="glance-row">
+                <div class="glance-label">{label}</div>
+                <div class="glance-value">{value}</div>
+            </div>
+        """
+
+    html += """
+        </div>
     """
 
     for day, rows in grouped_days.items():
@@ -187,7 +298,7 @@ if st.button("Generate itinerary"):
 
         st.subheader("Styled itinerary preview")
 
-        itinerary_html = build_itinerary_html(grouped_days)
+        itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
         st.html(itinerary_html)
 
     else:

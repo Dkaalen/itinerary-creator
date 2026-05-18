@@ -18,6 +18,207 @@ def group_rows_by_day(parsed_rows):
     return dict(grouped)
 
 
+def get_unique_cities(parsed_rows):
+    """
+    Returns unique cities in the order they appear.
+    """
+
+    cities = []
+
+    for row in parsed_rows:
+        city = row.get("city", "").strip()
+
+        if city and city not in cities:
+            cities.append(city)
+
+    return cities
+
+
+def get_day_count(grouped_days):
+    """
+    Counts the number of itinerary days.
+    """
+
+    return len(grouped_days)
+
+
+def create_trip_title(parsed_rows, grouped_days):
+    """
+    Creates a polished trip title automatically from the itinerary text.
+    """
+
+    cities = get_unique_cities(parsed_rows)
+    day_count = get_day_count(grouped_days)
+
+    has_northern_lights = any(
+        "northern light" in row.get("details", "").lower()
+        or "aurora" in row.get("details", "").lower()
+        for row in parsed_rows
+    )
+
+    has_fjord = any(
+        "fjord" in row.get("details", "").lower()
+        for row in parsed_rows
+    )
+
+    has_iceland = any(
+        city.lower() in ["reykjavik", "keflavik"]
+        for city in cities
+    )
+
+    has_lapland = any(
+        city.lower() in ["rovaniemi", "levi", "saariselkä", "saariselka", "kittilä", "kittila"]
+        for city in cities
+    )
+
+    if len(cities) == 1:
+        city = cities[0]
+
+        if has_northern_lights:
+            return f"{city} Northern Lights Journey"
+
+        return f"{city} City Break"
+
+    if len(cities) == 2:
+        if has_northern_lights or has_lapland:
+            return f"{cities[0]} & {cities[1]} Arctic Journey"
+
+        return f"{cities[0]} & {cities[1]} Nordic Journey"
+
+    if has_iceland and has_fjord:
+        return "Nordic Fjords & Iceland Journey"
+
+    if has_northern_lights or has_lapland:
+        return "Nordic Winter Journey"
+
+    if day_count >= 10:
+        return "Grand Nordic Journey"
+
+    return "Nordic Discovery Journey"
+
+
+def create_trip_subtitle(parsed_rows, grouped_days):
+    """
+    Creates a subtitle that complements the generated title.
+    """
+
+    day_count = get_day_count(grouped_days)
+    cities = get_unique_cities(parsed_rows)
+
+    text = " ".join(row.get("details", "").lower() for row in parsed_rows)
+
+    themes = []
+
+    if "northern light" in text or "aurora" in text:
+        themes.append("Northern Lights")
+
+    if "fjord" in text:
+        themes.append("Fjords")
+
+    if "cruise" in text:
+        themes.append("Coastal Cruises")
+
+    if "train" in text or "rail" in text:
+        themes.append("Scenic Rail")
+
+    if "food" in text or "dinner" in text or "tasting" in text:
+        themes.append("Local Food")
+
+    if "walking tour" in text or "guide" in text or "guided" in text:
+        themes.append("Guided Experiences")
+
+    if "blue lagoon" in text or "glacier" in text or "waterfall" in text:
+        themes.append("Icelandic Landscapes")
+
+    if not themes:
+        themes.append("Culture")
+        themes.append("Comfortable Travel")
+
+    theme_text = ", ".join(themes[:3])
+
+    if len(cities) > 1:
+        destination_text = " · ".join(cities)
+        return f"{day_count} Days Across {destination_text} — {theme_text}"
+
+    if cities:
+        return f"{day_count} Days in {cities[0]} — {theme_text}"
+
+    return f"{day_count} Days — {theme_text}"
+
+
+def create_destinations_line(parsed_rows):
+    """
+    Creates the destination line shown on the cover page.
+    """
+
+    cities = get_unique_cities(parsed_rows)
+
+    if not cities:
+        return "Destinations will be detected from the itinerary text"
+
+    return " · ".join(cities)
+
+
+def create_trip_glance(parsed_rows, grouped_days):
+    """
+    Creates automatic Trip at a Glance information.
+    """
+
+    cities = get_unique_cities(parsed_rows)
+    day_count = get_day_count(grouped_days)
+
+    nights = max(day_count - 1, 0)
+
+    start_city = cities[0] if cities else "TBA"
+    end_city = cities[-1] if cities else "TBA"
+    destinations = " · ".join(cities) if cities else "TBA"
+
+    hotel_rows = [row for row in parsed_rows if row.get("type") == "Hotel"]
+    activity_rows = [row for row in parsed_rows if row.get("type") == "Activity"]
+    transfer_rows = [row for row in parsed_rows if row.get("type") == "Transfer"]
+
+    has_breakfast = any(
+        "breakfast included" in row.get("details", "").lower()
+        for row in hotel_rows
+    )
+
+    has_private_transfer = any(
+        "private" in row.get("details", "").lower()
+        for row in transfer_rows
+    )
+
+    travel_style_parts = []
+
+    if has_private_transfer:
+        travel_style_parts.append("private transfers")
+
+    if activity_rows:
+        travel_style_parts.append("guided experiences")
+
+    if hotel_rows:
+        travel_style_parts.append("comfortable hotel stays")
+
+    if travel_style_parts:
+        travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
+    else:
+        travel_style = "Independent journey with arranged services"
+
+    hotel_level = "Hotels as specified in the itinerary"
+    if hotel_rows:
+        hotel_level = "Accommodation as listed"
+        if has_breakfast:
+            hotel_level += ", breakfast included where specified"
+
+    return {
+        "Duration": f"{day_count} days / {nights} nights",
+        "Start": start_city,
+        "End": end_city,
+        "Destinations": destinations,
+        "Travel Style": travel_style,
+        "Hotel Level": hotel_level,
+    }
+
+
 def create_day_title(day_rows):
     """
     Creates a clean day title based on the most important row.
