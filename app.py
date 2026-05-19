@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v33b-parsing-regression-hotfix"
+APP_VERSION = "2026-05-19 v34-workflow-polish-auto-writing"
 
 
 st.set_page_config(
@@ -124,6 +124,13 @@ st.markdown(
             margin: 0.18rem 0;
             font-size: 0.82rem;
             background: rgba(255,255,255,0.035);
+        }
+        .project-action-note {
+            font-size: 0.78rem;
+            opacity: 0.72;
+            line-height: 1.35;
+            margin-top: 0.25rem;
+            margin-bottom: 0.5rem;
         }
         .sidebar-review-card {
             border: 1px solid rgba(148, 163, 184, 0.24);
@@ -596,6 +603,7 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
 
     if description:
+        html_text += '<div class="section-title small-section">Description</div>'
         html_text += f'<div class="body-text muted-note">{esc(description)}</div>'
 
     if notable_sights:
@@ -2304,7 +2312,7 @@ def render_sidebar_snapshot():
     st.caption(f"PDF status: {st.session_state.get('pdf_status', 'Not created')}")
 
     st.subheader("Writing assistant")
-    st.caption("Local helper for warmer, fuller day-by-day wording.")
+    st.caption("Runs automatically on generation. Use this again after manual edits if you want to refresh the day text.")
     if st.button("Improve day-to-day text", key="sidebar_assistant_improve_all", use_container_width=True):
         st.session_state.output_edits = apply_rich_writing_to_all_days(
             st.session_state.parsed_rows,
@@ -2386,6 +2394,58 @@ def load_project_json(uploaded_file):
 
 
 
+def reset_project_state(clear_raw_text=True):
+    """Clear the current project and return the app to a clean generation state."""
+    for key in [
+        "itinerary_html",
+        "html_path",
+        "pdf_bytes",
+        "parsed_rows",
+        "output_edits",
+        "last_generated_raw_text",
+        "parser_diagnostics",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.session_state.itinerary_html = ""
+    st.session_state.html_path = None
+    st.session_state.pdf_bytes = None
+    st.session_state.parsed_rows = []
+    st.session_state.output_edits = {}
+    st.session_state.last_generated_raw_text = ""
+    st.session_state.parser_diagnostics = []
+    st.session_state.pdf_status = "Not created"
+
+    if clear_raw_text:
+        st.session_state.raw_text_input = ""
+
+
+def rebuild_current_preview(mark_pdf_dirty=True):
+    """Rebuild the preview/HTML from the current editable project state."""
+    parsed_rows = st.session_state.get("parsed_rows", [])
+    output_edits = st.session_state.get("output_edits", {})
+
+    if not parsed_rows or not output_edits:
+        return False
+
+    edited_rows = apply_output_edits(parsed_rows, output_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+    rebuilt_html = build_itinerary_html(edited_rows, edited_grouped_days, output_edits)
+
+    if rebuilt_html != st.session_state.get("itinerary_html", ""):
+        if mark_pdf_dirty:
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Needs refresh"
+        st.session_state.itinerary_html = rebuilt_html
+    else:
+        st.session_state.itinerary_html = rebuilt_html
+
+    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+    return True
+
+
+
 initialise_state()
 
 with st.sidebar:
@@ -2447,6 +2507,19 @@ with st.sidebar:
         load_project_json(uploaded_project)
         st.rerun()
 
+    st.divider()
+    st.subheader("Project actions")
+    st.markdown('<div class="project-action-note">Use these when the preview feels out of sync or when you want to start from a clean slate.</div>', unsafe_allow_html=True)
+
+    if st.button("Refresh preview", use_container_width=True, disabled=not bool(st.session_state.get("parsed_rows"))):
+        if rebuild_current_preview(mark_pdf_dirty=True):
+            st.success("Preview refreshed.")
+        st.rerun()
+
+    if st.button("Generate new itinerary", use_container_width=True):
+        reset_project_state(clear_raw_text=True)
+        st.rerun()
+
     render_sidebar_snapshot()
 
 st.markdown(
@@ -2478,6 +2551,7 @@ with st.expander("Step 1 — Paste raw itinerary text", expanded=not bool(st.ses
 
             st.session_state.parsed_rows = parsed_rows
             st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
+            st.session_state.output_edits = apply_rich_writing_to_all_days(parsed_rows, st.session_state.output_edits)
             st.session_state.last_generated_raw_text = raw_text
             st.session_state.pdf_bytes = None
             st.session_state.pdf_status = "Not created"
@@ -2492,7 +2566,7 @@ with st.expander("Step 1 — Paste raw itinerary text", expanded=not bool(st.ses
             )
             st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-            st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
+            st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days. Rich day-to-day wording applied automatically.")
 
             if duplicate_count:
                 st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
