@@ -327,7 +327,18 @@ def create_client_activity_title(row):
     full_text = f"{title_text} {details}".lower()
 
     if "tallinn" in full_text:
+        if "old town" in full_text and "guided" in full_text and not any(marker in full_text for marker in ["helsinki", "ferry", "cruise", "star class"]):
+            return "Tallinn Old Town Guided Tour"
         return "Day Trip to Tallinn"
+
+    if "santa claus village" in full_text and "reindeer" in full_text:
+        return "Santa Claus Village & Reindeer Visit"
+
+    if "must-see bergen" in full_text or ("bergen" in full_text and "foot and boat" in full_text):
+        return "Bergen Walking & Boat Tour"
+
+    if "essential oslo" in full_text or ("oslo" in full_text and "city center guided walking tour" in full_text):
+        return "Oslo City Center Walking Tour"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
         return "Optional experience in Svolvær"
@@ -1013,7 +1024,7 @@ def create_whats_included(parsed_rows, grouped_days):
     nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
-        add_unique(included, f"{nights} nights / travel nights as specified")
+        add_unique(included, f"{nights} nights as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
     if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):
