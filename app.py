@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v24 optional-addons-parser-hardening"
+APP_VERSION = "2026-05-19 v25 activity-inclusions-hardening"
 
 
 st.set_page_config(
@@ -250,7 +250,7 @@ def meal_phrase(value):
 
     lower = value.lower()
 
-    if lower.startswith("with "):
+    if lower.startswith("with ") or lower.startswith("without "):
         return value
 
     if lower in ["breakfast", "dinner", "half board", "full board", "breakfast and dinner"]:
@@ -634,6 +634,58 @@ def render_split_list_pages(title, items, items_per_page=24):
     return html_text
 
 
+
+def get_fallback_activity_inclusions(row):
+    """Create sensible client-facing inclusions when supplier text has no formal inclusion list."""
+
+    title = create_client_activity_title(row) or row.get("title", "")
+    full_text = f'{title} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+
+    if "essential oslo" in full_text or ("oslo" in full_text and "walking tour" in full_text):
+        return ["Guided walking tour"]
+
+    if "must-see bergen" in full_text or ("bergen" in full_text and "foot and boat" in full_text):
+        return ["Guided walking tour", "Boat tour"]
+
+    if "hop-on hop-off" in title.lower() or "hop on" in full_text or "hop-off" in full_text or "hop off" in full_text:
+        return ["24-hour Hop-On Hop-Off bus ticket"]
+
+    if "fløibanen" in full_text or "floibanen" in full_text:
+        if "round" in full_text or "roundtrip" in full_text or "round trip" in full_text:
+            return ["Round-trip Fløibanen ticket"]
+        return ["Fløibanen ticket"]
+
+    if "walking" in full_text and "canal" in full_text:
+        return ["Guided walking tour", "Canal experience"]
+
+    if "walking tour" in full_text or "guided" in full_text:
+        return ["Guided experience"]
+
+    if "ticket" in full_text:
+        return ["Ticket"]
+
+    return ["Experience as described in the day-by-day itinerary"]
+
+
+def clean_activity_inclusion_items(items, title=""):
+    clean_items = []
+    for item in normalize_list(items):
+        text = str(item).strip()
+        lower = text.lower().strip(":? ")
+
+        if lower in {"what's included", "what’s included", "includes", "included"}:
+            continue
+
+        # Avoid long overview prose on the inclusion page.
+        if len(text) > 150 and "included" not in lower:
+            continue
+
+        text = clean_include_display_item(text, title)
+        if text and text not in clean_items:
+            clean_items.append(text)
+
+    return clean_items
+
 def create_activity_inclusions(parsed_rows):
     activity_sections = []
 
@@ -643,7 +695,13 @@ def create_activity_inclusions(parsed_rows):
 
         title = create_client_activity_title(row) or row.get("title", "")
         title = str(title).strip()
-        includes = normalize_list(row.get("includes", []))
+        includes = clean_activity_inclusion_items(row.get("includes", []), title)
+
+        # Every activity should be represented on this page. If the supplier
+        # text does not contain a formal inclusion list, use a conservative
+        # fallback based on the activity type.
+        if not includes:
+            includes = get_fallback_activity_inclusions(row)
 
         if not title or not includes:
             continue
@@ -666,9 +724,13 @@ def create_optional_addons(parsed_rows):
         title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
         title = str(title or row.get("title", "Optional add-on")).strip()
         city = str(row.get("city", "")).strip()
+        if row_type == "Activity" and title.lower() in {"svolvær", "svolvaer", "svolaver", "svoalvaer"}:
+            title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
         duration = str(row.get("duration", "")).strip()
         includes = clean_include_display_items(row.get("includes", []), title)
+        if row_type == "Activity" and not includes:
+            includes = get_fallback_activity_inclusions(row)
         meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
 
         if not title:

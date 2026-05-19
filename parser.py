@@ -447,6 +447,17 @@ def split_comma_list(text, *, protect_compound_phrases=False):
     else:
         parts = [clean_space(item) for item in str(text).split(",") if clean_space(item)]
 
+    # Remove section headers that sometimes leak into supplier inclusion lists.
+    parts = [
+        part for part in parts
+        if clean_space(part).lower().strip(':?') not in {
+            "what's included",
+            "what’s included",
+            "includes",
+            "included",
+        }
+    ]
+
     if not protect_compound_phrases:
         return parts
 
@@ -461,6 +472,8 @@ def split_comma_list(text, *, protect_compound_phrases=False):
         "van or coach",
         "coach or van",
         "bus or coach",
+        "small-group",
+        "small group",
     )
 
     for part in parts:
@@ -983,12 +996,15 @@ def extract_includes_from_description(main_text):
     lower_full = main_text.lower()
 
     if "norway in a nutshell" in lower_full:
-        return [
+        includes = [
             "Bergen Railway",
             "Flåm Railway",
             "Fjord cruise",
             "Scenic bus journey",
         ]
+        if "luggage porter" in lower_full:
+            includes.append("Luggage porter service")
+        return includes
 
     standard_includes = extract_detail(main_text, "Includes")
 
@@ -1000,14 +1016,13 @@ def extract_includes_from_description(main_text):
         [
             r"what'?s included\??",
             r"what’s included\??",
-            r"\bincludes\??",
+            r"\bincludes\s*:\s*",
         ],
         [
             r"pick\s*up\s*/\s*meeting\s*point",
             r"pickup\s*/\s*meeting\s*point",
             r"\bmeeting\s*point\b",
             r"\boverview\b",
-            r"\bnot included\b",
             r"\bnot included\b",
             r"\bwhat to expect\b",
             r"\bimportant info\b",
@@ -1050,6 +1065,10 @@ def parse_meal_plan(value):
 
     if not text:
         return ""
+
+    # Important: detect exclusions before generic breakfast detection.
+    if ("without" in lower or "no " in lower or "not included" in lower or "not incl" in lower) and ("breakfast" in lower or "brekafast" in lower):
+        return "without breakfast"
 
     if "breakfast" in lower or "brekafast" in lower:
         if "dinner" in lower:

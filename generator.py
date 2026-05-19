@@ -247,6 +247,9 @@ def create_client_activity_title(row):
     if "tallinn" in full_text:
         return "Day Trip to Tallinn"
 
+    if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
+        return "Optional experience in Svolvær"
+
     if "lofoten" in full_text and "trollfjord" in full_text:
         return "Lofoten Day Tour & Trollfjord Cruise"
 
