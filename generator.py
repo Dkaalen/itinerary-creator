@@ -59,26 +59,29 @@ def get_unique_cities(parsed_rows):
     return cities
 
 
+def is_self_arranged(row):
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    markers = [
+        "self arranged",
+        "self-arranged",
+        "self arrnaged",
+        "price not included",
+        "not included",
+    ]
+
+    return any(marker in text for marker in markers)
+
+
 def get_primary_city(day_rows):
     """
-    Prefer the destination/stay city for mixed transfer days.
-    This prevents days such as Tromsø -> Bergen from showing only Tromsø.
+    Prefer the city of the main hotel/activity for mixed transfer days.
+    This avoids days like Tromsø -> Bergen showing only the departure city.
     """
 
     if not day_rows:
         return ""
 
-    priority_types = [
-        "Hotel",
-        "Activity",
-        "Arrival",
-        "Departure",
-        "Flight",
-        "Train",
-        "Cruise",
-        "Ferry",
-        "Transfer",
-    ]
+    priority_types = ["Hotel", "Activity", "Arrival", "Departure", "Flight", "Train", "Cruise", "Ferry", "Transfer"]
 
     for preferred_type in priority_types:
         for row in day_rows:
@@ -88,6 +91,38 @@ def get_primary_city(day_rows):
                     return city
 
     return day_rows[0].get("city", "").strip()
+
+
+def create_client_activity_title(row):
+    title = str(row.get("title", "") or "")
+    details = str(row.get("details", "") or "")
+    text = f"{title} {details}".lower()
+
+    is_northern_lights = (
+        "northern light" in text
+        or "aurora" in text
+        or "borealis" in text
+    )
+
+    if not is_northern_lights:
+        return title.strip()
+
+    if "basecamp" in text or "base camp" in text:
+        return "Northern Lights Basecamp"
+
+    if "cruise" in text or "boat" in text or "sailing" in text:
+        return "Northern Lights Cruise"
+
+    if "floating" in text or "float" in text:
+        return "Northern Lights Ice Floating"
+
+    if "chase" in text:
+        return "Northern Lights Chase"
+
+    if "hunt" in text or "mileage" in text or "photo tour" in text:
+        return "Northern Lights Hunt"
+
+    return "Northern Lights Experience"
 
 
 def create_trip_title(parsed_rows, grouped_days):
@@ -101,7 +136,7 @@ def create_trip_title(parsed_rows, grouped_days):
     )
 
     has_lapland = any(
-        city.lower() in ["rovaniemi", "levi", "saariselkä", "saariselka", "kittilä", "kittila"]
+        city.lower() in ["rovaniemi", "levi", "saariselkä", "saariselka", "kittilä", "kittila", "kakslauttenen", "kakslauttanen", "ivalo"]
         for city in cities
     )
 
@@ -193,7 +228,8 @@ def create_trip_glance(parsed_rows, grouped_days):
     transfer_rows = [row for row in parsed_rows if get_row_type(row) == "Transfer"]
 
     has_breakfast = any(
-        "breakfast included" in row.get("details", "").lower()
+        "breakfast" in row.get("details", "").lower()
+        or "brekafast" in row.get("details", "").lower()
         for row in hotel_rows
     )
 
@@ -376,6 +412,9 @@ def create_day_title(day_rows):
             if get_row_type(row) == item_type:
                 title = row.get("title", "").strip()
 
+                if item_type == "Activity":
+                    title = create_client_activity_title(row)
+
                 if title:
                     return title
 
@@ -412,7 +451,7 @@ def create_day_intro(day_rows):
         )
 
     if activities and city:
-        activity_title = activities[0].get("title", "your included experience")
+        activity_title = create_client_activity_title(activities[0]) or "your included experience"
 
         return (
             f"Today, you will enjoy {activity_title} in {city}. The rest of the day "
@@ -454,15 +493,18 @@ def create_whats_included(parsed_rows, grouped_days):
         add_unique(included, f"{nights} nights / travel nights as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
-    if any("breakfast included" in row.get("details", "").lower() for row in hotel_rows):
+    if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):
         add_unique(included, "Breakfast included where specified")
 
-    has_private_transfer = any("private transfer" in row.get("details", "").lower() for row in transfer_rows)
+    has_private_transfer = any("private transfer" in row.get("details", "").lower() or "private" in row.get("title", "").lower() for row in transfer_rows)
 
     if has_private_transfer:
         add_unique(included, "Private transfers as listed in the itinerary")
 
     for row in transport_rows:
+        if is_self_arranged(row):
+            continue
+
         title = row.get("title", "").strip()
         luggage = row.get("luggage_included", "").strip()
         includes = row.get("includes", [])
@@ -475,7 +517,7 @@ def create_whats_included(parsed_rows, grouped_days):
             add_unique(included, title)
 
     for row in activity_rows:
-        title = row.get("title", "").strip()
+        title = create_client_activity_title(row) or row.get("title", "").strip()
 
         if title:
             add_unique(included, title)
@@ -489,7 +531,7 @@ def create_whats_not_included(parsed_rows):
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
         "Porterage unless specified",
-        "Self-guided transfer costs unless specifically stated",
+        "Self-guided or self-arranged transfer costs unless specifically stated",
         "Travel insurance",
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",

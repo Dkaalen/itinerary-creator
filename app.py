@@ -1,7 +1,6 @@
 from pathlib import Path
 import base64
 import copy
-from datetime import datetime, timezone
 import html
 import json
 import re
@@ -13,6 +12,7 @@ from parser import parse_itinerary
 from pdf_exporter import export_html_to_pdf
 from generator import (
     TRANSPORT_TYPES,
+    create_client_activity_title,
     create_day_intro,
     create_day_title,
     create_destinations_line,
@@ -25,77 +25,17 @@ from generator import (
     get_primary_city,
     get_row_type,
     group_rows_by_day,
+    is_self_arranged,
 )
 
 
-APP_VERSION = "2026-05-19 v17 project-save-polish"
-PROJECT_SCHEMA_VERSION = 1
+APP_VERSION = "2026-05-19 v18 accommodation-parser-polish"
 
 
 st.set_page_config(
     page_title="Itinerary Creator",
     page_icon="🧭",
     layout="wide",
-)
-
-st.title("Itinerary Creator")
-st.caption(f"Fix version: {APP_VERSION}")
-
-st.write(
-    "Paste raw Excel itinerary text below. "
-    "The app will turn it into a polished A4 itinerary preview."
-)
-
-if "raw_text_input" not in st.session_state:
-    st.session_state.raw_text_input = ""
-
-
-def queue_project_load():
-    uploaded_file = st.session_state.get("project_upload_file")
-
-    if uploaded_file is None:
-        st.session_state.project_load_error = "Please choose a project JSON file first."
-        return
-
-    try:
-        project_data = json.loads(uploaded_file.getvalue().decode("utf-8"))
-    except Exception as error:
-        st.session_state.project_load_error = f"Could not read the project file: {error}"
-        return
-
-    if not isinstance(project_data, dict):
-        st.session_state.project_load_error = "The project file is not valid."
-        return
-
-    raw_project_text = str(project_data.get("raw_text", "")).strip()
-
-    if not raw_project_text:
-        st.session_state.project_load_error = "The project file does not contain raw itinerary text."
-        return
-
-    st.session_state.pending_project_data = project_data
-    st.session_state.raw_text_input = raw_project_text
-    st.session_state.project_load_error = ""
-
-
-with st.sidebar:
-    st.header("Project")
-    st.file_uploader(
-        "Load editable project JSON",
-        type=["json"],
-        key="project_upload_file",
-        help="Load a project you previously downloaded from this app.",
-    )
-    st.button("Load project", on_click=queue_project_load, use_container_width=True)
-
-    if st.session_state.get("project_load_error"):
-        st.error(st.session_state.project_load_error)
-
-raw_text = st.text_area(
-    "Raw Excel text",
-    height=300,
-    placeholder="Paste itinerary rows here...",
-    key="raw_text_input",
 )
 
 
@@ -114,6 +54,26 @@ def normalize_list(items):
         return [item.strip() for item in items.split(",") if item.strip()]
 
     return []
+
+
+def list_to_text(items):
+    return "\n".join(normalize_list(items))
+
+
+def text_to_list(value):
+    if not value:
+        return []
+
+    clean_items = []
+
+    for line in str(value).splitlines():
+        item = line.strip()
+        item = item.lstrip("•").lstrip("-").strip()
+
+        if item:
+            clean_items.append(item)
+
+    return clean_items
 
 
 def render_list_items(items, class_name="detail-list"):
@@ -140,16 +100,21 @@ def get_time_period(time_text):
     match = re.search(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)", text)
 
     if not match:
-        return "Featured experience"
+        # 24-hour format support.
+        match_24 = re.search(r"\b(\d{1,2}):(\d{2})\b", text)
+        if not match_24:
+            return "Featured experience"
 
-    hour = int(match.group(1))
-    period = match.group(3)
+        hour = int(match_24.group(1))
+    else:
+        hour = int(match.group(1))
+        period = match.group(3)
 
-    if period == "pm" and hour != 12:
-        hour += 12
+        if period == "pm" and hour != 12:
+            hour += 12
 
-    if period == "am" and hour == 12:
-        hour = 0
+        if period == "am" and hour == 12:
+            hour = 0
 
     if hour < 12:
         return "Morning Experience"
@@ -160,12 +125,43 @@ def get_time_period(time_text):
     return "Evening Experience"
 
 
-def build_activity_block(row):
-    """
-    Keep the day-by-day section clean.
-    Activity inclusions are shown later on the separate Activity inclusions page.
-    """
+def plural_nights(value):
+    value = str(value or "").strip()
 
+    if not value:
+        return ""
+
+    if value == "1":
+        return "1 night"
+
+    return f"{value} nights"
+
+
+def meal_phrase(value):
+    value = str(value or "").strip()
+
+    if not value:
+        return ""
+
+    lower = value.lower()
+
+    if lower.startswith("with "):
+        return value
+
+    if lower in ["breakfast", "dinner", "half board", "full board", "breakfast and dinner"]:
+        return f"with {lower}"
+
+    return f"with {value}"
+
+
+def is_self_transfer(row):
+    row_type = get_row_type(row)
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+
+    return row_type == "Transfer" and "self transfer" in text
+
+
+def build_activity_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
     meeting_point = row.get("meeting_point", "")
@@ -227,18 +223,8 @@ def build_transport_block(row):
     }
 
 
-
-def is_self_transfer(row):
-    """Detect self-guided transfers so they are not treated as included services."""
-
-    row_type = get_row_type(row)
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
-
-    return row_type == "Transfer" and "self transfer" in text
-
-
-def build_self_transfer_block(row):
-    title = row.get("title", "")
+def build_self_transfer_block(row, title_override=None):
+    title = title_override or row.get("title", "")
     city = row.get("city", "")
 
     html_text = f'<div class="content-block self-transfer-block" data-row-id="{esc(row.get("row_id", ""))}">'
@@ -250,7 +236,7 @@ def build_self_transfer_block(row):
 
     html_text += (
         '<div class="body-text muted-note">'
-        'This is a self-guided transfer, so please make your own way between these points. '
+        'This is a self-guided or self-arranged travel segment, so please make your own way between these points. '
         'Transport costs are not included unless specifically stated elsewhere in the itinerary.'
         '</div>'
     )
@@ -258,6 +244,44 @@ def build_self_transfer_block(row):
 
     return {
         "kind": "self_transfer",
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
+    }
+
+
+def build_accommodation_block(row):
+    hotel_name = str(row.get("hotel_name") or row.get("title") or "Accommodation as listed").strip()
+    nights = plural_nights(row.get("hotel_nights", ""))
+    room_category = str(row.get("room_category") or "").strip()
+    meal = meal_phrase(row.get("meal_plan", ""))
+
+    accommodation_line = f"{hotel_name} or similar"
+
+    if nights:
+        accommodation_line += f" for {nights}"
+
+    room_line_parts = []
+
+    if room_category:
+        room_line_parts.append(f"Room category: {room_category}")
+
+    if meal:
+        if room_line_parts:
+            room_line_parts[-1] += f", {meal}"
+        else:
+            room_line_parts.append(meal.capitalize())
+
+    html_text = f'<div class="content-block accommodation-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Accommodation</div>'
+    html_text += f'<div class="body-text strong-line">{esc(accommodation_line)}</div>'
+
+    for line in room_line_parts:
+        html_text += f'<div class="body-text">{esc(line)}</div>'
+
+    html_text += "</div>"
+
+    return {
+        "kind": "accommodation",
         "row_id": row.get("row_id", ""),
         "html": html_text,
     }
@@ -282,7 +306,6 @@ def build_leisure_block(row=None):
         "row_id": row_id,
         "html": html_text,
     }
-
 
 
 def build_departure_block(row):
@@ -329,10 +352,16 @@ def build_day_blocks(rows):
         if row_type == "Transfer" and is_self_transfer(row):
             blocks.append(build_self_transfer_block(row))
 
+        elif row_type in TRANSPORT_TYPES and is_self_arranged(row):
+            blocks.append(build_self_transfer_block(row, title_override=title))
+
         elif row_type == "Departure":
             blocks.append(build_departure_block(row))
 
-        elif row_type in ["Arrival", "Hotel"]:
+        elif row_type == "Hotel":
+            blocks.append(build_accommodation_block(row))
+
+        elif row_type == "Arrival":
             if title:
                 included_items.append(title)
 
@@ -361,12 +390,6 @@ def build_day_blocks(rows):
 
 
 def render_day_pages(day, rows, output_edits=None):
-    """
-    One itinerary day renders as one A4 page.
-    This deliberately avoids the earlier manual page splitter, which caused
-    day-boundary bleed/duplication.
-    """
-
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     day_title = day_edits.get("title") or create_day_title(rows)
     day_intro = day_edits.get("intro") or create_day_intro(rows)
@@ -417,7 +440,8 @@ def create_activity_inclusions(parsed_rows):
         if get_row_type(row) != "Activity":
             continue
 
-        title = row.get("title", "").strip()
+        title = row.get("original_title") or row.get("title", "")
+        title = str(title).strip()
         includes = normalize_list(row.get("includes", []))
 
         if not title or not includes:
@@ -457,76 +481,7 @@ def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
     return html_text
 
 
-def auto_download_file(file_bytes, file_name, mime_type):
-    """
-    Triggers a browser download after a Streamlit button click.
-    The normal Streamlit download button below remains as a fallback.
-    """
-
-    encoded = base64.b64encode(file_bytes).decode("utf-8")
-    safe_file_name = json.dumps(file_name)
-    safe_mime_type = json.dumps(mime_type)
-
-    components.html(
-        f"""
-        <script>
-        const base64Data = "{encoded}";
-        const fileName = {safe_file_name};
-        const mimeType = {safe_mime_type};
-
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-
-        for (let i = 0; i < byteCharacters.length; i++) {{
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }}
-
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {{ type: mimeType }});
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        </script>
-        """,
-        height=0,
-    )
-
-
-
-
-def list_to_text(items):
-    return "\n".join(normalize_list(items))
-
-
-def text_to_list(value):
-    if not value:
-        return []
-
-    clean_items = []
-
-    for line in str(value).splitlines():
-        item = line.strip()
-        item = item.lstrip("•").lstrip("-").strip()
-
-        if item:
-            clean_items.append(item)
-
-    return clean_items
-
-
 def make_output_edit_state(parsed_rows, grouped_days):
-    """
-    Creates editable values from the generated output.
-    The raw Excel input stays untouched; these fields control the preview/export.
-    """
-
     edits = {
         "trip_title": create_trip_title(parsed_rows, grouped_days),
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
@@ -546,13 +501,19 @@ def make_output_edit_state(parsed_rows, grouped_days):
 
         for row in rows:
             row_id = row.get("row_id") or f'line_{row.get("line_number", len(edits["rows"]))}'
+            title = create_client_activity_title(row) if get_row_type(row) == "Activity" else row.get("title", "")
+
             edits["rows"][row_id] = {
-                "title": row.get("title", ""),
+                "title": title,
                 "city": row.get("city", ""),
                 "time": row.get("time", ""),
                 "meeting_point": row.get("meeting_point", ""),
                 "end_point": row.get("end_point", ""),
                 "luggage_included": row.get("luggage_included", ""),
+                "hotel_name": row.get("hotel_name", ""),
+                "hotel_nights": row.get("hotel_nights", ""),
+                "room_category": row.get("room_category", ""),
+                "meal_plan": row.get("meal_plan", ""),
                 "notable_sights_text": list_to_text(row.get("notable_sights", [])),
                 "includes_text": list_to_text(row.get("includes", [])),
             }
@@ -561,18 +522,26 @@ def make_output_edit_state(parsed_rows, grouped_days):
 
 
 def apply_output_edits(parsed_rows, output_edits):
-    """
-    Applies edited output values to a copy of parsed rows.
-    """
-
     edited_rows = copy.deepcopy(parsed_rows)
     row_edits = (output_edits or {}).get("rows", {})
 
     for row in edited_rows:
+        row["original_title"] = row.get("original_title") or row.get("title", "")
         row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
         edits = row_edits.get(row_id, {})
 
-        for key in ["title", "city", "time", "meeting_point", "end_point", "luggage_included"]:
+        for key in [
+            "title",
+            "city",
+            "time",
+            "meeting_point",
+            "end_point",
+            "luggage_included",
+            "hotel_name",
+            "hotel_nights",
+            "room_category",
+            "meal_plan",
+        ]:
             if key in edits:
                 row[key] = edits.get(key, "")
 
@@ -585,31 +554,75 @@ def apply_output_edits(parsed_rows, output_edits):
     return edited_rows
 
 
-def render_output_editor(parsed_rows, grouped_days, output_edits, key_suffix="0"):
-    """
-    User-facing editor for generated output text.
-    Edits update the preview, HTML download, and PDF export.
-    """
+def get_duplicate_count(raw_text_value):
+    raw_rows = [
+        line for line in raw_text_value.splitlines()
+        if "day " in line.strip().lower()
+    ]
 
+    parsed_rows = parse_itinerary(raw_text_value)
+
+    return max(len(raw_rows) - len(parsed_rows), 0)
+
+
+def get_overflow_warnings(grouped_days):
+    warnings = []
+
+    for day, rows in grouped_days.items():
+        activity_count = sum(1 for row in rows if get_row_type(row) == "Activity")
+        block_count = len(rows)
+        long_text_score = sum(len(str(row.get("title", ""))) for row in rows)
+
+        if block_count >= 7 or activity_count >= 3 or long_text_score > 520:
+            warnings.append(f"{day} may be too full for one A4 page. Review the editable output before exporting.")
+
+    return warnings
+
+
+def render_output_editor(parsed_rows, grouped_days, output_edits):
     st.subheader("Edit generated itinerary")
     st.caption("Edit the generated output here before downloading HTML or creating the PDF. The raw Excel input above is not changed.")
+
+    col_reset, col_save = st.columns([1, 2])
+
+    with col_reset:
+        if st.button("Reset edits to generated text"):
+            st.session_state.output_edits = make_output_edit_state(
+                st.session_state.parsed_rows,
+                group_rows_by_day(st.session_state.parsed_rows),
+            )
+            st.session_state.pdf_bytes = None
+            st.rerun()
+
+    with col_save:
+        project_data = {
+            "app_version": APP_VERSION,
+            "raw_text": st.session_state.get("last_generated_raw_text", ""),
+            "output_edits": output_edits,
+        }
+        st.download_button(
+            "Download editable project JSON",
+            data=json.dumps(project_data, ensure_ascii=False, indent=2).encode("utf-8"),
+            file_name="itinerary_project.json",
+            mime="application/json",
+        )
 
     with st.expander("Edit cover and summary pages", expanded=False):
         output_edits["trip_title"] = st.text_input(
             "Cover title",
             value=output_edits.get("trip_title", ""),
-            key=f"edit_trip_title_{key_suffix}",
+            key="edit_trip_title",
         )
         output_edits["trip_subtitle"] = st.text_area(
             "Cover subtitle",
             value=output_edits.get("trip_subtitle", ""),
             height=80,
-            key=f"edit_trip_subtitle_{key_suffix}",
+            key="edit_trip_subtitle",
         )
         output_edits["destinations_line"] = st.text_input(
             "Destinations line",
             value=output_edits.get("destinations_line", ""),
-            key=f"edit_destinations_line_{key_suffix}",
+            key="edit_destinations_line",
         )
 
     days = list(grouped_days.keys())
@@ -625,23 +638,23 @@ def render_output_editor(parsed_rows, grouped_days, output_edits, key_suffix="0"
                 day_edit["title"] = st.text_input(
                     f"{day} title",
                     value=day_edit.get("title", create_day_title(rows)),
-                    key=f"edit_{key_suffix}_{day}_title",
+                    key=f"edit_{day}_title",
                 )
                 day_edit["city"] = st.text_input(
                     f"{day} city",
                     value=day_edit.get("city", get_primary_city(rows)),
-                    key=f"edit_{key_suffix}_{day}_city",
+                    key=f"edit_{day}_city",
                 )
                 day_edit["intro"] = st.text_area(
                     f"{day} intro",
                     value=day_edit.get("intro", create_day_intro(rows)),
                     height=95,
-                    key=f"edit_{key_suffix}_{day}_intro",
+                    key=f"edit_{day}_intro",
                 )
 
                 with st.expander(f"Edit {day} itinerary items", expanded=False):
                     for index, row in enumerate(rows, start=1):
-                        row_id = row.get("row_id") or f'{day}_{index}'
+                        row_id = row.get("row_id") or f"{day}_{index}"
                         row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
                         row_type = get_row_type(row)
                         item_label = row_edit.get("title") or row.get("title") or f"Item {index}"
@@ -650,64 +663,90 @@ def render_output_editor(parsed_rows, grouped_days, output_edits, key_suffix="0"
                             row_edit["title"] = st.text_input(
                                 "Title / text",
                                 value=row_edit.get("title", row.get("title", "")),
-                                key=f"edit_{key_suffix}_{row_id}_title",
+                                key=f"edit_{row_id}_title",
                             )
                             row_edit["city"] = st.text_input(
                                 "City / location",
                                 value=row_edit.get("city", row.get("city", "")),
-                                key=f"edit_{key_suffix}_{row_id}_city",
+                                key=f"edit_{row_id}_city",
                             )
 
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                row_edit["time"] = st.text_input(
-                                    "Time",
-                                    value=row_edit.get("time", row.get("time", "")),
-                                    key=f"edit_{key_suffix}_{row_id}_time",
+                            if row_type == "Hotel":
+                                row_edit["hotel_name"] = st.text_input(
+                                    "Accommodation name",
+                                    value=row_edit.get("hotel_name", row.get("hotel_name", "")),
+                                    key=f"edit_{row_id}_hotel_name",
                                 )
-                                row_edit["meeting_point"] = st.text_input(
-                                    "Meeting point",
-                                    value=row_edit.get("meeting_point", row.get("meeting_point", "")),
-                                    key=f"edit_{key_suffix}_{row_id}_meeting",
-                                )
-                            with col2:
-                                row_edit["end_point"] = st.text_input(
-                                    "End point",
-                                    value=row_edit.get("end_point", row.get("end_point", "")),
-                                    key=f"edit_{key_suffix}_{row_id}_end",
-                                )
-                                row_edit["luggage_included"] = st.text_input(
-                                    "Luggage included",
-                                    value=row_edit.get("luggage_included", row.get("luggage_included", "")),
-                                    key=f"edit_{key_suffix}_{row_id}_luggage",
-                                )
+                                col_a, col_b = st.columns(2)
+                                with col_a:
+                                    row_edit["hotel_nights"] = st.text_input(
+                                        "Number of nights",
+                                        value=row_edit.get("hotel_nights", row.get("hotel_nights", "")),
+                                        key=f"edit_{row_id}_hotel_nights",
+                                    )
+                                    row_edit["room_category"] = st.text_input(
+                                        "Room category",
+                                        value=row_edit.get("room_category", row.get("room_category", "")),
+                                        key=f"edit_{row_id}_room",
+                                    )
+                                with col_b:
+                                    row_edit["meal_plan"] = st.text_input(
+                                        "Meal plan",
+                                        value=row_edit.get("meal_plan", row.get("meal_plan", "")),
+                                        key=f"edit_{row_id}_meal",
+                                    )
+                            else:
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    row_edit["time"] = st.text_input(
+                                        "Time",
+                                        value=row_edit.get("time", row.get("time", "")),
+                                        key=f"edit_{row_id}_time",
+                                    )
+                                    row_edit["meeting_point"] = st.text_input(
+                                        "Meeting point",
+                                        value=row_edit.get("meeting_point", row.get("meeting_point", "")),
+                                        key=f"edit_{row_id}_meeting",
+                                    )
+                                with col2:
+                                    row_edit["end_point"] = st.text_input(
+                                        "End point",
+                                        value=row_edit.get("end_point", row.get("end_point", "")),
+                                        key=f"edit_{row_id}_end",
+                                    )
+                                    row_edit["luggage_included"] = st.text_input(
+                                        "Luggage included",
+                                        value=row_edit.get("luggage_included", row.get("luggage_included", "")),
+                                        key=f"edit_{row_id}_luggage",
+                                    )
 
-                            row_edit["notable_sights_text"] = st.text_area(
-                                "Notable sights, one per line",
-                                value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
-                                height=90,
-                                key=f"edit_{key_suffix}_{row_id}_sights",
-                            )
-                            row_edit["includes_text"] = st.text_area(
-                                "Inclusions, one per line",
-                                value=row_edit.get("includes_text", list_to_text(row.get("includes", []))),
-                                height=100,
-                                key=f"edit_{key_suffix}_{row_id}_includes",
-                            )
+                                row_edit["notable_sights_text"] = st.text_area(
+                                    "Notable sights, one per line",
+                                    value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
+                                    height=90,
+                                    key=f"edit_{row_id}_sights",
+                                )
+                                row_edit["includes_text"] = st.text_area(
+                                    "Inclusions, one per line",
+                                    value=row_edit.get("includes_text", list_to_text(row.get("includes", []))),
+                                    height=100,
+                                    key=f"edit_{row_id}_includes",
+                                )
 
     with st.expander("Edit final inclusion / exclusion pages", expanded=False):
         output_edits["whats_included_text"] = st.text_area(
             "What’s included, one item per line",
             value=output_edits.get("whats_included_text", ""),
             height=220,
-            key=f"edit_whats_included_text_{key_suffix}",
+            key="edit_whats_included_text",
         )
         output_edits["whats_not_included_text"] = st.text_area(
             "What’s not included, one item per line",
             value=output_edits.get("whats_not_included_text", ""),
             height=180,
-            key=f"edit_whats_not_included_text_{key_suffix}",
+            key="edit_whats_not_included_text",
         )
+
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
@@ -1089,149 +1128,41 @@ def save_pdf_file(html_path):
     return pdf_path
 
 
-def get_duplicate_count(raw_text_value):
-    raw_rows = [
-        line for line in raw_text_value.splitlines()
-        if line.strip().lower().startswith("day ")
-    ]
+def auto_download_file(file_bytes, file_name, mime_type):
+    encoded = base64.b64encode(file_bytes).decode("utf-8")
+    safe_file_name = json.dumps(file_name)
+    safe_mime_type = json.dumps(mime_type)
 
-    parsed_rows = parse_itinerary(raw_text_value)
+    components.html(
+        f"""
+        <script>
+        const base64Data = "{encoded}";
+        const fileName = {safe_file_name};
+        const mimeType = {safe_mime_type};
 
-    return max(len(raw_rows) - len(parsed_rows), 0)
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
 
+        for (let i = 0; i < byteCharacters.length; i++) {{
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }}
 
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {{ type: mimeType }});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
 
-def build_current_outputs():
-    """Rebuilds HTML and output file paths from the current editable state."""
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    edited_grouped_days = group_rows_by_day(edited_rows)
-    html_text = build_itinerary_html(
-        edited_rows,
-        edited_grouped_days,
-        st.session_state.output_edits,
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        </script>
+        """,
+        height=0,
     )
-
-    st.session_state.itinerary_html = html_text
-    st.session_state.html_path = save_html_file(html_text)
-
-    return edited_rows, edited_grouped_days
-
-
-def make_project_data():
-    return {
-        "schema_version": PROJECT_SCHEMA_VERSION,
-        "app_version": APP_VERSION,
-        "saved_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "raw_text": st.session_state.get("raw_text_input", ""),
-        "output_edits": st.session_state.get("output_edits", {}),
-    }
-
-
-def make_project_json_bytes():
-    return json.dumps(make_project_data(), ensure_ascii=False, indent=2).encode("utf-8")
-
-
-def load_project_data(project_data):
-    raw_project_text = str(project_data.get("raw_text", "")).strip()
-
-    if not raw_project_text:
-        raise ValueError("The project file does not contain raw itinerary text.")
-
-    parsed_rows = parse_itinerary(raw_project_text)
-
-    if not parsed_rows:
-        raise ValueError("The project raw text could not be parsed into itinerary rows.")
-
-    grouped_days = group_rows_by_day(parsed_rows)
-    output_edits = project_data.get("output_edits")
-
-    if not isinstance(output_edits, dict):
-        output_edits = make_output_edit_state(parsed_rows, grouped_days)
-
-    st.session_state.parsed_rows = parsed_rows
-    st.session_state.output_edits = output_edits
-    st.session_state.last_generated_raw_text = raw_project_text
-    st.session_state.pdf_bytes = None
-    st.session_state.editor_revision += 1
-    build_current_outputs()
-
-    return parsed_rows, grouped_days
-
-
-def estimate_day_weight(day, rows, output_edits):
-    """
-    Lightweight visual-weight estimate for one A4 day page.
-    This does not block export; it only warns when a page may become crowded.
-    """
-
-    day_edit = (output_edits or {}).get("days", {}).get(day, {})
-    row_edits = (output_edits or {}).get("rows", {})
-    title = day_edit.get("title") or create_day_title(rows)
-    intro = day_edit.get("intro") or create_day_intro(rows)
-
-    weight = 18
-    weight += len(title) / 28
-    weight += len(intro) / 75
-
-    included_count = 0
-
-    for row in rows:
-        row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
-        edits = row_edits.get(row_id, {})
-        row_type = get_row_type(row)
-        title_text = edits.get("title", row.get("title", ""))
-
-        if row_type in ["Arrival", "Hotel"] or (row_type == "Transfer" and not is_self_transfer(row)):
-            included_count += 1
-            weight += 2.2 + len(title_text) / 65
-            continue
-
-        weight += 5 + len(title_text) / 50
-
-        for key in ["time", "meeting_point", "end_point", "luggage_included"]:
-            value = edits.get(key, row.get(key, ""))
-            if value:
-                weight += 1.7 + len(value) / 90
-
-        sights = text_to_list(edits.get("notable_sights_text", list_to_text(row.get("notable_sights", []))))
-        includes = text_to_list(edits.get("includes_text", list_to_text(row.get("includes", []))))
-
-        if row_type == "Activity" and sights:
-            weight += 2 + len(sights) * 1.35
-
-        if row_type in TRANSPORT_TYPES and includes:
-            weight += 2 + len(includes) * 1.35
-
-        if is_self_transfer(row):
-            weight += 5
-
-    if included_count:
-        weight += 4 + included_count * 1.45
-
-    return weight
-
-
-def find_page_warnings(edited_rows, edited_grouped_days, output_edits):
-    warnings = []
-
-    for day, rows in edited_grouped_days.items():
-        weight = estimate_day_weight(day, rows, output_edits)
-
-        if weight >= 78:
-            warnings.append(
-                f"{day} may be too full for one A4 page. Consider shortening the intro, free-time text, or included-today details."
-            )
-        elif weight >= 68:
-            warnings.append(
-                f"{day} is close to the practical A4 limit. Review it before exporting."
-            )
-
-    activity_count = len(create_activity_inclusions(edited_rows))
-    if activity_count > 14:
-        warnings.append("The Activity inclusions section is long and may require several PDF pages.")
-
-    return warnings
 
 
 def initialise_state():
@@ -1242,9 +1173,6 @@ def initialise_state():
         "parsed_rows": [],
         "output_edits": {},
         "last_generated_raw_text": "",
-        "editor_revision": 0,
-        "pending_project_data": None,
-        "project_loaded_message": "",
     }
 
     for key, value in defaults.items():
@@ -1252,92 +1180,110 @@ def initialise_state():
             st.session_state[key] = value
 
 
+def load_project_json(uploaded_file):
+    try:
+        data = json.loads(uploaded_file.read().decode("utf-8"))
+        raw_text = data.get("raw_text", "")
+        output_edits = data.get("output_edits", {})
+
+        parsed_rows = parse_itinerary(raw_text)
+        grouped_days = group_rows_by_day(parsed_rows)
+
+        st.session_state.parsed_rows = parsed_rows
+        st.session_state.output_edits = output_edits or make_output_edit_state(parsed_rows, grouped_days)
+        st.session_state.last_generated_raw_text = raw_text
+        st.session_state.pdf_bytes = None
+
+        edited_rows = apply_output_edits(parsed_rows, st.session_state.output_edits)
+        edited_grouped_days = group_rows_by_day(edited_rows)
+        st.session_state.itinerary_html = build_itinerary_html(edited_rows, edited_grouped_days, st.session_state.output_edits)
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        st.session_state.raw_text_input = raw_text
+
+        st.success("Editable project loaded.")
+    except Exception as error:
+        st.error("The project JSON could not be loaded.")
+        st.exception(error)
+
+
 initialise_state()
 
-if st.session_state.get("pending_project_data"):
-    try:
-        parsed_rows, grouped_days = load_project_data(st.session_state.pending_project_data)
-        st.session_state.project_loaded_message = (
-            f"Loaded editable project with {len(parsed_rows)} rows across {len(grouped_days)} days."
-        )
-    except Exception as error:
-        st.session_state.project_load_error = str(error)
-    finally:
-        st.session_state.pending_project_data = None
+with st.sidebar:
+    st.subheader("Project")
+    uploaded_project = st.file_uploader("Load editable project JSON", type=["json"])
 
-if st.session_state.get("project_loaded_message"):
-    st.success(st.session_state.project_loaded_message)
-    st.session_state.project_loaded_message = ""
+    if uploaded_project is not None and st.button("Load project"):
+        load_project_json(uploaded_project)
+        st.rerun()
 
-input_col, action_col = st.columns([2, 1])
 
-with action_col:
-    st.markdown("### Generate")
-    generate_clicked = st.button("Generate itinerary", type="primary", use_container_width=True)
+st.title("Itinerary Creator")
+st.caption(f"Fix version: {APP_VERSION}")
 
-with input_col:
-    st.caption("After generating, use the editor below to adjust the output before exporting.")
+st.write(
+    "Paste raw Excel itinerary text below. "
+    "The app will turn it into a polished A4 itinerary preview."
+)
 
-if generate_clicked:
+raw_text = st.text_area(
+    "Raw Excel text",
+    height=300,
+    placeholder="Paste itinerary rows here...",
+    key="raw_text_input",
+)
+
+if st.button("Generate itinerary"):
     if raw_text.strip():
         parsed_rows = parse_itinerary(raw_text)
         grouped_days = group_rows_by_day(parsed_rows)
         duplicate_count = get_duplicate_count(raw_text)
 
-        if not parsed_rows:
-            st.error("No valid itinerary rows were found. Please check that the pasted text starts with Day 1, Day 2, etc.")
-        else:
-            st.session_state.parsed_rows = parsed_rows
-            st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
-            st.session_state.last_generated_raw_text = raw_text
-            st.session_state.pdf_bytes = None
-            st.session_state.editor_revision += 1
-            build_current_outputs()
+        st.session_state.parsed_rows = parsed_rows
+        st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
+        st.session_state.last_generated_raw_text = raw_text
+        st.session_state.pdf_bytes = None
 
-            st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
+        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+        edited_grouped_days = group_rows_by_day(edited_rows)
+        st.session_state.itinerary_html = build_itinerary_html(
+            edited_rows,
+            edited_grouped_days,
+            st.session_state.output_edits,
+        )
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-            if duplicate_count:
-                st.warning(f"Skipped {duplicate_count} duplicate or malformed row(s).")
+        st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
 
-            with st.expander("Structured parser preview"):
-                st.dataframe(parsed_rows, use_container_width=True)
+        if duplicate_count:
+            st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
 
-            with st.expander("Day grouping debug"):
-                for day, rows in grouped_days.items():
-                    st.write(f"{day}: {len(rows)} rows")
-                    for row in rows:
-                        st.write(
-                            f"- {row.get('type')} / {row.get('effective_type')}: "
-                            f"{row.get('title')} ({row.get('city')})"
-                        )
+        overflow_warnings = get_overflow_warnings(edited_grouped_days)
 
-            st.success(f"HTML file created: {st.session_state.html_path}")
+        for warning in overflow_warnings:
+            st.warning(warning)
+
+        with st.expander("Structured parser preview"):
+            st.dataframe(parsed_rows, use_container_width=True)
+
+        with st.expander("Day grouping debug"):
+            for day, rows in grouped_days.items():
+                st.write(f"{day}: {len(rows)} rows")
+                for row in rows:
+                    st.write(
+                        f"- {row.get('type')} / {row.get('effective_type')}: "
+                        f"{row.get('title')} ({row.get('city')})"
+                    )
+
+        st.success(f"HTML file created: {st.session_state.html_path}")
 
     else:
         st.warning("Please paste some itinerary text first.")
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    edited_rows_for_editor = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    edited_grouped_for_editor = group_rows_by_day(edited_rows_for_editor)
-
-    editor_top_left, editor_top_right = st.columns([2, 1])
-    with editor_top_left:
-        st.markdown("### Edit generated output")
-        st.caption("Your edits affect the preview, HTML download, project JSON, and PDF export. The raw Excel input is kept unchanged.")
-    with editor_top_right:
-        if st.button("Reset edits to generated text", use_container_width=True):
-            original_grouped_days = group_rows_by_day(st.session_state.parsed_rows)
-            st.session_state.output_edits = make_output_edit_state(st.session_state.parsed_rows, original_grouped_days)
-            st.session_state.pdf_bytes = None
-            st.session_state.editor_revision += 1
-            build_current_outputs()
-            st.rerun()
-
     render_output_editor(
         st.session_state.parsed_rows,
-        edited_grouped_for_editor,
+        group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
         st.session_state.output_edits,
-        key_suffix=str(st.session_state.editor_revision),
     )
 
     edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
@@ -1355,45 +1301,19 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
     st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
-    st.subheader("Preview and export")
+    st.subheader("A4 itinerary preview")
 
     html_path = Path(st.session_state.html_path)
-    edited_rows_for_export = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    edited_grouped_for_export = group_rows_by_day(edited_rows_for_export)
-    page_warnings = find_page_warnings(edited_rows_for_export, edited_grouped_for_export, st.session_state.output_edits)
 
-    if page_warnings:
-        with st.expander("Export checks", expanded=True):
-            for warning in page_warnings:
-                st.warning(warning)
-    else:
-        st.success("Export checks passed. No crowded A4 pages detected by the layout estimator.")
-
-    project_col, html_col, pdf_col = st.columns(3)
-
-    with project_col:
+    with open(html_path, "rb") as html_file:
         st.download_button(
-            label="Download editable project JSON",
-            data=make_project_json_bytes(),
-            file_name="itinerary_project.json",
-            mime="application/json",
-            use_container_width=True,
+            label="Download HTML preview",
+            data=html_file,
+            file_name="itinerary_preview.html",
+            mime="text/html",
         )
 
-    with html_col:
-        with open(html_path, "rb") as html_file:
-            st.download_button(
-                label="Download HTML preview",
-                data=html_file,
-                file_name="itinerary_preview.html",
-                mime="text/html",
-                use_container_width=True,
-            )
-
-    with pdf_col:
-        create_pdf_clicked = st.button("Create PDF", use_container_width=True)
-
-    if create_pdf_clicked:
+    if st.button("Create PDF"):
         try:
             with st.spinner("Creating PDF..."):
                 pdf_path = save_pdf_file(html_path)
@@ -1408,7 +1328,7 @@ if st.session_state.itinerary_html:
 
         except Exception as error:
             st.error(
-                "PDF export failed in this environment. The itinerary preview, HTML download, and project JSON still work."
+                "PDF export failed in this environment. The itinerary preview and HTML download still work."
             )
             with st.expander("PDF export error details"):
                 st.exception(error)
