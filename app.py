@@ -26,7 +26,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v10 clean original merge"
+APP_VERSION = "2026-05-19 v11 self-transfer cleanup"
 
 
 st.set_page_config(
@@ -178,6 +178,42 @@ def build_transport_block(row):
     }
 
 
+
+def is_self_transfer(row):
+    """Detect self-guided transfers so they are not treated as included services."""
+
+    row_type = get_row_type(row)
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+
+    return row_type == "Transfer" and "self transfer" in text
+
+
+def build_self_transfer_block(row):
+    title = row.get("title", "")
+    city = row.get("city", "")
+
+    html_text = f'<div class="content-block self-transfer-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Self-guided transfer</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
+
+    if city:
+        html_text += f'<div class="body-text"><span class="meta-label">Location:</span> {esc(city)}</div>'
+
+    html_text += (
+        '<div class="body-text muted-note">'
+        'This is a self-guided transfer, so please make your own way between these points. '
+        'Transport costs are not included unless specifically stated elsewhere in the itinerary.'
+        '</div>'
+    )
+    html_text += "</div>"
+
+    return {
+        "kind": "self_transfer",
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
+    }
+
+
 def build_leisure_block(row=None):
     row_id = row.get("row_id", "") if row else ""
 
@@ -195,6 +231,22 @@ def build_leisure_block(row=None):
     return {
         "kind": "leisure",
         "row_id": row_id,
+        "html": html_text,
+    }
+
+
+
+def build_departure_block(row):
+    title = row.get("title", "") or "Departure home"
+
+    html_text = f'<div class="content-block departure-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Departure</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
+    html_text += '</div>'
+
+    return {
+        "kind": "departure",
+        "row_id": row.get("row_id", ""),
         "html": html_text,
     }
 
@@ -225,7 +277,17 @@ def build_day_blocks(rows):
         row_type = get_row_type(row)
         title = row.get("title", "")
 
-        if row_type in ["Arrival", "Transfer", "Hotel", "Departure"]:
+        if row_type == "Transfer" and is_self_transfer(row):
+            blocks.append(build_self_transfer_block(row))
+
+        elif row_type == "Departure":
+            blocks.append(build_departure_block(row))
+
+        elif row_type in ["Arrival", "Hotel"]:
+            if title:
+                included_items.append(title)
+
+        elif row_type == "Transfer":
             if title:
                 included_items.append(title)
 

@@ -347,11 +347,8 @@ def create_day_title(day_rows):
     if has_arrival and city:
         return f"Welcome to {city}"
 
-    if has_departure and has_transfer and city:
-        return f"Final transfer in {city}"
-
     if has_departure and city:
-        return f"Final arrangements in {city}"
+        return f"Final day in {city}"
 
     priority_order = [
         "Activity",
@@ -395,8 +392,8 @@ def create_day_intro(day_rows):
 
     if has_departure and city:
         return (
-            f"Today marks the end of your arranged services in {city}. "
-            f"Your final transfer arrangements are listed below."
+            f"Your journey comes to a close in {city}. The practical details below "
+            f"help keep the final day clear and easy to follow."
         )
 
     if transports and city:
@@ -452,14 +449,9 @@ def create_whats_included(parsed_rows, grouped_days):
         add_unique(included, "Breakfast included where specified")
 
     has_private_transfer = any("private transfer" in row.get("details", "").lower() for row in transfer_rows)
-    has_self_transfer = any("self transfer" in row.get("details", "").lower() for row in transfer_rows)
 
-    if has_private_transfer and has_self_transfer:
-        add_unique(included, "Transfers as listed, including private and self-guided transfers")
-    elif has_private_transfer:
+    if has_private_transfer:
         add_unique(included, "Private transfers as listed in the itinerary")
-    elif has_self_transfer:
-        add_unique(included, "Self-guided transfers as listed in the itinerary")
 
     for row in transport_rows:
         title = row.get("title", "").strip()
@@ -488,6 +480,7 @@ def create_whats_not_included(parsed_rows):
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
         "Porterage unless specified",
+        "Self-guided transfer costs unless specifically stated",
         "Travel insurance",
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",
