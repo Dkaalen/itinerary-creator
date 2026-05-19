@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import html as html_lib
 
 from bs4 import BeautifulSoup
@@ -24,6 +25,56 @@ BODY = colors.HexColor("#2f2f2f")
 MUTED = colors.HexColor("#7b746c")
 LINE = colors.HexColor("#d8cec2")
 CARD = colors.Color(1, 1, 1, alpha=0.35)
+
+
+DEFAULT_PDF_COLORS = {
+    "page_bg": "#f4efe8",
+    "ink": "#1f3446",
+    "body": "#2f2f2f",
+    "muted": "#7b746c",
+    "line": "#d8cec2",
+}
+
+
+def hex_to_color(value, fallback):
+    try:
+        value = str(value or "").strip()
+        if not value.startswith("#"):
+            return fallback
+        return colors.HexColor(value)
+    except Exception:
+        return fallback
+
+
+def apply_pdf_palette(color_data):
+    """Apply the selected HTML color preset to the ReportLab PDF renderer."""
+    global PAGE_BACKGROUND, INK, BODY, MUTED, LINE
+
+    color_data = color_data or {}
+    PAGE_BACKGROUND = hex_to_color(color_data.get("page_bg"), PAGE_BACKGROUND)
+    INK = hex_to_color(color_data.get("ink"), INK)
+    BODY = hex_to_color(color_data.get("body"), BODY)
+    MUTED = hex_to_color(color_data.get("muted"), MUTED)
+    LINE = hex_to_color(color_data.get("line"), LINE)
+
+
+def extract_pdf_palette(soup):
+    wrapper = soup.select_one(".preview-background")
+    if not wrapper:
+        return DEFAULT_PDF_COLORS
+
+    raw = wrapper.get("data-colors") or ""
+    if not raw:
+        return DEFAULT_PDF_COLORS
+
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return {**DEFAULT_PDF_COLORS, **data}
+    except Exception:
+        return DEFAULT_PDF_COLORS
+
+    return DEFAULT_PDF_COLORS
 
 
 def clean_text(value):
@@ -382,6 +433,7 @@ def export_html_to_pdf(html_path, pdf_path):
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
     soup = BeautifulSoup(html_path.read_text(encoding="utf-8"), "html.parser")
+    apply_pdf_palette(extract_pdf_palette(soup))
     pages = soup.select(".a4-page")
 
     styles = make_styles()

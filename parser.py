@@ -249,7 +249,7 @@ def create_clean_transport_title(row):
 def standardize_row_text(row):
     """Applies client-facing cleanup after row parsing and effective type detection."""
 
-    for key in ["city", "title", "details", "time", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
+    for key in ["city", "title", "details", "time", "duration", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
         if key in row and row.get(key):
             row[key] = fix_common_text(row[key])
 
@@ -562,11 +562,71 @@ def make_row_id(day, item_type, start_date, end_date, description):
     return hashlib.sha1(source.encode("utf-8")).hexdigest()[:12]
 
 
+
+
+def normalize_duration_text(value):
+    duration = clean_space(value)
+    if not duration:
+        return ""
+
+    duration = re.sub(r"\bHrs?\b", "hours", duration, flags=re.IGNORECASE)
+    duration = re.sub(r"\bHr\b", "hour", duration, flags=re.IGNORECASE)
+    duration = re.sub(r"\b(\d+)\s*hours\b", lambda m: f"{m.group(1)} hour" if m.group(1) == "1" else f"{m.group(1)} hours", duration, flags=re.IGNORECASE)
+    duration = re.sub(r"\bCruise\s+Duration\b", "Cruise duration", duration, flags=re.IGNORECASE)
+    duration = re.sub(r"\bTour\s+Duration\b", "Duration", duration, flags=re.IGNORECASE)
+    return duration.strip(" -|:")
+
+
+def split_time_and_duration(value):
+    text = clean_space(value)
+    if not text:
+        return "", ""
+
+    duration = ""
+    patterns = [
+        r"\b(Cruise\s+Duration\s+\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        r"\b(Duration\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        r"\b(\d+\s*(?:Hr|Hrs|hour|hours))\b",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            duration = normalize_duration_text(match.group(1))
+            text = (text[:match.start()] + text[match.end():]).strip(" -|:")
+            break
+
+    text = re.sub(r"\b0(\d):(\d{2})\s*pm\b", r"\1:\2 pm", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b0(\d):(\d{2})\s*am\b", r"\1:\2 am", text, flags=re.IGNORECASE)
+
+    return clean_space(text), duration
+
+
+def extract_duration_from_description(main_text):
+    standard_time = extract_detail(main_text, "Time")
+    _, duration = split_time_and_duration(standard_time)
+    if duration:
+        return duration
+
+    pipe_parts = [clean_space(part) for part in main_text.split("|")]
+    for part in pipe_parts[1:4]:
+        lower = part.lower()
+        if re.search(r"\d+\s*(hr|hrs|hour|hours)", lower):
+            return normalize_duration_text(part)
+
+    match = re.search(r"\b(Cruise\s+Duration\s+\d+\s*(?:Hr|Hrs|hour|hours))\b", main_text, flags=re.IGNORECASE)
+    if match:
+        return normalize_duration_text(match.group(1))
+
+    return ""
+
+
 def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
     if standard_time:
-        return standard_time
+        time_text, _ = split_time_and_duration(standard_time)
+        return time_text
 
     # Pipe format examples:
     # "Title | 20:00 | 5 Hrs | ..."
@@ -576,7 +636,7 @@ def extract_time_from_description(main_text):
     for part in pipe_parts[1:3]:
         lower = part.lower()
         if re.search(r"\d{1,2}(:\d{2})?\s*(am|pm)?", lower) and "hr" not in lower:
-            return part
+            return split_time_and_duration(part)[0]
 
     # Dash format without label: "Flight | Tromso to Bergen | Self Arranged"
     match = re.search(r"\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*[-–]\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b", main_text, flags=re.IGNORECASE)
@@ -584,7 +644,6 @@ def extract_time_from_description(main_text):
         return clean_space(match.group(1).replace(".", ":"))
 
     return ""
-
 
 def extract_meeting_point_from_description(main_text):
     standard_meeting = extract_detail(main_text, "Meeting point")
@@ -855,6 +914,7 @@ def parse_itinerary(raw_text):
             "title": "",
             "details": description,
             "time": "",
+            "duration": "",
             "meeting_point": "",
             "end_point": "",
             "notable_sights": [],
@@ -888,6 +948,7 @@ def parse_itinerary(raw_text):
         row["title"] = clean_title(main_text)
         row["original_title"] = row["title"]
         row["time"] = extract_time_from_description(main_text)
+        row["duration"] = extract_duration_from_description(main_text)
         row["meeting_point"] = extract_meeting_point_from_description(main_text)
         row["end_point"] = extract_detail(main_text, "End point")
         row["notable_sights"] = split_comma_list(extract_detail(main_text, "Notable Sights"))
@@ -897,6 +958,8 @@ def parse_itinerary(raw_text):
         if normalize_type(item_type) == "Hotel":
             hotel_details = parse_hotel_details(row, main_text, night_count_hint=night_count_hint)
             row.update(hotel_details)
+            if row.get("hotel_name"):
+                row["title"] = row["hotel_name"]
 
         row["effective_type"] = detect_effective_type(
             row["type"],

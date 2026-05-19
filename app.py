@@ -29,13 +29,65 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v20 colleague-format-polish"
+APP_VERSION = "2026-05-19 v21 premium-polish"
 
 
 st.set_page_config(
     page_title="Itinerary Creator",
     page_icon="🧭",
     layout="wide",
+)
+
+
+COLOR_PRESETS = {
+    "Classic Agent": {
+        "page_bg": "#f4efe8",
+        "preview_bg": "#11151b",
+        "ink": "#1f3446",
+        "body": "#2f2f2f",
+        "muted": "#7b746c",
+        "line": "#d8cec2",
+        "card": "rgba(255, 255, 255, 0.34)",
+        "accent": "#1f3446",
+    },
+    "Booknordics B2C": {
+        "page_bg": "#F7F9FB",
+        "preview_bg": "#07111F",
+        "ink": "#111827",
+        "body": "#1F2937",
+        "muted": "#64748B",
+        "line": "#D9E1EA",
+        "card": "rgba(255, 255, 255, 0.82)",
+        "accent": "#F2055C",
+    },
+}
+
+PRESET_ORDER = list(COLOR_PRESETS.keys())
+
+st.markdown(
+    """
+    <style>
+        .block-container { padding-top: 2rem; }
+        div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] h3 { margin-top: 0.25rem; }
+        .app-hero {
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 1.1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+            margin-bottom: 1rem;
+        }
+        .app-hero h1 { margin-bottom: 0.2rem; }
+        .app-hero p { margin-bottom: 0; opacity: 0.82; }
+        .section-card {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 16px;
+            padding: 1rem;
+            margin: 0.5rem 0 1rem 0;
+            background: rgba(255,255,255,0.025);
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -154,6 +206,38 @@ def meal_phrase(value):
     return f"with {value}"
 
 
+
+
+def get_color_preset_name(output_edits=None):
+    name = (output_edits or {}).get("color_preset") or st.session_state.get("color_preset", "Classic Agent")
+    if name not in COLOR_PRESETS:
+        return "Classic Agent"
+    return name
+
+
+def get_color_preset(output_edits=None):
+    return COLOR_PRESETS[get_color_preset_name(output_edits)]
+
+
+def is_self_arranged_transport(row):
+    return get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row)
+
+
+def get_activity_description(row):
+    title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+
+    if "fjellheisen" in title or "round trip ticket" in title:
+        return "Enjoy panoramic views over Tromsø, the surrounding islands, fjords, and mountains."
+
+    if "essential oslo" in title or "guided walking tour" in title:
+        return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
+
+    if "tallinn" in title:
+        return "Travel from Helsinki to Tallinn and enjoy time to explore the historic Old Town before returning to Helsinki."
+
+    return ""
+
+
 def is_self_transfer(row):
     row_type = get_row_type(row)
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
@@ -164,9 +248,11 @@ def is_self_transfer(row):
 def build_activity_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
+    duration = row.get("duration", "")
     meeting_point = row.get("meeting_point", "")
     end_point = row.get("end_point", "")
     notable_sights = normalize_list(row.get("notable_sights", []))
+    description = row.get("client_description") or get_activity_description(row)
 
     html_text = f'<div class="content-block activity-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += f'<div class="section-title">{esc(get_time_period(time))}</div>'
@@ -175,11 +261,19 @@ def build_activity_block(row):
     if time:
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
 
+    if duration:
+        duration_label = "Cruise duration" if "cruise" in duration.lower() else "Duration"
+        clean_duration = re.sub(r"^cruise duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
+
     if meeting_point:
         html_text += f'<div class="body-text"><span class="meta-label">Meeting point:</span> {esc(meeting_point)}</div>'
 
     if end_point:
         html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
+
+    if description:
+        html_text += f'<div class="body-text muted-note">{esc(description)}</div>'
 
     if notable_sights:
         html_text += '<div class="section-title small-section">Notable sights</div>'
@@ -193,10 +287,10 @@ def build_activity_block(row):
         "html": html_text,
     }
 
-
 def build_transport_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
+    duration = row.get("duration", "")
     includes = normalize_list(row.get("includes", []))
     luggage_included = row.get("luggage_included", "")
 
@@ -206,6 +300,10 @@ def build_transport_block(row):
 
     if time:
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
+
+    if duration:
+        clean_duration = re.sub(r"^duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(clean_duration)}</div>'
 
     if luggage_included:
         html_text += f'<div class="body-text"><span class="meta-label">Luggage included:</span> {esc(luggage_included)}</div>'
@@ -222,7 +320,6 @@ def build_transport_block(row):
         "html": html_text,
     }
 
-
 def build_self_transfer_block(row, title_override=None):
     title = title_override or row.get("title", "")
     city = row.get("city", "")
@@ -236,8 +333,8 @@ def build_self_transfer_block(row, title_override=None):
 
     html_text += (
         '<div class="body-text muted-note">'
-        'This is a self-guided or self-arranged travel segment, so please make your own way between these points. '
-        'Transport costs are not included unless specifically stated elsewhere in the itinerary.'
+        'This is a self-guided transfer, so please make your own way between these points. '
+        'Transfer costs are not included unless specifically stated elsewhere in the itinerary.'
         '</div>'
     )
     html_text += "</div>"
@@ -248,6 +345,32 @@ def build_self_transfer_block(row, title_override=None):
         "html": html_text,
     }
 
+
+def build_self_arranged_travel_block(row, title_override=None):
+    title = title_override or row.get("title", "")
+    city = row.get("city", "")
+    row_type = get_row_type(row).lower()
+
+    if row_type == "flight":
+        note = "This flight is self-arranged and not included in the package price unless specifically stated."
+    else:
+        note = "This travel segment is self-arranged and not included in the package price unless specifically stated."
+
+    html_text = f'<div class="content-block self-arranged-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Self-arranged travel</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
+
+    if city:
+        html_text += f'<div class="body-text"><span class="meta-label">Destination:</span> {esc(city)}</div>'
+
+    html_text += f'<div class="body-text muted-note">{esc(note)}</div>'
+    html_text += "</div>"
+
+    return {
+        "kind": "self_arranged_travel",
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
+    }
 
 def build_accommodation_block(row):
     hotel_name = str(row.get("hotel_name") or row.get("title") or "Accommodation as listed").strip()
@@ -345,20 +468,31 @@ def build_day_blocks(rows):
     blocks = []
     included_items = []
 
+    def flush_included():
+        nonlocal included_items
+        included_block = build_included_today_block(included_items)
+        if included_block:
+            blocks.append(included_block)
+        included_items = []
+
     for row in rows:
         row_type = get_row_type(row)
         title = row.get("title", "")
 
         if row_type == "Transfer" and is_self_transfer(row):
+            flush_included()
             blocks.append(build_self_transfer_block(row))
 
         elif row_type in TRANSPORT_TYPES and is_self_arranged(row):
-            blocks.append(build_self_transfer_block(row, title_override=title))
+            flush_included()
+            blocks.append(build_self_arranged_travel_block(row, title_override=title))
 
         elif row_type == "Departure":
+            flush_included()
             blocks.append(build_departure_block(row))
 
         elif row_type == "Hotel":
+            flush_included()
             blocks.append(build_accommodation_block(row))
 
         elif row_type == "Arrival":
@@ -370,24 +504,23 @@ def build_day_blocks(rows):
                 included_items.append(title)
 
         elif row_type in TRANSPORT_TYPES:
+            flush_included()
             blocks.append(build_transport_block(row))
 
         elif row_type == "Activity":
+            flush_included()
             blocks.append(build_activity_block(row))
 
         elif row_type == "Leisure":
+            flush_included()
             blocks.append(build_leisure_block(row))
 
         elif title:
             included_items.append(title)
 
-    included_block = build_included_today_block(included_items)
-
-    if included_block:
-        blocks.append(included_block)
+    flush_included()
 
     return blocks
-
 
 def render_day_pages(day, rows, output_edits=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
@@ -440,7 +573,7 @@ def create_activity_inclusions(parsed_rows):
         if get_row_type(row) != "Activity":
             continue
 
-        title = row.get("original_title") or row.get("title", "")
+        title = create_client_activity_title(row) or row.get("title", "")
         title = str(title).strip()
         includes = normalize_list(row.get("includes", []))
 
@@ -453,7 +586,6 @@ def create_activity_inclusions(parsed_rows):
         })
 
     return activity_sections
-
 
 def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
     if not activity_sections:
@@ -486,6 +618,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "trip_title": create_trip_title(parsed_rows, grouped_days),
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),
+        "color_preset": st.session_state.get("color_preset", "Classic Agent"),
         "days": {},
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
@@ -507,6 +640,8 @@ def make_output_edit_state(parsed_rows, grouped_days):
                 "title": title,
                 "city": row.get("city", ""),
                 "time": row.get("time", ""),
+                "duration": row.get("duration", ""),
+                "client_description": row.get("client_description") or get_activity_description(row),
                 "meeting_point": row.get("meeting_point", ""),
                 "end_point": row.get("end_point", ""),
                 "luggage_included": row.get("luggage_included", ""),
@@ -534,6 +669,8 @@ def apply_output_edits(parsed_rows, output_edits):
             "title",
             "city",
             "time",
+            "duration",
+            "client_description",
             "meeting_point",
             "end_point",
             "luggage_included",
@@ -708,6 +845,11 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                                         value=row_edit.get("meeting_point", row.get("meeting_point", "")),
                                         key=f"edit_{row_id}_meeting",
                                     )
+                                    row_edit["duration"] = st.text_input(
+                                        "Duration",
+                                        value=row_edit.get("duration", row.get("duration", "")),
+                                        key=f"edit_{row_id}_duration",
+                                    )
                                 with col2:
                                     row_edit["end_point"] = st.text_input(
                                         "End point",
@@ -725,6 +867,12 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                                     value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
                                     height=90,
                                     key=f"edit_{row_id}_sights",
+                                )
+                                row_edit["client_description"] = st.text_area(
+                                    "Short description / note",
+                                    value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row)),
+                                    height=75,
+                                    key=f"edit_{row_id}_description",
                                 )
                                 row_edit["includes_text"] = st.text_area(
                                     "Inclusions, one per line",
@@ -750,6 +898,9 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
+    preset_name = get_color_preset_name(output_edits)
+    colors = get_color_preset(output_edits)
+    colors_json = esc(json.dumps(colors))
 
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
@@ -772,15 +923,23 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     html_text = f"""
     <style>
         .preview-background {{
-            background: #11151b;
+            --page-bg: {esc(colors['page_bg'])};
+            --preview-bg: {esc(colors['preview_bg'])};
+            --ink: {esc(colors['ink'])};
+            --body: {esc(colors['body'])};
+            --muted: {esc(colors['muted'])};
+            --line: {esc(colors['line'])};
+            --card: {esc(colors['card'])};
+            --accent: {esc(colors['accent'])};
+            background: var(--preview-bg);
             padding: 32px 0 60px 0;
         }}
 
         .a4-page {{
             width: 794px;
             min-height: 1123px;
-            background: #f4efe8;
-            color: #1f3446;
+            background: var(--page-bg);
+            color: var(--ink);
             margin: 0 auto 32px auto;
             padding: 66px 64px;
             box-sizing: border-box;
@@ -802,7 +961,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 13px;
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: #7b746c;
+            color: var(--muted);
             margin-bottom: 18px;
         }}
 
@@ -810,14 +969,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 54px;
             line-height: 1.05;
             font-weight: 700;
-            color: #1f3446;
+            color: var(--ink);
             margin-bottom: 18px;
         }}
 
         .cover-subtitle {{
             font-size: 24px;
             line-height: 1.25;
-            color: #1f3446;
+            color: var(--ink);
             margin-bottom: 18px;
         }}
 
@@ -826,14 +985,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 15px;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            color: #2f2f2f;
+            color: var(--body);
             margin-top: 24px;
         }}
 
         .glance-card,
         .journey-arc {{
-            background: rgba(255, 255, 255, 0.34);
-            border: 1px solid #d8cec2;
+            background: var(--card);
+            border: 1px solid var(--line);
             padding: 28px;
         }}
 
@@ -845,7 +1004,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .journey-title {{
             font-size: 30px;
             margin-bottom: 16px;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .glance-row {{
@@ -856,16 +1015,16 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 14px;
             line-height: 1.45;
             padding: 8px 0;
-            border-bottom: 1px solid rgba(216, 206, 194, 0.7);
+            border-bottom: 1px solid var(--line);
         }}
 
         .glance-label {{
             font-weight: 700;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .glance-value {{
-            color: #2f2f2f;
+            color: var(--body);
         }}
 
         .journey-table {{
@@ -873,21 +1032,21 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             border-collapse: collapse;
             font-family: Arial, sans-serif;
             font-size: 14px;
-            color: #2f2f2f;
+            color: var(--body);
         }}
 
         .journey-table th {{
             text-align: left;
-            color: #1f3446;
+            color: var(--ink);
             font-weight: 700;
             padding: 10px 8px;
-            border-bottom: 1px solid #c9beb1;
+            border-bottom: 1px solid var(--line);
         }}
 
         .journey-table td {{
             padding: 12px 8px;
             vertical-align: top;
-            border-bottom: 1px solid rgba(216, 206, 194, 0.7);
+            border-bottom: 1px solid var(--line);
             line-height: 1.45;
         }}
 
@@ -899,14 +1058,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 34px;
             font-weight: 700;
             margin-bottom: 6px;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .day-title {{
             font-size: 27px;
             font-weight: 500;
             margin-bottom: 12px;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .city {{
@@ -914,7 +1073,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 12px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: #7b746c;
+            color: var(--muted);
             margin-bottom: 20px;
         }}
 
@@ -922,7 +1081,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 15px;
             line-height: 1.5;
             margin-bottom: 22px;
-            color: #2f2f2f;
+            color: var(--body);
         }}
 
         .content-block {{
@@ -939,7 +1098,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             text-transform: uppercase;
             margin-top: 15px;
             margin-bottom: 5px;
-            color: #1f3446;
+            color: var(--accent);
         }}
 
         .small-section {{
@@ -949,7 +1108,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .body-text {{
             font-size: 13.5px;
             line-height: 1.38;
-            color: #2f2f2f;
+            color: var(--body);
             margin-bottom: 5px;
         }}
 
@@ -961,13 +1120,13 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-family: Arial, sans-serif;
             font-weight: 700;
             font-size: 12px;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .final-page-title {{
             font-size: 34px;
             margin-bottom: 22px;
-            color: #1f3446;
+            color: var(--ink);
         }}
 
         .activity-inclusion-block {{
@@ -980,7 +1139,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 18px;
             line-height: 1.25;
             font-weight: 700;
-            color: #1f3446;
+            color: var(--ink);
             margin-bottom: 6px;
         }}
 
@@ -994,7 +1153,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 13.5px;
             line-height: 1.36;
             margin-bottom: 3px;
-            color: #2f2f2f;
+            color: var(--body);
         }}
 
         .final-list li {{
@@ -1024,7 +1183,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
     </style>
 
-    <div class="preview-background">
+    <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
         <div class="a4-page cover-page">
             <div class="cover-kicker">Curated Travel Itinerary</div>
@@ -1209,30 +1368,53 @@ def load_project_json(uploaded_file):
 initialise_state()
 
 with st.sidebar:
+    st.subheader("Settings")
+    current_preset = st.session_state.get("color_preset", "Classic Agent")
+    if current_preset not in PRESET_ORDER:
+        current_preset = "Classic Agent"
+
+    selected_preset = st.selectbox(
+        "Color preset",
+        PRESET_ORDER,
+        index=PRESET_ORDER.index(current_preset),
+        help="Classic Agent keeps the neutral travel-agent look. Booknordics B2C uses a cleaner branded palette.",
+    )
+    st.session_state.color_preset = selected_preset
+
+    if st.session_state.get("output_edits"):
+        st.session_state.output_edits["color_preset"] = selected_preset
+
+    show_debug = st.checkbox("Show parser/debug panels", value=False)
+
+    st.divider()
     st.subheader("Project")
     uploaded_project = st.file_uploader("Load editable project JSON", type=["json"])
 
-    if uploaded_project is not None and st.button("Load project"):
+    if uploaded_project is not None and st.button("Load project", use_container_width=True):
         load_project_json(uploaded_project)
         st.rerun()
 
-
-st.title("Itinerary Creator")
-st.caption(f"Fix version: {APP_VERSION}")
-
-st.write(
-    "Paste raw Excel itinerary text below. "
-    "The app will turn it into a polished A4 itinerary preview."
+st.markdown(
+    f"""
+    <div class="app-hero">
+        <h1>Itinerary Creator</h1>
+        <p>Paste itinerary rows, review the generated output, then export a polished A4 itinerary.</p>
+        <p style="font-size: 0.85rem; opacity: 0.65; margin-top: 0.4rem;">Version: {APP_VERSION}</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-raw_text = st.text_area(
+with st.expander("1. Paste raw itinerary text", expanded=not bool(st.session_state.itinerary_html)):
+    raw_text = st.text_area(
+
     "Raw Excel text",
     height=300,
     placeholder="Paste itinerary rows here...",
     key="raw_text_input",
 )
 
-if st.button("Generate itinerary"):
+if st.button("Generate itinerary", type="primary", use_container_width=True):
     if raw_text.strip():
         parsed_rows = parse_itinerary(raw_text)
         grouped_days = group_rows_by_day(parsed_rows)
@@ -1262,17 +1444,18 @@ if st.button("Generate itinerary"):
         for warning in overflow_warnings:
             st.warning(warning)
 
-        with st.expander("Structured parser preview"):
-            st.dataframe(parsed_rows, use_container_width=True)
+        if show_debug:
+            with st.expander("Structured parser preview"):
+                st.dataframe(parsed_rows, use_container_width=True)
 
-        with st.expander("Day grouping debug"):
-            for day, rows in grouped_days.items():
-                st.write(f"{day}: {len(rows)} rows")
-                for row in rows:
-                    st.write(
-                        f"- {row.get('type')} / {row.get('effective_type')}: "
-                        f"{row.get('title')} ({row.get('city')})"
-                    )
+            with st.expander("Day grouping debug"):
+                for day, rows in grouped_days.items():
+                    st.write(f"{day}: {len(rows)} rows")
+                    for row in rows:
+                        st.write(
+                            f"- {row.get('type')} / {row.get('effective_type')}: "
+                            f"{row.get('title')} ({row.get('city')})"
+                        )
 
         st.success(f"HTML file created: {st.session_state.html_path}")
 

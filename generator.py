@@ -98,6 +98,49 @@ def get_primary_transport_title(day_rows):
     return ""
 
 
+
+
+def has_only_departure_arrangements(day_rows):
+    """True when a day is essentially only final airport/departure logistics."""
+    if not day_rows:
+        return False
+
+    allowed_types = {"Transfer", "Departure"}
+    row_types = {get_row_type(row) for row in day_rows}
+
+    if not row_types.issubset(allowed_types):
+        return False
+
+    return has_airport_departure_transfer(day_rows) or any(get_row_type(row) == "Departure" for row in day_rows)
+
+
+def get_first_transfer_title(day_rows):
+    for row in day_rows:
+        if get_row_type(row) == "Transfer":
+            title = str(row.get("title", "")).strip()
+            if title:
+                return title
+    return ""
+
+
+def has_self_arranged_transport(day_rows):
+    return any(get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row) for row in day_rows)
+
+
+def has_norway_in_a_nutshell(rows):
+    text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in rows).lower()
+    return "norway in a nutshell" in text
+
+
+def has_glass_igloo_or_arctic_resort(rows):
+    hotel_text = " ".join(
+        f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
+        for row in rows
+        if get_row_type(row) == "Hotel"
+    ).lower()
+    return any(marker in hotel_text for marker in ["glass igloo", "kakslauttanen", "arctic resort"])
+
+
 def get_unique_cities(parsed_rows):
     cities = []
 
@@ -251,14 +294,17 @@ def create_trip_subtitle(parsed_rows, grouped_days):
     if "northern light" in text or "aurora" in text:
         themes.append("Northern Lights")
 
+    if any(marker in text for marker in ["glass igloo", "kakslauttanen", "arctic resort"]):
+        themes.append("Arctic Stays")
+
     if "fjord" in text:
         themes.append("Fjords")
 
     if "cruise" in text:
         themes.append("Coastal Cruises")
 
-    if "train" in text or "rail" in text:
-        themes.append("Scenic Rail")
+    if "train" in text or "rail" in text or "norway in a nutshell" in text:
+        themes.append("Scenic Journeys")
 
     if "food" in text or "dinner" in text or "tasting" in text:
         themes.append("Local Food")
@@ -270,7 +316,23 @@ def create_trip_subtitle(parsed_rows, grouped_days):
         themes.append("Culture")
         themes.append("Comfortable Travel")
 
-    theme_text = ", ".join(themes[:3])
+    clean_themes = []
+    for theme in themes:
+        if theme not in clean_themes:
+            clean_themes.append(theme)
+
+    theme_text = ", ".join(clean_themes[:3])
+
+    # When there are many destinations, avoid overcrowding the cover subtitle.
+    if len(cities) >= 5:
+        city_set = {city.lower() for city in cities}
+        has_finland = any(city in city_set for city in ["helsinki", "rovaniemi", "ivalo", "kakslauttanen"])
+        has_norway = any(city in city_set for city in ["tromsø", "tromso", "bergen", "oslo"])
+
+        if has_finland and has_norway:
+            return f"{day_count} Days Across Finland and Norway — {theme_text}"
+
+        return f"{day_count} Days Across the Nordics — {theme_text}"
 
     if len(cities) > 1:
         destination_text = " · ".join(cities)
@@ -280,7 +342,6 @@ def create_trip_subtitle(parsed_rows, grouped_days):
         return f"{day_count} Days in {cities[0]} — {theme_text}"
 
     return f"{day_count} Days — {theme_text}"
-
 
 def create_destinations_line(parsed_rows):
     cities = get_unique_cities(parsed_rows)
@@ -360,6 +421,19 @@ def create_trip_glance(parsed_rows, grouped_days):
 def describe_city_experience(rows):
     text = " ".join(row.get("details", "").lower() for row in rows)
 
+    if has_glass_igloo_or_arctic_resort(rows):
+        return "Arctic resort stay, glass igloo experience, remote Lapland scenery"
+
+    if has_norway_in_a_nutshell(rows):
+        return "Norway in a Nutshell route, scenic rail and fjord landscapes"
+
+    row_types = {get_row_type(row) for row in rows}
+    if row_types == {"Hotel"}:
+        return "Overnight stay and comfortable accommodation"
+
+    if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
+        return "Arrival, overnight stay and comfortable accommodation"
+
     experiences = []
 
     if any(get_row_type(row) == "Arrival" for row in rows):
@@ -396,7 +470,6 @@ def describe_city_experience(rows):
             clean_experiences.append(experience)
 
     return ", ".join(clean_experiences[:4]).capitalize()
-
 
 def create_journey_arc(grouped_days):
     chapters = []
@@ -469,6 +542,9 @@ def create_day_title(day_rows):
     transport_title = get_primary_transport_title(day_rows)
     activity_rows = [row for row in day_rows if get_row_type(row) == "Activity"]
 
+    if has_only_departure_arrangements(day_rows) and city:
+        return f"Departure from {city}"
+
     if has_arrival and city:
         return f"Welcome to {city}"
 
@@ -484,14 +560,10 @@ def create_day_title(day_rows):
         return f"Welcome to {city}"
 
     if has_departure and city:
-        return f"Final day in {city}"
+        return f"Departure from {city}"
 
-    # If the day only contains airport departure transfer(s), make it read like
-    # a proper final travel day rather than using the transfer as the headline.
-    non_transfer_types = {get_row_type(row) for row in day_rows if get_row_type(row) not in {"Transfer", "Departure"}}
-    if not non_transfer_types and has_airport_departure_transfer(day_rows) and city:
-        return f"Final day in {city}"
-
+    # If the day has an activity and later transport but no hotel check-in, let
+    # the client-facing experience lead the day title.
     if activity_rows:
         title = create_client_activity_title(activity_rows[0])
         if title:
@@ -527,6 +599,12 @@ def create_day_intro(day_rows):
     transfers = [row for row in day_rows if get_row_type(row) == "Transfer"]
     leisure = [row for row in day_rows if get_row_type(row) == "Leisure"]
 
+    if has_only_departure_arrangements(day_rows) and city:
+        transfer_title = get_first_transfer_title(day_rows).lower()
+        if "self-guided" in transfer_title or "self transfer" in transfer_title:
+            return f"After check-out, please make your own way to {city} Airport for your onward journey."
+        return f"After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
+
     if has_arrival and city:
         return (
             f"Welcome to {city}. After arrival, the day is designed to keep things "
@@ -540,23 +618,31 @@ def create_day_intro(day_rows):
         )
 
     if has_departure and city:
-        return (
-            f"Your journey comes to a close in {city}. The practical details below "
-            f"help keep the final day clear and easy to follow."
-        )
+        return f"After check-out, your final arrangements in {city} are kept simple and easy to follow."
+
+    if activities:
+        activity_title = create_client_activity_title(activities[0]) or "your included experience"
+        activity_text = get_activity_text(activities[0])
+
+        if "tallinn" in activity_text:
+            return (
+                "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
+                "the Old Town before returning to Helsinki for your onward journey."
+            )
+
+        # If this is mainly an activity day with late onward travel, keep the
+        # intro focused on the experience rather than making it sound like a
+        # generic transfer day.
+        if not has_hotel(day_rows) or not transports:
+            return (
+                f"Today, you will enjoy {activity_title} in {city}. The rest of the day "
+                f"can be shaped around your own pace, interests, and time at leisure."
+            )
 
     if transports and city:
         return (
             f"Today, you continue your journey with arranged travel connected to {city}. "
             f"The day is structured to keep the route clear, comfortable, and easy to follow."
-        )
-
-    if activities and city:
-        activity_title = create_client_activity_title(activities[0]) or "your included experience"
-
-        return (
-            f"Today, you will enjoy {activity_title} in {city}. The rest of the day "
-            f"can be shaped around your own pace, interests, and time at leisure."
         )
 
     if transfers and city:
@@ -578,6 +664,45 @@ def create_day_intro(day_rows):
         )
 
     return "Today’s arrangements are listed below."
+
+
+
+def sentence_case_transport_title(title):
+    title = str(title or "").strip()
+    replacements = {
+        "Coach Transfer": "Coach transfer",
+        "Tickets Included": "tickets included",
+        "Tickets included": "tickets included",
+        "Luggage porter service included": "luggage porter service",
+    }
+    for old, new in replacements.items():
+        title = title.replace(old, new)
+    return title
+
+
+def clean_include_item(value):
+    item = str(value or "").strip()
+    item = item.replace("Tickets included", "tickets included")
+    item = item.replace("Luggage porter service included", "luggage porter service")
+    item = item.replace("  ", " ")
+    return item
+
+
+def format_transport_inclusion(title, includes=None, luggage=""):
+    title = sentence_case_transport_title(title)
+    includes = [clean_include_item(item) for item in (includes or []) if clean_include_item(item)]
+    luggage = clean_include_item(luggage)
+
+    if luggage:
+        return f"{title}, including {luggage}"
+
+    if includes:
+        include_text = ", ".join(includes)
+        if len(includes) == 1 and "included" in include_text.lower():
+            return f"{title}, {include_text}"
+        return f"{title}, including {include_text}"
+
+    return title
 
 
 def create_whats_included(parsed_rows, grouped_days):
@@ -609,13 +734,7 @@ def create_whats_included(parsed_rows, grouped_days):
         title = row.get("title", "").strip()
         luggage = row.get("luggage_included", "").strip()
         includes = row.get("includes", [])
-
-        if luggage:
-            add_unique(included, f"{title}, including {luggage}")
-        elif includes:
-            add_unique(included, f"{title} with {', '.join(includes)}")
-        else:
-            add_unique(included, title)
+        add_unique(included, format_transport_inclusion(title, includes, luggage))
 
     for row in activity_rows:
         title = create_client_activity_title(row) or row.get("title", "").strip()
@@ -625,19 +744,17 @@ def create_whats_included(parsed_rows, grouped_days):
 
     return included
 
-
 def create_whats_not_included(parsed_rows):
     return [
         "International flights unless specifically listed",
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
         "Porterage unless specified",
-        "Self-guided or self-arranged transfer costs unless specifically stated",
+        "Self-guided transfers and self-arranged travel costs unless specifically stated",
         "Travel insurance",
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",
     ]
-
 
 def create_final_note(parsed_rows, grouped_days):
     # Kept for backward compatibility with older imports.
