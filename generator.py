@@ -761,19 +761,25 @@ def sentence_case_transport_title(title):
 
 
 def clean_include_item(value, context_title=""):
+    """Normalize inclusion bullet wording for both summaries and day blocks."""
     item = str(value or "").strip()
     lower = item.lower()
     context_lower = str(context_title or "").lower()
 
     if lower in {"tickets included", "ticket included"}:
         if "coach" in context_lower or "bus" in context_lower:
-            return "coach ticket"
+            return "Coach ticket"
         if "train" in context_lower:
-            return "train ticket"
-        return "ticket"
+            return "Train ticket"
+        if "ferry" in context_lower or "cruise" in context_lower:
+            return "Ticket"
+        return "Ticket"
 
     if lower == "luggage porter service included":
-        return "luggage porter service"
+        return "Luggage porter service"
+
+    if lower.endswith(" included") and len(item.split()) <= 5:
+        return item[:-9].strip().capitalize()
 
     item = item.replace("Tickets included", "tickets included")
     item = item.replace("Luggage porter service included", "luggage porter service")
@@ -838,7 +844,7 @@ def create_whats_included(parsed_rows, grouped_days):
 
     return included
 
-def create_whats_not_included(parsed_rows):
+def create_whats_not_included():
     return [
         "International flights unless specifically listed",
         "Meals unless specifically stated",

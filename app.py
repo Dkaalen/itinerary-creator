@@ -1,14 +1,12 @@
 from pathlib import Path
-import base64
 import copy
 import html
 import json
 import re
 
 import streamlit as st
-import streamlit.components.v1 as components
-
-from parser import parse_itinerary, normalize_time_text
+import diagnostics
+from itinerary_parser import parse_itinerary, normalize_time_text
 from pdf_exporter import export_html_to_pdf
 from generator import (
     TRANSPORT_TYPES,
@@ -22,6 +20,7 @@ from generator import (
     create_trip_title,
     create_whats_included,
     create_whats_not_included,
+    clean_include_item,
     get_primary_city,
     get_row_type,
     group_rows_by_day,
@@ -29,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v25b activity-inclusions-pagination-polish"
+APP_VERSION = "2026-05-19 v27 diagnostics-safer-download-parser-rename"
 
 
 st.set_page_config(
@@ -133,32 +132,6 @@ def text_to_list(value):
 def display_time(value):
     return normalize_time_text(value)
 
-
-def clean_include_display_item(item, context_title=""):
-    text = str(item or "").strip()
-    lower = text.lower()
-    context_lower = str(context_title or "").lower()
-
-    if lower in {"tickets included", "ticket included"}:
-        if "coach" in context_lower or "bus" in context_lower:
-            return "Coach ticket"
-        if "train" in context_lower:
-            return "Train ticket"
-        if "ferry" in context_lower or "cruise" in context_lower:
-            return "Ticket"
-        return "Ticket"
-
-    if lower == "luggage porter service included":
-        return "Luggage porter service"
-
-    if lower.endswith(" included") and len(text.split()) <= 5:
-        return text[:-9].strip().capitalize()
-
-    return text
-
-
-def clean_include_display_items(items, context_title=""):
-    return [clean_include_display_item(item, context_title) for item in normalize_list(items)]
 
 
 def get_activity_logistics(row):
@@ -362,8 +335,8 @@ def build_transport_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
     duration = row.get("duration", "")
-    includes = clean_include_display_items(row.get("includes", []), title)
-    luggage_included = clean_include_display_item(row.get("luggage_included", ""), title)
+    includes = [clean_include_item(item, title) for item in normalize_list(row.get("includes", []))]
+    luggage_included = clean_include_item(row.get("luggage_included", ""), title)
 
     html_text = f'<div class="content-block transport-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Travel today</div>'
@@ -683,7 +656,7 @@ def clean_activity_inclusion_items(items, title=""):
         if len(text) > 150 and "included" not in lower:
             continue
 
-        text = clean_include_display_item(text, title)
+        text = clean_include_item(text, title)
         if text and text not in clean_items:
             clean_items.append(text)
 
@@ -731,7 +704,7 @@ def create_optional_addons(parsed_rows):
             title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
         duration = str(row.get("duration", "")).strip()
-        includes = clean_include_display_items(row.get("includes", []), title)
+        includes = [clean_include_item(item, title) for item in normalize_list(row.get("includes", []))]
         if row_type == "Activity" and not includes:
             includes = get_fallback_activity_inclusions(row)
         meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
@@ -881,7 +854,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "days": {},
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
-        "whats_not_included_text": list_to_text(create_whats_not_included(parsed_rows)),
+        "whats_not_included_text": list_to_text(create_whats_not_included()),
     }
 
     for day, rows in grouped_days.items():
@@ -950,15 +923,15 @@ def apply_output_edits(parsed_rows, output_edits):
     return edited_rows
 
 
-def get_duplicate_count(raw_text_value):
+def get_duplicate_count(raw_text_value, parsed_rows=None):
     raw_rows = [
         line for line in raw_text_value.splitlines()
         if "day " in line.strip().lower()
     ]
 
-    parsed_rows = parse_itinerary(raw_text_value)
+    parsed_count = len(parsed_rows) if parsed_rows is not None else len(parse_itinerary(raw_text_value))
 
-    return max(len(raw_rows) - len(parsed_rows), 0)
+    return max(len(raw_rows) - parsed_count, 0)
 
 
 def get_overflow_warnings(grouped_days):
@@ -1178,7 +1151,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     if output_edits.get("whats_not_included_text"):
         whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
     else:
-        whats_not_included = create_whats_not_included(parsed_rows)
+        whats_not_included = create_whats_not_included()
 
     html_text = f"""
     <style>
@@ -1526,63 +1499,39 @@ def build_full_html_document(itinerary_html):
 
 
 def save_html_file(itinerary_html):
-    outputs_folder = Path("outputs")
-    outputs_folder.mkdir(exist_ok=True)
+    try:
+        outputs_folder = Path("outputs")
+        outputs_folder.mkdir(exist_ok=True)
 
-    output_path = outputs_folder / "itinerary_preview.html"
-    full_html = build_full_html_document(itinerary_html)
+        output_path = outputs_folder / "itinerary_preview.html"
+        full_html = build_full_html_document(itinerary_html)
+        output_path.write_text(full_html, encoding="utf-8")
 
-    output_path.write_text(full_html, encoding="utf-8")
-
-    return output_path
+        return output_path
+    except Exception as error:
+        st.error("Could not save the HTML file to disk. The preview still works, but HTML/PDF downloads may not work.")
+        with st.expander("HTML save error details"):
+            st.exception(error)
+        return None
 
 
 def save_pdf_file(html_path):
-    outputs_folder = Path("outputs")
-    outputs_folder.mkdir(exist_ok=True)
+    try:
+        if not html_path:
+            raise ValueError("HTML path is missing. Regenerate the itinerary before creating the PDF.")
 
-    pdf_path = outputs_folder / "itinerary_preview.pdf"
+        outputs_folder = Path("outputs")
+        outputs_folder.mkdir(exist_ok=True)
 
-    export_html_to_pdf(html_path, pdf_path)
+        pdf_path = outputs_folder / "itinerary_preview.pdf"
+        export_html_to_pdf(html_path, pdf_path)
 
-    return pdf_path
-
-
-def auto_download_file(file_bytes, file_name, mime_type):
-    encoded = base64.b64encode(file_bytes).decode("utf-8")
-    safe_file_name = json.dumps(file_name)
-    safe_mime_type = json.dumps(mime_type)
-
-    components.html(
-        f"""
-        <script>
-        const base64Data = "{encoded}";
-        const fileName = {safe_file_name};
-        const mimeType = {safe_mime_type};
-
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-
-        for (let i = 0; i < byteCharacters.length; i++) {{
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }}
-
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {{ type: mimeType }});
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        </script>
-        """,
-        height=0,
-    )
+        return pdf_path
+    except Exception as error:
+        st.error("Could not save the PDF file to disk.")
+        with st.expander("PDF save error details"):
+            st.exception(error)
+        return None
 
 
 def initialise_state():
@@ -1677,9 +1626,10 @@ with st.expander("1. Paste raw itinerary text", expanded=not bool(st.session_sta
 
 if st.button("Generate itinerary", type="primary", use_container_width=True):
     if raw_text.strip():
+        diagnostics.reset()
         parsed_rows = parse_itinerary(raw_text)
         grouped_days = group_rows_by_day(parsed_rows)
-        duplicate_count = get_duplicate_count(raw_text)
+        duplicate_count = get_duplicate_count(raw_text, parsed_rows)
 
         st.session_state.parsed_rows = parsed_rows
         st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
@@ -1718,7 +1668,29 @@ if st.button("Generate itinerary", type="primary", use_container_width=True):
                             f"{row.get('title')} ({row.get('city')})"
                         )
 
-        st.success(f"HTML file created: {st.session_state.html_path}")
+        if st.session_state.html_path:
+            st.success(f"HTML file created: {st.session_state.html_path}")
+
+        if diagnostics.has_warnings():
+            warnings = diagnostics.get_warnings()
+            with st.expander(f"Parser diagnostics ({len(warnings)} notice(s)) — click to review"):
+                st.caption(
+                    "These are things the parser could not fully understand. "
+                    "If something looks wrong in the output, the cause may be listed here. "
+                    "Use these notes to improve the parser over time."
+                )
+                for entry in warnings:
+                    st.markdown(f"**{entry['category']}** — {entry['message']}")
+                    if entry.get("raw"):
+                        st.code(entry["raw"], language=None)
+
+                diagnostics_text = []
+                for entry in warnings:
+                    diagnostics_text.append(f"[{entry['category']}] {entry['message']}")
+                    if entry.get("raw"):
+                        diagnostics_text.append(f"  Raw: {entry['raw']}")
+                with st.expander("Show diagnostics text for copying"):
+                    st.code("\n".join(diagnostics_text), language=None)
 
     else:
         st.warning("Please paste some itinerary text first.")
@@ -1747,28 +1719,30 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
 if st.session_state.itinerary_html:
     st.subheader("A4 itinerary preview")
 
-    html_path = Path(st.session_state.html_path)
+    html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
 
-    with open(html_path, "rb") as html_file:
-        st.download_button(
-            label="Download HTML preview",
-            data=html_file,
-            file_name="itinerary_preview.html",
-            mime="text/html",
-        )
+    if html_path and html_path.exists():
+        with open(html_path, "rb") as html_file:
+            st.download_button(
+                label="Download HTML preview",
+                data=html_file,
+                file_name="itinerary_preview.html",
+                mime="text/html",
+            )
+    else:
+        st.warning("HTML file could not be saved, so HTML/PDF downloads are temporarily unavailable. The preview still works.")
 
     if st.button("Create PDF"):
         try:
             with st.spinner("Creating PDF..."):
                 pdf_path = save_pdf_file(html_path)
-                st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
+                if pdf_path is None:
+                    st.session_state.pdf_bytes = None
+                else:
+                    st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
 
-            st.success("PDF created. Your browser should start the download automatically.")
-            auto_download_file(
-                st.session_state.pdf_bytes,
-                "itinerary_preview.pdf",
-                "application/pdf",
-            )
+            if st.session_state.pdf_bytes:
+                st.success("PDF created. Click the button below to download.")
 
         except Exception as error:
             st.error(
@@ -1779,7 +1753,7 @@ if st.session_state.itinerary_html:
 
     if st.session_state.pdf_bytes:
         st.download_button(
-            label="Download PDF again",
+            label="Download PDF",
             data=st.session_state.pdf_bytes,
             file_name="itinerary_preview.pdf",
             mime="application/pdf",
