@@ -177,6 +177,24 @@ def standardize_self_transfer_title(title, details, city):
     return fix_common_text(title).replace("Self transfer", "Self-guided transfer")
 
 
+def standardize_shuttle_transfer_title(title, details, city):
+    text = fix_common_text(f"{title} {details}")
+    origin, destination = extract_route_points(text)
+
+    if destination:
+        if origin:
+            return f"Shuttle transfer from {origin} to {destination}"
+        return f"Shuttle transfer to {destination}"
+
+    airport = city_airport(city)
+    lower = text.lower()
+
+    if "airport" in lower:
+        return f"Shuttle transfer to {airport}"
+
+    return fix_common_text(title) or "Shuttle transfer"
+
+
 def create_clean_transport_title(row):
     row_type = row.get("effective_type") or row.get("type", "")
     title = fix_common_text(row.get("title", ""))
@@ -250,6 +268,8 @@ def standardize_row_text(row):
             row["title"] = standardize_self_transfer_title(title, details, city)
         elif "private" in combined_lower:
             row["title"] = standardize_private_transfer_title(title, details, city)
+        elif "shuttle" in combined_lower:
+            row["title"] = standardize_shuttle_transfer_title(title, details, city)
 
     if row_type in {"Transport", "Train", "Flight", "Cruise", "Ferry"}:
         row["title"] = create_clean_transport_title(row)
@@ -364,12 +384,20 @@ def split_comma_list(text, *, protect_compound_phrases=False):
 
     text = str(text).replace("\r", "\n")
 
-    # Multiline supplier blocks should stay as one item per line.
+    # Multiline supplier blocks should normally be one item per line. If a
+    # pasted line itself contains several comma-separated inclusions, split that
+    # line as well, while later re-merging protected phrases such as
+    # "Professional, English-speaking guide".
     if "\n" in text:
         parts = []
         for line in text.splitlines():
             clean_line = clean_space(line.strip("•-* \t"))
-            if clean_line:
+            if not clean_line:
+                continue
+            comma_parts = [clean_space(item) for item in clean_line.split(",") if clean_space(item)]
+            if len(comma_parts) > 1:
+                parts.extend(comma_parts)
+            else:
                 parts.append(clean_line)
     else:
         parts = [clean_space(item) for item in str(text).split(",") if clean_space(item)]
@@ -470,11 +498,17 @@ def find_day_index(parts):
 
 
 def find_description_cell(parts):
-    for part in reversed(parts):
-        value = clean_space(part)
+    """
+    Return the rightmost non-empty cell as the description, while preserving
+    internal line breaks from long pasted supplier descriptions.
+    """
 
-        if value:
-            return value.strip('"')
+    for part in reversed(parts):
+        raw_value = str(part or "").strip()
+
+        if raw_value:
+            value = raw_value.strip('"')
+            return value.strip()
 
     return ""
 

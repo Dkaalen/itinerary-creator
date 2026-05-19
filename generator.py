@@ -47,6 +47,57 @@ def add_unique(items, item):
         items.append(clean_item)
 
 
+def clean_client_title(value):
+    """Small client-facing title cleanup used after parsing."""
+
+    title = str(value or "").strip()
+    if not title:
+        return ""
+
+    # Remove over-marketing phrases that should not appear in polished itineraries.
+    cleanup_phrases = [
+        "with 97% Success Rate",
+        "with Pro Photos Included",
+        "with Pro Photographer",
+        "with Professional Photographer",
+        "Included",
+    ]
+
+    for phrase in cleanup_phrases:
+        title = title.replace(phrase, "")
+
+    title = title.replace("  ", " ").strip(" -:|")
+    return title
+
+
+def get_activity_text(row):
+    return f'{row.get("original_title", "")} {row.get("title", "")} {row.get("details", "")}'.lower()
+
+
+def has_hotel(day_rows):
+    return any(get_row_type(row) == "Hotel" for row in day_rows)
+
+
+def has_airport_arrival_transfer(day_rows):
+    text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
+    return ("airport" in text and ("to hotel" in text or "to accommodation" in text or "to your accommodation" in text))
+
+
+def has_airport_departure_transfer(day_rows):
+    text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
+    return ("airport" in text and ("hotel to" in text or "accommodation to" in text or "to airport" in text))
+
+
+def get_primary_transport_title(day_rows):
+    for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
+        for row in day_rows:
+            if get_row_type(row) == preferred_type:
+                title = str(row.get("title", "")).strip()
+                if title:
+                    return title
+    return ""
+
+
 def get_unique_cities(parsed_rows):
     cities = []
 
@@ -81,7 +132,7 @@ def get_primary_city(day_rows):
     if not day_rows:
         return ""
 
-    priority_types = ["Hotel", "Activity", "Arrival", "Departure", "Flight", "Train", "Cruise", "Ferry", "Transfer"]
+    priority_types = ["Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Activity", "Arrival", "Departure", "Transfer"]
 
     for preferred_type in priority_types:
         for row in day_rows:
@@ -94,12 +145,21 @@ def get_primary_city(day_rows):
 
 
 def create_client_activity_title(row):
-    title = str(row.get("title", "") or "").strip()
-    original_title = str(row.get("original_title", "") or title).strip()
+    title = clean_client_title(row.get("title", ""))
+    original_title = clean_client_title(row.get("original_title", "") or title)
     details = str(row.get("details", "") or "")
 
     title_text = f"{original_title} {title}".lower()
     full_text = f"{title_text} {details}".lower()
+
+    if "tallinn" in full_text:
+        return "Day Trip to Tallinn"
+
+    if "round trip ticket" in full_text and "trom" in full_text:
+        return "Fjellheisen Cable Car"
+
+    if title_text.startswith("round trip ticket"):
+        return "Round Trip Ticket"
 
     title_has_northern_lights = (
         "northern light" in title_text
@@ -405,20 +465,42 @@ def create_day_title(day_rows):
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
+    hotel_present = has_hotel(day_rows)
+    transport_title = get_primary_transport_title(day_rows)
+    activity_rows = [row for row in day_rows if get_row_type(row) == "Activity"]
 
     if has_arrival and city:
+        return f"Welcome to {city}"
+
+    # Travel days with a hotel check-in should be titled by the main travel
+    # movement rather than by a later evening activity or transfer.
+    if hotel_present and transport_title:
+        return transport_title
+
+    # Colleague format often starts with a transfer + hotel, without an explicit
+    # Arrival row. Treat airport-to-hotel + accommodation as an arrival day only
+    # when there is no separate flight/train/coach movement on the same day.
+    if hotel_present and has_airport_arrival_transfer(day_rows) and city:
         return f"Welcome to {city}"
 
     if has_departure and city:
         return f"Final day in {city}"
 
+    # If the day only contains airport departure transfer(s), make it read like
+    # a proper final travel day rather than using the transfer as the headline.
+    non_transfer_types = {get_row_type(row) for row in day_rows if get_row_type(row) not in {"Transfer", "Departure"}}
+    if not non_transfer_types and has_airport_departure_transfer(day_rows) and city:
+        return f"Final day in {city}"
+
+    if activity_rows:
+        title = create_client_activity_title(activity_rows[0])
+        if title:
+            return title
+
+    if transport_title:
+        return transport_title
+
     priority_order = [
-        "Activity",
-        "Transport",
-        "Train",
-        "Flight",
-        "Cruise",
-        "Ferry",
         "Transfer",
         "Hotel",
         "Leisure",
@@ -429,14 +511,10 @@ def create_day_title(day_rows):
             if get_row_type(row) == item_type:
                 title = row.get("title", "").strip()
 
-                if item_type == "Activity":
-                    title = create_client_activity_title(row)
-
                 if title:
                     return title
 
     return "Day at leisure"
-
 
 def create_day_intro(day_rows):
     city = get_primary_city(day_rows)
@@ -450,6 +528,12 @@ def create_day_intro(day_rows):
     leisure = [row for row in day_rows if get_row_type(row) == "Leisure"]
 
     if has_arrival and city:
+        return (
+            f"Welcome to {city}. After arrival, the day is designed to keep things "
+            f"simple and comfortable as you settle into your accommodation."
+        )
+
+    if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
         return (
             f"Welcome to {city}. After arrival, the day is designed to keep things "
             f"simple and comfortable as you settle into your accommodation."

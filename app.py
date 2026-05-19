@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v19 transfer-title-polish"
+APP_VERSION = "2026-05-19 v20 colleague-format-polish"
 
 
 st.set_page_config(
