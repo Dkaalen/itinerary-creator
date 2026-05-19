@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v30-review-assistant-detail-level"
+APP_VERSION = "2026-05-19 v30b-review-assistant-hotfix"
 
 
 st.set_page_config(
@@ -263,6 +263,54 @@ def get_color_preset_name(output_edits=None):
 
 def get_color_preset(output_edits=None):
     return COLOR_PRESETS[get_color_preset_name(output_edits)]
+
+
+def get_detail_level_name(output_edits=None):
+    """Return a safe client-facing detail level for the current state.
+
+    This helper is intentionally defensive because the app can be rebuilt from
+    session state, loaded project JSON, or freshly generated edits. A missing
+    detail level should never break itinerary rendering.
+    """
+    name = (output_edits or {}).get("detail_level") or st.session_state.get("detail_level", "Standard client itinerary")
+    if name not in DETAIL_LEVELS:
+        return "Standard client itinerary"
+    return name
+
+
+def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
+    """Refresh generated intros/descriptions when detail level changes.
+
+    Manual edits are preserved. A field is only replaced if it still matches
+    the old generated wording. This keeps the detail selector useful without
+    unexpectedly wiping custom edits.
+    """
+    if not parsed_rows or not output_edits or old_detail == new_detail:
+        return output_edits
+
+    old_detail = old_detail if old_detail in DETAIL_LEVELS else "Standard client itinerary"
+    new_detail = new_detail if new_detail in DETAIL_LEVELS else "Standard client itinerary"
+    grouped_days = group_rows_by_day(parsed_rows)
+
+    for day, rows in grouped_days.items():
+        day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+        old_intro = create_day_intro(rows, detail_level=old_detail)
+        new_intro = create_day_intro(rows, detail_level=new_detail)
+        current_intro = day_edit.get("intro", "")
+        if not current_intro or current_intro == old_intro:
+            day_edit["intro"] = new_intro
+
+        for row in rows:
+            row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
+            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+            old_description = get_activity_description(row, old_detail)
+            new_description = get_activity_description(row, new_detail)
+            current_description = row_edit.get("client_description", "")
+            if old_description and (not current_description or current_description == old_description):
+                row_edit["client_description"] = new_description
+
+    output_edits["detail_level"] = new_detail
+    return output_edits
 
 
 def is_self_arranged_transport(row):
@@ -1906,6 +1954,7 @@ with st.sidebar:
         index=DETAIL_LEVELS.index(current_detail),
         help="Controls how much client-facing description is generated. Existing manual edits are preserved.",
     )
+    previous_detail = st.session_state.get("detail_level", "Standard client itinerary")
     st.session_state.detail_level = selected_detail
     if selected_detail == "Elegant concise":
         st.caption("Short, polished, and practical.")
@@ -1916,7 +1965,15 @@ with st.sidebar:
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
-        st.session_state.output_edits["detail_level"] = selected_detail
+        st.session_state.output_edits = refresh_generated_text_for_detail_level(
+            st.session_state.get("parsed_rows", []),
+            st.session_state.output_edits,
+            previous_detail,
+            selected_detail,
+        )
+        if previous_detail != selected_detail:
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Needs refresh"
 
     show_debug = st.checkbox("Show parser/debug panels", value=False)
 
@@ -2027,9 +2084,10 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
         st.session_state.pdf_bytes = None
         if st.session_state.itinerary_html:
             st.session_state.pdf_status = "Needs refresh"
-
-    st.session_state.itinerary_html = rebuilt_html
-    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        st.session_state.itinerary_html = rebuilt_html
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+    elif st.session_state.itinerary_html and not st.session_state.html_path:
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
     st.subheader("Step 4 — Export")
