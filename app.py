@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v34c-smarter-packing-title-logic"
+APP_VERSION = "2026-05-19 v34d-travel-sequence-inclusion-packing"
 
 
 st.set_page_config(
@@ -811,9 +811,105 @@ def build_included_today_block(items):
     }
 
 
+def is_travel_sequence_candidate(row):
+    """Rows that should be grouped into one clean travel sequence on mixed travel days."""
+
+    row_type = get_row_type(row)
+
+    if row_type == "Transfer":
+        return True
+
+    if row_type in TRANSPORT_TYPES:
+        return True
+
+    return False
+
+
+def should_use_travel_sequence(rows):
+    """Use one travel-sequence block when a day mixes transfers with a main travel movement.
+
+    This avoids fragmented pages like Included today → Self-arranged travel → Included today.
+    The rule is general: if a day combines local logistics with flight/train/coach/ferry/cruise
+    movement, the client sees the route as one ordered sequence.
+    """
+
+    travel_rows = [row for row in rows if is_travel_sequence_candidate(row)]
+    if len(travel_rows) < 2:
+        return False
+
+    has_transfer = any(get_row_type(row) == "Transfer" for row in travel_rows)
+    has_major_movement = any(
+        get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row) or is_self_arranged(row)
+        for row in travel_rows
+    )
+
+    # Keep simple transfer-only days in the classic Included today layout.
+    return has_transfer and has_major_movement
+
+
+def get_travel_sequence_line(row):
+    row_type = get_row_type(row)
+
+    if row_type == "Transfer" and is_self_arranged(row):
+        title = polish_title(get_transfer_travel_title(row) or row.get("title", "Self-arranged travel"))
+        return f"{title} (self-arranged, not included)"
+
+    if row_type in TRANSPORT_TYPES and is_self_arranged(row):
+        title = polish_title(row.get("title", "Self-arranged travel"))
+        if row_type == "Flight" and title.lower().startswith("flight"):
+            return f"Self-arranged {title[0].lower() + title[1:]} (not included)"
+        return f"{title} (self-arranged, not included)"
+
+    if row_type == "Transfer" and is_route_transfer(row):
+        return polish_title(get_transfer_travel_title(row) or row.get("title", ""))
+
+    if row_type == "Transfer":
+        return polish_title(row.get("title", ""))
+
+    if row_type in TRANSPORT_TYPES:
+        return polish_title(row.get("title", ""))
+
+    return polish_title(row.get("title", ""))
+
+
+def build_travel_sequence_block(rows):
+    sequence_items = []
+    consumed_ids = set()
+
+    for row in rows:
+        if not is_travel_sequence_candidate(row):
+            continue
+
+        line = get_travel_sequence_line(row)
+        if line:
+            sequence_items.append(line)
+            consumed_ids.add(row.get("row_id", ""))
+
+    sequence_items = polish_inclusion_items(sequence_items)
+    if not sequence_items:
+        return None, set()
+
+    html_text = '<div class="content-block travel-sequence-block">'
+    html_text += '<div class="section-title">Travel sequence</div>'
+    html_text += render_list_items(sequence_items)
+    html_text += "</div>"
+
+    return {
+        "kind": "travel_sequence",
+        "row_id": "travel-sequence",
+        "html": html_text,
+    }, consumed_ids
+
+
 def build_day_blocks(rows):
     blocks = []
     included_items = []
+    consumed_row_ids = set()
+
+    if should_use_travel_sequence(rows):
+        sequence_block, consumed_row_ids = build_travel_sequence_block(rows)
+        if sequence_block:
+            blocks.append(sequence_block)
 
     def flush_included():
         nonlocal included_items
@@ -825,6 +921,10 @@ def build_day_blocks(rows):
     for row in rows:
         row_type = get_row_type(row)
         title = row.get("title", "")
+        row_id = row.get("row_id", "")
+
+        if row_id in consumed_row_ids:
+            continue
 
         if row_type == "Transfer" and is_self_transfer(row):
             flush_included()
@@ -1296,18 +1396,18 @@ def estimate_activity_inclusion_units(section):
     """
 
     includes = normalize_list(section.get("includes", []))
-    title_units = 2.4
+    title_units = 2.1
     bullet_units = 0
 
     for item in includes:
         # One normal bullet line plus extra allowance for wrapped text.
-        bullet_units += 1.0 + max(0, (len(str(item)) - 78) / 78)
+        bullet_units += 0.9 + max(0, (len(str(item)) - 86) / 86)
 
     # Small spacing between activity sections.
-    return title_units + bullet_units + 0.8
+    return title_units + bullet_units + 0.55
 
 
-def chunk_activity_inclusions(activity_sections, max_units=34):
+def chunk_activity_inclusions(activity_sections, max_units=43):
     chunks = []
     current_chunk = []
     current_units = 0
