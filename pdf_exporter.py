@@ -14,8 +14,7 @@ from reportlab.platypus import (
     PageBreak,
     Table,
     TableStyle,
-    ListFlowable,
-    ListItem,
+    KeepTogether,
 )
 
 
@@ -184,6 +183,9 @@ def make_styles():
             fontSize=10.0,
             leading=13,
             textColor=BODY,
+            leftIndent=0,
+            firstLineIndent=0,
+            spaceAfter=0,
         ),
         "table_header": ParagraphStyle(
             "table_header",
@@ -214,30 +216,56 @@ def add_paragraph(story, text, style, spacer_after=0):
 
 
 def add_bullets(story, items, styles):
+    """
+    Render bullet lists as a two-column table instead of ReportLab's ListFlowable.
+
+    ListFlowable can look acceptable in some viewers, but in generated PDFs it can
+    place the bullet glyph on its own baseline/line when text wraps. A tiny table
+    gives a stable bullet column and a separate text column, so bullets stay
+    visually aligned in the PDF.
+    """
+
     clean_items = [clean_text(item) for item in items if clean_text(item)]
     if not clean_items:
         return
 
-    bullets = [
-        ListItem(
-            Paragraph(para_text(item), styles["bullet"]),
-            leftIndent=0,
-        )
-        for item in clean_items
-    ]
+    bullet_style = ParagraphStyle(
+        "bullet_symbol",
+        parent=styles["bullet"],
+        fontName="Helvetica",
+        fontSize=8.2,
+        leading=13,
+        textColor=BODY,
+        alignment=TA_LEFT,
+    )
 
-    story.append(
-        ListFlowable(
-            bullets,
-            bulletType="bullet",
-            leftIndent=14,
-            bulletFontName="Helvetica",
-            bulletFontSize=7,
-            bulletColor=BODY,
-            spaceBefore=2,
-            spaceAfter=8,
+    rows = []
+    for item in clean_items:
+        rows.append([
+            Paragraph("&#8226;", bullet_style),
+            Paragraph(para_text(item), styles["bullet"]),
+        ])
+
+    table = Table(
+        rows,
+        colWidths=[4.5 * mm, 142 * mm],
+        hAlign="LEFT",
+        splitByRow=True,
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0.6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.6),
+            ]
         )
     )
+
+    story.append(table)
+    story.append(Spacer(1, 7))
 
 
 def make_table(data, widths, styles):
