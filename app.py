@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v34d-travel-sequence-inclusion-packing"
+APP_VERSION = "2026-05-19 v34e-sequence-order-polish"
 
 
 st.set_page_config(
@@ -590,6 +590,24 @@ def is_self_transfer(row):
     return row_type == "Transfer" and "self transfer" in text
 
 
+def get_activity_duration_label(row, duration):
+    """Return a client-facing duration label based on the activity/travel context."""
+
+    context_text = " ".join(
+        str(row.get(key) or "")
+        for key in ["title", "original_title", "details", "client_description"]
+    ).lower()
+    duration_text = str(duration or "").lower()
+
+    if "ferry" in context_text or "ferry" in duration_text:
+        return "Ferry duration"
+
+    if "cruise" in context_text or "cruise" in duration_text:
+        return "Cruise duration"
+
+    return "Duration"
+
+
 def build_activity_block(row):
     title = polish_title(row.get("title", ""))
     time = row.get("time", "")
@@ -608,8 +626,8 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
-        duration_label = "Cruise duration" if "cruise" in duration.lower() else "Duration"
-        clean_duration = re.sub(r"^cruise duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        duration_label = get_activity_duration_label(row, duration)
+        clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
         html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
 
     if meeting_point:
@@ -905,11 +923,29 @@ def build_day_blocks(rows):
     blocks = []
     included_items = []
     consumed_row_ids = set()
+    sequence_block = None
+    sequence_inserted = False
 
     if should_use_travel_sequence(rows):
         sequence_block, consumed_row_ids = build_travel_sequence_block(rows)
-        if sequence_block:
-            blocks.append(sequence_block)
+
+    first_sequence_index = next(
+        (
+            index for index, row in enumerate(rows)
+            if row.get("row_id", "") in consumed_row_ids
+        ),
+        None,
+    )
+    activity_before_sequence = (
+        first_sequence_index is not None
+        and any(get_row_type(row) == "Activity" for row in rows[:first_sequence_index])
+    )
+
+    # Default to the existing travel-day behaviour: travel sequence first.
+    # Only move it inline when a real activity appears before the later travel.
+    if sequence_block and not activity_before_sequence:
+        blocks.append(sequence_block)
+        sequence_inserted = True
 
     def flush_included():
         nonlocal included_items
@@ -924,6 +960,10 @@ def build_day_blocks(rows):
         row_id = row.get("row_id", "")
 
         if row_id in consumed_row_ids:
+            if sequence_block and not sequence_inserted:
+                flush_included()
+                blocks.append(sequence_block)
+                sequence_inserted = True
             continue
 
         if row_type == "Transfer" and is_self_transfer(row):

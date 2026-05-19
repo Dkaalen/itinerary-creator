@@ -95,7 +95,7 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bDSLR photography\b", "DSLR photography", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s*KM\b", lambda m: f"{m.group(1)} km", text, flags=re.IGNORECASE)
     text = re.sub(r"\bRovaniemi City\b", "Rovaniemi city", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot drinks\b", "hot drinks", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot drinks\s*&\s*snacks\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*Hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
 
