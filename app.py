@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v18 accommodation-parser-polish"
+APP_VERSION = "2026-05-19 v19 transfer-title-polish"
 
 
 st.set_page_config(

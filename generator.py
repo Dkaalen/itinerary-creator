@@ -94,36 +94,53 @@ def get_primary_city(day_rows):
 
 
 def create_client_activity_title(row):
-    title = str(row.get("title", "") or "")
+    title = str(row.get("title", "") or "").strip()
+    original_title = str(row.get("original_title", "") or title).strip()
     details = str(row.get("details", "") or "")
-    text = f"{title} {details}".lower()
 
-    is_northern_lights = (
-        "northern light" in text
-        or "aurora" in text
-        or "borealis" in text
+    title_text = f"{original_title} {title}".lower()
+    full_text = f"{title_text} {details}".lower()
+
+    title_has_northern_lights = (
+        "northern light" in title_text
+        or "aurora" in title_text
+        or "borealis" in title_text
+    )
+    full_has_northern_lights = (
+        "northern light" in full_text
+        or "aurora" in full_text
+        or "borealis" in full_text
+    )
+    title_has_northern_lights_activity_word = any(
+        word in title_text
+        for word in ["hunt", "chase", "basecamp", "base camp", "cruise", "boat", "float", "floating", "mileage"]
+    )
+
+    # Do not rename ordinary daytime/culture activities just because the long
+    # supplier description mentions a chance of seeing northern lights.
+    is_northern_lights = title_has_northern_lights or (
+        full_has_northern_lights and title_has_northern_lights_activity_word
     )
 
     if not is_northern_lights:
-        return title.strip()
+        return title
 
-    if "basecamp" in text or "base camp" in text:
+    if "basecamp" in full_text or "base camp" in full_text:
         return "Northern Lights Basecamp"
 
-    if "cruise" in text or "boat" in text or "sailing" in text:
+    if "cruise" in full_text or "boat" in full_text or "sailing" in full_text:
         return "Northern Lights Cruise"
 
-    if "floating" in text or "float" in text:
+    if "floating" in full_text or "float" in full_text:
         return "Northern Lights Ice Floating"
 
-    if "chase" in text:
+    if "chase" in full_text:
         return "Northern Lights Chase"
 
-    if "hunt" in text or "mileage" in text or "photo tour" in text:
+    if "hunt" in full_text or "mileage" in full_text or "photo tour" in full_text:
         return "Northern Lights Hunt"
 
     return "Northern Lights Experience"
-
 
 def create_trip_title(parsed_rows, grouped_days):
     cities = get_unique_cities(parsed_rows)

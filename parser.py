@@ -50,6 +50,213 @@ def looks_like_known_type(value):
     return clean_space(value).lower() in KNOWN_TYPES
 
 
+
+
+COMMON_TEXT_REPLACEMENTS = [
+    (r"\bNUtshell\b", "Nutshell"),
+    (r"\bNutshell\b", "Nutshell"),
+    (r"\bBrekafast\b", "Breakfast"),
+    (r"\bBrekfast\b", "Breakfast"),
+    (r"\bDoubel\b", "Double"),
+    (r"\bArrnaged\b", "arranged"),
+    (r"\bArranged\b", "arranged"),
+    (r"\bTromso\b", "Tromsø"),
+    (r"\bKakslauttenen\b", "Kakslauttanen"),
+]
+
+
+def fix_common_text(value):
+    """Silently fixes small recurring spelling/capitalization issues in pasted itineraries."""
+
+    text = str(value or "")
+
+    for pattern, replacement in COMMON_TEXT_REPLACEMENTS:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
+    text = re.sub(r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bWi-FI\b", "Wi-Fi", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b4Star\b", "4 Star", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b3Star\b", "3 Star", text, flags=re.IGNORECASE)
+
+    return clean_space(text) if "\n" not in text else text
+
+
+def normalize_place_name(value):
+    place = fix_common_text(clean_space(value))
+    place = place.strip(" .,-|:")
+
+    # Remove service/product wording that should not appear in clean day titles.
+    place = re.sub(r"^(Flight|Bus|Coach|Train|Transfer|Shuttle Transfer)\s+", "", place, flags=re.IGNORECASE)
+    place = re.sub(r"\bArctic Resort\b", "", place, flags=re.IGNORECASE)
+    place = re.sub(r"\bAirport\s+Airport\b", "Airport", place, flags=re.IGNORECASE)
+    place = re.sub(r"\s+", " ", place).strip(" .,-|:")
+
+    return place
+
+
+def extract_route_points(text):
+    """Returns (origin, destination) from common route phrasings."""
+
+    source = fix_common_text(text)
+    source = source.replace("–", "-")
+
+    patterns = [
+        r"\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+-\s+|\s+\|\s+|,|$)",
+        r"\|\s*([^|\n]+?)\s+to\s+([^|\n]+?)\s*(?:\||$)",
+        r"\b([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\|\s+|,|$)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, source, flags=re.IGNORECASE)
+        if not match:
+            continue
+
+        origin = normalize_place_name(match.group(1))
+        destination = normalize_place_name(match.group(2))
+
+        # Avoid private shorthand being treated as cities in route titles.
+        if destination.lower() in {"hotel", "station", "airport", "accommodation"}:
+            continue
+
+        return origin, destination
+
+    return "", ""
+
+
+def city_airport(city):
+    city = normalize_place_name(city)
+    return f"{city} Airport" if city else "the destination airport"
+
+
+def standardize_private_transfer_title(title, details, city):
+    text = fix_common_text(f"{title} {details}")
+    lower = text.lower()
+    airport = city_airport(city)
+
+    if "hotel to airport" in lower or "accommodation to airport" in lower:
+        return f"Private transfer from your hotel to {airport}"
+
+    if "airport to hotel" in lower or "airport to accommodation" in lower:
+        return f"Private transfer from {airport} to your accommodation"
+
+    if "hotel to station" in lower or "accommodation to station" in lower:
+        return "Private transfer from your hotel to the station"
+
+    if "station to hotel" in lower or "station to accommodation" in lower:
+        return "Private transfer from the station to your accommodation"
+
+    if "airport" in lower and "hotel" not in lower and "accommodation" not in lower:
+        if " to airport" in lower:
+            return f"Private transfer to {airport}"
+        if "airport to" in lower:
+            return f"Private transfer from {airport}"
+
+    if "to hotel" in lower or "to accommodation" in lower or "to your accommodation" in lower:
+        return "Private transfer to your accommodation"
+
+    return fix_common_text(title)
+
+
+def standardize_self_transfer_title(title, details, city):
+    text = fix_common_text(f"{title} {details}")
+    lower = text.lower()
+    airport = city_airport(city)
+
+    if "hotel to airport" in lower or "accommodation to airport" in lower or "to airport" in lower:
+        return f"Self-guided transfer from your hotel to {airport}"
+
+    if "airport to hotel" in lower or "airport to accommodation" in lower:
+        return f"Self-guided transfer from {airport} to your accommodation"
+
+    if "hotel to station" in lower or "to station" in lower:
+        return "Self-guided transfer from your hotel to the station"
+
+    if "station to hotel" in lower or "station to accommodation" in lower:
+        return "Self-guided transfer from the station to your accommodation"
+
+    return fix_common_text(title).replace("Self transfer", "Self-guided transfer")
+
+
+def create_clean_transport_title(row):
+    row_type = row.get("effective_type") or row.get("type", "")
+    title = fix_common_text(row.get("title", ""))
+    details = fix_common_text(row.get("details", ""))
+    text = f"{title} {details}"
+    lower = text.lower()
+    origin, destination = extract_route_points(details)
+    if not destination:
+        origin, destination = extract_route_points(title)
+    if not destination:
+        origin, destination = extract_route_points(text)
+    city = normalize_place_name(row.get("city", ""))
+
+    if "norway in a nutshell" in lower:
+        if destination:
+            return f"Norway in a Nutshell to {destination}"
+        return "Norway in a Nutshell"
+
+    if row_type == "Flight" or "flight" in lower:
+        if destination:
+            return f"Flight to {destination}"
+        if city:
+            return f"Flight to {city}"
+        return "Flight"
+
+    if row_type == "Train" or "train" in lower:
+        prefix = "Overnight Train" if "overnight" in lower else "Train"
+        if destination:
+            return f"{prefix} to {destination}"
+        if city:
+            return f"{prefix} to {city}"
+        return prefix
+
+    if "coach" in lower or "bus" in lower:
+        if destination:
+            return f"Coach Transfer to {destination}"
+        if city:
+            return f"Coach Transfer to {city}"
+        return "Coach Transfer"
+
+    if row_type in {"Cruise", "Ferry"}:
+        label = "Ferry" if row_type == "Ferry" else "Cruise"
+        if destination:
+            return f"{label} to {destination}"
+        if city:
+            return f"{label} to {city}"
+        return label
+
+    return title
+
+
+def standardize_row_text(row):
+    """Applies client-facing cleanup after row parsing and effective type detection."""
+
+    for key in ["city", "title", "details", "time", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
+        if key in row and row.get(key):
+            row[key] = fix_common_text(row[key])
+
+    for key in ["notable_sights", "includes"]:
+        if key in row and isinstance(row.get(key), list):
+            row[key] = [fix_common_text(item) for item in row[key] if fix_common_text(item)]
+
+    row_type = row.get("effective_type") or row.get("type", "")
+    title = row.get("title", "")
+    details = row.get("details", "")
+    city = row.get("city", "")
+    combined_lower = f"{title} {details}".lower()
+
+    if row_type == "Transfer":
+        if "self transfer" in combined_lower:
+            row["title"] = standardize_self_transfer_title(title, details, city)
+        elif "private" in combined_lower:
+            row["title"] = standardize_private_transfer_title(title, details, city)
+
+    if row_type in {"Transport", "Train", "Flight", "Cruise", "Ferry"}:
+        row["title"] = create_clean_transport_title(row)
+
+    return row
+
+
 def extract_detail(text, label):
     marker = f"{label}:"
 
@@ -208,6 +415,14 @@ def detect_effective_type(item_type, title, details):
 
     if "ferry to" in combined:
         return "Ferry"
+
+    if (
+        "coach transfer" in combined
+        or combined.startswith("bus")
+        or " bus " in f" {combined} "
+        or "norway in a nutshell" in combined
+    ) and "private" not in combined:
+        return "Transport"
 
     return normalize_type(item_type)
 
@@ -391,7 +606,16 @@ def extract_includes_from_description(main_text):
     if section:
         return split_comma_list(section, protect_compound_phrases=True)
 
-    return []
+    lower = main_text.lower()
+    fallback_includes = []
+
+    if "ticket" in lower and "included" in lower:
+        fallback_includes.append("Tickets included")
+
+    if "luggage porter" in lower:
+        fallback_includes.append("Luggage porter service included")
+
+    return fallback_includes
 
 
 def extract_luggage_included(main_text):
@@ -624,7 +848,11 @@ def parse_itinerary(raw_text):
                 row["city"] = clean_space(possible_city)
                 main_text = rest.strip()
 
+        main_text = fix_common_text(main_text)
+        row["details"] = fix_common_text(description)
+        row["city"] = fix_common_text(row.get("city", ""))
         row["title"] = clean_title(main_text)
+        row["original_title"] = row["title"]
         row["time"] = extract_time_from_description(main_text)
         row["meeting_point"] = extract_meeting_point_from_description(main_text)
         row["end_point"] = extract_detail(main_text, "End point")
@@ -641,6 +869,8 @@ def parse_itinerary(raw_text):
             row["title"],
             row["details"],
         )
+
+        row = standardize_row_text(row)
 
         rows.append(row)
 
