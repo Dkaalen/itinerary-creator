@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v31b-hotel-pickup-dropoff-polish"
+APP_VERSION = "2026-05-19 v31c-debug-hotfix"
 
 
 st.set_page_config(
@@ -117,6 +117,16 @@ st.markdown(
 
 def esc(value):
     return html.escape(str(value or ""), quote=True)
+
+
+def clean_space(value):
+    """Small local whitespace normalizer used by UI/helper functions.
+
+    The parser has its own clean_space helper, but app.py should not depend on
+    private parser helpers at runtime. Keeping this local prevents UI helper
+    functions from raising NameError when they clean pickup/drop-off text.
+    """
+    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
 
 
 def normalize_list(items):
