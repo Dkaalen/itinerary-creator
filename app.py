@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v32-final-notes-smart-packing-polish"
+APP_VERSION = "2026-05-19 v33-rich-writing-assistant"
 
 
 st.set_page_config(
@@ -73,8 +73,6 @@ COLOR_PRESETS = {
 PRESET_ORDER = list(COLOR_PRESETS.keys())
 
 DETAIL_LEVELS = [
-    "Elegant concise",
-    "Standard client itinerary",
     "Rich descriptive",
 ]
 
@@ -402,10 +400,7 @@ def get_detail_level_name(output_edits=None):
     session state, loaded project JSON, or freshly generated edits. A missing
     detail level should never break itinerary rendering.
     """
-    name = (output_edits or {}).get("detail_level") or st.session_state.get("detail_level", "Standard client itinerary")
-    if name not in DETAIL_LEVELS:
-        return "Standard client itinerary"
-    return name
+    return "Rich descriptive"
 
 
 
@@ -452,6 +447,44 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
                 row_edit["client_description"] = new_description
 
     output_edits["detail_level"] = new_detail
+    return output_edits
+
+
+def mark_output_dirty():
+    st.session_state.pdf_bytes = None
+    st.session_state.pdf_status = "Needs refresh"
+
+
+def apply_rich_writing_to_day(day, rows, output_edits):
+    """Use the built-in writing assistant to make one day warmer and fuller.
+
+    This is intentionally local/rule-based: no external AI, no API key, and no
+    hidden cost. It updates only the editable generated fields, so the user can
+    still change everything manually afterwards.
+    """
+
+    output_edits = output_edits or {}
+    day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+    day_edit["intro"] = create_day_intro(rows, detail_level="Rich descriptive")
+
+    for row in rows:
+        row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
+        row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+        if get_row_type(row) == "Activity":
+            description = get_activity_description(row, "Rich descriptive")
+            if description:
+                row_edit["client_description"] = description
+
+    output_edits["detail_level"] = "Rich descriptive"
+    return output_edits
+
+
+def apply_rich_writing_to_all_days(parsed_rows, output_edits):
+    output_edits = output_edits or {}
+    grouped_days = group_rows_by_day(parsed_rows)
+    for day, rows in grouped_days.items():
+        output_edits = apply_rich_writing_to_day(day, rows, output_edits)
+    output_edits["detail_level"] = "Rich descriptive"
     return output_edits
 
 
@@ -1256,7 +1289,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
-        "detail_level": st.session_state.get("detail_level", "Standard client itinerary"),
+        "detail_level": "Rich descriptive",
         "day_page_layout": st.session_state.get("day_page_layout", "Smart compact pages"),
         "days": {},
         "rows": {},
@@ -1372,6 +1405,23 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
     with help_col:
         st.caption("Tip: edit only the fields you need. The preview and export files update from these fields automatically.")
 
+    with st.expander("Built-in writing assistant", expanded=False):
+        st.caption(
+            "Use this to make the day-by-day text warmer and fuller. "
+            "It is a local rule-based helper, not an external AI call, and all suggestions remain editable."
+        )
+        col_a, col_b = st.columns([1, 2])
+        with col_a:
+            if st.button("Improve all day-to-day text", key="assistant_improve_all_days", use_container_width=True):
+                st.session_state.output_edits = apply_rich_writing_to_all_days(
+                    st.session_state.parsed_rows,
+                    st.session_state.output_edits,
+                )
+                mark_output_dirty()
+                st.rerun()
+        with col_b:
+            st.caption("Updates day intros and sparse activity descriptions using the rich client-facing style.")
+
     with st.expander("Cover and summary pages", expanded=False):
         output_edits["trip_title"] = st.text_input(
             "Cover title",
@@ -1399,6 +1449,15 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
             with tab:
                 rows = grouped_days[day]
                 day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+
+                if st.button("Improve this day text", key=f"assistant_improve_{day}"):
+                    st.session_state.output_edits = apply_rich_writing_to_day(
+                        day,
+                        rows,
+                        st.session_state.output_edits,
+                    )
+                    mark_output_dirty()
+                    st.rerun()
 
                 day_edit["title"] = st.text_input(
                     f"{day} title",
@@ -1496,6 +1555,13 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                                     height=90,
                                     key=f"edit_{row_id}_sights",
                                 )
+                                if row_type == "Activity":
+                                    if st.button("Suggest richer description", key=f"assistant_desc_{row_id}"):
+                                        suggestion = get_activity_description(row, "Rich descriptive")
+                                        if suggestion:
+                                            row_edit["client_description"] = suggestion
+                                            mark_output_dirty()
+                                            st.rerun()
                                 row_edit["client_description"] = st.text_area(
                                     "Short description / note",
                                     value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(output_edits))),
@@ -2237,6 +2303,16 @@ def render_sidebar_snapshot():
     render_sidebar_review_assistant(edited_rows, grouped_days, stats)
     st.caption(f"PDF status: {st.session_state.get('pdf_status', 'Not created')}")
 
+    st.subheader("Writing assistant")
+    st.caption("Local helper for warmer, fuller day-by-day wording.")
+    if st.button("Improve day-to-day text", key="sidebar_assistant_improve_all", use_container_width=True):
+        st.session_state.output_edits = apply_rich_writing_to_all_days(
+            st.session_state.parsed_rows,
+            st.session_state.output_edits,
+        )
+        mark_output_dirty()
+        st.rerun()
+
     st.subheader("Creative tools")
     suggestions = make_title_suggestions(edited_rows, grouped_days)
     if suggestions:
@@ -2264,7 +2340,7 @@ def initialise_state():
         "last_generated_raw_text": "",
         "parser_diagnostics": [],
         "pdf_status": "Not created",
-        "detail_level": "Standard client itinerary",
+        "detail_level": "Rich descriptive",
         "day_page_layout": "Smart compact pages",
     }
 
@@ -2283,8 +2359,16 @@ def load_project_json(uploaded_file):
         grouped_days = group_rows_by_day(parsed_rows)
 
         st.session_state.parsed_rows = parsed_rows
+        previous_detail = (output_edits or {}).get("detail_level", "Standard client itinerary")
         st.session_state.output_edits = output_edits or make_output_edit_state(parsed_rows, grouped_days)
-        st.session_state.detail_level = st.session_state.output_edits.get("detail_level", st.session_state.get("detail_level", "Standard client itinerary"))
+        st.session_state.output_edits = refresh_generated_text_for_detail_level(
+            parsed_rows,
+            st.session_state.output_edits,
+            previous_detail,
+            "Rich descriptive",
+        )
+        st.session_state.detail_level = "Rich descriptive"
+        st.session_state.output_edits["detail_level"] = "Rich descriptive"
         st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", "Smart compact pages"))
         st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
@@ -2323,24 +2407,10 @@ with st.sidebar:
     else:
         st.caption("Clean, bright, B2C-friendly.")
 
-    current_detail = st.session_state.get("detail_level", "Standard client itinerary")
-    if current_detail not in DETAIL_LEVELS:
-        current_detail = "Standard client itinerary"
-
-    selected_detail = st.selectbox(
-        "Detail level",
-        DETAIL_LEVELS,
-        index=DETAIL_LEVELS.index(current_detail),
-        help="Controls how much client-facing description is generated. Existing manual edits are preserved.",
-    )
-    previous_detail = st.session_state.get("detail_level", "Standard client itinerary")
+    selected_detail = "Rich descriptive"
+    previous_detail = "Rich descriptive"
     st.session_state.detail_level = selected_detail
-    if selected_detail == "Elegant concise":
-        st.caption("Short, polished, and practical.")
-    elif selected_detail == "Rich descriptive":
-        st.caption("Warmer and more atmospheric.")
-    else:
-        st.caption("Balanced detail for most client itineraries.")
+    st.caption("Writing style: warm, full and client-facing.")
 
     current_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
     if current_day_layout not in DAY_PAGE_LAYOUTS:
@@ -2362,13 +2432,8 @@ with st.sidebar:
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
         st.session_state.output_edits["day_page_layout"] = selected_day_layout
-        st.session_state.output_edits = refresh_generated_text_for_detail_level(
-            st.session_state.get("parsed_rows", []),
-            st.session_state.output_edits,
-            previous_detail,
-            selected_detail,
-        )
-        if previous_detail != selected_detail or previous_day_layout != selected_day_layout:
+        st.session_state.output_edits["detail_level"] = "Rich descriptive"
+        if previous_day_layout != selected_day_layout:
             st.session_state.pdf_bytes = None
             st.session_state.pdf_status = "Needs refresh"
 
