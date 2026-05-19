@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v28 nordic-place-database"
+APP_VERSION = "2026-05-19 v29-ui-cleanup-sidebar-tools"
 
 
 st.set_page_config(
@@ -83,6 +83,19 @@ st.markdown(
             padding: 1rem;
             margin: 0.5rem 0 1rem 0;
             background: rgba(255,255,255,0.025);
+        }
+        .workflow-note {
+            font-size: 0.9rem;
+            opacity: 0.76;
+            margin-bottom: 0.7rem;
+        }
+        .sidebar-pill {
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 999px;
+            padding: 0.28rem 0.55rem;
+            margin: 0.18rem 0;
+            font-size: 0.82rem;
+            background: rgba(255,255,255,0.035);
         }
     </style>
     """,
@@ -949,34 +962,22 @@ def get_overflow_warnings(grouped_days):
 
 
 def render_output_editor(parsed_rows, grouped_days, output_edits):
-    st.subheader("Edit generated itinerary")
-    st.caption("Edit the generated output here before downloading HTML or creating the PDF. The raw Excel input above is not changed.")
+    st.markdown('<div class="workflow-note">Edit the generated output here. The raw Excel input above is not changed.</div>', unsafe_allow_html=True)
 
-    col_reset, col_save = st.columns([1, 2])
-
-    with col_reset:
-        if st.button("Reset edits to generated text"):
+    reset_col, help_col = st.columns([1, 3])
+    with reset_col:
+        if st.button("Reset edits", help="Return the editable fields to the generated text."):
             st.session_state.output_edits = make_output_edit_state(
                 st.session_state.parsed_rows,
                 group_rows_by_day(st.session_state.parsed_rows),
             )
             st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Needs refresh"
             st.rerun()
+    with help_col:
+        st.caption("Tip: edit only the fields you need. The preview and export files update from these fields automatically.")
 
-    with col_save:
-        project_data = {
-            "app_version": APP_VERSION,
-            "raw_text": st.session_state.get("last_generated_raw_text", ""),
-            "output_edits": output_edits,
-        }
-        st.download_button(
-            "Download editable project JSON",
-            data=json.dumps(project_data, ensure_ascii=False, indent=2).encode("utf-8"),
-            file_name="itinerary_project.json",
-            mime="application/json",
-        )
-
-    with st.expander("Edit cover and summary pages", expanded=False):
+    with st.expander("Cover and summary pages", expanded=False):
         output_edits["trip_title"] = st.text_input(
             "Cover title",
             value=output_edits.get("trip_title", ""),
@@ -1534,6 +1535,156 @@ def save_pdf_file(html_path):
         return None
 
 
+
+def get_current_itinerary_state():
+    """Return edited rows/grouped days for the current session state."""
+    parsed_rows = st.session_state.get("parsed_rows", [])
+    output_edits = st.session_state.get("output_edits", {})
+
+    if not parsed_rows:
+        return [], {}
+
+    edited_rows = apply_output_edits(parsed_rows, output_edits)
+    return edited_rows, group_rows_by_day(edited_rows)
+
+
+def get_itinerary_stats(parsed_rows=None, grouped_days=None):
+    parsed_rows = parsed_rows if parsed_rows is not None else st.session_state.get("parsed_rows", [])
+    grouped_days = grouped_days if grouped_days is not None else group_rows_by_day(parsed_rows)
+
+    destinations = []
+    for row in parsed_rows:
+        city = str(row.get("city", "")).strip()
+        if city and city not in destinations:
+            destinations.append(city)
+
+    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not row.get("is_optional")]
+    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel"]
+    self_arranged = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row)]
+
+    return {
+        "days": len(grouped_days),
+        "destinations": len(destinations),
+        "destination_names": destinations,
+        "activities": len(activities),
+        "hotels": len(hotels),
+        "self_arranged": len(self_arranged),
+        "optional_rows": len(optional_rows),
+    }
+
+
+def render_parser_diagnostics_panel():
+    warnings = st.session_state.get("parser_diagnostics", [])
+    if not warnings:
+        return
+
+    with st.expander(f"Parser diagnostics ({len(warnings)} notice(s))", expanded=False):
+        st.caption(
+            "These are things the parser could not fully understand. "
+            "If something looks wrong in the output, the cause may be listed here."
+        )
+        for entry in warnings:
+            st.markdown(f"**{entry['category']}** — {entry['message']}")
+            if entry.get("raw"):
+                st.code(entry["raw"], language=None)
+
+        diagnostics_text = []
+        for entry in warnings:
+            diagnostics_text.append(f"[{entry['category']}] {entry['message']}")
+            if entry.get("raw"):
+                diagnostics_text.append(f"  Raw: {entry['raw']}")
+        with st.expander("Show diagnostics text for copying"):
+            st.code("\n".join(diagnostics_text), language=None)
+
+
+def make_title_suggestions(parsed_rows, grouped_days):
+    cities = []
+    for row in parsed_rows:
+        city = str(row.get("city", "")).strip()
+        if city and city not in cities:
+            cities.append(city)
+
+    full_text = " ".join(str(row.get("details", "")) for row in parsed_rows).lower()
+    suggestions = []
+
+    if any(marker in full_text for marker in ["northern light", "aurora", "lapland", "arctic"]):
+        suggestions.extend(["Nordic Winter Journey", "Arctic Lights Journey", "Lapland & Nordic Lights Escape"])
+
+    if "fjord" in full_text or "norway in a nutshell" in full_text:
+        suggestions.extend(["Nordic Fjord Journey", "Fjords & Capitals Discovery", "Scenic Nordic Journey"])
+
+    if len(cities) >= 4:
+        suggestions.append("Grand Nordic Journey")
+
+    if len(cities) == 2:
+        suggestions.append(f"{cities[0]} & {cities[1]} Journey")
+
+    if not suggestions:
+        suggestions.extend(["Nordic Discovery Journey", "Curated Nordic Escape", "Scandinavian City & Nature Journey"])
+
+    clean = []
+    for suggestion in suggestions:
+        if suggestion not in clean:
+            clean.append(suggestion)
+    return clean[:6]
+
+
+def render_sidebar_snapshot():
+    parsed_rows = st.session_state.get("parsed_rows", [])
+    if not parsed_rows:
+        st.caption("Generate an itinerary to see stats, quality checks, and creative tools here.")
+        return
+
+    edited_rows, grouped_days = get_current_itinerary_state()
+    stats = get_itinerary_stats(edited_rows, grouped_days)
+    diagnostics_count = len(st.session_state.get("parser_diagnostics", []))
+
+    st.divider()
+    st.subheader("Snapshot")
+    stat_a, stat_b = st.columns(2)
+    stat_a.metric("Days", stats["days"])
+    stat_b.metric("Places", stats["destinations"])
+    stat_c, stat_d = st.columns(2)
+    stat_c.metric("Activities", stats["activities"])
+    stat_d.metric("Hotels", stats["hotels"])
+
+    if stats["self_arranged"]:
+        st.markdown(f'<div class="sidebar-pill">Self-arranged travel: {stats["self_arranged"]}</div>', unsafe_allow_html=True)
+    if stats["optional_rows"]:
+        st.markdown(f'<div class="sidebar-pill">Optional add-ons: {stats["optional_rows"]}</div>', unsafe_allow_html=True)
+
+    st.subheader("Quality checks")
+    checks = [
+        (stats["days"] > 0, "Day count detected"),
+        (stats["destinations"] > 0, "Destinations detected"),
+        (stats["hotels"] > 0, "Accommodation detected"),
+        (stats["activities"] > 0, "Activities detected"),
+        (diagnostics_count == 0, "No parser diagnostics" if diagnostics_count == 0 else f"{diagnostics_count} parser notice(s)"),
+    ]
+    for ok, label in checks:
+        icon = "✓" if ok else "⚠"
+        st.caption(f"{icon} {label}")
+
+    st.caption(f"PDF status: {st.session_state.get('pdf_status', 'Not created')}")
+
+    st.subheader("Creative tools")
+    suggestions = make_title_suggestions(edited_rows, grouped_days)
+    if suggestions:
+        index = st.session_state.get("title_suggestion_index", 0) % len(suggestions)
+        suggestion = suggestions[index]
+        st.caption(f"Title idea: {suggestion}")
+        if st.button("Use title idea", use_container_width=True):
+            st.session_state.output_edits["trip_title"] = suggestion
+            st.session_state.title_suggestion_index = index + 1
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Needs refresh"
+            st.rerun()
+        if st.button("Try another title", use_container_width=True):
+            st.session_state.title_suggestion_index = index + 1
+            st.rerun()
+
+
 def initialise_state():
     defaults = {
         "itinerary_html": "",
@@ -1542,6 +1693,8 @@ def initialise_state():
         "parsed_rows": [],
         "output_edits": {},
         "last_generated_raw_text": "",
+        "parser_diagnostics": [],
+        "pdf_status": "Not created",
     }
 
     for key, value in defaults.items():
@@ -1575,6 +1728,7 @@ def load_project_json(uploaded_file):
         st.exception(error)
 
 
+
 initialise_state()
 
 with st.sidebar:
@@ -1591,6 +1745,11 @@ with st.sidebar:
     )
     st.session_state.color_preset = selected_preset
 
+    if selected_preset == "Classic Agent":
+        st.caption("Warm, neutral, B2B-friendly.")
+    else:
+        st.caption("Clean, bright, B2C-friendly.")
+
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
 
@@ -1604,6 +1763,8 @@ with st.sidebar:
         load_project_json(uploaded_project)
         st.rerun()
 
+    render_sidebar_snapshot()
+
 st.markdown(
     f"""
     <div class="app-hero">
@@ -1615,92 +1776,74 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-with st.expander("1. Paste raw itinerary text", expanded=not bool(st.session_state.itinerary_html)):
+with st.expander("Step 1 — Paste raw itinerary text", expanded=not bool(st.session_state.itinerary_html)):
+    st.markdown('<div class="workflow-note">Paste the full itinerary table or copied Excel rows here.</div>', unsafe_allow_html=True)
     raw_text = st.text_area(
+        "Raw Excel text",
+        height=300,
+        placeholder="Paste itinerary rows here...",
+        key="raw_text_input",
+    )
 
-    "Raw Excel text",
-    height=300,
-    placeholder="Paste itinerary rows here...",
-    key="raw_text_input",
-)
+    if st.button("Generate itinerary", type="primary", use_container_width=True):
+        if raw_text.strip():
+            diagnostics.reset()
+            parsed_rows = parse_itinerary(raw_text)
+            grouped_days = group_rows_by_day(parsed_rows)
+            duplicate_count = get_duplicate_count(raw_text, parsed_rows)
 
-if st.button("Generate itinerary", type="primary", use_container_width=True):
-    if raw_text.strip():
-        diagnostics.reset()
-        parsed_rows = parse_itinerary(raw_text)
-        grouped_days = group_rows_by_day(parsed_rows)
-        duplicate_count = get_duplicate_count(raw_text, parsed_rows)
+            st.session_state.parsed_rows = parsed_rows
+            st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
+            st.session_state.last_generated_raw_text = raw_text
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Not created"
+            st.session_state.parser_diagnostics = diagnostics.get_warnings()
 
-        st.session_state.parsed_rows = parsed_rows
-        st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
-        st.session_state.last_generated_raw_text = raw_text
-        st.session_state.pdf_bytes = None
+            edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+            edited_grouped_days = group_rows_by_day(edited_rows)
+            st.session_state.itinerary_html = build_itinerary_html(
+                edited_rows,
+                edited_grouped_days,
+                st.session_state.output_edits,
+            )
+            st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-        edited_grouped_days = group_rows_by_day(edited_rows)
-        st.session_state.itinerary_html = build_itinerary_html(
-            edited_rows,
-            edited_grouped_days,
-            st.session_state.output_edits,
-        )
-        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+            st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
 
-        st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
+            if duplicate_count:
+                st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
 
-        if duplicate_count:
-            st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
+            overflow_warnings = get_overflow_warnings(edited_grouped_days)
+            for warning in overflow_warnings:
+                st.warning(warning)
 
-        overflow_warnings = get_overflow_warnings(edited_grouped_days)
+            if st.session_state.html_path:
+                st.success("HTML preview prepared.")
 
-        for warning in overflow_warnings:
-            st.warning(warning)
+        else:
+            st.warning("Please paste some itinerary text first.")
 
-        if show_debug:
-            with st.expander("Structured parser preview"):
-                st.dataframe(parsed_rows, use_container_width=True)
+render_parser_diagnostics_panel()
 
-            with st.expander("Day grouping debug"):
-                for day, rows in grouped_days.items():
-                    st.write(f"{day}: {len(rows)} rows")
-                    for row in rows:
-                        st.write(
-                            f"- {row.get('type')} / {row.get('effective_type')}: "
-                            f"{row.get('title')} ({row.get('city')})"
-                        )
-
-        if st.session_state.html_path:
-            st.success(f"HTML file created: {st.session_state.html_path}")
-
-        if diagnostics.has_warnings():
-            warnings = diagnostics.get_warnings()
-            with st.expander(f"Parser diagnostics ({len(warnings)} notice(s)) — click to review"):
-                st.caption(
-                    "These are things the parser could not fully understand. "
-                    "If something looks wrong in the output, the cause may be listed here. "
-                    "Use these notes to improve the parser over time."
+if show_debug and st.session_state.parsed_rows:
+    with st.expander("Debug tools", expanded=False):
+        st.dataframe(st.session_state.parsed_rows, use_container_width=True)
+        st.write("Day grouping")
+        for day, rows in group_rows_by_day(st.session_state.parsed_rows).items():
+            st.write(f"{day}: {len(rows)} rows")
+            for row in rows:
+                st.write(
+                    f"- {row.get('type')} / {row.get('effective_type')}: "
+                    f"{row.get('title')} ({row.get('city')})"
                 )
-                for entry in warnings:
-                    st.markdown(f"**{entry['category']}** — {entry['message']}")
-                    if entry.get("raw"):
-                        st.code(entry["raw"], language=None)
-
-                diagnostics_text = []
-                for entry in warnings:
-                    diagnostics_text.append(f"[{entry['category']}] {entry['message']}")
-                    if entry.get("raw"):
-                        diagnostics_text.append(f"  Raw: {entry['raw']}")
-                with st.expander("Show diagnostics text for copying"):
-                    st.code("\n".join(diagnostics_text), language=None)
-
-    else:
-        st.warning("Please paste some itinerary text first.")
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    render_output_editor(
-        st.session_state.parsed_rows,
-        group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
-        st.session_state.output_edits,
-    )
+    with st.expander("Step 2 — Review & edit generated itinerary", expanded=False):
+        render_output_editor(
+            st.session_state.parsed_rows,
+            group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
+            st.session_state.output_edits,
+        )
 
     edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
@@ -1712,51 +1855,83 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
 
     if rebuilt_html != st.session_state.itinerary_html:
         st.session_state.pdf_bytes = None
+        if st.session_state.itinerary_html:
+            st.session_state.pdf_status = "Needs refresh"
 
     st.session_state.itinerary_html = rebuilt_html
     st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
-    st.subheader("A4 itinerary preview")
+    st.subheader("Step 3 — Export")
+    st.markdown('<div class="workflow-note">Save your editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
 
     html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
+    project_data = {
+        "app_version": APP_VERSION,
+        "raw_text": st.session_state.get("last_generated_raw_text", ""),
+        "output_edits": st.session_state.get("output_edits", {}),
+    }
 
-    if html_path and html_path.exists():
-        with open(html_path, "rb") as html_file:
-            st.download_button(
-                label="Download HTML preview",
-                data=html_file,
-                file_name="itinerary_preview.html",
-                mime="text/html",
-            )
-    else:
-        st.warning("HTML file could not be saved, so HTML/PDF downloads are temporarily unavailable. The preview still works.")
+    export_col_1, export_col_2, export_col_3, export_col_4 = st.columns(4)
 
-    if st.button("Create PDF"):
-        try:
-            with st.spinner("Creating PDF..."):
-                pdf_path = save_pdf_file(html_path)
-                if pdf_path is None:
-                    st.session_state.pdf_bytes = None
-                else:
-                    st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
-
-            if st.session_state.pdf_bytes:
-                st.success("PDF created. Click the button below to download.")
-
-        except Exception as error:
-            st.error(
-                "PDF export failed in this environment. The itinerary preview and HTML download still work."
-            )
-            with st.expander("PDF export error details"):
-                st.exception(error)
-
-    if st.session_state.pdf_bytes:
+    with export_col_1:
         st.download_button(
-            label="Download PDF",
-            data=st.session_state.pdf_bytes,
-            file_name="itinerary_preview.pdf",
-            mime="application/pdf",
+            "Download project JSON",
+            data=json.dumps(project_data, ensure_ascii=False, indent=2).encode("utf-8"),
+            file_name="itinerary_project.json",
+            mime="application/json",
+            use_container_width=True,
         )
 
-    st.html(st.session_state.itinerary_html)
+    with export_col_2:
+        if html_path and html_path.exists():
+            with open(html_path, "rb") as html_file:
+                st.download_button(
+                    label="Download HTML",
+                    data=html_file,
+                    file_name="itinerary_preview.html",
+                    mime="text/html",
+                    use_container_width=True,
+                )
+        else:
+            st.button("Download HTML", disabled=True, use_container_width=True)
+            st.caption("HTML file not available.")
+
+    with export_col_3:
+        if st.button("Create PDF", use_container_width=True):
+            try:
+                with st.spinner("Creating PDF..."):
+                    pdf_path = save_pdf_file(html_path)
+                    if pdf_path is None:
+                        st.session_state.pdf_bytes = None
+                        st.session_state.pdf_status = "PDF failed"
+                    else:
+                        st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
+                        st.session_state.pdf_status = "Ready"
+
+                if st.session_state.pdf_bytes:
+                    st.success("PDF created. Use the download button.")
+
+            except Exception as error:
+                st.session_state.pdf_status = "PDF failed"
+                st.error(
+                    "PDF export failed in this environment. The itinerary preview and HTML download still work."
+                )
+                with st.expander("PDF export error details"):
+                    st.exception(error)
+
+    with export_col_4:
+        if st.session_state.pdf_bytes:
+            st.download_button(
+                label="Download PDF",
+                data=st.session_state.pdf_bytes,
+                file_name="itinerary_preview.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        else:
+            st.button("Download PDF", disabled=True, use_container_width=True)
+            st.caption(st.session_state.get("pdf_status", "Not created"))
+
+    with st.expander("Step 4 — Preview itinerary", expanded=False):
+        st.html(st.session_state.itinerary_html)
