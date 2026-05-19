@@ -5,6 +5,29 @@ from place_aliases import canonicalize_place_name, is_likely_service_text
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
 
+DETAIL_LEVELS = [
+    "Elegant concise",
+    "Standard client itinerary",
+    "Rich descriptive",
+]
+
+
+def normalize_detail_level(value):
+    value = str(value or "").strip()
+    if value in DETAIL_LEVELS:
+        return value
+    return "Standard client itinerary"
+
+
+def get_row_city(day_rows):
+    city = get_primary_city(day_rows)
+    return city or "the destination"
+
+
+def get_client_activity_phrase(row):
+    title = create_client_activity_title(row) or row.get("title", "your included experience")
+    return title or "your included experience"
+
 
 def get_row_type(row):
     return row.get("effective_type") or row.get("type", "")
@@ -667,8 +690,17 @@ def create_day_title(day_rows):
 
     return "Day at leisure"
 
-def create_day_intro(day_rows):
+def create_day_intro(day_rows, detail_level="Standard client itinerary"):
+    """Create a client-facing day intro with adjustable detail level.
+
+    Elegant concise keeps text short and practical.
+    Standard client itinerary keeps the existing balanced style.
+    Rich descriptive adds more atmosphere while staying client-facing.
+    """
+
+    detail_level = normalize_detail_level(detail_level)
     city = get_primary_city(day_rows)
+    city_text = city or "the destination"
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
@@ -681,74 +713,114 @@ def create_day_intro(day_rows):
     if has_only_departure_arrangements(day_rows) and city:
         transfer_title = get_first_transfer_title(day_rows).lower()
         if "self-guided" in transfer_title or "self transfer" in transfer_title:
+            if detail_level == "Elegant concise":
+                return f"After check-out, please make your own way to {city} Airport for your onward journey."
             return f"After check-out, please make your own way to {city} Airport for your onward journey."
+        if detail_level == "Rich descriptive":
+            return f"Your journey comes to a close today. After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
         return f"After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
 
     if has_arrival and city:
+        if detail_level == "Elegant concise":
+            return f"Welcome to {city}. Settle in and enjoy a smooth start to your journey."
+        if detail_level == "Rich descriptive":
+            return f"Welcome to {city}. After arrival, your arrangements are kept simple and comfortable, giving you time to settle in and ease into the first day of your journey."
         return (
             f"Welcome to {city}. After arrival, the day is designed to keep things "
             f"simple and comfortable as you settle into your accommodation."
         )
 
     if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
+        if detail_level == "Elegant concise":
+            return f"Welcome to {city}. Settle in and enjoy a smooth start to your stay."
+        if detail_level == "Rich descriptive":
+            return f"Welcome to {city}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
         return (
             f"Welcome to {city}. After arrival, the day is designed to keep things "
             f"simple and comfortable as you settle into your accommodation."
         )
 
     if has_departure and city:
+        if detail_level == "Elegant concise":
+            return f"After check-out, your final arrangements in {city} are kept simple."
+        if detail_level == "Rich descriptive":
+            return f"After check-out, your final arrangements in {city} are kept smooth and straightforward, giving the journey an easy and well-organised finish."
         return f"After check-out, your final arrangements in {city} are kept simple and easy to follow."
 
     if activities:
-        activity_title = create_client_activity_title(activities[0]) or "your included experience"
+        activity_title = get_client_activity_phrase(activities[0])
         activity_text = get_activity_text(activities[0])
 
         if "tallinn" in activity_text:
             if any(get_row_type(row) == "Train" and "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in day_rows):
+                if detail_level == "Elegant concise":
+                    return "Enjoy a day trip from Helsinki to Tallinn before returning for your overnight train north."
+                if detail_level == "Rich descriptive":
+                    return "Today, you will cross from Helsinki to Tallinn for a memorable day trip, with time to experience the atmosphere of the historic Old Town before returning to Helsinki for your overnight train north."
                 return (
                     "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
                     "the Old Town before returning to Helsinki for your overnight train north."
                 )
+            if detail_level == "Elegant concise":
+                return "Enjoy a day trip from Helsinki to Tallinn before returning for your onward journey."
+            if detail_level == "Rich descriptive":
+                return "Today, you will cross from Helsinki to Tallinn for a memorable day trip, with time to experience the historic Old Town before returning to Helsinki for your onward journey."
             return (
                 "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
                 "the Old Town before returning to Helsinki for your onward journey."
             )
 
-        # If this is mainly an activity day with late onward travel, keep the
-        # intro focused on the experience rather than making it sound like a
-        # generic transfer day.
         if not has_hotel(day_rows) or not transports:
+            if detail_level == "Elegant concise":
+                return f"Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace."
+            if detail_level == "Rich descriptive":
+                return f"Today, you will enjoy {activity_title} in {city_text}, adding a meaningful experience to your stay while still leaving space to enjoy the destination at your own pace."
             return (
-                f"Today, you will enjoy {activity_title} in {city}. The rest of the day "
+                f"Today, you will enjoy {activity_title} in {city_text}. The rest of the day "
                 f"can be shaped around your own pace, interests, and time at leisure."
             )
 
     if transports and city:
+        if detail_level == "Elegant concise":
+            return f"Continue your journey with arranged travel connected to {city}."
+        if detail_level == "Rich descriptive":
+            return f"Today, the journey continues towards {city}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
         return (
             f"Today, you continue your journey with arranged travel connected to {city}. "
             f"The day is structured to keep the route clear, comfortable, and easy to follow."
         )
 
     if transfers and city:
+        if detail_level == "Elegant concise":
+            return f"Today’s arrangements in {city} are kept smooth and simple."
+        if detail_level == "Rich descriptive":
+            return f"Today’s arrangements in {city} are designed to keep the day smooth and comfortable, with the key logistics handled clearly."
         return (
             f"Today’s arrangements in {city} are designed to keep the journey smooth "
             f"and easy to follow."
         )
 
     if leisure and city:
+        if detail_level == "Elegant concise":
+            return f"Enjoy time at leisure in {city}."
+        if detail_level == "Rich descriptive":
+            return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests."
         return (
             f"Enjoy time at leisure in {city}. This is a good opportunity to explore "
             f"independently, relax, or add optional experiences."
         )
 
     if city:
+        if detail_level == "Elegant concise":
+            return f"Today is part of your stay in {city}, with arrangements listed below."
+        if detail_level == "Rich descriptive":
+            return f"Today is part of your stay in {city}, with the day’s arrangements laid out clearly so the experience feels relaxed and easy to follow."
         return (
             f"Today is part of your stay in {city}, with arrangements included as "
             f"listed below."
         )
 
     return "Today’s arrangements are listed below."
-
 
 
 def sentence_case_transport_title(title):

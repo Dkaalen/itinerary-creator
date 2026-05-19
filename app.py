@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v29-ui-cleanup-sidebar-tools"
+APP_VERSION = "2026-05-19 v30-review-assistant-detail-level"
 
 
 st.set_page_config(
@@ -62,6 +62,13 @@ COLOR_PRESETS = {
 }
 
 PRESET_ORDER = list(COLOR_PRESETS.keys())
+
+DETAIL_LEVELS = [
+    "Elegant concise",
+    "Standard client itinerary",
+    "Rich descriptive",
+]
+
 
 st.markdown(
     """
@@ -262,35 +269,70 @@ def is_self_arranged_transport(row):
     return get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row)
 
 
-def get_activity_description(row):
+def get_activity_description(row, detail_level=None):
+    detail_level = detail_level or get_detail_level_name()
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
 
     if "fjellheisen" in title or "round trip ticket" in title:
+        if detail_level == "Elegant concise":
+            return "Ride Fjellheisen for panoramic views over Tromsø."
+        if detail_level == "Rich descriptive":
+            return "Ride the Fjellheisen cable car for sweeping views over Tromsø, the surrounding islands, fjords, and mountain scenery."
         return "Enjoy panoramic views over Tromsø, the surrounding islands, fjords, and mountains."
 
     if "lofoten" in title and "trollfjord" in title:
+        if detail_level == "Elegant concise":
+            return "Travel through Lofoten by land and sea, including Trollfjord scenery."
+        if detail_level == "Rich descriptive":
+            return "Experience Lofoten by land and sea, with time around Stokmarknes and a scenic cruise into the dramatic Trollfjord landscape."
         return "Travel through Lofoten by land and sea, with time around Stokmarknes and a cruise into the dramatic Trollfjord."
 
     if "city walking" in title and "canal" in title and "copenhagen" in title:
+        if detail_level == "Elegant concise":
+            return "Explore Copenhagen on foot and by canal with a local host."
+        if detail_level == "Rich descriptive":
+            return "Explore central Copenhagen with a local host, combining city landmarks, local stories, and a scenic canal experience."
         return "Explore central Copenhagen on foot with a local host, including key landmarks and a scenic canal experience."
 
     if "essential oslo" in title:
+        if detail_level == "Elegant concise":
+            return "Explore central Oslo on foot with a local guide."
+        if detail_level == "Rich descriptive":
+            return "Explore central Oslo with a local guide, taking in key landmarks, city stories, and the atmosphere of the Norwegian capital."
         return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
 
     if "guided walking tour" in title:
         if "copenhagen" in city or "copenhagen" in title:
+            if detail_level == "Elegant concise":
+                return "Explore central Copenhagen on foot with a local guide."
+            if detail_level == "Rich descriptive":
+                return "Explore central Copenhagen on foot with a local guide, with time for local stories, major landmarks, and the atmosphere of the city."
             return "Explore central Copenhagen on foot with a local guide, with time for local stories and key city landmarks."
         if "oslo" in city or "oslo" in title:
+            if detail_level == "Elegant concise":
+                return "Explore central Oslo on foot with a local guide."
+            if detail_level == "Rich descriptive":
+                return "Explore central Oslo with a local guide, taking in key landmarks, city stories, and the atmosphere of the Norwegian capital."
             return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
 
     if "must-see bergen" in title or ("foot and boat" in title and "bergen" in title):
+        if detail_level == "Elegant concise":
+            return "Explore Bergen on foot and by boat."
+        if detail_level == "Rich descriptive":
+            return "Explore Bergen from two perspectives: on foot through the historic city streets and by boat from the surrounding waters."
         return "Explore Bergen on foot and by boat, combining historic city streets with a scenic perspective from the water."
 
     if "hop on" in title or "hop-on" in title or "hop off" in title or "hop-off" in title:
+        if detail_level == "Rich descriptive":
+            return "Use your flexible ticket to explore the city at your own pace, choosing the stops and sights that suit your day best."
         return "Use your flexible ticket to explore the city at your own pace."
 
     if "tallinn" in title:
+        if detail_level == "Elegant concise":
+            return "Travel from Helsinki to Tallinn and explore the Old Town."
+        if detail_level == "Rich descriptive":
+            return "Travel from Helsinki to Tallinn and enjoy time in the atmospheric Old Town before returning to Helsinki."
         return "Travel from Helsinki to Tallinn and enjoy time to explore the historic Old Town before returning to Helsinki."
 
     return ""
@@ -582,7 +624,8 @@ def build_day_blocks(rows):
 def render_day_pages(day, rows, output_edits=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     day_title = day_edits.get("title") or create_day_title(rows)
-    day_intro = day_edits.get("intro") or create_day_intro(rows)
+    detail_level = get_detail_level_name(output_edits)
+    day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
 
@@ -864,6 +907,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
+        "detail_level": st.session_state.get("detail_level", "Standard client itinerary"),
         "days": {},
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
@@ -873,7 +917,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
     for day, rows in grouped_days.items():
         edits["days"][day] = {
             "title": create_day_title(rows),
-            "intro": create_day_intro(rows),
+            "intro": create_day_intro(rows, detail_level=edits["detail_level"]),
             "city": get_primary_city(rows),
         }
 
@@ -886,7 +930,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
                 "city": row.get("city", ""),
                 "time": row.get("time", ""),
                 "duration": row.get("duration", ""),
-                "client_description": row.get("client_description") or get_activity_description(row),
+                "client_description": row.get("client_description") or get_activity_description(row, edits["detail_level"]),
                 "meeting_point": row.get("meeting_point", ""),
                 "end_point": row.get("end_point", ""),
                 "luggage_included": row.get("luggage_included", ""),
@@ -1017,7 +1061,7 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                 )
                 day_edit["intro"] = st.text_area(
                     f"{day} intro",
-                    value=day_edit.get("intro", create_day_intro(rows)),
+                    value=day_edit.get("intro", create_day_intro(rows, detail_level=get_detail_level_name(output_edits))),
                     height=95,
                     key=f"edit_{day}_intro",
                 )
@@ -1103,7 +1147,7 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                                 )
                                 row_edit["client_description"] = st.text_area(
                                     "Short description / note",
-                                    value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row)),
+                                    value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(output_edits))),
                                     height=75,
                                     key=f"edit_{row_id}_description",
                                 )
@@ -1630,6 +1674,117 @@ def make_title_suggestions(parsed_rows, grouped_days):
     return clean[:6]
 
 
+def get_activity_sections_count(parsed_rows):
+    return len(create_activity_inclusions(parsed_rows))
+
+
+def build_review_items(parsed_rows=None, grouped_days=None):
+    """Return practical client-facing review items for the sidebar.
+
+    These are not technical parser diagnostics. They are consultant-friendly
+    checks that help decide whether an itinerary should be reviewed before export.
+    """
+
+    parsed_rows = parsed_rows if parsed_rows is not None else st.session_state.get("parsed_rows", [])
+    grouped_days = grouped_days if grouped_days is not None else group_rows_by_day(parsed_rows)
+    items = []
+
+    def add_item(severity, message):
+        entry = {"severity": severity, "message": message}
+        if entry not in items:
+            items.append(entry)
+
+    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not row.get("is_optional")]
+    hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel" and not row.get("is_optional")]
+    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    self_arranged = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row) and not row.get("is_optional")]
+
+    for row in activities:
+        title = create_client_activity_title(row) or row.get("title", "Activity")
+        text = f'{title} {row.get("details", "")}'.lower()
+        day = row.get("day", "")
+        meeting_label, meeting_point = get_activity_logistics(row)
+
+        is_simple_ticket = any(marker in text for marker in ["hop-on", "hop on", "ticket", "fløibanen", "floibanen", "fjellheisen"])
+        if not meeting_point and not is_simple_ticket:
+            add_item("warning", f"{day}: activity may need a meeting point — {title}")
+        if not row.get("duration") and not is_simple_ticket:
+            add_item("info", f"{day}: activity has no duration — {title}")
+
+    for row in hotels:
+        day = row.get("day", "")
+        name = row.get("hotel_name") or row.get("title") or "Accommodation"
+        if not row.get("hotel_nights"):
+            add_item("warning", f"{day}: accommodation missing number of nights — {name}")
+        if not row.get("room_category"):
+            add_item("info", f"{day}: accommodation missing room category — {name}")
+        if not row.get("meal_plan"):
+            add_item("info", f"{day}: accommodation missing meal plan — {name}")
+        elif "without breakfast" in str(row.get("meal_plan", "")).lower():
+            add_item("info", f"{day}: accommodation is marked without breakfast — {name}")
+
+    for row in self_arranged:
+        title = row.get("title", "Self-arranged travel")
+        add_item("warning", f"{row.get('day', '')}: self-arranged travel shown — {title}")
+
+    if optional_rows:
+        add_item("info", f"Optional add-ons detected: {len(optional_rows)} item(s)")
+
+    for day, rows in grouped_days.items():
+        activity_count = sum(1 for row in rows if get_row_type(row) == "Activity")
+        block_count = len(rows)
+        if block_count >= 7 or activity_count >= 3:
+            add_item("warning", f"{day}: busy day — review page balance before export")
+
+    if activities and get_activity_sections_count(parsed_rows) < len(activities):
+        add_item("warning", "Some activities may be missing from Activity inclusions")
+
+    return items
+
+
+def get_itinerary_health(review_items):
+    warnings = sum(1 for item in review_items if item.get("severity") == "warning")
+    if warnings == 0 and len(review_items) <= 1:
+        return "Excellent"
+    if warnings <= 2:
+        return "Good"
+    return "Needs review"
+
+
+def render_sidebar_review_assistant(parsed_rows, grouped_days, stats):
+    review_items = build_review_items(parsed_rows, grouped_days)
+    health = get_itinerary_health(review_items)
+
+    st.subheader("Itinerary health")
+    if health == "Excellent":
+        st.success("Excellent")
+    elif health == "Good":
+        st.info("Good")
+    else:
+        st.warning("Needs review")
+
+    st.subheader("Issues to review")
+    if review_items:
+        for item in review_items[:8]:
+            icon = "⚠" if item.get("severity") == "warning" else "•"
+            st.caption(f"{icon} {item['message']}")
+        if len(review_items) > 8:
+            st.caption(f"+ {len(review_items) - 8} more item(s) in the editable itinerary.")
+    else:
+        st.caption("No practical review issues detected.")
+
+    st.subheader("Ready to export")
+    checklist = [
+        (stats["days"] > 0, "Days detected"),
+        (stats["destinations"] > 0, "Destinations detected"),
+        (stats["hotels"] > 0, "Accommodation detected"),
+        (stats["activities"] == 0 or get_activity_sections_count(parsed_rows) >= stats["activities"], "Activity inclusions ready"),
+        (st.session_state.get("pdf_status") == "Ready", "PDF created"),
+    ]
+    for ok, label in checklist:
+        icon = "✓" if ok else "⚠"
+        st.caption(f"{icon} {label}")
+
 def render_sidebar_snapshot():
     parsed_rows = st.session_state.get("parsed_rows", [])
     if not parsed_rows:
@@ -1654,18 +1809,7 @@ def render_sidebar_snapshot():
     if stats["optional_rows"]:
         st.markdown(f'<div class="sidebar-pill">Optional add-ons: {stats["optional_rows"]}</div>', unsafe_allow_html=True)
 
-    st.subheader("Quality checks")
-    checks = [
-        (stats["days"] > 0, "Day count detected"),
-        (stats["destinations"] > 0, "Destinations detected"),
-        (stats["hotels"] > 0, "Accommodation detected"),
-        (stats["activities"] > 0, "Activities detected"),
-        (diagnostics_count == 0, "No parser diagnostics" if diagnostics_count == 0 else f"{diagnostics_count} parser notice(s)"),
-    ]
-    for ok, label in checks:
-        icon = "✓" if ok else "⚠"
-        st.caption(f"{icon} {label}")
-
+    render_sidebar_review_assistant(edited_rows, grouped_days, stats)
     st.caption(f"PDF status: {st.session_state.get('pdf_status', 'Not created')}")
 
     st.subheader("Creative tools")
@@ -1695,6 +1839,7 @@ def initialise_state():
         "last_generated_raw_text": "",
         "parser_diagnostics": [],
         "pdf_status": "Not created",
+        "detail_level": "Standard client itinerary",
     }
 
     for key, value in defaults.items():
@@ -1713,6 +1858,7 @@ def load_project_json(uploaded_file):
 
         st.session_state.parsed_rows = parsed_rows
         st.session_state.output_edits = output_edits or make_output_edit_state(parsed_rows, grouped_days)
+        st.session_state.detail_level = st.session_state.output_edits.get("detail_level", st.session_state.get("detail_level", "Standard client itinerary"))
         st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
 
@@ -1750,8 +1896,27 @@ with st.sidebar:
     else:
         st.caption("Clean, bright, B2C-friendly.")
 
+    current_detail = st.session_state.get("detail_level", "Standard client itinerary")
+    if current_detail not in DETAIL_LEVELS:
+        current_detail = "Standard client itinerary"
+
+    selected_detail = st.selectbox(
+        "Detail level",
+        DETAIL_LEVELS,
+        index=DETAIL_LEVELS.index(current_detail),
+        help="Controls how much client-facing description is generated. Existing manual edits are preserved.",
+    )
+    st.session_state.detail_level = selected_detail
+    if selected_detail == "Elegant concise":
+        st.caption("Short, polished, and practical.")
+    elif selected_detail == "Rich descriptive":
+        st.caption("Warmer and more atmospheric.")
+    else:
+        st.caption("Balanced detail for most client itineraries.")
+
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
+        st.session_state.output_edits["detail_level"] = selected_detail
 
     show_debug = st.checkbox("Show parser/debug panels", value=False)
 
@@ -1823,7 +1988,8 @@ with st.expander("Step 1 — Paste raw itinerary text", expanded=not bool(st.ses
         else:
             st.warning("Please paste some itinerary text first.")
 
-render_parser_diagnostics_panel()
+if show_debug:
+    render_parser_diagnostics_panel()
 
 if show_debug and st.session_state.parsed_rows:
     with st.expander("Debug tools", expanded=False):
