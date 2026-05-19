@@ -8,6 +8,13 @@ import streamlit as st
 import diagnostics
 from itinerary_parser import parse_itinerary, normalize_time_text
 from pdf_exporter import export_html_to_pdf
+from text_polish import (
+    polish_client_text,
+    polish_hotel_name,
+    polish_inclusion_items,
+    polish_inclusion_item,
+    polish_title,
+)
 from generator import (
     TRANSPORT_TYPES,
     create_client_activity_title,
@@ -24,11 +31,13 @@ from generator import (
     get_primary_city,
     get_row_type,
     group_rows_by_day,
+    is_route_transfer,
+    get_transfer_travel_title,
     is_self_arranged,
 )
 
 
-APP_VERSION = "2026-05-19 v31c-debug-hotfix"
+APP_VERSION = "2026-05-19 v32-final-notes-smart-packing-polish"
 
 
 st.set_page_config(
@@ -75,6 +84,15 @@ DAY_PAGE_LAYOUTS = [
 ]
 
 
+DEFAULT_IMPORTANT_TRAVEL_NOTES = [
+    "Transport schedules, including flights, trains, buses, ferries and cruises, are subject to operational changes. Final confirmed timings will be provided in the travel vouchers.",
+    "Activities may be weather dependent and can be adjusted if required for safety, availability or operational reasons.",
+    "Hotel check-in and check-out times vary by property. As a general guideline, check-in in the Nordic region is usually between 3:00 PM and 4:30 PM, while check-out is usually between 10:00 AM and 12:00 noon.",
+    "Additional nights can be added on request where the itinerary allows. Some itineraries may be designed without extra nights in certain destinations to help balance the overall route, timing and budget.",
+    "Additional private transfers for city exploration days, railway stations, bus terminals, airports or cruise ports can be arranged as optional add-ons if needed.",
+    "If you would like to enhance the itinerary further, additional activities, excursions or upgraded longer-duration experiences can be suggested and arranged on request at an additional cost.",
+]
+
 st.markdown(
     """
     <style>
@@ -108,6 +126,23 @@ st.markdown(
             margin: 0.18rem 0;
             font-size: 0.82rem;
             background: rgba(255,255,255,0.035);
+        }
+        .sidebar-review-card {
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 14px;
+            padding: 0.72rem 0.82rem;
+            margin: 0.45rem 0 0.8rem 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+        }
+        .sidebar-review-card strong { font-size: 0.92rem; }
+        .stButton > button, .stDownloadButton > button {
+            border-radius: 999px !important;
+            min-height: 2.55rem;
+            font-weight: 650;
+        }
+        div[data-testid="stExpander"] {
+            border-radius: 16px !important;
+            border-color: rgba(148, 163, 184, 0.25) !important;
         }
     </style>
     """,
@@ -421,7 +456,7 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
 
 
 def is_self_arranged_transport(row):
-    return get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row)
+    return (get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)) and is_self_arranged(row)
 
 
 def get_activity_description(row, detail_level=None):
@@ -500,13 +535,14 @@ def is_self_transfer(row):
 
 
 def build_activity_block(row):
-    title = row.get("title", "")
+    title = polish_title(row.get("title", ""))
     time = row.get("time", "")
-    duration = row.get("duration", "")
+    duration = polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
-    end_point = row.get("end_point", "")
-    notable_sights = normalize_list(row.get("notable_sights", []))
-    description = row.get("client_description") or get_activity_description(row)
+    meeting_point = polish_client_text(meeting_point)
+    end_point = polish_client_text(row.get("end_point", ""))
+    notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
+    description = polish_client_text(row.get("client_description") or get_activity_description(row))
 
     html_text = f'<div class="content-block activity-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += f'<div class="section-title">{esc(get_time_period(time))}</div>'
@@ -541,12 +577,12 @@ def build_activity_block(row):
         "html": html_text,
     }
 
-def build_transport_block(row):
-    title = row.get("title", "")
+def build_transport_block(row, title_override=None):
+    title = polish_title(title_override or row.get("title", ""))
     time = row.get("time", "")
     duration = row.get("duration", "")
-    includes = [clean_include_item(item, title) for item in normalize_list(row.get("includes", []))]
-    luggage_included = clean_include_item(row.get("luggage_included", ""), title)
+    includes = polish_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
+    luggage_included = polish_inclusion_item(clean_include_item(row.get("luggage_included", ""), title), title)
 
     html_text = f'<div class="content-block transport-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Travel today</div>'
@@ -575,8 +611,8 @@ def build_transport_block(row):
     }
 
 def build_self_transfer_block(row, title_override=None):
-    title = title_override or row.get("title", "")
-    city = row.get("city", "")
+    title = polish_title(title_override or row.get("title", ""))
+    city = polish_title(row.get("city", ""))
 
     html_text = f'<div class="content-block self-transfer-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Self-guided transfer</div>'
@@ -601,11 +637,11 @@ def build_self_transfer_block(row, title_override=None):
 
 
 def build_self_arranged_travel_block(row, title_override=None):
-    title = title_override or row.get("title", "")
-    city = row.get("city", "")
+    title = polish_title(title_override or row.get("title", ""))
+    city = polish_title(row.get("city", ""))
     row_type = get_row_type(row).lower()
 
-    if row_type == "flight":
+    if row_type == "flight" or "flight" in str(title).lower():
         note = "This flight is self-arranged and not included in the package price unless specifically stated."
     else:
         note = "This travel segment is self-arranged and not included in the package price unless specifically stated."
@@ -627,12 +663,12 @@ def build_self_arranged_travel_block(row, title_override=None):
     }
 
 def build_accommodation_block(row):
-    hotel_name = str(row.get("hotel_name") or row.get("title") or "Accommodation as listed").strip()
+    hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
     nights = plural_nights(row.get("hotel_nights", ""))
-    room_category = str(row.get("room_category") or "").strip()
+    room_category = polish_client_text(row.get("room_category") or "")
     meal = meal_phrase(row.get("meal_plan", ""))
 
-    accommodation_line = f"{hotel_name} or similar"
+    accommodation_line = polish_client_text(f"{hotel_name} or similar")
 
     if nights:
         accommodation_line += f" for {nights}"
@@ -686,7 +722,7 @@ def build_leisure_block(row=None):
 
 
 def build_departure_block(row):
-    title = row.get("title", "") or "Departure home"
+    title = polish_title(row.get("title", "") or "Departure home")
 
     html_text = f'<div class="content-block departure-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Departure</div>'
@@ -701,7 +737,7 @@ def build_departure_block(row):
 
 
 def build_included_today_block(items):
-    clean_items = normalize_list(items)
+    clean_items = polish_inclusion_items(normalize_list(items))
 
     if not clean_items:
         return None
@@ -753,9 +789,17 @@ def build_day_blocks(rows):
             if title:
                 included_items.append(title)
 
+        elif row_type == "Transfer" and is_self_arranged(row):
+            flush_included()
+            blocks.append(build_self_arranged_travel_block(row, title_override=get_transfer_travel_title(row)))
+
+        elif row_type == "Transfer" and is_route_transfer(row):
+            flush_included()
+            blocks.append(build_transport_block(row, title_override=get_transfer_travel_title(row)))
+
         elif row_type == "Transfer":
             if title:
-                included_items.append(title)
+                included_items.append(polish_title(title))
 
         elif row_type in TRANSPORT_TYPES:
             flush_included()
@@ -828,13 +872,19 @@ def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
     blocks_a = len(build_day_blocks(rows_a))
     blocks_b = len(build_day_blocks(rows_b))
 
-    if units_a > 17.0 or units_b > 17.0:
+    # Smart packing uses compact typography on packed pages, so it can safely
+    # combine light+medium days. Still keep strict guardrails for A4 safety.
+    if units_a > 23.5 or units_b > 23.5:
         return False
-    if units_a + units_b > 31.5:
+    if units_a + units_b > 38.0:
         return False
-    if activity_count_a >= 2 or activity_count_b >= 2:
+    if units_a > 19.5 and units_b > 19.5:
         return False
-    if blocks_a >= 5 or blocks_b >= 5:
+    if activity_count_a >= 3 or activity_count_b >= 3:
+        return False
+    if activity_count_a >= 2 and activity_count_b >= 2:
+        return False
+    if blocks_a >= 7 or blocks_b >= 7:
         return False
 
     return True
@@ -897,6 +947,21 @@ def render_day_pages(grouped_days, output_edits=None):
 
         if index + 1 < len(day_items):
             next_day, next_rows = day_items[index + 1]
+
+            # Look ahead so a medium travel day does not consume a light day
+            # that would pair better with a very light departure/following day.
+            if index + 2 < len(day_items):
+                third_day, third_rows = day_items[index + 2]
+                current_units = estimate_day_units(day, rows, output_edits)
+                next_units = estimate_day_units(next_day, next_rows, output_edits)
+                if (
+                    can_pack_days(next_day, next_rows, third_day, third_rows, output_edits)
+                    and current_units > next_units + 3.0
+                ):
+                    html_text += render_day_page(day, rows, output_edits)
+                    index += 1
+                    continue
+
             if can_pack_days(day, rows, next_day, next_rows, output_edits):
                 html_text += render_packed_day_page([(day, rows), (next_day, next_rows)], output_edits)
                 index += 2
@@ -927,6 +992,28 @@ def render_split_list_pages(title, items, items_per_page=24):
 
     return html_text
 
+
+
+def render_text_paragraph_page(title, paragraphs):
+    clean_paragraphs = [polish_client_text(item) for item in normalize_list(paragraphs) if polish_client_text(item)]
+    if not clean_paragraphs:
+        return ""
+
+    html_text = (
+        f'<div class="a4-page final-list-page important-notes-page">'
+        f'<div class="final-page-title">{esc(title)}</div>'
+        f'<div class="content-block notes-block">'
+    )
+    for paragraph in clean_paragraphs:
+        html_text += f'<div class="body-text note-paragraph">{esc(paragraph)}</div>'
+    html_text += "</div></div>"
+    return html_text
+
+
+def get_important_travel_notes(output_edits=None):
+    if output_edits and output_edits.get("important_travel_notes_text"):
+        return text_to_list(output_edits.get("important_travel_notes_text"))
+    return DEFAULT_IMPORTANT_TRAVEL_NOTES
 
 
 def get_fallback_activity_inclusions(row):
@@ -964,7 +1051,7 @@ def get_fallback_activity_inclusions(row):
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
-        text = str(item).strip()
+        text = polish_inclusion_item(str(item).strip(), title)
         lower = text.lower().strip(":? ")
 
         if lower in {"what's included", "what’s included", "includes", "included"}:
@@ -974,11 +1061,11 @@ def clean_activity_inclusion_items(items, title=""):
         if len(text) > 150 and "included" not in lower:
             continue
 
-        text = clean_include_item(text, title)
+        text = polish_inclusion_item(clean_include_item(text, title), title)
         if text and text not in clean_items:
             clean_items.append(text)
 
-    return clean_items
+    return polish_inclusion_items(clean_items, title)
 
 def create_activity_inclusions(parsed_rows):
     activity_sections = []
@@ -1022,7 +1109,7 @@ def create_optional_addons(parsed_rows):
             title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
         duration = str(row.get("duration", "")).strip()
-        includes = [clean_include_item(item, title) for item in normalize_list(row.get("includes", []))]
+        includes = polish_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
         if row_type == "Activity" and not includes:
             includes = get_fallback_activity_inclusions(row)
         meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
@@ -1175,6 +1262,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
         "whats_not_included_text": list_to_text(create_whats_not_included()),
+        "important_travel_notes_text": list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES),
     }
 
     for day, rows in grouped_days.items():
@@ -1434,6 +1522,12 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
             height=180,
             key="edit_whats_not_included_text",
         )
+        output_edits["important_travel_notes_text"] = st.text_area(
+            "Important travel notes, one paragraph per line",
+            value=output_edits.get("important_travel_notes_text", list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES)),
+            height=240,
+            key="edit_important_travel_notes_text",
+        )
 
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
@@ -1460,6 +1554,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
     else:
         whats_not_included = create_whats_not_included()
+
+    important_travel_notes = get_important_travel_notes(output_edits)
 
     html_text = f"""
     <style>
@@ -1631,6 +1727,62 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             page-break-inside: avoid;
         }}
 
+        .packed-day-page {{
+            padding-top: 46px;
+            padding-bottom: 46px;
+        }}
+
+        .packed-section .day-label {{
+            font-size: 25px;
+            margin-bottom: 3px;
+        }}
+
+        .packed-section .day-title {{
+            font-size: 19px;
+            line-height: 1.15;
+            margin-bottom: 7px;
+        }}
+
+        .packed-section .city {{
+            font-size: 10px;
+            margin-bottom: 9px;
+        }}
+
+        .packed-section .intro {{
+            font-size: 12.2px;
+            line-height: 1.34;
+            margin-bottom: 10px;
+        }}
+
+        .packed-section .content-block {{
+            margin-bottom: 8px;
+        }}
+
+        .packed-section .section-title {{
+            font-size: 9.5px;
+            margin-top: 8px;
+            margin-bottom: 3px;
+        }}
+
+        .packed-section .body-text,
+        .packed-section li {{
+            font-size: 11.2px;
+            line-height: 1.23;
+            margin-bottom: 2px;
+        }}
+
+        .packed-section ul {{
+            margin-top: 3px;
+            margin-bottom: 6px;
+            padding-left: 17px;
+        }}
+
+        .day-separator {{
+            height: 1px;
+            background: var(--line);
+            margin: 16px 0 13px 0;
+        }}
+
         .section-title {{
             font-family: Arial, sans-serif;
             font-size: 11px;
@@ -1699,6 +1851,16 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .final-list li {{
             margin-bottom: 5px;
+        }}
+
+        .important-notes-page .note-paragraph {{
+            font-size: 14px;
+            line-height: 1.55;
+            margin-bottom: 14px;
+        }}
+
+        .notes-block {{
+            margin-top: 8px;
         }}
 
         @media print {{
@@ -1784,6 +1946,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     html_text += render_optional_addons_pages(optional_addons)
     html_text += render_activity_inclusions_pages(activity_inclusions)
     html_text += render_split_list_pages("What’s not included", whats_not_included)
+    html_text += render_text_paragraph_page("Important travel notes", important_travel_notes)
 
     html_text += "</div>"
 
@@ -1867,7 +2030,7 @@ def get_itinerary_stats(parsed_rows=None, grouped_days=None):
     activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not row.get("is_optional")]
     optional_rows = [row for row in parsed_rows if row.get("is_optional")]
     hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel"]
-    self_arranged = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row)]
+    self_arranged = [row for row in parsed_rows if is_self_arranged_transport(row)]
 
     return {
         "days": len(grouped_days),

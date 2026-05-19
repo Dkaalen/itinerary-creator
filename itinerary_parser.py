@@ -3,6 +3,7 @@ import re
 
 import diagnostics
 from place_aliases import canonicalize_place_name, is_likely_service_text, normalize_place_text
+from text_polish import polish_client_text, polish_hotel_name, polish_title, polish_inclusion_items
 
 
 DETAIL_LABELS = [
@@ -137,6 +138,7 @@ def fix_common_text(value):
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
     text = normalize_place_text(text)
+    text = polish_client_text(text)
 
     return clean_space(text) if "\n" not in text else text
 
@@ -445,7 +447,7 @@ def clean_title(text):
         if len(possible_city.strip()) <= 25 and rest.strip():
             title = rest.strip()
 
-    return clean_space(title)
+    return polish_title(clean_space(title))
 
 
 def split_comma_list(text, *, protect_compound_phrases=False):
@@ -487,7 +489,7 @@ def split_comma_list(text, *, protect_compound_phrases=False):
     ]
 
     if not protect_compound_phrases:
-        return parts
+        return polish_inclusion_items(parts)
 
     merged = []
     attach_to_previous_prefixes = (
@@ -512,7 +514,7 @@ def split_comma_list(text, *, protect_compound_phrases=False):
         else:
             merged.append(part)
 
-    return merged
+    return polish_inclusion_items(merged)
 
 
 def detect_effective_type(item_type, title, details):
@@ -1197,6 +1199,10 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     # If hotel name is missing in the text, avoid using the whole raw line.
     if hotel_name and any(marker in hotel_name.lower() for marker in ["check in", "night stay", "incl"]):
         hotel_name = ""
+
+    hotel_name = polish_hotel_name(hotel_name)
+    room_category = polish_client_text(room_category)
+    meal_plan = polish_client_text(meal_plan)
 
     if not hotel_name:
         diagnostics.warn(

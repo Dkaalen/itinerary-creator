@@ -1,6 +1,8 @@
 from collections import OrderedDict
+import re
 
 from place_aliases import canonicalize_place_name, is_likely_service_text
+from text_polish import polish_client_text, polish_title, polish_inclusion_item
 
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
@@ -151,13 +153,66 @@ def has_airport_departure_transfer(day_rows):
     return ("airport" in text and ("hotel to" in text or "accommodation to" in text or "to airport" in text))
 
 
+def _route_destination_from_text(value):
+    text = polish_client_text(value)
+    if not text or " to " not in text.lower():
+        return ""
+
+    # Use the last route-like destination in the string. This works for messy
+    # rows such as "Tromsø to Bergen" or "Flight Bergen to Svolvær".
+    matches = list(re.finditer(r"\bfrom\s+(.+?)\s+to\s+([^|,.;\n]+)|\b([^|,.;\n]+?)\s+to\s+([^|,.;\n]+)", text, flags=re.IGNORECASE))
+    if not matches:
+        return ""
+
+    match = matches[-1]
+    destination = match.group(2) or match.group(4) or ""
+    destination = destination.strip(" -:|.")
+    # Remove trailing supplier/status text.
+    destination = re.split(r"\s+(?:self|cost|price|not|included|arranged)\b", destination, flags=re.IGNORECASE)[0].strip(" -:|.")
+    return canonicalize_place_name(destination)
+
+
+def is_route_transfer(row):
+    if get_row_type(row) != "Transfer":
+        return False
+    text = f'{row.get("title", "")} {row.get("details", "")}'
+    lower = text.lower()
+    if any(marker in lower for marker in ["private", "shuttle", "self transfer", "hotel to", "airport to", "station to", "to hotel", "to airport", "to station", "accommodation"]):
+        return False
+    destination = _route_destination_from_text(text)
+    return bool(destination and is_valid_destination_city(destination))
+
+
+def get_transfer_travel_title(row):
+    text = f'{row.get("title", "")} {row.get("details", "")}'
+    lower = text.lower()
+    destination = _route_destination_from_text(text) or canonicalize_place_name(row.get("city", ""))
+
+    if "flight" in lower and destination:
+        return f"Flight to {destination}"
+    if "train" in lower and destination:
+        return f"Train to {destination}"
+    if ("ferry" in lower or "cruise" in lower) and destination:
+        return f"Ferry to {destination}" if "ferry" in lower else f"Cruise to {destination}"
+    if ("coach" in lower or "bus" in lower) and destination:
+        return f"Coach transfer to {destination}"
+    if destination:
+        return f"Travel to {destination}"
+    return polish_title(row.get("title", "") or "Travel today")
+
+
 def get_primary_transport_title(day_rows):
     for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
-                title = str(row.get("title", "")).strip()
+                title = polish_title(str(row.get("title", "")).strip())
                 if title:
                     return title
+
+    for row in day_rows:
+        if is_route_transfer(row):
+            return get_transfer_travel_title(row)
+
     return ""
 
 
@@ -708,6 +763,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     activities = [row for row in day_rows if get_row_type(row) == "Activity"]
     transports = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES]
     transfers = [row for row in day_rows if get_row_type(row) == "Transfer"]
+    route_transfers = [row for row in transfers if is_route_transfer(row)]
     leisure = [row for row in day_rows if get_row_type(row) == "Leisure"]
 
     if has_only_departure_arrangements(day_rows) and city:
@@ -780,7 +836,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 f"can be shaped around your own pace, interests, and time at leisure."
             )
 
-    if transports and city:
+    if (transports or route_transfers) and city:
         if detail_level == "Elegant concise":
             return f"Continue your journey with arranged travel connected to {city}."
         if detail_level == "Rich descriptive":
@@ -838,7 +894,7 @@ def sentence_case_transport_title(title):
 
 def clean_include_item(value, context_title=""):
     """Normalize inclusion bullet wording for both summaries and day blocks."""
-    item = str(value or "").strip()
+    item = polish_inclusion_item(value, context_title)
     lower = item.lower()
     context_lower = str(context_title or "").lower()
 
@@ -860,11 +916,11 @@ def clean_include_item(value, context_title=""):
     item = item.replace("Tickets included", "tickets included")
     item = item.replace("Luggage porter service included", "luggage porter service")
     item = item.replace("  ", " ")
-    return item
+    return polish_inclusion_item(item, context_title)
 
 
 def format_transport_inclusion(title, includes=None, luggage=""):
-    title = sentence_case_transport_title(title)
+    title = polish_title(sentence_case_transport_title(title))
     includes = [clean_include_item(item, title) for item in (includes or []) if clean_include_item(item, title)]
     luggage = clean_include_item(luggage, title)
 
@@ -911,6 +967,10 @@ def create_whats_included(parsed_rows, grouped_days):
         luggage = row.get("luggage_included", "").strip()
         includes = row.get("includes", [])
         add_unique(included, format_transport_inclusion(title, includes, luggage))
+
+    for row in transfer_rows:
+        if is_route_transfer(row) and not is_self_arranged(row):
+            add_unique(included, get_transfer_travel_title(row))
 
     for row in activity_rows:
         title = create_client_activity_title(row) or row.get("title", "").strip()
