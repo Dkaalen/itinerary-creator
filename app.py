@@ -751,6 +751,22 @@ def save_pdf_file(html_path):
     return pdf_path
 
 
+def get_duplicate_count(raw_text_value):
+    """
+    Lightweight UI estimate only. parse_itinerary already skips exact
+    duplicate rows, so this compares valid-looking pasted rows with parsed rows.
+    """
+
+    raw_rows = [
+        line for line in raw_text_value.splitlines()
+        if line.strip().lower().startswith("day ")
+    ]
+
+    parsed_rows = parse_itinerary(raw_text_value)
+
+    return max(len(raw_rows) - len(parsed_rows), 0)
+
+
 if "itinerary_html" not in st.session_state:
     st.session_state.itinerary_html = ""
 
