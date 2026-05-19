@@ -50,6 +50,40 @@ def looks_like_known_type(value):
     return clean_space(value).lower() in KNOWN_TYPES
 
 
+def is_optional_addon_header(value):
+    text = clean_space(value).lower()
+    text = re.sub(r"[^a-z0-9 ]+", " ", text)
+    text = clean_space(text)
+    return "optional" in text and ("addon" in text or "add on" in text or "addons" in text or "add ons" in text)
+
+
+INVALID_CITY_MARKERS = [
+    "private hotel",
+    "private airport",
+    "hotel to airport",
+    "airport to hotel",
+    "optional addon",
+    "optional add on",
+    "flight ",
+]
+
+
+def is_valid_city_value(value):
+    city = clean_space(value).strip(" .,-|:")
+    if not city:
+        return False
+    lower = city.lower()
+    if looks_like_day(city) or looks_like_known_type(city) or looks_like_date(city):
+        return False
+    if city.isdigit():
+        return False
+    if len(city) > 35:
+        return False
+    if any(marker in lower for marker in INVALID_CITY_MARKERS):
+        return False
+    if " to " in lower and any(word in lower for word in ["airport", "hotel", "station", "bergen", "copenhagen", "svol"]):
+        return False
+    return True
 
 
 COMMON_TEXT_REPLACEMENTS = [
@@ -60,6 +94,14 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bDoubel\b", "Double"),
     (r"\bArrnaged\b", "arranged"),
     (r"\bArranged\b", "arranged"),
+    (r"\binclueded\b", "included"),
+    (r"\binclued\b", "included"),
+    (r"\binclueded\b", "included"),
+    (r"\bBergent\b", "Bergen"),
+    (r"\bSvolaver\b", "Svolvær"),
+    (r"\bSvolvaer\b", "Svolvær"),
+    (r"\bSvoalvaer\b", "Svolvær"),
+    (r"\bSvolvær\b", "Svolvær"),
     (r"\bTromso\b", "Tromsø"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
 ]
@@ -73,7 +115,10 @@ def fix_common_text(value):
     for pattern, replacement in COMMON_TEXT_REPLACEMENTS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
+    text = re.sub(r"\bNUtsheel\b", "Nutshell", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bNutsheel\b", "Nutshell", text, flags=re.IGNORECASE)
     text = re.sub(r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2", text)
     text = re.sub(r"\bWi-FI\b", "Wi-Fi", text, flags=re.IGNORECASE)
     text = re.sub(r"\b4Star\b", "4 Star", text, flags=re.IGNORECASE)
     text = re.sub(r"\b3Star\b", "3 Star", text, flags=re.IGNORECASE)
@@ -431,6 +476,18 @@ def split_comma_list(text, *, protect_compound_phrases=False):
 
 def detect_effective_type(item_type, title, details):
     combined = f"{title} {details}".lower().strip()
+    normalized_item_type = normalize_type(item_type)
+
+    # Hop-on hop-off / city pass style products are client activities, not
+    # transport segments, even if the word "bus" appears in the title.
+    if normalized_item_type == "Activity" and any(
+        marker in combined
+        for marker in ["hop on", "hop-on", "hop off", "hop-off", "24 hrs ticket", "24 hour ticket"]
+    ):
+        return "Activity"
+
+    if "norway in a nutshell" in combined:
+        return "Transport"
 
     if "flight to" in combined or combined.startswith("flight ") or re.search(r"\bflight\s*\|", combined):
         return "Flight"
@@ -444,16 +501,19 @@ def detect_effective_type(item_type, title, details):
     if "ferry to" in combined:
         return "Ferry"
 
+    # For explicit activity rows, do not downgrade the activity just because the
+    # supplier text mentions a bus/coach as part of the experience.
+    if normalized_item_type == "Activity":
+        return "Activity"
+
     if (
         "coach transfer" in combined
         or combined.startswith("bus")
         or " bus " in f" {combined} "
-        or "norway in a nutshell" in combined
     ) and "private" not in combined:
         return "Transport"
 
-    return normalize_type(item_type)
-
+    return normalized_item_type
 
 def preprocess_raw_rows(raw_text):
     """
@@ -461,10 +521,22 @@ def preprocess_raw_rows(raw_text):
 
     A new row starts when one of the first few tab-separated cells contains
     "Day X". Lines that do not start a row are appended to the previous row.
+
+    Optional add-on sections are preserved and marked instead of being appended
+    to the previous real itinerary row. This lets the app render optional add-ons
+    in their own section without polluting the main itinerary, destination list,
+    day count, or final-day logic.
     """
 
     rows = []
     current = ""
+    optional_mode = False
+
+    def flush_current():
+        nonlocal current
+        if current.strip():
+            rows.append(current)
+        current = ""
 
     for raw_line in raw_text.splitlines():
         if not raw_line.strip():
@@ -473,21 +545,25 @@ def preprocess_raw_rows(raw_text):
         parts = raw_line.split("\t")
         starts_new_row = any(looks_like_day(part) for part in parts[:4])
 
+        if not starts_new_row and is_optional_addon_header(raw_line):
+            flush_current()
+            optional_mode = True
+            continue
+
         if starts_new_row:
-            if current.strip():
-                rows.append(current)
-            current = raw_line
+            flush_current()
+            prefix = "__OPTIONAL__\t" if optional_mode else "__MAIN__\t"
+            current = prefix + raw_line
         else:
             if current:
                 current += "\n" + raw_line
             else:
-                current = raw_line
+                prefix = "__OPTIONAL__\t" if optional_mode else "__MAIN__\t"
+                current = prefix + raw_line
 
-    if current.strip():
-        rows.append(current)
+    flush_current()
 
     return rows
-
 
 def find_day_index(parts):
     for index, part in enumerate(parts[:5]):
@@ -528,15 +604,7 @@ def find_city_cell(parts, description_index):
         if not value:
             continue
 
-        if looks_like_day(value) or looks_like_known_type(value) or looks_like_date(value):
-            continue
-
-        if value.isdigit():
-            continue
-
-        # A city cell should be short. Avoid accidentally capturing a long
-        # description as the city.
-        if len(value) <= 35:
+        if is_valid_city_value(value):
             return value
 
     return ""
@@ -644,6 +712,36 @@ def infer_range_suffixes(start, end):
     return start_suffix, end_suffix
 
 
+def find_clock_range(value):
+    text = clean_space(value).replace("–", "-").replace("—", "-")
+    # Require either a colon or an AM/PM suffix, so ranges like "5-8 minutes"
+    # are not interpreted as 5:00 AM - 8:00 AM.
+    token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
+    pattern = re.compile(rf"(?<!\d)({token})\s*-\s*({token})(?!\d)", flags=re.IGNORECASE)
+    for match in pattern.finditer(text):
+        raw = match.group(0)
+        after = text[match.end():match.end() + 15].lower()
+        if "minute" in after or "min" in after:
+            continue
+        if ":" not in raw and not re.search(r"[AaPp]\.?[Mm]\.?", raw):
+            continue
+        return raw
+    return ""
+
+
+def find_single_clock_time(value):
+    text = clean_space(value)
+    match = re.search(r"(?<!\d)(\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?))(?!\d)", text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1)
+    match = re.search(r"(?<!\d)(\d{1,2}:\d{2})(?!\d)", text)
+    if match:
+        after = text[match.end():match.end() + 15].lower()
+        if "minute" not in after and "min" not in after:
+            return match.group(1)
+    return ""
+
+
 def normalize_time_text(value):
     """Standardize itinerary times to AM/PM display format.
 
@@ -668,13 +766,20 @@ def normalize_time_text(value):
     )
 
     def replace_range(match):
+        raw_range = match.group(0)
+        after = text[match.end():match.end() + 15].lower()
+        if "minute" in after or "min" in after:
+            return raw_range
+        if ":" not in raw_range and not re.search(r"[AaPp]\.?[Mm]\.?", raw_range):
+            return raw_range
+
         start_raw = match.group(1)
         end_raw = match.group(2)
         start = parse_time_token(start_raw)
         end = parse_time_token(end_raw)
 
         if not start or not end:
-            return match.group(0)
+            return raw_range
 
         start_suffix, end_suffix = infer_range_suffixes(start, end)
         return f"{format_time_token(start_raw, start_suffix)} - {format_time_token(end_raw, end_suffix)}"
@@ -713,6 +818,10 @@ def normalize_duration_text(value):
     duration = clean_space(value)
     if not duration:
         return ""
+
+    minute_match = re.search(r"\b(\d+\s*(?:-|–)\s*\d+\s*minutes?)\b", duration, flags=re.IGNORECASE)
+    if minute_match:
+        return minute_match.group(1).replace("-", "–")
 
     # Defensive cleanup: sometimes a colleague-style cell has
     # "3 Hrs Overview ..." in the same pipe section. Keep only the actual
@@ -783,6 +892,10 @@ def extract_duration_from_description(main_text):
     if match:
         return normalize_duration_text(match.group(1))
 
+    minute_match = re.search(r"\b(\d+\s*(?:-|–)\s*\d+\s*minutes?)\b", main_text, flags=re.IGNORECASE)
+    if minute_match:
+        return normalize_duration_text(minute_match.group(1))
+
     return ""
 
 
@@ -790,23 +903,35 @@ def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
     if standard_time:
+        clock_range = find_clock_range(standard_time)
+        if clock_range:
+            return normalize_time_text(clock_range)
+        single_time = find_single_clock_time(standard_time)
+        if single_time:
+            return normalize_time_text(single_time)
         time_text, _ = split_time_and_duration(standard_time)
         return time_text
 
     # Pipe format examples:
     # "Title | 20:00 | 5 Hrs | ..."
     # "Title | 8-10 AM (Anytime) | 7 Hrs | ..."
+    # "Oslo to Bergen | Norway in a Nutshell 08:25 - 20:40 | ..."
     pipe_parts = [clean_space(part) for part in main_text.split("|")]
 
-    for part in pipe_parts[1:3]:
+    for part in pipe_parts[1:4]:
         lower = part.lower()
-        if re.search(r"\d{1,2}(:\d{2})?\s*(am|pm)?", lower) and "hr" not in lower:
-            return split_time_and_duration(part)[0]
+        if "hr" in lower or "hour" in lower or "minute" in lower:
+            continue
+        clock_range = find_clock_range(part)
+        if clock_range:
+            return normalize_time_text(clock_range)
+        single_time = find_single_clock_time(part)
+        if single_time:
+            return normalize_time_text(single_time)
 
-    # Dash format without label: "Flight | Tromso to Bergen | Self Arranged"
-    match = re.search(r"\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*[-–]\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b", main_text, flags=re.IGNORECASE)
-    if match:
-        return normalize_time_text(match.group(1).replace(".", ":"))
+    clock_range = find_clock_range(main_text)
+    if clock_range:
+        return normalize_time_text(clock_range.replace(".", ":"))
 
     return ""
 
@@ -855,6 +980,16 @@ def extract_meeting_point_from_description(main_text):
 
 
 def extract_includes_from_description(main_text):
+    lower_full = main_text.lower()
+
+    if "norway in a nutshell" in lower_full:
+        return [
+            "Bergen Railway",
+            "Flåm Railway",
+            "Fjord cruise",
+            "Scenic bus journey",
+        ]
+
     standard_includes = extract_detail(main_text, "Includes")
 
     if standard_includes:
@@ -872,6 +1007,8 @@ def extract_includes_from_description(main_text):
             r"pickup\s*/\s*meeting\s*point",
             r"\bmeeting\s*point\b",
             r"\boverview\b",
+            r"\bnot included\b",
+            r"\bnot included\b",
             r"\bwhat to expect\b",
             r"\bimportant info\b",
             r"\bour floating suits\b",
@@ -1032,6 +1169,10 @@ def parse_itinerary(raw_text):
             continue
 
         parts = raw_line.rstrip("\n").split("\t")
+        is_optional = False
+        if parts and parts[0] in {"__OPTIONAL__", "__MAIN__"}:
+            is_optional = parts[0] == "__OPTIONAL__"
+            parts = parts[1:]
 
         if not any(part.strip() for part in parts):
             continue
@@ -1077,6 +1218,8 @@ def parse_itinerary(raw_text):
         separate_city = find_city_cell(parts, description_index)
 
         row_id = make_row_id(current_day, item_type, start_date, end_date, description)
+        if is_optional:
+            row_id = f"opt_{row_id}"
 
         if row_id in seen_row_ids:
             continue
@@ -1087,6 +1230,7 @@ def parse_itinerary(raw_text):
             "raw": clean_space(raw_line),
             "line_number": line_number,
             "row_id": row_id,
+            "is_optional": is_optional,
             "day": current_day,
             "type": item_type,
             "effective_type": "",
@@ -1120,7 +1264,7 @@ def parse_itinerary(raw_text):
 
         elif ":" in main_text:
             possible_city, rest = main_text.split(":", 1)
-            if len(clean_space(possible_city)) <= 35:
+            if is_valid_city_value(possible_city):
                 row["city"] = clean_space(possible_city)
                 main_text = rest.strip()
 

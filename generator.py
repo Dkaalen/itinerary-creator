@@ -21,6 +21,9 @@ def group_rows_by_day(parsed_rows):
     grouped = {}
 
     for row in parsed_rows:
+        if is_optional_row(row):
+            continue
+
         day = row.get("day", "Unknown day")
 
         if day not in grouped:
@@ -45,6 +48,39 @@ def add_unique(items, item):
 
     if clean_item and clean_item not in items:
         items.append(clean_item)
+
+
+def is_optional_row(row):
+    return bool(row.get("is_optional"))
+
+
+def main_rows_only(rows):
+    return [row for row in rows if not is_optional_row(row)]
+
+
+def optional_rows_only(rows):
+    return [row for row in rows if is_optional_row(row)]
+
+
+def is_valid_destination_city(city):
+    city = str(city or "").strip()
+    if not city:
+        return False
+    lower = city.lower()
+    invalid_markers = [
+        "private hotel",
+        "private airport",
+        "hotel to airport",
+        "airport to hotel",
+        "optional addon",
+        "optional add",
+        "flight ",
+    ]
+    if any(marker in lower for marker in invalid_markers):
+        return False
+    if " to " in lower and any(word in lower for word in ["airport", "hotel", "station", "bergen", "copenhagen", "svol"]):
+        return False
+    return True
 
 
 def clean_client_title(value):
@@ -145,9 +181,12 @@ def get_unique_cities(parsed_rows):
     cities = []
 
     for row in parsed_rows:
+        if is_optional_row(row):
+            continue
+
         city = row.get("city", "").strip()
 
-        if city and city not in cities:
+        if is_valid_destination_city(city) and city not in cities:
             cities.append(city)
 
     return cities
@@ -155,12 +194,22 @@ def get_unique_cities(parsed_rows):
 
 def is_self_arranged(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    row_type = get_row_type(row)
+
+    # Activity descriptions often contain exclusions like "guide not included"
+    # or "food and drinks not included". Those should not turn the whole
+    # experience into self-arranged travel.
+    if row_type == "Activity":
+        return False
+
     markers = [
         "self arranged",
         "self-arranged",
         "self arrnaged",
+        "cost not included",
+        "cost not inclueded",
         "price not included",
-        "not included",
+        "flight cost not",
     ]
 
     return any(marker in text for marker in markers)
@@ -197,6 +246,22 @@ def create_client_activity_title(row):
 
     if "tallinn" in full_text:
         return "Day Trip to Tallinn"
+
+    if "lofoten" in full_text and "trollfjord" in full_text:
+        return "Lofoten Day Tour & Trollfjord Cruise"
+
+    if "fløibanen" in full_text or "floibanen" in full_text:
+        return "Fløibanen Funicular"
+
+    if "hop on" in full_text or "hop-on" in full_text or "hop off" in full_text or "hop-off" in full_text:
+        if "copenhagen" in full_text:
+            return "Copenhagen Hop-On Hop-Off Bus Ticket"
+        if "bergen" in full_text:
+            return "Bergen Hop-On Hop-Off Bus Ticket"
+        return "Hop-On Hop-Off Bus Ticket"
+
+    if "city walking" in full_text and "canal" in full_text and "copenhagen" in full_text:
+        return "Copenhagen Walking & Canal Tour"
 
     if "round trip ticket" in full_text and "trom" in full_text:
         return "Fjellheisen Cable Car"
@@ -246,6 +311,7 @@ def create_client_activity_title(row):
     return "Northern Lights Experience"
 
 def create_trip_title(parsed_rows, grouped_days):
+    parsed_rows = main_rows_only(parsed_rows)
     cities = get_unique_cities(parsed_rows)
     day_count = get_day_count(grouped_days)
 
@@ -284,6 +350,7 @@ def create_trip_title(parsed_rows, grouped_days):
 
 
 def create_trip_subtitle(parsed_rows, grouped_days):
+    parsed_rows = main_rows_only(parsed_rows)
     day_count = get_day_count(grouped_days)
     cities = get_unique_cities(parsed_rows)
 
@@ -353,6 +420,7 @@ def create_destinations_line(parsed_rows):
 
 
 def create_trip_glance(parsed_rows, grouped_days):
+    parsed_rows = main_rows_only(parsed_rows)
     cities = get_unique_cities(parsed_rows)
     day_count = get_day_count(grouped_days)
     nights = max(day_count - 1, 0)
@@ -728,6 +796,7 @@ def format_transport_inclusion(title, includes=None, luggage=""):
 
 
 def create_whats_included(parsed_rows, grouped_days):
+    parsed_rows = main_rows_only(parsed_rows)
     included = []
 
     hotel_rows = [row for row in parsed_rows if get_row_type(row) == "Hotel"]

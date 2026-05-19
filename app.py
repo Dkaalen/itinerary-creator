@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v23 final-polish-meeting-points"
+APP_VERSION = "2026-05-19 v24 optional-addons-parser-hardening"
 
 
 st.set_page_config(
@@ -278,18 +278,33 @@ def is_self_arranged_transport(row):
 
 def get_activity_description(row):
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+    city = str(row.get("city", "")).strip().lower()
 
     if "fjellheisen" in title or "round trip ticket" in title:
         return "Enjoy panoramic views over Tromsø, the surrounding islands, fjords, and mountains."
 
-    if "essential oslo" in title or "guided walking tour" in title:
+    if "lofoten" in title and "trollfjord" in title:
+        return "Travel through Lofoten by land and sea, with time around Stokmarknes and a cruise into the dramatic Trollfjord."
+
+    if "city walking" in title and "canal" in title and "copenhagen" in title:
+        return "Explore central Copenhagen on foot with a local host, including key landmarks and a scenic canal experience."
+
+    if "essential oslo" in title:
         return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
+
+    if "guided walking tour" in title:
+        if "copenhagen" in city or "copenhagen" in title:
+            return "Explore central Copenhagen on foot with a local guide, with time for local stories and key city landmarks."
+        if "oslo" in city or "oslo" in title:
+            return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
+
+    if "hop on" in title or "hop-on" in title or "hop off" in title or "hop-off" in title:
+        return "Use your flexible ticket to explore the city at your own pace."
 
     if "tallinn" in title:
         return "Travel from Helsinki to Tallinn and enjoy time to explore the historic Old Town before returning to Helsinki."
 
     return ""
-
 
 def is_self_transfer(row):
     row_type = get_row_type(row)
@@ -636,9 +651,51 @@ def create_activity_inclusions(parsed_rows):
         activity_sections.append({
             "title": title,
             "includes": includes,
+            "is_optional": bool(row.get("is_optional")),
         })
 
     return activity_sections
+
+
+def create_optional_addons(parsed_rows):
+    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    addons = []
+
+    for row in optional_rows:
+        row_type = get_row_type(row)
+        title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
+        title = str(title or row.get("title", "Optional add-on")).strip()
+        city = str(row.get("city", "")).strip()
+        time = display_time(row.get("time", ""))
+        duration = str(row.get("duration", "")).strip()
+        includes = clean_include_display_items(row.get("includes", []), title)
+        meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
+
+        if not title:
+            continue
+
+        if row_type in TRANSPORT_TYPES or is_self_arranged_transport(row):
+            label = "Optional self-arranged travel" if is_self_arranged(row) else "Optional travel"
+        elif row_type == "Transfer":
+            label = "Optional transfer"
+        elif row_type == "Activity":
+            label = "Optional experience"
+        else:
+            label = "Optional add-on"
+
+        addons.append({
+            "day": row.get("day", ""),
+            "label": label,
+            "title": title,
+            "city": city,
+            "time": time,
+            "duration": duration,
+            "meeting_label": meeting_label,
+            "meeting_point": meeting_point,
+            "includes": includes,
+        })
+
+    return addons
 
 def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
     if not activity_sections:
@@ -657,8 +714,49 @@ def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
 
         for section in chunk:
             html_text += '<div class="activity-inclusion-block">'
-            html_text += f'<div class="activity-inclusion-title">{esc(section["title"])}</div>'
+            optional_label = "Optional: " if section.get("is_optional") else ""
+            html_text += f'<div class="activity-inclusion-title">{esc(optional_label + section["title"])}</div>'
             html_text += render_list_items(section["includes"], class_name="final-list")
+            html_text += "</div>"
+
+        html_text += "</div>"
+
+    return html_text
+
+
+def render_optional_addons_pages(optional_addons, items_per_page=8):
+    if not optional_addons:
+        return ""
+
+    html_text = ""
+
+    for start in range(0, len(optional_addons), items_per_page):
+        chunk = optional_addons[start:start + items_per_page]
+        continued = "" if start == 0 else " continued"
+        html_text += f'''
+        <div class="a4-page final-list-page optional-addons-page">
+            <div class="final-page-title">Optional add-ons{continued}</div>
+        '''
+
+        for addon in chunk:
+            html_text += '<div class="activity-inclusion-block optional-addon-block">'
+            heading_bits = [addon.get("day", ""), addon.get("title", "")]
+            heading = " — ".join([bit for bit in heading_bits if bit])
+            html_text += f'<div class="activity-inclusion-title">{esc(heading)}</div>'
+            html_text += f'<div class="body-text"><span class="meta-label">Type:</span> {esc(addon.get("label", "Optional add-on"))}</div>'
+
+            if addon.get("city"):
+                html_text += f'<div class="body-text"><span class="meta-label">Location:</span> {esc(addon["city"])}</div>'
+            if addon.get("time"):
+                html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(addon["time"])}</div>'
+            if addon.get("duration"):
+                html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(addon["duration"])}</div>'
+            if addon.get("meeting_point"):
+                html_text += f'<div class="body-text"><span class="meta-label">{esc(addon.get("meeting_label") or "Meeting point")}:</span> {esc(addon["meeting_point"])}</div>'
+            if addon.get("includes"):
+                html_text += '<div class="section-title small-section">Includes</div>'
+                html_text += render_list_items(addon["includes"], class_name="final-list")
+
             html_text += "</div>"
 
         html_text += "</div>"
@@ -966,6 +1064,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     else:
         whats_included = create_whats_included(parsed_rows, grouped_days)
 
+    optional_addons = create_optional_addons(parsed_rows)
     activity_inclusions = create_activity_inclusions(parsed_rows)
 
     if output_edits.get("whats_not_included_text"):
@@ -1294,6 +1393,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         html_text += render_day_pages(day, rows, output_edits)
 
     html_text += render_split_list_pages("What’s included", whats_included)
+    html_text += render_optional_addons_pages(optional_addons)
     html_text += render_activity_inclusions_pages(activity_inclusions)
     html_text += render_split_list_pages("What’s not included", whats_not_included)
 
