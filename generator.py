@@ -420,6 +420,11 @@ def create_trip_glance(parsed_rows, grouped_days):
 
 def describe_city_experience(rows):
     text = " ".join(row.get("details", "").lower() for row in rows)
+    row_types = {get_row_type(row) for row in rows}
+    cities = {str(row.get("city", "")).strip().lower() for row in rows if str(row.get("city", "")).strip()}
+
+    if "bergen" in cities and "Hotel" in row_types and not any(get_row_type(row) == "Activity" for row in rows):
+        return "Arrival in Bergen, overnight stay before the Norway in a Nutshell route"
 
     if has_glass_igloo_or_arctic_resort(rows):
         return "Arctic resort stay, glass igloo experience, remote Lapland scenery"
@@ -427,7 +432,6 @@ def describe_city_experience(rows):
     if has_norway_in_a_nutshell(rows):
         return "Norway in a Nutshell route, scenic rail and fjord landscapes"
 
-    row_types = {get_row_type(row) for row in rows}
     if row_types == {"Hotel"}:
         return "Overnight stay and comfortable accommodation"
 
@@ -625,6 +629,11 @@ def create_day_intro(day_rows):
         activity_text = get_activity_text(activities[0])
 
         if "tallinn" in activity_text:
+            if any(get_row_type(row) == "Train" and "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in day_rows):
+                return (
+                    "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
+                    "the Old Town before returning to Helsinki for your overnight train north."
+                )
             return (
                 "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
                 "the Old Town before returning to Helsinki for your onward journey."
@@ -680,8 +689,21 @@ def sentence_case_transport_title(title):
     return title
 
 
-def clean_include_item(value):
+def clean_include_item(value, context_title=""):
     item = str(value or "").strip()
+    lower = item.lower()
+    context_lower = str(context_title or "").lower()
+
+    if lower in {"tickets included", "ticket included"}:
+        if "coach" in context_lower or "bus" in context_lower:
+            return "coach ticket"
+        if "train" in context_lower:
+            return "train ticket"
+        return "ticket"
+
+    if lower == "luggage porter service included":
+        return "luggage porter service"
+
     item = item.replace("Tickets included", "tickets included")
     item = item.replace("Luggage porter service included", "luggage porter service")
     item = item.replace("  ", " ")
@@ -690,8 +712,8 @@ def clean_include_item(value):
 
 def format_transport_inclusion(title, includes=None, luggage=""):
     title = sentence_case_transport_title(title)
-    includes = [clean_include_item(item) for item in (includes or []) if clean_include_item(item)]
-    luggage = clean_include_item(luggage)
+    includes = [clean_include_item(item, title) for item in (includes or []) if clean_include_item(item, title)]
+    luggage = clean_include_item(luggage, title)
 
     if luggage:
         return f"{title}, including {luggage}"

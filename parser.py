@@ -701,9 +701,12 @@ def normalize_time_text(value):
         return format_time_token(token)
 
     text = single_pattern.sub(replace_single, text)
+    text = re.sub(r"\(\s*anytime\s*\)", ", flexible start", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*,\s*flexible start", ", flexible start", text, flags=re.IGNORECASE)
     text = re.sub(r"\s*/\s*", " / ", text)
     text = re.sub(r"\s+", " ", text)
-    return text.strip()
+    text = re.sub(r"\s+\)", ")", text)
+    return text.strip(" ,")
 
 
 def normalize_duration_text(value):
@@ -831,7 +834,24 @@ def extract_meeting_point_from_description(main_text):
         ],
     )
 
-    return clean_space(section)
+    if section:
+        return clean_space(section)
+
+    # Some long supplier descriptions use prose rather than a label, for example
+    # "Meet our guide near the University of Oslo". Keep only the useful point.
+    meet_match = re.search(
+        r"meet\s+(?:our\s+)?(?:your\s+)?guide\s+(near|at)\s+([^.,\n]+)",
+        main_text,
+        flags=re.IGNORECASE,
+    )
+    if meet_match:
+        prep = meet_match.group(1).lower()
+        place = clean_space(meet_match.group(2))
+        if prep == "near":
+            return f"Near {place}"
+        return place
+
+    return ""
 
 
 def extract_includes_from_description(main_text):

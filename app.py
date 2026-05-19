@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v22b duration-cleanup"
+APP_VERSION = "2026-05-19 v23 final-polish-meeting-points"
 
 
 st.set_page_config(
@@ -132,6 +132,54 @@ def text_to_list(value):
 
 def display_time(value):
     return normalize_time_text(value)
+
+
+def clean_include_display_item(item, context_title=""):
+    text = str(item or "").strip()
+    lower = text.lower()
+    context_lower = str(context_title or "").lower()
+
+    if lower in {"tickets included", "ticket included"}:
+        if "coach" in context_lower or "bus" in context_lower:
+            return "Coach ticket"
+        if "train" in context_lower:
+            return "Train ticket"
+        if "ferry" in context_lower or "cruise" in context_lower:
+            return "Ticket"
+        return "Ticket"
+
+    if lower == "luggage porter service included":
+        return "Luggage porter service"
+
+    if lower.endswith(" included") and len(text.split()) <= 5:
+        return text[:-9].strip().capitalize()
+
+    return text
+
+
+def clean_include_display_items(items, context_title=""):
+    return [clean_include_display_item(item, context_title) for item in normalize_list(items)]
+
+
+def get_activity_logistics(row):
+    """Return a practical meeting/pick-up line for the day-by-day block."""
+
+    meeting_point = str(row.get("meeting_point") or "").strip()
+    if meeting_point:
+        return "Meeting point", meeting_point
+
+    for item in normalize_list(row.get("includes", [])):
+        item_text = str(item).strip()
+        lower = item_text.lower()
+
+        if "pick-up/drop-off" in lower or "pickup/drop-off" in lower or "pick up/drop-off" in lower:
+            value = re.sub(r"^(pick[- ]?up/drop[- ]?off\s*)", "", item_text, flags=re.IGNORECASE).strip(" :.-")
+            return "Pick-up/drop-off", value or item_text
+
+        if lower.startswith("departure from") or "drop-off" in lower or "drop off" in lower:
+            return "Departure/drop-off", item_text
+
+    return "", ""
 
 def render_list_items(items, class_name="detail-list"):
     clean_items = normalize_list(items)
@@ -254,7 +302,7 @@ def build_activity_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
     duration = row.get("duration", "")
-    meeting_point = row.get("meeting_point", "")
+    meeting_label, meeting_point = get_activity_logistics(row)
     end_point = row.get("end_point", "")
     notable_sights = normalize_list(row.get("notable_sights", []))
     description = row.get("client_description") or get_activity_description(row)
@@ -272,7 +320,7 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
 
     if meeting_point:
-        html_text += f'<div class="body-text"><span class="meta-label">Meeting point:</span> {esc(meeting_point)}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">{esc(meeting_label)}:</span> {esc(meeting_point)}</div>'
 
     if end_point:
         html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
@@ -296,8 +344,8 @@ def build_transport_block(row):
     title = row.get("title", "")
     time = row.get("time", "")
     duration = row.get("duration", "")
-    includes = normalize_list(row.get("includes", []))
-    luggage_included = row.get("luggage_included", "")
+    includes = clean_include_display_items(row.get("includes", []), title)
+    luggage_included = clean_include_display_item(row.get("luggage_included", ""), title)
 
     html_text = f'<div class="content-block transport-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Travel today</div>'
