@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v34b-inclusion-packing-polish"
+APP_VERSION = "2026-05-19 v34c-smarter-packing-title-logic"
 
 
 st.set_page_config(
@@ -878,7 +878,13 @@ def build_day_blocks(rows):
     return blocks
 
 def estimate_day_units(day, rows, output_edits=None):
-    # Conservative A4 space estimate used for smart two-day page packing.
+    """Estimate vertical space for a day section.
+
+    This is a general, content-based estimate used by the smart A4 packing
+    system. It intentionally scores the generated day blocks rather than day
+    numbers or destination names, so the same logic works for every itinerary.
+    """
+
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     detail_level = get_detail_level_name(output_edits)
     day_title = day_edits.get("title") or create_day_title(rows)
@@ -886,34 +892,38 @@ def estimate_day_units(day, rows, output_edits=None):
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
 
-    units = 6.0
-    units += max(0, (len(str(day_title)) - 42) / 48)
-    units += max(0, (len(str(day_intro)) - 120) / 110)
+    # Header + city + intro. The base is intentionally lower than the old
+    # estimator because packed pages use tighter spacing but should not look
+    # like a different font system.
+    units = 4.6
+    units += max(0, (len(str(day_title)) - 48) / 70)
+    units += max(0, (len(str(day_intro)) - 155) / 145)
     if city:
-        units += 0.5
+        units += 0.35
 
     for block in blocks:
         kind = block.get("kind", "")
         html_text = block.get("html", "")
-        text_length = len(re.sub(r"<[^>]+>", " ", html_text))
+        text_only = re.sub(r"<[^>]+>", " ", html_text)
+        text_length = len(" ".join(text_only.split()))
 
         if kind == "included":
             bullet_count = html_text.count("<li>")
-            units += 2.2 + bullet_count * 0.8
+            units += 1.55 + bullet_count * 0.55 + max(0, (text_length - 120) / 220)
         elif kind == "activity":
-            units += 4.2 + max(0, (text_length - 160) / 120)
+            units += 3.05 + max(0, (text_length - 210) / 185)
         elif kind == "transport":
-            units += 4.0 + max(0, (text_length - 150) / 130)
+            units += 2.85 + max(0, (text_length - 185) / 190)
         elif kind in {"self_transfer", "self_arranged_travel"}:
-            units += 4.5 + max(0, (text_length - 140) / 140)
+            units += 3.05 + max(0, (text_length - 190) / 210)
         elif kind == "accommodation":
-            units += 3.5 + max(0, (text_length - 120) / 140)
+            units += 2.55 + max(0, (text_length - 155) / 220)
         elif kind == "leisure":
-            units += 3.3
+            units += 2.5
         else:
-            units += 3.0 + max(0, text_length / 180)
+            units += 2.45 + max(0, text_length / 240)
 
-    units += max(0, len(rows) - 3) * 0.6
+    units += max(0, len(rows) - 4) * 0.35
     return units
 
 
@@ -954,29 +964,39 @@ def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
 
 
 def can_pack_three_days(day_rows_triple, output_edits=None):
-    """Allow three days on one A4 page only in the explicit 3-day layout.
+    """Allow three consecutive days on one A4 page in explicit 3-day mode.
 
-    The guardrails are deliberately stricter than two-day packing: this mode is
-    meant for ultra-light or light+light+moderate sequences, not dense days.
+    This is not tailored to any specific day. It uses the same content-density
+    rules for all itineraries: short headers, limited blocks, modest text, and a
+    safe combined A4 height estimate.
     """
 
     if not is_three_day_packing_enabled(output_edits):
         return False
 
+    if len(day_rows_triple) != 3:
+        return False
+
     stats = [get_day_pack_stats(day, rows, output_edits) for day, rows in day_rows_triple]
     total_units = sum(item["units"] for item in stats)
+    activity_total = sum(item["activity_count"] for item in stats)
+    block_total = sum(item["block_count"] for item in stats)
 
-    if total_units > 62.0:
+    # A4 safety guardrails. The total limit is what matters most; individual
+    # medium-light days are allowed as long as the combined page remains safe.
+    if total_units > 58.5:
         return False
-    if any(item["units"] > 27.0 for item in stats):
-        return False
-    if any(item["activity_count"] > 1 for item in stats):
+    if any(item["units"] > 24.5 for item in stats):
         return False
     if any(item["block_count"] > 7 for item in stats):
         return False
-    if sum(item["activity_count"] for item in stats) > 3:
+    if block_total > 16:
         return False
-    if any(item["has_long_description"] for item in stats):
+    if activity_total > 4:
+        return False
+    if any(item["activity_count"] > 2 for item in stats):
+        return False
+    if any(item["has_long_description"] and item["units"] > 19.5 for item in stats):
         return False
 
     return True
@@ -1943,8 +1963,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-day-page {{
-            padding-top: 36px;
-            padding-bottom: 36px;
+            padding-top: 38px;
+            padding-bottom: 38px;
         }}
 
         .triple-day-page .day-separator {{
@@ -1952,24 +1972,24 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-packed-section .day-label {{
-            font-size: 21px;
+            font-size: 23px;
             margin-bottom: 1px;
         }}
 
         .triple-packed-section .day-title {{
-            font-size: 16px;
-            line-height: 1.12;
+            font-size: 17.5px;
+            line-height: 1.14;
             margin-bottom: 4px;
         }}
 
         .triple-packed-section .city {{
-            font-size: 9px;
+            font-size: 9.6px;
             margin-bottom: 5px;
         }}
 
         .triple-packed-section .intro {{
-            font-size: 10.5px;
-            line-height: 1.24;
+            font-size: 11.3px;
+            line-height: 1.27;
             margin-bottom: 6px;
         }}
 
@@ -1978,15 +1998,15 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-packed-section .section-title {{
-            font-size: 8.2px;
+            font-size: 8.9px;
             margin-top: 5px;
             margin-bottom: 2px;
         }}
 
         .triple-packed-section .body-text,
         .triple-packed-section li {{
-            font-size: 9.8px;
-            line-height: 1.18;
+            font-size: 10.5px;
+            line-height: 1.22;
             margin-bottom: 1px;
         }}
 
