@@ -73,14 +73,8 @@ def remove_duplicate_service_phrase(text: str) -> str:
     return clean_space(text)
 
 
-def polish_client_text(value: str) -> str:
-    """General client-facing text polish."""
-    if value is None:
-        return ""
-
-    text = str(value).replace("\xa0", " ")
-    preserve_lines = "\n" in text
-
+def _polish_text_fragment(text: str) -> str:
+    """Polish one text fragment without intentionally preserving line breaks."""
     text = _apply_case_replacements(text)
     text = dedupe_or_similar(text)
     text = remove_duplicate_service_phrase(text)
@@ -94,13 +88,33 @@ def polish_client_text(value: str) -> str:
     text = re.sub(r"\bPick\s*up\b", "Pick-up", text, flags=re.IGNORECASE)
     text = re.sub(r"\bDrop\s*off\b", "drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bpick-up/drop-off\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
-    text = re.sub(r"\s+([,.;:])", r"\1", text)
-    text = re.sub(r"([,.;:])(?=\S)", r"\1 ", text)
 
-    if preserve_lines:
-        return "\n".join(clean_space(line) for line in text.splitlines())
+    # Normalize punctuation spacing, but never insert spaces inside clock times
+    # such as 10:30 AM or 3:00 PM.
+    text = re.sub(r"\s+([,.;:])", r"\1", text)
+    text = re.sub(r"([,.;])(?=\S)", r"\1 ", text)
+    text = re.sub(r"(?<!\d):(?!\d)(?=\S)", ": ", text)
+    text = re.sub(r"\b(\d{1,2}):\s+(\d{2})\s*([AP]M)\b", r"\1:\2 \3", text, flags=re.IGNORECASE)
     return clean_space(text)
 
+
+def polish_client_text(value: str) -> str:
+    """General client-facing text polish.
+
+    Multiline supplier blocks must keep their line breaks because the parser uses
+    those line breaks to create separate inclusion bullets. Earlier versions
+    collapsed multiline text too early, which made several inclusions spill into
+    one long bullet and into pick-up/drop-off fields.
+    """
+    if value is None:
+        return ""
+
+    text = str(value).replace("\xa0", " ")
+
+    if "\n" in text:
+        return "\n".join(_polish_text_fragment(line) for line in text.splitlines())
+
+    return _polish_text_fragment(text)
 
 def polish_hotel_name(value: str) -> str:
     text = polish_client_text(value)

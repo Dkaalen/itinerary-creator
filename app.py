@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v33-rich-writing-assistant"
+APP_VERSION = "2026-05-19 v33b-parsing-regression-hotfix"
 
 
 st.set_page_config(

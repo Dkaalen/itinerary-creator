@@ -324,9 +324,15 @@ def create_clean_transport_title(row):
 def standardize_row_text(row):
     """Applies client-facing cleanup after row parsing and effective type detection."""
 
-    for key in ["city", "title", "details", "time", "duration", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
+    # Do not run the broad client-text polish on parsed time values.
+    # Time fields are normalized by the dedicated time parser; broad punctuation
+    # polish can corrupt clock syntax if it ever changes colon spacing.
+    for key in ["city", "title", "details", "duration", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
         if key in row and row.get(key):
             row[key] = fix_common_text(row[key])
+
+    if row.get("time"):
+        row["time"] = normalize_time_text(row["time"])
 
     for key in ["notable_sights", "includes"]:
         if key in row and isinstance(row.get(key), list):
@@ -532,7 +538,12 @@ def detect_effective_type(item_type, title, details):
     if "norway in a nutshell" in combined:
         return "Transport"
 
-    if "flight to" in combined or combined.startswith("flight ") or re.search(r"\bflight\s*\|", combined):
+    if (
+        "flight to" in combined
+        or combined.startswith("flight ")
+        or re.search(r"\bflight\s*[:|]", combined)
+        or re.search(r"\bflight\s+[a-zà-ÿøåäö\s]+\s+to\s+", combined)
+    ):
         return "Flight"
 
     if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined:
@@ -987,10 +998,10 @@ def extract_meeting_point_from_description(main_text):
     section = extract_between_markers(
         main_text,
         [
-            r"pick\s*up\s*/\s*meeting\s*point",
+            r"pick[-\s]*up\s*/\s*meeting\s*point",
             r"pickup\s*/\s*meeting\s*point",
             r"meeting\s*point\s*:",
-            r"pick\s*up\s*:",
+            r"pick[-\s]*up\s*:",
         ],
         [
             r"\boverview\b",
@@ -1049,7 +1060,7 @@ def extract_includes_from_description(main_text):
             r"\bincludes\s*:\s*",
         ],
         [
-            r"pick\s*up\s*/\s*meeting\s*point",
+            r"pick[-\s]*up\s*/\s*meeting\s*point",
             r"pickup\s*/\s*meeting\s*point",
             r"\bmeeting\s*point\b",
             r"\boverview\b",
@@ -1062,6 +1073,30 @@ def extract_includes_from_description(main_text):
 
     if section:
         return split_comma_list(section, protect_compound_phrases=True)
+
+    # Some colleague/supplier rows use pipe sections without a formal
+    # "What's included?" label, for example:
+    # Title | 10 AM | 4 Hrs | guide, pickup, lunch | Pick up / meeting point ...
+    # Treat the post-duration pipe section as inclusions when it looks like a
+    # short inclusion list, but stop before any formal meeting-point section.
+    pipe_parts = [clean_space(part) for part in main_text.split("|")]
+    if len(pipe_parts) >= 4:
+        pipe_candidates = []
+        for part in pipe_parts[3:]:
+            lower_part = part.lower()
+            if any(marker in lower_part for marker in ["overview", "what to expect", "not included"]):
+                continue
+            part = re.split(r"pick[-\s]*up\s*/\s*meeting\s*point|pickup\s*/\s*meeting\s*point|meeting\s*point\s*:", part, flags=re.IGNORECASE)[0].strip(" :|-")
+            if not part:
+                continue
+            if len(part) > 450:
+                continue
+            inclusion_markers = ["included", "ticket", "pick-up", "pickup", "drop-off", "lunch", "certificate", "transport"]
+            looks_like_list = part.count(",") >= 2 or any(marker in part.lower() for marker in inclusion_markers)
+            if looks_like_list:
+                pipe_candidates.extend(split_comma_list(part, protect_compound_phrases=True))
+        if pipe_candidates:
+            return polish_inclusion_items(pipe_candidates)
 
     lower = main_text.lower()
     fallback_includes = []
