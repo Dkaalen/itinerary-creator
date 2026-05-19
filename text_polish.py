@@ -83,6 +83,7 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKnowledgeable\s*,?\s*multilingual guide\b", "Knowledgeable, multilingual guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bEnglish\s+speaking\b", "English-speaking", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bEnglish\s+guide\b", "English-speaking guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bA/C\b", "air-conditioned", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick/Drop\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick\s*up\b", "Pick-up", text, flags=re.IGNORECASE)

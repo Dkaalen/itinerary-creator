@@ -590,14 +590,49 @@ def is_self_transfer(row):
     return row_type == "Transfer" and "self transfer" in text
 
 
+def is_tallinn_ferry_day_trip(row):
+    """Return True when a Tallinn activity is really a Helsinki-Tallinn ferry day trip.
+
+    Supplier text often says "cruise ticket" for the crossing, but the
+    client-facing product is a ferry-style Tallinn day trip. Keep this general
+    by checking the route/product context instead of one exact itinerary row.
+    """
+
+    context_text = " ".join(
+        str(row.get(key) or "")
+        for key in ["city", "title", "original_title", "details", "client_description"]
+    ).lower()
+
+    mentions_tallinn = "tallinn" in context_text
+    mentions_helsinki = "helsinki" in context_text
+    crossing_marker = any(
+        marker in context_text
+        for marker in [
+            "star class",
+            "cruise ticket",
+            "ferry ticket",
+            "port transfer",
+            "port transfers",
+            "departure from helsinki",
+            "departure from tallinn",
+            "helsinki port",
+        ]
+    )
+
+    return mentions_tallinn and (mentions_helsinki or crossing_marker) and crossing_marker
+
+
 def get_activity_duration_label(row, duration):
     """Return a client-facing duration label based on the activity/travel context."""
 
     context_text = " ".join(
         str(row.get(key) or "")
-        for key in ["title", "original_title", "details", "client_description"]
+        for key in ["city", "title", "original_title", "details", "client_description"]
     ).lower()
     duration_text = str(duration or "").lower()
+
+    if is_tallinn_ferry_day_trip(row):
+        return "Ferry duration"
 
     if "ferry" in context_text or "ferry" in duration_text:
         return "Ferry duration"
@@ -1906,6 +1941,11 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: hidden;
         }}
 
+        .day-page {{
+            padding-top: 82px;
+            padding-bottom: 50px;
+        }}
+
         .cover-page {{
             display: flex;
             flex-direction: column;
@@ -2047,8 +2087,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .packed-day-page {{
-            padding-top: 46px;
-            padding-bottom: 46px;
+            padding-top: 64px;
+            padding-bottom: 38px;
         }}
 
         .packed-section .day-label {{
@@ -2103,8 +2143,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-day-page {{
-            padding-top: 38px;
-            padding-bottom: 38px;
+            padding-top: 54px;
+            padding-bottom: 30px;
         }}
 
         .triple-day-page .day-separator {{

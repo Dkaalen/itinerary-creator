@@ -594,6 +594,20 @@ def render_general_page(page, story, styles):
     # aligned with the HTML A4 pages.
     day_sections = [child for child in page.find_all(recursive=False) if "day-section" in (child.get("class") or [])]
     if day_sections:
+        page_classes = page.get("class") or []
+
+        # Keep the A4 document size and margins unchanged, but give day-to-day
+        # itinerary pages a little more internal breathing room so content does
+        # not feel pinned to the top of the page. This is deliberately scoped to
+        # day pages only; cover, glance and final list pages keep their current
+        # composition.
+        if "triple-day-page" in page_classes:
+            story.append(Spacer(1, 5 * mm))
+        elif "packed-day-page" in page_classes:
+            story.append(Spacer(1, 6 * mm))
+        elif "day-page" in page_classes:
+            story.append(Spacer(1, 8 * mm))
+
         for index, section in enumerate(day_sections):
             if index > 0:
                 add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))

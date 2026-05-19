@@ -95,6 +95,7 @@ def is_valid_city_value(value):
 COMMON_TEXT_REPLACEMENTS = [
     (r"\bNUtshell\b", "Nutshell"),
     (r"\bNutsheel\b", "Nutshell"),
+    (r"\bExcurssion\b", "Excursion"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
     (r"\bBrekafast\b", "Breakfast"),
     (r"\bBrekfast\b", "Breakfast"),
@@ -359,16 +360,41 @@ def standardize_row_text(row):
 
 
 def extract_detail(text, label):
-    marker = f"{label}:"
+    """Extract labelled supplier details using case-insensitive markers.
 
-    if marker not in text:
+    Supplier inputs are not consistent about casing (for example "Notable
+    sights" versus "Notable Sights") and Tallinn day-trip rows can include
+    route timing labels such as "Departure from Helsinki" after the meeting
+    point. This keeps extraction general while preventing later labels from
+    leaking into the current field.
+    """
+
+    source = str(text or "")
+    marker_pattern = re.compile(rf"\b{re.escape(label)}\s*:", flags=re.IGNORECASE)
+    match = marker_pattern.search(source)
+
+    if not match:
         return ""
 
-    after_marker = text.split(marker, 1)[1]
+    after_marker = source[match.end():]
+    stop_patterns = [
+        rf"\s+-\s*{re.escape(next_label)}\s*:"
+        for next_label in DETAIL_LABELS
+        if next_label.lower() != str(label or "").lower()
+    ]
+    stop_patterns.extend([
+        r"\s+-\s*Departure\s+from\s+[^:|,;\n]+\s*:",
+        r"\s+-\s*Arrival\s+in\s+[^:|,;\n]+\s*:",
+    ])
 
-    for next_marker in DETAIL_MARKERS:
-        if next_marker in after_marker:
-            after_marker = after_marker.split(next_marker, 1)[0]
+    stop_positions = []
+    for pattern in stop_patterns:
+        stop_match = re.search(pattern, after_marker, flags=re.IGNORECASE)
+        if stop_match:
+            stop_positions.append(stop_match.start())
+
+    if stop_positions:
+        after_marker = after_marker[:min(stop_positions)]
 
     return after_marker.strip(" -")
 
@@ -953,6 +979,30 @@ def extract_duration_from_description(main_text):
     return ""
 
 
+def extract_departure_time_range(main_text):
+    """Extract route-style departure times, such as Helsinki-Tallinn day trips.
+
+    Examples:
+    Departure from Helsinki: 10:30 am - Departure from Tallinn: 7:30 pm
+    This keeps supplier route timings client-facing without needing a separate
+    "Time:" label in the raw input.
+    """
+
+    time_token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
+    matches = re.findall(
+        rf"\bdeparture\s+from\s+[^:|,;\n]+:\s*({time_token})",
+        main_text,
+        flags=re.IGNORECASE,
+    )
+
+    clean_matches = [clean_space(match) for match in matches if clean_space(match)]
+
+    if len(clean_matches) >= 2:
+        return normalize_time_text(f"{clean_matches[0]} - {clean_matches[1]}")
+
+    return ""
+
+
 def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
@@ -965,6 +1015,10 @@ def extract_time_from_description(main_text):
             return normalize_time_text(single_time)
         time_text, _ = split_time_and_duration(standard_time)
         return time_text
+
+    departure_time_range = extract_departure_time_range(main_text)
+    if departure_time_range:
+        return departure_time_range
 
     # Pipe format examples:
     # "Title | 20:00 | 5 Hrs | ..."
