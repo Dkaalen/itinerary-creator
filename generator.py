@@ -1,21 +1,50 @@
-from collections import defaultdict
+from collections import OrderedDict
 
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
 
 
+def get_row_type(row):
+    return row.get("effective_type") or row.get("type", "")
+
+
+def get_day_number(day_text):
+    digits = "".join(character for character in str(day_text) if character.isdigit())
+
+    if digits:
+        return int(digits)
+
+    return 0
+
+
 def group_rows_by_day(parsed_rows):
-    grouped = defaultdict(list)
+    grouped = {}
 
     for row in parsed_rows:
         day = row.get("day", "Unknown day")
+
+        if day not in grouped:
+            grouped[day] = []
+
         grouped[day].append(row)
 
-    return dict(grouped)
+    return OrderedDict(
+        sorted(
+            grouped.items(),
+            key=lambda item: get_day_number(item[0]),
+        )
+    )
 
 
-def get_row_type(row):
-    return row.get("effective_type") or row.get("type", "")
+def get_day_count(grouped_days):
+    return len(grouped_days)
+
+
+def add_unique(items, item):
+    clean_item = str(item or "").strip()
+
+    if clean_item and clean_item not in items:
+        items.append(clean_item)
 
 
 def get_unique_cities(parsed_rows):
@@ -30,24 +59,35 @@ def get_unique_cities(parsed_rows):
     return cities
 
 
-def get_day_number(day_text):
-    digits = "".join(character for character in day_text if character.isdigit())
+def get_primary_city(day_rows):
+    """
+    Prefer the destination/stay city for mixed transfer days.
+    This prevents days such as Tromsø -> Bergen from showing only Tromsø.
+    """
 
-    if digits:
-        return int(digits)
+    if not day_rows:
+        return ""
 
-    return 0
+    priority_types = [
+        "Hotel",
+        "Activity",
+        "Arrival",
+        "Departure",
+        "Flight",
+        "Train",
+        "Cruise",
+        "Ferry",
+        "Transfer",
+    ]
 
+    for preferred_type in priority_types:
+        for row in day_rows:
+            if get_row_type(row) == preferred_type:
+                city = row.get("city", "").strip()
+                if city:
+                    return city
 
-def get_day_count(grouped_days):
-    return len(grouped_days)
-
-
-def add_unique(items, item):
-    clean_item = item.strip()
-
-    if clean_item and clean_item not in items:
-        items.append(clean_item)
+    return day_rows[0].get("city", "").strip()
 
 
 def create_trip_title(parsed_rows, grouped_days):
@@ -57,11 +97,6 @@ def create_trip_title(parsed_rows, grouped_days):
     has_northern_lights = any(
         "northern light" in row.get("details", "").lower()
         or "aurora" in row.get("details", "").lower()
-        for row in parsed_rows
-    )
-
-    has_fjord = any(
-        "fjord" in row.get("details", "").lower()
         for row in parsed_rows
     )
 
@@ -258,7 +293,7 @@ def create_journey_arc(grouped_days):
     current_rows = []
 
     for day, rows in grouped_days.items():
-        city = rows[0].get("city", "").strip() if rows else ""
+        city = get_primary_city(rows)
 
         if not city:
             city = "Journey"
@@ -266,7 +301,7 @@ def create_journey_arc(grouped_days):
         if current_city is None:
             current_city = city
             current_days = [day]
-            current_rows = rows
+            current_rows = list(rows)
 
         elif city == current_city:
             current_days.append(day)
@@ -281,7 +316,7 @@ def create_journey_arc(grouped_days):
 
             current_city = city
             current_days = [day]
-            current_rows = rows
+            current_rows = list(rows)
 
     if current_city is not None:
         chapters.append({
@@ -313,20 +348,16 @@ def format_day_range(days):
 
 
 def create_day_title(day_rows):
-    city = day_rows[0].get("city", "").strip() if day_rows else ""
+    city = get_primary_city(day_rows)
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
-    has_transfer = any(get_row_type(row) == "Transfer" for row in day_rows)
 
     if has_arrival and city:
         return f"Welcome to {city}"
 
-    if has_departure and has_transfer and city:
-        return f"Final transfer in {city}"
-
     if has_departure and city:
-        return f"Final arrangements in {city}"
+        return f"Final day in {city}"
 
     priority_order = [
         "Activity",
@@ -352,7 +383,7 @@ def create_day_title(day_rows):
 
 
 def create_day_intro(day_rows):
-    city = day_rows[0].get("city", "").strip() if day_rows else ""
+    city = get_primary_city(day_rows)
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
@@ -370,13 +401,13 @@ def create_day_intro(day_rows):
 
     if has_departure and city:
         return (
-            f"Today marks the end of your arranged services in {city}. "
-            f"Your final transfer arrangements are listed below."
+            f"Your journey comes to a close in {city}. The practical details below "
+            f"help keep the final day clear and easy to follow."
         )
 
     if transports and city:
         return (
-            f"Today, you continue your journey with arranged travel to {city}. "
+            f"Today, you continue your journey with arranged travel connected to {city}. "
             f"The day is structured to keep the route clear, comfortable, and easy to follow."
         )
 
@@ -427,14 +458,9 @@ def create_whats_included(parsed_rows, grouped_days):
         add_unique(included, "Breakfast included where specified")
 
     has_private_transfer = any("private transfer" in row.get("details", "").lower() for row in transfer_rows)
-    has_self_transfer = any("self transfer" in row.get("details", "").lower() for row in transfer_rows)
 
-    if has_private_transfer and has_self_transfer:
-        add_unique(included, "Transfers as listed, including private and self-guided transfers")
-    elif has_private_transfer:
+    if has_private_transfer:
         add_unique(included, "Private transfers as listed in the itinerary")
-    elif has_self_transfer:
-        add_unique(included, "Self-guided transfers as listed in the itinerary")
 
     for row in transport_rows:
         title = row.get("title", "").strip()
@@ -463,6 +489,7 @@ def create_whats_not_included(parsed_rows):
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
         "Porterage unless specified",
+        "Self-guided transfer costs unless specifically stated",
         "Travel insurance",
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",
@@ -470,48 +497,5 @@ def create_whats_not_included(parsed_rows):
 
 
 def create_final_note(parsed_rows, grouped_days):
-    trip_title = create_trip_title(parsed_rows, grouped_days)
-    cities = get_unique_cities(parsed_rows)
-    destinations = ", ".join(cities)
-
-    text = " ".join(row.get("details", "").lower() for row in parsed_rows)
-
-    themes = []
-
-    if "train" in text or "rail" in text:
-        themes.append("scenic rail journeys")
-
-    if "cruise" in text:
-        themes.append("coastal crossings")
-
-    if "fjord" in text:
-        themes.append("fjord landscapes")
-
-    if "northern light" in text or "aurora" in text:
-        themes.append("Northern Lights experiences")
-
-    if "walking tour" in text or "guide" in text or "guided" in text:
-        themes.append("guided local experiences")
-
-    if "food" in text or "dinner" in text or "tasting" in text:
-        themes.append("local food culture")
-
-    if not themes:
-        themes.append("comfortable travel arrangements")
-        themes.append("time to explore at your own pace")
-
-    theme_text = ", ".join(themes)
-
-    if destinations:
-        return (
-            f"The {trip_title} is designed to make the journey through {destinations} "
-            f"feel clear, comfortable, and memorable. You will experience {theme_text} "
-            f"with enough structure to feel taken care of, and enough flexibility to make "
-            f"the journey your own."
-        )
-
-    return (
-        f"The {trip_title} is designed to make the journey feel clear, comfortable, "
-        f"and memorable, with enough structure to feel taken care of and enough "
-        f"flexibility to make the journey your own."
-    )
+    # Kept for backward compatibility with older imports.
+    return ""
