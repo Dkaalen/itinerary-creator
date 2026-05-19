@@ -1,3 +1,2 @@
 streamlit
-reportlab
-beautifulsoup4
+playwright
