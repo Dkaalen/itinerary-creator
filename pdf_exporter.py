@@ -1,163 +1,391 @@
 from pathlib import Path
-import asyncio
-import os
-import subprocess
-import sys
-import tempfile
+import html as html_lib
 
-# Streamlit Cloud note:
-# The Python "playwright" package does not include the Chromium browser binary.
-# We install Chromium at runtime into /tmp, which is writable on Streamlit Cloud.
-BROWSER_CACHE_DIR = Path(tempfile.gettempdir()) / "itinerary_playwright_browsers"
-os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSER_CACHE_DIR)
-
-from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import sync_playwright
-
-
-BROWSER_LAUNCH_ARGS = [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu",
-    "--disable-extensions",
-]
+from bs4 import BeautifulSoup
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    PageBreak,
+    Table,
+    TableStyle,
+    ListFlowable,
+    ListItem,
+)
 
 
-def setup_windows_event_loop():
-    """
-    On Windows, Playwright sometimes needs the Proactor event loop
-    to launch Chromium correctly.
-    """
-
-    if sys.platform.startswith("win"):
-        try:
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        except Exception:
-            pass
+PAGE_BACKGROUND = colors.HexColor("#f4efe8")
+INK = colors.HexColor("#1f3446")
+BODY = colors.HexColor("#2f2f2f")
+MUTED = colors.HexColor("#7b746c")
+LINE = colors.HexColor("#d8cec2")
+CARD = colors.Color(1, 1, 1, alpha=0.35)
 
 
-def chromium_executable_exists():
-    """
-    Checks whether Playwright has a Chromium executable available in the runtime
-    browser cache folder.
-    """
+def clean_text(value):
+    if value is None:
+        return ""
+    return " ".join(str(value).replace("\xa0", " ").split()).strip()
 
-    if not BROWSER_CACHE_DIR.exists():
-        return False
 
-    executable_names = {
-        "chrome",
-        "chrome.exe",
-        "chrome-headless-shell",
-        "chrome-headless-shell.exe",
+def para_text(value):
+    return html_lib.escape(clean_text(value))
+
+
+def has_class(tag, class_name):
+    classes = tag.get("class") or []
+    return class_name in classes
+
+
+def page_background(canvas, doc):
+    canvas.saveState()
+    canvas.setFillColor(PAGE_BACKGROUND)
+    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+    canvas.restoreState()
+
+
+def make_styles():
+    base = getSampleStyleSheet()
+
+    return {
+        "cover_kicker": ParagraphStyle(
+            "cover_kicker",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            leading=12,
+            textColor=MUTED,
+            uppercase=True,
+            alignment=TA_LEFT,
+            spaceAfter=12,
+        ),
+        "cover_title": ParagraphStyle(
+            "cover_title",
+            parent=base["Title"],
+            fontName="Times-Bold",
+            fontSize=38,
+            leading=42,
+            textColor=INK,
+            alignment=TA_LEFT,
+            spaceAfter=12,
+        ),
+        "cover_subtitle": ParagraphStyle(
+            "cover_subtitle",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=17,
+            leading=22,
+            textColor=INK,
+            alignment=TA_LEFT,
+            spaceAfter=14,
+        ),
+        "cover_destinations": ParagraphStyle(
+            "cover_destinations",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            leading=14,
+            textColor=BODY,
+            alignment=TA_LEFT,
+            spaceBefore=12,
+        ),
+        "page_title": ParagraphStyle(
+            "page_title",
+            parent=base["Heading1"],
+            fontName="Times-Bold",
+            fontSize=25,
+            leading=30,
+            textColor=INK,
+            spaceAfter=14,
+        ),
+        "day_label": ParagraphStyle(
+            "day_label",
+            parent=base["Heading1"],
+            fontName="Times-Bold",
+            fontSize=25,
+            leading=29,
+            textColor=INK,
+            spaceAfter=3,
+        ),
+        "day_title": ParagraphStyle(
+            "day_title",
+            parent=base["Heading2"],
+            fontName="Times-Roman",
+            fontSize=20,
+            leading=24,
+            textColor=INK,
+            spaceAfter=8,
+        ),
+        "city": ParagraphStyle(
+            "city",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8.5,
+            leading=11,
+            textColor=MUTED,
+            spaceAfter=14,
+        ),
+        "intro": ParagraphStyle(
+            "intro",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=11.5,
+            leading=16,
+            textColor=BODY,
+            spaceAfter=14,
+        ),
+        "section": ParagraphStyle(
+            "section",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8.5,
+            leading=11,
+            textColor=INK,
+            spaceBefore=10,
+            spaceAfter=4,
+        ),
+        "body": ParagraphStyle(
+            "body",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=10.2,
+            leading=14,
+            textColor=BODY,
+            spaceAfter=3,
+        ),
+        "body_bold": ParagraphStyle(
+            "body_bold",
+            parent=base["Normal"],
+            fontName="Times-Bold",
+            fontSize=10.5,
+            leading=14,
+            textColor=BODY,
+            spaceAfter=4,
+        ),
+        "activity_title": ParagraphStyle(
+            "activity_title",
+            parent=base["Normal"],
+            fontName="Times-Bold",
+            fontSize=13.5,
+            leading=17,
+            textColor=INK,
+            spaceBefore=10,
+            spaceAfter=5,
+        ),
+        "bullet": ParagraphStyle(
+            "bullet",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=10.0,
+            leading=13,
+            textColor=BODY,
+        ),
+        "table_header": ParagraphStyle(
+            "table_header",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            leading=12,
+            textColor=INK,
+        ),
+        "table_cell": ParagraphStyle(
+            "table_cell",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=8.8,
+            leading=12,
+            textColor=BODY,
+        ),
     }
 
-    for path in BROWSER_CACHE_DIR.rglob("*"):
-        if path.name in executable_names and path.is_file():
-            return True
 
-    return False
+def add_paragraph(story, text, style, spacer_after=0):
+    text = clean_text(text)
+    if not text:
+        return
+    story.append(Paragraph(para_text(text), style))
+    if spacer_after:
+        story.append(Spacer(1, spacer_after))
 
 
-def install_chromium_if_needed():
-    """
-    Installs the Playwright Chromium browser binary if it is missing.
-
-    This runs only when PDF export is requested, not when the Streamlit app starts.
-    The first PDF export on Streamlit Cloud can therefore take a little longer.
-    """
-
-    BROWSER_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    if chromium_executable_exists():
+def add_bullets(story, items, styles):
+    clean_items = [clean_text(item) for item in items if clean_text(item)]
+    if not clean_items:
         return
 
-    env = os.environ.copy()
-    env["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSER_CACHE_DIR)
+    bullets = [
+        ListItem(
+            Paragraph(para_text(item), styles["bullet"]),
+            leftIndent=0,
+        )
+        for item in clean_items
+    ]
 
-    result = subprocess.run(
-        [sys.executable, "-m", "playwright", "install", "chromium"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        timeout=600,
-        env=env,
+    story.append(
+        ListFlowable(
+            bullets,
+            bulletType="bullet",
+            leftIndent=14,
+            bulletFontName="Helvetica",
+            bulletFontSize=7,
+            bulletColor=BODY,
+            spaceBefore=2,
+            spaceAfter=8,
+        )
     )
 
-    if result.returncode != 0:
-        raise RuntimeError(
-            "Playwright could not install Chromium.\n\n"
-            f"Command: {sys.executable} -m playwright install chromium\n\n"
-            f"STDOUT:\n{result.stdout}\n\n"
-            f"STDERR:\n{result.stderr}"
+
+def make_table(data, widths, styles):
+    table = Table(data, colWidths=widths, hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.Color(1, 1, 1, alpha=0.25)),
+                ("BOX", (0, 0), (-1, -1), 0.5, LINE),
+                ("INNERGRID", (0, 0), (-1, -1), 0.35, LINE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
         )
+    )
+    return table
 
 
-def launch_chromium(playwright):
-    """
-    Launches Chromium. If the executable is missing, install it and retry once.
-    """
+def render_cover_page(page, story, styles):
+    story.append(Spacer(1, 95 * mm))
+    add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
+    add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
+    add_paragraph(story, page.select_one(".cover-subtitle").get_text(" ") if page.select_one(".cover-subtitle") else "", styles["cover_subtitle"])
+    add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
 
-    try:
-        return playwright.chromium.launch(
-            headless=True,
-            args=BROWSER_LAUNCH_ARGS,
-            chromium_sandbox=False,
-        )
-    except PlaywrightError as error:
-        error_text = str(error).lower()
 
-        if "executable doesn't exist" in error_text or "please run the following command" in error_text:
-            install_chromium_if_needed()
-            return playwright.chromium.launch(
-                headless=True,
-                args=BROWSER_LAUNCH_ARGS,
-                chromium_sandbox=False,
-            )
+def render_glance_page(page, story, styles):
+    title = page.select_one(".glance-title")
+    add_paragraph(story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"])
 
-        raise
+    rows = []
+    for row in page.select(".glance-row"):
+        label = row.select_one(".glance-label")
+        value = row.select_one(".glance-value")
+        if label and value:
+            rows.append([
+                Paragraph(para_text(label.get_text(" ")), styles["table_header"]),
+                Paragraph(para_text(value.get_text(" ")), styles["table_cell"]),
+            ])
+
+    if rows:
+        story.append(make_table(rows, [38 * mm, 107 * mm], styles))
+        story.append(Spacer(1, 14))
+
+    journey_title = page.select_one(".journey-title")
+    add_paragraph(story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["page_title"])
+
+    table_rows = []
+    header_cells = [clean_text(th.get_text(" ")) for th in page.select(".journey-table th")]
+    if header_cells:
+        table_rows.append([Paragraph(para_text(cell), styles["table_header"]) for cell in header_cells])
+
+    for tr in page.select(".journey-table tbody tr"):
+        cells = [clean_text(td.get_text(" ")) for td in tr.select("td")]
+        if cells:
+            table_rows.append([Paragraph(para_text(cell), styles["table_cell"]) for cell in cells])
+
+    if table_rows:
+        story.append(make_table(table_rows, [34 * mm, 22 * mm, 89 * mm], styles))
+
+
+def render_general_page(page, story, styles):
+    # Header blocks first
+    for selector, style_name in [
+        (".final-page-title", "page_title"),
+        (".day-label", "day_label"),
+        (".day-title", "day_title"),
+        (".city", "city"),
+        (".intro", "intro"),
+    ]:
+        tag = page.select_one(selector)
+        if tag:
+            add_paragraph(story, tag.get_text(" "), styles[style_name])
+
+    # Then render content blocks in page order.
+    for child in page.find_all(recursive=False):
+        classes = child.get("class") or []
+        if "content-block" in classes or "activity-inclusion-block" in classes:
+            for element in child.find_all(recursive=False):
+                element_classes = element.get("class") or []
+
+                if "section-title" in element_classes:
+                    add_paragraph(story, element.get_text(" "), styles["section"])
+                elif "activity-inclusion-title" in element_classes:
+                    add_paragraph(story, element.get_text(" "), styles["activity_title"])
+                elif element.name == "ul":
+                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles)
+                elif "body-text" in element_classes:
+                    text = element.get_text(" ")
+                    if "strong-line" in element_classes:
+                        add_paragraph(story, text, styles["body_bold"])
+                    else:
+                        add_paragraph(story, text, styles["body"])
+
+    # For simple list pages, final-page-title is followed by a direct UL.
+    for ul in page.find_all("ul", recursive=False):
+        add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
 
 
 def export_html_to_pdf(html_path, pdf_path):
     """
-    Converts a standalone HTML file into an A4 PDF using Playwright.
-    """
+    Converts the generated itinerary HTML into an A4 PDF without browser dependencies.
 
-    setup_windows_event_loop()
-    install_chromium_if_needed()
+    This intentionally avoids Playwright/Chromium so the PDF export works reliably
+    on Streamlit Cloud. The PDF is rebuilt from the itinerary HTML into a clean
+    A4 document using ReportLab.
+    """
 
     html_path = Path(html_path).resolve()
     pdf_path = Path(pdf_path).resolve()
-    pdf_path.parent.mkdir(exist_ok=True)
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    file_url = html_path.as_uri()
+    soup = BeautifulSoup(html_path.read_text(encoding="utf-8"), "html.parser")
+    pages = soup.select(".a4-page")
 
-    with sync_playwright() as playwright:
-        browser = launch_chromium(playwright)
+    styles = make_styles()
+    doc = SimpleDocTemplate(
+        str(pdf_path),
+        pagesize=A4,
+        rightMargin=22 * mm,
+        leftMargin=22 * mm,
+        topMargin=24 * mm,
+        bottomMargin=22 * mm,
+        title="Itinerary Preview",
+        author="Itinerary Creator",
+    )
 
-        page = browser.new_page(
-            viewport={
-                "width": 794,
-                "height": 1123,
-            }
-        )
+    story = []
 
-        page.goto(file_url, wait_until="networkidle")
+    for index, page in enumerate(pages):
+        classes = page.get("class") or []
 
-        page.pdf(
-            path=str(pdf_path),
-            format="A4",
-            print_background=True,
-            margin={
-                "top": "0mm",
-                "right": "0mm",
-                "bottom": "0mm",
-                "left": "0mm",
-            },
-            prefer_css_page_size=True,
-        )
+        if "cover-page" in classes:
+            render_cover_page(page, story, styles)
+        elif page.select_one(".glance-card") or page.select_one(".journey-arc"):
+            render_glance_page(page, story, styles)
+        else:
+            render_general_page(page, story, styles)
 
-        browser.close()
+        if index < len(pages) - 1:
+            story.append(PageBreak())
+
+    if not story:
+        story.append(Paragraph("Itinerary preview", styles["page_title"]))
+
+    doc.build(story, onFirstPage=page_background, onLaterPages=page_background)
 
     return pdf_path
