@@ -1837,8 +1837,12 @@ if show_debug and st.session_state.parsed_rows:
                     f"{row.get('title')} ({row.get('city')})"
                 )
 
+if st.session_state.itinerary_html:
+    with st.expander("Step 2 — Preview itinerary", expanded=False):
+        st.html(st.session_state.itinerary_html)
+
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 2 — Review & edit generated itinerary", expanded=False):
+    with st.expander("Step 3 — Review & edit generated itinerary", expanded=False):
         render_output_editor(
             st.session_state.parsed_rows,
             group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
@@ -1862,7 +1866,7 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
     st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
-    st.subheader("Step 3 — Export")
+    st.subheader("Step 4 — Export")
     st.markdown('<div class="workflow-note">Save your editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
 
     html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
@@ -1932,6 +1936,3 @@ if st.session_state.itinerary_html:
         else:
             st.button("Download PDF", disabled=True, use_container_width=True)
             st.caption(st.session_state.get("pdf_status", "Not created"))
-
-    with st.expander("Step 4 — Preview itinerary", expanded=False):
-        st.html(st.session_state.itinerary_html)
