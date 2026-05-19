@@ -3,10 +3,15 @@ import asyncio
 import subprocess
 import sys
 
-from playwright.sync_api import sync_playwright, Error as PlaywrightError
+from playwright.sync_api import sync_playwright
 
 
-_BROWSER_READY = False
+BROWSER_LAUNCH_ARGS = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+]
 
 
 def setup_windows_event_loop():
@@ -22,17 +27,11 @@ def setup_windows_event_loop():
             pass
 
 
-def ensure_playwright_chromium():
+def install_chromium_if_needed():
     """
-    Streamlit Cloud installs the Playwright Python package, but it may not
-    automatically download the Chromium browser binary. This installs Chromium
-    on demand the first time PDF export is used.
+    Streamlit Cloud installs the Python Playwright package, but not always the
+    Chromium browser binary. This command is safe to run more than once.
     """
-
-    global _BROWSER_READY
-
-    if _BROWSER_READY:
-        return
 
     try:
         subprocess.run(
@@ -41,15 +40,13 @@ def ensure_playwright_chromium():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            timeout=180,
         )
-        _BROWSER_READY = True
-    except subprocess.CalledProcessError as error:
-        message = error.stderr or error.stdout or str(error)
-        raise RuntimeError(
-            "Playwright Chromium could not be installed. "
-            "Check Streamlit Cloud logs for the full install error.\n\n"
-            f"{message}"
-        ) from error
+    except Exception:
+        # Do not fail here. If Chromium is already installed or if the install
+        # command is unavailable, the later launch step will provide the real
+        # useful error message.
+        pass
 
 
 def export_html_to_pdf(html_path, pdf_path):
@@ -58,36 +55,19 @@ def export_html_to_pdf(html_path, pdf_path):
     """
 
     setup_windows_event_loop()
-    ensure_playwright_chromium()
+    install_chromium_if_needed()
 
     html_path = Path(html_path).resolve()
     pdf_path = Path(pdf_path).resolve()
-
     pdf_path.parent.mkdir(exist_ok=True)
 
     file_url = html_path.as_uri()
 
     with sync_playwright() as playwright:
-        try:
-            browser = playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                ],
-            )
-        except PlaywrightError:
-            # If Streamlit Cloud wiped the browser cache between runs, try once more.
-            global _BROWSER_READY
-            _BROWSER_READY = False
-            ensure_playwright_chromium()
-            browser = playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                ],
-            )
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=BROWSER_LAUNCH_ARGS,
+        )
 
         page = browser.new_page(
             viewport={
