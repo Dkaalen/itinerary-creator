@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v25 activity-inclusions-hardening"
+APP_VERSION = "2026-05-19 v25b activity-inclusions-pagination-polish"
 
 
 st.set_page_config(
@@ -297,6 +297,9 @@ def get_activity_description(row):
             return "Explore central Copenhagen on foot with a local guide, with time for local stories and key city landmarks."
         if "oslo" in city or "oslo" in title:
             return "Explore central Oslo on foot with a local guide, including key landmarks around the city center."
+
+    if "must-see bergen" in title or ("foot and boat" in title and "bergen" in title):
+        return "Explore Bergen on foot and by boat, combining historic city streets with a scenic perspective from the water."
 
     if "hop on" in title or "hop-on" in title or "hop off" in title or "hop-off" in title:
         return "Use your flexible ticket to explore the city at your own pace."
@@ -759,15 +762,58 @@ def create_optional_addons(parsed_rows):
 
     return addons
 
-def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
+def estimate_activity_inclusion_units(section):
+    """Estimate how much vertical space an inclusion section needs on an A4 page.
+
+    The goal is to avoid the old fixed-count split where six compact sections
+    became five sections on one page and a nearly empty continued page. The
+    estimate intentionally stays conservative for long bullet text, while still
+    allowing compact ticket-style sections to share a page.
+    """
+
+    includes = normalize_list(section.get("includes", []))
+    title_units = 2.4
+    bullet_units = 0
+
+    for item in includes:
+        # One normal bullet line plus extra allowance for wrapped text.
+        bullet_units += 1.0 + max(0, (len(str(item)) - 78) / 78)
+
+    # Small spacing between activity sections.
+    return title_units + bullet_units + 0.8
+
+
+def chunk_activity_inclusions(activity_sections, max_units=34):
+    chunks = []
+    current_chunk = []
+    current_units = 0
+
+    for section in activity_sections:
+        section_units = estimate_activity_inclusion_units(section)
+
+        if current_chunk and current_units + section_units > max_units:
+            chunks.append(current_chunk)
+            current_chunk = [section]
+            current_units = section_units
+        else:
+            current_chunk.append(section)
+            current_units += section_units
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
+
+def render_activity_inclusions_pages(activity_sections):
     if not activity_sections:
         return ""
 
     html_text = ""
+    chunks = chunk_activity_inclusions(activity_sections)
 
-    for start in range(0, len(activity_sections), sections_per_page):
-        chunk = activity_sections[start:start + sections_per_page]
-        continued = "" if start == 0 else " continued"
+    for index, chunk in enumerate(chunks):
+        continued = "" if index == 0 else " continued"
 
         html_text += f"""
         <div class="a4-page final-list-page activity-inclusions-page">
