@@ -711,11 +711,23 @@ def normalize_duration_text(value):
     if not duration:
         return ""
 
+    # Defensive cleanup: sometimes a colleague-style cell has
+    # "3 Hrs Overview ..." in the same pipe section. Keep only the actual
+    # duration phrase and discard any following supplier description.
+    match = re.search(
+        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        duration,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        duration = match.group(1)
+
     duration = re.sub(r"\bHrs?\b", "hours", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bHr\b", "hour", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\b(\d+)\s*hours\b", lambda m: f"{m.group(1)} hour" if m.group(1) == "1" else f"{m.group(1)} hours", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bCruise\s+Duration\b", "Cruise duration", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bTour\s+Duration\b", "Duration", duration, flags=re.IGNORECASE)
+    duration = re.sub(r"\bDuration\s*:\s*", "Duration ", duration, flags=re.IGNORECASE)
     return duration.strip(" -|:")
 
 
@@ -752,11 +764,19 @@ def extract_duration_from_description(main_text):
 
     pipe_parts = [clean_space(part) for part in main_text.split("|")]
     for part in pipe_parts[1:4]:
-        lower = part.lower()
-        if re.search(r"\d+\s*(hr|hrs|hour|hours)", lower):
-            return normalize_duration_text(part)
+        match = re.search(
+            r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+            part,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            return normalize_duration_text(match.group(1))
 
-    match = re.search(r"\b(Cruise\s+Duration\s+\d+\s*(?:Hr|Hrs|hour|hours))\b", main_text, flags=re.IGNORECASE)
+    match = re.search(
+        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        main_text,
+        flags=re.IGNORECASE,
+    )
     if match:
         return normalize_duration_text(match.group(1))
 

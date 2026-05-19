@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v22 am-pm-time-standardization"
+APP_VERSION = "2026-05-19 v22b duration-cleanup"
 
 
 st.set_page_config(
