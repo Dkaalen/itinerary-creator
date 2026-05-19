@@ -1,5 +1,6 @@
 from pathlib import Path
 import base64
+import copy
 import html
 import json
 import re
@@ -26,7 +27,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v11 self-transfer cleanup"
+APP_VERSION = "2026-05-19 v16 editable-output"
 
 
 st.set_page_config(
@@ -311,16 +312,17 @@ def build_day_blocks(rows):
     return blocks
 
 
-def render_day_pages(day, rows):
+def render_day_pages(day, rows, output_edits=None):
     """
     One itinerary day renders as one A4 page.
     This deliberately avoids the earlier manual page splitter, which caused
     day-boundary bleed/duplication.
     """
 
-    day_title = create_day_title(rows)
-    day_intro = create_day_intro(rows)
-    city = get_primary_city(rows)
+    day_edits = (output_edits or {}).get("days", {}).get(day, {})
+    day_title = day_edits.get("title") or create_day_title(rows)
+    day_intro = day_edits.get("intro") or create_day_intro(rows)
+    city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
 
     html_text = f"""
@@ -449,15 +451,236 @@ def auto_download_file(file_bytes, file_name, mime_type):
     )
 
 
-def build_itinerary_html(parsed_rows, grouped_days):
-    trip_title = create_trip_title(parsed_rows, grouped_days)
-    trip_subtitle = create_trip_subtitle(parsed_rows, grouped_days)
-    destinations_line = create_destinations_line(parsed_rows)
+
+
+def list_to_text(items):
+    return "\n".join(normalize_list(items))
+
+
+def text_to_list(value):
+    if not value:
+        return []
+
+    clean_items = []
+
+    for line in str(value).splitlines():
+        item = line.strip()
+        item = item.lstrip("•").lstrip("-").strip()
+
+        if item:
+            clean_items.append(item)
+
+    return clean_items
+
+
+def make_output_edit_state(parsed_rows, grouped_days):
+    """
+    Creates editable values from the generated output.
+    The raw Excel input stays untouched; these fields control the preview/export.
+    """
+
+    edits = {
+        "trip_title": create_trip_title(parsed_rows, grouped_days),
+        "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
+        "destinations_line": create_destinations_line(parsed_rows),
+        "days": {},
+        "rows": {},
+        "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
+        "whats_not_included_text": list_to_text(create_whats_not_included(parsed_rows)),
+    }
+
+    for day, rows in grouped_days.items():
+        edits["days"][day] = {
+            "title": create_day_title(rows),
+            "intro": create_day_intro(rows),
+            "city": get_primary_city(rows),
+        }
+
+        for row in rows:
+            row_id = row.get("row_id") or f'line_{row.get("line_number", len(edits["rows"]))}'
+            edits["rows"][row_id] = {
+                "title": row.get("title", ""),
+                "city": row.get("city", ""),
+                "time": row.get("time", ""),
+                "meeting_point": row.get("meeting_point", ""),
+                "end_point": row.get("end_point", ""),
+                "luggage_included": row.get("luggage_included", ""),
+                "notable_sights_text": list_to_text(row.get("notable_sights", [])),
+                "includes_text": list_to_text(row.get("includes", [])),
+            }
+
+    return edits
+
+
+def apply_output_edits(parsed_rows, output_edits):
+    """
+    Applies edited output values to a copy of parsed rows.
+    """
+
+    edited_rows = copy.deepcopy(parsed_rows)
+    row_edits = (output_edits or {}).get("rows", {})
+
+    for row in edited_rows:
+        row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
+        edits = row_edits.get(row_id, {})
+
+        for key in ["title", "city", "time", "meeting_point", "end_point", "luggage_included"]:
+            if key in edits:
+                row[key] = edits.get(key, "")
+
+        if "notable_sights_text" in edits:
+            row["notable_sights"] = text_to_list(edits.get("notable_sights_text", ""))
+
+        if "includes_text" in edits:
+            row["includes"] = text_to_list(edits.get("includes_text", ""))
+
+    return edited_rows
+
+
+def render_output_editor(parsed_rows, grouped_days, output_edits):
+    """
+    User-facing editor for generated output text.
+    Edits update the preview, HTML download, and PDF export.
+    """
+
+    st.subheader("Edit generated itinerary")
+    st.caption("Edit the generated output here before downloading HTML or creating the PDF. The raw Excel input above is not changed.")
+
+    with st.expander("Edit cover and summary pages", expanded=False):
+        output_edits["trip_title"] = st.text_input(
+            "Cover title",
+            value=output_edits.get("trip_title", ""),
+            key="edit_trip_title",
+        )
+        output_edits["trip_subtitle"] = st.text_area(
+            "Cover subtitle",
+            value=output_edits.get("trip_subtitle", ""),
+            height=80,
+            key="edit_trip_subtitle",
+        )
+        output_edits["destinations_line"] = st.text_input(
+            "Destinations line",
+            value=output_edits.get("destinations_line", ""),
+            key="edit_destinations_line",
+        )
+
+    days = list(grouped_days.keys())
+
+    if days:
+        day_tabs = st.tabs(days)
+
+        for tab, day in zip(day_tabs, days):
+            with tab:
+                rows = grouped_days[day]
+                day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+
+                day_edit["title"] = st.text_input(
+                    f"{day} title",
+                    value=day_edit.get("title", create_day_title(rows)),
+                    key=f"edit_{day}_title",
+                )
+                day_edit["city"] = st.text_input(
+                    f"{day} city",
+                    value=day_edit.get("city", get_primary_city(rows)),
+                    key=f"edit_{day}_city",
+                )
+                day_edit["intro"] = st.text_area(
+                    f"{day} intro",
+                    value=day_edit.get("intro", create_day_intro(rows)),
+                    height=95,
+                    key=f"edit_{day}_intro",
+                )
+
+                with st.expander(f"Edit {day} itinerary items", expanded=False):
+                    for index, row in enumerate(rows, start=1):
+                        row_id = row.get("row_id") or f'{day}_{index}'
+                        row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+                        row_type = get_row_type(row)
+                        item_label = row_edit.get("title") or row.get("title") or f"Item {index}"
+
+                        with st.expander(f"{index}. {row_type}: {item_label}", expanded=False):
+                            row_edit["title"] = st.text_input(
+                                "Title / text",
+                                value=row_edit.get("title", row.get("title", "")),
+                                key=f"edit_{row_id}_title",
+                            )
+                            row_edit["city"] = st.text_input(
+                                "City / location",
+                                value=row_edit.get("city", row.get("city", "")),
+                                key=f"edit_{row_id}_city",
+                            )
+
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                row_edit["time"] = st.text_input(
+                                    "Time",
+                                    value=row_edit.get("time", row.get("time", "")),
+                                    key=f"edit_{row_id}_time",
+                                )
+                                row_edit["meeting_point"] = st.text_input(
+                                    "Meeting point",
+                                    value=row_edit.get("meeting_point", row.get("meeting_point", "")),
+                                    key=f"edit_{row_id}_meeting",
+                                )
+                            with col2:
+                                row_edit["end_point"] = st.text_input(
+                                    "End point",
+                                    value=row_edit.get("end_point", row.get("end_point", "")),
+                                    key=f"edit_{row_id}_end",
+                                )
+                                row_edit["luggage_included"] = st.text_input(
+                                    "Luggage included",
+                                    value=row_edit.get("luggage_included", row.get("luggage_included", "")),
+                                    key=f"edit_{row_id}_luggage",
+                                )
+
+                            row_edit["notable_sights_text"] = st.text_area(
+                                "Notable sights, one per line",
+                                value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
+                                height=90,
+                                key=f"edit_{row_id}_sights",
+                            )
+                            row_edit["includes_text"] = st.text_area(
+                                "Inclusions, one per line",
+                                value=row_edit.get("includes_text", list_to_text(row.get("includes", []))),
+                                height=100,
+                                key=f"edit_{row_id}_includes",
+                            )
+
+    with st.expander("Edit final inclusion / exclusion pages", expanded=False):
+        output_edits["whats_included_text"] = st.text_area(
+            "What’s included, one item per line",
+            value=output_edits.get("whats_included_text", ""),
+            height=220,
+            key="edit_whats_included_text",
+        )
+        output_edits["whats_not_included_text"] = st.text_area(
+            "What’s not included, one item per line",
+            value=output_edits.get("whats_not_included_text", ""),
+            height=180,
+            key="edit_whats_not_included_text",
+        )
+
+def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
+    output_edits = output_edits or {}
+
+    trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
+    trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
+    destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     journey_arc = create_journey_arc(grouped_days)
-    whats_included = create_whats_included(parsed_rows, grouped_days)
+
+    if output_edits.get("whats_included_text"):
+        whats_included = text_to_list(output_edits.get("whats_included_text"))
+    else:
+        whats_included = create_whats_included(parsed_rows, grouped_days)
+
     activity_inclusions = create_activity_inclusions(parsed_rows)
-    whats_not_included = create_whats_not_included(parsed_rows)
+
+    if output_edits.get("whats_not_included_text"):
+        whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
+    else:
+        whats_not_included = create_whats_not_included(parsed_rows)
 
     html_text = f"""
     <style>
@@ -769,7 +992,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
     """
 
     for day, rows in grouped_days.items():
-        html_text += render_day_pages(day, rows)
+        html_text += render_day_pages(day, rows, output_edits)
 
     html_text += render_split_list_pages("What’s included", whats_included)
     html_text += render_activity_inclusions_pages(activity_inclusions)
@@ -838,15 +1061,34 @@ if "html_path" not in st.session_state:
 if "pdf_bytes" not in st.session_state:
     st.session_state.pdf_bytes = None
 
+if "parsed_rows" not in st.session_state:
+    st.session_state.parsed_rows = []
+
+if "output_edits" not in st.session_state:
+    st.session_state.output_edits = {}
+
+if "last_generated_raw_text" not in st.session_state:
+    st.session_state.last_generated_raw_text = ""
+
 if st.button("Generate itinerary"):
     if raw_text.strip():
         parsed_rows = parse_itinerary(raw_text)
         grouped_days = group_rows_by_day(parsed_rows)
         duplicate_count = get_duplicate_count(raw_text)
 
-        st.session_state.itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
-        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        st.session_state.parsed_rows = parsed_rows
+        st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
+        st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
+
+        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+        edited_grouped_days = group_rows_by_day(edited_rows)
+        st.session_state.itinerary_html = build_itinerary_html(
+            edited_rows,
+            edited_grouped_days,
+            st.session_state.output_edits,
+        )
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
         st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days.")
 
@@ -869,6 +1111,27 @@ if st.button("Generate itinerary"):
 
     else:
         st.warning("Please paste some itinerary text first.")
+
+if st.session_state.parsed_rows and st.session_state.output_edits:
+    render_output_editor(
+        st.session_state.parsed_rows,
+        group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
+        st.session_state.output_edits,
+    )
+
+    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+    rebuilt_html = build_itinerary_html(
+        edited_rows,
+        edited_grouped_days,
+        st.session_state.output_edits,
+    )
+
+    if rebuilt_html != st.session_state.itinerary_html:
+        st.session_state.pdf_bytes = None
+
+    st.session_state.itinerary_html = rebuilt_html
+    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
     st.subheader("A4 itinerary preview")
