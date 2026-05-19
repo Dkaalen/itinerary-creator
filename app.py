@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v27 diagnostics-safer-download-parser-rename"
+APP_VERSION = "2026-05-19 v28 nordic-place-database"
 
 
 st.set_page_config(

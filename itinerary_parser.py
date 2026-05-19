@@ -2,6 +2,7 @@ import hashlib
 import re
 
 import diagnostics
+from place_aliases import canonicalize_place_name, is_likely_service_text, normalize_place_text
 
 
 DETAIL_LABELS = [
@@ -81,6 +82,8 @@ def is_valid_city_value(value):
         return False
     if len(city) > 35:
         return False
+    if is_likely_service_text(city):
+        return False
     if any(marker in lower for marker in INVALID_CITY_MARKERS):
         return False
     if " to " in lower and any(word in lower for word in ["airport", "hotel", "station", "bergen", "copenhagen", "svol"]):
@@ -133,6 +136,8 @@ def fix_common_text(value):
     for pattern, replacement in COMMON_TEXT_REPLACEMENTS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
+    text = normalize_place_text(text)
+
     return clean_space(text) if "\n" not in text else text
 
 
@@ -159,7 +164,7 @@ def normalize_place_name(value):
     place = re.sub(r"\bAirport\s+Airport\b", "Airport", place, flags=re.IGNORECASE)
     place = re.sub(r"\s+", " ", place).strip(" .,-|:")
 
-    return place
+    return canonicalize_place_name(place)
 
 
 def extract_route_points(text):
@@ -1353,7 +1358,7 @@ def parse_itinerary(raw_text):
         check_for_unknown_typos(main_text, context=current_day)
         row["details"] = fix_common_text(description)
         check_for_unknown_typos(row["details"], context=current_day)
-        row["city"] = fix_common_text(row.get("city", ""))
+        row["city"] = canonicalize_place_name(fix_common_text(row.get("city", "")))
 
         important_types_for_city = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
         if not is_optional and normalize_type(item_type) in important_types_for_city and not row["city"]:

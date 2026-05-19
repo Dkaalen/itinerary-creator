@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+from place_aliases import canonicalize_place_name, is_likely_service_text
+
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
 
@@ -63,7 +65,7 @@ def optional_rows_only(rows):
 
 
 def is_valid_destination_city(city):
-    city = str(city or "").strip()
+    city = canonicalize_place_name(str(city or "").strip())
     if not city:
         return False
     lower = city.lower()
@@ -76,6 +78,8 @@ def is_valid_destination_city(city):
         "optional add",
         "flight ",
     ]
+    if is_likely_service_text(city):
+        return False
     if any(marker in lower for marker in invalid_markers):
         return False
     if " to " in lower and any(word in lower for word in ["airport", "hotel", "station", "bergen", "copenhagen", "svol"]):
@@ -184,7 +188,7 @@ def get_unique_cities(parsed_rows):
         if is_optional_row(row):
             continue
 
-        city = row.get("city", "").strip()
+        city = canonicalize_place_name(row.get("city", "").strip())
 
         if is_valid_destination_city(city) and city not in cities:
             cities.append(city)
@@ -229,11 +233,11 @@ def get_primary_city(day_rows):
     for preferred_type in priority_types:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
-                city = row.get("city", "").strip()
-                if city:
+                city = canonicalize_place_name(row.get("city", "").strip())
+                if city and is_valid_destination_city(city):
                     return city
 
-    return day_rows[0].get("city", "").strip()
+    return canonicalize_place_name(day_rows[0].get("city", "").strip())
 
 
 def create_client_activity_title(row):
