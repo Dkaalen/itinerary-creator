@@ -419,13 +419,38 @@ if st.button("Generate itinerary"):
         st.subheader("A4 itinerary preview")
         itinerary_html = build_itinerary_html(parsed_rows, grouped_days)
         html_path = save_html_file(itinerary_html)
-        pdf_path = save_pdf_file(html_path)
         st.success(f"HTML file created: {html_path}")
-        st.success(f"PDF file created: {pdf_path}")
+
         with open(html_path, "rb") as html_file:
-            st.download_button("Download HTML preview", html_file, file_name="itinerary_preview.html", mime="text/html")
-        with open(pdf_path, "rb") as pdf_file:
-            st.download_button("Download PDF preview", pdf_file, file_name="itinerary_preview.pdf", mime="application/pdf")
+            st.download_button(
+                "Download HTML preview",
+                html_file,
+                file_name="itinerary_preview.html",
+                mime="text/html",
+            )
+
+        st.info(
+            "PDF export is optional. The itinerary preview and HTML download work without PDF generation. "
+            "If PDF export fails on Streamlit Cloud, the app will stay open instead of crashing."
+        )
+
+        if st.button("Create PDF download"):
+            try:
+                pdf_path = save_pdf_file(html_path)
+                st.success(f"PDF file created: {pdf_path}")
+                with open(pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        "Download PDF preview",
+                        pdf_file,
+                        file_name="itinerary_preview.pdf",
+                        mime="application/pdf",
+                    )
+            except Exception as error:
+                st.error("PDF export failed on this server, but the itinerary preview is still ready.")
+                st.write("Use the HTML download for now, or open the preview and print/save as PDF from the browser.")
+                with st.expander("Technical PDF error"):
+                    st.code(str(error))
+
         st.html(itinerary_html)
     else:
         st.warning("Please paste some itinerary text first.")

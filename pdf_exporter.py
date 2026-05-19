@@ -1,7 +1,12 @@
 from pathlib import Path
-import sys
 import asyncio
-from playwright.sync_api import sync_playwright
+import subprocess
+import sys
+
+from playwright.sync_api import sync_playwright, Error as PlaywrightError
+
+
+_BROWSER_READY = False
 
 
 def setup_windows_event_loop():
@@ -17,12 +22,43 @@ def setup_windows_event_loop():
             pass
 
 
+def ensure_playwright_chromium():
+    """
+    Streamlit Cloud installs the Playwright Python package, but it may not
+    automatically download the Chromium browser binary. This installs Chromium
+    on demand the first time PDF export is used.
+    """
+
+    global _BROWSER_READY
+
+    if _BROWSER_READY:
+        return
+
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        _BROWSER_READY = True
+    except subprocess.CalledProcessError as error:
+        message = error.stderr or error.stdout or str(error)
+        raise RuntimeError(
+            "Playwright Chromium could not be installed. "
+            "Check Streamlit Cloud logs for the full install error.\n\n"
+            f"{message}"
+        ) from error
+
+
 def export_html_to_pdf(html_path, pdf_path):
     """
     Converts a standalone HTML file into an A4 PDF using Playwright.
     """
 
     setup_windows_event_loop()
+    ensure_playwright_chromium()
 
     html_path = Path(html_path).resolve()
     pdf_path = Path(pdf_path).resolve()
@@ -32,9 +68,26 @@ def export_html_to_pdf(html_path, pdf_path):
     file_url = html_path.as_uri()
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            headless=True
-        )
+        try:
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
+            )
+        except PlaywrightError:
+            # If Streamlit Cloud wiped the browser cache between runs, try once more.
+            global _BROWSER_READY
+            _BROWSER_READY = False
+            ensure_playwright_chromium()
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
+            )
 
         page = browser.new_page(
             viewport={
