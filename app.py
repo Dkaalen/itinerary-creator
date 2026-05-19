@@ -1,44 +1,57 @@
 from pathlib import Path
+import base64
+import html
+import json
 import re
+
 import streamlit as st
+import streamlit.components.v1 as components
+
 from parser import parse_itinerary
 from pdf_exporter import export_html_to_pdf
 from generator import (
-    group_rows_by_day,
-    get_row_type,
     TRANSPORT_TYPES,
-    create_day_title,
     create_day_intro,
-    create_trip_title,
-    create_trip_subtitle,
+    create_day_title,
     create_destinations_line,
-    create_trip_glance,
     create_journey_arc,
+    create_trip_glance,
+    create_trip_subtitle,
+    create_trip_title,
     create_whats_included,
     create_whats_not_included,
-    create_final_note,
+    get_primary_city,
+    get_row_type,
+    group_rows_by_day,
 )
+
+
+APP_VERSION = "2026-05-19 v10 clean original merge"
+
 
 st.set_page_config(
     page_title="Itinerary Creator",
     page_icon="🧭",
-    layout="wide"
+    layout="wide",
 )
 
 st.title("Itinerary Creator")
+st.caption(f"Fix version: {APP_VERSION}")
 
 st.write(
     "Paste raw Excel itinerary text below. "
     "The app will turn it into a polished A4 itinerary preview."
 )
 
-st.caption("Fix version: 2026-05-19 v7 one-click PDF download")
-
 raw_text = st.text_area(
     "Raw Excel text",
     height=300,
-    placeholder="Paste itinerary rows here..."
+    placeholder="Paste itinerary rows here...",
 )
+
+
+def esc(value):
+    return html.escape(str(value or ""), quote=True)
 
 
 def normalize_list(items):
@@ -46,7 +59,7 @@ def normalize_list(items):
         return []
 
     if isinstance(items, list):
-        return [item.strip() for item in items if item and item.strip()]
+        return [str(item).strip() for item in items if item and str(item).strip()]
 
     if isinstance(items, str):
         return [item.strip() for item in items.split(",") if item.strip()]
@@ -54,20 +67,20 @@ def normalize_list(items):
     return []
 
 
-def render_list_items(items):
+def render_list_items(items, class_name="detail-list"):
     clean_items = normalize_list(items)
 
     if not clean_items:
         return ""
 
-    html = "<ul>"
+    html_text = f'<ul class="{esc(class_name)}">'
 
     for item in clean_items:
-        html += f"<li>{item}</li>"
+        html_text += f"<li>{esc(item)}</li>"
 
-    html += "</ul>"
+    html_text += "</ul>"
 
-    return html
+    return html_text
 
 
 def get_time_period(time_text):
@@ -99,36 +112,40 @@ def get_time_period(time_text):
 
 
 def build_activity_block(row):
+    """
+    Keep the day-by-day section clean.
+    Activity inclusions are shown later on the separate Activity inclusions page.
+    """
+
     title = row.get("title", "")
     time = row.get("time", "")
     meeting_point = row.get("meeting_point", "")
     end_point = row.get("end_point", "")
     notable_sights = normalize_list(row.get("notable_sights", []))
-    includes = normalize_list(row.get("includes", []))
 
-    html = f'<div class="section-title">{get_time_period(time)}</div>'
-    html += f'<div class="body-text strong-line">{title}</div>'
+    html_text = f'<div class="content-block activity-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += f'<div class="section-title">{esc(get_time_period(time))}</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if time:
-        html += f'<div class="body-text">Time: {time}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
 
     if meeting_point:
-        html += f'<div class="body-text">Meeting point: {meeting_point}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Meeting point:</span> {esc(meeting_point)}</div>'
 
     if end_point:
-        html += f'<div class="body-text">End point: {end_point}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
 
     if notable_sights:
-        html += '<div class="section-title">Notable sights</div>'
-        html += render_list_items(notable_sights)
+        html_text += '<div class="section-title small-section">Notable sights</div>'
+        html_text += render_list_items(notable_sights)
 
-    if includes:
-        html += '<div class="section-title">Includes</div>'
-        html += render_list_items(includes)
+    html_text += "</div>"
 
     return {
         "kind": "activity",
-        "html": html,
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
     }
 
 
@@ -138,47 +155,65 @@ def build_transport_block(row):
     includes = normalize_list(row.get("includes", []))
     luggage_included = row.get("luggage_included", "")
 
-    html = '<div class="section-title">Travel today</div>'
-    html += f'<div class="body-text strong-line">{title}</div>'
+    html_text = f'<div class="content-block transport-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Travel today</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if time:
-        html += f'<div class="body-text">Time: {time}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
 
     if luggage_included:
-        html += f'<div class="body-text">Luggage included: {luggage_included}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Luggage included:</span> {esc(luggage_included)}</div>'
 
     if includes:
-        html += '<div class="section-title">Includes</div>'
-        html += render_list_items(includes)
+        html_text += '<div class="section-title small-section">Includes</div>'
+        html_text += render_list_items(includes)
+
+    html_text += "</div>"
 
     return {
         "kind": "transport",
-        "html": html,
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
     }
 
 
-def build_leisure_block():
-    html = '<div class="section-title">Your free time</div>'
-    html += (
+def build_leisure_block(row=None):
+    row_id = row.get("row_id", "") if row else ""
+
+    html_text = f'<div class="content-block leisure-block" data-row-id="{esc(row_id)}">'
+    html_text += '<div class="section-title">Your free time</div>'
+    html_text += (
         '<div class="body-text">'
-        'Take this time at your own pace. You may want to explore nearby sights, '
-        'enjoy a relaxed meal, or simply settle into the destination.'
+        'Time at leisure is included so the day does not feel overfilled. '
+        'Use this space to settle in, explore nearby streets, enjoy a relaxed meal, '
+        'or simply take the destination at your own pace.'
         '</div>'
     )
+    html_text += "</div>"
 
     return {
         "kind": "leisure",
-        "html": html,
+        "row_id": row_id,
+        "html": html_text,
     }
 
 
 def build_included_today_block(items):
-    html = '<div class="section-title">Included today</div>'
-    html += render_list_items(items)
+    clean_items = normalize_list(items)
+
+    if not clean_items:
+        return None
+
+    html_text = '<div class="content-block included-block">'
+    html_text += '<div class="section-title">Included today</div>'
+    html_text += render_list_items(clean_items)
+    html_text += "</div>"
 
     return {
         "kind": "included",
-        "html": html,
+        "row_id": "included-today",
+        "html": html_text,
     }
 
 
@@ -190,11 +225,9 @@ def build_day_blocks(rows):
         row_type = get_row_type(row)
         title = row.get("title", "")
 
-        if row_type in ["Arrival", "Transfer", "Hotel"]:
-            included_items.append(title)
-
-        elif row_type == "Departure":
-            continue
+        if row_type in ["Arrival", "Transfer", "Hotel", "Departure"]:
+            if title:
+                included_items.append(title)
 
         elif row_type in TRANSPORT_TYPES:
             blocks.append(build_transport_block(row))
@@ -203,121 +236,69 @@ def build_day_blocks(rows):
             blocks.append(build_activity_block(row))
 
         elif row_type == "Leisure":
-            blocks.append(build_leisure_block())
+            blocks.append(build_leisure_block(row))
 
-        else:
+        elif title:
             included_items.append(title)
 
-    if included_items:
-        blocks.append(build_included_today_block(included_items))
+    included_block = build_included_today_block(included_items)
+
+    if included_block:
+        blocks.append(included_block)
 
     return blocks
 
 
-def block_score(block):
-    html = block.get("html", "")
-
-    score = 1
-    score += html.count("<li>") * 1
-    score += html.count('class="body-text"') * 1
-
-    if block.get("kind") in ["activity", "transport"]:
-        score += 4
-
-    return score
-
-
-def split_day_blocks(blocks):
-    """
-    Conservative page splitting.
-    Normal days stay on one page.
-    Heavy days split by block, never by day mixing.
-    """
-
-    total_score = sum(block_score(block) for block in blocks)
-
-    if total_score <= 34:
-        return [blocks]
-
-    pages = []
-    current_page = []
-    current_score = 0
-
-    for block in blocks:
-        score = block_score(block)
-
-        if current_page and current_score + score > 34:
-            pages.append(current_page)
-            current_page = [block]
-            current_score = score
-        else:
-            current_page.append(block)
-            current_score += score
-
-    if current_page:
-        pages.append(current_page)
-
-    return pages
-
-
 def render_day_pages(day, rows):
+    """
+    One itinerary day renders as one A4 page.
+    This deliberately avoids the earlier manual page splitter, which caused
+    day-boundary bleed/duplication.
+    """
+
     day_title = create_day_title(rows)
     day_intro = create_day_intro(rows)
-    city = rows[0].get("city", "") if rows else ""
-
+    city = get_primary_city(rows)
     blocks = build_day_blocks(rows)
-    pages = split_day_blocks(blocks)
 
-    html = ""
+    html_text = f"""
+        <div class="a4-page day-page" data-day="{esc(day)}">
+            <div class="day-label">{esc(day)}</div>
+            <div class="day-title">{esc(day_title)}</div>
+            <div class="city">{esc(city)}</div>
+            <div class="intro">{esc(day_intro)}</div>
+    """
 
-    for page_index, page_blocks in enumerate(pages):
-        continued_label = "" if page_index == 0 else " continued"
+    for block in blocks:
+        html_text += block["html"]
 
-        html += f"""
-        <div class="a4-page">
-            <div class="day-label">{day}{continued_label}</div>
-            <div class="day-title">{day_title}</div>
-            <div class="city">{city}</div>
-        """
+    html_text += "</div>"
 
-        if page_index == 0:
-            html += f'<div class="intro">{day_intro}</div>'
-
-        for block in page_blocks:
-            html += block["html"]
-
-        html += """
-        </div>
-        """
-
-    return html
+    return html_text
 
 
-def render_split_list_pages(title, items, items_per_page=22):
-    html = ""
+def render_split_list_pages(title, items, items_per_page=24):
+    html_text = ""
     clean_items = normalize_list(items)
+
+    if not clean_items:
+        return ""
 
     for start in range(0, len(clean_items), items_per_page):
         chunk = clean_items[start:start + items_per_page]
         continued = "" if start == 0 else " continued"
 
-        html += f"""
-        <div class="a4-page">
-            <div class="final-page-title">{title}{continued}</div>
-            {render_list_items(chunk)}
+        html_text += f"""
+        <div class="a4-page final-list-page">
+            <div class="final-page-title">{esc(title)}{continued}</div>
+            {render_list_items(chunk, class_name="final-list")}
         </div>
         """
 
-    return html
-
+    return html_text
 
 
 def create_activity_inclusions(parsed_rows):
-    """
-    Creates a separate client-facing list of activities and their inclusions.
-    This keeps day-by-day pages clean while preserving the practical details.
-    """
-
     activity_sections = []
 
     for row in parsed_rows:
@@ -357,9 +338,9 @@ def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
             html_text += '<div class="activity-inclusion-block">'
             html_text += f'<div class="activity-inclusion-title">{esc(section["title"])}</div>'
             html_text += render_list_items(section["includes"], class_name="final-list")
-            html_text += '</div>'
+            html_text += "</div>"
 
-        html_text += '</div>'
+        html_text += "</div>"
 
     return html_text
 
@@ -367,7 +348,7 @@ def render_activity_inclusions_pages(activity_sections, sections_per_page=5):
 def auto_download_file(file_bytes, file_name, mime_type):
     """
     Triggers a browser download after a Streamlit button click.
-    A normal st.download_button is still shown as a fallback below it.
+    The normal Streamlit download button below remains as a fallback.
     """
 
     encoded = base64.b64encode(file_bytes).decode("utf-8")
@@ -405,6 +386,7 @@ def auto_download_file(file_bytes, file_name, mime_type):
         height=0,
     )
 
+
 def build_itinerary_html(parsed_rows, grouped_days):
     trip_title = create_trip_title(parsed_rows, grouped_days)
     trip_subtitle = create_trip_subtitle(parsed_rows, grouped_days)
@@ -415,7 +397,7 @@ def build_itinerary_html(parsed_rows, grouped_days):
     activity_inclusions = create_activity_inclusions(parsed_rows)
     whats_not_included = create_whats_not_included(parsed_rows)
 
-    html = f"""
+    html_text = f"""
     <style>
         .preview-background {{
             background: #11151b;
@@ -428,15 +410,16 @@ def build_itinerary_html(parsed_rows, grouped_days):
             background: #f4efe8;
             color: #1f3446;
             margin: 0 auto 32px auto;
-            padding: 70px 66px;
+            padding: 66px 64px;
             box-sizing: border-box;
             font-family: Georgia, 'Times New Roman', serif;
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+            break-after: page;
             page-break-after: always;
+            overflow: hidden;
         }}
 
         .cover-page {{
-            min-height: 1123px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -475,11 +458,15 @@ def build_itinerary_html(parsed_rows, grouped_days):
             margin-top: 24px;
         }}
 
-        .glance-card {{
-            background: rgba(255, 255, 255, 0.42);
-            padding: 28px;
-            margin-bottom: 34px;
+        .glance-card,
+        .journey-arc {{
+            background: rgba(255, 255, 255, 0.34);
             border: 1px solid #d8cec2;
+            padding: 28px;
+        }}
+
+        .glance-card {{
+            margin-bottom: 34px;
         }}
 
         .glance-title,
@@ -507,12 +494,6 @@ def build_itinerary_html(parsed_rows, grouped_days):
 
         .glance-value {{
             color: #2f2f2f;
-        }}
-
-        .journey-arc {{
-            padding: 28px;
-            background: rgba(255, 255, 255, 0.28);
-            border: 1px solid #d8cec2;
         }}
 
         .journey-table {{
@@ -572,15 +553,25 @@ def build_itinerary_html(parsed_rows, grouped_days):
             color: #2f2f2f;
         }}
 
+        .content-block {{
+            margin-bottom: 15px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+
         .section-title {{
             font-family: Arial, sans-serif;
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             margin-top: 15px;
             margin-bottom: 5px;
             color: #1f3446;
+        }}
+
+        .small-section {{
+            margin-top: 10px;
         }}
 
         .body-text {{
@@ -594,17 +585,31 @@ def build_itinerary_html(parsed_rows, grouped_days):
             font-weight: 600;
         }}
 
+        .meta-label {{
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: #1f3446;
+        }}
+
         .final-page-title {{
             font-size: 34px;
             margin-bottom: 22px;
             color: #1f3446;
         }}
 
-        .final-note {{
-            font-size: 17px;
-            line-height: 1.6;
-            color: #2f2f2f;
-            margin-top: 18px;
+        .activity-inclusion-block {{
+            margin-bottom: 18px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+
+        .activity-inclusion-title {{
+            font-size: 18px;
+            line-height: 1.25;
+            font-weight: 700;
+            color: #1f3446;
+            margin-bottom: 6px;
         }}
 
         ul {{
@@ -620,6 +625,10 @@ def build_itinerary_html(parsed_rows, grouped_days):
             color: #2f2f2f;
         }}
 
+        .final-list li {{
+            margin-bottom: 5px;
+        }}
+
         @media print {{
             @page {{
                 size: A4 portrait;
@@ -633,9 +642,11 @@ def build_itinerary_html(parsed_rows, grouped_days):
 
             .a4-page {{
                 width: 210mm;
+                height: 297mm;
                 min-height: 297mm;
                 margin: 0;
                 box-shadow: none;
+                break-after: page;
                 page-break-after: always;
             }}
         }}
@@ -645,9 +656,9 @@ def build_itinerary_html(parsed_rows, grouped_days):
 
         <div class="a4-page cover-page">
             <div class="cover-kicker">Curated Travel Itinerary</div>
-            <div class="cover-title">{trip_title}</div>
-            <div class="cover-subtitle">{trip_subtitle}</div>
-            <div class="cover-destinations">{destinations_line}</div>
+            <div class="cover-title">{esc(trip_title)}</div>
+            <div class="cover-subtitle">{esc(trip_subtitle)}</div>
+            <div class="cover-destinations">{esc(destinations_line)}</div>
         </div>
 
         <div class="a4-page">
@@ -656,14 +667,14 @@ def build_itinerary_html(parsed_rows, grouped_days):
     """
 
     for label, value in trip_glance.items():
-        html += f"""
+        html_text += f"""
                 <div class="glance-row">
-                    <div class="glance-label">{label}</div>
-                    <div class="glance-value">{value}</div>
+                    <div class="glance-label">{esc(label)}</div>
+                    <div class="glance-value">{esc(value)}</div>
                 </div>
         """
 
-    html += """
+    html_text += """
             </div>
 
             <div class="journey-arc">
@@ -680,15 +691,15 @@ def build_itinerary_html(parsed_rows, grouped_days):
     """
 
     for chapter in journey_arc:
-        html += f"""
+        html_text += f"""
                         <tr>
-                            <td>{chapter["chapter"]}</td>
-                            <td class="journey-days">{chapter["days"]}</td>
-                            <td>{chapter["experience"]}</td>
+                            <td>{esc(chapter["chapter"])}</td>
+                            <td class="journey-days">{esc(chapter["days"])}</td>
+                            <td>{esc(chapter["experience"])}</td>
                         </tr>
         """
 
-    html += """
+    html_text += """
                     </tbody>
                 </table>
             </div>
@@ -696,21 +707,15 @@ def build_itinerary_html(parsed_rows, grouped_days):
     """
 
     for day, rows in grouped_days.items():
-        html += render_day_pages(day, rows)
+        html_text += render_day_pages(day, rows)
 
-    html += render_split_list_pages("What’s included", whats_included)
-    html += render_split_list_pages("What’s not included", whats_not_included)
+    html_text += render_split_list_pages("What’s included", whats_included)
+    html_text += render_activity_inclusions_pages(activity_inclusions)
+    html_text += render_split_list_pages("What’s not included", whats_not_included)
 
-    html += f"""
-        <div class="a4-page">
-            <div class="final-page-title">Final Note</div>
-            <div class="final-note">{final_note}</div>
-        </div>
-    """
+    html_text += "</div>"
 
-    html += "</div>"
-
-    return html
+    return html_text
 
 
 def build_full_html_document(itinerary_html):
@@ -752,11 +757,6 @@ def save_pdf_file(html_path):
 
 
 def get_duplicate_count(raw_text_value):
-    """
-    Lightweight UI estimate only. parse_itinerary already skips exact
-    duplicate rows, so this compares valid-looking pasted rows with parsed rows.
-    """
-
     raw_rows = [
         line for line in raw_text_value.splitlines()
         if line.strip().lower().startswith("day ")

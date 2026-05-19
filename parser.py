@@ -1,7 +1,6 @@
 import hashlib
 import re
 
-APP_FIX_VERSION = "2026-05-18 v4 day-boundary-hard-fix"
 
 DETAIL_LABELS = [
     "Time",
@@ -14,7 +13,7 @@ DETAIL_LABELS = [
 ]
 
 DETAIL_MARKERS = [f" - {label}:" for label in DETAIL_LABELS]
-DAY_PATTERN = re.compile(r"^day\s+\d+\b", re.IGNORECASE)
+DAY_PATTERN = re.compile(r"^day\s+\d+", re.IGNORECASE)
 DATE_PATTERN = re.compile(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$")
 
 
@@ -48,7 +47,7 @@ def split_comma_list(text, *, protect_compound_phrases=False):
         return []
 
     if isinstance(text, list):
-        return [str(item).strip() for item in text if item and str(item).strip()]
+        return [item.strip() for item in text if item and item.strip()]
 
     parts = [item.strip() for item in text.split(",") if item.strip()]
 
@@ -66,7 +65,6 @@ def split_comma_list(text, *, protect_compound_phrases=False):
         "van or coach",
         "coach or van",
         "bus or coach",
-        "carry on",
     )
 
     for part in parts:
@@ -99,11 +97,12 @@ def detect_effective_type(item_type, title, details):
 
 
 def find_description_cell(parts):
-    # Use the last non-empty Excel cell, not parts[-1]. This avoids empty copied columns.
     for part in reversed(parts):
         value = part.strip()
+
         if value:
             return value
+
     return ""
 
 
@@ -115,6 +114,7 @@ def make_row_id(day, item_type, start_date, end_date, description):
         end_date.strip().lower(),
         description.strip().lower(),
     ])
+
     return hashlib.sha1(source.encode("utf-8")).hexdigest()[:12]
 
 
@@ -125,10 +125,12 @@ def parse_itinerary(raw_text):
 
     for line_number, raw_line in enumerate(raw_text.splitlines(), start=1):
         line = raw_line.strip()
+
         if not line:
             continue
 
         parts = raw_line.rstrip("\n").split("\t")
+
         if not any(part.strip() for part in parts):
             continue
 
@@ -137,6 +139,7 @@ def parse_itinerary(raw_text):
         if first_cell:
             if not DAY_PATTERN.match(first_cell):
                 continue
+
             current_day = first_cell
 
         if not current_day:
@@ -151,8 +154,10 @@ def parse_itinerary(raw_text):
             continue
 
         row_id = make_row_id(current_day, item_type, start_date, end_date, description)
+
         if row_id in seen_row_ids:
             continue
+
         seen_row_ids.add(row_id)
 
         row = {
@@ -192,7 +197,13 @@ def parse_itinerary(raw_text):
             protect_compound_phrases=True,
         )
         row["luggage_included"] = extract_detail(main_text, "Luggage included")
-        row["effective_type"] = detect_effective_type(row["type"], row["title"], row["details"])
+
+        row["effective_type"] = detect_effective_type(
+            row["type"],
+            row["title"],
+            row["details"],
+        )
+
         rows.append(row)
 
     return rows
