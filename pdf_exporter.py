@@ -1,17 +1,15 @@
 from pathlib import Path
 import asyncio
 import os
-import shutil
 import subprocess
 import sys
+import tempfile
 
-# IMPORTANT FOR STREAMLIT CLOUD:
-# Playwright's Python package can be installed while the Chromium browser binary
-# is still missing. We force Chromium into a writable folder inside the app repo,
-# then use the same folder when launching the browser.
-APP_DIR = Path(__file__).resolve().parent
-PLAYWRIGHT_BROWSERS_DIR = APP_DIR / ".playwright-browsers"
-os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(PLAYWRIGHT_BROWSERS_DIR)
+# Streamlit Cloud note:
+# The Python "playwright" package does not include the Chromium browser binary.
+# We install Chromium at runtime into /tmp, which is writable on Streamlit Cloud.
+BROWSER_CACHE_DIR = Path(tempfile.gettempdir()) / "itinerary_playwright_browsers"
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSER_CACHE_DIR)
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
@@ -22,7 +20,7 @@ BROWSER_LAUNCH_ARGS = [
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
-    "--single-process",
+    "--disable-extensions",
 ]
 
 
@@ -41,11 +39,11 @@ def setup_windows_event_loop():
 
 def chromium_executable_exists():
     """
-    Checks whether Playwright has a Chromium executable available in the
-    app-local browser folder.
+    Checks whether Playwright has a Chromium executable available in the runtime
+    browser cache folder.
     """
 
-    if not PLAYWRIGHT_BROWSERS_DIR.exists():
+    if not BROWSER_CACHE_DIR.exists():
         return False
 
     executable_names = {
@@ -55,41 +53,36 @@ def chromium_executable_exists():
         "chrome-headless-shell.exe",
     }
 
-    for path in PLAYWRIGHT_BROWSERS_DIR.rglob("*"):
+    for path in BROWSER_CACHE_DIR.rglob("*"):
         if path.name in executable_names and path.is_file():
             return True
 
     return False
 
 
-def install_chromium(force=False):
+def install_chromium_if_needed():
     """
-    Installs Chromium for Playwright into a writable app-local folder.
+    Installs the Playwright Chromium browser binary if it is missing.
 
-    This is safe to run more than once. If the browser already exists, it exits
-    quickly unless force=True is supplied.
+    This runs only when PDF export is requested, not when the Streamlit app starts.
+    The first PDF export on Streamlit Cloud can therefore take a little longer.
     """
 
-    PLAYWRIGHT_BROWSERS_DIR.mkdir(parents=True, exist_ok=True)
+    BROWSER_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-    if force and PLAYWRIGHT_BROWSERS_DIR.exists():
-        shutil.rmtree(PLAYWRIGHT_BROWSERS_DIR, ignore_errors=True)
-        PLAYWRIGHT_BROWSERS_DIR.mkdir(parents=True, exist_ok=True)
-
-    if not force and chromium_executable_exists():
+    if chromium_executable_exists():
         return
 
     env = os.environ.copy()
-    env["PLAYWRIGHT_BROWSERS_PATH"] = str(PLAYWRIGHT_BROWSERS_DIR)
+    env["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSER_CACHE_DIR)
 
     result = subprocess.run(
         [sys.executable, "-m", "playwright", "install", "chromium"],
-        cwd=str(APP_DIR),
-        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         timeout=600,
+        env=env,
     )
 
     if result.returncode != 0:
@@ -100,18 +93,10 @@ def install_chromium(force=False):
             f"STDERR:\n{result.stderr}"
         )
 
-    if not chromium_executable_exists():
-        raise RuntimeError(
-            "Playwright reported that Chromium installed successfully, but no "
-            f"Chromium executable was found in {PLAYWRIGHT_BROWSERS_DIR}.\n\n"
-            f"Installer output:\n{result.stdout}\n{result.stderr}"
-        )
-
 
 def launch_chromium(playwright):
     """
-    Launches Chromium. If Playwright says the executable is missing, install the
-    browser and retry once.
+    Launches Chromium. If the executable is missing, install it and retry once.
     """
 
     try:
@@ -124,7 +109,7 @@ def launch_chromium(playwright):
         error_text = str(error).lower()
 
         if "executable doesn't exist" in error_text or "please run the following command" in error_text:
-            install_chromium(force=True)
+            install_chromium_if_needed()
             return playwright.chromium.launch(
                 headless=True,
                 args=BROWSER_LAUNCH_ARGS,
@@ -140,7 +125,7 @@ def export_html_to_pdf(html_path, pdf_path):
     """
 
     setup_windows_event_loop()
-    install_chromium(force=False)
+    install_chromium_if_needed()
 
     html_path = Path(html_path).resolve()
     pdf_path = Path(pdf_path).resolve()
