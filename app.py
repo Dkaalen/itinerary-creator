@@ -1320,7 +1320,8 @@ def get_fallback_activity_inclusions(row):
     """Create sensible client-facing inclusions when supplier text has no formal inclusion list."""
 
     title = create_client_activity_title(row) or row.get("title", "")
-    full_text = f'{title} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+    includes_text = " ".join(normalize_list(row.get("includes", [])))
+    full_text = f'{title} {row.get("original_title", "")} {row.get("details", "")} {includes_text}'.lower()
 
     if "tallinn" in full_text:
         inclusions = []
@@ -1381,6 +1382,8 @@ def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
         text = polish_inclusion_item(str(item).strip(), title)
+        if "star class" in text.lower() and ("cruise" in text.lower() or "ferry" in text.lower() or "ticket" in text.lower()):
+            text = "Star Class ferry ticket"
         lower = text.lower().strip(":? ")
 
         if lower in {"what's included", "what’s included", "includes", "included"}:
@@ -1427,6 +1430,20 @@ def create_activity_inclusions(parsed_rows):
                     includes.append(item)
             if "Guided experience" in includes and len(includes) > 1:
                 includes = [item for item in includes if item != "Guided experience"]
+
+        if title == "Day Trip to Tallinn":
+            source_text = " ".join(
+                [str(row.get(key) or "") for key in ["title", "original_title", "details"]]
+                + normalize_list(row.get("includes", []))
+            ).lower()
+            if "star class" in source_text and "Star Class ferry ticket" not in includes:
+                includes.append("Star Class ferry ticket")
+            includes = [
+                "Star Class ferry ticket"
+                if "star class" in str(item).lower() and ("cruise" in str(item).lower() or "ferry" in str(item).lower() or "ticket" in str(item).lower())
+                else item
+                for item in includes
+            ]
 
         if not title or not includes:
             continue
