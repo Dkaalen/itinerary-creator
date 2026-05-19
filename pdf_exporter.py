@@ -238,6 +238,81 @@ def make_styles():
             firstLineIndent=0,
             spaceAfter=0,
         ),
+        "day_label_compact": ParagraphStyle(
+            "day_label_compact",
+            parent=base["Heading1"],
+            fontName="Times-Bold",
+            fontSize=20,
+            leading=23,
+            textColor=INK,
+            spaceAfter=2,
+        ),
+        "day_title_compact": ParagraphStyle(
+            "day_title_compact",
+            parent=base["Heading2"],
+            fontName="Times-Roman",
+            fontSize=15.8,
+            leading=19,
+            textColor=INK,
+            spaceAfter=5,
+        ),
+        "city_compact": ParagraphStyle(
+            "city_compact",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=7.6,
+            leading=9,
+            textColor=MUTED,
+            spaceAfter=8,
+        ),
+        "intro_compact": ParagraphStyle(
+            "intro_compact",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=9.2,
+            leading=12.2,
+            textColor=BODY,
+            spaceAfter=8,
+        ),
+        "section_compact": ParagraphStyle(
+            "section_compact",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=7.5,
+            leading=9,
+            textColor=INK,
+            spaceBefore=6,
+            spaceAfter=2.5,
+        ),
+        "body_compact": ParagraphStyle(
+            "body_compact",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=8.8,
+            leading=11.2,
+            textColor=BODY,
+            spaceAfter=2,
+        ),
+        "body_bold_compact": ParagraphStyle(
+            "body_bold_compact",
+            parent=base["Normal"],
+            fontName="Times-Bold",
+            fontSize=9.0,
+            leading=11.5,
+            textColor=BODY,
+            spaceAfter=2.5,
+        ),
+        "bullet_compact": ParagraphStyle(
+            "bullet_compact",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=8.6,
+            leading=10.8,
+            textColor=BODY,
+            leftIndent=0,
+            firstLineIndent=0,
+            spaceAfter=0,
+        ),
         "table_header": ParagraphStyle(
             "table_header",
             parent=base["Normal"],
@@ -266,7 +341,7 @@ def add_paragraph(story, text, style, spacer_after=0):
         story.append(Spacer(1, spacer_after))
 
 
-def add_bullets(story, items, styles):
+def add_bullets(story, items, styles, compact=False):
     """
     Render bullet lists as a two-column table instead of ReportLab's ListFlowable.
 
@@ -282,10 +357,10 @@ def add_bullets(story, items, styles):
 
     bullet_style = ParagraphStyle(
         "bullet_symbol",
-        parent=styles["bullet"],
+        parent=styles["bullet_compact" if compact else "bullet"],
         fontName="Helvetica",
-        fontSize=8.2,
-        leading=13,
+        fontSize=7.2 if compact else 8.2,
+        leading=10.8 if compact else 13,
         textColor=BODY,
         alignment=TA_LEFT,
     )
@@ -294,12 +369,12 @@ def add_bullets(story, items, styles):
     for item in clean_items:
         rows.append([
             Paragraph("&#8226;", bullet_style),
-            Paragraph(para_text(item), styles["bullet"]),
+            Paragraph(para_text(item), styles["bullet_compact" if compact else "bullet"]),
         ])
 
     table = Table(
         rows,
-        colWidths=[4.5 * mm, 142 * mm],
+        colWidths=[4.0 * mm if compact else 4.5 * mm, 142 * mm],
         hAlign="LEFT",
         splitByRow=True,
     )
@@ -316,7 +391,7 @@ def add_bullets(story, items, styles):
     )
 
     story.append(table)
-    story.append(Spacer(1, 7))
+    story.append(Spacer(1, 4 if compact else 7))
 
 
 def make_table(data, widths, styles):
@@ -381,7 +456,73 @@ def render_glance_page(page, story, styles):
         story.append(make_table(table_rows, [34 * mm, 22 * mm, 89 * mm], styles))
 
 
+def render_content_blocks(container, story, styles, compact=False):
+    for child in container.find_all(recursive=False):
+        classes = child.get("class") or []
+        if "content-block" in classes or "activity-inclusion-block" in classes:
+            for element in child.find_all(recursive=False):
+                element_classes = element.get("class") or []
+
+                if "section-title" in element_classes:
+                    add_paragraph(story, element.get_text(" "), styles["section_compact" if compact else "section"])
+                elif "activity-inclusion-title" in element_classes:
+                    add_paragraph(story, element.get_text(" "), styles["activity_title"])
+                elif element.name == "ul":
+                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact)
+                elif "body-text" in element_classes:
+                    text = element.get_text(" ")
+                    if "strong-line" in element_classes:
+                        add_paragraph(story, text, styles["body_bold_compact" if compact else "body_bold"])
+                    else:
+                        add_paragraph(story, text, styles["body_compact" if compact else "body"])
+
+
+def add_day_separator(story, styles):
+    story.append(Spacer(1, 6))
+    table = Table([[""]], colWidths=[145 * mm], hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 0.45, LINE),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(table)
+    story.append(Spacer(1, 7))
+
+
+def render_day_section_pdf(section, story, styles):
+    compact = "packed-section" in (section.get("class") or [])
+    for selector, style_name in [
+        (".day-label", "day_label"),
+        (".day-title", "day_title"),
+        (".city", "city"),
+        (".intro", "intro"),
+    ]:
+        tag = section.select_one(selector)
+        if tag:
+            style_key = f"{style_name}_compact" if compact else style_name
+            add_paragraph(story, tag.get_text(" "), styles[style_key])
+
+    render_content_blocks(section, story, styles, compact=compact)
+
+
 def render_general_page(page, story, styles):
+    # Packed day pages contain one or two explicit day-section elements inside a
+    # single A4 page. Render each section in order and keep the PDF page count
+    # aligned with the HTML A4 pages.
+    day_sections = [child for child in page.find_all(recursive=False) if "day-section" in (child.get("class") or [])]
+    if day_sections:
+        for index, section in enumerate(day_sections):
+            if index > 0:
+                add_day_separator(story, styles)
+            render_day_section_pdf(section, story, styles)
+        return
+
     # Header blocks first
     for selector, style_name in [
         (".final-page-title", "page_title"),
@@ -394,30 +535,11 @@ def render_general_page(page, story, styles):
         if tag:
             add_paragraph(story, tag.get_text(" "), styles[style_name])
 
-    # Then render content blocks in page order.
-    for child in page.find_all(recursive=False):
-        classes = child.get("class") or []
-        if "content-block" in classes or "activity-inclusion-block" in classes:
-            for element in child.find_all(recursive=False):
-                element_classes = element.get("class") or []
-
-                if "section-title" in element_classes:
-                    add_paragraph(story, element.get_text(" "), styles["section"])
-                elif "activity-inclusion-title" in element_classes:
-                    add_paragraph(story, element.get_text(" "), styles["activity_title"])
-                elif element.name == "ul":
-                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles)
-                elif "body-text" in element_classes:
-                    text = element.get_text(" ")
-                    if "strong-line" in element_classes:
-                        add_paragraph(story, text, styles["body_bold"])
-                    else:
-                        add_paragraph(story, text, styles["body"])
+    render_content_blocks(page, story, styles)
 
     # For simple list pages, final-page-title is followed by a direct UL.
     for ul in page.find_all("ul", recursive=False):
         add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
-
 
 def export_html_to_pdf(html_path, pdf_path):
     """

@@ -28,7 +28,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v30b-review-assistant-hotfix"
+APP_VERSION = "2026-05-19 v31-smart-compact-day-pages"
 
 
 st.set_page_config(
@@ -67,6 +67,11 @@ DETAIL_LEVELS = [
     "Elegant concise",
     "Standard client itinerary",
     "Rich descriptive",
+]
+
+DAY_PAGE_LAYOUTS = [
+    "Smart compact pages",
+    "One day per page",
 ]
 
 
@@ -277,6 +282,18 @@ def get_detail_level_name(output_edits=None):
         return "Standard client itinerary"
     return name
 
+
+
+
+def get_day_page_layout_name(output_edits=None):
+    name = (output_edits or {}).get("day_page_layout") or st.session_state.get("day_page_layout", "Smart compact pages")
+    if name not in DAY_PAGE_LAYOUTS:
+        return "Smart compact pages"
+    return name
+
+
+def is_smart_day_packing_enabled(output_edits=None):
+    return get_day_page_layout_name(output_edits) == "Smart compact pages"
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
     """Refresh generated intros/descriptions when detail level changes.
@@ -669,29 +686,136 @@ def build_day_blocks(rows):
 
     return blocks
 
-def render_day_pages(day, rows, output_edits=None):
+def estimate_day_units(day, rows, output_edits=None):
+    # Conservative A4 space estimate used for smart two-day page packing.
+    day_edits = (output_edits or {}).get("days", {}).get(day, {})
+    detail_level = get_detail_level_name(output_edits)
+    day_title = day_edits.get("title") or create_day_title(rows)
+    day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
+    city = day_edits.get("city") or get_primary_city(rows)
+    blocks = build_day_blocks(rows)
+
+    units = 6.0
+    units += max(0, (len(str(day_title)) - 42) / 48)
+    units += max(0, (len(str(day_intro)) - 120) / 110)
+    if city:
+        units += 0.5
+
+    for block in blocks:
+        kind = block.get("kind", "")
+        html_text = block.get("html", "")
+        text_length = len(re.sub(r"<[^>]+>", " ", html_text))
+
+        if kind == "included":
+            bullet_count = html_text.count("<li>")
+            units += 2.2 + bullet_count * 0.8
+        elif kind == "activity":
+            units += 4.2 + max(0, (text_length - 160) / 120)
+        elif kind == "transport":
+            units += 4.0 + max(0, (text_length - 150) / 130)
+        elif kind in {"self_transfer", "self_arranged_travel"}:
+            units += 4.5 + max(0, (text_length - 140) / 140)
+        elif kind == "accommodation":
+            units += 3.5 + max(0, (text_length - 120) / 140)
+        elif kind == "leisure":
+            units += 3.3
+        else:
+            units += 3.0 + max(0, text_length / 180)
+
+    units += max(0, len(rows) - 3) * 0.6
+    return units
+
+
+def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
+    if not is_smart_day_packing_enabled(output_edits):
+        return False
+
+    units_a = estimate_day_units(day_a, rows_a, output_edits)
+    units_b = estimate_day_units(day_b, rows_b, output_edits)
+
+    activity_count_a = sum(1 for row in rows_a if get_row_type(row) == "Activity")
+    activity_count_b = sum(1 for row in rows_b if get_row_type(row) == "Activity")
+    blocks_a = len(build_day_blocks(rows_a))
+    blocks_b = len(build_day_blocks(rows_b))
+
+    if units_a > 17.0 or units_b > 17.0:
+        return False
+    if units_a + units_b > 31.5:
+        return False
+    if activity_count_a >= 2 or activity_count_b >= 2:
+        return False
+    if blocks_a >= 5 or blocks_b >= 5:
+        return False
+
+    return True
+
+
+def render_day_section(day, rows, output_edits=None, packed=False):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     day_title = day_edits.get("title") or create_day_title(rows)
     detail_level = get_detail_level_name(output_edits)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
+    section_class = "day-section packed-section" if packed else "day-section"
 
-    html_text = f"""
-        <div class="a4-page day-page" data-day="{esc(day)}">
-            <div class="day-label">{esc(day)}</div>
-            <div class="day-title">{esc(day_title)}</div>
-            <div class="city">{esc(city)}</div>
-            <div class="intro">{esc(day_intro)}</div>
-    """
+    html_text = f'''
+            <section class="{section_class}" data-day="{esc(day)}">
+                <div class="day-label">{esc(day)}</div>
+                <div class="day-title">{esc(day_title)}</div>
+                <div class="city">{esc(city)}</div>
+                <div class="intro">{esc(day_intro)}</div>
+    '''
 
     for block in blocks:
         html_text += block["html"]
 
-    html_text += "</div>"
-
+    html_text += "</section>"
     return html_text
 
+
+def render_day_page(day, rows, output_edits=None):
+    return f'''
+        <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
+            {render_day_section(day, rows, output_edits, packed=False)}
+        </div>
+    '''
+
+
+def render_packed_day_page(day_rows_pairs, output_edits=None):
+    day_values = "|".join(day for day, _ in day_rows_pairs)
+    html_text = f'''
+        <div class="a4-page day-page packed-day-page" data-days="{esc(day_values)}">
+    '''
+
+    for index, (day, rows) in enumerate(day_rows_pairs):
+        if index > 0:
+            html_text += '<div class="day-separator"></div>'
+        html_text += render_day_section(day, rows, output_edits, packed=True)
+
+    html_text += "</div>"
+    return html_text
+
+
+def render_day_pages(grouped_days, output_edits=None):
+    day_items = list(grouped_days.items())
+    html_text = ""
+    index = 0
+
+    while index < len(day_items):
+        day, rows = day_items[index]
+
+        if index + 1 < len(day_items):
+            next_day, next_rows = day_items[index + 1]
+            if can_pack_days(day, rows, next_day, next_rows, output_edits):
+                html_text += render_packed_day_page([(day, rows), (next_day, next_rows)], output_edits)
+                index += 2
+                continue
+
+        html_text += render_day_page(day, rows, output_edits)
+        index += 1
+
+    return html_text
 
 def render_split_list_pages(title, items, items_per_page=24):
     html_text = ""
@@ -956,6 +1080,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "destinations_line": create_destinations_line(parsed_rows),
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
         "detail_level": st.session_state.get("detail_level", "Standard client itinerary"),
+        "day_page_layout": st.session_state.get("day_page_layout", "Smart compact pages"),
         "days": {},
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
@@ -1563,8 +1688,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         </div>
     """
 
-    for day, rows in grouped_days.items():
-        html_text += render_day_pages(day, rows, output_edits)
+    html_text += render_day_pages(grouped_days, output_edits)
 
     html_text += render_split_list_pages("What’s included", whats_included)
     html_text += render_optional_addons_pages(optional_addons)
@@ -1888,6 +2012,7 @@ def initialise_state():
         "parser_diagnostics": [],
         "pdf_status": "Not created",
         "detail_level": "Standard client itinerary",
+        "day_page_layout": "Smart compact pages",
     }
 
     for key, value in defaults.items():
@@ -1907,6 +2032,7 @@ def load_project_json(uploaded_file):
         st.session_state.parsed_rows = parsed_rows
         st.session_state.output_edits = output_edits or make_output_edit_state(parsed_rows, grouped_days)
         st.session_state.detail_level = st.session_state.output_edits.get("detail_level", st.session_state.get("detail_level", "Standard client itinerary"))
+        st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", "Smart compact pages"))
         st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
 
@@ -1963,15 +2089,33 @@ with st.sidebar:
     else:
         st.caption("Balanced detail for most client itineraries.")
 
+    current_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
+    if current_day_layout not in DAY_PAGE_LAYOUTS:
+        current_day_layout = "Smart compact pages"
+
+    selected_day_layout = st.selectbox(
+        "Day page layout",
+        DAY_PAGE_LAYOUTS,
+        index=DAY_PAGE_LAYOUTS.index(current_day_layout),
+        help="Smart compact pages keeps A4 pages but allows two light days to share one page when they safely fit.",
+    )
+    previous_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
+    st.session_state.day_page_layout = selected_day_layout
+    if selected_day_layout == "Smart compact pages":
+        st.caption("Dynamically pairs light days when there is enough A4 space.")
+    else:
+        st.caption("Keeps the classic one-day-per-A4-page layout.")
+
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
+        st.session_state.output_edits["day_page_layout"] = selected_day_layout
         st.session_state.output_edits = refresh_generated_text_for_detail_level(
             st.session_state.get("parsed_rows", []),
             st.session_state.output_edits,
             previous_detail,
             selected_detail,
         )
-        if previous_detail != selected_detail:
+        if previous_detail != selected_detail or previous_day_layout != selected_day_layout:
             st.session_state.pdf_bytes = None
             st.session_state.pdf_status = "Needs refresh"
 
