@@ -327,18 +327,7 @@ def create_client_activity_title(row):
     full_text = f"{title_text} {details}".lower()
 
     if "tallinn" in full_text:
-        if "old town" in full_text and "guided" in full_text and not any(marker in full_text for marker in ["helsinki", "ferry", "cruise", "star class"]):
-            return "Tallinn Old Town Guided Tour"
         return "Day Trip to Tallinn"
-
-    if "santa claus village" in full_text and "reindeer" in full_text:
-        return "Santa Claus Village & Reindeer Visit"
-
-    if "must-see bergen" in full_text or ("bergen" in full_text and "foot and boat" in full_text):
-        return "Bergen Walking & Boat Tour"
-
-    if "essential oslo" in full_text or ("oslo" in full_text and "city center guided walking tour" in full_text):
-        return "Oslo City Center Walking Tour"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
         return "Optional experience in Svolvær"
@@ -756,6 +745,85 @@ def create_day_title(day_rows):
 
     return "Day at leisure"
 
+
+def get_intro_variant_index(day_rows, variant_count=5):
+    """Return a stable content-neutral variation index for day intro wording.
+
+    The goal is to avoid repetitive client-facing prose without relying on
+    specific dates, destinations, or itineraries. Day number gives stable
+    variety while keeping regenerated output predictable.
+    """
+    if not day_rows or variant_count <= 0:
+        return 0
+
+    day_number = get_day_number(day_rows[0].get("day", ""))
+    if day_number <= 0:
+        return 0
+
+    return (day_number - 1) % variant_count
+
+
+def create_activity_intro_text(day_rows, activity_title, city_text, detail_level):
+    """Create varied activity-day intro text without changing itinerary logic."""
+    if detail_level == "Elegant concise":
+        templates = [
+            "Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace.",
+            "Spend part of the day on {activity_title} in {city_text}, with time left flexible.",
+            "Experience {activity_title} in {city_text}, while keeping the day easy and balanced.",
+            "Take in {activity_title} in {city_text}, with space around the experience for a relaxed pace.",
+            "Your day includes {activity_title} in {city_text}, with free time around the main arrangement.",
+        ]
+    elif detail_level == "Rich descriptive":
+        templates = [
+            "The focus of the day is {activity_title} in {city_text}, adding a memorable highlight without making the itinerary feel overfilled.",
+            "{activity_title} shapes the day in {city_text}, with time around the experience kept open so the schedule still feels easy and balanced.",
+            "A key experience awaits in {city_text} with {activity_title}, while the rest of the day remains flexible for a comfortable pace.",
+            "Your time in {city_text} continues with {activity_title}, paired with enough breathing room to enjoy the destination between arrangements.",
+            "This day brings {activity_title} in {city_text}, giving the itinerary a strong local experience while still leaving space to explore at your own pace.",
+        ]
+    else:
+        templates = [
+            "Enjoy {activity_title} in {city_text}. The rest of the day can be shaped around your own pace, interests, and time at leisure.",
+            "Spend part of the day on {activity_title} in {city_text}, with flexible time around the main experience.",
+            "Experience {activity_title} in {city_text}, while keeping the overall pace clear and manageable.",
+            "Take in {activity_title} in {city_text}, with the remaining time left open for a relaxed balance.",
+            "Your day includes {activity_title} in {city_text}, with space around the arrangement for independent time.",
+        ]
+
+    template = templates[get_intro_variant_index(day_rows, len(templates))]
+    return template.format(activity_title=activity_title, city_text=city_text)
+
+
+def create_travel_intro_text(day_rows, city, detail_level):
+    """Create varied travel-day intro text without changing page structure."""
+    if detail_level == "Elegant concise":
+        templates = [
+            "Continue your journey with arranged travel connected to {city}.",
+            "Travel onward to {city} with the key logistics arranged for you.",
+            "Move on towards {city}, with the travel details kept clear and simple.",
+            "This is a travel-led day towards {city}, with arrangements listed below.",
+            "Continue to {city} through the arranged travel sequence for the day.",
+        ]
+    elif detail_level == "Rich descriptive":
+        templates = [
+            "The route continues towards {city}, with the day built around clear travel arrangements and a comfortable arrival into the next chapter.",
+            "This is a travel-led day towards {city}, keeping the logistics straightforward while moving the journey smoothly onward.",
+            "Your journey moves on to {city}, with the main travel pieces arranged in a clear sequence so the day feels easy to follow.",
+            "Travel is the focus as you continue towards {city}, with the route structured to keep the transfer day calm and organised.",
+            "The itinerary shifts towards {city}, bringing the next stage of the journey together through simple, well-organised travel arrangements.",
+        ]
+    else:
+        templates = [
+            "Today, you continue your journey with arranged travel connected to {city}. The day is structured to keep the route clear, comfortable, and easy to follow.",
+            "Travel onward to {city}, with the main logistics arranged so the route remains clear and manageable.",
+            "The journey continues towards {city}, with the day organised around the key travel arrangements listed below.",
+            "This is a travel-focused day towards {city}, with each main movement kept simple and easy to follow.",
+            "Continue to {city} through the arranged travel sequence for the day, keeping the next stage of the route straightforward.",
+        ]
+
+    template = templates[get_intro_variant_index(day_rows, len(templates))]
+    return template.format(city=city)
+
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a client-facing day intro with adjustable detail level.
 
@@ -838,24 +906,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             )
 
         if not has_hotel(day_rows) or not transports:
-            if detail_level == "Elegant concise":
-                return f"Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace."
-            if detail_level == "Rich descriptive":
-                return f"Today, you will enjoy {activity_title} in {city_text}, adding a meaningful experience to your stay while still leaving space to enjoy the destination at your own pace."
-            return (
-                f"Today, you will enjoy {activity_title} in {city_text}. The rest of the day "
-                f"can be shaped around your own pace, interests, and time at leisure."
-            )
+            return create_activity_intro_text(day_rows, activity_title, city_text, detail_level)
 
     if (transports or route_transfers) and city:
-        if detail_level == "Elegant concise":
-            return f"Continue your journey with arranged travel connected to {city}."
-        if detail_level == "Rich descriptive":
-            return f"Today, the journey continues towards {city}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
-        return (
-            f"Today, you continue your journey with arranged travel connected to {city}. "
-            f"The day is structured to keep the route clear, comfortable, and easy to follow."
-        )
+        return create_travel_intro_text(day_rows, city, detail_level)
 
     if transfers and city:
         if detail_level == "Elegant concise":
@@ -959,7 +1013,7 @@ def create_whats_included(parsed_rows, grouped_days):
     nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
-        add_unique(included, f"{nights} nights as specified")
+        add_unique(included, f"{nights} nights / travel nights as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
     if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):
