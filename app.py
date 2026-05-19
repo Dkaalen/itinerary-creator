@@ -8,7 +8,7 @@ import re
 import streamlit as st
 import streamlit.components.v1 as components
 
-from parser import parse_itinerary
+from parser import parse_itinerary, normalize_time_text
 from pdf_exporter import export_html_to_pdf
 from generator import (
     TRANSPORT_TYPES,
@@ -29,7 +29,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v21 premium-polish"
+APP_VERSION = "2026-05-19 v22 am-pm-time-standardization"
 
 
 st.set_page_config(
@@ -127,6 +127,11 @@ def text_to_list(value):
 
     return clean_items
 
+
+
+
+def display_time(value):
+    return normalize_time_text(value)
 
 def render_list_items(items, class_name="detail-list"):
     clean_items = normalize_list(items)
@@ -259,7 +264,7 @@ def build_activity_block(row):
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if time:
-        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
         duration_label = "Cruise duration" if "cruise" in duration.lower() else "Duration"
@@ -299,7 +304,7 @@ def build_transport_block(row):
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if time:
-        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time)}</div>'
+        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
         clean_duration = re.sub(r"^duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
