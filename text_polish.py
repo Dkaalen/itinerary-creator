@@ -88,6 +88,11 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bPick\s*up\b", "Pick-up", text, flags=re.IGNORECASE)
     text = re.sub(r"\bDrop\s*off\b", "drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bpick-up/drop-off\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bTour Guiding\b", "Tour guiding", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bProfessional Camera Pictures\b", "Professional camera photos", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bTour Transportation\b", "Tour transportation", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bGoods\s*&\s*services tax\b", "Taxes and service fees", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bDSLR photography\b", "DSLR photography", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -160,26 +165,62 @@ def polish_inclusion_item(value: str, context_title: str = "") -> str:
     return item
 
 
+def expand_compound_inclusion_item(item: str) -> list[str]:
+    """Split only the supplier artifacts that commonly arrive as one bullet.
+
+    This is intentionally conservative: normal phrases with commas, such as
+    "Professional, English-speaking guide", remain together.
+    """
+
+    item = polish_inclusion_item(item)
+    if not item:
+        return []
+
+    split_patterns = [
+        r",\s*(?=English-speaking\b)",
+        r",\s*(?=Knowledgeable\b)",
+        r",\s*(?=Comfortable coach\b)",
+        r",\s*(?=Northern Lights instructions\b)",
+        r",\s*(?=Warm overalls\b)",
+        r",\s*(?=Snacks\b)",
+        r",\s*(?=Free photographs\b)",
+        r",\s*(?=2-course\b)",
+    ]
+
+    parts = [item]
+    for pattern in split_patterns:
+        new_parts = []
+        for part in parts:
+            new_parts.extend(re.split(pattern, part, flags=re.IGNORECASE))
+        parts = new_parts
+
+    return [polish_inclusion_item(part) for part in parts if polish_inclusion_item(part)]
+
+
 def polish_inclusion_items(items, context_title: str = "") -> list[str]:
     cleaned: list[str] = []
 
     for raw in items or []:
-        item = polish_inclusion_item(raw, context_title)
-        if not item:
-            continue
-
-        lower = item.lower()
-        if cleaned:
-            previous = cleaned[-1]
-            previous_lower = previous.lower().strip(" ,")
-            if lower in {"multilingual guide", "english-speaking guide", "small-group experience", "small group experience"} and previous_lower in {"knowledgeable", "personalized", "professional"}:
-                cleaned[-1] = f"{previous}, {item}"
-                continue
-            if lower.startswith(("english-speaking", "multilingual", "small-group", "small group")) and previous_lower in {"knowledgeable", "personalized", "professional"}:
-                cleaned[-1] = f"{previous}, {item}"
+        expanded_items = expand_compound_inclusion_item(raw)
+        for item in expanded_items:
+            if not item:
                 continue
 
-        if item not in cleaned:
-            cleaned.append(item)
+            lower = item.lower()
+            if cleaned:
+                previous = cleaned[-1]
+                previous_lower = previous.lower().strip(" ,")
+                if lower in {"multilingual guide", "english-speaking guide", "small-group experience", "small group experience"} and previous_lower in {"knowledgeable", "personalized", "professional"}:
+                    cleaned[-1] = f"{previous}, {item}"
+                    continue
+                if lower.startswith(("english-speaking", "multilingual", "small-group", "small group")) and previous_lower in {"knowledgeable", "personalized", "professional"}:
+                    cleaned[-1] = f"{previous}, {item}"
+                    continue
+                if lower.startswith(("drinks", "drink")) and previous_lower in {"snacks", "snack"}:
+                    cleaned[-1] = f"{previous}, {item}"
+                    continue
+
+            if item not in cleaned:
+                cleaned.append(item)
 
     return cleaned

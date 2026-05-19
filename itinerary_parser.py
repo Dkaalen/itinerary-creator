@@ -1091,8 +1091,19 @@ def extract_includes_from_description(main_text):
                 continue
             if len(part) > 450:
                 continue
-            inclusion_markers = ["included", "ticket", "pick-up", "pickup", "drop-off", "lunch", "certificate", "transport"]
-            looks_like_list = part.count(",") >= 2 or any(marker in part.lower() for marker in inclusion_markers)
+            lower_part = part.lower()
+            inclusion_markers = [
+                "included", "ticket", "pick-up", "pickup", "drop-off", "lunch",
+                "certificate", "transport", "guide", "meal", "snack", "drink",
+                "photograph", "camera", "tax", "overalls", "tripod", "ferry",
+            ]
+            prose_markers = [
+                "tour gives", "take a stroll", "listen to", "make sense",
+                "to top it all", "waterworld", "best way to understand",
+            ]
+            marker_hits = sum(1 for marker in inclusion_markers if marker in lower_part)
+            looks_like_prose = any(marker in lower_part for marker in prose_markers)
+            looks_like_list = marker_hits >= 1 and (part.count(",") >= 1 or marker_hits >= 2) and not looks_like_prose
             if looks_like_list:
                 pipe_candidates.extend(split_comma_list(part, protect_compound_phrases=True))
         if pipe_candidates:

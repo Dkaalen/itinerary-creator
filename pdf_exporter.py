@@ -313,6 +313,81 @@ def make_styles():
             firstLineIndent=0,
             spaceAfter=0,
         ),
+        "day_label_ultra": ParagraphStyle(
+            "day_label_ultra",
+            parent=base["Heading1"],
+            fontName="Times-Bold",
+            fontSize=17.5,
+            leading=20,
+            textColor=INK,
+            spaceAfter=1,
+        ),
+        "day_title_ultra": ParagraphStyle(
+            "day_title_ultra",
+            parent=base["Heading2"],
+            fontName="Times-Roman",
+            fontSize=14,
+            leading=16.5,
+            textColor=INK,
+            spaceAfter=3,
+        ),
+        "city_ultra": ParagraphStyle(
+            "city_ultra",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=6.9,
+            leading=8,
+            textColor=MUTED,
+            spaceAfter=4,
+        ),
+        "intro_ultra": ParagraphStyle(
+            "intro_ultra",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=8.1,
+            leading=10,
+            textColor=BODY,
+            spaceAfter=5,
+        ),
+        "section_ultra": ParagraphStyle(
+            "section_ultra",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=6.8,
+            leading=8,
+            textColor=INK,
+            spaceBefore=4,
+            spaceAfter=1.8,
+        ),
+        "body_ultra": ParagraphStyle(
+            "body_ultra",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=7.8,
+            leading=9.5,
+            textColor=BODY,
+            spaceAfter=1.2,
+        ),
+        "body_bold_ultra": ParagraphStyle(
+            "body_bold_ultra",
+            parent=base["Normal"],
+            fontName="Times-Bold",
+            fontSize=8.0,
+            leading=9.8,
+            textColor=BODY,
+            spaceAfter=1.5,
+        ),
+        "bullet_ultra": ParagraphStyle(
+            "bullet_ultra",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=7.6,
+            leading=9.2,
+            textColor=BODY,
+            leftIndent=0,
+            firstLineIndent=0,
+            spaceAfter=0,
+        ),
         "table_header": ParagraphStyle(
             "table_header",
             parent=base["Normal"],
@@ -341,7 +416,7 @@ def add_paragraph(story, text, style, spacer_after=0):
         story.append(Spacer(1, spacer_after))
 
 
-def add_bullets(story, items, styles, compact=False):
+def add_bullets(story, items, styles, compact=False, ultra=False):
     """
     Render bullet lists as a two-column table instead of ReportLab's ListFlowable.
 
@@ -357,7 +432,7 @@ def add_bullets(story, items, styles, compact=False):
 
     bullet_style = ParagraphStyle(
         "bullet_symbol",
-        parent=styles["bullet_compact" if compact else "bullet"],
+        parent=styles["bullet_ultra" if ultra else ("bullet_compact" if compact else "bullet")],
         fontName="Helvetica",
         fontSize=7.2 if compact else 8.2,
         leading=10.8 if compact else 13,
@@ -369,7 +444,7 @@ def add_bullets(story, items, styles, compact=False):
     for item in clean_items:
         rows.append([
             Paragraph("&#8226;", bullet_style),
-            Paragraph(para_text(item), styles["bullet_compact" if compact else "bullet"]),
+            Paragraph(para_text(item), styles["bullet_ultra" if ultra else ("bullet_compact" if compact else "bullet")]),
         ])
 
     table = Table(
@@ -456,7 +531,7 @@ def render_glance_page(page, story, styles):
         story.append(make_table(table_rows, [34 * mm, 22 * mm, 89 * mm], styles))
 
 
-def render_content_blocks(container, story, styles, compact=False):
+def render_content_blocks(container, story, styles, compact=False, ultra=False):
     for child in container.find_all(recursive=False):
         classes = child.get("class") or []
         if "content-block" in classes or "activity-inclusion-block" in classes:
@@ -464,21 +539,21 @@ def render_content_blocks(container, story, styles, compact=False):
                 element_classes = element.get("class") or []
 
                 if "section-title" in element_classes:
-                    add_paragraph(story, element.get_text(" "), styles["section_compact" if compact else "section"])
+                    add_paragraph(story, element.get_text(" "), styles["section_ultra" if ultra else ("section_compact" if compact else "section")])
                 elif "activity-inclusion-title" in element_classes:
                     add_paragraph(story, element.get_text(" "), styles["activity_title"])
                 elif element.name == "ul":
-                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact)
+                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
                 elif "body-text" in element_classes:
                     text = element.get_text(" ")
                     if "strong-line" in element_classes:
-                        add_paragraph(story, text, styles["body_bold_compact" if compact else "body_bold"])
+                        add_paragraph(story, text, styles["body_bold_ultra" if ultra else ("body_bold_compact" if compact else "body_bold")])
                     else:
-                        add_paragraph(story, text, styles["body_compact" if compact else "body"])
+                        add_paragraph(story, text, styles["body_ultra" if ultra else ("body_compact" if compact else "body")])
 
 
-def add_day_separator(story, styles):
-    story.append(Spacer(1, 6))
+def add_day_separator(story, styles, ultra=False):
+    story.append(Spacer(1, 4 if ultra else 6))
     table = Table([[""]], colWidths=[145 * mm], hAlign="LEFT")
     table.setStyle(
         TableStyle(
@@ -492,11 +567,13 @@ def add_day_separator(story, styles):
         )
     )
     story.append(table)
-    story.append(Spacer(1, 7))
+    story.append(Spacer(1, 5 if ultra else 7))
 
 
 def render_day_section_pdf(section, story, styles):
-    compact = "packed-section" in (section.get("class") or [])
+    classes = section.get("class") or []
+    compact = "packed-section" in classes
+    ultra = "triple-packed-section" in classes
     for selector, style_name in [
         (".day-label", "day_label"),
         (".day-title", "day_title"),
@@ -505,10 +582,10 @@ def render_day_section_pdf(section, story, styles):
     ]:
         tag = section.select_one(selector)
         if tag:
-            style_key = f"{style_name}_compact" if compact else style_name
+            style_key = f"{style_name}_ultra" if ultra else (f"{style_name}_compact" if compact else style_name)
             add_paragraph(story, tag.get_text(" "), styles[style_key])
 
-    render_content_blocks(section, story, styles, compact=compact)
+    render_content_blocks(section, story, styles, compact=compact, ultra=ultra)
 
 
 def render_general_page(page, story, styles):
@@ -519,7 +596,7 @@ def render_general_page(page, story, styles):
     if day_sections:
         for index, section in enumerate(day_sections):
             if index > 0:
-                add_day_separator(story, styles)
+                add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))
             render_day_section_pdf(section, story, styles)
         return
 

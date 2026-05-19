@@ -37,7 +37,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-19 v34-workflow-polish-auto-writing"
+APP_VERSION = "2026-05-19 v34b-inclusion-packing-polish"
 
 
 st.set_page_config(
@@ -78,6 +78,7 @@ DETAIL_LEVELS = [
 
 DAY_PAGE_LAYOUTS = [
     "Smart compact pages",
+    "3-days per page",
     "One day per page",
 ]
 
@@ -264,6 +265,17 @@ def clean_pickup_dropoff_value(value):
     text = re.sub(r"^(pick[- ]?up\s*/\s*drop[- ]?off\s*)", "", text, flags=re.IGNORECASE).strip(" :.-")
     text = re.sub(r"^(pick[- ]?up\s+and\s+drop[- ]?off\s*)", "", text, flags=re.IGNORECASE).strip(" :.-")
     text = re.sub(r"^(pickup\s+and\s+dropoff\s*)", "", text, flags=re.IGNORECASE).strip(" :.-")
+
+    # Sometimes supplier inclusions arrive as one comma-separated bullet such as
+    # "Pick-up/drop-off in central Tromsø, English-speaking guide". Only the
+    # actual logistics portion belongs in the day-by-day pickup line.
+    text = re.split(
+        r",\s*(?=(?:english[- ]speaking|knowledgeable|professional|comfortable|northern lights|warm |snacks|drinks|free photographs|2-course|tour transportation|guide)\b)",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" :.-")
+
     return text or value
 
 
@@ -420,7 +432,11 @@ def get_day_page_layout_name(output_edits=None):
 
 
 def is_smart_day_packing_enabled(output_edits=None):
-    return get_day_page_layout_name(output_edits) == "Smart compact pages"
+    return get_day_page_layout_name(output_edits) in {"Smart compact pages", "3-days per page"}
+
+
+def is_three_day_packing_enabled(output_edits=None):
+    return get_day_page_layout_name(output_edits) == "3-days per page"
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
     """Refresh generated intros/descriptions when detail level changes.
@@ -901,44 +917,83 @@ def estimate_day_units(day, rows, output_edits=None):
     return units
 
 
+def get_day_pack_stats(day, rows, output_edits=None):
+    blocks = build_day_blocks(rows)
+    return {
+        "units": estimate_day_units(day, rows, output_edits),
+        "activity_count": sum(1 for row in rows if get_row_type(row) == "Activity"),
+        "block_count": len(blocks),
+        "row_count": len(rows),
+        "has_long_description": any(len(str(row.get("client_description", "") or row.get("details", ""))) > 420 for row in rows),
+    }
+
+
 def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
     if not is_smart_day_packing_enabled(output_edits):
         return False
 
-    units_a = estimate_day_units(day_a, rows_a, output_edits)
-    units_b = estimate_day_units(day_b, rows_b, output_edits)
-
-    activity_count_a = sum(1 for row in rows_a if get_row_type(row) == "Activity")
-    activity_count_b = sum(1 for row in rows_b if get_row_type(row) == "Activity")
-    blocks_a = len(build_day_blocks(rows_a))
-    blocks_b = len(build_day_blocks(rows_b))
+    a = get_day_pack_stats(day_a, rows_a, output_edits)
+    b = get_day_pack_stats(day_b, rows_b, output_edits)
 
     # Smart packing uses compact typography on packed pages, so it can safely
     # combine light+medium days. Still keep strict guardrails for A4 safety.
-    if units_a > 23.5 or units_b > 23.5:
+    if a["units"] > 23.5 or b["units"] > 23.5:
         return False
-    if units_a + units_b > 38.0:
+    if a["units"] + b["units"] > 38.0:
         return False
-    if units_a > 19.5 and units_b > 19.5:
+    if a["units"] > 19.5 and b["units"] > 19.5:
         return False
-    if activity_count_a >= 3 or activity_count_b >= 3:
+    if a["activity_count"] >= 3 or b["activity_count"] >= 3:
         return False
-    if activity_count_a >= 2 and activity_count_b >= 2:
+    if a["activity_count"] >= 2 and b["activity_count"] >= 2:
         return False
-    if blocks_a >= 7 or blocks_b >= 7:
+    if a["block_count"] >= 7 or b["block_count"] >= 7:
         return False
 
     return True
 
 
-def render_day_section(day, rows, output_edits=None, packed=False):
+def can_pack_three_days(day_rows_triple, output_edits=None):
+    """Allow three days on one A4 page only in the explicit 3-day layout.
+
+    The guardrails are deliberately stricter than two-day packing: this mode is
+    meant for ultra-light or light+light+moderate sequences, not dense days.
+    """
+
+    if not is_three_day_packing_enabled(output_edits):
+        return False
+
+    stats = [get_day_pack_stats(day, rows, output_edits) for day, rows in day_rows_triple]
+    total_units = sum(item["units"] for item in stats)
+
+    if total_units > 62.0:
+        return False
+    if any(item["units"] > 27.0 for item in stats):
+        return False
+    if any(item["activity_count"] > 1 for item in stats):
+        return False
+    if any(item["block_count"] > 7 for item in stats):
+        return False
+    if sum(item["activity_count"] for item in stats) > 3:
+        return False
+    if any(item["has_long_description"] for item in stats):
+        return False
+
+    return True
+
+
+def render_day_section(day, rows, output_edits=None, packed=False, triple=False):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     day_title = day_edits.get("title") or create_day_title(rows)
     detail_level = get_detail_level_name(output_edits)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
-    section_class = "day-section packed-section" if packed else "day-section"
+    section_class = "day-section"
+    if packed:
+        section_class += " packed-section"
+    if triple:
+        section_class += " triple-packed-section"
 
     html_text = f'''
             <section class="{section_class}" data-day="{esc(day)}">
@@ -965,14 +1020,16 @@ def render_day_page(day, rows, output_edits=None):
 
 def render_packed_day_page(day_rows_pairs, output_edits=None):
     day_values = "|".join(day for day, _ in day_rows_pairs)
+    triple = len(day_rows_pairs) == 3
+    page_class = "a4-page day-page packed-day-page" + (" triple-day-page" if triple else "")
     html_text = f'''
-        <div class="a4-page day-page packed-day-page" data-days="{esc(day_values)}">
+        <div class="{page_class}" data-days="{esc(day_values)}">
     '''
 
     for index, (day, rows) in enumerate(day_rows_pairs):
         if index > 0:
             html_text += '<div class="day-separator"></div>'
-        html_text += render_day_section(day, rows, output_edits, packed=True)
+        html_text += render_day_section(day, rows, output_edits, packed=True, triple=triple)
 
     html_text += "</div>"
     return html_text
@@ -985,6 +1042,13 @@ def render_day_pages(grouped_days, output_edits=None):
 
     while index < len(day_items):
         day, rows = day_items[index]
+
+        if index + 2 < len(day_items):
+            triple = [day_items[index], day_items[index + 1], day_items[index + 2]]
+            if can_pack_three_days(triple, output_edits):
+                html_text += render_packed_day_page(triple, output_edits)
+                index += 3
+                continue
 
         if index + 1 < len(day_items):
             next_day, next_rows = day_items[index + 1]
@@ -1089,6 +1153,22 @@ def get_fallback_activity_inclusions(row):
     return ["Experience as described in the day-by-day itinerary"]
 
 
+def looks_like_descriptive_prose(text):
+    lower = str(text or "").lower()
+    prose_markers = [
+        "tour gives",
+        "take a stroll",
+        "listen to",
+        "make sense",
+        "to top it all",
+        "waterworld",
+        "best way to understand",
+        "explore bergen from",
+        "historic city streets",
+    ]
+    return len(str(text or "")) > 95 and any(marker in lower for marker in prose_markers)
+
+
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
@@ -1099,6 +1179,8 @@ def clean_activity_inclusion_items(items, title=""):
             continue
 
         # Avoid long overview prose on the inclusion page.
+        if looks_like_descriptive_prose(text):
+            continue
         if len(text) > 150 and "included" not in lower:
             continue
 
@@ -1106,7 +1188,10 @@ def clean_activity_inclusion_items(items, title=""):
         if text and text not in clean_items:
             clean_items.append(text)
 
-    return polish_inclusion_items(clean_items, title)
+    clean_items = polish_inclusion_items(clean_items, title)
+    if not clean_items or all(looks_like_descriptive_prose(item) for item in clean_items):
+        return []
+    return clean_items
 
 def create_activity_inclusions(parsed_rows):
     activity_sections = []
@@ -1857,6 +1942,60 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin: 16px 0 13px 0;
         }}
 
+        .triple-day-page {{
+            padding-top: 36px;
+            padding-bottom: 36px;
+        }}
+
+        .triple-day-page .day-separator {{
+            margin: 9px 0 8px 0;
+        }}
+
+        .triple-packed-section .day-label {{
+            font-size: 21px;
+            margin-bottom: 1px;
+        }}
+
+        .triple-packed-section .day-title {{
+            font-size: 16px;
+            line-height: 1.12;
+            margin-bottom: 4px;
+        }}
+
+        .triple-packed-section .city {{
+            font-size: 9px;
+            margin-bottom: 5px;
+        }}
+
+        .triple-packed-section .intro {{
+            font-size: 10.5px;
+            line-height: 1.24;
+            margin-bottom: 6px;
+        }}
+
+        .triple-packed-section .content-block {{
+            margin-bottom: 5px;
+        }}
+
+        .triple-packed-section .section-title {{
+            font-size: 8.2px;
+            margin-top: 5px;
+            margin-bottom: 2px;
+        }}
+
+        .triple-packed-section .body-text,
+        .triple-packed-section li {{
+            font-size: 9.8px;
+            line-height: 1.18;
+            margin-bottom: 1px;
+        }}
+
+        .triple-packed-section ul {{
+            margin-top: 2px;
+            margin-bottom: 4px;
+            padding-left: 15px;
+        }}
+
         .section-title {{
             font-family: Arial, sans-serif;
             font-size: 11px;
@@ -2480,12 +2619,14 @@ with st.sidebar:
         "Day page layout",
         DAY_PAGE_LAYOUTS,
         index=DAY_PAGE_LAYOUTS.index(current_day_layout),
-        help="Smart compact pages keeps A4 pages but allows two light days to share one page when they safely fit.",
+        help="Smart compact pages allows two light days per A4 page. 3-days per page can place three very light days together when they safely fit.",
     )
     previous_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
     st.session_state.day_page_layout = selected_day_layout
     if selected_day_layout == "Smart compact pages":
         st.caption("Dynamically pairs light days when there is enough A4 space.")
+    elif selected_day_layout == "3-days per page":
+        st.caption("Allows up to three ultra-light days on the same A4 page when it is safe.")
     else:
         st.caption("Keeps the classic one-day-per-A4-page layout.")
 
