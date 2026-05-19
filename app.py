@@ -1322,6 +1322,19 @@ def get_fallback_activity_inclusions(row):
     title = create_client_activity_title(row) or row.get("title", "")
     full_text = f'{title} {row.get("original_title", "")} {row.get("details", "")}'.lower()
 
+    if "tallinn" in full_text:
+        inclusions = []
+        if "port transfer" in full_text or "port transfers" in full_text or "helsinki port" in full_text:
+            inclusions.append("Helsinki port transfers")
+        if "star class" in full_text:
+            inclusions.append("Star Class ferry ticket")
+        elif "cruise ticket" in full_text or "ferry ticket" in full_text:
+            inclusions.append("Ferry ticket")
+        if "guided tour" in full_text or ("guided" in full_text and "old town" in full_text):
+            inclusions.append("Guided Old Town tour")
+        if inclusions:
+            return inclusions
+
     if "essential oslo" in full_text or ("oslo" in full_text and "walking tour" in full_text):
         return ["Guided walking tour"]
 
@@ -1399,11 +1412,21 @@ def create_activity_inclusions(parsed_rows):
         title = str(title).strip()
         includes = clean_activity_inclusion_items(row.get("includes", []), title)
 
+        fallback_includes = get_fallback_activity_inclusions(row)
+
         # Every activity should be represented on this page. If the supplier
         # text does not contain a formal inclusion list, use a conservative
-        # fallback based on the activity type.
+        # fallback based on the activity type. Tallinn rows are also enhanced
+        # when the parser only found a vague "guided experience" fallback but
+        # the source text contains more useful ferry/port-transfer details.
         if not includes:
-            includes = get_fallback_activity_inclusions(row)
+            includes = fallback_includes
+        elif title == "Day Trip to Tallinn" and fallback_includes:
+            for item in fallback_includes:
+                if item not in includes:
+                    includes.append(item)
+            if "Guided experience" in includes and len(includes) > 1:
+                includes = [item for item in includes if item != "Guided experience"]
 
         if not title or not includes:
             continue

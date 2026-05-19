@@ -130,6 +130,18 @@ def polish_client_text(value: str) -> str:
 def polish_hotel_name(value: str) -> str:
     text = polish_client_text(value)
     text = re.sub(r"\s+or\s+similar$", "", text, flags=re.IGNORECASE).strip()
+
+    # Supplier hotel cells sometimes append a street address to the property
+    # name, for example "Santa's Hotel Santa Claus Korkalonkatu 29". Keep the
+    # client-facing accommodation name clean while preserving legitimate hotel
+    # names that contain numbers, such as "Hotel 27".
+    address_suffix_pattern = (
+        r"\s+[A-ZÀ-ÝÆØÅÄÖ][A-Za-zÀ-ÿÆØÅÄÖæøåäö'’.-]*"
+        r"(?:gatan|gata|veien|vegen|vej|katu|tie|road|street|avenue|ave|lane|ln|boulevard|blvd)"
+        r"\s+\d+[A-Za-z]?\s*$"
+    )
+    text = re.sub(address_suffix_pattern, "", text, flags=re.IGNORECASE).strip()
+
     text = dedupe_or_similar(text)
     return text
 

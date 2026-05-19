@@ -327,7 +327,12 @@ def create_client_activity_title(row):
     full_text = f"{title_text} {details}".lower()
 
     if "tallinn" in full_text:
+        if "old town" in full_text and "guided" in full_text and not any(marker in full_text for marker in ["helsinki", "ferry", "cruise", "star class"]):
+            return "Tallinn Old Town Guided Tour"
         return "Day Trip to Tallinn"
+
+    if "santa claus village" in full_text and "reindeer" in full_text:
+        return "Santa Claus Village & Reindeer Visit"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
         return "Optional experience in Svolvær"
