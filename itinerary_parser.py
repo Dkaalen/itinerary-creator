@@ -1403,9 +1403,8 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
                 hotel_name = part
 
     # Standard dash and colleague comma/pipe formats.
-    # Strip common preamble sentences that appear in the new inline format:
+    # Strip common preamble sentences from new inline format:
     # "Check in to your accommodation for a N night stay"
-    # These would otherwise become the hotel name candidate.
     text_for_candidates = re.sub(
         r"check in to your accommodation for a \d+ night stay\s*",
         "",

@@ -672,9 +672,12 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
-        duration_label = get_activity_duration_label(row, duration)
-        clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
-        html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
+        # Suppress minute-only durations (e.g. "5-8 minutes" for Fløibanen ride)
+        is_minute_only = bool(re.match(r"^\d+[\s\u2013\-]+\d+\s*minutes?$", duration.strip(), re.IGNORECASE))
+        if not is_minute_only:
+            duration_label = get_activity_duration_label(row, duration)
+            clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+            html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
 
     if meeting_point:
         html_text += f'<div class="body-text"><span class="meta-label">{esc(meeting_label)}:</span> {esc(meeting_point)}</div>'

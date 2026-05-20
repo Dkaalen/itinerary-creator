@@ -178,12 +178,12 @@ def normalize_hotel_row(row: dict) -> dict:
 
     meal = normalize_meal_plan(row.get("meal_plan", ""), source)
 
-    # Strip trailing city suffix that sometimes bleeds into hotel names
+    # Strip trailing city suffix that bleeds into hotel names
     # e.g. 'Scandic Rovaniemi city' -> 'Scandic Rovaniemi'
     if city and name.lower().endswith(" city"):
-        name_without_suffix = name[:-5].strip()
-        if name_without_suffix:
-            name = name_without_suffix
+        trimmed = name[:-5].strip()
+        if trimmed:
+            name = trimmed
 
     row["hotel_name"] = name
     row["title"] = name
@@ -234,6 +234,22 @@ def normalize_activity_title(row: dict) -> str:
         if "copenhagen" in lower:
             return "Copenhagen Hop-On Hop-Off Bus Ticket"
         return "Hop-On Hop-Off Bus Ticket"
+
+    # Fix: "Bergen: Private | Day Tour to Hardanger Fjords..." -> extract post-pipe title
+    if row.get("title", "").strip().lower() in {"private", "private day tour", ""} and "|" in row.get("details", ""):
+        # Try to extract the real title from the pipe segments of the original details
+        detail_parts = [p.strip() for p in row.get("details", "").split("|")]
+        for part in detail_parts[1:]:  # skip first pipe segment (which may be time/duration)
+            part_clean = re.sub(r"^\d+\s*(am|pm|hrs?|hour)", "", part, flags=re.IGNORECASE).strip(" -:")
+            part_clean = re.sub(r"\d+\s*hrs?", "", part_clean, flags=re.IGNORECASE).strip(" -:")
+            if len(part_clean) > 5 and not re.match(r"^\d", part_clean):
+                return polish_title(part_clean)
+
+    # Fix: title is just a time phrase like "from 2 PM to 7 PM" - use a generic sightseeing label
+    if re.match(r"^from\s+\d", row.get("title", "").lower()) or re.match(r"^\d+\s*(am|pm)\s+to\s+\d", row.get("title", "").lower()):
+        if "sightseeing" in lower or "private" in lower:
+            return f"Private Sightseeing{' in ' + city if city else ''}"
+        return f"Guided Experience{' in ' + city if city else ''}"
 
     title = polish_title(row.get("title", ""))
     if len(title) > 90 or title.count(".") >= 2:
