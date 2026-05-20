@@ -760,6 +760,23 @@ def create_day_title(day_rows):
 
     return "Day at leisure"
 
+def get_intro_variant_index(day_rows, variant_count=5):
+    if not day_rows or variant_count <= 0:
+        return 0
+    day_number = get_day_number(day_rows[0].get("day", ""))
+    return day_number % variant_count
+
+
+def build_activity_day_intro(activity_title, city_text, day_rows):
+    variants = [
+        f"The day is shaped around {activity_title} in {city_text}, with the remaining time kept flexible so the pace stays relaxed.",
+        f"A planned highlight brings you into {activity_title} in {city_text}, while the rest of the day remains easy to shape around your own pace.",
+        f"{activity_title} gives the day a clear focus in {city_text}, balanced with open time before or after the experience.",
+        f"Your main experience today is {activity_title}, offering a well-paced way to enjoy {city_text} without overfilling the schedule.",
+        f"This day includes {activity_title} in {city_text}, with the surrounding schedule kept simple and comfortable.",
+    ]
+    return variants[get_intro_variant_index(day_rows, len(variants))]
+
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a client-facing day intro with adjustable detail level.
 
@@ -845,9 +862,9 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace."
             if detail_level == "Rich descriptive":
-                return f"Today, you will enjoy {activity_title} in {city_text}, adding a meaningful experience to your stay while still leaving space to enjoy the destination at your own pace."
+                return build_activity_day_intro(activity_title, city_text, day_rows)
             return (
-                f"Today, you will enjoy {activity_title} in {city_text}. The rest of the day "
+                f"{activity_title} is the main planned experience in {city_text}. The rest of the day "
                 f"can be shaped around your own pace, interests, and time at leisure."
             )
 
@@ -963,7 +980,7 @@ def create_whats_included(parsed_rows, grouped_days):
     nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
-        add_unique(included, f"{nights} nights / travel nights as specified")
+        add_unique(included, f"{nights} nights as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
     if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):

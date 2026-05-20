@@ -39,7 +39,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-20 v34l-time-range-core-fix"
+APP_VERSION = "2026-05-20 v34n-premium-polish-regression-fix"
 
 
 st.set_page_config(
@@ -651,26 +651,37 @@ def get_activity_description(row, detail_level=None):
 
     clean_title = polish_title(create_client_activity_title(row) or row.get("title", "") or "Included experience")
     city_name = polish_title(row.get("city", ""))
-    time_text = display_time_with_duration(row.get("time", ""), row.get("duration", ""))
-    duration_text = polish_client_text(row.get("duration", ""))
-    meeting_label, meeting_point = get_activity_logistics(row)
-    meeting_point = polish_client_text(meeting_point)
+    combined = f"{clean_title} {title}".lower()
 
-    context_bits = []
-    if time_text:
-        context_bits.append(f"scheduled from {time_text}" if " - " in time_text else f"scheduled at {time_text}")
-    elif duration_text:
-        context_bits.append(f"lasting approximately {duration_text}")
-    if meeting_point:
-        if meeting_label.lower().startswith("pick"):
-            context_bits.append("with arranged pick-up/drop-off")
-        else:
-            context_bits.append("with a specified meeting point")
+    # Fallback descriptions should add atmosphere, not repeat logistics already
+    # shown in the Time / Duration / Pick-up lines.
+    if "suomenlinna" in combined:
+        return "A guided introduction to Helsinki’s city highlights combined with a visit to the historic sea fortress island of Suomenlinna."
+    if "northern lights basecamp" in combined:
+        return "Spend the evening at a dedicated Northern Lights basecamp, with time to wait for the aurora in a comfortable Arctic setting."
+    if "northern lights" in combined or "aurora" in combined:
+        if "hunt" in combined or "chase" in combined:
+            return "Head out in search of the Northern Lights with local guidance, using the evening conditions to find the best available viewing areas."
+        if "floating" in combined or "float" in combined:
+            return "Experience the Arctic night from a peaceful frozen-lake setting, with specialist equipment provided for the ice-floating experience."
+        return "Enjoy an evening Northern Lights experience designed around the Arctic sky, local conditions, and the chance to see the aurora."
+    if "santa claus village" in combined and "reindeer" in combined:
+        return "Visit Santa Claus Village and enjoy a classic Arctic reindeer experience, combining festive atmosphere with a memorable Lapland tradition."
+    if "ranua" in combined or "wildlife" in combined:
+        return "Travel to Ranua Wildlife Park for a look at Arctic wildlife in a forested Lapland setting, with time to enjoy the experience at an easy pace."
+    if "fjord tour" in combined or "kvaløya" in combined or "sommarøy" in combined:
+        return "Explore the coastal scenery around Tromsø, with fjords, islands and Arctic landscapes forming the focus of the day."
+    if "fjellheisen" in combined or "cable car" in combined:
+        return "Ride the Fjellheisen cable car for sweeping views over Tromsø, the surrounding islands, fjords, and mountain scenery."
+    if "funicular" in combined or "fløibanen" in combined:
+        return "Ride the Fløibanen funicular for an easy ascent above Bergen and views over the city, harbour and surrounding mountains."
 
     destination_phrase = f" in {city_name}" if city_name else ""
-    if context_bits:
-        return f"{clean_title}{destination_phrase} is included as part of the day, {', '.join(context_bits)}, so the experience is easy to follow within the wider itinerary."
-    return f"{clean_title}{destination_phrase} is included as part of the day, adding a clear planned experience while keeping the wider itinerary easy to follow."
+    if "walking" in combined or "guided" in combined:
+        return f"Enjoy a guided experience{destination_phrase}, with local context and a clear route through the day’s main highlights."
+    if "boat" in combined or "cruise" in combined or "canal" in combined:
+        return f"See the destination from the water, adding a scenic perspective to the day’s planned experience{destination_phrase}."
+    return f"Enjoy a planned experience{destination_phrase}, adding a clear highlight to the day while keeping the wider itinerary easy to follow."
 
 def is_self_transfer(row):
     row_type = get_row_type(row)
@@ -681,7 +692,12 @@ def is_self_transfer(row):
 
 
 def is_tallinn_ferry_day_trip(row):
-    """Return True for Helsinki-Tallinn ferry-style day trip activities."""
+    """Return True for Helsinki-Tallinn ferry-style day trip activities.
+
+    Supplier rows often call the crossing a cruise ticket even though the
+    client-facing product is a ferry-style Tallinn day trip. Keep this broad
+    enough for self-guided and guided formats, but still tied to Tallinn.
+    """
 
     context_text = " ".join(
         str(row.get(key) or "")
@@ -690,6 +706,14 @@ def is_tallinn_ferry_day_trip(row):
     context_text += " " + " ".join(normalize_list(row.get("includes", []))).lower()
 
     mentions_tallinn = "tallinn" in context_text or "tallin" in context_text
+    if not mentions_tallinn:
+        return False
+
+    # A day-trip title from Helsinki to Tallinn is enough context for the
+    # duration label to be "Ferry duration" even when the raw row says cruise.
+    if "day trip to tallinn" in context_text or "excursion to tallinn" in context_text or "excursion to tallin" in context_text:
+        return True
+
     mentions_helsinki = "helsinki" in context_text
     crossing_marker = any(
         marker in context_text
@@ -702,6 +726,7 @@ def is_tallinn_ferry_day_trip(row):
             "departure from helsinki",
             "departure from tallinn",
             "helsinki port",
+            "ferry crossing",
         ]
     )
 
@@ -720,14 +745,14 @@ def get_activity_duration_label(row, duration):
     row_type = get_row_type(row)
     duration_text = str(duration or "").lower().strip()
 
+    if is_tallinn_ferry_day_trip(row):
+        return "Ferry duration"
+
     if re.match(r"^ferry\s+duration\b", duration_text, flags=re.IGNORECASE):
         return "Ferry duration"
 
     if re.match(r"^cruise\s+duration\b", duration_text, flags=re.IGNORECASE):
         return "Cruise duration"
-
-    if is_tallinn_ferry_day_trip(row):
-        return "Ferry duration"
 
     if row_type == "Ferry":
         return "Ferry duration"
@@ -779,7 +804,7 @@ def build_activity_block(row):
 
     if included_items:
         html_text += '<div class="section-title small-section">Included with this experience</div>'
-        html_text += render_list_items(included_items[:8])
+        html_text += render_list_items(prioritize_inline_inclusions(included_items, max_items=5))
 
     if end_point:
         html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
@@ -944,6 +969,24 @@ def build_leisure_block(row=None):
     }
 
 
+
+def build_arrival_block(row):
+    city = polish_title(row.get("city", ""))
+    title = polish_title(row.get("title", ""))
+    if not title or title.lower().strip(" .") in {"arrival", "arrival day", "welcome", "welcome day"}:
+        title = f"Arrival in {city}" if city else "Arrival"
+
+    html_text = f'<div class="content-block arrival-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Arrival</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
+    html_text += "</div>"
+
+    return {
+        "kind": "arrival",
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
+    }
+
 def build_departure_block(row):
     title = polish_title(row.get("title", "") or "Departure home")
 
@@ -978,39 +1021,10 @@ def build_included_today_block(items):
 
 
 def is_travel_sequence_candidate(row):
-    """Rows that should be grouped into one clean travel sequence on mixed travel days."""
+    """Rows that form chronological travel arrangements within a day."""
 
     row_type = get_row_type(row)
-
-    if row_type == "Transfer":
-        return True
-
-    if row_type in TRANSPORT_TYPES:
-        return True
-
-    return False
-
-
-def should_use_travel_sequence(rows):
-    """Use one travel-sequence block when a day mixes transfers with a main travel movement.
-
-    This avoids fragmented pages like Included today → Self-arranged travel → Included today.
-    The rule is general: if a day combines local logistics with flight/train/coach/ferry/cruise
-    movement, the client sees the route as one ordered sequence.
-    """
-
-    travel_rows = [row for row in rows if is_travel_sequence_candidate(row)]
-    if len(travel_rows) < 2:
-        return False
-
-    has_transfer = any(get_row_type(row) == "Transfer" for row in travel_rows)
-    has_major_movement = any(
-        get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row) or is_self_arranged(row)
-        for row in travel_rows
-    )
-
-    # Keep simple transfer-only days in the classic Included today layout.
-    return has_transfer and has_major_movement
+    return row_type == "Transfer" or row_type in TRANSPORT_TYPES
 
 
 def get_travel_sequence_line(row):
@@ -1038,109 +1052,90 @@ def get_travel_sequence_line(row):
     return polish_title(row.get("title", ""))
 
 
-def build_travel_sequence_block(rows):
-    sequence_items = []
-    consumed_ids = set()
+def get_travel_arrangement_line(row):
+    title = get_travel_sequence_line(row)
+    time = display_time(row.get("time", ""))
+    duration = polish_client_text(row.get("duration", ""))
+    details = []
 
-    for row in rows:
-        if not is_travel_sequence_candidate(row):
-            continue
+    if time:
+        details.append(time)
+    if duration and " - " not in time:
+        clean_duration = re.sub(r"^(?:duration|cruise duration|ferry duration)\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        if clean_duration:
+            details.append(clean_duration)
 
-        line = get_travel_sequence_line(row)
-        if line:
-            sequence_items.append(line)
-            consumed_ids.add(row.get("row_id", ""))
+    return f"{title} — {'; '.join(details)}" if details else title
 
-    sequence_items = polish_inclusion_items(sequence_items)
-    if not sequence_items:
-        return None, set()
+
+def build_travel_arrangements_block(travel_rows):
+    items = []
+    for row in travel_rows:
+        line = get_travel_arrangement_line(row)
+        if line and line not in items:
+            items.append(line)
+
+    items = polish_inclusion_items(items)
+    if not items:
+        return None
 
     html_text = '<div class="content-block travel-sequence-block">'
-    html_text += '<div class="section-title">Travel sequence</div>'
-    html_text += render_list_items(sequence_items)
+    html_text += '<div class="section-title">Travel arrangements</div>'
+    html_text += render_list_items(items)
     html_text += "</div>"
 
     return {
         "kind": "travel_sequence",
-        "row_id": "travel-sequence",
+        "row_id": "travel-arrangements",
         "html": html_text,
-    }, consumed_ids
+    }
 
 
 def build_day_blocks(rows):
+    """Build day content in source order, grouping only consecutive travel rows.
+
+    This prevents later/overnight travel from being pulled above daytime
+    activities, while still keeping transfer + flight/train + transfer chains
+    tidy and easy to read.
+    """
+
     blocks = []
-    included_items = []
-    consumed_row_ids = set()
+    travel_group = []
 
-    if should_use_travel_sequence(rows):
-        sequence_block, consumed_row_ids = build_travel_sequence_block(rows)
-        if sequence_block:
-            blocks.append(sequence_block)
-
-    def flush_included():
-        nonlocal included_items
-        included_block = build_included_today_block(included_items)
-        if included_block:
-            blocks.append(included_block)
-        included_items = []
+    def flush_travel_group():
+        nonlocal travel_group
+        if travel_group:
+            block = build_travel_arrangements_block(travel_group)
+            if block:
+                blocks.append(block)
+            travel_group = []
 
     for row in rows:
         row_type = get_row_type(row)
         title = row.get("title", "")
-        row_id = row.get("row_id", "")
 
-        if row_id in consumed_row_ids:
+        if is_travel_sequence_candidate(row):
+            travel_group.append(row)
             continue
 
-        if row_type == "Transfer" and is_self_transfer(row):
-            flush_included()
-            blocks.append(build_self_transfer_block(row))
+        flush_travel_group()
 
-        elif row_type in TRANSPORT_TYPES and is_self_arranged(row):
-            flush_included()
-            blocks.append(build_self_arranged_travel_block(row, title_override=title))
-
-        elif row_type == "Departure":
-            flush_included()
+        if row_type == "Departure":
             blocks.append(build_departure_block(row))
-
         elif row_type == "Hotel":
-            flush_included()
             blocks.append(build_accommodation_block(row))
-
         elif row_type == "Arrival":
-            if title:
-                included_items.append(title)
-
-        elif row_type == "Transfer" and is_self_arranged(row):
-            flush_included()
-            blocks.append(build_self_arranged_travel_block(row, title_override=get_transfer_travel_title(row)))
-
-        elif row_type == "Transfer" and is_route_transfer(row):
-            flush_included()
-            blocks.append(build_transport_block(row, title_override=get_transfer_travel_title(row)))
-
-        elif row_type == "Transfer":
-            if title:
-                included_items.append(polish_title(title))
-
-        elif row_type in TRANSPORT_TYPES:
-            flush_included()
-            blocks.append(build_transport_block(row))
-
+            blocks.append(build_arrival_block(row))
         elif row_type == "Activity":
-            flush_included()
             blocks.append(build_activity_block(row))
-
         elif row_type == "Leisure":
-            flush_included()
             blocks.append(build_leisure_block(row))
-
         elif title:
-            included_items.append(title)
+            included_block = build_included_today_block([polish_title(title)])
+            if included_block:
+                blocks.append(included_block)
 
-    flush_included()
-
+    flush_travel_group()
     return blocks
 
 def estimate_day_units(day, rows, output_edits=None):
@@ -1411,7 +1406,25 @@ def get_fallback_activity_inclusions(row):
     """Create sensible client-facing inclusions when supplier text has no formal inclusion list."""
 
     title = create_client_activity_title(row) or row.get("title", "")
-    full_text = f'{title} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+    source_items = normalize_list(row.get("includes", []))
+    full_text = " ".join(
+        [str(title), str(row.get("original_title", "")), str(row.get("details", ""))]
+        + [str(item) for item in source_items]
+    ).lower()
+
+    if "tallin" in full_text or "tallinn" in full_text or title == "Day Trip to Tallinn":
+        inclusions = []
+        if "port transfer" in full_text or "helsinki port" in full_text or "hotel pick" in full_text:
+            inclusions.append("Helsinki port transfers")
+        if "star class" in full_text:
+            inclusions.append("Star Class ferry ticket")
+        elif "ferry ticket" in full_text or "cruise ticket" in full_text or "day trip to tallinn" in str(title).lower():
+            inclusions.append("Helsinki–Tallinn ferry crossing")
+        if "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
+            inclusions.append("Guided Old Town tour")
+        if not inclusions:
+            inclusions = ["Helsinki–Tallinn ferry crossing", "Time to explore Tallinn Old Town"]
+        return inclusions
 
     if "essential oslo" in full_text or ("oslo" in full_text and "walking tour" in full_text):
         return ["Guided walking tour"]
@@ -1436,8 +1449,48 @@ def get_fallback_activity_inclusions(row):
     if "ticket" in full_text:
         return ["Ticket"]
 
-    return ["Experience as described in the day-by-day itinerary"]
+    return []
 
+
+def prioritize_inline_inclusions(items, max_items=5):
+    """Keep inline inclusions premium and compact.
+
+    Day pages should show the most useful inclusions without turning into an
+    appendix. Prefer logistics, guide, transport, tickets/entrance, meals and
+    special equipment; drop low-value accounting items when space is limited.
+    """
+
+    clean_items = []
+    for item in polish_inclusion_items(normalize_list(items)):
+        if not item or item in clean_items:
+            continue
+        lower = item.lower()
+        if lower in {"guided experience", "experience as described in the day-by-day itinerary"} and len(items) > 1:
+            continue
+        if any(marker in lower for marker in ["tax", "service fee", "goods and services"]):
+            continue
+        clean_items.append(item)
+
+    def score(item):
+        lower = item.lower()
+        if "pick" in lower or "drop" in lower or "transfer" in lower:
+            return 0
+        if "guide" in lower or "guided" in lower:
+            return 1
+        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
+            return 2
+        if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
+            return 3
+        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower:
+            return 4
+        if "photo" in lower or "camera" in lower or "thermal" in lower or "overall" in lower or "tripod" in lower:
+            return 5
+        return 6
+
+    ordered = sorted(enumerate(clean_items), key=lambda pair: (score(pair[1]), pair[0]))
+    selected = [item for _, item in ordered[:max_items]]
+    # Restore original order among selected items so the client-facing flow feels natural.
+    return [item for item in clean_items if item in selected]
 
 def looks_like_descriptive_prose(text):
     lower = str(text or "").lower()

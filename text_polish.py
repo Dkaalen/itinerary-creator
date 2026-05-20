@@ -95,9 +95,10 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bDSLR photography\b", "DSLR photography", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s*KM\b", lambda m: f"{m.group(1)} km", text, flags=re.IGNORECASE)
     text = re.sub(r"\bRovaniemi City\b", "Rovaniemi city", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot drinks\b", "hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*Hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot\s+drinks?\s*&\s*snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot\s+drinks?\s+and\s+snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -129,6 +130,16 @@ def polish_client_text(value: str) -> str:
 def polish_hotel_name(value: str) -> str:
     text = polish_client_text(value)
     text = re.sub(r"\s+or\s+similar$", "", text, flags=re.IGNORECASE).strip()
+
+    # Remove street-address suffixes that suppliers sometimes append to hotel
+    # names, for example "Santa's Hotel Santa Claus Korkalonkatu 29".
+    address_suffix = (
+        r"\s+[A-ZÀ-ÝÆØÅÄÖ][A-Za-zÀ-ÿÆØÅÄÖæøåäö'’.-]*"
+        r"(?:katu|gata|gatan|veien|vegen|vej|road|street|avenue|ave|lane|ln|boulevard|blvd)"
+        r"\s+\d+[A-Za-z]?\s*$"
+    )
+    text = re.sub(address_suffix, "", text, flags=re.IGNORECASE).strip()
+
     text = dedupe_or_similar(text)
     return text
 
