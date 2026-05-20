@@ -2,7 +2,7 @@ import hashlib
 import re
 
 import diagnostics
-from place_aliases import canonicalize_place_name, is_likely_service_text, normalize_place_text
+from place_aliases import canonicalize_place_name, is_known_place, is_likely_service_text, normalize_place_text
 from text_polish import polish_client_text, polish_hotel_name, polish_title, polish_inclusion_items
 
 
@@ -95,7 +95,6 @@ def is_valid_city_value(value):
 COMMON_TEXT_REPLACEMENTS = [
     (r"\bNUtshell\b", "Nutshell"),
     (r"\bNutsheel\b", "Nutshell"),
-    (r"\bExcurssion\b", "Excursion"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
     (r"\bBrekafast\b", "Breakfast"),
     (r"\bBrekfast\b", "Breakfast"),
@@ -360,41 +359,16 @@ def standardize_row_text(row):
 
 
 def extract_detail(text, label):
-    """Extract labelled supplier details using case-insensitive markers.
+    marker = f"{label}:"
 
-    Supplier inputs are not consistent about casing (for example "Notable
-    sights" versus "Notable Sights") and Tallinn day-trip rows can include
-    route timing labels such as "Departure from Helsinki" after the meeting
-    point. This keeps extraction general while preventing later labels from
-    leaking into the current field.
-    """
-
-    source = str(text or "")
-    marker_pattern = re.compile(rf"\b{re.escape(label)}\s*:", flags=re.IGNORECASE)
-    match = marker_pattern.search(source)
-
-    if not match:
+    if marker not in text:
         return ""
 
-    after_marker = source[match.end():]
-    stop_patterns = [
-        rf"\s+-\s*{re.escape(next_label)}\s*:"
-        for next_label in DETAIL_LABELS
-        if next_label.lower() != str(label or "").lower()
-    ]
-    stop_patterns.extend([
-        r"\s+-\s*Departure\s+from\s+[^:|,;\n]+\s*:",
-        r"\s+-\s*Arrival\s+in\s+[^:|,;\n]+\s*:",
-    ])
+    after_marker = text.split(marker, 1)[1]
 
-    stop_positions = []
-    for pattern in stop_patterns:
-        stop_match = re.search(pattern, after_marker, flags=re.IGNORECASE)
-        if stop_match:
-            stop_positions.append(stop_match.start())
-
-    if stop_positions:
-        after_marker = after_marker[:min(stop_positions)]
+    for next_marker in DETAIL_MARKERS:
+        if next_marker in after_marker:
+            after_marker = after_marker.split(next_marker, 1)[0]
 
     return after_marker.strip(" -")
 
@@ -710,6 +684,85 @@ def make_row_id(day, item_type, start_date, end_date, description):
     return hashlib.sha1(source.encode("utf-8")).hexdigest()[:12]
 
 
+def score_type_candidate(parts, type_index, description_index):
+    """Score a possible row-type column for shifted Excel rows."""
+
+    if type_index < 0 or type_index >= len(parts):
+        return -1
+
+    item_type = normalize_type(parts[type_index])
+    if item_type.lower() not in KNOWN_TYPES:
+        return -1
+
+    score = 10
+
+    # Prefer candidates that still leave room for dates/details after type.
+    if description_index > type_index:
+        score += 3
+
+    between = parts[type_index + 1:description_index] if description_index > type_index else []
+    if any(looks_like_date(clean_space(part)) for part in between):
+        score += 2
+
+    # Penalize candidates where the type is suspiciously close to the
+    # description cell; these are more likely accidental matches in text.
+    if description_index == type_index:
+        score -= 5
+
+    return score
+
+
+def recover_type_index(parts, base_type_index, current_day, raw_line):
+    """Recover rows where the type column is shifted by pasted Excel structure."""
+
+    description_index = get_description_index(parts)
+    candidate_indexes = [
+        base_type_index,
+        base_type_index + 1,
+        base_type_index - 1,
+        base_type_index + 2,
+    ]
+
+    best_index = base_type_index
+    best_score = score_type_candidate(parts, base_type_index, description_index)
+
+    for candidate_index in candidate_indexes[1:]:
+        score = score_type_candidate(parts, candidate_index, description_index)
+        if score > best_score:
+            best_index = candidate_index
+            best_score = score
+
+    if best_score < 0:
+        return base_type_index, normalize_type(parts[base_type_index]) if len(parts) > base_type_index else ""
+
+    recovered_type = normalize_type(parts[best_index])
+
+    if best_index != base_type_index:
+        diagnostics.warn(
+            "column_shift_detected",
+            f"Recovered {current_day} row by shifting the type column to '{recovered_type}'",
+            raw_value=raw_line,
+        )
+
+    return best_index, recovered_type
+
+
+def warn_if_unrecognised_city(city, current_day, raw_line):
+    """Internal warning for city values that look plausible but are not known."""
+
+    city = clean_space(city)
+    if not city or is_known_place(city) or len(city) <= 18 or is_likely_service_text(city):
+        return
+
+    diagnostics.warn(
+        "unrecognised_city",
+        f"City '{city}' on {current_day} is not in the known place list — verify it is correct",
+        raw_value=raw_line,
+    )
+
+
+
+
 
 
 
@@ -979,30 +1032,6 @@ def extract_duration_from_description(main_text):
     return ""
 
 
-def extract_departure_time_range(main_text):
-    """Extract route-style departure times, such as Helsinki-Tallinn day trips.
-
-    Examples:
-    Departure from Helsinki: 10:30 am - Departure from Tallinn: 7:30 pm
-    This keeps supplier route timings client-facing without needing a separate
-    "Time:" label in the raw input.
-    """
-
-    time_token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
-    matches = re.findall(
-        rf"\bdeparture\s+from\s+[^:|,;\n]+:\s*({time_token})",
-        main_text,
-        flags=re.IGNORECASE,
-    )
-
-    clean_matches = [clean_space(match) for match in matches if clean_space(match)]
-
-    if len(clean_matches) >= 2:
-        return normalize_time_text(f"{clean_matches[0]} - {clean_matches[1]}")
-
-    return ""
-
-
 def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
@@ -1015,10 +1044,6 @@ def extract_time_from_description(main_text):
             return normalize_time_text(single_time)
         time_text, _ = split_time_and_duration(standard_time)
         return time_text
-
-    departure_time_range = extract_departure_time_range(main_text)
-    if departure_time_range:
-        return departure_time_range
 
     # Pipe format examples:
     # "Title | 20:00 | 5 Hrs | ..."
@@ -1334,6 +1359,8 @@ def parse_itinerary(raw_text):
             is_optional = parts[0] == "__OPTIONAL__"
             parts = parts[1:]
 
+        visible_raw_line = "\t".join(parts)
+
         if not any(part.strip() for part in parts):
             continue
 
@@ -1345,26 +1372,26 @@ def parse_itinerary(raw_text):
             diagnostics.warn(
                 "skipped_row",
                 "Skipped row because no day could be detected",
-                raw_value=raw_line,
+                raw_value=visible_raw_line,
             )
             continue
 
         type_index = day_index + 1 if day_index is not None else 1
-        item_type = normalize_type(parts[type_index]) if len(parts) > type_index else ""
+        type_index, item_type = recover_type_index(parts, type_index, current_day, visible_raw_line)
 
         if not item_type:
             diagnostics.warn(
                 "missing_type",
                 f"Skipped {current_day} row because no row type could be detected",
-                raw_value=raw_line,
+                raw_value=visible_raw_line,
             )
             continue
 
         if item_type.lower() not in KNOWN_TYPES:
             diagnostics.warn(
                 "unknown_type",
-                f"Unrecognised row type '{item_type}' — treated as-is",
-                raw_value=raw_line,
+                f"Unrecognised row type '{item_type}' on {current_day} — treated as-is",
+                raw_value="\t".join(parts),
             )
 
         description_index = get_description_index(parts)
@@ -1374,7 +1401,7 @@ def parse_itinerary(raw_text):
             diagnostics.warn(
                 "missing_description",
                 f"Skipped {current_day} {item_type} row because no description could be detected",
-                raw_value=raw_line,
+                raw_value=visible_raw_line,
             )
             continue
 
@@ -1419,7 +1446,7 @@ def parse_itinerary(raw_text):
         seen_row_ids.add(row_id)
 
         row = {
-            "raw": clean_space(raw_line),
+            "raw": clean_space(visible_raw_line),
             "line_number": line_number,
             "row_id": row_id,
             "is_optional": is_optional,
@@ -1465,6 +1492,7 @@ def parse_itinerary(raw_text):
         row["details"] = fix_common_text(description)
         check_for_unknown_typos(row["details"], context=current_day)
         row["city"] = canonicalize_place_name(fix_common_text(row.get("city", "")))
+        warn_if_unrecognised_city(row.get("city", ""), current_day, raw_line)
 
         important_types_for_city = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
         if not is_optional and normalize_type(item_type) in important_types_for_city and not row["city"]:

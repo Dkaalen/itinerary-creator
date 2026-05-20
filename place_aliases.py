@@ -15,9 +15,11 @@ and major visitor attractions/routes.
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from functools import lru_cache
+from pathlib import Path
 
 
 def _strip_accents(value: str) -> str:
@@ -236,6 +238,47 @@ PLACES = [
     {"country": "Denmark", "canonical": "Billund Airport", "kind": "airport", "aliases": ["BLL"]},
     {"country": "Denmark", "canonical": "Aalborg Airport", "kind": "airport", "aliases": ["Aalborg Lufthavn", "Aalborg Airport", "AAL"]},
 ]
+
+def _load_custom_places() -> list[dict]:
+    """Load optional custom place aliases from custom_places.json.
+
+    This lets new destinations be added without editing Python code. Malformed
+    files are ignored so the app remains usable if the JSON is being edited.
+    """
+
+    path = Path(__file__).parent / "custom_places.json"
+    if not path.exists():
+        return []
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    clean_places = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        canonical = str(item.get("canonical") or "").strip()
+        if not canonical:
+            continue
+        aliases = item.get("aliases", [])
+        if not isinstance(aliases, list):
+            aliases = []
+        clean_places.append({
+            "country": str(item.get("country") or "Custom").strip() or "Custom",
+            "canonical": canonical,
+            "kind": str(item.get("kind") or "custom").strip() or "custom",
+            "aliases": [str(alias).strip() for alias in aliases if str(alias).strip()],
+        })
+
+    return clean_places
+
+
+PLACES = PLACES + _load_custom_places()
 
 # Phrases that frequently appear in service cells but should never become
 # destination names.
