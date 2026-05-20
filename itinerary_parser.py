@@ -31,8 +31,6 @@ KNOWN_TYPES = {
     "flight",
     "cruise",
     "ferry",
-    "bus",
-    "coach",
 }
 
 
@@ -71,14 +69,6 @@ INVALID_CITY_MARKERS = [
     "optional addon",
     "optional add on",
     "flight ",
-    "hop on hop off",
-    "hop-on hop-off",
-    "24 hrs ticket",
-    "24 hour ticket",
-    "option private sightseeing",
-    "private sightseeing",
-    "private tour",
-    "cancel hop on hop off",
 ]
 
 
@@ -105,7 +95,6 @@ def is_valid_city_value(value):
 COMMON_TEXT_REPLACEMENTS = [
     (r"\bNUtshell\b", "Nutshell"),
     (r"\bNutsheel\b", "Nutshell"),
-    (r"\bExcurssion\b", "Excursion"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
     (r"\bBrekafast\b", "Breakfast"),
     (r"\bBrekfast\b", "Breakfast"),
@@ -118,10 +107,6 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bSvolvaer\b", "Svolvær"),
     (r"\bSvoalvaer\b", "Svolvær"),
     (r"\bTromso\b", "Tromsø"),
-    (r"\bTallin\b", "Tallinn"),
-    (r"\bRovaneimi\b", "Rovaniemi"),
-    (r"\bGallivare\b", "Gällivare"),
-    (r"\bCopenahgen\b", "Copenhagen"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),
     (r"\bWi-FI\b", "Wi-Fi"),
@@ -374,41 +359,16 @@ def standardize_row_text(row):
 
 
 def extract_detail(text, label):
-    """Extract labelled supplier details using case-insensitive markers.
+    marker = f"{label}:"
 
-    Supplier inputs are not consistent about casing (for example "Notable
-    sights" versus "Notable Sights") and Tallinn day-trip rows can include
-    route timing labels such as "Departure from Helsinki" after the meeting
-    point. This keeps extraction general while preventing later labels from
-    leaking into the current field.
-    """
-
-    source = str(text or "")
-    marker_pattern = re.compile(rf"\b{re.escape(label)}\s*:", flags=re.IGNORECASE)
-    match = marker_pattern.search(source)
-
-    if not match:
+    if marker not in text:
         return ""
 
-    after_marker = source[match.end():]
-    stop_patterns = [
-        rf"\s+-\s*{re.escape(next_label)}\s*:"
-        for next_label in DETAIL_LABELS
-        if next_label.lower() != str(label or "").lower()
-    ]
-    stop_patterns.extend([
-        r"\s+-\s*Departure\s+from\s+[^:|,;\n]+\s*:",
-        r"\s+-\s*Arrival\s+in\s+[^:|,;\n]+\s*:",
-    ])
+    after_marker = text.split(marker, 1)[1]
 
-    stop_positions = []
-    for pattern in stop_patterns:
-        stop_match = re.search(pattern, after_marker, flags=re.IGNORECASE)
-        if stop_match:
-            stop_positions.append(stop_match.start())
-
-    if stop_positions:
-        after_marker = after_marker[:min(stop_positions)]
+    for next_marker in DETAIL_MARKERS:
+        if next_marker in after_marker:
+            after_marker = after_marker.split(next_marker, 1)[0]
 
     return after_marker.strip(" -")
 
@@ -586,7 +546,7 @@ def detect_effective_type(item_type, title, details):
     ):
         return "Flight"
 
-    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined or "santa claus express" in combined:
+    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined:
         return "Train"
 
     if "cruise to" in combined or "overnight cruise" in combined:
@@ -594,21 +554,6 @@ def detect_effective_type(item_type, title, details):
 
     if "ferry to" in combined:
         return "Ferry"
-
-    departure_markers = [
-        "check out",
-        "transfer to the airport",
-        "drop at the airport",
-        "return flight",
-        "bound for home",
-        "packed breakfast",
-    ]
-    if sum(1 for marker in departure_markers if marker in combined) >= 2:
-        return "Departure"
-
-    # Bus/Coach rows map to Transport
-    if normalized_item_type in {"Bus", "Coach"}:
-        return "Transport"
 
     # For explicit activity rows, do not downgrade the activity just because the
     # supplier text mentions a bus/coach as part of the experience.
@@ -682,43 +627,20 @@ def find_day_index(parts):
     return None
 
 
-def is_low_value_tail_note(value):
-    """Detect short appended notes that should not replace the real description."""
-    text = clean_space(value).lower().strip('"')
-    if not text:
-        return True
-    low_value_markers = [
-        "option private sightseeing",
-        "private tour",
-        "cancel hop on hop off",
-        "private check",
-        "svolver private check",
-        "svolvær private check",
-    ]
-    return len(text) <= 45 and any(marker in text for marker in low_value_markers)
-
-
 def find_description_cell(parts):
     """
-    Return the rightmost useful non-empty cell as the description.
-
-    Some pasted Excel rows contain a short note on the next line, such as
-    "Option Private Sightseeing" or "private check". Those notes should not
-    replace the real supplier description in the previous cell.
+    Return the rightmost non-empty cell as the description, while preserving
+    internal line breaks from long pasted supplier descriptions.
     """
 
-    candidates = []
-    for index, part in enumerate(parts):
+    for part in reversed(parts):
         raw_value = str(part or "").strip()
+
         if raw_value:
-            candidates.append((index, raw_value.strip('"').strip()))
+            value = raw_value.strip('"')
+            return value.strip()
 
-    for index, value in reversed(candidates):
-        if is_low_value_tail_note(value):
-            continue
-        return value
-
-    return candidates[-1][1] if candidates else ""
+    return ""
 
 
 def find_city_cell(parts, description_index):
@@ -743,17 +665,11 @@ def find_city_cell(parts, description_index):
 
 
 def get_description_index(parts):
-    candidates = []
-    for index, part in enumerate(parts):
-        if clean_space(part):
-            candidates.append((index, clean_space(part)))
+    for index in range(len(parts) - 1, -1, -1):
+        if clean_space(parts[index]):
+            return index
 
-    for index, value in reversed(candidates):
-        if is_low_value_tail_note(value):
-            continue
-        return index
-
-    return candidates[-1][0] if candidates else -1
+    return -1
 
 
 def make_row_id(day, item_type, start_date, end_date, description):
@@ -852,7 +768,6 @@ def infer_range_suffixes(start, end):
 
 def find_clock_range(value):
     text = clean_space(value).replace("–", "-").replace("—", "-")
-    text = re.sub(r"\s*-{2,}\s*", " - ", text)
     # Require either a colon or an AM/PM suffix, so ranges like "5-8 minutes"
     # are not interpreted as 5:00 AM - 8:00 AM.
     token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
@@ -896,7 +811,6 @@ def normalize_time_text(value):
         return ""
 
     text = text.replace("–", "-").replace("—", "-")
-    text = re.sub(r"\s*-{2,}\s*", " - ", text)
     text = re.sub(r"\s+", " ", text).strip()
 
     time_token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
@@ -1039,53 +953,6 @@ def extract_duration_from_description(main_text):
     return ""
 
 
-def extract_departure_time_range(main_text):
-    """Extract route-style departure times, such as Helsinki-Tallinn day trips.
-
-    Examples:
-    Departure from Helsinki: 10:30 am - Departure from Tallinn: 7:30 pm
-    This keeps supplier route timings client-facing without needing a separate
-    "Time:" label in the raw input.
-    """
-
-    time_token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
-    matches = re.findall(
-        rf"\bdeparture\s+from\s+[^:|,;\n]+:\s*({time_token})",
-        main_text,
-        flags=re.IGNORECASE,
-    )
-
-    clean_matches = [clean_space(match) for match in matches if clean_space(match)]
-
-    if len(clean_matches) >= 2:
-        return normalize_time_text(f"{clean_matches[0]} - {clean_matches[1]}")
-
-    return ""
-
-
-
-INVALID_TIME_TEXT_MARKERS = [
-    "before departure",
-    "bring warm clothes",
-    "minimum amount",
-    "we will team up",
-    "important info",
-    "requires a minimum",
-]
-
-
-def is_safe_display_time(value):
-    """Return False when a detected time field is actually supplier prose."""
-    text = clean_space(value)
-    if not text:
-        return False
-    lower = text.lower()
-    if any(marker in lower for marker in INVALID_TIME_TEXT_MARKERS):
-        return False
-    if len(text) > 55 and not find_clock_range(text):
-        return False
-    return bool(find_clock_range(text) or find_single_clock_time(text) or extract_departure_time_range(text))
-
 def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
@@ -1097,18 +964,7 @@ def extract_time_from_description(main_text):
         if single_time:
             return normalize_time_text(single_time)
         time_text, _ = split_time_and_duration(standard_time)
-        if is_safe_display_time(time_text):
-            return time_text
-        diagnostics.warn(
-            "discarded_time_text",
-            "Discarded a sentence-like value that was detected as a time",
-            raw_value=standard_time[:220],
-        )
-        return ""
-
-    departure_time_range = extract_departure_time_range(main_text)
-    if departure_time_range:
-        return departure_time_range
+        return time_text
 
     # Pipe format examples:
     # "Title | 20:00 | 5 Hrs | ..."
@@ -1120,8 +976,6 @@ def extract_time_from_description(main_text):
         lower = part.lower()
         if "hr" in lower or "hour" in lower or "minute" in lower:
             continue
-        if any(marker in lower for marker in INVALID_TIME_TEXT_MARKERS):
-            continue
         clock_range = find_clock_range(part)
         if clock_range:
             return normalize_time_text(clock_range)
@@ -1131,9 +985,7 @@ def extract_time_from_description(main_text):
 
     clock_range = find_clock_range(main_text)
     if clock_range:
-        normalized = normalize_time_text(clock_range.replace(".", ":"))
-        if is_safe_display_time(normalized):
-            return normalized
+        return normalize_time_text(clock_range.replace(".", ":"))
 
     return ""
 
@@ -1313,129 +1165,97 @@ def parse_meal_plan(value):
 
 def clean_room_category(value):
     room = clean_space(value)
+
     room = re.sub(r"^\d+\s*x\s*", "", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bDoubel\b", "Double", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bDOubel\b", "Double", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bstandard\s+double\s+room\b", "Standard Double Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bstandard\s+room\b", "Standard Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bsmall\s+glass\s+igloo\b", "Small Glass Igloo", room, flags=re.IGNORECASE)
-    if re.search(r"\bnight'?s?\b", room, flags=re.IGNORECASE):
-        return ""
-    return clean_space(room.strip(" ,-"))
+    room = room.replace("Doubel", "Double").replace("doubel", "double")
 
-
-def extract_star_level(value):
-    match = re.search(r"\b([2-5])\s*[- ]?star\b", str(value or ""), flags=re.IGNORECASE)
-    return match.group(1) if match else ""
-
-
-def is_placeholder_hotel_name(value, city=""):
-    text = clean_space(value)
-    if not text:
-        return True
-    lower = text.lower()
-    city_lower = clean_space(city).lower()
-    if city_lower and lower in {city_lower, canonicalize_place_name(city).lower()}:
-        return True
-    if re.search(r"\b\d\s*[- ]?star\b", lower):
-        return True
-    if re.search(r"\b\d+\s*(?:x\s*)?night", lower):
-        return True
-    if any(marker in lower for marker in ["incl breakfast", "incl brekafast", "breakfast", "standard room", "standard double room"]):
-        return True
-    return False
+    return clean_space(room)
 
 
 def parse_hotel_details(row, main_text, night_count_hint=""):
     """
-    Parses accommodation details from both supported formats and creates a safe
-    client-facing fallback when a real property name is not provided.
+    Parses accommodation details from both supported formats.
+
+    Standard:
+    Check in ... for a 2 night stay - Scandic Rovaniemi City - Standard Room - Breakfast included
+
+    Colleague:
+    3 Star , Hotel Arthur, 2xNight , 1xStandard Doubel Room, Incl Brekafast
     """
 
     text = clean_space(main_text)
     lower = text.lower()
-    city = canonicalize_place_name(row.get("city", ""))
 
     hotel_name = ""
     nights = ""
     room_category = ""
     meal_plan = ""
-    star_level = extract_star_level(text)
 
     if night_count_hint and str(night_count_hint).strip().isdigit():
         nights = str(night_count_hint).strip()
 
-    for pattern in [r"for\s+a\s+(\d+)\s+night", r"\b(\d+)\s*x\s*night", r"\b(\d+)\s+night'?s?\b"]:
-        match = re.search(pattern, lower, flags=re.IGNORECASE)
-        if match and not nights:
-            nights = match.group(1)
+    match = re.search(r"for\s+a\s+(\d+)\s+night", lower)
+    if match:
+        nights = match.group(1)
 
-    def consider_hotel_candidate(part):
-        nonlocal hotel_name, room_category, meal_plan
-        part = clean_space(part).strip(" ,-|")
-        if not part:
-            return
-        part_lower = part.lower()
+    match = re.search(r"(\d+)\s*x\s*night", lower)
+    if match and not nights:
+        nights = match.group(1)
 
-        if city and part_lower == city.lower():
-            return
-        if re.search(r"\b\d\s*[- ]?star\b", part_lower):
-            return
-        if re.search(r"\b\d+\s*(?:x\s*)?night", part_lower):
-            trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?night'?s?\s*", "", part, flags=re.IGNORECASE).strip(" ,-:")
-            if trailing:
-                part = trailing
-                part_lower = part.lower()
-            else:
-                return
-        if "incl" in part_lower or "breakfast" in part_lower or "brekafast" in part_lower or "breekfast" in part_lower or "dinner" in part_lower or "without" in part_lower:
-            meal_plan = meal_plan or parse_meal_plan(part)
-            return
-        if any(marker in part_lower for marker in ["room", "igloo", "suite", "cabin"]):
-            room_category = room_category or clean_room_category(part)
-            return
-        if not hotel_name:
-            part = re.sub(r"\([^)]*(?:supplement|upgrade)[^)]*\)", "", part, flags=re.IGNORECASE).strip(" ,-:")
-            lower_candidate = part.lower()
-            if lower_candidate.startswith("hotel ") and any(lower_candidate.startswith(f"hotel {brand}") for brand in ["scandic", "radisson", "comfort", "quality", "clarion", "thon", "moxy", "grand"]):
-                part = part[6:].strip()
-            if not is_placeholder_hotel_name(part, city):
+    # Standard dash format.
+    if " - " in text:
+        parts = [clean_space(part) for part in text.split(" - ") if clean_space(part)]
+
+        for part in parts:
+            part_lower = part.lower()
+
+            if "check in" in part_lower or "night stay" in part_lower:
+                continue
+
+            if "breakfast" in part_lower or "meal" in part_lower or "dinner" in part_lower:
+                meal_plan = parse_meal_plan(part)
+                continue
+
+            if not hotel_name:
+                hotel_name = part
+            elif not room_category:
+                room_category = clean_room_category(part)
+
+    # Comma format.
+    if not hotel_name or not room_category:
+        comma_parts = [clean_space(part) for part in re.split(r",|\|", text) if clean_space(part)]
+
+        for part in comma_parts:
+            part_lower = part.lower()
+
+            if re.search(r"\d+\s*star", part_lower) or re.search(r"\d+\s*x\s*night", part_lower):
+                continue
+
+            if "incl" in part_lower or "breakfast" in part_lower or "brekafast" in part_lower or "dinner" in part_lower:
+                meal_plan = meal_plan or parse_meal_plan(part)
+                continue
+
+            if "room" in part_lower or "igloo" in part_lower or "suite" in part_lower or "cabin" in part_lower:
+                room_category = room_category or clean_room_category(part)
+                continue
+
+            if not hotel_name:
                 hotel_name = part
 
-    # Standard dash and colleague comma/pipe formats.
-    # Strip "Check in to your accommodation for a N night stay" preamble
-    text_for_candidates = re.sub(
-        r"check in to your accommodation for a \d+ night stay\s*",
-        "",
-        text,
-        flags=re.IGNORECASE,
-    ).strip(" -|")
-
-    for part in [clean_space(part) for part in re.split(r"\s+-\s+|,|\|", text_for_candidates) if clean_space(part)]:
-        consider_hotel_candidate(part)
-
-    if not room_category:
-        room_match = re.search(r"(?:\d+\s*x\s*)?((?:standard|superior|deluxe|small glass|glass|double|single|twin)[^,|;-]*(?:room|igloo|suite|cabin)?)", text, flags=re.IGNORECASE)
-        if room_match:
-            room_category = clean_room_category(room_match.group(1))
-
-    if not meal_plan:
-        meal_plan = parse_meal_plan(text)
+    # If hotel name is missing in the text, avoid using the whole raw line.
+    if hotel_name and any(marker in hotel_name.lower() for marker in ["check in", "night stay", "incl"]):
+        hotel_name = ""
 
     hotel_name = polish_hotel_name(hotel_name)
-    if is_placeholder_hotel_name(hotel_name, city):
-        if star_level:
-            hotel_name = f"{star_level}-star hotel"
-        else:
-            hotel_name = "Centrally located hotel"
+    room_category = polish_client_text(room_category)
+    meal_plan = polish_client_text(meal_plan)
+
+    if not hotel_name:
         diagnostics.warn(
-            "hotel_name_fallback",
-            f"Used fallback accommodation name for {row.get('day', 'unknown day')}",
+            "hotel_name_missing",
+            f"Could not extract hotel name from: {text[:80]}",
             raw_value=text,
         )
-
-    room_category = polish_client_text(room_category) or "Standard Double Room"
-    meal_plan = polish_client_text(meal_plan)
 
     return {
         "hotel_name": hotel_name,
@@ -1478,38 +1298,19 @@ def parse_itinerary(raw_text):
         type_index = day_index + 1 if day_index is not None else 1
         item_type = normalize_type(parts[type_index]) if len(parts) > type_index else ""
 
-        if not item_type or item_type.lower() not in KNOWN_TYPES:
-            recovered = False
-            candidate_offsets = [1, -1, 2]
-            for offset in candidate_offsets:
-                shifted_index = type_index + offset
-                if shifted_index < 0 or shifted_index >= len(parts):
-                    continue
-                shifted_type = normalize_type(parts[shifted_index])
-                if shifted_type.lower() in KNOWN_TYPES:
-                    diagnostics.warn(
-                        "column_shift_detected",
-                        f"Recovered {current_day} row by shifting type column to '{shifted_type}'",
-                        raw_value=raw_line,
-                    )
-                    type_index = shifted_index
-                    item_type = shifted_type
-                    recovered = True
-                    break
-
-            if not recovered and not item_type:
-                diagnostics.warn(
-                    "missing_type",
-                    f"Skipped {current_day} row because no row type could be detected",
-                    raw_value=raw_line,
-                )
-                continue
+        if not item_type:
+            diagnostics.warn(
+                "missing_type",
+                f"Skipped {current_day} row because no row type could be detected",
+                raw_value=raw_line,
+            )
+            continue
 
         if item_type.lower() not in KNOWN_TYPES:
             diagnostics.warn(
                 "unknown_type",
                 f"Unrecognised row type '{item_type}' — treated as-is",
-                raw_value="\t".join(parts),
+                raw_value=raw_line,
             )
 
         description_index = get_description_index(parts)
@@ -1610,13 +1411,6 @@ def parse_itinerary(raw_text):
         row["details"] = fix_common_text(description)
         check_for_unknown_typos(row["details"], context=current_day)
         row["city"] = canonicalize_place_name(fix_common_text(row.get("city", "")))
-        if row["city"] and not is_likely_service_text(row["city"]) and len(row["city"]) > 18:
-            # Soft warning only; the normalizer can still decide whether to keep it.
-            diagnostics.warn(
-                "unrecognised_city",
-                f"City '{row['city']}' on {current_day} may need verification",
-                raw_value=raw_line,
-            )
 
         important_types_for_city = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
         if not is_optional and normalize_type(item_type) in important_types_for_city and not row["city"]:

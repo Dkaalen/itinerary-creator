@@ -16,7 +16,7 @@ from collections import Counter
 
 import diagnostics
 from place_aliases import canonicalize_place_name, is_likely_service_text, is_known_place
-from text_polish import polish_client_text, polish_hotel_name, polish_inclusion_items, polish_inclusion_item, polish_title
+from text_polish import polish_client_text, polish_hotel_name, polish_inclusion_items, polish_inclusion_item, polish_title, expand_time_with_duration
 
 
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
@@ -321,6 +321,67 @@ def split_and_merge_inclusions(items: list[str]) -> list[str]:
     return polish_inclusion_items(cleaned)
 
 
+
+def _parse_clock_minutes(value: str):
+    """Parse one clean display clock value into minutes after midnight."""
+    text = clean_space(value)
+    match = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)", text)
+    if not match:
+        match = re.fullmatch(r"(\d{1,2}):(\d{2})", text)
+    if not match:
+        return None
+
+    hour = int(match.group(1))
+    minute = int(match.group(2) or "0")
+    suffix = (match.group(3) or "").replace(".", "").upper() if match.lastindex and match.lastindex >= 3 else ""
+
+    if hour > 24 or minute > 59:
+        return None
+    if suffix == "PM" and hour != 12:
+        hour += 12
+    if suffix == "AM" and hour == 12:
+        hour = 0
+    return hour * 60 + minute
+
+
+def _parse_duration_minutes(value: str):
+    """Parse common itinerary duration values into minutes."""
+    text = clean_space(value).lower()
+    if not text:
+        return None
+
+    text = re.sub(r"^(?:duration|tour duration|ferry duration|cruise duration)\s*:?\s*", "", text, flags=re.IGNORECASE)
+    hour_match = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b", text, flags=re.IGNORECASE)
+    minute_match = re.search(r"\b(\d+)\s*(?:minutes?|mins?|m)\b", text, flags=re.IGNORECASE)
+    total = 0
+    if hour_match:
+        total += int(round(float(hour_match.group(1)) * 60))
+    if minute_match:
+        total += int(minute_match.group(1))
+    return total or None
+
+
+def _format_clock_minutes(total_minutes: int) -> str:
+    total_minutes = total_minutes % (24 * 60)
+    hour24 = total_minutes // 60
+    minute = total_minutes % 60
+    suffix = "AM" if hour24 < 12 else "PM"
+    hour12 = hour24 % 12 or 12
+    return f"{hour12}:{minute:02d} {suffix}"
+
+
+def expand_single_start_time_with_duration(time_value: str, duration_value: str) -> str:
+    """Return a start-end time range when time + duration are reliable."""
+    return expand_time_with_duration(time_value, duration_value)
+
+
+def normalize_time_range_fields(row: dict) -> dict:
+    """Normalize activity time display before rendering/exporting."""
+    if get_row_type(row) != "Activity":
+        return row
+    row["time"] = expand_single_start_time_with_duration(row.get("time", ""), row.get("duration", ""))
+    return row
+
 def normalize_transport_title(row: dict) -> dict:
     title = polish_title(row.get("title", ""))
     details = polish_client_text(row.get("details", ""))
@@ -393,6 +454,7 @@ def normalize_row(row: dict) -> dict:
     if isinstance(row.get("notable_sights"), list):
         row["notable_sights"] = split_and_merge_inclusions(row.get("notable_sights", []))
 
+    row = normalize_time_range_fields(row)
     return row
 
 

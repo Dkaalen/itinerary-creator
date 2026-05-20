@@ -102,15 +102,6 @@ def is_valid_destination_city(city):
         "optional addon",
         "optional add",
         "flight ",
-        "hop on hop off",
-        "hop-on hop-off",
-        "24 hrs ticket",
-        "24 hour ticket",
-        "option private sightseeing",
-        "private sightseeing",
-        "private tour",
-        "cancel hop on hop off",
-        "ticket",
     ]
     if is_likely_service_text(city):
         return False
@@ -259,13 +250,26 @@ def has_norway_in_a_nutshell(rows):
     return "norway in a nutshell" in text
 
 
-def has_glass_igloo_or_arctic_resort(rows):
+def get_unique_stay_experience(rows):
     hotel_text = " ".join(
         f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
         for row in rows
         if get_row_type(row) == "Hotel"
     ).lower()
-    return any(marker in hotel_text for marker in ["glass igloo", "kakslauttanen", "arctic resort"])
+
+    if any(marker in hotel_text for marker in ["glass igloo", "igloo"]):
+        return "Glass igloo stay, Arctic resort atmosphere and remote Lapland scenery"
+    if "lavvo" in hotel_text:
+        return "Lavvo stay and Arctic wilderness atmosphere"
+    if any(marker in hotel_text for marker in ["icehotel", "ice hotel"]):
+        return "Icehotel stay and Arctic design experience"
+    if any(marker in hotel_text for marker in ["arctic resort", "kakslauttanen"]):
+        return "Arctic resort stay and remote Lapland scenery"
+    return ""
+
+
+def has_glass_igloo_or_arctic_resort(rows):
+    return bool(get_unique_stay_experience(rows))
 
 
 def get_unique_cities(parsed_rows):
@@ -327,26 +331,6 @@ def get_primary_city(day_rows):
     return canonicalize_place_name(day_rows[0].get("city", "").strip())
 
 
-def get_travel_destination_city(day_rows):
-    """Prefer the actual route destination for travel-led day intros."""
-    for row in day_rows:
-        if get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row):
-            title = row.get("title", "")
-            match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖæÆ .'-]+)$", title, flags=re.IGNORECASE)
-            if match:
-                destination = canonicalize_place_name(match.group(1).strip(" .,-|:"))
-                if destination and is_valid_destination_city(destination):
-                    return destination
-            text = f'{row.get("title", "")} {row.get("details", "")}'
-            destination = _route_destination_from_text(text)
-            if destination and is_valid_destination_city(destination):
-                destination = re.split(r"\s+(?:overnight|flight|train|cruise|ferry|arrival|at)\b", destination, maxsplit=1, flags=re.IGNORECASE)[0].strip()
-                destination = canonicalize_place_name(destination)
-                if destination and is_valid_destination_city(destination):
-                    return destination
-    return get_primary_city(day_rows)
-
-
 def create_client_activity_title(row):
     title = clean_client_title(row.get("title", ""))
     original_title = clean_client_title(row.get("original_title", "") or title)
@@ -354,59 +338,15 @@ def create_client_activity_title(row):
 
     title_text = f"{original_title} {title}".lower()
     full_text = f"{title_text} {details}".lower()
-    city = canonicalize_place_name(row.get("city", ""))
 
-    departure_markers = ["check out", "transfer to the airport", "drop at the airport", "return flight", "bound for home", "packed breakfast"]
-    if sum(1 for marker in departure_markers if marker in full_text) >= 2:
-        return f"Departure from {city}" if city else "Departure"
-
-    if "tallin" in full_text or "tallinn" in full_text:
-        if "old town" in full_text and "guided" in full_text and not any(marker in full_text for marker in ["helsinki", "ferry", "cruise", "star class", "port"]):
-            return "Tallinn Old Town Guided Tour"
+    if "tallinn" in full_text:
         return "Day Trip to Tallinn"
-
-    if "fjellheisen" in full_text or ("round trip ticket" in full_text and "trom" in full_text) or "cable car" in full_text:
-        return "Fjellheisen Cable Car"
-
-    if "santa claus village" in full_text and ("reindeer" in full_text or "safari" in full_text):
-        if "husky" in full_text:
-            return "City Highlights, Santa Claus Village & Husky-Reindeer Safari"
-        return "Santa Claus Village & Reindeer Visit"
-
-    if "must-see bergen" in full_text or ("bergen" in full_text and "foot and boat" in full_text):
-        return "Bergen Walking & Boat Tour"
-
-    if "essential oslo" in full_text or ("oslo" in full_text and "city center guided walking tour" in full_text):
-        return "Oslo City Center Walking Tour"
-
-    if "guided walking tour of helsinki" in full_text or ("helsinki" in full_text and "guided walking tour" in full_text):
-        return "Helsinki Guided Walking Tour"
-
-    if "city walking" in full_text and "canal" in full_text and "copenhagen" in full_text:
-        return "Copenhagen Walking & Canal Tour"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
         return "Optional experience in Svolvær"
 
     if "lofoten" in full_text and "trollfjord" in full_text:
         return "Lofoten Day Tour & Trollfjord Cruise"
-
-    if "guided city tour" in full_text and "narvik" in full_text:
-        return "Narvik Guided City Tour"
-
-    if "ice bar" in full_text and ("kiruna" in full_text or "jukkasjärvi" in full_text or "gällivare" in full_text or "gallivare" in full_text):
-        return "Icehotel, Kiruna & Gällivare Touring Day"
-
-    if "trom" in full_text and "city sightseeing" in full_text:
-        if "aurora" in full_text or "northern light" in full_text:
-            return "Tromsø City Sightseeing & Northern Lights Chase"
-        return "Tromsø City Sightseeing"
-
-    if "arctic wildlife" in full_text and "ranua" in full_text:
-        return "Arctic Wildlife Adventure to Ranua Park"
-
-    if "reindeer safari" in full_text and "santa" in full_text:
-        return "Santa Claus Village & Reindeer Safari"
 
     if "fløibanen" in full_text or "floibanen" in full_text:
         return "Fløibanen Funicular"
@@ -417,6 +357,15 @@ def create_client_activity_title(row):
         if "bergen" in full_text:
             return "Bergen Hop-On Hop-Off Bus Ticket"
         return "Hop-On Hop-Off Bus Ticket"
+
+    if "city walking" in full_text and "canal" in full_text and "copenhagen" in full_text:
+        return "Copenhagen Walking & Canal Tour"
+
+    if "round trip ticket" in full_text and "trom" in full_text:
+        return "Fjellheisen Cable Car"
+
+    if title_text.startswith("round trip ticket"):
+        return "Round Trip Ticket"
 
     title_has_northern_lights = (
         "northern light" in title_text
@@ -430,37 +379,34 @@ def create_client_activity_title(row):
     )
     title_has_northern_lights_activity_word = any(
         word in title_text
-        for word in ["hunt", "chase", "basecamp", "base camp", "cruise", "boat", "float", "floating", "mileage", "photo tour"]
+        for word in ["hunt", "chase", "basecamp", "base camp", "cruise", "boat", "float", "floating", "mileage"]
     )
 
+    # Do not rename ordinary daytime/culture activities just because the long
+    # supplier description mentions a chance of seeing northern lights.
     is_northern_lights = title_has_northern_lights or (
         full_has_northern_lights and title_has_northern_lights_activity_word
     )
 
-    if is_northern_lights:
-        if "basecamp" in full_text or "base camp" in full_text:
-            return "Northern Lights Basecamp"
-        if "cruise" in full_text or "boat" in full_text or "sailing" in full_text:
-            return "Northern Lights Cruise"
-        if "floating" in full_text or "float" in full_text:
-            return "Northern Lights Ice Floating"
-        if "chase" in full_text:
-            return "Northern Lights Chase"
-        if "hunt" in full_text or "mileage" in full_text or "photo tour" in full_text:
-            return "Northern Lights Hunt"
-        return "Northern Lights Experience"
+    if not is_northern_lights:
+        return title
 
-    # Guardrail: never let long raw supplier prose become a title.
-    clean = polish_title(title)
-    if len(clean) > 90 or clean.count(".") >= 2:
-        first = re.split(r"[.|]", clean, maxsplit=1)[0].strip(" ,-:")
-        if first and len(first) <= 70:
-            return polish_title(first)
-        if city:
-            return f"Guided experience in {city}"
-        return "Guided experience"
+    if "basecamp" in full_text or "base camp" in full_text:
+        return "Northern Lights Basecamp"
 
-    return clean
+    if "cruise" in full_text or "boat" in full_text or "sailing" in full_text:
+        return "Northern Lights Cruise"
+
+    if "floating" in full_text or "float" in full_text:
+        return "Northern Lights Ice Floating"
+
+    if "chase" in full_text:
+        return "Northern Lights Chase"
+
+    if "hunt" in full_text or "mileage" in full_text or "photo tour" in full_text:
+        return "Northern Lights Hunt"
+
+    return "Northern Lights Experience"
 
 def create_trip_title(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
@@ -613,7 +559,7 @@ def create_trip_glance(parsed_rows, grouped_days):
         travel_style_parts.append("guided experiences")
 
     if hotel_rows:
-        travel_style_parts.append("comfortable hotel stays")
+        travel_style_parts.append("arranged accommodation")
 
     if travel_style_parts:
         travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
@@ -646,17 +592,18 @@ def describe_city_experience(rows):
     if "bergen" in cities and "Hotel" in row_types and not any(get_row_type(row) == "Activity" for row in rows):
         return "Arrival in Bergen, overnight stay before the Norway in a Nutshell route"
 
-    if has_glass_igloo_or_arctic_resort(rows):
-        return "Arctic resort stay, glass igloo experience, remote Lapland scenery"
+    unique_stay = get_unique_stay_experience(rows)
+    if unique_stay:
+        return unique_stay
 
     if has_norway_in_a_nutshell(rows):
         return "Norway in a Nutshell route, scenic rail and fjord landscapes"
 
     if row_types == {"Hotel"}:
-        return "Overnight stay and comfortable accommodation"
+        return "Overnight stay"
 
     if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
-        return "Arrival, overnight stay and comfortable accommodation"
+        return "Arrival and overnight stay"
 
     experiences = []
 
@@ -681,8 +628,9 @@ def describe_city_experience(rows):
     if "food" in text or "dinner" in text or "tasting" in text:
         experiences.append("local food culture")
 
-    if any(get_row_type(row) == "Hotel" for row in rows):
-        experiences.append("comfortable hotel stay")
+    unique_stay = get_unique_stay_experience(rows)
+    if unique_stay:
+        experiences.append(unique_stay)
 
     if not experiences:
         experiences.append("time to explore at your own pace")
@@ -812,85 +760,6 @@ def create_day_title(day_rows):
 
     return "Day at leisure"
 
-
-def get_intro_variant_index(day_rows, variant_count=5):
-    """Return a stable content-neutral variation index for day intro wording.
-
-    The goal is to avoid repetitive client-facing prose without relying on
-    specific dates, destinations, or itineraries. Day number gives stable
-    variety while keeping regenerated output predictable.
-    """
-    if not day_rows or variant_count <= 0:
-        return 0
-
-    day_number = get_day_number(day_rows[0].get("day", ""))
-    if day_number <= 0:
-        return 0
-
-    return (day_number - 1) % variant_count
-
-
-def create_activity_intro_text(day_rows, activity_title, city_text, detail_level):
-    """Create varied activity-day intro text without changing itinerary logic."""
-    if detail_level == "Elegant concise":
-        templates = [
-            "Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace.",
-            "Spend part of the day on {activity_title} in {city_text}, with time left flexible.",
-            "Experience {activity_title} in {city_text}, while keeping the day easy and balanced.",
-            "Take in {activity_title} in {city_text}, with space around the experience for a relaxed pace.",
-            "Your day includes {activity_title} in {city_text}, with free time around the main arrangement.",
-        ]
-    elif detail_level == "Rich descriptive":
-        templates = [
-            "The focus of the day is {activity_title} in {city_text}, adding a memorable highlight without making the itinerary feel overfilled.",
-            "{activity_title} shapes the day in {city_text}, with time around the experience kept open so the schedule still feels easy and balanced.",
-            "A key experience awaits in {city_text} with {activity_title}, while the rest of the day remains flexible for a comfortable pace.",
-            "Your time in {city_text} continues with {activity_title}, paired with enough breathing room to enjoy the destination between arrangements.",
-            "This day brings {activity_title} in {city_text}, giving the itinerary a strong local experience while still leaving space to explore at your own pace.",
-        ]
-    else:
-        templates = [
-            "Enjoy {activity_title} in {city_text}. The rest of the day can be shaped around your own pace, interests, and time at leisure.",
-            "Spend part of the day on {activity_title} in {city_text}, with flexible time around the main experience.",
-            "Experience {activity_title} in {city_text}, while keeping the overall pace clear and manageable.",
-            "Take in {activity_title} in {city_text}, with the remaining time left open for a relaxed balance.",
-            "Your day includes {activity_title} in {city_text}, with space around the arrangement for independent time.",
-        ]
-
-    template = templates[get_intro_variant_index(day_rows, len(templates))]
-    return template.format(activity_title=activity_title, city_text=city_text)
-
-
-def create_travel_intro_text(day_rows, city, detail_level):
-    """Create varied travel-day intro text without changing page structure."""
-    if detail_level == "Elegant concise":
-        templates = [
-            "Continue your journey with arranged travel connected to {city}.",
-            "Travel onward to {city} with the key logistics arranged for you.",
-            "Move on towards {city}, with the travel details kept clear and simple.",
-            "This is a travel-led day towards {city}, with arrangements listed below.",
-            "Continue to {city} through the arranged travel sequence for the day.",
-        ]
-    elif detail_level == "Rich descriptive":
-        templates = [
-            "The route continues towards {city}, with the day built around clear travel arrangements and a comfortable arrival into the next chapter.",
-            "This is a travel-led day towards {city}, keeping the logistics straightforward while moving the journey smoothly onward.",
-            "Your journey moves on to {city}, with the main travel pieces arranged in a clear sequence so the day feels easy to follow.",
-            "Travel is the focus as you continue towards {city}, with the route structured to keep the transfer day calm and organised.",
-            "The itinerary shifts towards {city}, bringing the next stage of the journey together through simple, well-organised travel arrangements.",
-        ]
-    else:
-        templates = [
-            "Today, you continue your journey with arranged travel connected to {city}. The day is structured to keep the route clear, comfortable, and easy to follow.",
-            "Travel onward to {city}, with the main logistics arranged so the route remains clear and manageable.",
-            "The journey continues towards {city}, with the day organised around the key travel arrangements listed below.",
-            "This is a travel-focused day towards {city}, with each main movement kept simple and easy to follow.",
-            "Continue to {city} through the arranged travel sequence for the day, keeping the next stage of the route straightforward.",
-        ]
-
-    template = templates[get_intro_variant_index(day_rows, len(templates))]
-    return template.format(city=city)
-
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a client-facing day intro with adjustable detail level.
 
@@ -973,11 +842,24 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             )
 
         if not has_hotel(day_rows) or not transports:
-            return create_activity_intro_text(day_rows, activity_title, city_text, detail_level)
+            if detail_level == "Elegant concise":
+                return f"Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace."
+            if detail_level == "Rich descriptive":
+                return f"Today, you will enjoy {activity_title} in {city_text}, adding a meaningful experience to your stay while still leaving space to enjoy the destination at your own pace."
+            return (
+                f"Today, you will enjoy {activity_title} in {city_text}. The rest of the day "
+                f"can be shaped around your own pace, interests, and time at leisure."
+            )
 
     if (transports or route_transfers) and city:
-        travel_city = get_travel_destination_city(day_rows) or city
-        return create_travel_intro_text(day_rows, travel_city, detail_level)
+        if detail_level == "Elegant concise":
+            return f"Continue your journey with arranged travel connected to {city}."
+        if detail_level == "Rich descriptive":
+            return f"Today, the journey continues towards {city}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
+        return (
+            f"Today, you continue your journey with arranged travel connected to {city}. "
+            f"The day is structured to keep the route clear, comfortable, and easy to follow."
+        )
 
     if transfers and city:
         if detail_level == "Elegant concise":
@@ -1044,11 +926,6 @@ def clean_include_item(value, context_title=""):
         return "Luggage porter service"
 
     if lower.endswith(" included") and len(item.split()) <= 5:
-        # Keep complete sentence-style inclusions such as "Food and drinks are
-        # included" or "Cookies are included". Stripping "included" there
-        # creates broken bullets like "Food and drinks are".
-        if re.search(r"\b(?:is|are)\s+included$", lower):
-            return item
         return item[:-9].strip().capitalize()
 
     item = item.replace("Tickets included", "tickets included")
@@ -1086,7 +963,7 @@ def create_whats_included(parsed_rows, grouped_days):
     nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
-        add_unique(included, f"{nights} nights as specified")
+        add_unique(included, f"{nights} nights / travel nights as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
     if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):

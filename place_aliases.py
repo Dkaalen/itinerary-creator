@@ -15,11 +15,9 @@ and major visitor attractions/routes.
 
 from __future__ import annotations
 
-import json
 import re
 import unicodedata
 from functools import lru_cache
-from pathlib import Path
 
 
 def _strip_accents(value: str) -> str:
@@ -257,54 +255,8 @@ SERVICE_PHRASES = [
     "optional addons",
     "arrange day wise",
     "travel element",
-    "hop on hop off",
-    "hop-on hop-off",
-    "24 hrs ticket",
-    "24 hour ticket",
-    "option private sightseeing",
-    "private sightseeing",
-    "private tour",
-    "cancel hop on hop off",
 ]
 
-
-
-
-def _load_custom_places():
-    """Load optional custom place aliases from custom_places.json.
-
-    This lets new destinations be added without editing Python code. Invalid
-    entries are ignored so a malformed custom file never breaks the app.
-    """
-    custom_path = Path(__file__).parent / "custom_places.json"
-    if not custom_path.exists():
-        return []
-    try:
-        data = json.loads(custom_path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-    if not isinstance(data, list):
-        return []
-    clean = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-        canonical = str(item.get("canonical", "")).strip()
-        if not canonical:
-            continue
-        aliases = item.get("aliases", [])
-        if not isinstance(aliases, list):
-            aliases = []
-        clean.append({
-            "country": str(item.get("country", "Custom")).strip() or "Custom",
-            "canonical": canonical,
-            "kind": str(item.get("kind", "place")).strip() or "place",
-            "aliases": [str(alias).strip() for alias in aliases if str(alias).strip()],
-        })
-    return clean
-
-
-PLACES.extend(_load_custom_places())
 
 def _build_alias_maps():
     alias_to_canonical: dict[str, str] = {}

@@ -83,13 +83,11 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKnowledgeable\s*,?\s*multilingual guide\b", "Knowledgeable, multilingual guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bEnglish\s+speaking\b", "English-speaking", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bEnglish\s+guide\b", "English-speaking guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bA/C\b", "air-conditioned", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick/Drop\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick\s*up\b", "Pick-up", text, flags=re.IGNORECASE)
     text = re.sub(r"\bDrop\s*off\b", "drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bpick-up/drop-off\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHotel\s+Pick-up/drop-off\b", "Hotel pick-up/drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bTour Guiding\b", "Tour guiding", text, flags=re.IGNORECASE)
     text = re.sub(r"\bProfessional Camera Pictures\b", "Professional camera photos", text, flags=re.IGNORECASE)
     text = re.sub(r"\bTour Transportation\b", "Tour transportation", text, flags=re.IGNORECASE)
@@ -97,25 +95,9 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bDSLR photography\b", "DSLR photography", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s*KM\b", lambda m: f"{m.group(1)} km", text, flags=re.IGNORECASE)
     text = re.sub(r"\bRovaniemi City\b", "Rovaniemi city", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot drinks\s*&\s*snacks\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot drinks\b", "hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*Hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bStar\s+Class\s+Cruise\s+Ticket\b", "Star Class ferry ticket", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bStar\s+Class\s+Ferry\s+Ticket\b", "Star Class ferry ticket", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bTallin\b", "Tallinn", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bRovaneimi\b", "Rovaniemi", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bGallivare\b", "Gällivare", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bCopenahgen\b", "Copenhagen", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+beverages?\s+and\s+(?:a\s+)?little\s+snack\b", "Hot beverages and a light snack", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+drinks?\s+and\s+snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bWarm\s+drink\s+and\s+cookies\s+[ÅåAa]re\s+included\b", "Warm drink and cookies are included", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+drink\s+and\s+biscuits?\s+[ÅåAa]re\s+provided\b", "Hot drink and biscuits are provided", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFood\s+and\s+drinks\s+[Åå]re\b", "Food and drinks are included", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFood\s+and\s+drinks\s+are\b(?!\s+included)", "Food and drinks are included", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bWarm\s+drinks?\s*&\s*light\s+snacks?\s*/\s*sausage\b", "Warm drinks and light snacks or sausage", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAuthorized\s+English\s*-\s*Speaker\s+Guide\b", "Authorised English-speaking guide", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bcomfortable\s+mini\s*bus\b", "Comfortable minibus", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bbest\s+aurora\s+spots\b", "Best available aurora viewing spots", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -147,18 +129,6 @@ def polish_client_text(value: str) -> str:
 def polish_hotel_name(value: str) -> str:
     text = polish_client_text(value)
     text = re.sub(r"\s+or\s+similar$", "", text, flags=re.IGNORECASE).strip()
-
-    # Supplier hotel cells sometimes append a street address to the property
-    # name, for example "Santa's Hotel Santa Claus Korkalonkatu 29". Keep the
-    # client-facing accommodation name clean while preserving legitimate hotel
-    # names that contain numbers, such as "Hotel 27".
-    address_suffix_pattern = (
-        r"\s+[A-ZÀ-ÝÆØÅÄÖ][A-Za-zÀ-ÿÆØÅÄÖæøåäö'’.-]*"
-        r"(?:gatan|gata|veien|vegen|vej|katu|tie|road|street|avenue|ave|lane|ln|boulevard|blvd)"
-        r"\s+\d+[A-Za-z]?\s*$"
-    )
-    text = re.sub(address_suffix_pattern, "", text, flags=re.IGNORECASE).strip()
-
     text = dedupe_or_similar(text)
     return text
 
@@ -259,3 +229,103 @@ def polish_inclusion_items(items, context_title: str = "") -> list[str]:
                 cleaned.append(item)
 
     return cleaned
+
+# ── Time + duration display helpers ───────────────────────────────────────────
+# These helpers are intentionally kept in text_polish.py so parser, normalizer,
+# preview rendering and PDF export can all use the same rule: when an activity
+# has one clear start time plus a reliable duration, display a start-end range
+# in the client-facing day-by-day itinerary.
+
+def _time_clean(value: str) -> str:
+    return clean_space(str(value or "").replace("–", "-").replace("—", "-"))
+
+
+def _normalize_clock_token(value: str) -> str:
+    text = _time_clean(value)
+    match = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)", text)
+    if not match:
+        return ""
+    hour = int(match.group(1))
+    minute = int(match.group(2) or "0")
+    suffix = match.group(3).replace(".", "").upper()
+    if hour < 1 or hour > 12 or minute > 59:
+        return ""
+    return f"{hour}:{minute:02d} {suffix}"
+
+
+def _clock_to_minutes(value: str):
+    text = _normalize_clock_token(value)
+    if not text:
+        return None
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})\s*(AM|PM)", text)
+    if not match:
+        return None
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    suffix = match.group(3)
+    if suffix == "PM" and hour != 12:
+        hour += 12
+    if suffix == "AM" and hour == 12:
+        hour = 0
+    return hour * 60 + minute
+
+
+def _minutes_to_clock(total_minutes: int) -> str:
+    total_minutes = total_minutes % (24 * 60)
+    hour24 = total_minutes // 60
+    minute = total_minutes % 60
+    suffix = "AM" if hour24 < 12 else "PM"
+    hour12 = hour24 % 12 or 12
+    return f"{hour12}:{minute:02d} {suffix}"
+
+
+def parse_duration_minutes(value: str):
+    """Return duration in minutes for common supplier duration strings."""
+    text = _time_clean(value).lower()
+    if not text:
+        return None
+    text = re.sub(r"^(?:duration|tour duration|ferry duration|cruise duration)\s*:?\s*", "", text, flags=re.IGNORECASE)
+
+    total = 0
+    hour_match = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|hr|h)\b", text, flags=re.IGNORECASE)
+    minute_match = re.search(r"\b(\d+)\s*(?:minutes?|mins?|min|m)\b", text, flags=re.IGNORECASE)
+    if hour_match:
+        total += int(round(float(hour_match.group(1)) * 60))
+    if minute_match:
+        total += int(minute_match.group(1))
+    return total or None
+
+
+def expand_time_with_duration(time_value: str, duration_value: str) -> str:
+    """Display start-end time when a single start time and duration are known.
+
+    Examples:
+    10:00 AM + 5 hours -> 10:00 AM - 3:00 PM
+    8:00 PM + 4 hours -> 8:00 PM - 12:00 AM
+
+    Existing ranges and alternative times are preserved.
+    """
+    raw_time = _time_clean(time_value)
+    if not raw_time:
+        return ""
+
+    # Do not alter an existing range or alternative options.
+    if re.search(r"\d\s*-\s*\d", raw_time) or "/" in raw_time:
+        return raw_time
+
+    start_display = _normalize_clock_token(raw_time)
+    if not start_display:
+        return raw_time
+
+    start_minutes = _clock_to_minutes(start_display)
+    duration_minutes = parse_duration_minutes(duration_value)
+    if start_minutes is None or duration_minutes is None:
+        return start_display
+
+    # Keep guardrails conservative: this is meant for normal experiences, not
+    # multi-day or vague durations.
+    if duration_minutes < 15 or duration_minutes > 18 * 60:
+        return start_display
+
+    return f"{start_display} - {_minutes_to_clock(start_minutes + duration_minutes)}"
+
