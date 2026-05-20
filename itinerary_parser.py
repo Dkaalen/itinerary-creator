@@ -31,6 +31,8 @@ KNOWN_TYPES = {
     "flight",
     "cruise",
     "ferry",
+    "bus",
+    "coach",
 }
 
 
@@ -584,7 +586,7 @@ def detect_effective_type(item_type, title, details):
     ):
         return "Flight"
 
-    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined:
+    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined or "santa claus express" in combined:
         return "Train"
 
     if "cruise to" in combined or "overnight cruise" in combined:
@@ -603,6 +605,10 @@ def detect_effective_type(item_type, title, details):
     ]
     if sum(1 for marker in departure_markers if marker in combined) >= 2:
         return "Departure"
+
+    # Bus/Coach rows map to Transport
+    if normalized_item_type in {"Bus", "Coach"}:
+        return "Transport"
 
     # For explicit activity rows, do not downgrade the activity just because the
     # supplier text mentions a bus/coach as part of the experience.
@@ -1397,7 +1403,17 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
                 hotel_name = part
 
     # Standard dash and colleague comma/pipe formats.
-    for part in [clean_space(part) for part in re.split(r"\s+-\s+|,|\|", text) if clean_space(part)]:
+    # Strip common preamble sentences that appear in the new inline format:
+    # "Check in to your accommodation for a N night stay"
+    # These would otherwise become the hotel name candidate.
+    text_for_candidates = re.sub(
+        r"check in to your accommodation for a \d+ night stay\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    ).strip(" -|")
+
+    for part in [clean_space(part) for part in re.split(r"\s+-\s+|,|\|", text_for_candidates) if clean_space(part)]:
         consider_hotel_candidate(part)
 
     if not room_category:

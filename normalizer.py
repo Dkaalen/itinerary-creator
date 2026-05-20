@@ -178,6 +178,13 @@ def normalize_hotel_row(row: dict) -> dict:
 
     meal = normalize_meal_plan(row.get("meal_plan", ""), source)
 
+    # Strip trailing city suffix that sometimes bleeds into hotel names
+    # e.g. 'Scandic Rovaniemi city' -> 'Scandic Rovaniemi'
+    if city and name.lower().endswith(" city"):
+        name_without_suffix = name[:-5].strip()
+        if name_without_suffix:
+            name = name_without_suffix
+
     row["hotel_name"] = name
     row["title"] = name
     row["room_category"] = room
