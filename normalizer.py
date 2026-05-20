@@ -253,6 +253,7 @@ def normalize_inclusion_value(value: str) -> str:
     item = re.sub(r"\bhot\s+drink\s+and\s+biscuits?\s+[åa]re\s+provided\b", "Hot drink and biscuits are provided", item, flags=re.IGNORECASE)
     item = re.sub(r"\bwarm\s+drink\s+and\s+cookies\s+[åa]re\s+included\b", "Warm drink and cookies are included", item, flags=re.IGNORECASE)
     item = re.sub(r"\bfood\s+and\s+drinks\s+[å]re\b", "Food and drinks are included", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bfood\s+and\s+drinks\s+are\b(?!\s+included)", "Food and drinks are included", item, flags=re.IGNORECASE)
     item = re.sub(r"\bwarm\s+drinks?\s*&\s*light\s+snacks?\s*/\s*sausage\b", "Warm drinks and light snacks or sausage", item, flags=re.IGNORECASE)
     item = re.sub(r"\bsnacks?\s*&\s*hot\s+drinks?\b", "Snacks and hot drinks", item, flags=re.IGNORECASE)
     item = re.sub(r"\blegends?\s*&\s*explanation\b", "legends and explanations", item, flags=re.IGNORECASE)

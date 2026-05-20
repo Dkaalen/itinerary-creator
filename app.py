@@ -38,7 +38,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-20 v34g-parser-normalizer-polish"
+APP_VERSION = "2026-05-20 v34h-premium-day-flow"
 
 
 st.set_page_config(
@@ -624,21 +624,31 @@ def is_tallinn_ferry_day_trip(row):
 
 
 def get_activity_duration_label(row, duration):
-    """Return a client-facing duration label based on the activity/travel context."""
+    """Return a conservative client-facing duration label.
 
-    context_text = " ".join(
-        str(row.get(key) or "")
-        for key in ["city", "title", "original_title", "details", "client_description"]
-    ).lower()
-    duration_text = str(duration or "").lower()
+    Default to "Duration" for experiences. A tour can include a ferry, canal
+    boat, or cruise element without the full tour duration being a ferry/cruise
+    duration. Use ferry/cruise labels only when the duration field itself says
+    so, the row is an actual ferry/cruise transport row, or the product is a
+    clear Helsinki-Tallinn ferry day trip.
+    """
+
+    row_type = get_row_type(row)
+    duration_text = str(duration or "").lower().strip()
+
+    if re.match(r"^ferry\s+duration\b", duration_text, flags=re.IGNORECASE):
+        return "Ferry duration"
+
+    if re.match(r"^cruise\s+duration\b", duration_text, flags=re.IGNORECASE):
+        return "Cruise duration"
 
     if is_tallinn_ferry_day_trip(row):
         return "Ferry duration"
 
-    if "ferry" in context_text or "ferry" in duration_text:
+    if row_type == "Ferry":
         return "Ferry duration"
 
-    if "cruise" in context_text or "cruise" in duration_text:
+    if row_type == "Cruise":
         return "Cruise duration"
 
     return "Duration"
@@ -962,103 +972,126 @@ def build_travel_sequence_block(rows):
     }, consumed_ids
 
 
+
+def get_travel_arrangement_line(row):
+    """Return one clean chronological travel line for the day flow."""
+
+    title = get_travel_sequence_line(row)
+    time = display_time(row.get("time", ""))
+    duration = polish_client_text(row.get("duration", ""))
+
+    details = []
+    if time:
+        details.append(time)
+    if duration:
+        clean_duration = re.sub(r"^(?:duration|cruise duration|ferry duration)\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        if clean_duration:
+            details.append(clean_duration)
+
+    if details:
+        return f"{title} — {'; '.join(details)}"
+    return title
+
+
+def build_travel_arrangements_block(travel_rows):
+    """Render consecutive travel rows in the same order as the source input."""
+
+    items = []
+    for row in travel_rows:
+        line = get_travel_arrangement_line(row)
+        if line and line not in items:
+            items.append(line)
+
+    items = polish_inclusion_items(items)
+    if not items:
+        return None
+
+    html_text = '<div class="content-block travel-sequence-block">'
+    html_text += '<div class="section-title">Travel arrangements</div>'
+    html_text += render_list_items(items)
+    html_text += "</div>"
+
+    return {
+        "kind": "travel_sequence",
+        "row_id": "travel-arrangements",
+        "html": html_text,
+    }
+
+
+def build_arrival_block(row):
+    city = polish_title(row.get("city", ""))
+    title = polish_title(row.get("title", ""))
+
+    generic_titles = {"arrival", "arrival day", "welcome", "welcome day"}
+    if not title or title.lower().strip(" .") in generic_titles:
+        title = f"Arrival in {city}" if city else "Arrival"
+
+    html_text = f'<div class="content-block arrival-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Arrival</div>'
+    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
+    html_text += "</div>"
+
+    return {
+        "kind": "arrival",
+        "row_id": row.get("row_id", ""),
+        "html": html_text,
+    }
+
+
+def flush_travel_group(blocks, travel_group):
+    if travel_group:
+        travel_block = build_travel_arrangements_block(travel_group)
+        if travel_block:
+            blocks.append(travel_block)
+    return []
+
+
 def build_day_blocks(rows):
+    """Build day content in natural chronological order.
+
+    The default order is the source row order, because supplier/Excel rows often
+    already describe how the client experiences the day. Consecutive travel rows
+    are grouped into one compact "Travel arrangements" block, but travel is no
+    longer pulled away from surrounding activities. This keeps mixed days natural:
+    activity first when it appears first, then transfer/train/flight later.
+    """
+
     blocks = []
-    included_items = []
-    consumed_row_ids = set()
-    sequence_block = None
-    sequence_inserted = False
-
-    if should_use_travel_sequence(rows):
-        sequence_block, consumed_row_ids = build_travel_sequence_block(rows)
-
-    first_sequence_index = next(
-        (
-            index for index, row in enumerate(rows)
-            if row.get("row_id", "") in consumed_row_ids
-        ),
-        None,
-    )
-    activity_before_sequence = (
-        first_sequence_index is not None
-        and any(get_row_type(row) == "Activity" for row in rows[:first_sequence_index])
-    )
-
-    # Default to the existing travel-day behaviour: travel sequence first.
-    # Only move it inline when a real activity appears before the later travel.
-    if sequence_block and not activity_before_sequence:
-        blocks.append(sequence_block)
-        sequence_inserted = True
-
-    def flush_included():
-        nonlocal included_items
-        included_block = build_included_today_block(included_items)
-        if included_block:
-            blocks.append(included_block)
-        included_items = []
+    travel_group = []
 
     for row in rows:
         row_type = get_row_type(row)
         title = row.get("title", "")
-        row_id = row.get("row_id", "")
 
-        if row_id in consumed_row_ids:
-            if sequence_block and not sequence_inserted:
-                flush_included()
-                blocks.append(sequence_block)
-                sequence_inserted = True
+        if is_travel_sequence_candidate(row):
+            travel_group.append(row)
             continue
 
-        if row_type == "Transfer" and is_self_transfer(row):
-            flush_included()
-            blocks.append(build_self_transfer_block(row))
+        travel_group = flush_travel_group(blocks, travel_group)
 
-        elif row_type in TRANSPORT_TYPES and is_self_arranged(row):
-            flush_included()
-            blocks.append(build_self_arranged_travel_block(row, title_override=title))
+        if row_type == "Arrival":
+            blocks.append(build_arrival_block(row))
 
         elif row_type == "Departure":
-            flush_included()
             blocks.append(build_departure_block(row))
 
         elif row_type == "Hotel":
-            flush_included()
             blocks.append(build_accommodation_block(row))
 
-        elif row_type == "Arrival":
-            if title:
-                included_items.append(title)
-
-        elif row_type == "Transfer" and is_self_arranged(row):
-            flush_included()
-            blocks.append(build_self_arranged_travel_block(row, title_override=get_transfer_travel_title(row)))
-
-        elif row_type == "Transfer" and is_route_transfer(row):
-            flush_included()
-            blocks.append(build_transport_block(row, title_override=get_transfer_travel_title(row)))
-
-        elif row_type == "Transfer":
-            if title:
-                included_items.append(polish_title(title))
-
-        elif row_type in TRANSPORT_TYPES:
-            flush_included()
-            blocks.append(build_transport_block(row))
-
         elif row_type == "Activity":
-            flush_included()
             blocks.append(build_activity_block(row))
 
         elif row_type == "Leisure":
-            flush_included()
             blocks.append(build_leisure_block(row))
 
         elif title:
-            included_items.append(title)
+            included_block = build_included_today_block([polish_title(title)])
+            if included_block:
+                blocks.append(included_block)
 
-    flush_included()
-
+    flush_travel_group(blocks, travel_group)
     return blocks
+
 
 def estimate_day_units(day, rows, output_edits=None):
     """Estimate vertical space for a day section.
@@ -1128,13 +1161,13 @@ def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
     a = get_day_pack_stats(day_a, rows_a, output_edits)
     b = get_day_pack_stats(day_b, rows_b, output_edits)
 
-    # Smart packing uses compact typography on packed pages, so it can safely
-    # combine light+medium days. Still keep strict guardrails for A4 safety.
-    if a["units"] > 23.5 or b["units"] > 23.5:
+    # Packed pages now use the same typography as single day pages.
+    # Only pack genuinely light days; never shrink type to force a fit.
+    if a["units"] > 18.5 or b["units"] > 18.5:
         return False
-    if a["units"] + b["units"] > 38.0:
+    if a["units"] + b["units"] > 30.5:
         return False
-    if a["units"] > 19.5 and b["units"] > 19.5:
+    if a["units"] > 15.5 and b["units"] > 15.5:
         return False
     if a["activity_count"] >= 3 or b["activity_count"] >= 3:
         return False
@@ -1167,19 +1200,19 @@ def can_pack_three_days(day_rows_triple, output_edits=None):
 
     # A4 safety guardrails. The total limit is what matters most; individual
     # medium-light days are allowed as long as the combined page remains safe.
-    if total_units > 58.5:
+    if total_units > 37.0:
         return False
-    if any(item["units"] > 24.5 for item in stats):
+    if any(item["units"] > 13.8 for item in stats):
         return False
     if any(item["block_count"] > 7 for item in stats):
         return False
-    if block_total > 16:
+    if block_total > 10:
         return False
-    if activity_total > 4:
+    if activity_total > 2:
         return False
-    if any(item["activity_count"] > 2 for item in stats):
+    if any(item["activity_count"] > 1 for item in stats):
         return False
-    if any(item["has_long_description"] and item["units"] > 19.5 for item in stats):
+    if any(item["has_long_description"] for item in stats):
         return False
 
     return True
@@ -1192,11 +1225,9 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
+    # Keep one typography system across all day pages. Packed pages may share
+    # a page, but they must not shrink into a different visual style.
     section_class = "day-section"
-    if packed:
-        section_class += " packed-section"
-    if triple:
-        section_class += " triple-packed-section"
 
     html_text = f'''
             <section class="{section_class}" data-day="{esc(day)}">
@@ -1479,11 +1510,43 @@ def create_activity_inclusions(parsed_rows):
     return activity_sections
 
 
+
+def _addon_signature(value):
+    text = str(value or "").lower()
+    text = re.sub(r"\bself[-\s]?arranged\b|\bnot included\b|\boptional\b|\baddon\b|\badd-on\b", " ", text)
+    text = re.sub(r"[^a-z0-9øæåäöüéèà]+", " ", text)
+    return " ".join(text.split())
+
+
+def should_suppress_optional_addon(row, main_signatures):
+    row_type = get_row_type(row)
+    title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
+    signature = _addon_signature(title or row.get("details", ""))
+    if not signature:
+        return False
+
+    # Suppress optional travel rows that duplicate the main route. Keep genuine
+    # optional experiences/upgrades.
+    if row_type in TRANSPORT_TYPES or row_type == "Transfer" or is_self_arranged_transport(row):
+        return any(signature in main_sig or main_sig in signature for main_sig in main_signatures)
+
+    return False
+
 def create_optional_addons(parsed_rows):
     optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    main_signatures = set()
+    for main_row in parsed_rows:
+        if main_row.get("is_optional"):
+            continue
+        main_title = create_client_activity_title(main_row) if get_row_type(main_row) == "Activity" else main_row.get("title", "")
+        sig = _addon_signature(main_title or main_row.get("details", ""))
+        if sig:
+            main_signatures.add(sig)
     addons = []
 
     for row in optional_rows:
+        if should_suppress_optional_addon(row, main_signatures):
+            continue
         row_type = get_row_type(row)
         title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
         title = str(title or row.get("title", "Optional add-on")).strip()

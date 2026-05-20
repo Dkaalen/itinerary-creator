@@ -1044,6 +1044,11 @@ def clean_include_item(value, context_title=""):
         return "Luggage porter service"
 
     if lower.endswith(" included") and len(item.split()) <= 5:
+        # Keep complete sentence-style inclusions such as "Food and drinks are
+        # included" or "Cookies are included". Stripping "included" there
+        # creates broken bullets like "Food and drinks are".
+        if re.search(r"\b(?:is|are)\s+included$", lower):
+            return item
         return item[:-9].strip().capitalize()
 
     item = item.replace("Tickets included", "tickets included")

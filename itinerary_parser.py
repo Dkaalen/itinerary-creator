@@ -1057,6 +1057,29 @@ def extract_departure_time_range(main_text):
     return ""
 
 
+
+INVALID_TIME_TEXT_MARKERS = [
+    "before departure",
+    "bring warm clothes",
+    "minimum amount",
+    "we will team up",
+    "important info",
+    "requires a minimum",
+]
+
+
+def is_safe_display_time(value):
+    """Return False when a detected time field is actually supplier prose."""
+    text = clean_space(value)
+    if not text:
+        return False
+    lower = text.lower()
+    if any(marker in lower for marker in INVALID_TIME_TEXT_MARKERS):
+        return False
+    if len(text) > 55 and not find_clock_range(text):
+        return False
+    return bool(find_clock_range(text) or find_single_clock_time(text) or extract_departure_time_range(text))
+
 def extract_time_from_description(main_text):
     standard_time = extract_detail(main_text, "Time")
 
@@ -1068,7 +1091,14 @@ def extract_time_from_description(main_text):
         if single_time:
             return normalize_time_text(single_time)
         time_text, _ = split_time_and_duration(standard_time)
-        return time_text
+        if is_safe_display_time(time_text):
+            return time_text
+        diagnostics.warn(
+            "discarded_time_text",
+            "Discarded a sentence-like value that was detected as a time",
+            raw_value=standard_time[:220],
+        )
+        return ""
 
     departure_time_range = extract_departure_time_range(main_text)
     if departure_time_range:
@@ -1084,6 +1114,8 @@ def extract_time_from_description(main_text):
         lower = part.lower()
         if "hr" in lower or "hour" in lower or "minute" in lower:
             continue
+        if any(marker in lower for marker in INVALID_TIME_TEXT_MARKERS):
+            continue
         clock_range = find_clock_range(part)
         if clock_range:
             return normalize_time_text(clock_range)
@@ -1093,7 +1125,9 @@ def extract_time_from_description(main_text):
 
     clock_range = find_clock_range(main_text)
     if clock_range:
-        return normalize_time_text(clock_range.replace(".", ":"))
+        normalized = normalize_time_text(clock_range.replace(".", ":"))
+        if is_safe_display_time(normalized):
+            return normalized
 
     return ""
 
