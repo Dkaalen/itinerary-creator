@@ -83,6 +83,7 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKnowledgeable\s*,?\s*multilingual guide\b", "Knowledgeable, multilingual guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bEnglish\s+speaking\b", "English-speaking", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bEnglish\s+guide\b", "English-speaking guide", text, flags=re.IGNORECASE)
     text = re.sub(r"\bA/C\b", "air-conditioned", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick/Drop\b", "Pick-up/drop-off", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick\s*up\b", "Pick-up", text, flags=re.IGNORECASE)
@@ -95,25 +96,24 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bDSLR photography\b", "DSLR photography", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s*KM\b", lambda m: f"{m.group(1)} km", text, flags=re.IGNORECASE)
     text = re.sub(r"\bRovaniemi City\b", "Rovaniemi city", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot drinks\b", "hot drinks", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot drinks\s*&\s*snacks\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCookies\s*&\s*Hot drinks\b", "Cookies and hot drinks", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot drinks\s*&\s*snacks\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
     text = re.sub(r"\bStar\s+Class\s+Cruise\s+Ticket\b", "Star Class ferry ticket", text, flags=re.IGNORECASE)
     text = re.sub(r"\bStar\s+Class\s+Ferry\s+Ticket\b", "Star Class ferry ticket", text, flags=re.IGNORECASE)
-
-    # Supplier inclusion polish. These are deliberately narrow wording repairs
-    # for recurring raw fragments; they do not add or remove itinerary facts.
-    text = re.sub(r"\bcomfortable\s+mini\s+bus\b", "Comfortable minibus", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bbest\s+aurora\s+spots\b", "Best available aurora viewing spots", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bexpert\s+guide\b", "Expert guide", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+beverages\s+and\s+little\s+snack\b", "Hot beverages and a light snack", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bcoffee\s+and\s+waffles\s*/\s*cookies\b", "Coffee and waffles or cookies", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bTallin\b", "Tallinn", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bRovaneimi\b", "Rovaniemi", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bGallivare\b", "Gällivare", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bCopenahgen\b", "Copenhagen", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot\s+beverages?\s+and\s+(?:a\s+)?little\s+snack\b", "Hot beverages and a light snack", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot\s+drinks?\s+and\s+snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bWarm\s+drink\s+and\s+cookies\s+[ÅåAa]re\s+included\b", "Warm drink and cookies are included", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHot\s+drink\s+and\s+biscuits?\s+[ÅåAa]re\s+provided\b", "Hot drink and biscuits are provided", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bFood\s+and\s+drinks\s+[Åå]re\b", "Food and drinks are included", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bWarm\s+drinks?\s*&\s*light\s+snacks?\s*/\s*sausage\b", "Warm drinks and light snacks or sausage", text, flags=re.IGNORECASE)
     text = re.sub(r"\bAuthorized\s+English\s*-\s*Speaker\s+Guide\b", "Authorised English-speaking guide", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAuthorized\s+English\s+Speaker\s+Guide\b", "Authorised English-speaking guide", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+drink\s+and\s+biscuits\s+Åre\s+provided\b", "Hot drink and biscuits are provided", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHot\s+drink\s+and\s+biscuits\s+Are\s+provided\b", "Hot drink and biscuits are provided", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bhot\s+drinks\s+and\s+a\s+snack\b", "Hot drinks and a snack", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bcomfortable\s+mini\s*bus\b", "Comfortable minibus", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbest\s+aurora\s+spots\b", "Best available aurora viewing spots", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -145,6 +145,18 @@ def polish_client_text(value: str) -> str:
 def polish_hotel_name(value: str) -> str:
     text = polish_client_text(value)
     text = re.sub(r"\s+or\s+similar$", "", text, flags=re.IGNORECASE).strip()
+
+    # Supplier hotel cells sometimes append a street address to the property
+    # name, for example "Santa's Hotel Santa Claus Korkalonkatu 29". Keep the
+    # client-facing accommodation name clean while preserving legitimate hotel
+    # names that contain numbers, such as "Hotel 27".
+    address_suffix_pattern = (
+        r"\s+[A-ZÀ-ÝÆØÅÄÖ][A-Za-zÀ-ÿÆØÅÄÖæøåäö'’.-]*"
+        r"(?:gatan|gata|veien|vegen|vej|katu|tie|road|street|avenue|ave|lane|ln|boulevard|blvd)"
+        r"\s+\d+[A-Za-z]?\s*$"
+    )
+    text = re.sub(address_suffix_pattern, "", text, flags=re.IGNORECASE).strip()
+
     text = dedupe_or_similar(text)
     return text
 

@@ -1,1 +1,6 @@
-[]
+[
+  {"country": "Estonia", "canonical": "Tallinn", "kind": "city", "aliases": ["Tallin", "Tallinn Old Town", "Old Town Tallinn"]},
+  {"country": "Sweden", "canonical": "Gällivare", "kind": "town", "aliases": ["Gallivare", "Gällivare"]},
+  {"country": "Finland", "canonical": "Rovaniemi", "kind": "city", "aliases": ["Rovaneimi", "Rovaneimi Airport"]},
+  {"country": "Denmark", "canonical": "Copenhagen", "kind": "city", "aliases": ["Copenahgen"]}
+]
