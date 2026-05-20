@@ -39,7 +39,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-20 v34n-premium-polish-regression-fix"
+APP_VERSION = "2026-05-20 v34o-font-standardization-polish"
 
 
 st.set_page_config(
@@ -1206,13 +1206,13 @@ def can_pack_days(day_a, rows_a, day_b, rows_b, output_edits=None):
     a = get_day_pack_stats(day_a, rows_a, output_edits)
     b = get_day_pack_stats(day_b, rows_b, output_edits)
 
-    # Smart packing uses compact typography on packed pages, so it can safely
-    # combine light+medium days. Still keep strict guardrails for A4 safety.
-    if a["units"] > 23.5 or b["units"] > 23.5:
+    # Packed pages now use the same visual typography as single-day pages.
+    # Only combine genuinely light days; split instead of shrinking font sizes.
+    if a["units"] > 18.5 or b["units"] > 18.5:
         return False
-    if a["units"] + b["units"] > 38.0:
+    if a["units"] + b["units"] > 30.5:
         return False
-    if a["units"] > 19.5 and b["units"] > 19.5:
+    if a["units"] > 15.5 and b["units"] > 15.5:
         return False
     if a["activity_count"] >= 3 or b["activity_count"] >= 3:
         return False
@@ -2237,25 +2237,25 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .packed-section .day-label {{
-            font-size: 25px;
-            margin-bottom: 3px;
+            font-size: 34px;
+            margin-bottom: 4px;
         }}
 
         .packed-section .day-title {{
-            font-size: 19px;
-            line-height: 1.15;
-            margin-bottom: 7px;
+            font-size: 27px;
+            line-height: 1.16;
+            margin-bottom: 8px;
         }}
 
         .packed-section .city {{
-            font-size: 10px;
-            margin-bottom: 9px;
+            font-size: 12px;
+            margin-bottom: 10px;
         }}
 
         .packed-section .intro {{
-            font-size: 12.2px;
-            line-height: 1.34;
-            margin-bottom: 10px;
+            font-size: 15px;
+            line-height: 1.42;
+            margin-bottom: 12px;
         }}
 
         .packed-section .content-block {{
@@ -2263,15 +2263,15 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .packed-section .section-title {{
-            font-size: 9.5px;
-            margin-top: 8px;
+            font-size: 11px;
+            margin-top: 9px;
             margin-bottom: 3px;
         }}
 
         .packed-section .body-text,
         .packed-section li {{
-            font-size: 11.2px;
-            line-height: 1.23;
+            font-size: 13.5px;
+            line-height: 1.32;
             margin-bottom: 2px;
         }}
 
@@ -2297,25 +2297,25 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-packed-section .day-label {{
-            font-size: 23px;
-            margin-bottom: 1px;
+            font-size: 34px;
+            margin-bottom: 3px;
         }}
 
         .triple-packed-section .day-title {{
-            font-size: 17.5px;
-            line-height: 1.14;
-            margin-bottom: 4px;
+            font-size: 27px;
+            line-height: 1.16;
+            margin-bottom: 7px;
         }}
 
         .triple-packed-section .city {{
-            font-size: 9.6px;
-            margin-bottom: 5px;
+            font-size: 12px;
+            margin-bottom: 8px;
         }}
 
         .triple-packed-section .intro {{
-            font-size: 11.3px;
-            line-height: 1.27;
-            margin-bottom: 6px;
+            font-size: 15px;
+            line-height: 1.38;
+            margin-bottom: 9px;
         }}
 
         .triple-packed-section .content-block {{
@@ -2323,15 +2323,15 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .triple-packed-section .section-title {{
-            font-size: 8.9px;
-            margin-top: 5px;
+            font-size: 11px;
+            margin-top: 7px;
             margin-bottom: 2px;
         }}
 
         .triple-packed-section .body-text,
         .triple-packed-section li {{
-            font-size: 10.5px;
-            line-height: 1.22;
+            font-size: 13.5px;
+            line-height: 1.30;
             margin-bottom: 1px;
         }}
 

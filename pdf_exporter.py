@@ -410,6 +410,36 @@ def make_styles():
     }
 
 
+def standardize_day_typography(styles):
+    """Keep day-page font sizes consistent across packed and single-day pages.
+
+    Packed pages may use tighter spacing, but the visible type size should not
+    shrink. This prevents the PDF from feeling like several different design
+    systems inside the same itinerary.
+    """
+    for base_name in [
+        "day_label",
+        "day_title",
+        "city",
+        "intro",
+        "section",
+        "body",
+        "body_bold",
+        "bullet",
+    ]:
+        base_style = styles.get(base_name)
+        if not base_style:
+            continue
+        for suffix in ["compact", "ultra"]:
+            variant = styles.get(f"{base_name}_{suffix}")
+            if variant:
+                variant.fontName = base_style.fontName
+                variant.fontSize = base_style.fontSize
+                variant.leading = base_style.leading
+                variant.textColor = base_style.textColor
+    return styles
+
+
 def add_paragraph(story, text, style, spacer_after=0):
     text = clean_text(text)
     if not text:
@@ -702,7 +732,7 @@ def export_html_to_pdf(html_path, pdf_path):
     apply_pdf_palette(extract_pdf_palette(soup))
     pages = soup.select(".a4-page")
 
-    styles = make_styles()
+    styles = standardize_day_typography(make_styles())
     doc = SimpleDocTemplate(
         str(pdf_path),
         pagesize=A4,
