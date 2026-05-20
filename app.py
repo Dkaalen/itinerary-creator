@@ -672,12 +672,9 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
-        # Suppress minute-only durations (e.g. "5-8 minutes" for Fløibanen ride)
-        is_minute_only = bool(re.match(r"^\d+[\s\u2013\-]+\d+\s*minutes?$", duration.strip(), re.IGNORECASE))
-        if not is_minute_only:
-            duration_label = get_activity_duration_label(row, duration)
-            clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
-            html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
+        duration_label = get_activity_duration_label(row, duration)
+        clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
 
     if meeting_point:
         html_text += f'<div class="body-text"><span class="meta-label">{esc(meeting_label)}:</span> {esc(meeting_point)}</div>'
@@ -3011,7 +3008,15 @@ with st.expander("Step 1 — Paste raw itinerary text", expanded=not bool(st.ses
         key="raw_text_input",
     )
 
-    if st.button("Generate itinerary", type="primary", use_container_width=True):
+    gen_col_agent, gen_col_client = st.columns(2)
+    with gen_col_agent:
+        _generate_clicked = st.button("Generate itinerary — Agent", type="primary", use_container_width=True)
+    with gen_col_client:
+        st.button("Generate itinerary — Client", type="secondary", use_container_width=True,
+                  help="Coming soon — client-facing format. Currently produces the same output as the agent version.",
+                  disabled=True)
+
+    if _generate_clicked:
         if raw_text.strip():
             diagnostics.reset()
             parsed_rows = normalize_itinerary_rows(parse_itinerary(raw_text))
