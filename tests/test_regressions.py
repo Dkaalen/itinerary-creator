@@ -6,6 +6,7 @@ sys.path.insert(0, str(ROOT))
 
 from text_polish import expand_time_with_duration, polish_client_text, polish_hotel_name
 from generator import create_whats_included, create_journey_arc, group_rows_by_day
+from itinerary_parser import extract_duration_from_description
 
 
 def assert_equal(actual, expected, label):
@@ -34,6 +35,32 @@ def test_time_expansion():
         expand_time_with_duration("10:00 AM", "5 hours"),
         "10:00 AM - 3:00 PM",
         "Start time + duration should become a visible time range.",
+    )
+
+    assert_equal(
+        extract_duration_from_description(
+            "Tromsø: Fjord Tour | 9 AM | 5.5 Hrs | What's included?"
+        ),
+        "5.5 hours",
+        "Parser should preserve decimal hour durations before display formatting.",
+    )
+
+    assert_equal(
+        expand_time_with_duration("9:00 AM", "5.5 hours"),
+        "9:00 AM - 2:30 PM",
+        "Decimal hour durations should calculate the correct end time.",
+    )
+
+    assert_equal(
+        expand_time_with_duration("10:00 AM", "1.5 hours"),
+        "10:00 AM - 11:30 AM",
+        "1.5 hours should calculate as 1 hour 30 minutes.",
+    )
+
+    assert_equal(
+        expand_time_with_duration("8:00 PM", "6.5 hours"),
+        "8:00 PM - 2:30 AM",
+        "Decimal durations should cross midnight correctly.",
     )
 
     assert_equal(

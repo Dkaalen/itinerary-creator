@@ -881,7 +881,7 @@ def normalize_duration_text(value):
     # "3 Hrs Overview ..." in the same pipe section. Keep only the actual
     # duration phrase and discard any following supplier description.
     match = re.search(
-        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
         duration,
         flags=re.IGNORECASE,
     )
@@ -904,9 +904,9 @@ def split_time_and_duration(value):
 
     duration = ""
     patterns = [
-        r"\b(Cruise\s+Duration\s+\d+\s*(?:Hr|Hrs|hour|hours))\b",
-        r"\b(Duration\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
-        r"\b(\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        r"\b(Cruise\s+Duration\s+\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
+        r"\b(Duration\s*:?\s*\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
+        r"\b(\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
     ]
 
     for pattern in patterns:
@@ -931,7 +931,7 @@ def extract_duration_from_description(main_text):
     pipe_parts = [clean_space(part) for part in main_text.split("|")]
     for part in pipe_parts[1:4]:
         match = re.search(
-            r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+            r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
             part,
             flags=re.IGNORECASE,
         )
@@ -939,7 +939,7 @@ def extract_duration_from_description(main_text):
             return normalize_duration_text(match.group(1))
 
     match = re.search(
-        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+\s*(?:Hr|Hrs|hour|hours))\b",
+        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:[.,]\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
         main_text,
         flags=re.IGNORECASE,
     )
