@@ -546,7 +546,7 @@ def create_trip_glance(parsed_rows, grouped_days):
         travel_style_parts.append("guided experiences")
 
     if hotel_rows:
-        travel_style_parts.append("arranged accommodation")
+        travel_style_parts.append("comfortable hotel stays")
 
     if travel_style_parts:
         travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
@@ -614,26 +614,8 @@ def describe_city_experience(rows):
     if "food" in text or "dinner" in text or "tasting" in text:
         experiences.append("local food culture")
 
-    hotel_text = " ".join(
-        f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
-        for row in rows
-        if get_row_type(row) == "Hotel"
-    ).lower()
-
-    if any(marker in hotel_text for marker in ["glass igloo", "small glass igloo"]):
-        experiences.append("glass igloo stay")
-
-    if any(marker in hotel_text for marker in ["arctic resort", "kakslauttanen"]):
-        experiences.append("Arctic resort atmosphere")
-
-    if "icehotel" in hotel_text or "ice hotel" in hotel_text:
-        experiences.append("Icehotel stay")
-
-    if "lavvo" in hotel_text:
-        experiences.append("lavvo stay")
-
-    if "treehotel" in hotel_text or "tree hotel" in hotel_text:
-        experiences.append("Treehotel stay")
+    if any(get_row_type(row) == "Hotel" for row in rows):
+        experiences.append("comfortable hotel stay")
 
     if not experiences:
         experiences.append("time to explore at your own pace")
@@ -830,17 +812,17 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 if detail_level == "Elegant concise":
                     return "Enjoy a day trip from Helsinki to Tallinn before returning for your overnight train north."
                 if detail_level == "Rich descriptive":
-                    return "Today, you will cross from Helsinki to Tallinn for a memorable day trip, with time to experience the atmosphere of the historic Old Town before returning to Helsinki for your overnight train north."
+                    return "Cross from Helsinki to Tallinn for a memorable day trip, with time to experience the atmosphere of the historic Old Town before returning to Helsinki for your overnight train north."
                 return (
-                    "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
+                    "Enjoy a day trip from Helsinki to Tallinn, with time to explore "
                     "the Old Town before returning to Helsinki for your overnight train north."
                 )
             if detail_level == "Elegant concise":
                 return "Enjoy a day trip from Helsinki to Tallinn before returning for your onward journey."
             if detail_level == "Rich descriptive":
-                return "Today, you will cross from Helsinki to Tallinn for a memorable day trip, with time to experience the historic Old Town before returning to Helsinki for your onward journey."
+                return "Cross from Helsinki to Tallinn for a memorable day trip, with time to experience the historic Old Town before returning to Helsinki for your onward journey."
             return (
-                "Today, you will enjoy a day trip from Helsinki to Tallinn, with time to explore "
+                "Enjoy a day trip from Helsinki to Tallinn, with time to explore "
                 "the Old Town before returning to Helsinki for your onward journey."
             )
 
