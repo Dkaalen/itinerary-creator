@@ -6,7 +6,8 @@ sys.path.insert(0, str(ROOT))
 
 from text_polish import expand_time_with_duration, polish_client_text, polish_hotel_name, format_duration_display
 from generator import create_whats_included, create_journey_arc, group_rows_by_day, create_day_intro, create_trip_glance
-from itinerary_parser import extract_duration_from_description
+from itinerary_parser import extract_duration_from_description, parse_itinerary
+from normalizer import normalize_itinerary_rows
 
 
 def assert_equal(actual, expected, label):
@@ -91,6 +92,36 @@ def test_time_expansion():
         expand_time_with_duration("10:30 AM / 1:30 PM", "2 hours"),
         "10:30 AM / 1:30 PM",
         "Alternative time options should not be overwritten.",
+    )
+
+
+def test_full_pasted_row_decimal_duration():
+    raw = """
+	Day 9	Activity		04/10/2026								Tromso	\"Tromsø: Fjord Tour of Kvaløya & Sommarøy  | 9 AM | 5.5 Hrs | What's included?
+
+Pick-up/drop-off in central Tromsø
+Knowledgeable, multilingual guide
+Free photographs from the trip
+2-course meal with coffee or tea\"
+"""
+    rows = parse_itinerary(raw)
+    assert_equal(len(rows), 1, "The full pasted activity row should parse as one row.")
+    assert_equal(rows[0].get("time"), "9:00 AM", "Pipe-style activity time should be extracted.")
+    assert_equal(
+        rows[0].get("duration"),
+        "5 hours 30 minutes",
+        "Full pasted rows should preserve decimal duration through parsing.",
+    )
+    normalized_rows = normalize_itinerary_rows(rows)
+    assert_equal(
+        normalized_rows[0].get("display_time"),
+        "9:00 AM - 2:30 PM",
+        "Display normalization should produce the final activity time range.",
+    )
+    assert_equal(
+        normalized_rows[0].get("display_duration"),
+        "5 hours 30 minutes",
+        "Display normalization should preserve clean decimal duration wording.",
     )
 
 
@@ -244,6 +275,7 @@ def test_trip_glance_normal_hotels_are_arranged_accommodation():
 def run_all():
     tests = [
         test_time_expansion,
+        test_full_pasted_row_decimal_duration,
         test_text_polish_regressions,
         test_whats_included_nights_wording,
         test_journey_arc_normal_hotel_not_experience,

@@ -719,8 +719,8 @@ def get_activity_duration_label(row, duration):
 
 def build_activity_block(row):
     title = polish_title(row.get("title", ""))
-    time = row.get("time", "")
-    duration = polish_client_text(row.get("duration", ""))
+    time = row.get("display_time") or row.get("time", "")
+    duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
     meeting_point = polish_client_text(meeting_point)
     end_point = polish_client_text(row.get("end_point", ""))
@@ -1368,13 +1368,16 @@ def get_fallback_activity_inclusions(row):
 
     if "tallin" in full_text or "tallinn" in full_text or title == "Day Trip to Tallinn":
         inclusions = []
+        is_self_guided = bool(re.search(r"\bself[ -]?guided\b", full_text, flags=re.IGNORECASE))
         if "port transfer" in full_text or "helsinki port" in full_text or "hotel pick" in full_text:
             inclusions.append("Helsinki port transfers")
         if "star class" in full_text:
             inclusions.append("Star Class ferry ticket")
         elif "ferry ticket" in full_text or "cruise ticket" in full_text or "day trip to tallinn" in str(title).lower():
             inclusions.append("Helsinki–Tallinn ferry crossing")
-        if "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
+        if is_self_guided and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
+            inclusions.append("Self-guided Old Town experience")
+        elif "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
             inclusions.append("Guided Old Town tour")
         if not inclusions:
             inclusions = ["Helsinki–Tallinn ferry crossing", "Time to explore Tallinn Old Town"]

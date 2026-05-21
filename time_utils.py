@@ -26,7 +26,7 @@ def clean_time_text(value: str) -> str:
 
 def _normalize_decimal(value: str) -> Decimal | None:
     try:
-        return Decimal(str(value).replace(",", "."))
+        return Decimal(str(value).replace(" ", "").replace(",", "."))
     except (InvalidOperation, ValueError):
         return None
 
@@ -58,7 +58,7 @@ def parse_duration_minutes(value: str):
     total = 0
 
     hour_match = re.search(
-        r"\b(\d+(?:[\.,]\d+)?)\s*(?:hours?|hrs?|hr|h)\b",
+        r"\b(\d+(?:\s*[\.,]\s*\d+)?)\s*(?:hours?|hrs?|hr|h)\b",
         text,
         flags=re.IGNORECASE,
     )
