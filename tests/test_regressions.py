@@ -1,15 +1,35 @@
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from text_polish import expand_time_with_duration, polish_client_text, polish_hotel_name, format_duration_display
-from generator import create_whats_included, create_journey_arc, group_rows_by_day, create_day_intro, create_trip_glance
+from text_polish import (
+    expand_time_with_duration,
+    polish_client_text,
+    polish_hotel_name,
+    format_duration_display,
+)
+from generator import (
+    create_whats_included,
+    create_journey_arc,
+    group_rows_by_day,
+    create_day_intro,
+    create_trip_glance,
+)
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
-from image_matcher import select_day_image, scan_image_bank
-from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS, normalize_day_page_layout, is_day_packing_enabled, is_three_day_packing_enabled
+from image_matcher import scan_image_bank, select_day_image
+from layout_policy import (
+    DEFAULT_DAY_PAGE_LAYOUT,
+    DAY_PAGE_LAYOUTS,
+    normalize_day_page_layout,
+    is_day_packing_enabled,
+    is_three_day_packing_enabled,
+)
+from pdf_exporter import calculate_day_image_layout
+from reportlab.lib.units import mm
 
 
 def assert_equal(actual, expected, label):
@@ -45,7 +65,7 @@ def test_time_expansion():
             "Tromsø: Fjord Tour | 9 AM | 5.5 Hrs | What's included?"
         ),
         "5 hours 30 minutes",
-        "Parser should convert decimal hour durations to clean display wording.",
+        "Parser should preserve decimal hour durations before display formatting.",
     )
 
     assert_equal(
@@ -99,7 +119,7 @@ def test_time_expansion():
 
 def test_full_pasted_row_decimal_duration():
     raw = """
-	Day 9	Activity		04/10/2026								Tromso	\"Tromsø: Fjord Tour of Kvaløya & Sommarøy  | 9 AM | 5.5 Hrs | What's included?
+\tDay 9\tActivity\t\t04/10/2026\t\t\t\t\t\t\t\tTromso\t\"Tromsø: Fjord Tour of Kvaløya & Sommarøy  | 9 AM | 5.5 Hrs | What's included?
 
 Pick-up/drop-off in central Tromsø
 Knowledgeable, multilingual guide
@@ -274,35 +294,50 @@ def test_trip_glance_normal_hotels_are_arranged_accommodation():
     )
 
 
+def test_image_bank_matching_is_destination_specific():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        oslo_dir = bank / "Norway" / "Oslo"
+        oslo_dir.mkdir(parents=True)
+        (oslo_dir / "Oslo_Opera_House.jpg").write_bytes(b"fake image for matcher")
 
-def test_image_bank_foundation_oslo_matching():
-    image_bank = ROOT / "image_bank"
-    candidates = scan_image_bank(image_bank)
-    assert candidates, "Image bank scanner should find uploaded image files."
+        candidates = scan_image_bank(bank)
+        assert_equal(len(candidates), 1, "Image bank scanner should find image files by extension.")
 
-    rows = [
-        {
-            "day": "Day 13",
-            "type": "Activity",
-            "effective_type": "Activity",
-            "city": "Oslo",
-            "title": "Oslo City Center Walking Tour",
-            "details": "Guided walking tour near the University of Oslo, Parliament, City Hall and central landmarks.",
-        }
-    ]
+        oslo_rows = [
+            {
+                "day": "Day 13",
+                "type": "Activity",
+                "effective_type": "Activity",
+                "city": "Oslo",
+                "title": "Oslo City Center Walking Tour",
+                "details": "Guided walking tour near the University of Oslo, Parliament and City Hall.",
+            }
+        ]
+        oslo_match = select_day_image("Day 13", oslo_rows, bank)
+        if not oslo_match:
+            raise AssertionError("Oslo day should find a suitable Oslo image.")
+        assert_contains(
+            str(oslo_match.get("path", "")).replace("\\", "/").lower(),
+            "norway/oslo",
+            "Oslo day image should come from the Oslo destination folder.",
+        )
 
-    match = select_day_image("Day 13", rows, image_bank)
-    if not match:
-        raise AssertionError("Oslo city day should find a suitable Oslo image.")
-
-    normalized_path = str(match.get("path", "")).replace("\\", "/").lower()
-    assert_contains(
-        normalized_path,
-        "image_bank/norway/oslo",
-        "Oslo day image should come from image_bank/Norway/Oslo.",
-    )
-    if match.get("score", 0) <= 0:
-        raise AssertionError(f"Image match should have a positive score. Actual match: {match!r}")
+        bergen_rows = [
+            {
+                "day": "Day 10",
+                "type": "Activity",
+                "effective_type": "Activity",
+                "city": "Bergen",
+                "title": "Bergen Walking Tour",
+                "details": "Harbour and city walk.",
+            }
+        ]
+        assert_equal(
+            select_day_image("Day 10", bergen_rows, bank),
+            None,
+            "Wrong-destination images should not be used as generic fallbacks.",
+        )
 
 
 def test_image_bank_missing_folder_is_safe():
@@ -314,7 +349,6 @@ def test_image_bank_missing_folder_is_safe():
     assert_equal(match, None, "Missing image bank should fail safely without an image.")
 
 
-
 def test_layout_policy_one_day_per_page():
     assert_equal(
         DEFAULT_DAY_PAGE_LAYOUT,
@@ -324,7 +358,7 @@ def test_layout_policy_one_day_per_page():
     assert_equal(
         DAY_PAGE_LAYOUTS,
         ["One day per page"],
-        "Only one-day-per-page layout should be exposed while image placement is being prepared.",
+        "Only one-day-per-page layout should be exposed while image placement is active.",
     )
     assert_equal(
         normalize_day_page_layout("Smart compact pages"),
@@ -348,6 +382,42 @@ def test_layout_policy_one_day_per_page():
     )
 
 
+def test_pdf_day_image_layout_rules():
+    content_height = 720
+    minimum = 40 * mm
+
+    light_day_layout = calculate_day_image_layout(
+        used_height=120,
+        content_height=content_height,
+        gap=15,
+        half_offset=7.5,
+        min_height=minimum,
+    )
+    if not light_day_layout:
+        raise AssertionError("Light days should have room for a lower-half image.")
+    spacer, image_height = light_day_layout
+    assert_equal(
+        round(120 + spacer, 1),
+        367.5,
+        "Image should not start above the halfway point plus offset.",
+    )
+    if image_height < minimum:
+        raise AssertionError("Image height should respect the minimum height threshold.")
+
+    heavy_day_layout = calculate_day_image_layout(
+        used_height=650,
+        content_height=content_height,
+        gap=15,
+        half_offset=7.5,
+        min_height=minimum,
+    )
+    assert_equal(
+        heavy_day_layout,
+        None,
+        "Text-heavy days should skip images when there is not enough usable space.",
+    )
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -357,9 +427,10 @@ def run_all():
         test_journey_arc_normal_hotel_not_experience,
         test_activity_intro_variation_not_templated,
         test_trip_glance_normal_hotels_are_arranged_accommodation,
-        test_image_bank_foundation_oslo_matching,
+        test_image_bank_matching_is_destination_specific,
         test_image_bank_missing_folder_is_safe,
         test_layout_policy_one_day_per_page,
+        test_pdf_day_image_layout_rules,
     ]
 
     for test in tests:

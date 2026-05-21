@@ -332,25 +332,10 @@ def expand_single_start_time_with_duration(time_value: str, duration_value: str)
 
 
 def normalize_time_range_fields(row: dict) -> dict:
-    """Build final activity display timing before rendering/exporting.
-
-    The raw parser may deliver supplier-style duration text, while edit/session
-    state may deliver already-polished duration text. This final pass creates
-    display fields that the HTML and PDF layers can trust.
-    """
+    """Normalize activity time display before rendering/exporting."""
     if get_row_type(row) != "Activity":
         return row
-
-    raw_time = row.get("time", "")
-    raw_duration = row.get("duration", "")
-    display_duration = format_duration_display(raw_duration)
-    display_time = expand_single_start_time_with_duration(raw_time, display_duration or raw_duration)
-
-    row["duration"] = display_duration or raw_duration
-    row["display_duration"] = row["duration"]
-    row["display_time"] = display_time
-    if display_time:
-        row["time"] = display_time
+    row["time"] = expand_single_start_time_with_duration(row.get("time", ""), row.get("duration", ""))
     return row
 
 def normalize_transport_title(row: dict) -> dict:
@@ -419,6 +404,11 @@ def normalize_row(row: dict) -> dict:
         title = normalize_activity_title(row)
         row["title"] = title
         row["original_title"] = row.get("original_title") or title
+        if row.get("time"):
+            row["display_time"] = expand_time_with_duration(row.get("time", ""), row.get("duration", ""))
+        else:
+            row["display_time"] = ""
+        row["display_duration"] = format_duration_display(row.get("duration", "")) if row.get("duration") else ""
 
     if row_type in TRANSPORT_TYPES or row_type == "Transfer":
         row = normalize_transport_title(row)

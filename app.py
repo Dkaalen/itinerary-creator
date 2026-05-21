@@ -9,8 +9,6 @@ import diagnostics
 from itinerary_parser import parse_itinerary, normalize_time_text
 from normalizer import normalize_itinerary_rows
 from pdf_exporter import export_html_to_pdf
-from image_matcher import select_day_images, format_match_for_debug
-from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS as SUPPORTED_DAY_PAGE_LAYOUTS, normalize_day_page_layout
 from text_polish import (
     polish_client_text,
     polish_hotel_name,
@@ -40,9 +38,17 @@ from generator import (
     get_transfer_travel_title,
     is_self_arranged,
 )
+from image_matcher import select_day_image, select_day_images, format_match_for_debug
+from layout_policy import (
+    DEFAULT_DAY_PAGE_LAYOUT,
+    DAY_PAGE_LAYOUTS,
+    normalize_day_page_layout,
+    is_day_packing_enabled,
+    is_three_day_packing_enabled as policy_is_three_day_packing_enabled,
+)
 
 
-APP_VERSION = "2026-05-21 v36b-one-day-per-page-foundation"
+APP_VERSION = "2026-05-21 v36c-automatic-day-images"
 
 
 st.set_page_config(
@@ -81,7 +87,7 @@ DETAIL_LEVELS = [
     "Rich descriptive",
 ]
 
-DAY_PAGE_LAYOUTS = list(SUPPORTED_DAY_PAGE_LAYOUTS)
+# Day-page layout options are centralized in layout_policy.py.
 
 
 DEFAULT_IMPORTANT_TRAVEL_NOTES = [
@@ -445,21 +451,16 @@ def get_detail_level_name(output_edits=None):
 
 
 def get_day_page_layout_name(output_edits=None):
-    requested = (output_edits or {}).get("day_page_layout") or st.session_state.get(
-        "day_page_layout",
-        DEFAULT_DAY_PAGE_LAYOUT,
-    )
-    return normalize_day_page_layout(requested)
+    name = (output_edits or {}).get("day_page_layout") or st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
+    return normalize_day_page_layout(name)
 
 
 def is_smart_day_packing_enabled(output_edits=None):
-    # v36 visual layout foundation: each day is its own A4 design unit.
-    return False
+    return is_day_packing_enabled(get_day_page_layout_name(output_edits))
 
 
 def is_three_day_packing_enabled(output_edits=None):
-    # v36 visual layout foundation: three-day packing is disabled.
-    return False
+    return policy_is_three_day_packing_enabled(get_day_page_layout_name(output_edits))
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
     """Refresh generated intros/descriptions when detail level changes.
@@ -745,7 +746,7 @@ def build_activity_block(row):
     html_text += f'<div class="section-title">{esc(get_time_period(time))}</div>'
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
-    time_display = display_time_with_duration(time, duration)
+    time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
     if time_display:
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time_display)}</div>'
 
@@ -1218,6 +1219,29 @@ def can_pack_three_days(day_rows_triple, output_edits=None):
     return True
 
 
+def get_image_bank_path():
+    return Path(__file__).parent / "image_bank"
+
+
+def render_day_image_slot(day, rows):
+    """Return a hidden day-image marker for PDF image placement.
+
+    The marker is invisible in the HTML preview for now. The PDF exporter reads
+    the matched path and places the image only if enough space remains on the
+    one-day A4 page.
+    """
+    match = select_day_image(day, rows, get_image_bank_path())
+    if not match:
+        return ""
+
+    return (
+        f'<div class="day-image-slot" '
+        f'data-image-path="{esc(match.get("path", ""))}" '
+        f'data-image-score="{esc(match.get("score", ""))}" '
+        f'data-image-reason="{esc(match.get("reason", ""))}"></div>'
+    )
+
+
 def render_day_section(day, rows, output_edits=None, packed=False, triple=False):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     day_title = day_edits.get("title") or create_day_title(rows)
@@ -1250,6 +1274,7 @@ def render_day_page(day, rows, output_edits=None):
     return f'''
         <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
             {render_day_section(day, rows, output_edits, packed=False)}
+            {render_day_image_slot(day, rows)}
         </div>
     '''
 
@@ -1274,9 +1299,8 @@ def render_packed_day_page(day_rows_pairs, output_edits=None):
 def render_day_pages(grouped_days, output_edits=None):
     """Render exactly one itinerary day per A4 page.
 
-    v36 prepares the itinerary for image placement below each day. Keeping one
-    day per page makes available-space detection predictable and prevents old
-    compact-packing logic from changing font rhythm or visual hierarchy.
+    v36 image placement depends on predictable one-day pages so the PDF exporter
+    can place a full-width image below the day text when enough space remains.
     """
     html_text = ""
     for day, rows in grouped_days.items():
@@ -1339,16 +1363,13 @@ def get_fallback_activity_inclusions(row):
 
     if "tallin" in full_text or "tallinn" in full_text or title == "Day Trip to Tallinn":
         inclusions = []
-        is_self_guided = bool(re.search(r"\bself[ -]?guided\b", full_text, flags=re.IGNORECASE))
         if "port transfer" in full_text or "helsinki port" in full_text or "hotel pick" in full_text:
             inclusions.append("Helsinki port transfers")
         if "star class" in full_text:
             inclusions.append("Star Class ferry ticket")
         elif "ferry ticket" in full_text or "cruise ticket" in full_text or "day trip to tallinn" in str(title).lower():
             inclusions.append("Helsinki–Tallinn ferry crossing")
-        if is_self_guided and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
-            inclusions.append("Self-guided Old Town experience")
-        elif "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
+        if "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
             inclusions.append("Guided Old Town tour")
         if not inclusions:
             inclusions = ["Helsinki–Tallinn ferry crossing", "Time to explore Tallinn Old Town"]
@@ -2757,7 +2778,7 @@ def initialise_state():
         "parser_diagnostics": [],
         "pdf_status": "Not created",
         "detail_level": "Rich descriptive",
-        "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
+        "day_page_layout": "Smart compact pages",
     }
 
     for key, value in defaults.items():
@@ -2888,15 +2909,15 @@ with st.sidebar:
         "Day page layout",
         DAY_PAGE_LAYOUTS,
         index=DAY_PAGE_LAYOUTS.index(current_day_layout),
-        help="Premium visual layout foundation: each itinerary day is kept on its own A4 page.",
+        help="Keeps each itinerary day on its own A4 page, preparing the layout for day imagery.",
     )
     previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     st.session_state.day_page_layout = selected_day_layout
-    st.caption("Premium visual layout: one itinerary day per A4 page. Image placement will build on this structure in the next phase.")
+    st.caption("Premium visual layout: one itinerary day per A4 page.")
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
-        st.session_state.output_edits["day_page_layout"] = get_day_page_layout_name({"day_page_layout": selected_day_layout})
+        st.session_state.output_edits["day_page_layout"] = selected_day_layout
         st.session_state.output_edits["detail_level"] = "Rich descriptive"
         if previous_day_layout != selected_day_layout:
             st.session_state.pdf_bytes = None
@@ -2993,20 +3014,13 @@ if show_debug and st.session_state.parsed_rows:
     with st.expander("Debug tools", expanded=False):
         st.dataframe(st.session_state.parsed_rows, use_container_width=True)
         st.write("Day grouping")
-        grouped_debug_days = group_rows_by_day(st.session_state.parsed_rows)
-        for day, rows in grouped_debug_days.items():
+        for day, rows in group_rows_by_day(st.session_state.parsed_rows).items():
             st.write(f"{day}: {len(rows)} rows")
             for row in rows:
                 st.write(
                     f"- {row.get('type')} / {row.get('effective_type')}: "
                     f"{row.get('title')} ({row.get('city')})"
                 )
-
-        st.write("Image bank matches")
-        image_bank_path = Path(__file__).parent / "image_bank"
-        image_matches = select_day_images(grouped_debug_days, image_bank_path)
-        for day, match in image_matches.items():
-            st.write(f"{day}: {format_match_for_debug(match)}")
 
 if st.session_state.itinerary_html:
     with st.expander("Step 2 — Preview itinerary", expanded=False):

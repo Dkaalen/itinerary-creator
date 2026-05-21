@@ -105,7 +105,7 @@ def _polish_text_fragment(text: str) -> str:
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
     text = re.sub(r"\s+([,.;:])", r"\1", text)
-    text = re.sub(r"(?<!\d)([,.;])(?!\d)(?=\S)", r"\1 ", text)
+    text = re.sub(r"([,.;])(?=\S)", r"\1 ", text)
     text = re.sub(r"(?<!\d):(?!\d)(?=\S)", ": ", text)
     text = re.sub(r"\b(\d{1,2}):\s+(\d{2})\s*([AP]M)\b", r"\1:\2 \3", text, flags=re.IGNORECASE)
     return clean_space(text)

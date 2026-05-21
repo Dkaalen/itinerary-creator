@@ -1,11 +1,7 @@
 """
 image_matcher.py
 
-Image-bank foundation for itinerary day imagery.
-
-This module intentionally does not place images in the PDF yet. It only scans the
-image bank and selects the best candidate for each day, so matching can be tested
-and debugged before layout work begins.
+Image-bank matching for itinerary day imagery.
 
 Expected folder shape:
     image_bank/
@@ -13,6 +9,10 @@ Expected folder shape:
             Oslo/
                 Oslo_Opera_House.jpg
                 Oslo_Parliament_City_Centre.jpg
+
+The matcher is intentionally conservative: if there is no image for the day's
+own destination/city, it returns None. A missing image is better than a wrong
+image in a premium itinerary.
 """
 
 from __future__ import annotations
@@ -68,8 +68,6 @@ class ImageCandidate:
 
 
 def normalize_keyword(value: str) -> str:
-    """Normalize text for matching while keeping Nordic place names matchable."""
-
     text = str(value or "").strip().lower()
     text = text.replace("ø", "o").replace("æ", "ae").replace("å", "a")
     text = text.replace("ä", "a").replace("ö", "o").replace("ü", "u")
@@ -83,9 +81,8 @@ def tokenize(value: str) -> set[str]:
     text = normalize_keyword(value)
     if not text:
         return set()
-    tokens = set(text.split())
-    # Preserve simple joined forms for themes such as "old town" and "northern lights".
     words = text.split()
+    tokens = set(words)
     for index in range(len(words) - 1):
         tokens.add(words[index] + words[index + 1])
     return tokens
@@ -97,10 +94,11 @@ def city_variants(value: str) -> set[str]:
         return set()
     variants = {key}
     for original, aliases in CITY_ALIASES.items():
+        normalized_original = normalize_keyword(original)
         normalized_aliases = {normalize_keyword(alias) for alias in aliases}
-        if key == normalize_keyword(original) or key in normalized_aliases:
+        if key == normalized_original or key in normalized_aliases:
+            variants.add(normalized_original)
             variants.update(normalized_aliases)
-            variants.add(normalize_keyword(original))
     return {variant for variant in variants if variant}
 
 
@@ -116,7 +114,6 @@ def infer_themes(tokens: set[str]) -> set[str]:
 def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> ImageCandidate:
     base = Path(image_bank_path)
     path = Path(image_path)
-
     try:
         relative = path.relative_to(base)
     except ValueError:
@@ -126,7 +123,6 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
     country = parts[0] if len(parts) >= 3 else ""
     city = parts[1] if len(parts) >= 3 else (parts[0] if len(parts) >= 2 else "")
     filename = path.stem
-
     token_source = " ".join([country, city, filename.replace("_", " ")])
     tokens = tokenize(token_source)
     themes = infer_themes(tokens)
@@ -145,23 +141,19 @@ def scan_image_bank(image_bank_path: Path | str = "image_bank") -> list[ImageCan
     base = Path(image_bank_path)
     if not base.exists() or not base.is_dir():
         return []
-
     candidates = []
     for path in sorted(base.rglob("*")):
         if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS:
             candidates.append(extract_image_metadata(path, base))
-
     return candidates
 
 
 def build_day_context(day: str, rows: list[dict]) -> dict:
     city = ""
     parts = [day]
-
     for row in rows or []:
         if not city and str(row.get("city", "")).strip():
             city = str(row.get("city", "")).strip()
-
         parts.extend(
             [
                 str(row.get("city", "") or ""),
@@ -172,11 +164,9 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
                 " ".join(row.get("includes", []) or []),
             ]
         )
-
     text = " ".join(parts)
     tokens = tokenize(text)
     themes = infer_themes(tokens)
-
     return {
         "day": day,
         "city": city,
@@ -190,7 +180,6 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
 def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
     score = 0
     reasons = []
-
     candidate_tokens = set(candidate.tokens)
     candidate_themes = set(candidate.themes)
     day_tokens = set(day_context.get("tokens", set()))
@@ -200,11 +189,14 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     candidate_city_variants = city_variants(candidate.city)
     filename_city_variants = city_variants(candidate.filename)
 
-    if day_city_variants and candidate_city_variants & day_city_variants:
-        score += 60
-        reasons.append("city folder match")
+    # Hard destination rule: no image for this destination means no image.
+    if not day_city_variants or not (candidate_city_variants & day_city_variants):
+        return 0, ["no destination match"]
 
-    if day_city_variants and filename_city_variants & day_city_variants:
+    score += 60
+    reasons.append("city folder match")
+
+    if filename_city_variants & day_city_variants:
         score += 20
         reasons.append("city filename match")
 
@@ -218,11 +210,6 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
         score += min(20, 4 * len(token_matches))
         reasons.append("keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
 
-    # Avoid wrong-city images beating weaker correct-city matches.
-    if day_city_variants and candidate_city_variants and not (candidate_city_variants & day_city_variants):
-        score -= 50
-        reasons.append("different city penalty")
-
     return score, reasons
 
 
@@ -233,34 +220,27 @@ def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "
 
     context = build_day_context(day, rows)
     best = None
-
     for candidate in candidates:
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
             continue
-
         payload = {
             "day": day,
             "path": candidate.path,
             "score": score,
-            "reason": "; ".join(reasons) if reasons else "keyword match",
+            "reason": "; ".join(reasons) if reasons else "destination match",
             "city": candidate.city,
             "country": candidate.country,
             "filename": candidate.filename,
             "themes": list(candidate.themes),
         }
-
         if best is None or (payload["score"], payload["filename"]) > (best["score"], best["filename"]):
             best = payload
-
     return best
 
 
 def select_day_images(grouped_days: dict, image_bank_path: Path | str = "image_bank") -> dict:
-    return {
-        day: select_day_image(day, rows, image_bank_path)
-        for day, rows in (grouped_days or {}).items()
-    }
+    return {day: select_day_image(day, rows, image_bank_path) for day, rows in (grouped_days or {}).items()}
 
 
 def format_match_for_debug(match: dict | None) -> str:

@@ -2,9 +2,16 @@ from pathlib import Path
 import json
 import html as html_lib
 import re
+import tempfile
+
 
 from bs4 import BeautifulSoup
 from text_polish import expand_time_with_duration
+try:
+    from PIL import Image as PILImage, ImageOps
+except Exception:  # pragma: no cover - export safely skips images if Pillow is unavailable
+    PILImage = None
+    ImageOps = None
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
@@ -18,6 +25,7 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     KeepTogether,
+    Image as RLImage,
 )
 from reportlab.platypus.doctemplate import LayoutError
 
@@ -28,6 +36,10 @@ BODY = colors.HexColor("#2f2f2f")
 MUTED = colors.HexColor("#7b746c")
 LINE = colors.HexColor("#d8cec2")
 CARD = colors.Color(1, 1, 1, alpha=0.35)
+
+PDF_IMAGE_GAP = 15  # approximately 20 CSS pixels
+PDF_IMAGE_HALF_OFFSET = 7.5  # approximately 10 CSS pixels
+PDF_MIN_IMAGE_HEIGHT = 40 * mm
 
 
 DEFAULT_PDF_COLORS = {
@@ -521,6 +533,108 @@ def make_table(data, widths, styles):
     return table
 
 
+
+def story_height(flowables, available_width):
+    """Conservative height estimate for one A4 page story fragment."""
+    total = 0
+    for flowable in flowables:
+        try:
+            _, height = flowable.wrap(available_width, 10_000)
+        except Exception:
+            height = 0
+        total += getattr(flowable, "spaceBefore", 0) or 0
+        total += height or 0
+        total += getattr(flowable, "spaceAfter", 0) or 0
+    return total
+
+
+def resolve_image_path(raw_path, html_path):
+    if not raw_path:
+        return None
+    path = Path(str(raw_path))
+    if not path.is_absolute():
+        path = (Path(html_path).parent / path).resolve()
+    if path.exists() and path.is_file():
+        return path
+    return None
+
+
+def calculate_day_image_layout(used_height, content_height, gap=PDF_IMAGE_GAP, half_offset=PDF_IMAGE_HALF_OFFSET, min_height=PDF_MIN_IMAGE_HEIGHT):
+    """Return spacer/image height for lower-half day imagery, or None.
+
+    The top of the image may never sit above the lower-half threshold. If the
+    text ends lower than that threshold, the normal text gap controls placement.
+    """
+    image_top = max(float(used_height) + float(gap), (float(content_height) / 2.0) + float(half_offset))
+    image_height = float(content_height) - image_top
+    if image_height < float(min_height):
+        return None
+    spacer_height = max(0, image_top - float(used_height))
+    return spacer_height, image_height
+
+
+def make_cover_cropped_image(source_path, target_width, target_height, temp_dir):
+    """Create a temporary cover-cropped image matching the PDF box ratio."""
+    if PILImage is None or ImageOps is None:
+        return None
+
+    try:
+        with PILImage.open(source_path) as image:
+            image = ImageOps.exif_transpose(image)
+            if image.mode not in {"RGB", "L"}:
+                image = image.convert("RGB")
+
+            source_width, source_height = image.size
+            if source_width <= 0 or source_height <= 0 or target_width <= 0 or target_height <= 0:
+                return None
+
+            target_ratio = float(target_width) / float(target_height)
+            source_ratio = float(source_width) / float(source_height)
+
+            if source_ratio > target_ratio:
+                # Source is wider than target: crop the sides.
+                crop_width = int(source_height * target_ratio)
+                left = max(0, int((source_width - crop_width) / 2))
+                box = (left, 0, left + crop_width, source_height)
+            else:
+                # Source is taller than target: crop top/bottom evenly.
+                crop_height = int(source_width / target_ratio)
+                top = max(0, int((source_height - crop_height) / 2))
+                box = (0, top, source_width, top + crop_height)
+
+            image = image.crop(box)
+            temp_path = Path(temp_dir) / f"day_image_{abs(hash(str(source_path))) % 10_000_000}.jpg"
+            image.save(temp_path, format="JPEG", quality=88, optimize=True)
+            return temp_path
+    except Exception:
+        return None
+
+
+def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_width, available_height):
+    """Append a lower-half full-width day image when a confident match exists."""
+    slot = page.select_one(".day-image-slot")
+    if not slot:
+        return
+
+    image_path = resolve_image_path(slot.get("data-image-path"), html_path)
+    if not image_path:
+        return
+
+    used_height = story_height(page_story, available_width)
+    layout = calculate_day_image_layout(used_height, available_height)
+    if not layout:
+        return
+
+    spacer_height, image_height = layout
+    cropped_path = make_cover_cropped_image(image_path, available_width, image_height, temp_dir)
+    if not cropped_path:
+        return
+
+    if spacer_height > 0:
+        page_story.append(Spacer(1, spacer_height))
+    page_story.append(RLImage(str(cropped_path), width=available_width, height=image_height))
+
+
 def render_cover_page(page, story, styles):
     story.append(Spacer(1, 95 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
@@ -655,7 +769,7 @@ def render_day_section_pdf(section, story, styles):
     render_content_blocks(section, story, styles, compact=compact, ultra=ultra)
 
 
-def render_general_page(page, story, styles):
+def render_general_page(page, story, styles, html_path=None, temp_dir=None, available_width=None, available_height=None):
     # Packed day pages contain one or two explicit day-section elements inside a
     # single A4 page. Render each section in order and keep the PDF page count
     # aligned with the HTML A4 pages.
@@ -665,6 +779,8 @@ def render_general_page(page, story, styles):
             if index > 0:
                 add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))
             render_day_section_pdf(section, story, styles)
+        if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
+            add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height)
         return
 
     # Header blocks first
@@ -684,6 +800,9 @@ def render_general_page(page, story, styles):
     # For simple list pages, final-page-title is followed by a direct UL.
     for ul in page.find_all("ul", recursive=False):
         add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
+
+    if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
+        add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height)
 
 def export_html_to_pdf(html_path, pdf_path):
     """
@@ -717,22 +836,31 @@ def export_html_to_pdf(html_path, pdf_path):
 
     story = []
 
-    for index, page in enumerate(pages):
-        classes = page.get("class") or []
+    with tempfile.TemporaryDirectory(prefix="itinerary_day_images_") as image_temp_dir:
+        for index, page in enumerate(pages):
+            classes = page.get("class") or []
 
-        if "cover-page" in classes:
-            render_cover_page(page, story, styles)
-        elif page.select_one(".glance-card") or page.select_one(".journey-arc"):
-            render_glance_page(page, story, styles)
-        else:
-            render_general_page(page, story, styles)
+            if "cover-page" in classes:
+                render_cover_page(page, story, styles)
+            elif page.select_one(".glance-card") or page.select_one(".journey-arc"):
+                render_glance_page(page, story, styles)
+            else:
+                render_general_page(
+                    page,
+                    story,
+                    styles,
+                    html_path=html_path,
+                    temp_dir=image_temp_dir,
+                    available_width=doc.width,
+                    available_height=doc.height,
+                )
 
-        if index < len(pages) - 1:
-            story.append(PageBreak())
+            if index < len(pages) - 1:
+                story.append(PageBreak())
 
-    if not story:
-        story.append(Paragraph("Itinerary preview", styles["page_title"]))
+        if not story:
+            story.append(Paragraph("Itinerary preview", styles["page_title"]))
 
-    doc.build(story, onFirstPage=page_background, onLaterPages=page_background)
+        doc.build(story, onFirstPage=page_background, onLaterPages=page_background)
 
     return pdf_path
