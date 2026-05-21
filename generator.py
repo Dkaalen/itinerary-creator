@@ -250,26 +250,13 @@ def has_norway_in_a_nutshell(rows):
     return "norway in a nutshell" in text
 
 
-def get_unique_stay_experience(rows):
+def has_glass_igloo_or_arctic_resort(rows):
     hotel_text = " ".join(
         f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
         for row in rows
         if get_row_type(row) == "Hotel"
     ).lower()
-
-    if any(marker in hotel_text for marker in ["glass igloo", "igloo"]):
-        return "Glass igloo stay, Arctic resort atmosphere and remote Lapland scenery"
-    if "lavvo" in hotel_text:
-        return "Lavvo stay and Arctic wilderness atmosphere"
-    if any(marker in hotel_text for marker in ["icehotel", "ice hotel"]):
-        return "Icehotel stay and Arctic design experience"
-    if any(marker in hotel_text for marker in ["arctic resort", "kakslauttanen"]):
-        return "Arctic resort stay and remote Lapland scenery"
-    return ""
-
-
-def has_glass_igloo_or_arctic_resort(rows):
-    return bool(get_unique_stay_experience(rows))
+    return any(marker in hotel_text for marker in ["glass igloo", "kakslauttanen", "arctic resort"])
 
 
 def get_unique_cities(parsed_rows):
@@ -592,18 +579,17 @@ def describe_city_experience(rows):
     if "bergen" in cities and "Hotel" in row_types and not any(get_row_type(row) == "Activity" for row in rows):
         return "Arrival in Bergen, overnight stay before the Norway in a Nutshell route"
 
-    unique_stay = get_unique_stay_experience(rows)
-    if unique_stay:
-        return unique_stay
+    if has_glass_igloo_or_arctic_resort(rows):
+        return "Arctic resort stay, glass igloo experience, remote Lapland scenery"
 
     if has_norway_in_a_nutshell(rows):
         return "Norway in a Nutshell route, scenic rail and fjord landscapes"
 
     if row_types == {"Hotel"}:
-        return "Overnight stay"
+        return "Overnight stay and comfortable accommodation"
 
     if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
-        return "Arrival and overnight stay"
+        return "Arrival, overnight stay and comfortable accommodation"
 
     experiences = []
 
@@ -628,9 +614,26 @@ def describe_city_experience(rows):
     if "food" in text or "dinner" in text or "tasting" in text:
         experiences.append("local food culture")
 
-    unique_stay = get_unique_stay_experience(rows)
-    if unique_stay:
-        experiences.append(unique_stay)
+    hotel_text = " ".join(
+        f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
+        for row in rows
+        if get_row_type(row) == "Hotel"
+    ).lower()
+
+    if any(marker in hotel_text for marker in ["glass igloo", "small glass igloo"]):
+        experiences.append("glass igloo stay")
+
+    if any(marker in hotel_text for marker in ["arctic resort", "kakslauttanen"]):
+        experiences.append("Arctic resort atmosphere")
+
+    if "icehotel" in hotel_text or "ice hotel" in hotel_text:
+        experiences.append("Icehotel stay")
+
+    if "lavvo" in hotel_text:
+        experiences.append("lavvo stay")
+
+    if "treehotel" in hotel_text or "tree hotel" in hotel_text:
+        experiences.append("Treehotel stay")
 
     if not experiences:
         experiences.append("time to explore at your own pace")
@@ -760,23 +763,6 @@ def create_day_title(day_rows):
 
     return "Day at leisure"
 
-def get_intro_variant_index(day_rows, variant_count=5):
-    if not day_rows or variant_count <= 0:
-        return 0
-    day_number = get_day_number(day_rows[0].get("day", ""))
-    return day_number % variant_count
-
-
-def build_activity_day_intro(activity_title, city_text, day_rows):
-    variants = [
-        f"The day is shaped around {activity_title} in {city_text}, with the remaining time kept flexible so the pace stays relaxed.",
-        f"A planned highlight brings you into {activity_title} in {city_text}, while the rest of the day remains easy to shape around your own pace.",
-        f"{activity_title} gives the day a clear focus in {city_text}, balanced with open time before or after the experience.",
-        f"Your main experience today is {activity_title}, offering a well-paced way to enjoy {city_text} without overfilling the schedule.",
-        f"This day includes {activity_title} in {city_text}, with the surrounding schedule kept simple and comfortable.",
-    ]
-    return variants[get_intro_variant_index(day_rows, len(variants))]
-
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a client-facing day intro with adjustable detail level.
 
@@ -862,9 +848,9 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"Enjoy {activity_title} in {city_text}, with the rest of the day at your own pace."
             if detail_level == "Rich descriptive":
-                return build_activity_day_intro(activity_title, city_text, day_rows)
+                return f"Today, you will enjoy {activity_title} in {city_text}, adding a meaningful experience to your stay while still leaving space to enjoy the destination at your own pace."
             return (
-                f"{activity_title} is the main planned experience in {city_text}. The rest of the day "
+                f"Today, you will enjoy {activity_title} in {city_text}. The rest of the day "
                 f"can be shaped around your own pace, interests, and time at leisure."
             )
 
@@ -980,7 +966,8 @@ def create_whats_included(parsed_rows, grouped_days):
     nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
-        add_unique(included, f"{nights} nights as specified")
+        night_word = "night" if nights == 1 else "nights"
+        add_unique(included, f"{nights} {night_word} as specified")
         add_unique(included, "Accommodation as listed in the itinerary")
 
     if any("breakfast" in row.get("details", "").lower() or "brekafast" in row.get("details", "").lower() for row in hotel_rows):
