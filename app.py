@@ -9,6 +9,7 @@ import diagnostics
 from itinerary_parser import parse_itinerary, normalize_time_text
 from normalizer import normalize_itinerary_rows
 from pdf_exporter import export_html_to_pdf
+from image_matcher import select_day_images, format_match_for_debug
 from text_polish import (
     polish_client_text,
     polish_hotel_name,
@@ -40,7 +41,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-21 v35a-display-foundation"
+APP_VERSION = "2026-05-21 v36a-image-bank-foundation"
 
 
 st.set_page_config(
@@ -3027,13 +3028,20 @@ if show_debug and st.session_state.parsed_rows:
     with st.expander("Debug tools", expanded=False):
         st.dataframe(st.session_state.parsed_rows, use_container_width=True)
         st.write("Day grouping")
-        for day, rows in group_rows_by_day(st.session_state.parsed_rows).items():
+        grouped_debug_days = group_rows_by_day(st.session_state.parsed_rows)
+        for day, rows in grouped_debug_days.items():
             st.write(f"{day}: {len(rows)} rows")
             for row in rows:
                 st.write(
                     f"- {row.get('type')} / {row.get('effective_type')}: "
                     f"{row.get('title')} ({row.get('city')})"
                 )
+
+        st.write("Image bank matches")
+        image_bank_path = Path(__file__).parent / "image_bank"
+        image_matches = select_day_images(grouped_debug_days, image_bank_path)
+        for day, match in image_matches.items():
+            st.write(f"{day}: {format_match_for_debug(match)}")
 
 if st.session_state.itinerary_html:
     with st.expander("Step 2 — Preview itinerary", expanded=False):

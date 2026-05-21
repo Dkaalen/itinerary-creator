@@ -8,6 +8,7 @@ from text_polish import expand_time_with_duration, polish_client_text, polish_ho
 from generator import create_whats_included, create_journey_arc, group_rows_by_day, create_day_intro, create_trip_glance
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
+from image_matcher import select_day_image, scan_image_bank
 
 
 def assert_equal(actual, expected, label):
@@ -272,6 +273,46 @@ def test_trip_glance_normal_hotels_are_arranged_accommodation():
     )
 
 
+
+def test_image_bank_foundation_oslo_matching():
+    image_bank = ROOT / "image_bank"
+    candidates = scan_image_bank(image_bank)
+    assert candidates, "Image bank scanner should find uploaded image files."
+
+    rows = [
+        {
+            "day": "Day 13",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "city": "Oslo",
+            "title": "Oslo City Center Walking Tour",
+            "details": "Guided walking tour near the University of Oslo, Parliament, City Hall and central landmarks.",
+        }
+    ]
+
+    match = select_day_image("Day 13", rows, image_bank)
+    if not match:
+        raise AssertionError("Oslo city day should find a suitable Oslo image.")
+
+    normalized_path = str(match.get("path", "")).replace("\\", "/").lower()
+    assert_contains(
+        normalized_path,
+        "image_bank/norway/oslo",
+        "Oslo day image should come from image_bank/Norway/Oslo.",
+    )
+    if match.get("score", 0) <= 0:
+        raise AssertionError(f"Image match should have a positive score. Actual match: {match!r}")
+
+
+def test_image_bank_missing_folder_is_safe():
+    match = select_day_image(
+        "Day 1",
+        [{"city": "Oslo", "title": "Oslo City Center Walking Tour", "details": ""}],
+        ROOT / "image_bank_missing",
+    )
+    assert_equal(match, None, "Missing image bank should fail safely without an image.")
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -281,6 +322,8 @@ def run_all():
         test_journey_arc_normal_hotel_not_experience,
         test_activity_intro_variation_not_templated,
         test_trip_glance_normal_hotels_are_arranged_accommodation,
+        test_image_bank_foundation_oslo_matching,
+        test_image_bank_missing_folder_is_safe,
     ]
 
     for test in tests:
