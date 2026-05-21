@@ -10,6 +10,7 @@ from itinerary_parser import parse_itinerary, normalize_time_text
 from normalizer import normalize_itinerary_rows
 from pdf_exporter import export_html_to_pdf
 from image_matcher import select_day_images, format_match_for_debug
+from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS as SUPPORTED_DAY_PAGE_LAYOUTS, normalize_day_page_layout
 from text_polish import (
     polish_client_text,
     polish_hotel_name,
@@ -41,7 +42,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-21 v36a-image-bank-foundation"
+APP_VERSION = "2026-05-21 v36b-one-day-per-page-foundation"
 
 
 st.set_page_config(
@@ -80,11 +81,7 @@ DETAIL_LEVELS = [
     "Rich descriptive",
 ]
 
-DAY_PAGE_LAYOUTS = [
-    "Smart compact pages",
-    "3-days per page",
-    "One day per page",
-]
+DAY_PAGE_LAYOUTS = list(SUPPORTED_DAY_PAGE_LAYOUTS)
 
 
 DEFAULT_IMPORTANT_TRAVEL_NOTES = [
@@ -448,18 +445,21 @@ def get_detail_level_name(output_edits=None):
 
 
 def get_day_page_layout_name(output_edits=None):
-    name = (output_edits or {}).get("day_page_layout") or st.session_state.get("day_page_layout", "Smart compact pages")
-    if name not in DAY_PAGE_LAYOUTS:
-        return "Smart compact pages"
-    return name
+    requested = (output_edits or {}).get("day_page_layout") or st.session_state.get(
+        "day_page_layout",
+        DEFAULT_DAY_PAGE_LAYOUT,
+    )
+    return normalize_day_page_layout(requested)
 
 
 def is_smart_day_packing_enabled(output_edits=None):
-    return get_day_page_layout_name(output_edits) in {"Smart compact pages", "3-days per page"}
+    # v36 visual layout foundation: each day is its own A4 design unit.
+    return False
 
 
 def is_three_day_packing_enabled(output_edits=None):
-    return get_day_page_layout_name(output_edits) == "3-days per page"
+    # v36 visual layout foundation: three-day packing is disabled.
+    return False
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
     """Refresh generated intros/descriptions when detail level changes.
@@ -1272,45 +1272,15 @@ def render_packed_day_page(day_rows_pairs, output_edits=None):
 
 
 def render_day_pages(grouped_days, output_edits=None):
-    day_items = list(grouped_days.items())
+    """Render exactly one itinerary day per A4 page.
+
+    v36 prepares the itinerary for image placement below each day. Keeping one
+    day per page makes available-space detection predictable and prevents old
+    compact-packing logic from changing font rhythm or visual hierarchy.
+    """
     html_text = ""
-    index = 0
-
-    while index < len(day_items):
-        day, rows = day_items[index]
-
-        if index + 2 < len(day_items):
-            triple = [day_items[index], day_items[index + 1], day_items[index + 2]]
-            if can_pack_three_days(triple, output_edits):
-                html_text += render_packed_day_page(triple, output_edits)
-                index += 3
-                continue
-
-        if index + 1 < len(day_items):
-            next_day, next_rows = day_items[index + 1]
-
-            # Look ahead so a medium travel day does not consume a light day
-            # that would pair better with a very light departure/following day.
-            if index + 2 < len(day_items):
-                third_day, third_rows = day_items[index + 2]
-                current_units = estimate_day_units(day, rows, output_edits)
-                next_units = estimate_day_units(next_day, next_rows, output_edits)
-                if (
-                    can_pack_days(next_day, next_rows, third_day, third_rows, output_edits)
-                    and current_units > next_units + 3.0
-                ):
-                    html_text += render_day_page(day, rows, output_edits)
-                    index += 1
-                    continue
-
-            if can_pack_days(day, rows, next_day, next_rows, output_edits):
-                html_text += render_packed_day_page([(day, rows), (next_day, next_rows)], output_edits)
-                index += 2
-                continue
-
+    for day, rows in grouped_days.items():
         html_text += render_day_page(day, rows, output_edits)
-        index += 1
-
     return html_text
 
 def render_split_list_pages(title, items, items_per_page=24):
@@ -1680,7 +1650,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "destinations_line": create_destinations_line(parsed_rows),
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
         "detail_level": "Rich descriptive",
-        "day_page_layout": st.session_state.get("day_page_layout", "Smart compact pages"),
+        "day_page_layout": st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT),
         "days": {},
         "rows": {},
         "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
@@ -2787,7 +2757,7 @@ def initialise_state():
         "parser_diagnostics": [],
         "pdf_status": "Not created",
         "detail_level": "Rich descriptive",
-        "day_page_layout": "Smart compact pages",
+        "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
     }
 
     for key, value in defaults.items():
@@ -2815,7 +2785,7 @@ def load_project_json(uploaded_file):
         )
         st.session_state.detail_level = "Rich descriptive"
         st.session_state.output_edits["detail_level"] = "Rich descriptive"
-        st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", "Smart compact pages"))
+        st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT))
         st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
 
@@ -2910,28 +2880,23 @@ with st.sidebar:
     st.session_state.detail_level = selected_detail
     st.caption("Writing style: warm, full and client-facing.")
 
-    current_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
+    current_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     if current_day_layout not in DAY_PAGE_LAYOUTS:
-        current_day_layout = "Smart compact pages"
+        current_day_layout = DEFAULT_DAY_PAGE_LAYOUT
 
     selected_day_layout = st.selectbox(
         "Day page layout",
         DAY_PAGE_LAYOUTS,
         index=DAY_PAGE_LAYOUTS.index(current_day_layout),
-        help="Smart compact pages allows two light days per A4 page. 3-days per page can place three very light days together when they safely fit.",
+        help="Premium visual layout foundation: each itinerary day is kept on its own A4 page.",
     )
-    previous_day_layout = st.session_state.get("day_page_layout", "Smart compact pages")
+    previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     st.session_state.day_page_layout = selected_day_layout
-    if selected_day_layout == "Smart compact pages":
-        st.caption("Dynamically pairs light days when there is enough A4 space.")
-    elif selected_day_layout == "3-days per page":
-        st.caption("Allows up to three ultra-light days on the same A4 page when it is safe.")
-    else:
-        st.caption("Keeps the classic one-day-per-A4-page layout.")
+    st.caption("Premium visual layout: one itinerary day per A4 page. Image placement will build on this structure in the next phase.")
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
-        st.session_state.output_edits["day_page_layout"] = selected_day_layout
+        st.session_state.output_edits["day_page_layout"] = get_day_page_layout_name({"day_page_layout": selected_day_layout})
         st.session_state.output_edits["detail_level"] = "Rich descriptive"
         if previous_day_layout != selected_day_layout:
             st.session_state.pdf_bytes = None

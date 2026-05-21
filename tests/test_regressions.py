@@ -9,6 +9,7 @@ from generator import create_whats_included, create_journey_arc, group_rows_by_d
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
 from image_matcher import select_day_image, scan_image_bank
+from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS, normalize_day_page_layout, is_day_packing_enabled, is_three_day_packing_enabled
 
 
 def assert_equal(actual, expected, label):
@@ -313,6 +314,40 @@ def test_image_bank_missing_folder_is_safe():
     assert_equal(match, None, "Missing image bank should fail safely without an image.")
 
 
+
+def test_layout_policy_one_day_per_page():
+    assert_equal(
+        DEFAULT_DAY_PAGE_LAYOUT,
+        "One day per page",
+        "Premium visual layout should default to one day per A4 page.",
+    )
+    assert_equal(
+        DAY_PAGE_LAYOUTS,
+        ["One day per page"],
+        "Only one-day-per-page layout should be exposed while image placement is being prepared.",
+    )
+    assert_equal(
+        normalize_day_page_layout("Smart compact pages"),
+        "One day per page",
+        "Legacy compact page settings should normalize to one-day-per-page.",
+    )
+    assert_equal(
+        normalize_day_page_layout("3-days per page"),
+        "One day per page",
+        "Legacy 3-day page settings should normalize to one-day-per-page.",
+    )
+    assert_equal(
+        is_day_packing_enabled("Smart compact pages"),
+        False,
+        "Day packing should be disabled for the v36 visual layout path.",
+    )
+    assert_equal(
+        is_three_day_packing_enabled("3-days per page"),
+        False,
+        "Three-day packing should be disabled for the v36 visual layout path.",
+    )
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -324,6 +359,7 @@ def run_all():
         test_trip_glance_normal_hotels_are_arranged_accommodation,
         test_image_bank_foundation_oslo_matching,
         test_image_bank_missing_folder_is_safe,
+        test_layout_policy_one_day_per_page,
     ]
 
     for test in tests:
