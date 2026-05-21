@@ -1,6 +1,8 @@
 import hashlib
 import re
 
+from time_utils import format_duration_display
+
 import diagnostics
 from place_aliases import canonicalize_place_name, is_likely_service_text, normalize_place_text
 from text_polish import polish_client_text, polish_hotel_name, polish_title, polish_inclusion_items
@@ -888,13 +890,10 @@ def normalize_duration_text(value):
     if match:
         duration = match.group(1)
 
-    duration = re.sub(r"\bHrs?\b", "hours", duration, flags=re.IGNORECASE)
-    duration = re.sub(r"\bHr\b", "hour", duration, flags=re.IGNORECASE)
-    duration = re.sub(r"\b(\d+)\s*hours\b", lambda m: f"{m.group(1)} hour" if m.group(1) == "1" else f"{m.group(1)} hours", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bCruise\s+Duration\b", "Cruise duration", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bTour\s+Duration\b", "Duration", duration, flags=re.IGNORECASE)
     duration = re.sub(r"\bDuration\s*:\s*", "Duration ", duration, flags=re.IGNORECASE)
-    return duration.strip(" -|:")
+    return format_duration_display(duration)
 
 
 def split_time_and_duration(value):

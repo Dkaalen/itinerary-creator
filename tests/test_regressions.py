@@ -4,8 +4,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from text_polish import expand_time_with_duration, polish_client_text, polish_hotel_name
-from generator import create_whats_included, create_journey_arc, group_rows_by_day
+from text_polish import expand_time_with_duration, polish_client_text, polish_hotel_name, format_duration_display
+from generator import create_whats_included, create_journey_arc, group_rows_by_day, create_day_intro, create_trip_glance
 from itinerary_parser import extract_duration_from_description
 
 
@@ -41,8 +41,8 @@ def test_time_expansion():
         extract_duration_from_description(
             "Tromsø: Fjord Tour | 9 AM | 5.5 Hrs | What's included?"
         ),
-        "5.5 hours",
-        "Parser should preserve decimal hour durations before display formatting.",
+        "5 hours 30 minutes",
+        "Parser should convert decimal hour durations to clean display wording.",
     )
 
     assert_equal(
@@ -61,6 +61,18 @@ def test_time_expansion():
         expand_time_with_duration("8:00 PM", "6.5 hours"),
         "8:00 PM - 2:30 AM",
         "Decimal durations should cross midnight correctly.",
+    )
+
+    assert_equal(
+        format_duration_display("5.5 Hrs"),
+        "5 hours 30 minutes",
+        "Decimal hour durations should display as clean hours and minutes.",
+    )
+
+    assert_equal(
+        format_duration_display("1.5 Hrs"),
+        "1 hour 30 minutes",
+        "Singular duration wording should be clean.",
     )
 
     assert_equal(
@@ -166,12 +178,77 @@ def test_journey_arc_normal_hotel_not_experience():
     )
 
 
+def test_activity_intro_variation_not_templated():
+    rows = [
+        {
+            "day": "Day 2",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "city": "Helsinki",
+            "title": "City Highlights Tour",
+            "details": "Guided city sightseeing",
+        }
+    ]
+    intro = create_day_intro(rows, detail_level="Rich descriptive")
+    assert_not_contains(
+        intro,
+        "Today, you will enjoy",
+        "Activity-led day intros should not use repeated templated wording.",
+    )
+    assert_not_contains(
+        intro,
+        "adding a meaningful experience",
+        "Activity-led day intros should avoid generic filler wording.",
+    )
+
+
+def test_trip_glance_normal_hotels_are_arranged_accommodation():
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Hotel",
+            "effective_type": "Hotel",
+            "city": "Helsinki",
+            "hotel_name": "Scandic Grand Marina",
+            "title": "Scandic Grand Marina",
+            "details": "Standard Double Room - Breakfast included",
+        },
+        {
+            "day": "Day 2",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "city": "Helsinki",
+            "title": "City Highlights Tour",
+            "details": "Guided city sightseeing",
+        },
+    ]
+    grouped = group_rows_by_day(rows)
+    glance = create_trip_glance(rows, grouped)
+    assert_contains(
+        glance.get("Travel Style", ""),
+        "arranged accommodation",
+        "Travel style should mention arranged accommodation for normal hotels.",
+    )
+    assert_not_contains(
+        glance.get("Travel Style", ""),
+        "comfortable hotel stays",
+        "Normal hotels should not be marketed as comfortable hotel stays.",
+    )
+    assert_equal(
+        glance.get("Duration", ""),
+        "2 days / 1 night",
+        "Trip glance should use singular night wording when appropriate.",
+    )
+
+
 def run_all():
     tests = [
         test_time_expansion,
         test_text_polish_regressions,
         test_whats_included_nights_wording,
         test_journey_arc_normal_hotel_not_experience,
+        test_activity_intro_variation_not_templated,
+        test_trip_glance_normal_hotels_are_arranged_accommodation,
     ]
 
     for test in tests:

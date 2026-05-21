@@ -342,3 +342,10 @@ def expand_time_with_duration(time_value: str, duration_value: str) -> str:
 
     return f"{start_display} - {_minutes_to_clock(start_minutes + duration_minutes)}"
 
+# Shared time/duration helpers are re-exported here for backward compatibility.
+from time_utils import (
+    parse_duration_minutes,
+    expand_time_with_duration,
+    format_duration_display,
+    format_duration_minutes,
+)

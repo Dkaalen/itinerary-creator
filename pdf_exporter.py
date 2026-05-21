@@ -566,46 +566,6 @@ def render_glance_page(page, story, styles):
 
 
 
-def _parse_time_minutes_from_meta(text):
-    value = clean_text(text)
-    value = re.sub(r"^time\s*:\s*", "", value, flags=re.IGNORECASE).strip()
-    if " - " in value or " / " in value:
-        return None
-    match = re.fullmatch(r"(\d{1,2}):(\d{2})\s*(AM|PM)", value, flags=re.IGNORECASE)
-    if not match:
-        return None
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    suffix = match.group(3).upper()
-    if suffix == "PM" and hour != 12:
-        hour += 12
-    if suffix == "AM" and hour == 12:
-        hour = 0
-    return hour * 60 + minute
-
-
-def _parse_duration_minutes_from_meta(text):
-    value = clean_text(text).lower()
-    value = re.sub(r"^(?:duration|tour duration|ferry duration|cruise duration)\s*:?\s*", "", value, flags=re.IGNORECASE)
-    hour_match = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:hour|hours|hr|hrs|h)\b", value, flags=re.IGNORECASE)
-    minute_match = re.search(r"\b(\d+)\s*(?:minute|minutes|min|mins|m)\b", value, flags=re.IGNORECASE)
-    total = 0
-    if hour_match:
-        total += int(round(float(hour_match.group(1)) * 60))
-    if minute_match:
-        total += int(minute_match.group(1))
-    return total or None
-
-
-def _format_minutes_as_time(total_minutes):
-    total_minutes = total_minutes % (24 * 60)
-    hour24 = total_minutes // 60
-    minute = total_minutes % 60
-    suffix = "AM" if hour24 < 12 else "PM"
-    hour12 = hour24 % 12 or 12
-    return f"{hour12}:{minute:02d} {suffix}"
-
-
 def _activity_time_range_text(time_text, duration_text):
     """PDF-side fallback: expand clean single start time + duration to a range."""
     cleaned_time = clean_text(time_text)
@@ -620,6 +580,11 @@ def render_content_blocks(container, story, styles, compact=False, ultra=False):
     for child in container.find_all(recursive=False):
         classes = child.get("class") or []
         if "content-block" in classes or "activity-inclusion-block" in classes:
+            # Render each block into a temporary story first. Activity cards are
+            # then kept together where possible, which prevents headings and
+            # inclusion bullets from splitting awkwardly across pages.
+            block_story = []
+
             # Read duration once per activity block so a stale/separate Time line
             # can still be expanded to a start-end range in the PDF export.
             duration_meta_text = ""
@@ -634,19 +599,24 @@ def render_content_blocks(container, story, styles, compact=False, ultra=False):
                 element_classes = element.get("class") or []
 
                 if "section-title" in element_classes:
-                    add_paragraph(story, element.get_text(" "), styles["section_ultra" if ultra else ("section_compact" if compact else "section")])
+                    add_paragraph(block_story, element.get_text(" "), styles["section_ultra" if ultra else ("section_compact" if compact else "section")])
                 elif "activity-inclusion-title" in element_classes:
-                    add_paragraph(story, element.get_text(" "), styles["activity_title"])
+                    add_paragraph(block_story, element.get_text(" "), styles["activity_title"])
                 elif element.name == "ul":
-                    add_bullets(story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
+                    add_bullets(block_story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
                 elif "body-text" in element_classes:
                     text = clean_text(element.get_text(" "))
                     if "activity-block" in classes and re.match(r"^time\s*:", text, flags=re.IGNORECASE):
                         text = _activity_time_range_text(text, duration_meta_text)
                     if "strong-line" in element_classes:
-                        add_paragraph(story, text, styles["body_bold_ultra" if ultra else ("body_bold_compact" if compact else "body_bold")])
+                        add_paragraph(block_story, text, styles["body_bold_ultra" if ultra else ("body_bold_compact" if compact else "body_bold")])
                     else:
-                        add_paragraph(story, text, styles["body_ultra" if ultra else ("body_compact" if compact else "body")])
+                        add_paragraph(block_story, text, styles["body_ultra" if ultra else ("body_compact" if compact else "body")])
+
+            if "activity-block" in classes and block_story:
+                story.append(KeepTogether(block_story))
+            else:
+                story.extend(block_story)
 
 
 def add_day_separator(story, styles, ultra=False):

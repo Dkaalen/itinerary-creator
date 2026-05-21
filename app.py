@@ -16,6 +16,7 @@ from text_polish import (
     polish_inclusion_item,
     polish_title,
     expand_time_with_duration,
+    format_duration_display,
 )
 from generator import (
     TRANSPORT_TYPES,
@@ -39,7 +40,7 @@ from generator import (
 )
 
 
-APP_VERSION = "2026-05-20 v34o-font-standardization-polish"
+APP_VERSION = "2026-05-21 v35a-display-foundation"
 
 
 st.set_page_config(
@@ -219,53 +220,6 @@ def parse_and_normalize_itinerary(raw_text):
     start-end range in the day-by-day itinerary.
     """
     return normalize_itinerary_rows(parse_itinerary(raw_text))
-
-
-def _parse_display_time_to_minutes(value):
-    text = normalize_time_text(value)
-    match = re.fullmatch(r"(\d{1,2}):(\d{2})\s*(AM|PM)", text.strip(), flags=re.IGNORECASE)
-    if not match:
-        return None
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    suffix = match.group(3).upper()
-    if suffix == "PM" and hour != 12:
-        hour += 12
-    if suffix == "AM" and hour == 12:
-        hour = 0
-    return hour * 60 + minute
-
-
-def _parse_duration_to_minutes(value):
-    """Return a duration in minutes from common itinerary duration text."""
-    text = str(value or "").lower()
-    if not text:
-        return None
-
-    # Strip duration labels but keep the numeric value. Supports supplier input
-    # such as "5hrs", "5 Hrs", "5.5 hours", "Duration: 3 hours", and
-    # "4 hours 30 minutes".
-    text = re.sub(r"^(?:duration|tour duration|ferry duration|cruise duration)\s*:?\s*", "", text, flags=re.IGNORECASE)
-    hour_match = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:hour|hours|hr|hrs|h)\b", text, flags=re.IGNORECASE)
-    minute_match = re.search(r"\b(\d+)\s*(?:minute|minutes|min|mins|m)\b", text, flags=re.IGNORECASE)
-
-    total = 0
-    if hour_match:
-        total += int(round(float(hour_match.group(1)) * 60))
-    if minute_match:
-        total += int(minute_match.group(1))
-    return total or None
-
-
-def _format_minutes_as_display_time(total_minutes):
-    total_minutes = total_minutes % (24 * 60)
-    hour24 = total_minutes // 60
-    minute = total_minutes % 60
-    suffix = "AM" if hour24 < 12 else "PM"
-    hour12 = hour24 % 12
-    if hour12 == 0:
-        hour12 = 12
-    return f"{hour12}:{minute:02d} {suffix}"
 
 
 def display_time_with_duration(time_value, duration_value):
@@ -796,7 +750,7 @@ def build_activity_block(row):
 
     if duration:
         duration_label = get_activity_duration_label(row, duration)
-        clean_duration = re.sub(r"^(?:cruise|ferry)?\s*duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        clean_duration = format_duration_display(duration)
         html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
 
     if meeting_point:
@@ -840,7 +794,7 @@ def build_transport_block(row, title_override=None):
         html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(display_time(time))}</div>'
 
     if duration:
-        clean_duration = re.sub(r"^duration\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        clean_duration = format_duration_display(duration)
         html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(clean_duration)}</div>'
 
     if luggage_included:
@@ -1061,7 +1015,7 @@ def get_travel_arrangement_line(row):
     if time:
         details.append(time)
     if duration and " - " not in time:
-        clean_duration = re.sub(r"^(?:duration|cruise duration|ferry duration)\s*:?\s*", "", str(duration), flags=re.IGNORECASE).strip()
+        clean_duration = format_duration_display(duration)
         if clean_duration:
             details.append(clean_duration)
 
@@ -1701,7 +1655,7 @@ def render_optional_addons_pages(optional_addons, items_per_page=8):
             if addon.get("time"):
                 html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(addon["time"])}</div>'
             if addon.get("duration"):
-                html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(addon["duration"])}</div>'
+                html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(format_duration_display(addon["duration"]))}</div>'
             if addon.get("meeting_point"):
                 html_text += f'<div class="body-text"><span class="meta-label">{esc(addon.get("meeting_label") or "Meeting point")}:</span> {esc(addon["meeting_point"])}</div>'
             if addon.get("includes"):
