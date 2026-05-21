@@ -610,8 +610,15 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir)
         return None
 
 
-def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_width, available_height):
-    """Append a lower-half full-width day image when a confident match exists."""
+def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_width, available_height, measurement_story=None):
+    """Append a lower-half full-width day image when a confident match exists.
+
+    ``page_story`` is the full ReportLab story that should receive the image.
+    ``measurement_story`` must contain only the flowables already rendered for
+    the current A4 day page. Measuring the full document story would include
+    previous pages and make the remaining-space calculation think there is no
+    room for images.
+    """
     slot = page.select_one(".day-image-slot")
     if not slot:
         return
@@ -620,7 +627,7 @@ def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_w
     if not image_path:
         return
 
-    used_height = story_height(page_story, available_width)
+    used_height = story_height(measurement_story if measurement_story is not None else page_story, available_width)
     layout = calculate_day_image_layout(used_height, available_height)
     if not layout:
         return
@@ -770,6 +777,8 @@ def render_day_section_pdf(section, story, styles):
 
 
 def render_general_page(page, story, styles, html_path=None, temp_dir=None, available_width=None, available_height=None):
+    page_story_start = len(story)
+
     # Packed day pages contain one or two explicit day-section elements inside a
     # single A4 page. Render each section in order and keep the PDF page count
     # aligned with the HTML A4 pages.
@@ -780,7 +789,7 @@ def render_general_page(page, story, styles, html_path=None, temp_dir=None, avai
                 add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))
             render_day_section_pdf(section, story, styles)
         if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
-            add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height)
+            add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height, measurement_story=story[page_story_start:])
         return
 
     # Header blocks first
@@ -802,7 +811,7 @@ def render_general_page(page, story, styles, html_path=None, temp_dir=None, avai
         add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
 
     if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
-        add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height)
+        add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height, measurement_story=story[page_story_start:])
 
 def export_html_to_pdf(html_path, pdf_path):
     """

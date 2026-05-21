@@ -48,7 +48,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-21 v36c-automatic-day-images"
+APP_VERSION = "2026-05-21 v36c2-image-placement-measurement-fix"
 
 
 st.set_page_config(

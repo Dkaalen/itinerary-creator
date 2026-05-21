@@ -28,7 +28,7 @@ from layout_policy import (
     is_day_packing_enabled,
     is_three_day_packing_enabled,
 )
-from pdf_exporter import calculate_day_image_layout
+from pdf_exporter import calculate_day_image_layout, export_html_to_pdf
 from reportlab.lib.units import mm
 
 
@@ -418,6 +418,46 @@ def test_pdf_day_image_layout_rules():
     )
 
 
+def test_pdf_export_places_day_image_from_current_page_story():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        image_path = tmp_path / "Oslo_Test_Image.jpg"
+        image = Image.new("RGB", (320, 190))
+        pixels = image.load()
+        for x in range(320):
+            for y in range(190):
+                pixels[x, y] = (x % 256, y % 256, (x * y) % 256)
+        image.save(image_path, format="JPEG", quality=88)
+
+        html_path = tmp_path / "preview.html"
+        pdf_path = tmp_path / "preview.pdf"
+        html_content = (
+            '<html><body>'
+            '<div class="a4-page cover-page">'
+            '<div class="cover-kicker">Curated Travel Itinerary</div>'
+            '<div class="cover-title">Image Test</div>'
+            '</div>'
+            '<div class="a4-page day-page single-day-page" data-day="Day 1">'
+            '<section class="day-section">'
+            '<div class="day-label">Day 1</div>'
+            '<div class="day-title">Oslo Image Test</div>'
+            '<div class="city">Oslo</div>'
+            '<div class="intro">A short Oslo day with enough room for a lower-half image.</div>'
+            '<div class="content-block"><div class="block-heading">Morning Experience</div><div class="block-title">Oslo City Walk</div></div>'
+            '</section>'
+            f'<div class="day-image-slot" data-image-path="{image_path}"></div>'
+            '</div>'
+            '</body></html>'
+        )
+        html_path.write_text(html_content, encoding="utf-8")
+
+        export_html_to_pdf(html_path, pdf_path)
+        if pdf_path.stat().st_size < 10_000:
+            raise AssertionError("PDF day image should be inserted when the current page has enough room.")
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -431,6 +471,7 @@ def run_all():
         test_image_bank_missing_folder_is_safe,
         test_layout_policy_one_day_per_page,
         test_pdf_day_image_layout_rules,
+        test_pdf_export_places_day_image_from_current_page_story,
     ]
 
     for test in tests:
