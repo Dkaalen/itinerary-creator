@@ -49,9 +49,10 @@ from layout_policy import (
     is_day_packing_enabled,
     is_three_day_packing_enabled as policy_is_three_day_packing_enabled,
 )
+from ui.editor_sanitizer import clean_visual_editor_html
 
 
-APP_VERSION = "2026-05-22 v36c12-visual-page-editor"
+APP_VERSION = "2026-05-22 v36c13-editor-pdf-alignment"
 
 
 st.set_page_config(
@@ -294,6 +295,9 @@ def text_to_list(value):
             clean_items.append(item)
 
     return clean_items
+
+
+
 
 
 
@@ -1499,7 +1503,8 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
     detail_level = get_detail_level_name(output_edits)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
-    blocks = build_day_blocks(rows)
+    custom_day_html = clean_visual_editor_html(((output_edits or {}).get("visual_day_html") or {}).get(day, ""))
+    blocks = [] if custom_day_html else build_day_blocks(rows)
     section_class = "day-section"
     if packed:
         section_class += " packed-section"
@@ -1514,8 +1519,11 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
                 <div class="intro">{esc(day_intro)}</div>
     '''
 
-    for block in blocks:
-        html_text += block["html"]
+    if custom_day_html:
+        html_text += custom_day_html
+    else:
+        for block in blocks:
+            html_text += block["html"]
 
     html_text += "</section>"
     return html_text
@@ -2762,12 +2770,17 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         for path in list_city_image_options(city):
             image_options.append({"name": path.name, "path": str(path)})
 
+        custom_blocks_html = clean_visual_editor_html(((output_edits or {}).get("visual_day_html") or {}).get(day, ""))
+        if not custom_blocks_html:
+            custom_blocks_html = "".join(block.get("html", "") for block in build_day_blocks(rows))
+
         day_payload = {
             "day": day,
             "label": day,
             "title": day_edit.get("title") or create_day_title(original_rows),
             "city": city,
             "intro": day_edit.get("intro") or create_day_intro(original_rows, detail_level=get_detail_level_name(output_edits)),
+            "blocks_html": custom_blocks_html,
             "rows": [],
             "image": {
                 "mode": image_choice.get("mode", "auto"),
@@ -2832,6 +2845,8 @@ def apply_visual_editor_payload(editor_payload, parsed_rows, output_edits):
         day_edit["title"] = clean_space(day_data.get("title", day_edit.get("title", "")))
         day_edit["city"] = clean_space(day_data.get("city", day_edit.get("city", "")))
         day_edit["intro"] = clean_space(day_data.get("intro", day_edit.get("intro", "")))
+        if "blocks_html" in day_data:
+            output_edits.setdefault("visual_day_html", {})[day] = clean_visual_editor_html(day_data.get("blocks_html", ""))
 
         image_data = day_data.get("image") or {}
         if image_data:

@@ -111,29 +111,34 @@
     .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 12px; }
     .city { margin-bottom: 20px; }
     .intro { font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 1.5; margin-bottom: 22px; color: var(--body); }
+    .day-blocks { position: relative; }
     .content-block { margin-bottom: 15px; position: relative; }
     .section-title, .row-type { color: var(--accent); margin-bottom: 5px; font-size: 11px; }
-    .body-text, .editable-list { font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.38; margin-bottom: 5px; }
+    .small-section { margin-top: 8px; }
+    .body-text, .editable-list, .detail-list, .final-list { font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.38; margin-bottom: 5px; }
     .strong-line { font-weight: 700; }
     .meta-line { font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.38; margin-bottom: 4px; }
     .meta-label { font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 800; color: var(--ink); }
-    [contenteditable="true"] { outline: 0; border-radius: 4px; min-height: 1em; padding: 1px 2px; margin-left: -2px; transition: background .12s, box-shadow .12s; }
-    [contenteditable="true"]:hover { background: rgba(232, 182, 86, 0.18); box-shadow: 0 0 0 1px rgba(232,182,86,0.28); }
-    [contenteditable="true"]:focus { background: rgba(255, 246, 213, 0.9); box-shadow: 0 0 0 2px var(--focus); }
-    .editable-list { white-space: pre-wrap; padding-left: 18px; }
-    .editable-list::before { content: '• '; margin-left: -16px; }
+    ul.detail-list, ul.final-list { margin: 0 0 6px 0; padding-left: 18px; }
+    li { margin: 0 0 2px 0; }
+    [contenteditable="true"] { outline: 0; border-radius: 4px; min-height: 1em; transition: background .12s, box-shadow .12s; }
+    [contenteditable="true"]:hover { background: rgba(232, 182, 86, 0.16); box-shadow: 0 0 0 1px rgba(232,182,86,0.24); }
+    [contenteditable="true"]:focus { background: rgba(255, 246, 213, 0.94); box-shadow: 0 0 0 2px var(--focus); }
+    .editable-inline { padding: 1px 2px; margin-left: -2px; }
+    .day-blocks[contenteditable="true"] { padding: 2px; margin: -2px; }
     .image-stage {
       position: absolute;
       z-index: 1;
       left: 0;
       right: 0;
       bottom: 0;
-      height: 365px;
+      top: 610px;
       background: rgba(0,0,0,0.04);
       border-top: 1px solid rgba(0,0,0,0.04);
     }
     .image-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .image-stage.empty { display: flex; align-items: center; justify-content: center; color: #6b625a; font-weight: 700; }
+    .image-stage.skipped { display: none; }
     .image-actions {
       position: absolute;
       z-index: 5;
@@ -153,8 +158,10 @@
     .image-actions select, .image-actions button, .image-actions input { min-height: 30px; font-size: 11px; padding: 5px 8px; }
     .upload-label { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--border); color: white; background: #202832; font-weight: 700; font-size: 11px; cursor: pointer; }
     .upload-label input { display: none; }
-    .final-page textarea {
-      width: 100%; min-height: 540px; border: 1px dashed rgba(31,52,70,.22); background: rgba(255,255,255,.24); color: var(--body); font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.45; padding: 10px; border-radius: 8px;
+    .final-page .page-content { padding-top: 86px; }
+    .final-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 26px; line-height: 1.18; margin-bottom: 10px; }
+    .final-edit-box {
+      width: 100%; min-height: 720px; border: 1px dashed rgba(31,52,70,.20); background: rgba(255,255,255,.16); color: var(--body); font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.45; padding: 10px; border-radius: 8px; white-space: pre-wrap;
     }
     .saved-note { color: #bfe7d9; font-weight: 700; font-size: 12px; display: none; }
     .saved-note.show { display: inline; }
@@ -180,44 +187,22 @@ const Streamlit = {
     window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: value}, '*');
   }
 };
+let initialPayload = null;
 let model = null;
 let uploadedImages = {};
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 }
-function nlToText(s) { return String(s ?? '').replace(/\r\n/g, '\n'); }
 function focusPos(focus) {
   if (focus === 'bottom') return 'center 78%';
   if (focus === 'center') return 'center center';
   return 'center 22%';
 }
-function editable(value, key, cls='') {
-  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
+function editableText(value, key, cls='') {
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
 }
-function rowHtml(dayIndex, row) {
-  const base = `days.${dayIndex}.rows.${row.row_id}`;
-  let h = `<div class="content-block" data-row-id="${esc(row.row_id)}"><div class="section-title">${esc(row.section_label || row.type)}</div>`;
-  h += editable(row.title || '', `${base}.title`, 'body-text strong-line');
-  if (row.time) h += `<div class="meta-line"><span class="meta-label">Time:</span> ${editable(row.time, `${base}.time`, 'inline-edit')}</div>`;
-  if (row.duration) h += `<div class="meta-line"><span class="meta-label">Duration:</span> ${editable(row.duration, `${base}.duration`, 'inline-edit')}</div>`;
-  if (row.meeting_point) h += `<div class="meta-line"><span class="meta-label">Meeting point:</span> ${editable(row.meeting_point, `${base}.meeting_point`, 'inline-edit')}</div>`;
-  if (row.end_point) h += `<div class="meta-line"><span class="meta-label">End point:</span> ${editable(row.end_point, `${base}.end_point`, 'inline-edit')}</div>`;
-  if (row.type === 'Hotel') {
-    if (row.hotel_name) h += editable(row.hotel_name, `${base}.hotel_name`, 'body-text strong-line');
-    if (row.hotel_nights) h += `<div class="meta-line"><span class="meta-label">Nights:</span> ${editable(row.hotel_nights, `${base}.hotel_nights`, 'inline-edit')}</div>`;
-    if (row.room_category) h += `<div class="meta-line"><span class="meta-label">Room category:</span> ${editable(row.room_category, `${base}.room_category`, 'inline-edit')}</div>`;
-    if (row.meal_plan) h += `<div class="meta-line"><span class="meta-label">Meal plan:</span> ${editable(row.meal_plan, `${base}.meal_plan`, 'inline-edit')}</div>`;
-  }
-  if (row.includes_text) {
-    h += `<div class="section-title">Included With This Experience</div>`;
-    h += editable(row.includes_text, `${base}.includes_text`, 'editable-list');
-  }
-  if (row.client_description) {
-    h += `<div class="section-title">Description</div>`;
-    h += editable(row.client_description, `${base}.client_description`, 'body-text');
-  }
-  h += `</div>`;
-  return h;
+function editableHtml(value, key, cls='') {
+  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${value || ''}</div>`;
 }
 function imageHtml(day, dayIndex) {
   const img = day.image || {};
@@ -241,9 +226,19 @@ function imageHtml(day, dayIndex) {
       </div>
     </div>`;
 }
+function finalPage(label, title, key, text) {
+  return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
+    <div class="final-title">${esc(title)}</div>
+    ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
+  </div></div></div>`;
+}
 function render(payload) {
-  model = JSON.parse(JSON.stringify(payload || {cover:{},days:[],final_pages:{}}));
+  initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},days:[],final_pages:{}}));
+  model = JSON.parse(JSON.stringify(initialPayload));
   uploadedImages = {};
+  draw();
+}
+function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
@@ -253,30 +248,26 @@ function render(payload) {
     <div class="page-stack">`;
   h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page"><div class="page-content">
       <div class="cover-kicker">Curated Travel Itinerary</div>
-      ${editable(model.cover.trip_title, 'cover.trip_title', 'cover-title')}
-      ${editable(model.cover.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
-      ${editable(model.cover.destinations_line, 'cover.destinations_line', 'cover-destinations')}
+      ${editableText(model.cover?.trip_title, 'cover.trip_title', 'cover-title')}
+      ${editableText(model.cover?.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
+      ${editableText(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
     </div></div></div>`;
   (model.days || []).forEach((day, i) => {
     h += `<div class="page-wrap"><div class="page-label">${esc(day.day)}</div><div class="a4-page day-page"><div class="page-content">
       <div class="day-label">${esc(day.label || day.day)}</div>
-      ${editable(day.title, `days.${i}.title`, 'day-title')}
-      ${editable(day.city, `days.${i}.city`, 'city')}
-      ${editable(day.intro, `days.${i}.intro`, 'intro')}
-      ${(day.rows || []).map(row => rowHtml(i, row)).join('')}
+      ${editableText(day.title, `days.${i}.title`, 'day-title')}
+      ${editableText(day.city, `days.${i}.city`, 'city')}
+      ${editableText(day.intro, `days.${i}.intro`, 'intro')}
+      ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
     </div>${imageHtml(day, i)}</div></div>`;
   });
-  h += `<div class="page-wrap"><div class="page-label">Final pages</div><div class="a4-page final-page"><div class="page-content">
-      <div class="day-title">Included / excluded / notes</div>
-      <div class="body-text">Optional final-page edits. One item or paragraph per line.</div>
-      <textarea data-final-key="whats_included_text" placeholder="What's included">${esc(model.final_pages?.whats_included_text || '')}</textarea>
-      <textarea data-final-key="whats_not_included_text" placeholder="What's not included">${esc(model.final_pages?.whats_not_included_text || '')}</textarea>
-      <textarea data-final-key="important_travel_notes_text" placeholder="Important travel notes">${esc(model.final_pages?.important_travel_notes_text || '')}</textarea>
-    </div></div></div>`;
+  h += finalPage('Included', "What's included", 'whats_included_text', model.final_pages?.whats_included_text || '');
+  h += finalPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
+  h += finalPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
   h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
-  setTimeout(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20), 100);
+  requestAnimationFrame(() => { adjustDayImages(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });
 }
 function setByPath(obj, path, value) {
   const parts = path.split('.');
@@ -294,18 +285,32 @@ function setByPath(obj, path, value) {
 function collect() {
   document.querySelectorAll('[data-edit-key]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
-    const value = el.innerText.replace(/\u00a0/g, ' ').trim();
-    if (key.endsWith('.hotel_summary')) return;
+    const value = key.endsWith('.blocks_html') ? el.innerHTML.trim() : el.innerText.replace(/\u00a0/g, ' ').trim();
     setByPath(model, key, value);
-  });
-  document.querySelectorAll('[data-final-key]').forEach(el => {
-    if (!model.final_pages) model.final_pages = {};
-    model.final_pages[el.getAttribute('data-final-key')] = el.value;
   });
   Object.keys(uploadedImages).forEach(idx => {
     if (model.days[idx]) model.days[idx].image.upload = uploadedImages[idx];
   });
   return model;
+}
+function adjustDayImages() {
+  const pageHeight = 1123;
+  const minImageHeight = 185;
+  document.querySelectorAll('.day-page').forEach(page => {
+    const content = page.querySelector('.page-content');
+    const stage = page.querySelector('.image-stage');
+    if (!content || !stage || stage.classList.contains('empty')) return;
+    const contentBottom = content.offsetTop + content.scrollHeight;
+    const imageTop = Math.max(contentBottom + 20, (pageHeight / 2) + 20);
+    const imageHeight = pageHeight - imageTop;
+    if (imageHeight < minImageHeight) {
+      stage.classList.add('skipped');
+      return;
+    }
+    stage.classList.remove('skipped');
+    stage.style.top = `${imageTop}px`;
+    stage.style.height = `${imageHeight}px`;
+  });
 }
 function attachHandlers() {
   document.getElementById('saveBtn').addEventListener('click', () => {
@@ -315,7 +320,14 @@ function attachHandlers() {
     note.classList.add('show');
     setTimeout(() => note.classList.remove('show'), 1500);
   });
-  document.getElementById('resetBtn').addEventListener('click', () => render(model));
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    model = JSON.parse(JSON.stringify(initialPayload));
+    uploadedImages = {};
+    draw();
+  });
+  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+    el.addEventListener('input', () => requestAnimationFrame(adjustDayImages));
+  });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.getAttribute('data-day-index'));
@@ -358,6 +370,7 @@ function attachHandlers() {
           const existing = stage.querySelector('img');
           if (existing) existing.src = reader.result;
           else stage.insertAdjacentHTML('afterbegin', `<img src="${reader.result}" style="object-position:${focusPos(model.days[idx].image.crop_focus)}" alt="Uploaded picture">`);
+          requestAnimationFrame(adjustDayImages);
         }
       };
       reader.readAsDataURL(file);

@@ -636,6 +636,19 @@ def test_cover_crop_focus_options_change_vertical_crop():
             if bottom_pixel[0] < 120:
                 raise AssertionError("Bottom crop focus should keep lower foreground detail visible.")
 
+
+def test_visual_editor_html_sanitizer():
+    from ui.editor_sanitizer import clean_visual_editor_html
+
+    dirty = '<div class="content-block" onclick="bad()" style="color:red"><script>alert(1)</script><div class="section-title">Travel Arrangements</div><div class="body-text">Safe text</div></div>'
+    clean = clean_visual_editor_html(dirty)
+    assert_contains(clean, "Travel Arrangements", "Sanitizer should preserve editable day content.")
+    assert_contains(clean, "Safe text", "Sanitizer should preserve body text.")
+    assert_not_contains(clean.lower(), "script", "Sanitizer should remove script tags.")
+    assert_not_contains(clean.lower(), "onclick", "Sanitizer should remove event attributes.")
+    assert_not_contains(clean.lower(), "style=", "Sanitizer should remove inline styles.")
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -654,12 +667,14 @@ def run_all():
         test_pdf_export_places_day_image_from_current_page_story,
         test_cover_crop_protects_upper_image_content,
         test_cover_crop_focus_options_change_vertical_crop,
+        test_visual_editor_html_sanitizer,
     ]
 
     for test in tests:
         test()
 
     print(f"All regression tests passed ({len(tests)} tests).")
+
 
 
 if __name__ == "__main__":
