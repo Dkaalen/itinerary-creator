@@ -7,8 +7,8 @@ Expected folder shape:
     image_bank/
         Norway/
             Oslo/
-                Oslo_Opera_House.jpg
-                Oslo_Parliament_City_Centre.jpg
+                Oslo_Summer_Opera_House.jpg
+                Oslo_Winter_Northern_Lights.jpg
 
 The matcher is intentionally conservative: if there is no image for the day's
 own destination/city, it returns None. A missing image is better than a wrong
@@ -56,6 +56,15 @@ THEME_ALIASES = {
     "funicular": {"funicular", "floibanen", "fløibanen", "mountain", "view"},
 }
 
+SEASON_ALIASES = {
+    "summer": {"summer"},
+    "winter": {"winter"},
+}
+
+SUMMER_MONTHS = {4, 5, 6, 7, 8, 9, 10}
+WINTER_MONTHS = {1, 2, 3, 11, 12}
+
+
 
 @dataclass(frozen=True)
 class ImageCandidate:
@@ -65,6 +74,7 @@ class ImageCandidate:
     filename: str
     tokens: tuple[str, ...]
     themes: tuple[str, ...]
+    seasons: tuple[str, ...]
 
 
 def normalize_keyword(value: str) -> str:
@@ -111,6 +121,47 @@ def infer_themes(tokens: set[str]) -> set[str]:
     return themes
 
 
+def infer_seasons(tokens: set[str]) -> set[str]:
+    seasons = set()
+    for season, aliases in SEASON_ALIASES.items():
+        normalized_aliases = {normalize_keyword(alias) for alias in aliases}
+        if tokens & normalized_aliases:
+            seasons.add(season)
+    return seasons
+
+
+def infer_season_from_rows(rows: list[dict]) -> str:
+    """Infer the itinerary season from day dates when available.
+
+    The image bank supports two broad naming seasons: Summer and Winter. The
+    inference is deliberately simple and only returns a season when a month can
+    be read from the row data. If no date exists, matching remains season-neutral.
+    """
+    for row in rows or []:
+        for key in ("date", "start_date", "from_date", "check_in", "checkin"):
+            value = str(row.get(key, "") or "").strip()
+            if not value:
+                continue
+
+            patterns = [
+                r"\b\d{1,2}[./-](\d{1,2})[./-]\d{2,4}\b",
+                r"\b\d{4}[./-](\d{1,2})[./-]\d{1,2}\b",
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, value)
+                if not match:
+                    continue
+                try:
+                    month = int(match.group(1))
+                except Exception:
+                    continue
+                if month in SUMMER_MONTHS:
+                    return "summer"
+                if month in WINTER_MONTHS:
+                    return "winter"
+    return ""
+
+
 def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> ImageCandidate:
     base = Path(image_bank_path)
     path = Path(image_path)
@@ -126,6 +177,7 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
     token_source = " ".join([country, city, filename.replace("_", " ")])
     tokens = tokenize(token_source)
     themes = infer_themes(tokens)
+    seasons = infer_seasons(tokens)
 
     return ImageCandidate(
         path=str(path),
@@ -134,6 +186,7 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
         filename=filename,
         tokens=tuple(sorted(tokens)),
         themes=tuple(sorted(themes)),
+        seasons=tuple(sorted(seasons)),
     )
 
 
@@ -173,6 +226,7 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
         "city_variants": city_variants(city),
         "tokens": tokens,
         "themes": themes,
+        "season": infer_season_from_rows(rows),
         "text": normalize_keyword(text),
     }
 
@@ -205,7 +259,13 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
         score += 18 * len(theme_matches)
         reasons.append("theme match: " + ", ".join(sorted(theme_matches)))
 
-    token_matches = (candidate_tokens & day_tokens) - day_city_variants
+    day_season = normalize_keyword(day_context.get("season", ""))
+    candidate_seasons = set(candidate.seasons)
+    if day_season and day_season in candidate_seasons:
+        score += 12
+        reasons.append(f"season match: {day_season}")
+
+    token_matches = (candidate_tokens & day_tokens) - day_city_variants - set(SEASON_ALIASES)
     if token_matches:
         score += min(20, 4 * len(token_matches))
         reasons.append("keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
@@ -213,14 +273,39 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     return score, reasons
 
 
-def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:
-    candidates = scan_image_bank(image_bank_path)
-    if not candidates:
-        return None
+def _season_available_for_context(candidates: list[ImageCandidate], context: dict) -> bool:
+    day_season = normalize_keyword(context.get("season", ""))
+    if not day_season:
+        return False
 
-    context = build_day_context(day, rows)
-    best = None
+    day_city_variants = set(context.get("city_variants", set()))
     for candidate in candidates:
+        if day_season not in set(candidate.seasons):
+            continue
+        candidate_city_variants = city_variants(candidate.city)
+        if candidate_city_variants & day_city_variants:
+            return True
+    return False
+
+
+def _select_best_candidate_for_context(
+    day: str,
+    context: dict,
+    candidates: list[ImageCandidate],
+    used_paths: set[str] | None = None,
+) -> dict | None:
+    used_paths = used_paths or set()
+    best = None
+    require_matching_season = _season_available_for_context(candidates, context)
+    day_season = normalize_keyword(context.get("season", ""))
+
+    for candidate in candidates:
+        normalized_path = str(Path(candidate.path).resolve())
+        if normalized_path in used_paths:
+            continue
+        if require_matching_season and day_season not in set(candidate.seasons):
+            continue
+
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
             continue
@@ -233,14 +318,36 @@ def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "
             "country": candidate.country,
             "filename": candidate.filename,
             "themes": list(candidate.themes),
+            "seasons": list(candidate.seasons),
         }
         if best is None or (payload["score"], payload["filename"]) > (best["score"], best["filename"]):
             best = payload
     return best
 
 
+def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:
+    candidates = scan_image_bank(image_bank_path)
+    if not candidates:
+        return None
+    context = build_day_context(day, rows)
+    return _select_best_candidate_for_context(day, context, candidates)
+
+
 def select_day_images(grouped_days: dict, image_bank_path: Path | str = "image_bank") -> dict:
-    return {day: select_day_image(day, rows, image_bank_path) for day, rows in (grouped_days or {}).items()}
+    """Select at most one non-reused image for each day in itinerary order."""
+    candidates = scan_image_bank(image_bank_path)
+    if not candidates:
+        return {day: None for day in (grouped_days or {})}
+
+    matches = {}
+    used_paths: set[str] = set()
+    for day, rows in (grouped_days or {}).items():
+        context = build_day_context(day, rows)
+        match = _select_best_candidate_for_context(day, context, candidates, used_paths)
+        matches[day] = match
+        if match:
+            used_paths.add(str(Path(match["path"]).resolve()))
+    return matches
 
 
 def format_match_for_debug(match: dict | None) -> str:

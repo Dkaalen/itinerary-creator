@@ -20,7 +20,7 @@ from generator import (
 )
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
-from image_matcher import scan_image_bank, select_day_image
+from image_matcher import scan_image_bank, select_day_image, select_day_images
 from layout_policy import (
     DEFAULT_DAY_PAGE_LAYOUT,
     DAY_PAGE_LAYOUTS,
@@ -354,6 +354,65 @@ def test_image_bank_missing_folder_is_safe():
     assert_equal(match, None, "Missing image bank should fail safely without an image.")
 
 
+def test_day_image_selection_does_not_reuse_images_and_prefers_available_season():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        oslo_dir = bank / "Norway" / "Oslo"
+        oslo_dir.mkdir(parents=True)
+        for name in [
+            "Oslo_Summer_Opera_House.jpg",
+            "Oslo_Summer_Parliament_City_Centre.jpg",
+            "Oslo_Winter_Opera_House.jpg",
+        ]:
+            Image.new("RGB", (40, 25), (20, 40, 60)).save(oslo_dir / name, format="JPEG")
+
+        grouped = {
+            "Day 1": [
+                {
+                    "day": "Day 1",
+                    "date": "15.07.2027",
+                    "city": "Oslo",
+                    "title": "Oslo Opera House Visit",
+                    "details": "Waterfront walk",
+                }
+            ],
+            "Day 2": [
+                {
+                    "day": "Day 2",
+                    "date": "16.07.2027",
+                    "city": "Oslo",
+                    "title": "Oslo City Walking Tour",
+                    "details": "Parliament and city centre",
+                }
+            ],
+        }
+
+        matches = select_day_images(grouped, bank)
+        paths = [match["path"] for match in matches.values() if match]
+        assert_equal(len(paths), 2, "Two Oslo days should receive two images when available.")
+        assert_equal(len(set(paths)), 2, "The same image file should not be reused across days.")
+        if not all("Summer" in Path(path).name for path in paths):
+            raise AssertionError("Summer-dated itineraries should prefer available Summer images.")
+
+        winter_match = select_day_image(
+            "Day 3",
+            [
+                {
+                    "day": "Day 3",
+                    "date": "15.01.2027",
+                    "city": "Oslo",
+                    "title": "Oslo Opera House Visit",
+                    "details": "Waterfront walk",
+                }
+            ],
+            bank,
+        )
+        if not winter_match or "Winter" not in Path(winter_match["path"]).name:
+            raise AssertionError("Winter-dated itineraries should prefer available Winter images.")
+
+
 def test_layout_policy_one_day_per_page():
     assert_equal(
         DEFAULT_DAY_PAGE_LAYOUT,
@@ -507,6 +566,7 @@ def run_all():
         test_trip_glance_normal_hotels_are_arranged_accommodation,
         test_image_bank_matching_is_destination_specific,
         test_image_bank_missing_folder_is_safe,
+        test_day_image_selection_does_not_reuse_images_and_prefers_available_season,
         test_layout_policy_one_day_per_page,
         test_pdf_day_image_layout_rules,
         test_pdf_export_places_day_image_from_current_page_story,

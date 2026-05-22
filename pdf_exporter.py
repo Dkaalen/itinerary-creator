@@ -707,7 +707,7 @@ def add_day_image_if_possible(
     left_margin=0,
     top_margin=0,
 ):
-    """Add a same-page lower-half full-width day image when a match exists."""
+    """Add a same-page lower-half edge-to-edge day image when a match exists."""
     slot = page.select_one(".day-image-slot")
     if not slot:
         return
@@ -720,9 +720,9 @@ def add_day_image_if_possible(
         SamePageDayImage(
             source_path=image_path,
             temp_dir=temp_dir,
-            x=left_margin,
+            x=0,
             content_top_y=A4[1] - top_margin,
-            content_width=available_width,
+            content_width=A4[0],
             content_height=available_height,
         )
     )

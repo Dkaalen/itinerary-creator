@@ -1223,14 +1223,16 @@ def get_image_bank_path():
     return Path(__file__).parent / "image_bank"
 
 
-def render_day_image_slot(day, rows):
+def render_day_image_slot(day, rows, match=None):
     """Return a hidden day-image marker for PDF image placement.
 
     The marker is invisible in the HTML preview for now. The PDF exporter reads
     the matched path and places the image only if enough space remains on the
-    one-day A4 page.
+    one-day A4 page. When a precomputed match is provided, the caller can
+    enforce itinerary-level rules such as no image reuse.
     """
-    match = select_day_image(day, rows, get_image_bank_path())
+    if match is None:
+        match = select_day_image(day, rows, get_image_bank_path())
     if not match:
         return ""
 
@@ -1270,11 +1272,11 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
     return html_text
 
 
-def render_day_page(day, rows, output_edits=None):
+def render_day_page(day, rows, output_edits=None, image_match=None):
     return f'''
         <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
             {render_day_section(day, rows, output_edits, packed=False)}
-            {render_day_image_slot(day, rows)}
+            {render_day_image_slot(day, rows, match=image_match)}
         </div>
     '''
 
@@ -1303,8 +1305,9 @@ def render_day_pages(grouped_days, output_edits=None):
     can place a full-width image below the day text when enough space remains.
     """
     html_text = ""
+    image_matches = select_day_images(grouped_days, get_image_bank_path())
     for day, rows in grouped_days.items():
-        html_text += render_day_page(day, rows, output_edits)
+        html_text += render_day_page(day, rows, output_edits, image_match=image_matches.get(day))
     return html_text
 
 def render_split_list_pages(title, items, items_per_page=24):
