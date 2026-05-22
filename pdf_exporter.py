@@ -41,6 +41,7 @@ PDF_IMAGE_GAP = 15  # approximately 20 CSS pixels
 PDF_IMAGE_HALF_OFFSET = 7.5  # approximately 10 CSS pixels
 PDF_MIN_IMAGE_HEIGHT = 40 * mm
 PDF_CROP_VERTICAL_FOCUS = 0.25  # protect upper/sky detail when vertical cropping is needed
+PDF_IMAGE_BOTTOM_Y = 0  # day images bleed to the physical lower page edge
 
 
 DEFAULT_PDF_COLORS = {
@@ -560,14 +561,23 @@ def resolve_image_path(raw_path, html_path):
     return None
 
 
-def calculate_day_image_layout(used_height, content_height, gap=PDF_IMAGE_GAP, half_offset=PDF_IMAGE_HALF_OFFSET, min_height=PDF_MIN_IMAGE_HEIGHT):
+def calculate_day_image_layout(
+    used_height,
+    content_height,
+    gap=PDF_IMAGE_GAP,
+    half_offset=PDF_IMAGE_HALF_OFFSET,
+    min_height=PDF_MIN_IMAGE_HEIGHT,
+    bottom_bleed=0,
+):
     """Return spacer/image height for lower-half day imagery, or None.
 
     The top of the image may never sit above the lower-half threshold. If the
     text ends lower than that threshold, the normal text gap controls placement.
+    ``bottom_bleed`` extends the image below the normal content area so the PDF
+    can draw day images all the way to the physical lower page edge.
     """
     image_top = max(float(used_height) + float(gap), (float(content_height) / 2.0) + float(half_offset))
-    image_height = float(content_height) - image_top
+    image_height = float(content_height) + float(bottom_bleed) - image_top
     if image_height < float(min_height):
         return None
     spacer_height = max(0, image_top - float(used_height))
@@ -642,6 +652,8 @@ class SamePageDayImage(Flowable):
         content_top_y,
         content_width,
         content_height,
+        page_height=A4[1],
+        bottom_y=PDF_IMAGE_BOTTOM_Y,
         gap=PDF_IMAGE_GAP,
         half_offset=PDF_IMAGE_HALF_OFFSET,
         min_height=PDF_MIN_IMAGE_HEIGHT,
@@ -653,6 +665,8 @@ class SamePageDayImage(Flowable):
         self.content_top_y = float(content_top_y)
         self.content_width = float(content_width)
         self.content_height = float(content_height)
+        self.page_height = float(page_height)
+        self.bottom_y = float(bottom_y)
         self.gap = float(gap)
         self.half_offset = float(half_offset)
         self.min_height = float(min_height)
@@ -664,16 +678,15 @@ class SamePageDayImage(Flowable):
         return []
 
     def drawOn(self, canv, x, y, _sW=0):
-        text_bottom_from_top = max(0.0, self.content_top_y - float(y))
-        image_top_from_top = max(
-            text_bottom_from_top + self.gap,
-            (self.content_height / 2.0) + self.half_offset,
+        text_bottom_y = float(y)
+        image_top_y = min(
+            text_bottom_y - self.gap,
+            (self.page_height / 2.0) - self.half_offset,
         )
-        image_height = self.content_height - image_top_from_top
+        image_height = image_top_y - self.bottom_y
         if image_height < self.min_height:
             return
 
-        image_y = self.content_top_y - image_top_from_top - image_height
         cropped_path = make_cover_cropped_image(
             self.source_path,
             self.content_width,
@@ -687,7 +700,7 @@ class SamePageDayImage(Flowable):
         canv.drawImage(
             str(cropped_path),
             self.absolute_x,
-            image_y,
+            self.bottom_y,
             width=self.content_width,
             height=image_height,
             preserveAspectRatio=False,
@@ -724,6 +737,8 @@ def add_day_image_if_possible(
             content_top_y=A4[1] - top_margin,
             content_width=A4[0],
             content_height=available_height,
+            page_height=A4[1],
+            bottom_y=PDF_IMAGE_BOTTOM_Y,
         )
     )
 

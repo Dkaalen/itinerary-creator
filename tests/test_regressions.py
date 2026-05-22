@@ -468,6 +468,20 @@ def test_pdf_day_image_layout_rules():
     if image_height < minimum:
         raise AssertionError("Image height should respect the minimum height threshold.")
 
+    bleed_layout = calculate_day_image_layout(
+        used_height=120,
+        content_height=content_height,
+        gap=15,
+        half_offset=7.5,
+        min_height=minimum,
+        bottom_bleed=62.4,
+    )
+    if not bleed_layout:
+        raise AssertionError("Bottom-bleed image layout should still be allowed when there is room.")
+    _, bleed_image_height = bleed_layout
+    if bleed_image_height <= image_height:
+        raise AssertionError("Bottom-bleed images should extend below the normal content area to the page edge.")
+
     heavy_day_layout = calculate_day_image_layout(
         used_height=650,
         content_height=content_height,
@@ -525,6 +539,22 @@ def test_pdf_export_places_day_image_from_current_page_story():
             2,
             "Day image rendering should not create an image-only continuation page.",
         )
+
+        try:
+            import fitz
+        except Exception as exc:  # pragma: no cover - local dependency guard
+            raise AssertionError(f"PyMuPDF/fitz is required for rendered PDF image smoke checks: {exc}")
+
+        document = fitz.open(pdf_path)
+        try:
+            day_page = document.load_page(1)
+            pixmap = day_page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
+            bottom_center = pixmap.pixel(pixmap.width // 2, pixmap.height - 1)
+            page_bg = (244, 239, 232)
+            if sum(abs(int(bottom_center[i]) - page_bg[i]) for i in range(3)) < 20:
+                raise AssertionError("Day image should touch the physical lower page edge, not stop above the margin.")
+        finally:
+            document.close()
 
 
 def test_cover_crop_protects_upper_image_content():
