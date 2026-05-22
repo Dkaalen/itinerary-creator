@@ -15,6 +15,8 @@ DETAIL_LABELS = [
     "Includes",
     "Notable Sights",
     "Schedule",
+    "Description",
+    "Overview",
     "Luggage included",
 ]
 

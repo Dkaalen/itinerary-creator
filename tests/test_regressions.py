@@ -152,6 +152,25 @@ Free photographs from the trip
     )
 
 
+def test_activity_includes_do_not_absorb_description_label():
+    raw = """
+Day 2	Activity	16.01.2027		Oslo: Oslo Center Guided Walking Tour - Time: 10:00 am - 12:00 pm - Meeting point: Near the University of Oslo - Includes: Guided walking tour, Local guide, City landmarks - Description: Explore central Oslo with a local guide, taking in key landmarks, city stories, and the atmosphere of the Norwegian capital.
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    assert_equal(len(rows), 1, "The activity row should parse as one row.")
+    includes = rows[0].get("includes", [])
+    assert_equal(
+        includes,
+        ["Guided walking tour", "Local guide", "City landmarks"],
+        "Includes should stop before the Description label instead of turning prose into bullets.",
+    )
+    assert_not_contains(
+        "\n".join(includes).lower(),
+        "description",
+        "Description labels should not leak into inclusion bullets.",
+    )
+
+
 def test_text_polish_regressions():
     assert_equal(
         polish_client_text("hot drinks & snacks or cookies"),
@@ -589,6 +608,7 @@ def run_all():
     tests = [
         test_time_expansion,
         test_full_pasted_row_decimal_duration,
+        test_activity_includes_do_not_absorb_description_label,
         test_text_polish_regressions,
         test_whats_included_nights_wording,
         test_journey_arc_normal_hotel_not_experience,

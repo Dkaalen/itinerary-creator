@@ -294,7 +294,10 @@ def split_and_merge_inclusions(items: list[str]) -> list[str]:
     raw_items = [normalize_inclusion_value(item) for item in items or [] if normalize_inclusion_value(item)]
     index = 0
     while index < len(raw_items):
-        item = raw_items[index]
+        item = re.split(r"\s+-\s+(?:Description|Overview)\s*:", raw_items[index], maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
+        if not item:
+            index += 1
+            continue
         lower = item.lower().strip(" ,.:")
         next_item = raw_items[index + 1] if index + 1 < len(raw_items) else ""
         next_lower = next_item.lower().strip(" ,.:")

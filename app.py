@@ -1,7 +1,9 @@
 from pathlib import Path
+import base64
 import copy
 import html
 import json
+import mimetypes
 import re
 
 import streamlit as st
@@ -38,7 +40,7 @@ from generator import (
     get_transfer_travel_title,
     is_self_arranged,
 )
-from image_matcher import select_day_image, select_day_images, format_match_for_debug
+from image_matcher import select_day_image, select_day_images, scan_image_bank, format_match_for_debug
 from layout_policy import (
     DEFAULT_DAY_PAGE_LAYOUT,
     DAY_PAGE_LAYOUTS,
@@ -48,7 +50,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-21 v36c2-image-placement-measurement-fix"
+APP_VERSION = "2026-05-22 v36c6-image-review-controls"
 
 
 st.set_page_config(
@@ -759,7 +761,7 @@ def build_activity_block(row):
         html_text += f'<div class="body-text"><span class="meta-label">{esc(meeting_label)}:</span> {esc(meeting_point)}</div>'
 
     if included_items:
-        html_text += '<div class="section-title small-section">Included with this experience</div>'
+        html_text += '<div class="section-title small-section">Included With This Experience</div>'
         html_text += render_list_items(prioritize_inline_inclusions(included_items, max_items=5))
 
     if end_point:
@@ -770,7 +772,7 @@ def build_activity_block(row):
         html_text += f'<div class="body-text muted-note">{esc(description)}</div>'
 
     if notable_sights:
-        html_text += '<div class="section-title small-section">Notable sights</div>'
+        html_text += '<div class="section-title small-section">Notable Sights</div>'
         html_text += render_list_items(notable_sights)
 
     html_text += "</div>"
@@ -789,7 +791,7 @@ def build_transport_block(row, title_override=None):
     luggage_included = polish_inclusion_item(clean_include_item(row.get("luggage_included", ""), title), title)
 
     html_text = f'<div class="content-block transport-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += '<div class="section-title">Travel today</div>'
+    html_text += '<div class="section-title">Travel Today</div>'
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if time:
@@ -819,7 +821,7 @@ def build_self_transfer_block(row, title_override=None):
     city = polish_title(row.get("city", ""))
 
     html_text = f'<div class="content-block self-transfer-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += '<div class="section-title">Self-guided transfer</div>'
+    html_text += '<div class="section-title">Self-Guided Transfer</div>'
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if city:
@@ -851,7 +853,7 @@ def build_self_arranged_travel_block(row, title_override=None):
         note = "This travel segment is self-arranged and not included in the package price unless specifically stated."
 
     html_text = f'<div class="content-block self-arranged-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += '<div class="section-title">Self-arranged travel</div>'
+    html_text += '<div class="section-title">Self-Arranged Travel</div>'
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if city:
@@ -908,7 +910,7 @@ def build_leisure_block(row=None):
     row_id = row.get("row_id", "") if row else ""
 
     html_text = f'<div class="content-block leisure-block" data-row-id="{esc(row_id)}">'
-    html_text += '<div class="section-title">Your free time</div>'
+    html_text += '<div class="section-title">Your Free Time</div>'
     html_text += (
         '<div class="body-text">'
         'Time at leisure is included so the day does not feel overfilled. '
@@ -965,7 +967,7 @@ def build_included_today_block(items):
         return None
 
     html_text = '<div class="content-block included-block">'
-    html_text += '<div class="section-title">Included today</div>'
+    html_text += '<div class="section-title">Included Today</div>'
     html_text += render_list_items(clean_items)
     html_text += "</div>"
 
@@ -1036,7 +1038,7 @@ def build_travel_arrangements_block(travel_rows):
         return None
 
     html_text = '<div class="content-block travel-sequence-block">'
-    html_text += '<div class="section-title">Travel arrangements</div>'
+    html_text += '<div class="section-title">Travel Arrangements</div>'
     html_text += render_list_items(items)
     html_text += "</div>"
 
@@ -1223,24 +1225,157 @@ def get_image_bank_path():
     return Path(__file__).parent / "image_bank"
 
 
-def render_day_image_slot(day, rows, match=None):
-    """Return a hidden day-image marker for PDF image placement.
+def normalize_path_key(value):
+    try:
+        return str(Path(str(value or "")).resolve())
+    except Exception:
+        return str(value or "")
 
-    The marker is invisible in the HTML preview for now. The PDF exporter reads
-    the matched path and places the image only if enough space remains on the
-    one-day A4 page. When a precomputed match is provided, the caller can
-    enforce itinerary-level rules such as no image reuse.
-    """
+
+def slugify_filename(value):
+    text = clean_space(value) or "Image"
+    text = re.sub(r"[^A-Za-z0-9_ -]+", "", text)
+    text = re.sub(r"[\s-]+", "_", text).strip("_")
+    return text or "Image"
+
+
+def infer_country_for_city(city):
+    city_key = clean_space(city).lower()
+    for candidate in scan_image_bank(get_image_bank_path()):
+        if clean_space(candidate.city).lower() == city_key and candidate.country:
+            return candidate.country
+    return "Custom"
+
+
+def image_to_data_uri(path):
+    try:
+        path = Path(path)
+        if not path.exists() or not path.is_file():
+            return ""
+        mime = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
+    except Exception:
+        return ""
+
+
+def get_day_image_overrides(output_edits=None):
+    return (output_edits or {}).setdefault("day_images", {})
+
+
+def day_image_match_from_path(day, path, reason="manual selection"):
+    if not path:
+        return None
+    path_obj = Path(path)
+    return {
+        "day": day,
+        "path": str(path_obj),
+        "score": 999,
+        "reason": reason,
+        "city": "",
+        "country": "",
+        "filename": path_obj.stem,
+        "themes": [],
+        "seasons": [],
+    }
+
+
+def select_day_images_with_overrides(grouped_days, output_edits=None):
+    """Apply day image review choices while preserving no-reuse behavior."""
+
+    overrides = (output_edits or {}).get("day_images", {}) or {}
+    selected = {}
+    used_paths = set()
+
+    # Manual and removed choices first, so automatic selections cannot reuse a
+    # picture selected by the user on another day.
+    for day, rows in (grouped_days or {}).items():
+        choice = overrides.get(day, {}) or {}
+        mode = choice.get("mode", "auto")
+        manual_path = choice.get("path", "")
+
+        if mode == "none":
+            selected[day] = None
+            continue
+
+        if mode == "manual" and manual_path:
+            resolved = Path(manual_path)
+            if not resolved.is_absolute():
+                resolved = (Path(__file__).parent / resolved).resolve()
+            key = normalize_path_key(resolved)
+            if resolved.exists() and key not in used_paths:
+                selected[day] = day_image_match_from_path(day, resolved, reason="manual image selection")
+                used_paths.add(key)
+            else:
+                selected[day] = None
+
+    base_matches = select_day_images(grouped_days, get_image_bank_path(), used_paths=used_paths.copy())
+
+    for day, rows in (grouped_days or {}).items():
+        if day in selected:
+            continue
+        match = base_matches.get(day)
+        if match:
+            key = normalize_path_key(match.get("path", ""))
+            if key in used_paths:
+                match = None
+            else:
+                used_paths.add(key)
+        selected[day] = match
+
+    return selected
+
+
+def list_city_image_options(city):
+    city_key = clean_space(city).lower()
+    options = []
+    for candidate in scan_image_bank(get_image_bank_path()):
+        if clean_space(candidate.city).lower() == city_key:
+            options.append(Path(candidate.path))
+    return sorted(options, key=lambda path: path.name.lower())
+
+
+def save_uploaded_day_image(uploaded_file, city, season, label=""):
+    if not uploaded_file:
+        return ""
+    city_name = polish_title(city) or "Destination"
+    country = infer_country_for_city(city_name)
+    season_name = season if season in {"Summer", "Winter"} else "Summer"
+    stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or Path(uploaded_file.name).stem)]
+    suffix = Path(uploaded_file.name).suffix.lower() or ".jpg"
+    target_dir = get_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
+
+    counter = 2
+    while target_path.exists():
+        target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + f"_{counter}" + suffix)
+        counter += 1
+
+    target_path.write_bytes(uploaded_file.getbuffer())
+    return str(target_path)
+
+
+def render_day_image_slot(day, rows, match=None):
+    """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
         match = select_day_image(day, rows, get_image_bank_path())
     if not match:
         return ""
 
+    image_path = match.get("path", "")
+    data_uri = image_to_data_uri(image_path)
+    preview_img = ""
+    if data_uri:
+        preview_img = f'<img class="day-image-preview-img" src="{esc(data_uri)}" alt="{esc(Path(image_path).stem)}" />'
+
     return (
         f'<div class="day-image-slot" '
-        f'data-image-path="{esc(match.get("path", ""))}" '
+        f'data-image-path="{esc(image_path)}" '
         f'data-image-score="{esc(match.get("score", ""))}" '
-        f'data-image-reason="{esc(match.get("reason", ""))}"></div>'
+        f'data-image-reason="{esc(match.get("reason", ""))}">'
+        f'{preview_img}'
+        f'</div>'
     )
 
 
@@ -1305,7 +1440,7 @@ def render_day_pages(grouped_days, output_edits=None):
     can place a full-width image below the day text when enough space remains.
     """
     html_text = ""
-    image_matches = select_day_images(grouped_days, get_image_bank_path())
+    image_matches = select_day_images_with_overrides(grouped_days, output_edits)
     for day, rows in grouped_days.items():
         html_text += render_day_page(day, rows, output_edits, image_match=image_matches.get(day))
     return html_text
@@ -1466,7 +1601,10 @@ def clean_activity_inclusion_items(items, title=""):
         text = polish_inclusion_item(str(item).strip(), title)
         lower = text.lower().strip(":? ")
 
-        if lower in {"what's included", "what’s included", "includes", "included"}:
+        text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
+        lower = text.lower().strip(":? ")
+
+        if lower in {"what's included", "what’s included", "includes", "included", "description", "overview"}:
             continue
 
         # Avoid long overview prose on the inclusion page.
@@ -1781,6 +1919,88 @@ def get_overflow_warnings(grouped_days):
     return warnings
 
 
+def render_day_image_controls(day, rows, output_edits):
+    """Show the selected day image and allow simple manual control."""
+
+    day_images = get_day_image_overrides(output_edits)
+    choice = day_images.setdefault(day, {"mode": "auto", "path": ""})
+    city = get_primary_city(rows)
+    image_matches = select_day_images_with_overrides(group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, output_edits)), output_edits)
+    current_match = image_matches.get(day)
+    current_path = Path(current_match.get("path")) if current_match else None
+
+    with st.expander(f"Image for {day}", expanded=False):
+        st.caption("Review the picture before PDF export. Use Remove to skip this day, or choose/upload a different picture.")
+
+        if current_path and current_path.exists():
+            st.image(str(current_path), caption=f"Current image: {current_path.name}", use_container_width=True)
+            if current_match and current_match.get("reason"):
+                st.caption(f"Match: {current_match.get('reason')}")
+        else:
+            st.info("No image is currently selected for this day.")
+
+        mode_labels = ["Automatic", "Choose image", "No image"]
+        mode_values = {"Automatic": "auto", "Choose image": "manual", "No image": "none"}
+        current_mode = choice.get("mode", "auto")
+        current_label = next((label for label, value in mode_values.items() if value == current_mode), "Automatic")
+        selected_label = st.radio(
+            "Image mode",
+            mode_labels,
+            index=mode_labels.index(current_label),
+            horizontal=True,
+            key=f"image_mode_{day}",
+        )
+        new_mode = mode_values[selected_label]
+        if choice.get("mode") != new_mode:
+            choice["mode"] = new_mode
+            if new_mode != "manual":
+                choice["path"] = ""
+            mark_output_dirty()
+
+        options = list_city_image_options(city)
+        if choice.get("mode") == "manual":
+            if options:
+                option_labels = [path.name for path in options]
+                current_path_text = choice.get("path", "")
+                current_index = 0
+                for idx, path in enumerate(options):
+                    if normalize_path_key(path) == normalize_path_key(current_path_text):
+                        current_index = idx
+                        break
+                selected_name = st.selectbox(
+                    "Choose from image bank",
+                    option_labels,
+                    index=current_index,
+                    key=f"manual_image_{day}",
+                )
+                selected_path = str(options[option_labels.index(selected_name)])
+                if choice.get("path") != selected_path:
+                    choice["path"] = selected_path
+                    mark_output_dirty()
+            else:
+                st.warning(f"No image-bank pictures found for {city or 'this destination'}.")
+
+        st.markdown("**Add a new picture to the image bank**")
+        add_col_1, add_col_2 = st.columns([1, 1])
+        with add_col_1:
+            upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"upload_season_{day}")
+        with add_col_2:
+            upload_label = st.text_input("Picture label", value="", placeholder="Opera House, Northern Lights...", key=f"upload_label_{day}")
+        uploaded = st.file_uploader(
+            "Upload JPG/PNG/WebP",
+            type=["jpg", "jpeg", "png", "webp"],
+            key=f"upload_image_{day}",
+        )
+        if uploaded and st.button("Add and use this picture", key=f"add_use_image_{day}"):
+            saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
+            if saved_path:
+                choice["mode"] = "manual"
+                choice["path"] = saved_path
+                mark_output_dirty()
+                st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
+                st.rerun()
+
+
 def render_output_editor(parsed_rows, grouped_days, output_edits):
     st.markdown('<div class="workflow-note">Edit the generated output here. The raw Excel input above is not changed.</div>', unsafe_allow_html=True)
 
@@ -1867,6 +2087,8 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                     height=95,
                     key=f"edit_{day}_intro",
                 )
+
+                render_day_image_controls(day, rows, output_edits)
 
                 with st.expander(f"Edit {day} itinerary items", expanded=False):
                     for index, row in enumerate(rows, start=1):
@@ -2047,6 +2269,20 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             display: flex;
             flex-direction: column;
             justify-content: center;
+        }}
+
+        .day-image-slot {{
+            margin: 24px -64px -66px -64px;
+            height: 410px;
+            overflow: hidden;
+        }}
+
+        .day-image-preview-img {{
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 25%;
         }}
 
         .cover-kicker {{

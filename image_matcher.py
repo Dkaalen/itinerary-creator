@@ -333,14 +333,18 @@ def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "
     return _select_best_candidate_for_context(day, context, candidates)
 
 
-def select_day_images(grouped_days: dict, image_bank_path: Path | str = "image_bank") -> dict:
+def select_day_images(
+    grouped_days: dict,
+    image_bank_path: Path | str = "image_bank",
+    used_paths: set[str] | None = None,
+) -> dict:
     """Select at most one non-reused image for each day in itinerary order."""
     candidates = scan_image_bank(image_bank_path)
     if not candidates:
         return {day: None for day in (grouped_days or {})}
 
     matches = {}
-    used_paths: set[str] = set()
+    used_paths = {str(Path(path).resolve()) for path in (used_paths or set())}
     for day, rows in (grouped_days or {}).items():
         context = build_day_context(day, rows)
         match = _select_best_candidate_for_context(day, context, candidates, used_paths)
