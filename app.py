@@ -50,7 +50,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c8-visual-preview-editor"
+APP_VERSION = "2026-05-22 v36c9-inline-visual-editor"
 
 
 st.set_page_config(
@@ -197,6 +197,154 @@ st.markdown(
         div[data-testid="stExpander"] {
             border-radius: 16px !important;
             border-color: rgba(148, 163, 184, 0.25) !important;
+        }
+        .app-hero {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(125, 211, 252, 0.28);
+            border-radius: 28px;
+            padding: 2rem 2.2rem;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(242, 5, 92, 0.34), transparent 30%),
+                radial-gradient(circle at 78% 8%, rgba(56, 189, 248, 0.26), transparent 30%),
+                linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.86));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+            margin-bottom: 1.2rem;
+        }
+        .app-hero:after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -45% auto;
+            width: 420px;
+            height: 420px;
+            border-radius: 999px;
+            background: rgba(20, 184, 166, 0.14);
+            filter: blur(8px);
+        }
+        .app-hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 999px;
+            padding: 0.35rem 0.7rem;
+            color: rgba(255,255,255,0.82);
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.08);
+        }
+        .app-hero h1 {
+            color: #fff;
+            font-size: clamp(2.4rem, 5vw, 4.8rem);
+            line-height: 0.95;
+            letter-spacing: -0.06em;
+            margin: 1rem 0 0.7rem 0;
+        }
+        .app-hero p {
+            color: rgba(255,255,255,0.78);
+            max-width: 880px;
+            font-size: 1.04rem;
+            margin-bottom: 0;
+        }
+        .hero-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            margin-top: 1.15rem;
+        }
+        .hero-chip {
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 999px;
+            padding: 0.55rem 0.8rem;
+            color: rgba(255,255,255,0.84);
+            background: rgba(255,255,255,0.075);
+            backdrop-filter: blur(8px);
+            font-size: 0.88rem;
+        }
+        .inline-editor-shell {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 24px;
+            padding: 1rem;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.18));
+        }
+        .inline-edit-help {
+            border: 1px solid rgba(125, 211, 252, 0.22);
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            margin: 0.6rem 0 1rem 0;
+            background: rgba(14, 165, 233, 0.08);
+            color: rgba(226, 232, 240, 0.92);
+        }
+        .inline-a4-page {
+            max-width: 794px;
+            min-height: 1123px;
+            margin: 0 auto 1.4rem auto;
+            padding: 64px 64px 0 64px;
+            background: #f4efe8;
+            color: #1f3446;
+            box-shadow: 0 22px 70px rgba(0,0,0,0.38);
+            border-radius: 2px;
+            box-sizing: border-box;
+            overflow: hidden;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+        .inline-a4-page .inline-page-kicker,
+        .inline-a4-page .inline-field-label,
+        .inline-a4-page .inline-small-label {
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #52616f;
+            font-size: 0.72rem;
+            font-weight: 800;
+            margin: 0.45rem 0 0.25rem 0;
+        }
+        .inline-field-label.soft {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 0.82rem;
+            color: #6f6a63;
+        }
+        .inline-a4-page input, .inline-a4-page textarea {
+            font-family: Georgia, 'Times New Roman', serif !important;
+            color: #1f3446 !important;
+        }
+        .inline-a4-page div[data-testid="stTextInput"] input,
+        .inline-a4-page div[data-testid="stTextArea"] textarea {
+            background: rgba(255,255,255,0.28) !important;
+            border: 1px dashed rgba(31, 52, 70, 0.24) !important;
+        }
+        .inline-day-card {
+            border-top: 1px solid rgba(31,52,70,0.14);
+            margin-top: 1rem;
+            padding-top: 0.65rem;
+        }
+        .inline-image-stage {
+            margin: 1.1rem -64px 0 -64px;
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: rgba(31,52,70,0.035);
+        }
+        .inline-image-stage img {
+            width: 100%;
+            height: 360px;
+            object-fit: cover;
+            display: block;
+        }
+        .inline-picture-toolbar {
+            border: 1px solid rgba(31,52,70,0.16);
+            border-radius: 16px;
+            padding: 0.75rem;
+            margin: 0.85rem 0 1.1rem 0;
+            background: rgba(255,255,255,0.35);
+        }
+        .exact-preview-caption {
+            opacity: 0.78;
+            font-size: 0.86rem;
+            margin-bottom: 0.7rem;
         }
     </style>
     """,
@@ -2307,19 +2455,346 @@ def render_visual_summary_editor(parsed_rows, grouped_days, output_edits):
         )
 
 
-def render_output_editor(parsed_rows, grouped_days, output_edits):
+
+def editable_value(output_edits, scope, key, fallback=""):
+    bucket = output_edits.setdefault(scope, {}) if scope in {"days", "rows"} else output_edits
+    if isinstance(bucket, dict) and key not in bucket:
+        bucket[key] = fallback
+    return bucket.get(key, fallback) if isinstance(bucket, dict) else fallback
+
+
+def render_inline_text_input(label, value, key, help_text=None):
+    st.markdown(f'<div class="inline-field-label soft">{esc(label)}</div>', unsafe_allow_html=True)
+    return st.text_input(
+        label,
+        value=value or "",
+        key=key,
+        label_visibility="collapsed",
+        help=help_text,
+    )
+
+
+def render_inline_text_area(label, value, key, height=76, help_text=None):
+    st.markdown(f'<div class="inline-field-label soft">{esc(label)}</div>', unsafe_allow_html=True)
+    return st.text_area(
+        label,
+        value=value or "",
+        height=height,
+        key=key,
+        label_visibility="collapsed",
+        help=help_text,
+    )
+
+
+def render_inline_picture_tools(day, rows, output_edits, current_match=None, key_prefix="inline_picture"):
+    """Image controls embedded directly on the day page editor."""
+    choice = get_day_image_choice(output_edits, day)
+    current_path = Path(current_match.get("path")) if current_match else None
+    crop_focus = normalize_crop_focus(choice.get("crop_focus", "top"))
+    object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
+
+    st.markdown('<div class="inline-image-stage">', unsafe_allow_html=True)
+    if current_path and current_path.exists():
+        data_uri = image_to_data_uri(current_path)
+        st.markdown(
+            f'<img style="object-position:{esc(object_position)};" src="{esc(data_uri)}" alt="{esc(current_path.stem)}" />',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info("No picture selected for this day. Use the controls below to restore or choose one.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="inline-picture-toolbar">', unsafe_allow_html=True)
+    st.markdown('<div class="inline-small-label">Picture tools</div>', unsafe_allow_html=True)
+    city = get_primary_city(rows)
+    top_col_1, top_col_2, top_col_3 = st.columns([1, 1, 1.2])
+    with top_col_1:
+        if st.button("Use automatic", key=f"{key_prefix}_auto_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "auto")
+            st.rerun()
+    with top_col_2:
+        if st.button("Remove picture", key=f"{key_prefix}_remove_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "none")
+            st.rerun()
+    with top_col_3:
+        focus_label = CROP_FOCUS_LABELS.get(crop_focus, "Sky / upper focus")
+        new_focus_label = st.selectbox(
+            "Re-crop focus",
+            list(CROP_FOCUS_OPTIONS.keys()),
+            index=list(CROP_FOCUS_OPTIONS.keys()).index(focus_label),
+            key=f"{key_prefix}_crop_focus_{day}",
+            help="Sky / upper focus is best for northern lights, skylines, mountains and wide landscapes.",
+        )
+        new_focus = CROP_FOCUS_OPTIONS[new_focus_label]
+        if choice.get("crop_focus") != new_focus:
+            choice["crop_focus"] = new_focus
+            mark_output_dirty()
+
+    options = list_city_image_options(city)
+    if options:
+        option_labels = [path.name for path in options]
+        current_path_text = choice.get("path", "") if choice.get("mode") == "manual" else (str(current_path) if current_path else "")
+        current_index = 0
+        for idx, path in enumerate(options):
+            if normalize_path_key(path) == normalize_path_key(current_path_text):
+                current_index = idx
+                break
+        image_col, replace_col = st.columns([2.2, 1])
+        with image_col:
+            selected_name = st.selectbox(
+                "Replace from image bank",
+                option_labels,
+                index=current_index,
+                key=f"{key_prefix}_bank_{day}",
+            )
+        with replace_col:
+            st.write("")
+            selected_path = str(options[option_labels.index(selected_name)])
+            if st.button("Replace", key=f"{key_prefix}_replace_{day}", use_container_width=True):
+                set_day_image_mode(output_edits, day, "manual", selected_path)
+                st.rerun()
+    else:
+        st.caption(f"No image-bank pictures found for {city or 'this destination'}.")
+
+    with st.expander("Upload new picture", expanded=False):
+        upload_col_1, upload_col_2 = st.columns([1, 1])
+        with upload_col_1:
+            upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"{key_prefix}_upload_season_{day}")
+        with upload_col_2:
+            upload_label = st.text_input("Picture label", value="", key=f"{key_prefix}_upload_label_{day}")
+        uploaded = st.file_uploader(
+            "Choose JPG or PNG",
+            type=["jpg", "jpeg", "png", "webp"],
+            key=f"{key_prefix}_upload_file_{day}",
+        )
+        if uploaded and st.button("Upload and use", key=f"{key_prefix}_upload_use_{day}", use_container_width=True):
+            saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
+            if saved_path:
+                set_day_image_mode(output_edits, day, "manual", saved_path)
+                st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_inline_row_block(row, output_edits, day, index):
+    row_id = row.get("row_id") or f"{day}_{index}"
+    row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+    row_type = get_row_type(row)
+    title_fallback = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
+    row_title = row_edit.get("title", title_fallback)
+
+    st.markdown('<div class="inline-day-card">', unsafe_allow_html=True)
+    st.markdown(f'<div class="inline-page-kicker">{esc(row_type)}</div>', unsafe_allow_html=True)
+    row_edit["title"] = render_inline_text_input(
+        "Title / text",
+        row_title,
+        key=f"inline_row_{row_id}_title",
+    )
+
+    if row_type == "Hotel":
+        row_edit["hotel_name"] = render_inline_text_input(
+            "Accommodation name",
+            row_edit.get("hotel_name", row.get("hotel_name", "")),
+            key=f"inline_row_{row_id}_hotel_name",
+        )
+        col_a, col_b = st.columns(2)
+        with col_a:
+            row_edit["hotel_nights"] = render_inline_text_input(
+                "Nights",
+                row_edit.get("hotel_nights", row.get("hotel_nights", "")),
+                key=f"inline_row_{row_id}_hotel_nights",
+            )
+            row_edit["room_category"] = render_inline_text_input(
+                "Room category",
+                row_edit.get("room_category", row.get("room_category", "")),
+                key=f"inline_row_{row_id}_room",
+            )
+        with col_b:
+            row_edit["meal_plan"] = render_inline_text_input(
+                "Meal plan",
+                row_edit.get("meal_plan", row.get("meal_plan", "")),
+                key=f"inline_row_{row_id}_meal",
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    if row_type in {"Activity", "Transfer", "Transport", "Departure", "Arrival"}:
+        col_1, col_2 = st.columns(2)
+        with col_1:
+            row_edit["time"] = render_inline_text_input(
+                "Time",
+                row_edit.get("time", row.get("time", "")),
+                key=f"inline_row_{row_id}_time",
+            )
+            row_edit["meeting_point"] = render_inline_text_input(
+                "Meeting point / pickup",
+                row_edit.get("meeting_point", row.get("meeting_point", "")),
+                key=f"inline_row_{row_id}_meeting",
+            )
+        with col_2:
+            row_edit["duration"] = render_inline_text_input(
+                "Duration",
+                row_edit.get("duration", row.get("duration", "")),
+                key=f"inline_row_{row_id}_duration",
+            )
+            row_edit["end_point"] = render_inline_text_input(
+                "End point / drop-off",
+                row_edit.get("end_point", row.get("end_point", "")),
+                key=f"inline_row_{row_id}_end",
+            )
+
+    if row_type == "Activity":
+        row_edit["includes_text"] = render_inline_text_area(
+            "Included With This Experience — one item per line",
+            row_edit.get("includes_text", list_to_text(row.get("includes", []))),
+            key=f"inline_row_{row_id}_includes",
+            height=90,
+        )
+        row_edit["notable_sights_text"] = render_inline_text_area(
+            "Notable sights — one per line",
+            row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
+            key=f"inline_row_{row_id}_sights",
+            height=70,
+        )
+        row_edit["client_description"] = render_inline_text_area(
+            "Description",
+            row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(st.session_state.output_edits))),
+            key=f"inline_row_{row_id}_description",
+            height=90,
+        )
+    elif row_type == "Leisure":
+        row_edit["client_description"] = render_inline_text_area(
+            "Free-time note",
+            row_edit.get("client_description", row.get("client_description", "")),
+            key=f"inline_row_{row_id}_leisure_desc",
+            height=80,
+        )
+    else:
+        existing = row_edit.get("client_description", row.get("client_description", ""))
+        if existing:
+            row_edit["client_description"] = render_inline_text_area(
+                "Note / description",
+                existing,
+                key=f"inline_row_{row_id}_generic_desc",
+                height=75,
+            )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_inline_day_page_editor(day, rows, output_edits, image_match=None):
+    day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+    st.markdown('<div class="inline-a4-page">', unsafe_allow_html=True)
+    st.markdown(f'<div class="inline-page-kicker">{esc(day)}</div>', unsafe_allow_html=True)
+
+    day_edit["title"] = st.text_input(
+        "Day title",
+        value=day_edit.get("title", create_day_title(rows)),
+        key=f"inline_day_{day}_title",
+        label_visibility="collapsed",
+    )
+    day_edit["city"] = st.text_input(
+        "Destination",
+        value=day_edit.get("city", get_primary_city(rows)),
+        key=f"inline_day_{day}_city",
+        label_visibility="collapsed",
+    )
+    day_edit["intro"] = st.text_area(
+        "Intro",
+        value=day_edit.get("intro", create_day_intro(rows, detail_level=get_detail_level_name(output_edits))),
+        height=90,
+        key=f"inline_day_{day}_intro",
+        label_visibility="collapsed",
+    )
+
+    for index, row in enumerate(rows, start=1):
+        render_inline_row_block(row, output_edits, day, index)
+
+    render_inline_picture_tools(day, rows, output_edits, current_match=image_match, key_prefix="inline_picture")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_inline_cover_page_editor(parsed_rows, grouped_days, output_edits):
+    st.markdown('<div class="inline-a4-page">', unsafe_allow_html=True)
+    st.markdown('<div class="inline-page-kicker">Curated Travel Itinerary</div>', unsafe_allow_html=True)
+    output_edits["trip_title"] = st.text_input(
+        "Cover title",
+        value=output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
+        key="inline_cover_title",
+        label_visibility="collapsed",
+    )
+    output_edits["trip_subtitle"] = st.text_area(
+        "Cover subtitle",
+        value=output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
+        height=80,
+        key="inline_cover_subtitle",
+        label_visibility="collapsed",
+    )
+    output_edits["destinations_line"] = st.text_input(
+        "Destinations line",
+        value=output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+        key="inline_cover_destinations",
+        label_visibility="collapsed",
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_inline_final_pages_editor(output_edits):
+    with st.expander("Edit final included / not included / travel notes pages", expanded=False):
+        output_edits["whats_included_text"] = st.text_area(
+            "What’s included, one item per line",
+            value=output_edits.get("whats_included_text", ""),
+            height=220,
+            key="inline_final_whats_included_text",
+        )
+        output_edits["whats_not_included_text"] = st.text_area(
+            "What’s not included, one item per line",
+            value=output_edits.get("whats_not_included_text", ""),
+            height=180,
+            key="inline_final_whats_not_included_text",
+        )
+        output_edits["important_travel_notes_text"] = st.text_area(
+            "Important travel notes, one paragraph per line",
+            value=output_edits.get("important_travel_notes_text", list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES)),
+            height=240,
+            key="inline_final_important_travel_notes_text",
+        )
+
+
+def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
     st.markdown(
-        '<div class="visual-editor-note">Visual Preview Editor: make changes near the itinerary preview instead of working through day tabs. '
-        'Picture actions live with each day, and all choices feed into the final PDF export.</div>',
+        '<div class="inline-edit-help"><strong>Inline Visual Editor</strong><br>'
+        'Type directly into the A4 pages below. Image controls are embedded on each day page. '
+        'The PDF exporter remains the final rendering engine, but these page edits feed directly into the final PDF.</div>',
         unsafe_allow_html=True,
     )
 
-    render_visual_summary_editor(parsed_rows, grouped_days, output_edits)
+    action_col_1, action_col_2 = st.columns([1, 2])
+    with action_col_1:
+        if st.button("Reset edits", help="Return editable fields to the generated text.", use_container_width=True):
+            st.session_state.output_edits = make_output_edit_state(
+                st.session_state.parsed_rows,
+                group_rows_by_day(st.session_state.parsed_rows),
+            )
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_status = "Needs refresh"
+            st.rerun()
+    with action_col_2:
+        if st.button("Improve all day-to-day text", key="inline_assistant_improve_all_days", use_container_width=True):
+            st.session_state.output_edits = apply_rich_writing_to_all_days(
+                st.session_state.parsed_rows,
+                st.session_state.output_edits,
+            )
+            mark_output_dirty()
+            st.rerun()
 
+    render_inline_cover_page_editor(parsed_rows, grouped_days, output_edits)
     image_matches = get_current_day_image_matches(output_edits)
-    days = list(grouped_days.keys())
-    for day in days:
-        render_visual_day_editor(day, grouped_days[day], output_edits, image_match=image_matches.get(day))
+    for day, rows in grouped_days.items():
+        render_inline_day_page_editor(day, rows, output_edits, image_match=image_matches.get(day))
+    render_inline_final_pages_editor(output_edits)
+
+def render_output_editor(parsed_rows, grouped_days, output_edits):
+    render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits)
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
@@ -3313,9 +3788,16 @@ with st.sidebar:
 st.markdown(
     f"""
     <div class="app-hero">
-        <h1>Itinerary Creator</h1>
-        <p>Paste itinerary rows, review the generated output, then export a polished A4 itinerary.</p>
-        <p style="font-size: 0.85rem; opacity: 0.65; margin-top: 0.4rem;">Version: {APP_VERSION}</p>
+        <div class="app-hero-kicker">✦ Nordic itinerary studio</div>
+        <h1>Build premium travel itineraries without the boring bits.</h1>
+        <p>Paste raw itinerary rows, shape the story on A4 pages, tune the visuals, and export a polished client-ready PDF.</p>
+        <div class="hero-chip-row">
+            <div class="hero-chip">A4 portrait layouts</div>
+            <div class="hero-chip">Seasonal image matching</div>
+            <div class="hero-chip">Inline page editing</div>
+            <div class="hero-chip">PDF-first visuals</div>
+        </div>
+        <p style="font-size: 0.78rem; opacity: 0.55; margin-top: 1rem;">Version: {APP_VERSION}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -3385,15 +3867,17 @@ if show_debug and st.session_state.parsed_rows:
                 )
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 2 — Visual preview editor", expanded=True):
-        st.caption("Edit the itinerary from a page-by-page visual workflow. The PDF remains the final source of truth for exact export rendering.")
-        if st.session_state.itinerary_html:
-            st.html(st.session_state.itinerary_html)
+    with st.expander("Step 2 — Inline visual editor", expanded=True):
+        st.caption("Edit directly on the A4 pages. These fields update the final PDF export.")
         render_output_editor(
             st.session_state.parsed_rows,
             group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
             st.session_state.output_edits,
         )
+        with st.expander("Exact rendered preview", expanded=False):
+            st.markdown('<div class="exact-preview-caption">This is the HTML/PDF-style rendering. Use it as a visual check before exporting.</div>', unsafe_allow_html=True)
+            if st.session_state.itinerary_html:
+                st.html(st.session_state.itinerary_html)
 
     edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
