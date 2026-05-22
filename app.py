@@ -7,6 +7,7 @@ import mimetypes
 import re
 
 import streamlit as st
+import streamlit.components.v1 as components
 import diagnostics
 from itinerary_parser import parse_itinerary, normalize_time_text
 from normalizer import normalize_itinerary_rows
@@ -50,13 +51,18 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c11-clean-internal-ui"
+APP_VERSION = "2026-05-22 v36c12-visual-page-editor"
 
 
 st.set_page_config(
     page_title="Itinerary Creator",
     page_icon="🧭",
     layout="wide",
+)
+
+VISUAL_EDITOR_COMPONENT = components.declare_component(
+    "booknordics_visual_editor",
+    path=str(Path(__file__).parent / "visual_editor_component" / "frontend"),
 )
 
 
@@ -2684,6 +2690,206 @@ def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
         render_inline_day_page_editor(day, rows, output_edits, image_match=image_matches.get(day))
     render_inline_final_pages_editor(output_edits)
 
+
+
+def save_base64_day_image(data_url, filename, city, season="Summer", label="visual-editor"):
+    """Save a browser-uploaded image from the visual editor into the image bank."""
+    if not data_url or ";base64," not in str(data_url):
+        return ""
+    try:
+        header, encoded = str(data_url).split(",", 1)
+        raw = base64.b64decode(encoded)
+    except Exception:
+        return ""
+
+    city_name = polish_title(city) or "Destination"
+    country = infer_country_for_city(city_name)
+    season_name = season if season in {"Summer", "Winter"} else "Summer"
+    source_name = Path(filename or "uploaded_image.jpg").stem
+    suffix = Path(filename or "uploaded_image.jpg").suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+        if "png" in str(data_url[:40]).lower():
+            suffix = ".png"
+        elif "webp" in str(data_url[:40]).lower():
+            suffix = ".webp"
+        else:
+            suffix = ".jpg"
+
+    stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or source_name)]
+    target_dir = get_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
+
+    counter = 2
+    while target_path.exists():
+        target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + f"_{counter}" + suffix)
+        counter += 1
+
+    target_path.write_bytes(raw)
+    return str(target_path)
+
+
+def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
+    """Create the structured data consumed by the custom editable A4 component."""
+    edited_rows = apply_output_edits(parsed_rows, output_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+    image_matches = select_day_images_with_overrides(edited_grouped_days, output_edits)
+
+    payload = {
+        "version": APP_VERSION,
+        "cover": {
+            "kicker": "Curated Travel Itinerary",
+            "trip_title": output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days),
+            "trip_subtitle": output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days),
+            "destinations_line": output_edits.get("destinations_line") or create_destinations_line(parsed_rows),
+        },
+        "days": [],
+        "final_pages": {
+            "whats_included_text": output_edits.get("whats_included_text", ""),
+            "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
+            "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
+        },
+    }
+
+    for day, rows in edited_grouped_days.items():
+        day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+        original_rows = grouped_days.get(day, rows)
+        image_match = image_matches.get(day)
+        image_choice = get_day_image_choice(output_edits, day)
+        image_path = image_match.get("path", "") if image_match else ""
+        city = day_edit.get("city") or get_primary_city(rows)
+        image_options = []
+        for path in list_city_image_options(city):
+            image_options.append({"name": path.name, "path": str(path)})
+
+        day_payload = {
+            "day": day,
+            "label": day,
+            "title": day_edit.get("title") or create_day_title(original_rows),
+            "city": city,
+            "intro": day_edit.get("intro") or create_day_intro(original_rows, detail_level=get_detail_level_name(output_edits)),
+            "rows": [],
+            "image": {
+                "mode": image_choice.get("mode", "auto"),
+                "path": image_path,
+                "name": Path(image_path).name if image_path else "",
+                "data_uri": image_to_data_uri(image_path) if image_path else "",
+                "crop_focus": get_day_image_crop_focus(output_edits, day),
+                "options": image_options,
+            },
+        }
+
+        for index, row in enumerate(rows, start=1):
+            row_id = row.get("row_id") or f"{day}_{index}"
+            row_type = get_row_type(row)
+            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+            row_payload = {
+                "row_id": row_id,
+                "type": row_type,
+                "section_label": get_time_period(row.get("time", "")) if row_type == "Activity" else row_type,
+                "title": row_edit.get("title", row.get("title", "")),
+                "time": row_edit.get("time", row.get("time", "")),
+                "duration": row_edit.get("duration", row.get("duration", "")),
+                "meeting_point": row_edit.get("meeting_point", row.get("meeting_point", "")),
+                "end_point": row_edit.get("end_point", row.get("end_point", "")),
+                "client_description": row_edit.get("client_description", row.get("client_description", "")),
+                "includes_text": row_edit.get("includes_text", list_to_text(row.get("includes", []))),
+                "notable_sights_text": row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
+                "hotel_name": row_edit.get("hotel_name", row.get("hotel_name", "")),
+                "hotel_nights": row_edit.get("hotel_nights", row.get("hotel_nights", "")),
+                "room_category": row_edit.get("room_category", row.get("room_category", "")),
+                "meal_plan": row_edit.get("meal_plan", row.get("meal_plan", "")),
+            }
+            day_payload["rows"].append(row_payload)
+
+        payload["days"].append(day_payload)
+
+    return payload
+
+
+def apply_visual_editor_payload(editor_payload, parsed_rows, output_edits):
+    """Persist edited A4 component data back into the app's normal edit state."""
+    if not editor_payload:
+        return False
+    if isinstance(editor_payload, str):
+        try:
+            editor_payload = json.loads(editor_payload)
+        except Exception:
+            return False
+
+    if not isinstance(editor_payload, dict):
+        return False
+
+    output_edits["trip_title"] = clean_space((editor_payload.get("cover") or {}).get("trip_title", output_edits.get("trip_title", "")))
+    output_edits["trip_subtitle"] = clean_space((editor_payload.get("cover") or {}).get("trip_subtitle", output_edits.get("trip_subtitle", "")))
+    output_edits["destinations_line"] = clean_space((editor_payload.get("cover") or {}).get("destinations_line", output_edits.get("destinations_line", "")))
+
+    for day_data in editor_payload.get("days", []):
+        day = day_data.get("day")
+        if not day:
+            continue
+        day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
+        day_edit["title"] = clean_space(day_data.get("title", day_edit.get("title", "")))
+        day_edit["city"] = clean_space(day_data.get("city", day_edit.get("city", "")))
+        day_edit["intro"] = clean_space(day_data.get("intro", day_edit.get("intro", "")))
+
+        image_data = day_data.get("image") or {}
+        if image_data:
+            mode = image_data.get("mode", "auto")
+            path = image_data.get("path", "")
+            crop_focus = normalize_crop_focus(image_data.get("crop_focus", "top"))
+            upload = image_data.get("upload") or {}
+            if upload.get("data_uri"):
+                saved_path = save_base64_day_image(
+                    upload.get("data_uri"),
+                    upload.get("filename", "uploaded_image.jpg"),
+                    day_edit.get("city") or "Destination",
+                    upload.get("season", "Summer"),
+                    upload.get("label", "visual-editor"),
+                )
+                if saved_path:
+                    mode = "manual"
+                    path = saved_path
+            choice = get_day_image_choice(output_edits, day)
+            choice["mode"] = mode if mode in {"auto", "manual", "none"} else "auto"
+            choice["path"] = path if choice["mode"] == "manual" else ""
+            choice["crop_focus"] = crop_focus
+
+        for row_data in day_data.get("rows", []):
+            row_id = row_data.get("row_id")
+            if not row_id:
+                continue
+            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+            for key in [
+                "title",
+                "time",
+                "duration",
+                "meeting_point",
+                "end_point",
+                "client_description",
+                "includes_text",
+                "notable_sights_text",
+                "hotel_name",
+                "hotel_nights",
+                "room_category",
+                "meal_plan",
+            ]:
+                if key in row_data:
+                    value = row_data.get(key, "")
+                    row_edit[key] = value if key.endswith("_text") else clean_space(value)
+
+    final_pages = editor_payload.get("final_pages") or {}
+    for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
+        if key in final_pages:
+            output_edits[key] = final_pages.get(key, "")
+
+    return True
+
+
+def render_visual_page_editor_component(parsed_rows, grouped_days, output_edits):
+    payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
+    return VISUAL_EDITOR_COMPONENT(payload=payload, key="booknordics_visual_page_editor", default="")
+
 def render_output_editor(parsed_rows, grouped_days, output_edits):
     """Hidden fallback editor.
 
@@ -3576,6 +3782,7 @@ def reset_project_state(clear_raw_text=True):
         "output_edits",
         "last_generated_raw_text",
         "parser_diagnostics",
+        "last_visual_editor_payload",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -3588,6 +3795,7 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.last_generated_raw_text = ""
     st.session_state.parser_diagnostics = []
     st.session_state.pdf_status = "Not created"
+    st.session_state.last_visual_editor_payload = ""
 
     if clear_raw_text:
         st.session_state.raw_text_input = ""
@@ -3774,12 +3982,29 @@ if show_debug and st.session_state.parsed_rows:
                 )
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 2 — Review A4 proposal", expanded=True):
-        if st.session_state.itinerary_html:
-            st.html(st.session_state.itinerary_html)
+    edited_rows_for_editor = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+    grouped_days_for_editor = group_rows_by_day(edited_rows_for_editor)
+
+    with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
+        st.markdown(
+            '<div class="workflow-note">Click text directly on the proposal pages and type, like a document. Hover day images for picture tools. Use <strong>Save edits to preview/PDF</strong> before exporting.</div>',
+            unsafe_allow_html=True,
+        )
+        editor_value = render_visual_page_editor_component(
+            st.session_state.parsed_rows,
+            group_rows_by_day(st.session_state.parsed_rows),
+            st.session_state.output_edits,
+        )
+        if editor_value and editor_value != st.session_state.get("last_visual_editor_payload", ""):
+            st.session_state.last_visual_editor_payload = editor_value
+            if apply_visual_editor_payload(editor_value, st.session_state.parsed_rows, st.session_state.output_edits):
+                rebuild_current_preview(mark_pdf_dirty=True)
+                st.success("Saved edits into the final preview/PDF data.")
+                st.rerun()
+
         render_output_editor(
             st.session_state.parsed_rows,
-            group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
+            grouped_days_for_editor,
             st.session_state.output_edits,
         )
 
@@ -3801,7 +4026,11 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
-    st.subheader("Step 3 — Export")
+    with st.expander("Step 3 — Review final PDF-style preview", expanded=True):
+        st.markdown('<div class="workflow-note">This is the final preview surface used for the PDF export. Return to Step 2 for more edits.</div>', unsafe_allow_html=True)
+        st.html(st.session_state.itinerary_html)
+
+    st.subheader("Step 4 — Export")
     st.markdown('<div class="workflow-note">Save your editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
 
     html_path = Path(st.session_state.html_path) if st.session_state.html_path else None

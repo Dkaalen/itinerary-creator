@@ -1,0 +1,376 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f141a;
+      --panel: #161c22;
+      --panel-soft: #202832;
+      --paper: #f4efe8;
+      --ink: #1f3446;
+      --body: #2f2f2f;
+      --muted: #756e66;
+      --accent: #2f756f;
+      --border: rgba(148, 163, 184, 0.25);
+      --focus: #e8b656;
+      --danger: #ad3434;
+      --page-w: 794px;
+      --page-h: 1123px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: #e8edf2;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .editor-shell { padding: 18px 14px 34px; }
+    .editor-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(22, 28, 34, 0.96);
+      backdrop-filter: blur(8px);
+    }
+    .toolbar-copy strong { display: block; font-size: 15px; letter-spacing: -0.01em; }
+    .toolbar-copy span { display: block; margin-top: 3px; color: #a9b6c2; font-size: 12px; }
+    .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    button, select, input[type="text"] {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #202832;
+      color: #eef4f7;
+      min-height: 34px;
+      padding: 7px 10px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    button { cursor: pointer; }
+    button.primary { background: var(--accent); border-color: rgba(255,255,255,0.14); color: white; }
+    button.ghost { background: transparent; }
+    button.danger { background: rgba(173,52,52,0.16); border-color: rgba(173,52,52,0.45); color: #ffd9d9; }
+    button:hover, select:hover { filter: brightness(1.08); }
+    .page-stack { display: flex; flex-direction: column; gap: 32px; align-items: center; }
+    .page-wrap { width: min(var(--page-w), calc(100vw - 34px)); }
+    .page-label {
+      color: #a9b6c2;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 8px 2px;
+    }
+    .a4-page {
+      position: relative;
+      width: var(--page-w);
+      min-height: var(--page-h);
+      background: var(--paper);
+      color: var(--body);
+      box-shadow: 0 20px 55px rgba(0,0,0,0.33);
+      overflow: hidden;
+      transform-origin: top center;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .page-content { padding: 88px 88px 46px; position: relative; z-index: 2; }
+    .cover-page .page-content { padding-top: 420px; }
+    .cover-kicker, .city, .section-title, .row-type {
+      font-family: Arial, Helvetica, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+    .cover-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: var(--ink);
+      font-size: 43px;
+      line-height: 1.05;
+      font-weight: 700;
+      margin: 14px 0 10px;
+    }
+    .cover-subtitle {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1.28;
+      margin-bottom: 34px;
+    }
+    .cover-destinations { color: var(--body); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+    .day-label { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 12px; }
+    .city { margin-bottom: 20px; }
+    .intro { font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 1.5; margin-bottom: 22px; color: var(--body); }
+    .content-block { margin-bottom: 15px; position: relative; }
+    .section-title, .row-type { color: var(--accent); margin-bottom: 5px; font-size: 11px; }
+    .body-text, .editable-list { font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.38; margin-bottom: 5px; }
+    .strong-line { font-weight: 700; }
+    .meta-line { font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.38; margin-bottom: 4px; }
+    .meta-label { font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 800; color: var(--ink); }
+    [contenteditable="true"] { outline: 0; border-radius: 4px; min-height: 1em; padding: 1px 2px; margin-left: -2px; transition: background .12s, box-shadow .12s; }
+    [contenteditable="true"]:hover { background: rgba(232, 182, 86, 0.18); box-shadow: 0 0 0 1px rgba(232,182,86,0.28); }
+    [contenteditable="true"]:focus { background: rgba(255, 246, 213, 0.9); box-shadow: 0 0 0 2px var(--focus); }
+    .editable-list { white-space: pre-wrap; padding-left: 18px; }
+    .editable-list::before { content: '• '; margin-left: -16px; }
+    .image-stage {
+      position: absolute;
+      z-index: 1;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 365px;
+      background: rgba(0,0,0,0.04);
+      border-top: 1px solid rgba(0,0,0,0.04);
+    }
+    .image-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .image-stage.empty { display: flex; align-items: center; justify-content: center; color: #6b625a; font-weight: 700; }
+    .image-actions {
+      position: absolute;
+      z-index: 5;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: none;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(15, 20, 26, 0.86);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+    }
+    .image-stage:hover .image-actions, .image-actions:focus-within { display: flex; }
+    .image-actions select, .image-actions button, .image-actions input { min-height: 30px; font-size: 11px; padding: 5px 8px; }
+    .upload-label { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--border); color: white; background: #202832; font-weight: 700; font-size: 11px; cursor: pointer; }
+    .upload-label input { display: none; }
+    .final-page textarea {
+      width: 100%; min-height: 540px; border: 1px dashed rgba(31,52,70,.22); background: rgba(255,255,255,.24); color: var(--body); font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.45; padding: 10px; border-radius: 8px;
+    }
+    .saved-note { color: #bfe7d9; font-weight: 700; font-size: 12px; display: none; }
+    .saved-note.show { display: inline; }
+    .help-strip { margin-top: 10px; color: #a9b6c2; font-size: 12px; line-height: 1.4; text-align: center; }
+    @media (max-width: 860px) {
+      .a4-page { transform: scale(calc((100vw - 34px) / 794)); margin-bottom: calc(-1123px + ((100vw - 34px) / 794 * 1123px)); }
+      .editor-toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-actions { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+<script>
+const Streamlit = {
+  setComponentReady: function() {
+    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1}, '*');
+  },
+  setFrameHeight: function(height) {
+    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height: height}, '*');
+  },
+  setComponentValue: function(value) {
+    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: value}, '*');
+  }
+};
+let model = null;
+let uploadedImages = {};
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+function nlToText(s) { return String(s ?? '').replace(/\r\n/g, '\n'); }
+function focusPos(focus) {
+  if (focus === 'bottom') return 'center 78%';
+  if (focus === 'center') return 'center center';
+  return 'center 22%';
+}
+function editable(value, key, cls='') {
+  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
+}
+function rowHtml(dayIndex, row) {
+  const base = `days.${dayIndex}.rows.${row.row_id}`;
+  let h = `<div class="content-block" data-row-id="${esc(row.row_id)}"><div class="section-title">${esc(row.section_label || row.type)}</div>`;
+  h += editable(row.title || '', `${base}.title`, 'body-text strong-line');
+  if (row.time) h += `<div class="meta-line"><span class="meta-label">Time:</span> ${editable(row.time, `${base}.time`, 'inline-edit')}</div>`;
+  if (row.duration) h += `<div class="meta-line"><span class="meta-label">Duration:</span> ${editable(row.duration, `${base}.duration`, 'inline-edit')}</div>`;
+  if (row.meeting_point) h += `<div class="meta-line"><span class="meta-label">Meeting point:</span> ${editable(row.meeting_point, `${base}.meeting_point`, 'inline-edit')}</div>`;
+  if (row.end_point) h += `<div class="meta-line"><span class="meta-label">End point:</span> ${editable(row.end_point, `${base}.end_point`, 'inline-edit')}</div>`;
+  if (row.type === 'Hotel') {
+    if (row.hotel_name) h += editable(row.hotel_name, `${base}.hotel_name`, 'body-text strong-line');
+    if (row.hotel_nights) h += `<div class="meta-line"><span class="meta-label">Nights:</span> ${editable(row.hotel_nights, `${base}.hotel_nights`, 'inline-edit')}</div>`;
+    if (row.room_category) h += `<div class="meta-line"><span class="meta-label">Room category:</span> ${editable(row.room_category, `${base}.room_category`, 'inline-edit')}</div>`;
+    if (row.meal_plan) h += `<div class="meta-line"><span class="meta-label">Meal plan:</span> ${editable(row.meal_plan, `${base}.meal_plan`, 'inline-edit')}</div>`;
+  }
+  if (row.includes_text) {
+    h += `<div class="section-title">Included With This Experience</div>`;
+    h += editable(row.includes_text, `${base}.includes_text`, 'editable-list');
+  }
+  if (row.client_description) {
+    h += `<div class="section-title">Description</div>`;
+    h += editable(row.client_description, `${base}.client_description`, 'body-text');
+  }
+  h += `</div>`;
+  return h;
+}
+function imageHtml(day, dayIndex) {
+  const img = day.image || {};
+  const options = img.options || [];
+  const optionHtml = options.map(opt => `<option value="${esc(opt.path)}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
+  const hasImage = !!img.data_uri;
+  const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : '<span>No picture selected</span>';
+  return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}">
+      ${src}
+      <div class="image-actions">
+        <button type="button" data-img-action="auto" data-day-index="${dayIndex}">Automatic</button>
+        <button type="button" class="danger" data-img-action="none" data-day-index="${dayIndex}">Remove</button>
+        <select data-img-focus="${dayIndex}">
+          <option value="top" ${img.crop_focus === 'top' ? 'selected' : ''}>Sky / upper crop</option>
+          <option value="center" ${img.crop_focus === 'center' ? 'selected' : ''}>Center crop</option>
+          <option value="bottom" ${img.crop_focus === 'bottom' ? 'selected' : ''}>Lower crop</option>
+        </select>
+        <select data-img-bank="${dayIndex}"><option value="">Choose replacement…</option>${optionHtml}</select>
+        <button type="button" data-img-action="manual" data-day-index="${dayIndex}">Use selected</button>
+        <label class="upload-label">Upload<input type="file" accept="image/png,image/jpeg,image/webp" data-img-upload="${dayIndex}"></label>
+      </div>
+    </div>`;
+}
+function render(payload) {
+  model = JSON.parse(JSON.stringify(payload || {cover:{},days:[],final_pages:{}}));
+  uploadedImages = {};
+  const root = document.getElementById('root');
+  let h = `<div class="editor-shell">
+    <div class="editor-toolbar">
+      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Hover a day image for picture tools. Save before reviewing/exporting.</span></div>
+      <div class="toolbar-actions"><span id="savedNote" class="saved-note">Saved to app</span><button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button><button class="primary" id="saveBtn" type="button">Save edits to preview/PDF</button></div>
+    </div>
+    <div class="page-stack">`;
+  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page"><div class="page-content">
+      <div class="cover-kicker">Curated Travel Itinerary</div>
+      ${editable(model.cover.trip_title, 'cover.trip_title', 'cover-title')}
+      ${editable(model.cover.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
+      ${editable(model.cover.destinations_line, 'cover.destinations_line', 'cover-destinations')}
+    </div></div></div>`;
+  (model.days || []).forEach((day, i) => {
+    h += `<div class="page-wrap"><div class="page-label">${esc(day.day)}</div><div class="a4-page day-page"><div class="page-content">
+      <div class="day-label">${esc(day.label || day.day)}</div>
+      ${editable(day.title, `days.${i}.title`, 'day-title')}
+      ${editable(day.city, `days.${i}.city`, 'city')}
+      ${editable(day.intro, `days.${i}.intro`, 'intro')}
+      ${(day.rows || []).map(row => rowHtml(i, row)).join('')}
+    </div>${imageHtml(day, i)}</div></div>`;
+  });
+  h += `<div class="page-wrap"><div class="page-label">Final pages</div><div class="a4-page final-page"><div class="page-content">
+      <div class="day-title">Included / excluded / notes</div>
+      <div class="body-text">Optional final-page edits. One item or paragraph per line.</div>
+      <textarea data-final-key="whats_included_text" placeholder="What's included">${esc(model.final_pages?.whats_included_text || '')}</textarea>
+      <textarea data-final-key="whats_not_included_text" placeholder="What's not included">${esc(model.final_pages?.whats_not_included_text || '')}</textarea>
+      <textarea data-final-key="important_travel_notes_text" placeholder="Important travel notes">${esc(model.final_pages?.important_travel_notes_text || '')}</textarea>
+    </div></div></div>`;
+  h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
+  root.innerHTML = h;
+  attachHandlers();
+  setTimeout(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20), 100);
+}
+function setByPath(obj, path, value) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    const nextPart = parts[i+1];
+    if (Array.isArray(cur)) cur = cur[Number(part)];
+    else cur = cur[part] ?? (cur[part] = /^\d+$/.test(nextPart) ? [] : {});
+  }
+  const last = parts[parts.length - 1];
+  if (Array.isArray(cur)) cur[Number(last)] = value;
+  else cur[last] = value;
+}
+function collect() {
+  document.querySelectorAll('[data-edit-key]').forEach(el => {
+    const key = el.getAttribute('data-edit-key');
+    const value = el.innerText.replace(/\u00a0/g, ' ').trim();
+    if (key.endsWith('.hotel_summary')) return;
+    setByPath(model, key, value);
+  });
+  document.querySelectorAll('[data-final-key]').forEach(el => {
+    if (!model.final_pages) model.final_pages = {};
+    model.final_pages[el.getAttribute('data-final-key')] = el.value;
+  });
+  Object.keys(uploadedImages).forEach(idx => {
+    if (model.days[idx]) model.days[idx].image.upload = uploadedImages[idx];
+  });
+  return model;
+}
+function attachHandlers() {
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const data = collect();
+    Streamlit.setComponentValue(JSON.stringify(data));
+    const note = document.getElementById('savedNote');
+    note.classList.add('show');
+    setTimeout(() => note.classList.remove('show'), 1500);
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => render(model));
+  document.querySelectorAll('[data-img-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.getAttribute('data-day-index'));
+      const action = btn.getAttribute('data-img-action');
+      const day = model.days[idx];
+      if (!day || !day.image) return;
+      if (action === 'auto') { day.image.mode = 'auto'; day.image.path = ''; }
+      if (action === 'none') { day.image.mode = 'none'; day.image.path = ''; day.image.data_uri = ''; }
+      if (action === 'manual') {
+        const sel = document.querySelector(`[data-img-bank="${idx}"]`);
+        if (sel && sel.value) { day.image.mode = 'manual'; day.image.path = sel.value; }
+      }
+      btn.closest('.image-stage').style.outline = '3px solid rgba(232,182,86,.55)';
+    });
+  });
+  document.querySelectorAll('[data-img-focus]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const idx = Number(sel.getAttribute('data-img-focus'));
+      if (model.days[idx] && model.days[idx].image) model.days[idx].image.crop_focus = sel.value;
+      const img = sel.closest('.image-stage')?.querySelector('img');
+      if (img) img.style.objectPosition = focusPos(sel.value);
+    });
+  });
+  document.querySelectorAll('[data-img-upload]').forEach(input => {
+    input.addEventListener('change', () => {
+      const idx = Number(input.getAttribute('data-img-upload'));
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        uploadedImages[idx] = {filename: file.name, data_uri: reader.result, season: 'Summer', label: file.name.replace(/\.[^.]+$/, '')};
+        if (model.days[idx] && model.days[idx].image) {
+          model.days[idx].image.mode = 'manual';
+          model.days[idx].image.path = '';
+          model.days[idx].image.data_uri = reader.result;
+        }
+        const stage = input.closest('.image-stage');
+        if (stage) {
+          stage.classList.remove('empty');
+          const existing = stage.querySelector('img');
+          if (existing) existing.src = reader.result;
+          else stage.insertAdjacentHTML('afterbegin', `<img src="${reader.result}" style="object-position:${focusPos(model.days[idx].image.crop_focus)}" alt="Uploaded picture">`);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'streamlit:render') {
+    render(event.data.args.payload);
+  }
+});
+Streamlit.setComponentReady();
+Streamlit.setFrameHeight(1200);
+</script>
+</body>
+</html>
