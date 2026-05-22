@@ -50,7 +50,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c9-inline-visual-editor"
+APP_VERSION = "2026-05-22 v36c10-restore-preview-booknordics-ui"
 
 
 st.set_page_config(
@@ -2794,7 +2794,28 @@ def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
     render_inline_final_pages_editor(output_edits)
 
 def render_output_editor(parsed_rows, grouped_days, output_edits):
-    render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits)
+    """Optional fallback editor kept away from the main PDF-style preview.
+
+    A true Word-like editor cannot be built with normal Streamlit input fields
+    without breaking the visual preview. The previous v36c9 attempt created
+    empty page canvases and separated form fields, so the stable workflow now
+    keeps the rendered PDF-style preview as the main surface and hides legacy
+    form controls in an advanced fallback panel only.
+    """
+    st.info(
+        "The PDF-style preview is the main review surface again. "
+        "The broken pseudo-inline editor has been removed. "
+        "A true type-directly-on-page editor needs a dedicated custom component and should be built separately."
+    )
+
+    with st.expander("Advanced fallback text and image editor", expanded=False):
+        st.caption(
+            "Optional safety controls. These are intentionally hidden so the main workflow stays focused on the final PDF-style preview."
+        )
+        render_visual_summary_editor(parsed_rows, grouped_days, output_edits)
+        image_matches = get_current_day_image_matches(output_edits)
+        for day, rows in grouped_days.items():
+            render_visual_day_editor(day, rows, output_edits, image_match=image_matches.get(day))
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
@@ -3787,17 +3808,81 @@ with st.sidebar:
 
 st.markdown(
     f"""
-    <div class="app-hero">
-        <div class="app-hero-kicker">✦ Nordic itinerary studio</div>
-        <h1>Build premium travel itineraries without the boring bits.</h1>
-        <p>Paste raw itinerary rows, shape the story on A4 pages, tune the visuals, and export a polished client-ready PDF.</p>
-        <div class="hero-chip-row">
-            <div class="hero-chip">A4 portrait layouts</div>
-            <div class="hero-chip">Seasonal image matching</div>
-            <div class="hero-chip">Inline page editing</div>
-            <div class="hero-chip">PDF-first visuals</div>
+    <style>
+        .bn-hero {{
+            border: 1px solid #D8E1DE;
+            border-radius: 22px;
+            padding: 1.65rem 1.8rem;
+            margin-bottom: 1rem;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.92), rgba(244,248,247,0.96)),
+                radial-gradient(circle at 88% 12%, rgba(47, 117, 112, 0.16), transparent 34%);
+            box-shadow: 0 18px 48px rgba(21, 50, 60, 0.10);
+            color: #14313D;
+        }}
+        .bn-kicker {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: #2F756F;
+            background: #EAF4F1;
+            border: 1px solid #CFE2DE;
+            border-radius: 999px;
+            padding: 0.35rem 0.72rem;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }}
+        .bn-hero h1 {{
+            color: #14313D;
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            line-height: 1.04;
+            letter-spacing: -0.045em;
+            margin: 0.9rem 0 0.55rem 0;
+        }}
+        .bn-hero p {{
+            color: #4E6470;
+            max-width: 920px;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }}
+        .bn-chip-row {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            margin-top: 1rem;
+        }}
+        .bn-chip {{
+            border: 1px solid #D8E1DE;
+            border-radius: 999px;
+            padding: 0.45rem 0.72rem;
+            color: #274B59;
+            background: rgba(255,255,255,0.8);
+            font-size: 0.84rem;
+            font-weight: 650;
+        }}
+        .bn-version {{
+            color: #7A8C94 !important;
+            font-size: 0.76rem !important;
+            margin-top: 0.95rem !important;
+        }}
+        section[data-testid="stSidebar"] {{
+            background: #F6F8F7;
+            border-right: 1px solid #D8E1DE;
+        }}
+    </style>
+    <div class="bn-hero">
+        <div class="bn-kicker">Booknordics internal tool</div>
+        <h1>Itinerary Studio</h1>
+        <p>Create polished Nordic travel proposals from raw itinerary rows. Review the A4 proposal, adjust content when needed, and export a client-ready PDF.</p>
+        <div class="bn-chip-row">
+            <div class="bn-chip">A4 portrait proposals</div>
+            <div class="bn-chip">Seasonal image bank</div>
+            <div class="bn-chip">PDF-first preview</div>
+            <div class="bn-chip">Internal production workflow</div>
         </div>
-        <p style="font-size: 0.78rem; opacity: 0.55; margin-top: 1rem;">Version: {APP_VERSION}</p>
+        <p class="bn-version">Version: {APP_VERSION}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -3867,17 +3952,15 @@ if show_debug and st.session_state.parsed_rows:
                 )
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 2 — Inline visual editor", expanded=True):
-        st.caption("Edit directly on the A4 pages. These fields update the final PDF export.")
+    with st.expander("Step 2 — PDF-style visual preview", expanded=True):
+        st.caption("This is the stable A4 preview used for final PDF review. The PDF exporter remains unchanged.")
+        if st.session_state.itinerary_html:
+            st.html(st.session_state.itinerary_html)
         render_output_editor(
             st.session_state.parsed_rows,
             group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
             st.session_state.output_edits,
         )
-        with st.expander("Exact rendered preview", expanded=False):
-            st.markdown('<div class="exact-preview-caption">This is the HTML/PDF-style rendering. Use it as a visual check before exporting.</div>', unsafe_allow_html=True)
-            if st.session_state.itinerary_html:
-                st.html(st.session_state.itinerary_html)
 
     edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
