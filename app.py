@@ -50,7 +50,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c10-restore-preview-booknordics-ui"
+APP_VERSION = "2026-05-22 v36c11-clean-internal-ui"
 
 
 st.set_page_config(
@@ -118,233 +118,124 @@ DEFAULT_IMPORTANT_TRAVEL_NOTES = [
 st.markdown(
     """
     <style>
-        .block-container { padding-top: 2rem; }
-        div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] h3 { margin-top: 0.25rem; }
-        .app-hero {
-            border: 1px solid rgba(148, 163, 184, 0.25);
+        :root {
+            --bn-bg: #0f141a;
+            --bn-panel: #171d24;
+            --bn-panel-soft: #1d242c;
+            --bn-border: rgba(148, 163, 184, 0.22);
+            --bn-text: #e7edf2;
+            --bn-muted: #9aa8b5;
+            --bn-accent: #2f756f;
+            --bn-accent-soft: rgba(47, 117, 111, 0.16);
+            --bn-paper: #f4efe8;
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bn-bg: #f6f8f7;
+                --bn-panel: #ffffff;
+                --bn-panel-soft: #eef4f2;
+                --bn-border: #d8e1de;
+                --bn-text: #14313d;
+                --bn-muted: #526672;
+                --bn-accent: #2f756f;
+                --bn-accent-soft: #e8f3f0;
+            }
+        }
+        .block-container {
+            padding-top: 1.4rem;
+            max-width: 1480px;
+        }
+        [data-testid="stAppViewContainer"] {
+            background: var(--bn-bg);
+        }
+        section[data-testid="stSidebar"] {
+            background: var(--bn-panel);
+            border-right: 1px solid var(--bn-border);
+        }
+        section[data-testid="stSidebar"] * {
+            color: var(--bn-text);
+        }
+        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+        section[data-testid="stSidebar"] small,
+        section[data-testid="stSidebar"] p {
+            color: var(--bn-muted) !important;
+        }
+        .bn-topbar {
+            border: 1px solid var(--bn-border);
             border-radius: 18px;
-            padding: 1.1rem 1.25rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-            margin-bottom: 1rem;
+            padding: 1rem 1.15rem;
+            margin-bottom: 0.9rem;
+            background: var(--bn-panel);
+            color: var(--bn-text);
         }
-        .app-hero h1 { margin-bottom: 0.2rem; }
-        .app-hero p { margin-bottom: 0; opacity: 0.82; }
-        .section-card {
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 16px;
-            padding: 1rem;
-            margin: 0.5rem 0 1rem 0;
-            background: rgba(255,255,255,0.025);
+        .bn-topbar-main {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
-        .workflow-note {
-            font-size: 0.9rem;
-            opacity: 0.76;
-            margin-bottom: 0.7rem;
-        }
-        .sidebar-pill {
-            border: 1px solid rgba(148, 163, 184, 0.28);
+        .bn-product-label {
+            display: inline-block;
+            color: var(--bn-accent);
+            background: var(--bn-accent-soft);
+            border: 1px solid rgba(47,117,111,0.28);
             border-radius: 999px;
-            padding: 0.28rem 0.55rem;
-            margin: 0.18rem 0;
-            font-size: 0.82rem;
-            background: rgba(255,255,255,0.035);
+            padding: 0.26rem 0.55rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
         }
+        .bn-topbar h1 {
+            margin: 0;
+            color: var(--bn-text);
+            font-size: clamp(1.45rem, 2.4vw, 2.2rem);
+            line-height: 1.08;
+            letter-spacing: -0.025em;
+        }
+        .bn-topbar p {
+            margin: 0.4rem 0 0 0;
+            color: var(--bn-muted);
+            max-width: 860px;
+            line-height: 1.45;
+        }
+        .bn-version {
+            color: var(--bn-muted);
+            font-size: 0.76rem;
+            white-space: nowrap;
+            margin-top: 0.2rem;
+        }
+        .workflow-note,
         .project-action-note {
-            font-size: 0.78rem;
-            opacity: 0.72;
-            line-height: 1.35;
-            margin-top: 0.25rem;
-            margin-bottom: 0.5rem;
+            color: var(--bn-muted);
+            font-size: 0.86rem;
+            line-height: 1.4;
+            margin-bottom: 0.6rem;
         }
-        .visual-editor-note {
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            border-radius: 16px;
-            padding: 0.8rem 1rem;
-            margin: 0.5rem 0 1rem 0;
-            background: rgba(255,255,255,0.035);
-            font-size: 0.9rem;
-            opacity: 0.86;
-        }
-        .visual-day-editor-card {
-            border: 1px solid rgba(148, 163, 184, 0.26);
-            border-radius: 18px;
-            padding: 1rem;
-            margin: 1rem 0 1.25rem 0;
-            background: rgba(255,255,255,0.03);
-        }
-        .visual-day-editor-card h3 {
-            margin-top: 0;
-            margin-bottom: 0.35rem;
-        }
-        .visual-edit-label {
-            font-size: 0.82rem;
-            opacity: 0.72;
-            margin-bottom: 0.25rem;
-        }
+        .sidebar-pill,
         .sidebar-review-card {
-            border: 1px solid rgba(148, 163, 184, 0.24);
-            border-radius: 14px;
-            padding: 0.72rem 0.82rem;
-            margin: 0.45rem 0 0.8rem 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+            border: 1px solid var(--bn-border);
+            border-radius: 12px;
+            padding: 0.55rem 0.65rem;
+            margin: 0.35rem 0;
+            background: var(--bn-panel-soft);
+            color: var(--bn-text);
+            font-size: 0.84rem;
         }
-        .sidebar-review-card strong { font-size: 0.92rem; }
-        .stButton > button, .stDownloadButton > button {
-            border-radius: 999px !important;
-            min-height: 2.55rem;
+        .stButton > button,
+        .stDownloadButton > button {
+            border-radius: 10px !important;
+            min-height: 2.35rem;
             font-weight: 650;
         }
         div[data-testid="stExpander"] {
-            border-radius: 16px !important;
-            border-color: rgba(148, 163, 184, 0.25) !important;
+            border-radius: 12px !important;
+            border-color: var(--bn-border) !important;
         }
-        .app-hero {
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(125, 211, 252, 0.28);
-            border-radius: 28px;
-            padding: 2rem 2.2rem;
-            background:
-                radial-gradient(circle at 12% 18%, rgba(242, 5, 92, 0.34), transparent 30%),
-                radial-gradient(circle at 78% 8%, rgba(56, 189, 248, 0.26), transparent 30%),
-                linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.86));
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
-            margin-bottom: 1.2rem;
-        }
-        .app-hero:after {
-            content: "";
-            position: absolute;
-            inset: auto -10% -45% auto;
-            width: 420px;
-            height: 420px;
-            border-radius: 999px;
-            background: rgba(20, 184, 166, 0.14);
-            filter: blur(8px);
-        }
-        .app-hero-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            border: 1px solid rgba(255,255,255,0.18);
-            border-radius: 999px;
-            padding: 0.35rem 0.7rem;
-            color: rgba(255,255,255,0.82);
-            font-size: 0.82rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            background: rgba(255,255,255,0.08);
-        }
-        .app-hero h1 {
-            color: #fff;
-            font-size: clamp(2.4rem, 5vw, 4.8rem);
-            line-height: 0.95;
-            letter-spacing: -0.06em;
-            margin: 1rem 0 0.7rem 0;
-        }
-        .app-hero p {
-            color: rgba(255,255,255,0.78);
-            max-width: 880px;
-            font-size: 1.04rem;
-            margin-bottom: 0;
-        }
-        .hero-chip-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.65rem;
-            margin-top: 1.15rem;
-        }
-        .hero-chip {
-            border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 999px;
-            padding: 0.55rem 0.8rem;
-            color: rgba(255,255,255,0.84);
-            background: rgba(255,255,255,0.075);
-            backdrop-filter: blur(8px);
-            font-size: 0.88rem;
-        }
-        .inline-editor-shell {
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 24px;
-            padding: 1rem;
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.18));
-        }
-        .inline-edit-help {
-            border: 1px solid rgba(125, 211, 252, 0.22);
-            border-radius: 18px;
-            padding: 0.9rem 1rem;
-            margin: 0.6rem 0 1rem 0;
-            background: rgba(14, 165, 233, 0.08);
-            color: rgba(226, 232, 240, 0.92);
-        }
-        .inline-a4-page {
-            max-width: 794px;
-            min-height: 1123px;
-            margin: 0 auto 1.4rem auto;
-            padding: 64px 64px 0 64px;
-            background: #f4efe8;
-            color: #1f3446;
-            box-shadow: 0 22px 70px rgba(0,0,0,0.38);
-            border-radius: 2px;
-            box-sizing: border-box;
-            overflow: hidden;
-            font-family: Georgia, 'Times New Roman', serif;
-        }
-        .inline-a4-page .inline-page-kicker,
-        .inline-a4-page .inline-field-label,
-        .inline-a4-page .inline-small-label {
-            font-family: Arial, sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #52616f;
-            font-size: 0.72rem;
-            font-weight: 800;
-            margin: 0.45rem 0 0.25rem 0;
-        }
-        .inline-field-label.soft {
-            text-transform: none;
-            letter-spacing: 0;
-            font-size: 0.82rem;
-            color: #6f6a63;
-        }
-        .inline-a4-page input, .inline-a4-page textarea {
-            font-family: Georgia, 'Times New Roman', serif !important;
-            color: #1f3446 !important;
-        }
-        .inline-a4-page div[data-testid="stTextInput"] input,
-        .inline-a4-page div[data-testid="stTextArea"] textarea {
-            background: rgba(255,255,255,0.28) !important;
-            border: 1px dashed rgba(31, 52, 70, 0.24) !important;
-        }
-        .inline-day-card {
-            border-top: 1px solid rgba(31,52,70,0.14);
-            margin-top: 1rem;
-            padding-top: 0.65rem;
-        }
-        .inline-image-stage {
-            margin: 1.1rem -64px 0 -64px;
-            min-height: 320px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            background: rgba(31,52,70,0.035);
-        }
-        .inline-image-stage img {
-            width: 100%;
-            height: 360px;
-            object-fit: cover;
-            display: block;
-        }
-        .inline-picture-toolbar {
-            border: 1px solid rgba(31,52,70,0.16);
-            border-radius: 16px;
-            padding: 0.75rem;
-            margin: 0.85rem 0 1.1rem 0;
-            background: rgba(255,255,255,0.35);
-        }
-        .exact-preview-caption {
-            opacity: 0.78;
-            font-size: 0.86rem;
-            margin-bottom: 0.7rem;
+        textarea, input {
+            border-radius: 8px !important;
         }
     </style>
     """,
@@ -2794,24 +2685,18 @@ def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
     render_inline_final_pages_editor(output_edits)
 
 def render_output_editor(parsed_rows, grouped_days, output_edits):
-    """Optional fallback editor kept away from the main PDF-style preview.
+    """Hidden fallback editor.
 
-    A true Word-like editor cannot be built with normal Streamlit input fields
-    without breaking the visual preview. The previous v36c9 attempt created
-    empty page canvases and separated form fields, so the stable workflow now
-    keeps the rendered PDF-style preview as the main surface and hides legacy
-    form controls in an advanced fallback panel only.
+    The main workflow is PDF-first review. Streamlit's normal widgets cannot
+    provide true Word-style editing inside the rendered PDF page without a
+    dedicated custom component, so the old form editor is kept out of the main
+    path to protect preview performance and avoid visual confusion.
     """
-    st.info(
-        "The PDF-style preview is the main review surface again. "
-        "The broken pseudo-inline editor has been removed. "
-        "A true type-directly-on-page editor needs a dedicated custom component and should be built separately."
-    )
+    if not st.session_state.get("show_advanced_editor", False):
+        return
 
     with st.expander("Advanced fallback text and image editor", expanded=False):
-        st.caption(
-            "Optional safety controls. These are intentionally hidden so the main workflow stays focused on the final PDF-style preview."
-        )
+        st.caption("Safety controls only. Use when a generated itinerary needs manual correction before export.")
         render_visual_summary_editor(parsed_rows, grouped_days, output_edits)
         image_matches = get_current_day_image_matches(output_edits)
         for day, rows in grouped_days.items():
@@ -3745,14 +3630,14 @@ with st.sidebar:
         "Color preset",
         PRESET_ORDER,
         index=PRESET_ORDER.index(current_preset),
-        help="Classic Agent keeps the neutral travel-agent look. Booknordics B2C uses a cleaner branded palette.",
+        help="Choose the visual palette used in the exported proposal.",
     )
     st.session_state.color_preset = selected_preset
 
     if selected_preset == "Classic Agent":
-        st.caption("Warm, neutral, B2B-friendly.")
+        st.caption("Neutral internal proposal style.")
     else:
-        st.caption("Clean, bright, B2C-friendly.")
+        st.caption("Brighter Booknordics-style palette.")
 
     selected_detail = "Rich descriptive"
     previous_detail = "Rich descriptive"
@@ -3771,7 +3656,7 @@ with st.sidebar:
     )
     previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     st.session_state.day_page_layout = selected_day_layout
-    st.caption("Premium visual layout: one itinerary day per A4 page.")
+    st.caption("One itinerary day per A4 page.")
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
@@ -3782,6 +3667,9 @@ with st.sidebar:
             st.session_state.pdf_status = "Needs refresh"
 
     show_debug = st.checkbox("Show parser/debug panels", value=False)
+    st.session_state.show_advanced_editor = False
+    if show_debug:
+        st.session_state.show_advanced_editor = st.checkbox("Show advanced fallback editor", value=False)
 
     st.divider()
     st.subheader("Project")
@@ -3792,8 +3680,8 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.subheader("Project actions")
-    st.markdown('<div class="project-action-note">Use these when the preview feels out of sync or when you want to start from a clean slate.</div>', unsafe_allow_html=True)
+    st.subheader("Actions")
+    st.markdown('<div class="project-action-note">Refresh the preview or start over.</div>', unsafe_allow_html=True)
 
     if st.button("Refresh preview", use_container_width=True, disabled=not bool(st.session_state.get("parsed_rows"))):
         if rebuild_current_preview(mark_pdf_dirty=True):
@@ -3808,81 +3696,15 @@ with st.sidebar:
 
 st.markdown(
     f"""
-    <style>
-        .bn-hero {{
-            border: 1px solid #D8E1DE;
-            border-radius: 22px;
-            padding: 1.65rem 1.8rem;
-            margin-bottom: 1rem;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.92), rgba(244,248,247,0.96)),
-                radial-gradient(circle at 88% 12%, rgba(47, 117, 112, 0.16), transparent 34%);
-            box-shadow: 0 18px 48px rgba(21, 50, 60, 0.10);
-            color: #14313D;
-        }}
-        .bn-kicker {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            color: #2F756F;
-            background: #EAF4F1;
-            border: 1px solid #CFE2DE;
-            border-radius: 999px;
-            padding: 0.35rem 0.72rem;
-            font-size: 0.78rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }}
-        .bn-hero h1 {{
-            color: #14313D;
-            font-size: clamp(2rem, 4vw, 3.4rem);
-            line-height: 1.04;
-            letter-spacing: -0.045em;
-            margin: 0.9rem 0 0.55rem 0;
-        }}
-        .bn-hero p {{
-            color: #4E6470;
-            max-width: 920px;
-            font-size: 1rem;
-            margin-bottom: 0;
-        }}
-        .bn-chip-row {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.55rem;
-            margin-top: 1rem;
-        }}
-        .bn-chip {{
-            border: 1px solid #D8E1DE;
-            border-radius: 999px;
-            padding: 0.45rem 0.72rem;
-            color: #274B59;
-            background: rgba(255,255,255,0.8);
-            font-size: 0.84rem;
-            font-weight: 650;
-        }}
-        .bn-version {{
-            color: #7A8C94 !important;
-            font-size: 0.76rem !important;
-            margin-top: 0.95rem !important;
-        }}
-        section[data-testid="stSidebar"] {{
-            background: #F6F8F7;
-            border-right: 1px solid #D8E1DE;
-        }}
-    </style>
-    <div class="bn-hero">
-        <div class="bn-kicker">Booknordics internal tool</div>
-        <h1>Itinerary Studio</h1>
-        <p>Create polished Nordic travel proposals from raw itinerary rows. Review the A4 proposal, adjust content when needed, and export a client-ready PDF.</p>
-        <div class="bn-chip-row">
-            <div class="bn-chip">A4 portrait proposals</div>
-            <div class="bn-chip">Seasonal image bank</div>
-            <div class="bn-chip">PDF-first preview</div>
-            <div class="bn-chip">Internal production workflow</div>
+    <div class="bn-topbar">
+        <div class="bn-topbar-main">
+            <div>
+                <div class="bn-product-label">Booknordics internal</div>
+                <h1>Itinerary Studio</h1>
+                <p>Paste itinerary rows, review the A4 proposal, then export a client-ready PDF.</p>
+            </div>
+            <div class="bn-version">{APP_VERSION}</div>
         </div>
-        <p class="bn-version">Version: {APP_VERSION}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -3952,8 +3774,7 @@ if show_debug and st.session_state.parsed_rows:
                 )
 
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 2 — PDF-style visual preview", expanded=True):
-        st.caption("This is the stable A4 preview used for final PDF review. The PDF exporter remains unchanged.")
+    with st.expander("Step 2 — Review A4 proposal", expanded=True):
         if st.session_state.itinerary_html:
             st.html(st.session_state.itinerary_html)
         render_output_editor(
