@@ -50,7 +50,7 @@ from layout_policy import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c6-image-review-controls"
+APP_VERSION = "2026-05-22 v36c7-picture-studio"
 
 
 st.set_page_config(
@@ -88,6 +88,20 @@ PRESET_ORDER = list(COLOR_PRESETS.keys())
 DETAIL_LEVELS = [
     "Rich descriptive",
 ]
+
+CROP_FOCUS_OPTIONS = {
+    "Sky / upper focus": "top",
+    "Center focus": "center",
+    "Lower focus": "bottom",
+}
+
+CROP_FOCUS_LABELS = {value: label for label, value in CROP_FOCUS_OPTIONS.items()}
+
+CROP_FOCUS_OBJECT_POSITIONS = {
+    "top": "center 22%",
+    "center": "center center",
+    "bottom": "center 78%",
+}
 
 # Day-page layout options are centralized in layout_policy.py.
 
@@ -1263,6 +1277,30 @@ def get_day_image_overrides(output_edits=None):
     return (output_edits or {}).setdefault("day_images", {})
 
 
+def normalize_crop_focus(value):
+    value = str(value or "").strip().lower()
+    if value in {"top", "upper", "sky", "aurora"}:
+        return "top"
+    if value in {"bottom", "lower"}:
+        return "bottom"
+    if value in {"center", "centre", "middle"}:
+        return "center"
+    return "top"
+
+
+def get_day_image_choice(output_edits, day):
+    day_images = get_day_image_overrides(output_edits)
+    choice = day_images.setdefault(day, {"mode": "auto", "path": "", "crop_focus": "top"})
+    choice.setdefault("mode", "auto")
+    choice.setdefault("path", "")
+    choice["crop_focus"] = normalize_crop_focus(choice.get("crop_focus", "top"))
+    return choice
+
+
+def get_day_image_crop_focus(output_edits, day):
+    return normalize_crop_focus(get_day_image_choice(output_edits, day).get("crop_focus", "top"))
+
+
 def day_image_match_from_path(day, path, reason="manual selection"):
     if not path:
         return None
@@ -1356,7 +1394,7 @@ def save_uploaded_day_image(uploaded_file, city, season, label=""):
     return str(target_path)
 
 
-def render_day_image_slot(day, rows, match=None):
+def render_day_image_slot(day, rows, match=None, output_edits=None):
     """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
         match = select_day_image(day, rows, get_image_bank_path())
@@ -1364,20 +1402,26 @@ def render_day_image_slot(day, rows, match=None):
         return ""
 
     image_path = match.get("path", "")
+    crop_focus = get_day_image_crop_focus(output_edits, day)
+    object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
     data_uri = image_to_data_uri(image_path)
     preview_img = ""
     if data_uri:
-        preview_img = f'<img class="day-image-preview-img" src="{esc(data_uri)}" alt="{esc(Path(image_path).stem)}" />'
+        preview_img = (
+            f'<img class="day-image-preview-img" '
+            f'style="object-position: {esc(object_position)};" '
+            f'src="{esc(data_uri)}" alt="{esc(Path(image_path).stem)}" />'
+        )
 
     return (
         f'<div class="day-image-slot" '
         f'data-image-path="{esc(image_path)}" '
+        f'data-image-crop-focus="{esc(crop_focus)}" '
         f'data-image-score="{esc(match.get("score", ""))}" '
         f'data-image-reason="{esc(match.get("reason", ""))}">'
         f'{preview_img}'
         f'</div>'
     )
-
 
 def render_day_section(day, rows, output_edits=None, packed=False, triple=False):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
@@ -1411,7 +1455,7 @@ def render_day_page(day, rows, output_edits=None, image_match=None):
     return f'''
         <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
             {render_day_section(day, rows, output_edits, packed=False)}
-            {render_day_image_slot(day, rows, match=image_match)}
+            {render_day_image_slot(day, rows, match=image_match, output_edits=output_edits)}
         </div>
     '''
 
@@ -1919,87 +1963,153 @@ def get_overflow_warnings(grouped_days):
     return warnings
 
 
-def render_day_image_controls(day, rows, output_edits):
-    """Show the selected day image and allow simple manual control."""
+def get_current_day_image_matches(output_edits):
+    parsed_rows = st.session_state.get("parsed_rows", [])
+    if not parsed_rows:
+        return {}
+    edited_rows = apply_output_edits(parsed_rows, output_edits)
+    return select_day_images_with_overrides(group_rows_by_day(edited_rows), output_edits)
 
-    day_images = get_day_image_overrides(output_edits)
-    choice = day_images.setdefault(day, {"mode": "auto", "path": ""})
+
+def set_day_image_mode(output_edits, day, mode, path=""):
+    choice = get_day_image_choice(output_edits, day)
+    choice["mode"] = mode
+    choice["path"] = path if mode == "manual" else ""
+    mark_output_dirty()
+
+
+def render_day_picture_action_panel(day, rows, output_edits, current_match=None, key_prefix="picture_studio"):
+    """Visible per-day picture controls used by the Picture Studio."""
+
+    choice = get_day_image_choice(output_edits, day)
     city = get_primary_city(rows)
-    image_matches = select_day_images_with_overrides(group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, output_edits)), output_edits)
-    current_match = image_matches.get(day)
     current_path = Path(current_match.get("path")) if current_match else None
 
-    with st.expander(f"Image for {day}", expanded=False):
-        st.caption("Review the picture before PDF export. Use Remove to skip this day, or choose/upload a different picture.")
+    st.markdown(f"#### {day} picture")
+    if current_path and current_path.exists():
+        st.image(str(current_path), caption=f"Current picture: {current_path.name}", use_container_width=True)
+        if current_match and current_match.get("reason"):
+            st.caption(f"Match: {current_match.get('reason')}")
+    else:
+        st.info("No picture is selected for this day. The PDF will leave this day without an image.")
 
-        if current_path and current_path.exists():
-            st.image(str(current_path), caption=f"Current image: {current_path.name}", use_container_width=True)
-            if current_match and current_match.get("reason"):
-                st.caption(f"Match: {current_match.get('reason')}")
-        else:
-            st.info("No image is currently selected for this day.")
+    st.caption("Use these controls before creating the PDF. The PDF remains the source of truth for final image placement.")
 
-        mode_labels = ["Automatic", "Choose image", "No image"]
-        mode_values = {"Automatic": "auto", "Choose image": "manual", "No image": "none"}
-        current_mode = choice.get("mode", "auto")
-        current_label = next((label for label, value in mode_values.items() if value == current_mode), "Automatic")
-        selected_label = st.radio(
-            "Image mode",
-            mode_labels,
-            index=mode_labels.index(current_label),
-            horizontal=True,
-            key=f"image_mode_{day}",
+    action_col_1, action_col_2, action_col_3 = st.columns(3)
+    with action_col_1:
+        if st.button("Use automatic", key=f"{key_prefix}_auto_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "auto")
+            st.rerun()
+    with action_col_2:
+        if st.button("Remove picture", key=f"{key_prefix}_remove_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "none")
+            st.rerun()
+    with action_col_3:
+        st.caption(f"Current mode: {choice.get('mode', 'auto')}")
+
+    focus_value = normalize_crop_focus(choice.get("crop_focus", "top"))
+    focus_label = CROP_FOCUS_LABELS.get(focus_value, "Sky / upper focus")
+    new_focus_label = st.selectbox(
+        "Re-crop focus",
+        list(CROP_FOCUS_OPTIONS.keys()),
+        index=list(CROP_FOCUS_OPTIONS.keys()).index(focus_label),
+        key=f"{key_prefix}_crop_focus_{day}",
+        help="Sky / upper focus is best for northern lights, skylines, mountains and wide landscapes.",
+    )
+    new_focus = CROP_FOCUS_OPTIONS[new_focus_label]
+    if choice.get("crop_focus") != new_focus:
+        choice["crop_focus"] = new_focus
+        mark_output_dirty()
+
+    options = list_city_image_options(city)
+    st.markdown("**Replace from image bank**")
+    if options:
+        option_labels = [path.name for path in options]
+        current_path_text = choice.get("path", "") if choice.get("mode") == "manual" else (str(current_path) if current_path else "")
+        current_index = 0
+        for idx, path in enumerate(options):
+            if normalize_path_key(path) == normalize_path_key(current_path_text):
+                current_index = idx
+                break
+        selected_name = st.selectbox(
+            "Choose a picture",
+            option_labels,
+            index=current_index,
+            key=f"{key_prefix}_replace_select_{day}",
         )
-        new_mode = mode_values[selected_label]
-        if choice.get("mode") != new_mode:
-            choice["mode"] = new_mode
-            if new_mode != "manual":
-                choice["path"] = ""
-            mark_output_dirty()
+        selected_path = str(options[option_labels.index(selected_name)])
+        if st.button("Replace with selected picture", key=f"{key_prefix}_replace_button_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "manual", selected_path)
+            st.rerun()
+    else:
+        st.warning(f"No image-bank pictures found for {city or 'this destination'}.")
 
-        options = list_city_image_options(city)
-        if choice.get("mode") == "manual":
-            if options:
-                option_labels = [path.name for path in options]
-                current_path_text = choice.get("path", "")
-                current_index = 0
-                for idx, path in enumerate(options):
-                    if normalize_path_key(path) == normalize_path_key(current_path_text):
-                        current_index = idx
-                        break
-                selected_name = st.selectbox(
-                    "Choose from image bank",
-                    option_labels,
-                    index=current_index,
-                    key=f"manual_image_{day}",
-                )
-                selected_path = str(options[option_labels.index(selected_name)])
-                if choice.get("path") != selected_path:
-                    choice["path"] = selected_path
-                    mark_output_dirty()
-            else:
-                st.warning(f"No image-bank pictures found for {city or 'this destination'}.")
-
-        st.markdown("**Add a new picture to the image bank**")
-        add_col_1, add_col_2 = st.columns([1, 1])
-        with add_col_1:
-            upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"upload_season_{day}")
-        with add_col_2:
-            upload_label = st.text_input("Picture label", value="", placeholder="Opera House, Northern Lights...", key=f"upload_label_{day}")
-        uploaded = st.file_uploader(
-            "Upload JPG/PNG/WebP",
-            type=["jpg", "jpeg", "png", "webp"],
-            key=f"upload_image_{day}",
+    st.markdown("**Add a new picture**")
+    add_col_1, add_col_2 = st.columns([1, 1])
+    with add_col_1:
+        upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"{key_prefix}_upload_season_{day}")
+    with add_col_2:
+        upload_label = st.text_input(
+            "Picture label",
+            value="",
+            placeholder="Opera House, Northern Lights...",
+            key=f"{key_prefix}_upload_label_{day}",
         )
-        if uploaded and st.button("Add and use this picture", key=f"add_use_image_{day}"):
-            saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
-            if saved_path:
-                choice["mode"] = "manual"
-                choice["path"] = saved_path
-                mark_output_dirty()
-                st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
-                st.rerun()
+    uploaded = st.file_uploader(
+        "Upload JPG/PNG/WebP",
+        type=["jpg", "jpeg", "png", "webp"],
+        key=f"{key_prefix}_upload_file_{day}",
+    )
+    if uploaded and st.button("Add and use uploaded picture", key=f"{key_prefix}_upload_use_{day}", use_container_width=True):
+        saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
+        if saved_path:
+            set_day_image_mode(output_edits, day, "manual", saved_path)
+            st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
+            st.rerun()
 
+
+def render_picture_studio(grouped_days, output_edits):
+    """Make day-picture review obvious before PDF export."""
+
+    days = list(grouped_days.keys())
+    if not days:
+        return
+
+    if st.session_state.get("active_image_day") not in days:
+        st.session_state.active_image_day = days[0]
+
+    image_matches = get_current_day_image_matches(output_edits)
+
+    with st.expander("Picture review & controls", expanded=True):
+        st.caption(
+            "Review the pictures before PDF export. Select a day, then remove, replace, upload, or adjust the crop focus. "
+            "The final PDF uses the premium full-width, bottom-edge layout."
+        )
+
+        card_columns = st.columns(min(3, max(1, len(days))))
+        for index, day in enumerate(days):
+            rows = grouped_days[day]
+            match = image_matches.get(day)
+            current_path = Path(match.get("path")) if match else None
+            with card_columns[index % len(card_columns)]:
+                st.markdown(f"**{day}**")
+                if current_path and current_path.exists():
+                    st.image(str(current_path), caption=current_path.name, use_container_width=True)
+                else:
+                    st.info("No picture")
+                if st.button("Edit picture", key=f"picture_studio_open_{day}", use_container_width=True):
+                    st.session_state.active_image_day = day
+                    st.rerun()
+
+        active_day = st.session_state.get("active_image_day", days[0])
+        st.divider()
+        render_day_picture_action_panel(
+            active_day,
+            grouped_days[active_day],
+            output_edits,
+            current_match=image_matches.get(active_day),
+            key_prefix="picture_studio_active",
+        )
 
 def render_output_editor(parsed_rows, grouped_days, output_edits):
     st.markdown('<div class="workflow-note">Edit the generated output here. The raw Excel input above is not changed.</div>', unsafe_allow_html=True)
@@ -2033,6 +2143,8 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                 st.rerun()
         with col_b:
             st.caption("Updates day intros and sparse activity descriptions using the rich client-facing style.")
+
+    render_picture_studio(grouped_days, output_edits)
 
     with st.expander("Cover and summary pages", expanded=False):
         output_edits["trip_title"] = st.text_input(
@@ -2087,8 +2199,6 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                     height=95,
                     key=f"edit_{day}_intro",
                 )
-
-                render_day_image_controls(day, rows, output_edits)
 
                 with st.expander(f"Edit {day} itinerary items", expanded=False):
                     for index, row in enumerate(rows, start=1):
@@ -3262,7 +3372,8 @@ if show_debug and st.session_state.parsed_rows:
                 )
 
 if st.session_state.itinerary_html:
-    with st.expander("Step 2 — Preview itinerary", expanded=False):
+    with st.expander("Step 2 — Preview itinerary", expanded=True):
+        st.caption("This preview now follows the PDF image direction more closely. The downloaded PDF remains the final source of truth.")
         st.html(st.session_state.itinerary_html)
 
 if st.session_state.parsed_rows and st.session_state.output_edits:

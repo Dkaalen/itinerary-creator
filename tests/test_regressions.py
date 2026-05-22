@@ -604,6 +604,38 @@ def test_cover_crop_protects_upper_image_content():
                 )
 
 
+
+def test_cover_crop_focus_options_change_vertical_crop():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        source_path = tmp_path / "Tall_Image.jpg"
+        image = Image.new("RGB", (100, 300), (0, 0, 0))
+        pixels = image.load()
+        for x in range(100):
+            for y in range(300):
+                if y < 80:
+                    pixels[x, y] = (0, 220, 80)
+                elif y > 220:
+                    pixels[x, y] = (220, 60, 20)
+                else:
+                    pixels[x, y] = (20, 20, 180)
+        image.save(source_path, format="JPEG", quality=95)
+
+        top_path = make_cover_cropped_image(source_path, 400, 200, tmp_path, crop_focus="top")
+        bottom_path = make_cover_cropped_image(source_path, 400, 200, tmp_path, crop_focus="bottom")
+        if not top_path or not bottom_path:
+            raise AssertionError("Cover crop should create focus-specific temporary images.")
+
+        with Image.open(top_path) as top_crop, Image.open(bottom_path) as bottom_crop:
+            top_pixel = top_crop.getpixel((top_crop.width // 2, 5))
+            bottom_pixel = bottom_crop.getpixel((bottom_crop.width // 2, bottom_crop.height - 5))
+            if top_pixel[1] < 120:
+                raise AssertionError("Top crop focus should keep upper sky/aurora detail visible.")
+            if bottom_pixel[0] < 120:
+                raise AssertionError("Bottom crop focus should keep lower foreground detail visible.")
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -621,6 +653,7 @@ def run_all():
         test_pdf_day_image_layout_rules,
         test_pdf_export_places_day_image_from_current_page_story,
         test_cover_crop_protects_upper_image_content,
+        test_cover_crop_focus_options_change_vertical_crop,
     ]
 
     for test in tests:

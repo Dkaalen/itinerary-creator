@@ -41,6 +41,11 @@ PDF_IMAGE_GAP = 15  # approximately 20 CSS pixels
 PDF_IMAGE_HALF_OFFSET = 7.5  # approximately 10 CSS pixels
 PDF_MIN_IMAGE_HEIGHT = 40 * mm
 PDF_CROP_VERTICAL_FOCUS = 0.25  # protect upper/sky detail when vertical cropping is needed
+PDF_CROP_FOCUS_FACTORS = {
+    "top": 0.18,
+    "center": 0.50,
+    "bottom": 0.82,
+}
 PDF_IMAGE_BOTTOM_Y = 0  # day images bleed to the physical lower page edge
 
 
@@ -584,13 +589,25 @@ def calculate_day_image_layout(
     return spacer_height, image_height
 
 
-def make_cover_cropped_image(source_path, target_width, target_height, temp_dir):
+def normalize_crop_focus(value):
+    value = str(value or "").strip().lower()
+    if value in PDF_CROP_FOCUS_FACTORS:
+        return value
+    if value in {"upper", "sky", "aurora"}:
+        return "top"
+    if value in {"lower"}:
+        return "bottom"
+    return "top"
+
+
+def make_cover_cropped_image(source_path, target_width, target_height, temp_dir, crop_focus="top"):
     """Create a temporary cover-cropped image matching the PDF box ratio.
 
     Images should fill the selected box like CSS ``object-fit: cover``: the
     picture is cropped to the target ratio and then drawn without distortion.
-    When vertical cropping is needed, the crop is biased upward so skies,
-    northern lights, skylines, and mountain peaks are less likely to be cut off.
+    When vertical cropping is needed, the crop can be biased upward, centered,
+    or biased downward. The default protects skies, northern lights, skylines,
+    and mountain peaks.
     """
     if PILImage is None or ImageOps is None:
         return None
@@ -620,12 +637,13 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir)
                 # protects sky-led images such as northern lights.
                 crop_height = max(1, int(source_width / target_ratio))
                 extra_height = max(0, source_height - crop_height)
-                top = max(0, int(extra_height * PDF_CROP_VERTICAL_FOCUS))
+                focus = PDF_CROP_FOCUS_FACTORS.get(normalize_crop_focus(crop_focus), PDF_CROP_VERTICAL_FOCUS)
+                top = max(0, int(extra_height * focus))
                 box = (0, top, source_width, min(source_height, top + crop_height))
 
             image = image.crop(box)
             temp_path = Path(temp_dir) / (
-                f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2)))) % 10_000_000}.jpg"
+                f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalize_crop_focus(crop_focus)))) % 10_000_000}.jpg"
             )
             image.save(temp_path, format="JPEG", quality=88, optimize=True)
             return temp_path
@@ -657,6 +675,7 @@ class SamePageDayImage(Flowable):
         gap=PDF_IMAGE_GAP,
         half_offset=PDF_IMAGE_HALF_OFFSET,
         min_height=PDF_MIN_IMAGE_HEIGHT,
+        crop_focus="top",
     ):
         super().__init__()
         self.source_path = Path(source_path)
@@ -670,6 +689,7 @@ class SamePageDayImage(Flowable):
         self.gap = float(gap)
         self.half_offset = float(half_offset)
         self.min_height = float(min_height)
+        self.crop_focus = normalize_crop_focus(crop_focus)
 
     def wrap(self, availWidth, availHeight):
         return 0, 0
@@ -692,6 +712,7 @@ class SamePageDayImage(Flowable):
             self.content_width,
             image_height,
             self.temp_dir,
+            crop_focus=self.crop_focus,
         )
         if not cropped_path:
             return
@@ -729,6 +750,8 @@ def add_day_image_if_possible(
     if not image_path:
         return
 
+    crop_focus = normalize_crop_focus(slot.get("data-image-crop-focus", "top"))
+
     page_story.append(
         SamePageDayImage(
             source_path=image_path,
@@ -739,6 +762,7 @@ def add_day_image_if_possible(
             content_height=available_height,
             page_height=A4[1],
             bottom_y=PDF_IMAGE_BOTTOM_Y,
+            crop_focus=crop_focus,
         )
     )
 
