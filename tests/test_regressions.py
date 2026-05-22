@@ -28,7 +28,7 @@ from layout_policy import (
     is_day_packing_enabled,
     is_three_day_packing_enabled,
 )
-from pdf_exporter import calculate_day_image_layout, export_html_to_pdf
+from pdf_exporter import calculate_day_image_layout, export_html_to_pdf, make_cover_cropped_image
 from reportlab.lib.units import mm
 
 
@@ -51,6 +51,11 @@ def assert_not_contains(text, unexpected, label):
         raise AssertionError(
             f"{label}\nDid not expect to find: {unexpected!r}\nActual text: {text!r}"
         )
+
+
+def count_pdf_pages(pdf_path):
+    content = Path(pdf_path).read_bytes()
+    return content.count(b"/Type /Page") - content.count(b"/Type /Pages")
 
 
 def test_time_expansion():
@@ -456,6 +461,39 @@ def test_pdf_export_places_day_image_from_current_page_story():
         export_html_to_pdf(html_path, pdf_path)
         if pdf_path.stat().st_size < 10_000:
             raise AssertionError("PDF day image should be inserted when the current page has enough room.")
+        assert_equal(
+            count_pdf_pages(pdf_path),
+            2,
+            "Day image rendering should not create an image-only continuation page.",
+        )
+
+
+def test_cover_crop_protects_upper_image_content():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        source_path = tmp_path / "Aurora_Portrait.jpg"
+        image = Image.new("RGB", (100, 300), (0, 0, 180))
+        pixels = image.load()
+        for x in range(100):
+            for y in range(300):
+                if y < 80:
+                    pixels[x, y] = (0, 220, 80)  # bright upper sky detail
+                elif y > 220:
+                    pixels[x, y] = (80, 45, 20)
+        image.save(source_path, format="JPEG", quality=95)
+
+        cropped_path = make_cover_cropped_image(source_path, 400, 200, tmp_path)
+        if not cropped_path:
+            raise AssertionError("Cover crop should create a temporary image.")
+
+        with Image.open(cropped_path) as cropped:
+            top_pixel = cropped.getpixel((cropped.width // 2, 5))
+            if top_pixel[1] < 120:
+                raise AssertionError(
+                    "Vertical cover crop should preserve upper sky/aurora detail better than a center crop."
+                )
 
 
 def run_all():
@@ -472,6 +510,7 @@ def run_all():
         test_layout_policy_one_day_per_page,
         test_pdf_day_image_layout_rules,
         test_pdf_export_places_day_image_from_current_page_story,
+        test_cover_crop_protects_upper_image_content,
     ]
 
     for test in tests:

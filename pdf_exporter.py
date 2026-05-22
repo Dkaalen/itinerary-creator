@@ -25,7 +25,7 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     KeepTogether,
-    Image as RLImage,
+    Flowable,
 )
 from reportlab.platypus.doctemplate import LayoutError
 
@@ -40,6 +40,7 @@ CARD = colors.Color(1, 1, 1, alpha=0.35)
 PDF_IMAGE_GAP = 15  # approximately 20 CSS pixels
 PDF_IMAGE_HALF_OFFSET = 7.5  # approximately 10 CSS pixels
 PDF_MIN_IMAGE_HEIGHT = 40 * mm
+PDF_CROP_VERTICAL_FOCUS = 0.25  # protect upper/sky detail when vertical cropping is needed
 
 
 DEFAULT_PDF_COLORS = {
@@ -574,7 +575,13 @@ def calculate_day_image_layout(used_height, content_height, gap=PDF_IMAGE_GAP, h
 
 
 def make_cover_cropped_image(source_path, target_width, target_height, temp_dir):
-    """Create a temporary cover-cropped image matching the PDF box ratio."""
+    """Create a temporary cover-cropped image matching the PDF box ratio.
+
+    Images should fill the selected box like CSS ``object-fit: cover``: the
+    picture is cropped to the target ratio and then drawn without distortion.
+    When vertical cropping is needed, the crop is biased upward so skies,
+    northern lights, skylines, and mountain peaks are less likely to be cut off.
+    """
     if PILImage is None or ImageOps is None:
         return None
 
@@ -592,33 +599,115 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir)
             source_ratio = float(source_width) / float(source_height)
 
             if source_ratio > target_ratio:
-                # Source is wider than target: crop the sides.
-                crop_width = int(source_height * target_ratio)
+                # Source is wider than target: crop the sides, keeping the
+                # visual center horizontally. No vertical content is lost here.
+                crop_width = max(1, int(source_height * target_ratio))
                 left = max(0, int((source_width - crop_width) / 2))
-                box = (left, 0, left + crop_width, source_height)
+                box = (left, 0, min(source_width, left + crop_width), source_height)
             else:
-                # Source is taller than target: crop top/bottom evenly.
-                crop_height = int(source_width / target_ratio)
-                top = max(0, int((source_height - crop_height) / 2))
-                box = (0, top, source_width, top + crop_height)
+                # Source is taller than target: crop top/bottom, but keep more
+                # of the upper image area than a strict center crop would. This
+                # protects sky-led images such as northern lights.
+                crop_height = max(1, int(source_width / target_ratio))
+                extra_height = max(0, source_height - crop_height)
+                top = max(0, int(extra_height * PDF_CROP_VERTICAL_FOCUS))
+                box = (0, top, source_width, min(source_height, top + crop_height))
 
             image = image.crop(box)
-            temp_path = Path(temp_dir) / f"day_image_{abs(hash(str(source_path))) % 10_000_000}.jpg"
+            temp_path = Path(temp_dir) / (
+                f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2)))) % 10_000_000}.jpg"
+            )
             image.save(temp_path, format="JPEG", quality=88, optimize=True)
             return temp_path
     except Exception:
         return None
 
 
-def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_width, available_height, measurement_story=None):
-    """Append a lower-half full-width day image when a confident match exists.
+class SamePageDayImage(Flowable):
+    """Draw a day image on the current A4 page without creating a new page.
 
-    ``page_story`` is the full ReportLab story that should receive the image.
-    ``measurement_story`` must contain only the flowables already rendered for
-    the current A4 day page. Measuring the full document story would include
-    previous pages and make the remaining-space calculation think there is no
-    room for images.
+    This flowable deliberately consumes no vertical space. At draw time,
+    ReportLab gives us the actual y-position after the written day content.
+    The image is then drawn directly onto that same page only. If the actual
+    content has left too little room for a good lower-half image, nothing is
+    drawn. Because this flowable has zero height, it cannot spill to an
+    image-only continuation page.
     """
+
+    def __init__(
+        self,
+        source_path,
+        temp_dir,
+        x,
+        content_top_y,
+        content_width,
+        content_height,
+        gap=PDF_IMAGE_GAP,
+        half_offset=PDF_IMAGE_HALF_OFFSET,
+        min_height=PDF_MIN_IMAGE_HEIGHT,
+    ):
+        super().__init__()
+        self.source_path = Path(source_path)
+        self.temp_dir = temp_dir
+        self.absolute_x = float(x)
+        self.content_top_y = float(content_top_y)
+        self.content_width = float(content_width)
+        self.content_height = float(content_height)
+        self.gap = float(gap)
+        self.half_offset = float(half_offset)
+        self.min_height = float(min_height)
+
+    def wrap(self, availWidth, availHeight):
+        return 0, 0
+
+    def split(self, availWidth, availHeight):
+        return []
+
+    def drawOn(self, canv, x, y, _sW=0):
+        text_bottom_from_top = max(0.0, self.content_top_y - float(y))
+        image_top_from_top = max(
+            text_bottom_from_top + self.gap,
+            (self.content_height / 2.0) + self.half_offset,
+        )
+        image_height = self.content_height - image_top_from_top
+        if image_height < self.min_height:
+            return
+
+        image_y = self.content_top_y - image_top_from_top - image_height
+        cropped_path = make_cover_cropped_image(
+            self.source_path,
+            self.content_width,
+            image_height,
+            self.temp_dir,
+        )
+        if not cropped_path:
+            return
+
+        canv.saveState()
+        canv.drawImage(
+            str(cropped_path),
+            self.absolute_x,
+            image_y,
+            width=self.content_width,
+            height=image_height,
+            preserveAspectRatio=False,
+            mask="auto",
+        )
+        canv.restoreState()
+
+
+def add_day_image_if_possible(
+    page,
+    page_story,
+    html_path,
+    temp_dir,
+    available_width,
+    available_height,
+    measurement_story=None,
+    left_margin=0,
+    top_margin=0,
+):
+    """Add a same-page lower-half full-width day image when a match exists."""
     slot = page.select_one(".day-image-slot")
     if not slot:
         return
@@ -627,19 +716,16 @@ def add_day_image_if_possible(page, page_story, html_path, temp_dir, available_w
     if not image_path:
         return
 
-    used_height = story_height(measurement_story if measurement_story is not None else page_story, available_width)
-    layout = calculate_day_image_layout(used_height, available_height)
-    if not layout:
-        return
-
-    spacer_height, image_height = layout
-    cropped_path = make_cover_cropped_image(image_path, available_width, image_height, temp_dir)
-    if not cropped_path:
-        return
-
-    if spacer_height > 0:
-        page_story.append(Spacer(1, spacer_height))
-    page_story.append(RLImage(str(cropped_path), width=available_width, height=image_height))
+    page_story.append(
+        SamePageDayImage(
+            source_path=image_path,
+            temp_dir=temp_dir,
+            x=left_margin,
+            content_top_y=A4[1] - top_margin,
+            content_width=available_width,
+            content_height=available_height,
+        )
+    )
 
 
 def render_cover_page(page, story, styles):
@@ -776,7 +862,17 @@ def render_day_section_pdf(section, story, styles):
     render_content_blocks(section, story, styles, compact=compact, ultra=ultra)
 
 
-def render_general_page(page, story, styles, html_path=None, temp_dir=None, available_width=None, available_height=None):
+def render_general_page(
+    page,
+    story,
+    styles,
+    html_path=None,
+    temp_dir=None,
+    available_width=None,
+    available_height=None,
+    left_margin=0,
+    top_margin=0,
+):
     page_story_start = len(story)
 
     # Packed day pages contain one or two explicit day-section elements inside a
@@ -789,7 +885,17 @@ def render_general_page(page, story, styles, html_path=None, temp_dir=None, avai
                 add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))
             render_day_section_pdf(section, story, styles)
         if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
-            add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height, measurement_story=story[page_story_start:])
+            add_day_image_if_possible(
+                page,
+                story,
+                html_path,
+                temp_dir,
+                available_width,
+                available_height,
+                measurement_story=story[page_story_start:],
+                left_margin=left_margin,
+                top_margin=top_margin,
+            )
         return
 
     # Header blocks first
@@ -811,7 +917,17 @@ def render_general_page(page, story, styles, html_path=None, temp_dir=None, avai
         add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
 
     if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
-        add_day_image_if_possible(page, story, html_path, temp_dir, available_width, available_height, measurement_story=story[page_story_start:])
+        add_day_image_if_possible(
+            page,
+            story,
+            html_path,
+            temp_dir,
+            available_width,
+            available_height,
+            measurement_story=story[page_story_start:],
+            left_margin=left_margin,
+            top_margin=top_margin,
+        )
 
 def export_html_to_pdf(html_path, pdf_path):
     """
@@ -862,6 +978,8 @@ def export_html_to_pdf(html_path, pdf_path):
                     temp_dir=image_temp_dir,
                     available_width=doc.width,
                     available_height=doc.height,
+                    left_margin=doc.leftMargin,
+                    top_margin=doc.topMargin,
                 )
 
             if index < len(pages) - 1:
