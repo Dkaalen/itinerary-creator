@@ -1,13 +1,10 @@
 from pathlib import Path
-import base64
 import copy
 import html
 import json
-import mimetypes
 import re
 
 import streamlit as st
-import streamlit.components.v1 as components
 import diagnostics
 from itinerary_parser import parse_itinerary, normalize_time_text
 from normalizer import normalize_itinerary_rows
@@ -41,7 +38,7 @@ from generator import (
     get_transfer_travel_title,
     is_self_arranged,
 )
-from image_matcher import select_day_image, select_day_images, scan_image_bank, format_match_for_debug, get_image_bank_diagnostics
+from image_matcher import select_day_image, select_day_images, scan_image_bank, format_match_for_debug
 from layout_policy import (
     DEFAULT_DAY_PAGE_LAYOUT,
     DAY_PAGE_LAYOUTS,
@@ -49,10 +46,35 @@ from layout_policy import (
     is_day_packing_enabled,
     is_three_day_packing_enabled as policy_is_three_day_packing_enabled,
 )
-from ui.editor_sanitizer import clean_visual_editor_html
+from ui.app_constants import (
+    COLOR_PRESETS,
+    DEFAULT_IMPORTANT_TRAVEL_NOTES,
+    DETAIL_LEVELS,
+    PRESET_ORDER,
+)
+from ui.styles import apply_global_styles
+from images.app_image_selection import (
+    CROP_FOCUS_LABELS,
+    CROP_FOCUS_OPTIONS,
+    CROP_FOCUS_OBJECT_POSITIONS,
+    day_image_match_from_path,
+    get_day_image_choice,
+    get_day_image_crop_focus,
+    get_day_image_overrides,
+    get_image_bank_path,
+    image_to_data_uri,
+    infer_country_for_city,
+    list_city_image_options,
+    normalize_crop_focus,
+    normalize_path_key,
+    render_day_image_slot,
+    save_uploaded_day_image,
+    select_day_images_with_overrides,
+    slugify_filename,
+)
 
 
-APP_VERSION = "2026-05-26 v36c17-default-fallback-trace"
+APP_VERSION = "2026-05-22 v36c7-picture-studio"
 
 
 st.set_page_config(
@@ -61,193 +83,15 @@ st.set_page_config(
     layout="wide",
 )
 
-VISUAL_EDITOR_COMPONENT = components.declare_component(
-    "booknordics_visual_editor",
-    path=str(Path(__file__).parent / "visual_editor_component" / "frontend"),
-)
+apply_global_styles()
 
 
-COLOR_PRESETS = {
-    "Classic Agent": {
-        "page_bg": "#f4efe8",
-        "preview_bg": "#11151b",
-        "ink": "#1f3446",
-        "body": "#2f2f2f",
-        "muted": "#7b746c",
-        "line": "#d8cec2",
-        "card": "rgba(255, 255, 255, 0.34)",
-        "accent": "#1f3446",
-    },
-    "Booknordics B2C": {
-        "page_bg": "#F7F9FB",
-        "preview_bg": "#07111F",
-        "ink": "#111827",
-        "body": "#1F2937",
-        "muted": "#64748B",
-        "line": "#D9E1EA",
-        "card": "rgba(255, 255, 255, 0.82)",
-        "accent": "#F2055C",
-    },
-}
 
-PRESET_ORDER = list(COLOR_PRESETS.keys())
-
-DETAIL_LEVELS = [
-    "Rich descriptive",
-]
-
-CROP_FOCUS_OPTIONS = {
-    "Sky / upper focus": "top",
-    "Center focus": "center",
-    "Lower focus": "bottom",
-}
-
-CROP_FOCUS_LABELS = {value: label for label, value in CROP_FOCUS_OPTIONS.items()}
-
-CROP_FOCUS_OBJECT_POSITIONS = {
-    "top": "center 22%",
-    "center": "center center",
-    "bottom": "center 78%",
-}
 
 # Day-page layout options are centralized in layout_policy.py.
 
 
-DEFAULT_IMPORTANT_TRAVEL_NOTES = [
-    "Transport schedules, including flights, trains, buses, ferries and cruises, are subject to operational changes. Final confirmed timings will be provided in the travel vouchers.",
-    "Activities may be weather dependent and can be adjusted if required for safety, availability or operational reasons.",
-    "Hotel check-in and check-out times vary by property. As a general guideline, check-in in the Nordic region is usually between 3:00 PM and 4:30 PM, while check-out is usually between 10:00 AM and 12:00 noon.",
-    "Additional nights can be added on request where the itinerary allows. Some itineraries may be designed without extra nights in certain destinations to help balance the overall route, timing and budget.",
-    "Additional private transfers for city exploration days, railway stations, bus terminals, airports or cruise ports can be arranged as optional add-ons if needed.",
-    "If you would like to enhance the itinerary further, additional activities, excursions or upgraded longer-duration experiences can be suggested and arranged on request at an additional cost.",
-]
 
-st.markdown(
-    """
-    <style>
-        :root {
-            --bn-bg: #0f141a;
-            --bn-panel: #171d24;
-            --bn-panel-soft: #1d242c;
-            --bn-border: rgba(148, 163, 184, 0.22);
-            --bn-text: #e7edf2;
-            --bn-muted: #9aa8b5;
-            --bn-accent: #2f756f;
-            --bn-accent-soft: rgba(47, 117, 111, 0.16);
-            --bn-paper: #f4efe8;
-        }
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bn-bg: #f6f8f7;
-                --bn-panel: #ffffff;
-                --bn-panel-soft: #eef4f2;
-                --bn-border: #d8e1de;
-                --bn-text: #14313d;
-                --bn-muted: #526672;
-                --bn-accent: #2f756f;
-                --bn-accent-soft: #e8f3f0;
-            }
-        }
-        .block-container {
-            padding-top: 1.4rem;
-            max-width: 1480px;
-        }
-        [data-testid="stAppViewContainer"] {
-            background: var(--bn-bg);
-        }
-        section[data-testid="stSidebar"] {
-            background: var(--bn-panel);
-            border-right: 1px solid var(--bn-border);
-        }
-        section[data-testid="stSidebar"] * {
-            color: var(--bn-text);
-        }
-        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
-        section[data-testid="stSidebar"] small,
-        section[data-testid="stSidebar"] p {
-            color: var(--bn-muted) !important;
-        }
-        .bn-topbar {
-            border: 1px solid var(--bn-border);
-            border-radius: 18px;
-            padding: 1rem 1.15rem;
-            margin-bottom: 0.9rem;
-            background: var(--bn-panel);
-            color: var(--bn-text);
-        }
-        .bn-topbar-main {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .bn-product-label {
-            display: inline-block;
-            color: var(--bn-accent);
-            background: var(--bn-accent-soft);
-            border: 1px solid rgba(47,117,111,0.28);
-            border-radius: 999px;
-            padding: 0.26rem 0.55rem;
-            font-size: 0.72rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 0.45rem;
-        }
-        .bn-topbar h1 {
-            margin: 0;
-            color: var(--bn-text);
-            font-size: clamp(1.45rem, 2.4vw, 2.2rem);
-            line-height: 1.08;
-            letter-spacing: -0.025em;
-        }
-        .bn-topbar p {
-            margin: 0.4rem 0 0 0;
-            color: var(--bn-muted);
-            max-width: 860px;
-            line-height: 1.45;
-        }
-        .bn-version {
-            color: var(--bn-muted);
-            font-size: 0.76rem;
-            white-space: nowrap;
-            margin-top: 0.2rem;
-        }
-        .workflow-note,
-        .project-action-note {
-            color: var(--bn-muted);
-            font-size: 0.86rem;
-            line-height: 1.4;
-            margin-bottom: 0.6rem;
-        }
-        .sidebar-pill,
-        .sidebar-review-card {
-            border: 1px solid var(--bn-border);
-            border-radius: 12px;
-            padding: 0.55rem 0.65rem;
-            margin: 0.35rem 0;
-            background: var(--bn-panel-soft);
-            color: var(--bn-text);
-            font-size: 0.84rem;
-        }
-        .stButton > button,
-        .stDownloadButton > button {
-            border-radius: 10px !important;
-            min-height: 2.35rem;
-            font-weight: 650;
-        }
-        div[data-testid="stExpander"] {
-            border-radius: 12px !important;
-            border-color: var(--bn-border) !important;
-        }
-        textarea, input {
-            border-radius: 8px !important;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 def esc(value):
@@ -295,9 +139,6 @@ def text_to_list(value):
             clean_items.append(item)
 
     return clean_items
-
-
-
 
 
 
@@ -1309,359 +1150,6 @@ def can_pack_three_days(day_rows_triple, output_edits=None):
     return True
 
 
-def get_image_bank_path():
-    """Local lightweight image bank kept with the app for tests/fallbacks."""
-    return Path(__file__).parent / "image_bank"
-
-
-def get_external_image_bank_path():
-    value = clean_space(st.session_state.get("external_image_bank_path", ""))
-    if not value:
-        return None
-    try:
-        path = Path(value).expanduser()
-    except Exception:
-        return None
-    if path.exists() and path.is_dir():
-        return path
-    return None
-
-
-def get_image_bank_paths():
-    """Return image banks in scan order.
-
-    The small repo image_bank is always scanned. A full local bank can live
-    outside the repository, for example:
-    C:/Users/DennisKålen/Desktop/itinerary_app/image-bank-full
-
-    Keep the repo bank first so root-level image_bank/Default is never lost
-    when an external path is missing, empty, or not available in deployment.
-    Destination-specific images still win by score even when they come from the
-    external bank.
-    """
-    paths = [get_image_bank_path()]
-    external = get_external_image_bank_path()
-    if external:
-        paths.append(external)
-    return paths
-
-
-def get_default_image_bank_paths():
-    """Return explicit root Default folders used as a hard fallback.
-
-    scan_image_bank() supports scanning these folders directly. This protects
-    the app from any pipeline step that accidentally misses the root Default
-    folder while resolving normal country/destination image banks.
-    """
-    paths = []
-    for root in get_image_bank_paths():
-        default_dir = Path(root) / "Default"
-        if default_dir.exists() and default_dir.is_dir():
-            paths.append(default_dir)
-    return paths
-
-
-def select_default_fallback_image(day, rows, used_paths=None):
-    default_paths = get_default_image_bank_paths()
-    if not default_paths:
-        return None
-    matches = select_day_images({day: rows}, default_paths, used_paths=used_paths or set())
-    match = matches.get(day)
-    if match:
-        return match
-    return select_default_fallback_image_direct(day, rows, used_paths=used_paths)
-
-
-def score_default_file_for_day(path, rows):
-    """Small filesystem-level fallback scorer used only as a last repair step."""
-    text_parts = []
-    for row in rows or []:
-        text_parts.extend([
-            row.get("city", ""), row.get("title", ""), row.get("original_title", ""),
-            row.get("details", ""), row.get("display_description", ""),
-            " ".join(row.get("includes", []) or []),
-        ])
-    day_text = clean_space(" ".join(str(part or "") for part in text_parts)).lower()
-    filename = Path(path).stem.lower().replace("_", " ")
-    combined = f"{day_text} {filename}"
-
-    rules = [
-        (("northern light", "aurora"), ("northern", "aurora", "lights"), 80),
-        (("reindeer", "sami"), ("reindeer", "sledding"), 75),
-        (("fjord", "cruise", "harbour", "harbor", "waterfront", "lake"), ("fjord", "lake", "water", "waterfall"), 65),
-        (("mountain", "valley", "viewpoint", "scenic", "road", "national park"), ("mountain", "valley", "road", "forest", "scenic"), 55),
-        (("city", "old town", "street", "arrival", "departure", "stockholm", "copenhagen", "helsinki"), ("city", "street", "buildings", "skyline"), 50),
-        (("winter", "snow", "arctic", "ice"), ("winter", "snowy", "snow", "forest"), 45),
-    ]
-    score = 10
-    for day_words, file_words, points in rules:
-        if any(word in day_text for word in day_words) and any(word in filename for word in file_words):
-            score += points
-    # Prefer season-consistent fallback images, but never require them.
-    if any(token in day_text for token in ["winter", "snow", "arctic", "ice", "northern light", "aurora"]) and "winter" in filename:
-        score += 20
-    if any(token in day_text for token in ["summer", "green", "fjord", "cruise", "waterfront"]) and "summer" in filename:
-        score += 10
-    return score
-
-
-def select_default_fallback_image_direct(day, rows, used_paths=None):
-    """Last-resort direct scan of image_bank/Default folders.
-
-    This deliberately bypasses the normal image-bank metadata pipeline. It is
-    only used when that pipeline returns no image even though a root Default
-    folder exists. The goal is to prevent a blank day-image area whenever the
-    app has usable generic fallback imagery on disk.
-    """
-    used = {normalize_path_key(path) for path in (used_paths or set())}
-    image_extensions = {".jpg", ".jpeg", ".png", ".webp"}
-    candidates = []
-    for default_dir in get_default_image_bank_paths():
-        for path in sorted(Path(default_dir).rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in image_extensions:
-                continue
-            key = normalize_path_key(path)
-            if key in used:
-                continue
-            candidates.append(path)
-    if not candidates:
-        return None
-
-    best_path = max(candidates, key=lambda path: (score_default_file_for_day(path, rows), path.name.lower()))
-    score = score_default_file_for_day(best_path, rows)
-    return {
-        "day": day,
-        "path": str(best_path),
-        "score": score,
-        "reason": "direct root Default fallback repair",
-        "city": "Default",
-        "country": "",
-        "filename": best_path.stem,
-        "themes": [],
-        "seasons": [],
-    }
-
-
-def get_writable_image_bank_path():
-    """Prefer saving uploads into the external full bank when it is configured."""
-    return get_external_image_bank_path() or get_image_bank_path()
-
-
-def normalize_path_key(value):
-    try:
-        return str(Path(str(value or "")).resolve())
-    except Exception:
-        return str(value or "")
-
-
-def slugify_filename(value):
-    text = clean_space(value) or "Image"
-    text = re.sub(r"[^A-Za-z0-9_ -]+", "", text)
-    text = re.sub(r"[\s-]+", "_", text).strip("_")
-    return text or "Image"
-
-
-def infer_country_for_city(city):
-    city_key = clean_space(city).lower()
-    for candidate in scan_image_bank(get_image_bank_paths()):
-        if clean_space(candidate.city).lower() == city_key and candidate.country:
-            return candidate.country
-    return "Custom"
-
-
-def image_to_data_uri(path):
-    try:
-        path = Path(path)
-        if not path.exists() or not path.is_file():
-            return ""
-        mime = mimetypes.guess_type(str(path))[0] or "image/jpeg"
-        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-        return f"data:{mime};base64,{encoded}"
-    except Exception:
-        return ""
-
-
-def get_day_image_overrides(output_edits=None):
-    return (output_edits or {}).setdefault("day_images", {})
-
-
-def normalize_crop_focus(value):
-    value = str(value or "").strip().lower()
-    if value in {"top", "upper", "sky", "aurora"}:
-        return "top"
-    if value in {"bottom", "lower"}:
-        return "bottom"
-    if value in {"center", "centre", "middle"}:
-        return "center"
-    return "top"
-
-
-def get_day_image_choice(output_edits, day):
-    day_images = get_day_image_overrides(output_edits)
-    choice = day_images.setdefault(day, {"mode": "auto", "path": "", "crop_focus": "top", "removed_by_user": False})
-    choice.setdefault("mode", "auto")
-    choice.setdefault("path", "")
-    choice.setdefault("removed_by_user", False)
-    choice["crop_focus"] = normalize_crop_focus(choice.get("crop_focus", "top"))
-    return choice
-
-
-def get_day_image_crop_focus(output_edits, day):
-    return normalize_crop_focus(get_day_image_choice(output_edits, day).get("crop_focus", "top"))
-
-
-def day_image_match_from_path(day, path, reason="manual selection"):
-    if not path:
-        return None
-    path_obj = Path(path)
-    return {
-        "day": day,
-        "path": str(path_obj),
-        "score": 999,
-        "reason": reason,
-        "city": "",
-        "country": "",
-        "filename": path_obj.stem,
-        "themes": [],
-        "seasons": [],
-    }
-
-
-def get_effective_day_image_choice(output_edits, day):
-    """Return the effective image choice for a day.
-
-    Earlier experimental editor versions could persist {mode: "none"} even
-    when the user had not deliberately removed a picture. Treat those stale
-    unmarked removals as automatic so the Default fallback can recover. New
-    explicit removals are marked with removed_by_user=True and still work.
-    """
-    choice = get_day_image_choice(output_edits, day)
-    effective = dict(choice)
-    if effective.get("mode") == "none" and not effective.get("removed_by_user"):
-        effective["mode"] = "auto"
-        effective["path"] = ""
-    if effective.get("mode") == "manual" and not effective.get("path"):
-        effective["mode"] = "auto"
-    return effective
-
-
-def select_day_images_with_overrides(grouped_days, output_edits=None):
-    """Apply day image review choices while preserving no-reuse behavior."""
-
-    overrides = (output_edits or {}).get("day_images", {}) or {}
-    selected = {}
-    used_paths = set()
-
-    # Manual and removed choices first, so automatic selections cannot reuse a
-    # picture selected by the user on another day.
-    for day, rows in (grouped_days or {}).items():
-        choice = get_effective_day_image_choice(output_edits, day)
-        mode = choice.get("mode", "auto")
-        manual_path = choice.get("path", "")
-
-        if mode == "none":
-            selected[day] = None
-            continue
-
-        if mode == "manual" and manual_path:
-            resolved = Path(manual_path)
-            if not resolved.is_absolute():
-                resolved = (Path(__file__).parent / resolved).resolve()
-            key = normalize_path_key(resolved)
-            if resolved.exists() and key not in used_paths:
-                selected[day] = day_image_match_from_path(day, resolved, reason="manual image selection")
-                used_paths.add(key)
-            else:
-                selected[day] = None
-
-    base_matches = select_day_images(grouped_days, get_image_bank_paths(), used_paths=used_paths.copy())
-
-    for day, rows in (grouped_days or {}).items():
-        if day in selected:
-            continue
-        match = base_matches.get(day)
-        if not match:
-            # Hard repair path: if the normal merged bank pipeline fails to
-            # produce a city match, explicitly try root-level Default folders.
-            # This is the expected fallback for countries/destinations that do
-            # not have their own image folders yet, such as early Sweden tests.
-            match = select_default_fallback_image(day, rows, used_paths=used_paths.copy())
-        if match:
-            key = normalize_path_key(match.get("path", ""))
-            if key in used_paths:
-                match = None
-            else:
-                used_paths.add(key)
-        selected[day] = match
-
-    return selected
-
-
-def list_city_image_options(city):
-    city_key = clean_space(city).lower()
-    destination_options = []
-    default_options = []
-    for candidate in scan_image_bank(get_image_bank_paths()):
-        candidate_city = clean_space(candidate.city).lower()
-        if candidate_city == city_key:
-            destination_options.append(Path(candidate.path))
-        elif candidate_city in {"default", "defoult"}:
-            default_options.append(Path(candidate.path))
-    options = destination_options or default_options
-    return sorted(options, key=lambda path: path.name.lower())
-
-
-def save_uploaded_day_image(uploaded_file, city, season, label=""):
-    if not uploaded_file:
-        return ""
-    city_name = polish_title(city) or "Destination"
-    country = infer_country_for_city(city_name)
-    season_name = season if season in {"Summer", "Winter"} else "Summer"
-    stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or Path(uploaded_file.name).stem)]
-    suffix = Path(uploaded_file.name).suffix.lower() or ".jpg"
-    target_dir = get_writable_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
-
-    counter = 2
-    while target_path.exists():
-        target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + f"_{counter}" + suffix)
-        counter += 1
-
-    target_path.write_bytes(uploaded_file.getbuffer())
-    return str(target_path)
-
-
-def render_day_image_slot(day, rows, match=None, output_edits=None):
-    """Return the day-image marker used by the preview and PDF exporter."""
-    if match is None:
-        match = select_day_image(day, rows, get_image_bank_paths())
-    if not match:
-        match = select_default_fallback_image(day, rows)
-    if not match:
-        return ""
-
-    image_path = match.get("path", "")
-    crop_focus = get_day_image_crop_focus(output_edits, day)
-    object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
-    data_uri = image_to_data_uri(image_path)
-    preview_img = ""
-    if data_uri:
-        preview_img = (
-            f'<img class="day-image-preview-img" '
-            f'style="object-position: {esc(object_position)};" '
-            f'src="{esc(data_uri)}" alt="{esc(Path(image_path).stem)}" />'
-        )
-
-    return (
-        f'<div class="day-image-slot" '
-        f'data-image-path="{esc(image_path)}" '
-        f'data-image-crop-focus="{esc(crop_focus)}" '
-        f'data-image-score="{esc(match.get("score", ""))}" '
-        f'data-image-reason="{esc(match.get("reason", ""))}">'
-        f'{preview_img}'
-        f'</div>'
-    )
 
 def render_day_section(day, rows, output_edits=None, packed=False, triple=False):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
@@ -1669,8 +1157,7 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
     detail_level = get_detail_level_name(output_edits)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
-    custom_day_html = clean_visual_editor_html(((output_edits or {}).get("visual_day_html") or {}).get(day, ""))
-    blocks = [] if custom_day_html else build_day_blocks(rows)
+    blocks = build_day_blocks(rows)
     section_class = "day-section"
     if packed:
         section_class += " packed-section"
@@ -1685,11 +1172,8 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
                 <div class="intro">{esc(day_intro)}</div>
     '''
 
-    if custom_day_html:
-        html_text += custom_day_html
-    else:
-        for block in blocks:
-            html_text += block["html"]
+    for block in blocks:
+        html_text += block["html"]
 
     html_text += "</section>"
     return html_text
@@ -2215,426 +1699,58 @@ def get_current_day_image_matches(output_edits):
     return select_day_images_with_overrides(group_rows_by_day(edited_rows), output_edits)
 
 
-def get_day_image_selection_trace(parsed_rows, output_edits=None):
-    """Return a compact per-day trace for diagnosing image selection."""
-    if not parsed_rows:
-        return []
-    edited_rows = apply_output_edits(parsed_rows, output_edits or {})
-    grouped = group_rows_by_day(edited_rows)
-    matches = select_day_images_with_overrides(grouped, output_edits or {})
-    trace = []
-    for day, rows in grouped.items():
-        city = get_primary_city(rows)
-        match = matches.get(day)
-        default_candidate_count = 0
-        destination_candidate_count = 0
-        city_key = clean_space(city).lower()
-        for candidate in scan_image_bank(get_image_bank_paths()):
-            candidate_city = clean_space(candidate.city).lower()
-            if candidate_city in {"default", "defoult"}:
-                default_candidate_count += 1
-            elif city_key and candidate_city == city_key:
-                destination_candidate_count += 1
-        trace.append({
-            "day": day,
-            "city": city,
-            "selected": Path(match.get("path", "")).name if match else "No image selected",
-            "path": match.get("path", "") if match else "",
-            "reason": match.get("reason", "") if match else "",
-            "default_candidates": default_candidate_count,
-            "destination_candidates": destination_candidate_count,
-        })
-    return trace
-
-
 def set_day_image_mode(output_edits, day, mode, path=""):
     choice = get_day_image_choice(output_edits, day)
     choice["mode"] = mode
     choice["path"] = path if mode == "manual" else ""
-    choice["removed_by_user"] = mode == "none"
     mark_output_dirty()
 
 
-
-def render_day_picture_action_panel(day, rows, output_edits, current_match=None, key_prefix="visual_picture"):
-    """Per-day picture controls shown next to the visual day editor."""
+def render_day_picture_action_panel(day, rows, output_edits, current_match=None, key_prefix="picture_studio"):
+    """Visible per-day picture controls used by the Picture Studio."""
 
     choice = get_day_image_choice(output_edits, day)
     city = get_primary_city(rows)
     current_path = Path(current_match.get("path")) if current_match else None
 
-    st.markdown("##### Picture")
-    st.caption("The final PDF keeps the premium full-width, bottom-edge image layout. These controls change which image and crop focus the PDF uses.")
-
-    preview_col, action_col = st.columns([1.05, 1.35], vertical_alignment="top")
-    with preview_col:
-        if current_path and current_path.exists():
-            st.image(str(current_path), caption=current_path.name, use_container_width=True)
-            if current_match and current_match.get("reason"):
-                st.caption(f"Match: {current_match.get('reason')}")
-        else:
-            st.info("No picture selected for this day.")
-
-    with action_col:
-        mode_col_1, mode_col_2 = st.columns(2)
-        with mode_col_1:
-            if st.button("Use automatic", key=f"{key_prefix}_auto_{day}", use_container_width=True):
-                set_day_image_mode(output_edits, day, "auto")
-                st.rerun()
-        with mode_col_2:
-            if st.button("Remove picture", key=f"{key_prefix}_remove_{day}", use_container_width=True):
-                set_day_image_mode(output_edits, day, "none")
-                st.rerun()
-
-        focus_value = normalize_crop_focus(choice.get("crop_focus", "top"))
-        focus_label = CROP_FOCUS_LABELS.get(focus_value, "Sky / upper focus")
-        new_focus_label = st.selectbox(
-            "Re-crop focus",
-            list(CROP_FOCUS_OPTIONS.keys()),
-            index=list(CROP_FOCUS_OPTIONS.keys()).index(focus_label),
-            key=f"{key_prefix}_crop_focus_{day}",
-            help="Sky / upper focus is best for northern lights, skylines, mountains and wide landscapes.",
-        )
-        new_focus = CROP_FOCUS_OPTIONS[new_focus_label]
-        if choice.get("crop_focus") != new_focus:
-            choice["crop_focus"] = new_focus
-            mark_output_dirty()
-
-        options = list_city_image_options(city)
-        if options:
-            option_labels = [path.name for path in options]
-            current_path_text = choice.get("path", "") if choice.get("mode") == "manual" else (str(current_path) if current_path else "")
-            current_index = 0
-            for idx, path in enumerate(options):
-                if normalize_path_key(path) == normalize_path_key(current_path_text):
-                    current_index = idx
-                    break
-            selected_name = st.selectbox(
-                "Replace from image bank",
-                option_labels,
-                index=current_index,
-                key=f"{key_prefix}_replace_select_{day}",
-            )
-            selected_path = str(options[option_labels.index(selected_name)])
-            if st.button("Replace with selected picture", key=f"{key_prefix}_replace_button_{day}", use_container_width=True):
-                set_day_image_mode(output_edits, day, "manual", selected_path)
-                st.rerun()
-        else:
-            st.warning(f"No image-bank pictures found for {city or 'this destination'}.")
-
-        with st.expander("Upload new picture", expanded=False):
-            upload_col_1, upload_col_2 = st.columns([1, 1])
-            with upload_col_1:
-                upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"{key_prefix}_upload_season_{day}")
-            with upload_col_2:
-                upload_label = st.text_input(
-                    "Picture label",
-                    value="",
-                    placeholder="Opera House, Northern Lights...",
-                    key=f"{key_prefix}_upload_label_{day}",
-                )
-            uploaded = st.file_uploader(
-                "Upload JPG/PNG/WebP",
-                type=["jpg", "jpeg", "png", "webp"],
-                key=f"{key_prefix}_upload_file_{day}",
-            )
-            if uploaded and st.button("Add and use uploaded picture", key=f"{key_prefix}_upload_use_{day}", use_container_width=True):
-                saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
-                if saved_path:
-                    set_day_image_mode(output_edits, day, "manual", saved_path)
-                    st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
-                    st.rerun()
-
-
-def render_row_visual_editor(row, row_edit, row_type, row_id, key_prefix):
-    """Render editable row fields close to the preview instead of hidden day tabs."""
-
-    row_edit["title"] = st.text_input(
-        "Title / text",
-        value=row_edit.get("title", row.get("title", "")),
-        key=f"{key_prefix}_{row_id}_title",
-    )
-    row_edit["city"] = st.text_input(
-        "City / location",
-        value=row_edit.get("city", row.get("city", "")),
-        key=f"{key_prefix}_{row_id}_city",
-    )
-
-    if row_type == "Hotel":
-        row_edit["hotel_name"] = st.text_input(
-            "Accommodation name",
-            value=row_edit.get("hotel_name", row.get("hotel_name", "")),
-            key=f"{key_prefix}_{row_id}_hotel_name",
-        )
-        col_a, col_b = st.columns(2)
-        with col_a:
-            row_edit["hotel_nights"] = st.text_input(
-                "Number of nights",
-                value=row_edit.get("hotel_nights", row.get("hotel_nights", "")),
-                key=f"{key_prefix}_{row_id}_hotel_nights",
-            )
-            row_edit["room_category"] = st.text_input(
-                "Room category",
-                value=row_edit.get("room_category", row.get("room_category", "")),
-                key=f"{key_prefix}_{row_id}_room",
-            )
-        with col_b:
-            row_edit["meal_plan"] = st.text_input(
-                "Meal plan",
-                value=row_edit.get("meal_plan", row.get("meal_plan", "")),
-                key=f"{key_prefix}_{row_id}_meal",
-            )
-        return
-
-    col1, col2 = st.columns(2)
-    with col1:
-        row_edit["time"] = st.text_input(
-            "Time",
-            value=row_edit.get("time", row.get("time", "")),
-            key=f"{key_prefix}_{row_id}_time",
-        )
-        row_edit["meeting_point"] = st.text_input(
-            "Meeting point",
-            value=row_edit.get("meeting_point", row.get("meeting_point", "")),
-            key=f"{key_prefix}_{row_id}_meeting",
-        )
-        row_edit["duration"] = st.text_input(
-            "Duration",
-            value=row_edit.get("duration", row.get("duration", "")),
-            key=f"{key_prefix}_{row_id}_duration",
-        )
-    with col2:
-        row_edit["end_point"] = st.text_input(
-            "End point",
-            value=row_edit.get("end_point", row.get("end_point", "")),
-            key=f"{key_prefix}_{row_id}_end",
-        )
-        row_edit["luggage_included"] = st.text_input(
-            "Luggage included",
-            value=row_edit.get("luggage_included", row.get("luggage_included", "")),
-            key=f"{key_prefix}_{row_id}_luggage",
-        )
-
-    row_edit["notable_sights_text"] = st.text_area(
-        "Notable sights, one per line",
-        value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
-        height=90,
-        key=f"{key_prefix}_{row_id}_sights",
-    )
-    if row_type == "Activity":
-        if st.button("Suggest richer description", key=f"{key_prefix}_assistant_desc_{row_id}"):
-            suggestion = get_activity_description(row, "Rich descriptive")
-            if suggestion:
-                row_edit["client_description"] = suggestion
-                mark_output_dirty()
-                st.rerun()
-    row_edit["client_description"] = st.text_area(
-        "Short description / note",
-        value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(st.session_state.output_edits))),
-        height=75,
-        key=f"{key_prefix}_{row_id}_description",
-    )
-    row_edit["includes_text"] = st.text_area(
-        "Inclusions, one per line",
-        value=row_edit.get("includes_text", list_to_text(row.get("includes", []))),
-        height=100,
-        key=f"{key_prefix}_{row_id}_includes",
-    )
-
-
-def render_visual_day_editor(day, rows, output_edits, image_match=None):
-    """Show one itinerary day as a visual editing unit with text and picture controls together."""
-
-    st.markdown('<div class="visual-day-editor-card">', unsafe_allow_html=True)
-    st.markdown(f"### {esc(day)}")
-    st.caption("Edit this day directly here. The preview above and the PDF export update from these fields.")
-
-    day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-
-    if st.button("Improve this day text", key=f"visual_assistant_improve_{day}"):
-        st.session_state.output_edits = apply_rich_writing_to_day(
-            day,
-            rows,
-            st.session_state.output_edits,
-        )
-        mark_output_dirty()
-        st.rerun()
-
-    with st.expander("Edit day heading and introduction", expanded=True):
-        day_edit["title"] = st.text_input(
-            "Day title",
-            value=day_edit.get("title", create_day_title(rows)),
-            key=f"visual_edit_{day}_title",
-        )
-        day_edit["city"] = st.text_input(
-            "Destination shown below title",
-            value=day_edit.get("city", get_primary_city(rows)),
-            key=f"visual_edit_{day}_city",
-        )
-        day_edit["intro"] = st.text_area(
-            "Intro text",
-            value=day_edit.get("intro", create_day_intro(rows, detail_level=get_detail_level_name(output_edits))),
-            height=95,
-            key=f"visual_edit_{day}_intro",
-        )
-
-    render_day_picture_action_panel(
-        day,
-        rows,
-        output_edits,
-        current_match=image_match,
-        key_prefix="visual_picture",
-    )
-
-    with st.expander("Edit itinerary items on this day", expanded=False):
-        for index, row in enumerate(rows, start=1):
-            row_id = row.get("row_id") or f"{day}_{index}"
-            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-            row_type = get_row_type(row)
-            item_label = row_edit.get("title") or row.get("title") or f"Item {index}"
-            with st.expander(f"{index}. {row_type}: {item_label}", expanded=False):
-                render_row_visual_editor(row, row_edit, row_type, row_id, key_prefix="visual_row")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_visual_summary_editor(parsed_rows, grouped_days, output_edits):
-    """Cover, final pages, and assistant controls that do not belong to one specific day."""
-
-    reset_col, assistant_col = st.columns([1, 2])
-    with reset_col:
-        if st.button("Reset edits", help="Return editable fields to the generated text.", use_container_width=True):
-            st.session_state.output_edits = make_output_edit_state(
-                st.session_state.parsed_rows,
-                group_rows_by_day(st.session_state.parsed_rows),
-            )
-            st.session_state.pdf_bytes = None
-            st.session_state.pdf_status = "Needs refresh"
-            st.rerun()
-    with assistant_col:
-        if st.button("Improve all day-to-day text", key="visual_assistant_improve_all_days", use_container_width=True):
-            st.session_state.output_edits = apply_rich_writing_to_all_days(
-                st.session_state.parsed_rows,
-                st.session_state.output_edits,
-            )
-            mark_output_dirty()
-            st.rerun()
-
-    with st.expander("Edit cover and summary pages", expanded=False):
-        output_edits["trip_title"] = st.text_input(
-            "Cover title",
-            value=output_edits.get("trip_title", ""),
-            key="visual_edit_trip_title",
-        )
-        output_edits["trip_subtitle"] = st.text_area(
-            "Cover subtitle",
-            value=output_edits.get("trip_subtitle", ""),
-            height=80,
-            key="visual_edit_trip_subtitle",
-        )
-        output_edits["destinations_line"] = st.text_input(
-            "Destinations line",
-            value=output_edits.get("destinations_line", ""),
-            key="visual_edit_destinations_line",
-        )
-
-    with st.expander("Edit final inclusion / exclusion pages", expanded=False):
-        output_edits["whats_included_text"] = st.text_area(
-            "What’s included, one item per line",
-            value=output_edits.get("whats_included_text", ""),
-            height=220,
-            key="visual_edit_whats_included_text",
-        )
-        output_edits["whats_not_included_text"] = st.text_area(
-            "What’s not included, one item per line",
-            value=output_edits.get("whats_not_included_text", ""),
-            height=180,
-            key="visual_edit_whats_not_included_text",
-        )
-        output_edits["important_travel_notes_text"] = st.text_area(
-            "Important travel notes, one paragraph per line",
-            value=output_edits.get("important_travel_notes_text", list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES)),
-            height=240,
-            key="visual_edit_important_travel_notes_text",
-        )
-
-
-
-def editable_value(output_edits, scope, key, fallback=""):
-    bucket = output_edits.setdefault(scope, {}) if scope in {"days", "rows"} else output_edits
-    if isinstance(bucket, dict) and key not in bucket:
-        bucket[key] = fallback
-    return bucket.get(key, fallback) if isinstance(bucket, dict) else fallback
-
-
-def render_inline_text_input(label, value, key, help_text=None):
-    st.markdown(f'<div class="inline-field-label soft">{esc(label)}</div>', unsafe_allow_html=True)
-    return st.text_input(
-        label,
-        value=value or "",
-        key=key,
-        label_visibility="collapsed",
-        help=help_text,
-    )
-
-
-def render_inline_text_area(label, value, key, height=76, help_text=None):
-    st.markdown(f'<div class="inline-field-label soft">{esc(label)}</div>', unsafe_allow_html=True)
-    return st.text_area(
-        label,
-        value=value or "",
-        height=height,
-        key=key,
-        label_visibility="collapsed",
-        help=help_text,
-    )
-
-
-def render_inline_picture_tools(day, rows, output_edits, current_match=None, key_prefix="inline_picture"):
-    """Image controls embedded directly on the day page editor."""
-    choice = get_day_image_choice(output_edits, day)
-    current_path = Path(current_match.get("path")) if current_match else None
-    crop_focus = normalize_crop_focus(choice.get("crop_focus", "top"))
-    object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
-
-    st.markdown('<div class="inline-image-stage">', unsafe_allow_html=True)
+    st.markdown(f"#### {day} picture")
     if current_path and current_path.exists():
-        data_uri = image_to_data_uri(current_path)
-        st.markdown(
-            f'<img style="object-position:{esc(object_position)};" src="{esc(data_uri)}" alt="{esc(current_path.stem)}" />',
-            unsafe_allow_html=True,
-        )
+        st.image(str(current_path), caption=f"Current picture: {current_path.name}", use_container_width=True)
+        if current_match and current_match.get("reason"):
+            st.caption(f"Match: {current_match.get('reason')}")
     else:
-        st.info("No picture selected for this day. Use the controls below to restore or choose one.")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.info("No picture is selected for this day. The PDF will leave this day without an image.")
 
-    st.markdown('<div class="inline-picture-toolbar">', unsafe_allow_html=True)
-    st.markdown('<div class="inline-small-label">Picture tools</div>', unsafe_allow_html=True)
-    city = get_primary_city(rows)
-    top_col_1, top_col_2, top_col_3 = st.columns([1, 1, 1.2])
-    with top_col_1:
+    st.caption("Use these controls before creating the PDF. The PDF remains the source of truth for final image placement.")
+
+    action_col_1, action_col_2, action_col_3 = st.columns(3)
+    with action_col_1:
         if st.button("Use automatic", key=f"{key_prefix}_auto_{day}", use_container_width=True):
             set_day_image_mode(output_edits, day, "auto")
             st.rerun()
-    with top_col_2:
+    with action_col_2:
         if st.button("Remove picture", key=f"{key_prefix}_remove_{day}", use_container_width=True):
             set_day_image_mode(output_edits, day, "none")
             st.rerun()
-    with top_col_3:
-        focus_label = CROP_FOCUS_LABELS.get(crop_focus, "Sky / upper focus")
-        new_focus_label = st.selectbox(
-            "Re-crop focus",
-            list(CROP_FOCUS_OPTIONS.keys()),
-            index=list(CROP_FOCUS_OPTIONS.keys()).index(focus_label),
-            key=f"{key_prefix}_crop_focus_{day}",
-            help="Sky / upper focus is best for northern lights, skylines, mountains and wide landscapes.",
-        )
-        new_focus = CROP_FOCUS_OPTIONS[new_focus_label]
-        if choice.get("crop_focus") != new_focus:
-            choice["crop_focus"] = new_focus
-            mark_output_dirty()
+    with action_col_3:
+        st.caption(f"Current mode: {choice.get('mode', 'auto')}")
+
+    focus_value = normalize_crop_focus(choice.get("crop_focus", "top"))
+    focus_label = CROP_FOCUS_LABELS.get(focus_value, "Sky / upper focus")
+    new_focus_label = st.selectbox(
+        "Re-crop focus",
+        list(CROP_FOCUS_OPTIONS.keys()),
+        index=list(CROP_FOCUS_OPTIONS.keys()).index(focus_label),
+        key=f"{key_prefix}_crop_focus_{day}",
+        help="Sky / upper focus is best for northern lights, skylines, mountains and wide landscapes.",
+    )
+    new_focus = CROP_FOCUS_OPTIONS[new_focus_label]
+    if choice.get("crop_focus") != new_focus:
+        choice["crop_focus"] = new_focus
+        mark_output_dirty()
 
     options = list_city_image_options(city)
+    st.markdown("**Replace from image bank**")
     if options:
         option_labels = [path.name for path in options]
         current_path_text = choice.get("path", "") if choice.get("mode") == "manual" else (str(current_path) if current_path else "")
@@ -2643,238 +1759,92 @@ def render_inline_picture_tools(day, rows, output_edits, current_match=None, key
             if normalize_path_key(path) == normalize_path_key(current_path_text):
                 current_index = idx
                 break
-        image_col, replace_col = st.columns([2.2, 1])
-        with image_col:
-            selected_name = st.selectbox(
-                "Replace from image bank",
-                option_labels,
-                index=current_index,
-                key=f"{key_prefix}_bank_{day}",
-            )
-        with replace_col:
-            st.write("")
-            selected_path = str(options[option_labels.index(selected_name)])
-            if st.button("Replace", key=f"{key_prefix}_replace_{day}", use_container_width=True):
-                set_day_image_mode(output_edits, day, "manual", selected_path)
-                st.rerun()
+        selected_name = st.selectbox(
+            "Choose a picture",
+            option_labels,
+            index=current_index,
+            key=f"{key_prefix}_replace_select_{day}",
+        )
+        selected_path = str(options[option_labels.index(selected_name)])
+        if st.button("Replace with selected picture", key=f"{key_prefix}_replace_button_{day}", use_container_width=True):
+            set_day_image_mode(output_edits, day, "manual", selected_path)
+            st.rerun()
     else:
-        st.caption(f"No image-bank pictures found for {city or 'this destination'}.")
+        st.warning(f"No image-bank pictures found for {city or 'this destination'}.")
 
-    with st.expander("Upload new picture", expanded=False):
-        upload_col_1, upload_col_2 = st.columns([1, 1])
-        with upload_col_1:
-            upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"{key_prefix}_upload_season_{day}")
-        with upload_col_2:
-            upload_label = st.text_input("Picture label", value="", key=f"{key_prefix}_upload_label_{day}")
-        uploaded = st.file_uploader(
-            "Choose JPG or PNG",
-            type=["jpg", "jpeg", "png", "webp"],
-            key=f"{key_prefix}_upload_file_{day}",
+    st.markdown("**Add a new picture**")
+    add_col_1, add_col_2 = st.columns([1, 1])
+    with add_col_1:
+        upload_season = st.selectbox("Season", ["Summer", "Winter"], key=f"{key_prefix}_upload_season_{day}")
+    with add_col_2:
+        upload_label = st.text_input(
+            "Picture label",
+            value="",
+            placeholder="Opera House, Northern Lights...",
+            key=f"{key_prefix}_upload_label_{day}",
         )
-        if uploaded and st.button("Upload and use", key=f"{key_prefix}_upload_use_{day}", use_container_width=True):
-            saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
-            if saved_path:
-                set_day_image_mode(output_edits, day, "manual", saved_path)
-                st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
-                st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_inline_row_block(row, output_edits, day, index):
-    row_id = row.get("row_id") or f"{day}_{index}"
-    row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-    row_type = get_row_type(row)
-    title_fallback = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
-    row_title = row_edit.get("title", title_fallback)
-
-    st.markdown('<div class="inline-day-card">', unsafe_allow_html=True)
-    st.markdown(f'<div class="inline-page-kicker">{esc(row_type)}</div>', unsafe_allow_html=True)
-    row_edit["title"] = render_inline_text_input(
-        "Title / text",
-        row_title,
-        key=f"inline_row_{row_id}_title",
+    uploaded = st.file_uploader(
+        "Upload JPG/PNG/WebP",
+        type=["jpg", "jpeg", "png", "webp"],
+        key=f"{key_prefix}_upload_file_{day}",
     )
+    if uploaded and st.button("Add and use uploaded picture", key=f"{key_prefix}_upload_use_{day}", use_container_width=True):
+        saved_path = save_uploaded_day_image(uploaded, city, upload_season, upload_label)
+        if saved_path:
+            set_day_image_mode(output_edits, day, "manual", saved_path)
+            st.success(f"Added {Path(saved_path).name} and selected it for {day}.")
+            st.rerun()
 
-    if row_type == "Hotel":
-        row_edit["hotel_name"] = render_inline_text_input(
-            "Accommodation name",
-            row_edit.get("hotel_name", row.get("hotel_name", "")),
-            key=f"inline_row_{row_id}_hotel_name",
-        )
-        col_a, col_b = st.columns(2)
-        with col_a:
-            row_edit["hotel_nights"] = render_inline_text_input(
-                "Nights",
-                row_edit.get("hotel_nights", row.get("hotel_nights", "")),
-                key=f"inline_row_{row_id}_hotel_nights",
-            )
-            row_edit["room_category"] = render_inline_text_input(
-                "Room category",
-                row_edit.get("room_category", row.get("room_category", "")),
-                key=f"inline_row_{row_id}_room",
-            )
-        with col_b:
-            row_edit["meal_plan"] = render_inline_text_input(
-                "Meal plan",
-                row_edit.get("meal_plan", row.get("meal_plan", "")),
-                key=f"inline_row_{row_id}_meal",
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
+
+def render_picture_studio(grouped_days, output_edits):
+    """Make day-picture review obvious before PDF export."""
+
+    days = list(grouped_days.keys())
+    if not days:
         return
 
-    if row_type in {"Activity", "Transfer", "Transport", "Departure", "Arrival"}:
-        col_1, col_2 = st.columns(2)
-        with col_1:
-            row_edit["time"] = render_inline_text_input(
-                "Time",
-                row_edit.get("time", row.get("time", "")),
-                key=f"inline_row_{row_id}_time",
-            )
-            row_edit["meeting_point"] = render_inline_text_input(
-                "Meeting point / pickup",
-                row_edit.get("meeting_point", row.get("meeting_point", "")),
-                key=f"inline_row_{row_id}_meeting",
-            )
-        with col_2:
-            row_edit["duration"] = render_inline_text_input(
-                "Duration",
-                row_edit.get("duration", row.get("duration", "")),
-                key=f"inline_row_{row_id}_duration",
-            )
-            row_edit["end_point"] = render_inline_text_input(
-                "End point / drop-off",
-                row_edit.get("end_point", row.get("end_point", "")),
-                key=f"inline_row_{row_id}_end",
-            )
+    if st.session_state.get("active_image_day") not in days:
+        st.session_state.active_image_day = days[0]
 
-    if row_type == "Activity":
-        row_edit["includes_text"] = render_inline_text_area(
-            "Included With This Experience — one item per line",
-            row_edit.get("includes_text", list_to_text(row.get("includes", []))),
-            key=f"inline_row_{row_id}_includes",
-            height=90,
-        )
-        row_edit["notable_sights_text"] = render_inline_text_area(
-            "Notable sights — one per line",
-            row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
-            key=f"inline_row_{row_id}_sights",
-            height=70,
-        )
-        row_edit["client_description"] = render_inline_text_area(
-            "Description",
-            row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(st.session_state.output_edits))),
-            key=f"inline_row_{row_id}_description",
-            height=90,
-        )
-    elif row_type == "Leisure":
-        row_edit["client_description"] = render_inline_text_area(
-            "Free-time note",
-            row_edit.get("client_description", row.get("client_description", "")),
-            key=f"inline_row_{row_id}_leisure_desc",
-            height=80,
-        )
-    else:
-        existing = row_edit.get("client_description", row.get("client_description", ""))
-        if existing:
-            row_edit["client_description"] = render_inline_text_area(
-                "Note / description",
-                existing,
-                key=f"inline_row_{row_id}_generic_desc",
-                height=75,
-            )
-    st.markdown('</div>', unsafe_allow_html=True)
+    image_matches = get_current_day_image_matches(output_edits)
 
-
-def render_inline_day_page_editor(day, rows, output_edits, image_match=None):
-    day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-    st.markdown('<div class="inline-a4-page">', unsafe_allow_html=True)
-    st.markdown(f'<div class="inline-page-kicker">{esc(day)}</div>', unsafe_allow_html=True)
-
-    day_edit["title"] = st.text_input(
-        "Day title",
-        value=day_edit.get("title", create_day_title(rows)),
-        key=f"inline_day_{day}_title",
-        label_visibility="collapsed",
-    )
-    day_edit["city"] = st.text_input(
-        "Destination",
-        value=day_edit.get("city", get_primary_city(rows)),
-        key=f"inline_day_{day}_city",
-        label_visibility="collapsed",
-    )
-    day_edit["intro"] = st.text_area(
-        "Intro",
-        value=day_edit.get("intro", create_day_intro(rows, detail_level=get_detail_level_name(output_edits))),
-        height=90,
-        key=f"inline_day_{day}_intro",
-        label_visibility="collapsed",
-    )
-
-    for index, row in enumerate(rows, start=1):
-        render_inline_row_block(row, output_edits, day, index)
-
-    render_inline_picture_tools(day, rows, output_edits, current_match=image_match, key_prefix="inline_picture")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_inline_cover_page_editor(parsed_rows, grouped_days, output_edits):
-    st.markdown('<div class="inline-a4-page">', unsafe_allow_html=True)
-    st.markdown('<div class="inline-page-kicker">Curated Travel Itinerary</div>', unsafe_allow_html=True)
-    output_edits["trip_title"] = st.text_input(
-        "Cover title",
-        value=output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
-        key="inline_cover_title",
-        label_visibility="collapsed",
-    )
-    output_edits["trip_subtitle"] = st.text_area(
-        "Cover subtitle",
-        value=output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
-        height=80,
-        key="inline_cover_subtitle",
-        label_visibility="collapsed",
-    )
-    output_edits["destinations_line"] = st.text_input(
-        "Destinations line",
-        value=output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
-        key="inline_cover_destinations",
-        label_visibility="collapsed",
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_inline_final_pages_editor(output_edits):
-    with st.expander("Edit final included / not included / travel notes pages", expanded=False):
-        output_edits["whats_included_text"] = st.text_area(
-            "What’s included, one item per line",
-            value=output_edits.get("whats_included_text", ""),
-            height=220,
-            key="inline_final_whats_included_text",
-        )
-        output_edits["whats_not_included_text"] = st.text_area(
-            "What’s not included, one item per line",
-            value=output_edits.get("whats_not_included_text", ""),
-            height=180,
-            key="inline_final_whats_not_included_text",
-        )
-        output_edits["important_travel_notes_text"] = st.text_area(
-            "Important travel notes, one paragraph per line",
-            value=output_edits.get("important_travel_notes_text", list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES)),
-            height=240,
-            key="inline_final_important_travel_notes_text",
+    with st.expander("Picture review & controls", expanded=True):
+        st.caption(
+            "Review the pictures before PDF export. Select a day, then remove, replace, upload, or adjust the crop focus. "
+            "The final PDF uses the premium full-width, bottom-edge layout."
         )
 
+        card_columns = st.columns(min(3, max(1, len(days))))
+        for index, day in enumerate(days):
+            rows = grouped_days[day]
+            match = image_matches.get(day)
+            current_path = Path(match.get("path")) if match else None
+            with card_columns[index % len(card_columns)]:
+                st.markdown(f"**{day}**")
+                if current_path and current_path.exists():
+                    st.image(str(current_path), caption=current_path.name, use_container_width=True)
+                else:
+                    st.info("No picture")
+                if st.button("Edit picture", key=f"picture_studio_open_{day}", use_container_width=True):
+                    st.session_state.active_image_day = day
+                    st.rerun()
 
-def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
-    st.markdown(
-        '<div class="inline-edit-help"><strong>Inline Visual Editor</strong><br>'
-        'Type directly into the A4 pages below. Image controls are embedded on each day page. '
-        'The PDF exporter remains the final rendering engine, but these page edits feed directly into the final PDF.</div>',
-        unsafe_allow_html=True,
-    )
+        active_day = st.session_state.get("active_image_day", days[0])
+        st.divider()
+        render_day_picture_action_panel(
+            active_day,
+            grouped_days[active_day],
+            output_edits,
+            current_match=image_matches.get(active_day),
+            key_prefix="picture_studio_active",
+        )
 
-    action_col_1, action_col_2 = st.columns([1, 2])
-    with action_col_1:
-        if st.button("Reset edits", help="Return editable fields to the generated text.", use_container_width=True):
+def render_output_editor(parsed_rows, grouped_days, output_edits):
+    st.markdown('<div class="workflow-note">Edit the generated output here. The raw Excel input above is not changed.</div>', unsafe_allow_html=True)
+
+    reset_col, help_col = st.columns([1, 3])
+    with reset_col:
+        if st.button("Reset edits", help="Return the editable fields to the generated text."):
             st.session_state.output_edits = make_output_edit_state(
                 st.session_state.parsed_rows,
                 group_rows_by_day(st.session_state.parsed_rows),
@@ -2882,259 +1852,201 @@ def render_true_inline_visual_editor(parsed_rows, grouped_days, output_edits):
             st.session_state.pdf_bytes = None
             st.session_state.pdf_status = "Needs refresh"
             st.rerun()
-    with action_col_2:
-        if st.button("Improve all day-to-day text", key="inline_assistant_improve_all_days", use_container_width=True):
-            st.session_state.output_edits = apply_rich_writing_to_all_days(
-                st.session_state.parsed_rows,
-                st.session_state.output_edits,
-            )
-            mark_output_dirty()
-            st.rerun()
+    with help_col:
+        st.caption("Tip: edit only the fields you need. The preview and export files update from these fields automatically.")
 
-    render_inline_cover_page_editor(parsed_rows, grouped_days, output_edits)
-    image_matches = get_current_day_image_matches(output_edits)
-    for day, rows in grouped_days.items():
-        render_inline_day_page_editor(day, rows, output_edits, image_match=image_matches.get(day))
-    render_inline_final_pages_editor(output_edits)
-
-
-
-def save_base64_day_image(data_url, filename, city, season="Summer", label="visual-editor"):
-    """Save a browser-uploaded image from the visual editor into the image bank."""
-    if not data_url or ";base64," not in str(data_url):
-        return ""
-    try:
-        header, encoded = str(data_url).split(",", 1)
-        raw = base64.b64decode(encoded)
-    except Exception:
-        return ""
-
-    city_name = polish_title(city) or "Destination"
-    country = infer_country_for_city(city_name)
-    season_name = season if season in {"Summer", "Winter"} else "Summer"
-    source_name = Path(filename or "uploaded_image.jpg").stem
-    suffix = Path(filename or "uploaded_image.jpg").suffix.lower()
-    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
-        if "png" in str(data_url[:40]).lower():
-            suffix = ".png"
-        elif "webp" in str(data_url[:40]).lower():
-            suffix = ".webp"
-        else:
-            suffix = ".jpg"
-
-    stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or source_name)]
-    target_dir = get_writable_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
-
-    counter = 2
-    while target_path.exists():
-        target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + f"_{counter}" + suffix)
-        counter += 1
-
-    target_path.write_bytes(raw)
-    return str(target_path)
-
-
-def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
-    """Create the structured data consumed by the custom editable A4 component."""
-    edited_rows = apply_output_edits(parsed_rows, output_edits)
-    edited_grouped_days = group_rows_by_day(edited_rows)
-    image_matches = select_day_images_with_overrides(edited_grouped_days, output_edits)
-
-    payload = {
-        "version": APP_VERSION,
-        "cover": {
-            "kicker": "Curated Travel Itinerary",
-            "trip_title": output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days),
-            "trip_subtitle": output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days),
-            "destinations_line": output_edits.get("destinations_line") or create_destinations_line(parsed_rows),
-        },
-        "days": [],
-        "final_pages": {
-            "whats_included_text": output_edits.get("whats_included_text", ""),
-            "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
-            "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
-        },
-    }
-
-    for day, rows in edited_grouped_days.items():
-        day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-        original_rows = grouped_days.get(day, rows)
-        image_match = image_matches.get(day)
-        image_choice = get_effective_day_image_choice(output_edits, day)
-        image_path = image_match.get("path", "") if image_match else ""
-        city = day_edit.get("city") or get_primary_city(rows)
-        image_options = []
-        for path in list_city_image_options(city):
-            image_options.append({"name": path.name, "path": str(path)})
-
-        custom_blocks_html = clean_visual_editor_html(((output_edits or {}).get("visual_day_html") or {}).get(day, ""))
-        if not custom_blocks_html:
-            custom_blocks_html = "".join(block.get("html", "") for block in build_day_blocks(rows))
-
-        image_data_uri = image_to_data_uri(image_path) if image_path else ""
-        if image_match and image_path and not image_data_uri:
-            # If a selected path cannot be read, immediately retry the root
-            # Default folders directly so the visual editor and PDF handoff do
-            # not silently degrade to an empty image area.
-            repaired_match = select_default_fallback_image_direct(day, rows)
-            if repaired_match:
-                image_match = repaired_match
-                image_path = repaired_match.get("path", "")
-                image_data_uri = image_to_data_uri(image_path) if image_path else ""
-
-        day_payload = {
-            "day": day,
-            "label": day,
-            "title": day_edit.get("title") or create_day_title(original_rows),
-            "city": city,
-            "intro": day_edit.get("intro") or create_day_intro(original_rows, detail_level=get_detail_level_name(output_edits)),
-            "blocks_html": custom_blocks_html,
-            "rows": [],
-            "image": {
-                "mode": image_choice.get("mode", "auto"),
-                "path": image_path,
-                "name": Path(image_path).name if image_path else "",
-                "data_uri": image_data_uri,
-                "crop_focus": get_day_image_crop_focus(output_edits, day),
-                "options": image_options,
-                "reason": image_match.get("reason", "") if image_match else "",
-                "score": image_match.get("score", "") if image_match else "",
-            },
-        }
-
-        for index, row in enumerate(rows, start=1):
-            row_id = row.get("row_id") or f"{day}_{index}"
-            row_type = get_row_type(row)
-            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-            row_payload = {
-                "row_id": row_id,
-                "type": row_type,
-                "section_label": get_time_period(row.get("time", "")) if row_type == "Activity" else row_type,
-                "title": row_edit.get("title", row.get("title", "")),
-                "time": row_edit.get("time", row.get("time", "")),
-                "duration": row_edit.get("duration", row.get("duration", "")),
-                "meeting_point": row_edit.get("meeting_point", row.get("meeting_point", "")),
-                "end_point": row_edit.get("end_point", row.get("end_point", "")),
-                "client_description": row_edit.get("client_description", row.get("client_description", "")),
-                "includes_text": row_edit.get("includes_text", list_to_text(row.get("includes", []))),
-                "notable_sights_text": row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
-                "hotel_name": row_edit.get("hotel_name", row.get("hotel_name", "")),
-                "hotel_nights": row_edit.get("hotel_nights", row.get("hotel_nights", "")),
-                "room_category": row_edit.get("room_category", row.get("room_category", "")),
-                "meal_plan": row_edit.get("meal_plan", row.get("meal_plan", "")),
-            }
-            day_payload["rows"].append(row_payload)
-
-        payload["days"].append(day_payload)
-
-    return payload
-
-
-def apply_visual_editor_payload(editor_payload, parsed_rows, output_edits):
-    """Persist edited A4 component data back into the app's normal edit state."""
-    if not editor_payload:
-        return False
-    if isinstance(editor_payload, str):
-        try:
-            editor_payload = json.loads(editor_payload)
-        except Exception:
-            return False
-
-    if not isinstance(editor_payload, dict):
-        return False
-
-    output_edits["trip_title"] = clean_space((editor_payload.get("cover") or {}).get("trip_title", output_edits.get("trip_title", "")))
-    output_edits["trip_subtitle"] = clean_space((editor_payload.get("cover") or {}).get("trip_subtitle", output_edits.get("trip_subtitle", "")))
-    output_edits["destinations_line"] = clean_space((editor_payload.get("cover") or {}).get("destinations_line", output_edits.get("destinations_line", "")))
-
-    for day_data in editor_payload.get("days", []):
-        day = day_data.get("day")
-        if not day:
-            continue
-        day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-        day_edit["title"] = clean_space(day_data.get("title", day_edit.get("title", "")))
-        day_edit["city"] = clean_space(day_data.get("city", day_edit.get("city", "")))
-        day_edit["intro"] = clean_space(day_data.get("intro", day_edit.get("intro", "")))
-        if "blocks_html" in day_data:
-            output_edits.setdefault("visual_day_html", {})[day] = clean_visual_editor_html(day_data.get("blocks_html", ""))
-
-        image_data = day_data.get("image") or {}
-        if image_data:
-            mode = image_data.get("mode", "auto")
-            path = image_data.get("path", "")
-            crop_focus = normalize_crop_focus(image_data.get("crop_focus", "top"))
-            upload = image_data.get("upload") or {}
-            if upload.get("data_uri"):
-                saved_path = save_base64_day_image(
-                    upload.get("data_uri"),
-                    upload.get("filename", "uploaded_image.jpg"),
-                    day_edit.get("city") or "Destination",
-                    upload.get("season", "Summer"),
-                    upload.get("label", "visual-editor"),
+    with st.expander("Built-in writing assistant", expanded=False):
+        st.caption(
+            "Use this to make the day-by-day text warmer and fuller. "
+            "It is a local rule-based helper, not an external AI call, and all suggestions remain editable."
+        )
+        col_a, col_b = st.columns([1, 2])
+        with col_a:
+            if st.button("Improve all day-to-day text", key="assistant_improve_all_days", use_container_width=True):
+                st.session_state.output_edits = apply_rich_writing_to_all_days(
+                    st.session_state.parsed_rows,
+                    st.session_state.output_edits,
                 )
-                if saved_path:
-                    mode = "manual"
-                    path = saved_path
-            choice = get_day_image_choice(output_edits, day)
-            choice["mode"] = mode if mode in {"auto", "manual", "none"} else "auto"
-            choice["path"] = path if choice["mode"] == "manual" else ""
-            choice["removed_by_user"] = choice["mode"] == "none"
-            choice["crop_focus"] = crop_focus
+                mark_output_dirty()
+                st.rerun()
+        with col_b:
+            st.caption("Updates day intros and sparse activity descriptions using the rich client-facing style.")
 
-        for row_data in day_data.get("rows", []):
-            row_id = row_data.get("row_id")
-            if not row_id:
-                continue
-            row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-            for key in [
-                "title",
-                "time",
-                "duration",
-                "meeting_point",
-                "end_point",
-                "client_description",
-                "includes_text",
-                "notable_sights_text",
-                "hotel_name",
-                "hotel_nights",
-                "room_category",
-                "meal_plan",
-            ]:
-                if key in row_data:
-                    value = row_data.get(key, "")
-                    row_edit[key] = value if key.endswith("_text") else clean_space(value)
+    render_picture_studio(grouped_days, output_edits)
 
-    final_pages = editor_payload.get("final_pages") or {}
-    for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
-        if key in final_pages:
-            output_edits[key] = final_pages.get(key, "")
+    with st.expander("Cover and summary pages", expanded=False):
+        output_edits["trip_title"] = st.text_input(
+            "Cover title",
+            value=output_edits.get("trip_title", ""),
+            key="edit_trip_title",
+        )
+        output_edits["trip_subtitle"] = st.text_area(
+            "Cover subtitle",
+            value=output_edits.get("trip_subtitle", ""),
+            height=80,
+            key="edit_trip_subtitle",
+        )
+        output_edits["destinations_line"] = st.text_input(
+            "Destinations line",
+            value=output_edits.get("destinations_line", ""),
+            key="edit_destinations_line",
+        )
 
-    return True
+    days = list(grouped_days.keys())
 
+    if days:
+        day_tabs = st.tabs(days)
 
-def render_visual_page_editor_component(parsed_rows, grouped_days, output_edits):
-    payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
-    return VISUAL_EDITOR_COMPONENT(payload=payload, key="booknordics_visual_page_editor", default="")
+        for tab, day in zip(day_tabs, days):
+            with tab:
+                rows = grouped_days[day]
+                day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
 
-def render_output_editor(parsed_rows, grouped_days, output_edits):
-    """Hidden fallback editor.
+                if st.button("Improve this day text", key=f"assistant_improve_{day}"):
+                    st.session_state.output_edits = apply_rich_writing_to_day(
+                        day,
+                        rows,
+                        st.session_state.output_edits,
+                    )
+                    mark_output_dirty()
+                    st.rerun()
 
-    The main workflow is PDF-first review. Streamlit's normal widgets cannot
-    provide true Word-style editing inside the rendered PDF page without a
-    dedicated custom component, so the old form editor is kept out of the main
-    path to protect preview performance and avoid visual confusion.
-    """
-    if not st.session_state.get("show_advanced_editor", False):
-        return
+                day_edit["title"] = st.text_input(
+                    f"{day} title",
+                    value=day_edit.get("title", create_day_title(rows)),
+                    key=f"edit_{day}_title",
+                )
+                day_edit["city"] = st.text_input(
+                    f"{day} city",
+                    value=day_edit.get("city", get_primary_city(rows)),
+                    key=f"edit_{day}_city",
+                )
+                day_edit["intro"] = st.text_area(
+                    f"{day} intro",
+                    value=day_edit.get("intro", create_day_intro(rows, detail_level=get_detail_level_name(output_edits))),
+                    height=95,
+                    key=f"edit_{day}_intro",
+                )
 
-    with st.expander("Advanced fallback text and image editor", expanded=False):
-        st.caption("Safety controls only. Use when a generated itinerary needs manual correction before export.")
-        render_visual_summary_editor(parsed_rows, grouped_days, output_edits)
-        image_matches = get_current_day_image_matches(output_edits)
-        for day, rows in grouped_days.items():
-            render_visual_day_editor(day, rows, output_edits, image_match=image_matches.get(day))
+                with st.expander(f"Edit {day} itinerary items", expanded=False):
+                    for index, row in enumerate(rows, start=1):
+                        row_id = row.get("row_id") or f"{day}_{index}"
+                        row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
+                        row_type = get_row_type(row)
+                        item_label = row_edit.get("title") or row.get("title") or f"Item {index}"
+
+                        with st.expander(f"{index}. {row_type}: {item_label}", expanded=False):
+                            row_edit["title"] = st.text_input(
+                                "Title / text",
+                                value=row_edit.get("title", row.get("title", "")),
+                                key=f"edit_{row_id}_title",
+                            )
+                            row_edit["city"] = st.text_input(
+                                "City / location",
+                                value=row_edit.get("city", row.get("city", "")),
+                                key=f"edit_{row_id}_city",
+                            )
+
+                            if row_type == "Hotel":
+                                row_edit["hotel_name"] = st.text_input(
+                                    "Accommodation name",
+                                    value=row_edit.get("hotel_name", row.get("hotel_name", "")),
+                                    key=f"edit_{row_id}_hotel_name",
+                                )
+                                col_a, col_b = st.columns(2)
+                                with col_a:
+                                    row_edit["hotel_nights"] = st.text_input(
+                                        "Number of nights",
+                                        value=row_edit.get("hotel_nights", row.get("hotel_nights", "")),
+                                        key=f"edit_{row_id}_hotel_nights",
+                                    )
+                                    row_edit["room_category"] = st.text_input(
+                                        "Room category",
+                                        value=row_edit.get("room_category", row.get("room_category", "")),
+                                        key=f"edit_{row_id}_room",
+                                    )
+                                with col_b:
+                                    row_edit["meal_plan"] = st.text_input(
+                                        "Meal plan",
+                                        value=row_edit.get("meal_plan", row.get("meal_plan", "")),
+                                        key=f"edit_{row_id}_meal",
+                                    )
+                            else:
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    row_edit["time"] = st.text_input(
+                                        "Time",
+                                        value=row_edit.get("time", row.get("time", "")),
+                                        key=f"edit_{row_id}_time",
+                                    )
+                                    row_edit["meeting_point"] = st.text_input(
+                                        "Meeting point",
+                                        value=row_edit.get("meeting_point", row.get("meeting_point", "")),
+                                        key=f"edit_{row_id}_meeting",
+                                    )
+                                    row_edit["duration"] = st.text_input(
+                                        "Duration",
+                                        value=row_edit.get("duration", row.get("duration", "")),
+                                        key=f"edit_{row_id}_duration",
+                                    )
+                                with col2:
+                                    row_edit["end_point"] = st.text_input(
+                                        "End point",
+                                        value=row_edit.get("end_point", row.get("end_point", "")),
+                                        key=f"edit_{row_id}_end",
+                                    )
+                                    row_edit["luggage_included"] = st.text_input(
+                                        "Luggage included",
+                                        value=row_edit.get("luggage_included", row.get("luggage_included", "")),
+                                        key=f"edit_{row_id}_luggage",
+                                    )
+
+                                row_edit["notable_sights_text"] = st.text_area(
+                                    "Notable sights, one per line",
+                                    value=row_edit.get("notable_sights_text", list_to_text(row.get("notable_sights", []))),
+                                    height=90,
+                                    key=f"edit_{row_id}_sights",
+                                )
+                                if row_type == "Activity":
+                                    if st.button("Suggest richer description", key=f"assistant_desc_{row_id}"):
+                                        suggestion = get_activity_description(row, "Rich descriptive")
+                                        if suggestion:
+                                            row_edit["client_description"] = suggestion
+                                            mark_output_dirty()
+                                            st.rerun()
+                                row_edit["client_description"] = st.text_area(
+                                    "Short description / note",
+                                    value=row_edit.get("client_description", row.get("client_description") or get_activity_description(row, get_detail_level_name(output_edits))),
+                                    height=75,
+                                    key=f"edit_{row_id}_description",
+                                )
+                                row_edit["includes_text"] = st.text_area(
+                                    "Inclusions, one per line",
+                                    value=row_edit.get("includes_text", list_to_text(row.get("includes", []))),
+                                    height=100,
+                                    key=f"edit_{row_id}_includes",
+                                )
+
+    with st.expander("Edit final inclusion / exclusion pages", expanded=False):
+        output_edits["whats_included_text"] = st.text_area(
+            "What’s included, one item per line",
+            value=output_edits.get("whats_included_text", ""),
+            height=220,
+            key="edit_whats_included_text",
+        )
+        output_edits["whats_not_included_text"] = st.text_area(
+            "What’s not included, one item per line",
+            value=output_edits.get("whats_not_included_text", ""),
+            height=180,
+            key="edit_whats_not_included_text",
+        )
+        output_edits["important_travel_notes_text"] = st.text_area(
+            "Important travel notes, one paragraph per line",
+            value=output_edits.get("important_travel_notes_text", list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES)),
+            height=240,
+            key="edit_important_travel_notes_text",
+        )
+
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
@@ -3179,7 +2091,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .a4-page {{
             width: 794px;
             min-height: 1123px;
-            height: 1123px;
             background: var(--page-bg);
             color: var(--ink);
             margin: 0 auto 32px auto;
@@ -3192,16 +2103,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: hidden;
         }}
 
-        .single-day-page {{
-            display: flex;
-            flex-direction: column;
-        }}
-
-        .single-day-page .day-section {{
-            flex: 0 0 auto;
-            min-height: 470px;
-        }}
-
         .cover-page {{
             display: flex;
             flex-direction: column;
@@ -3209,9 +2110,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .day-image-slot {{
-            margin: 20px -64px -66px -64px;
-            flex: 1 1 auto;
-            min-height: 170px;
+            margin: 24px -64px -66px -64px;
+            height: 410px;
             overflow: hidden;
         }}
 
@@ -4010,7 +2910,6 @@ def reset_project_state(clear_raw_text=True):
         "output_edits",
         "last_generated_raw_text",
         "parser_diagnostics",
-        "last_visual_editor_payload",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -4023,7 +2922,6 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.last_generated_raw_text = ""
     st.session_state.parser_diagnostics = []
     st.session_state.pdf_status = "Not created"
-    st.session_state.last_visual_editor_payload = ""
 
     if clear_raw_text:
         st.session_state.raw_text_input = ""
@@ -4066,14 +2964,14 @@ with st.sidebar:
         "Color preset",
         PRESET_ORDER,
         index=PRESET_ORDER.index(current_preset),
-        help="Choose the visual palette used in the exported proposal.",
+        help="Classic Agent keeps the neutral travel-agent look. Booknordics B2C uses a cleaner branded palette.",
     )
     st.session_state.color_preset = selected_preset
 
     if selected_preset == "Classic Agent":
-        st.caption("Neutral internal proposal style.")
+        st.caption("Warm, neutral, B2B-friendly.")
     else:
-        st.caption("Brighter Booknordics-style palette.")
+        st.caption("Clean, bright, B2C-friendly.")
 
     selected_detail = "Rich descriptive"
     previous_detail = "Rich descriptive"
@@ -4092,49 +2990,7 @@ with st.sidebar:
     )
     previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     st.session_state.day_page_layout = selected_day_layout
-    st.caption("One itinerary day per A4 page.")
-
-    st.divider()
-    st.subheader("Image bank")
-    external_default = "C:/Users/DennisKålen/Desktop/itinerary_app/image-bank-full"
-    external_image_bank_path = st.text_input(
-        "External image-bank path",
-        value=st.session_state.get("external_image_bank_path", ""),
-        placeholder=external_default,
-        help="Optional full image bank outside the Git project. The app also scans the local ./image_bank fallback.",
-    )
-    previous_external_image_bank_path = st.session_state.get("external_image_bank_path", "")
-    st.session_state.external_image_bank_path = external_image_bank_path.strip()
-    external_path = get_external_image_bank_path()
-    if st.session_state.external_image_bank_path and not external_path:
-        st.caption("External image bank not found. Using local ./image_bank only.")
-    elif external_path:
-        st.caption(f"Using external image bank: {external_path}")
-    else:
-        st.caption("Using local ./image_bank only.")
-    try:
-        image_diag = get_image_bank_diagnostics(get_image_bank_paths())
-        default_paths = get_default_image_bank_paths()
-        st.caption(
-            f"Image scan: {image_diag.get('total_images', 0)} total · "
-            f"{image_diag.get('default_images', 0)} Default · "
-            f"{image_diag.get('destination_images', 0)} destination · "
-            f"{len(default_paths)} Default folder(s)"
-        )
-        if st.session_state.get("parsed_rows") and st.session_state.get("output_edits"):
-            with st.expander("Image selection trace", expanded=False):
-                for item in get_day_image_selection_trace(st.session_state.parsed_rows, st.session_state.output_edits):
-                    st.caption(
-                        f"{item['day']} · {item['city']}: {item['selected']} "
-                        f"| destination {item['destination_candidates']} · Default {item['default_candidates']}"
-                    )
-                    if item.get("reason"):
-                        st.caption(f"Reason: {item['reason']}")
-    except Exception as exc:
-        st.caption(f"Image scan unavailable: {exc}")
-
-    if previous_external_image_bank_path != st.session_state.external_image_bank_path:
-        mark_output_dirty()
+    st.caption("Premium visual layout: one itinerary day per A4 page.")
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset
@@ -4145,9 +3001,6 @@ with st.sidebar:
             st.session_state.pdf_status = "Needs refresh"
 
     show_debug = st.checkbox("Show parser/debug panels", value=False)
-    st.session_state.show_advanced_editor = False
-    if show_debug:
-        st.session_state.show_advanced_editor = st.checkbox("Show advanced fallback editor", value=False)
 
     st.divider()
     st.subheader("Project")
@@ -4158,8 +3011,8 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.subheader("Actions")
-    st.markdown('<div class="project-action-note">Refresh the preview or start over.</div>', unsafe_allow_html=True)
+    st.subheader("Project actions")
+    st.markdown('<div class="project-action-note">Use these when the preview feels out of sync or when you want to start from a clean slate.</div>', unsafe_allow_html=True)
 
     if st.button("Refresh preview", use_container_width=True, disabled=not bool(st.session_state.get("parsed_rows"))):
         if rebuild_current_preview(mark_pdf_dirty=True):
@@ -4174,15 +3027,10 @@ with st.sidebar:
 
 st.markdown(
     f"""
-    <div class="bn-topbar">
-        <div class="bn-topbar-main">
-            <div>
-                <div class="bn-product-label">Booknordics internal</div>
-                <h1>Itinerary Studio</h1>
-                <p>Paste itinerary rows, review the A4 proposal, then export a client-ready PDF.</p>
-            </div>
-            <div class="bn-version">{APP_VERSION}</div>
-        </div>
+    <div class="app-hero">
+        <h1>Itinerary Creator</h1>
+        <p>Paste itinerary rows, review the generated output, then export a polished A4 itinerary.</p>
+        <p style="font-size: 0.85rem; opacity: 0.65; margin-top: 0.4rem;">Version: {APP_VERSION}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -4251,30 +3099,16 @@ if show_debug and st.session_state.parsed_rows:
                     f"{row.get('title')} ({row.get('city')})"
                 )
 
+if st.session_state.itinerary_html:
+    with st.expander("Step 2 — Preview itinerary", expanded=True):
+        st.caption("This preview now follows the PDF image direction more closely. The downloaded PDF remains the final source of truth.")
+        st.html(st.session_state.itinerary_html)
+
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    edited_rows_for_editor = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    grouped_days_for_editor = group_rows_by_day(edited_rows_for_editor)
-
-    with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
-        st.markdown(
-            '<div class="workflow-note">Click text directly on the proposal pages and type, like a document. Hover day images for picture tools. Use <strong>Save edits to preview/PDF</strong> before exporting.</div>',
-            unsafe_allow_html=True,
-        )
-        editor_value = render_visual_page_editor_component(
-            st.session_state.parsed_rows,
-            group_rows_by_day(st.session_state.parsed_rows),
-            st.session_state.output_edits,
-        )
-        if editor_value and editor_value != st.session_state.get("last_visual_editor_payload", ""):
-            st.session_state.last_visual_editor_payload = editor_value
-            if apply_visual_editor_payload(editor_value, st.session_state.parsed_rows, st.session_state.output_edits):
-                rebuild_current_preview(mark_pdf_dirty=True)
-                st.success("Saved edits into the final preview/PDF data.")
-                st.rerun()
-
+    with st.expander("Step 3 — Review & edit generated itinerary", expanded=False):
         render_output_editor(
             st.session_state.parsed_rows,
-            grouped_days_for_editor,
+            group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
             st.session_state.output_edits,
         )
 
@@ -4296,10 +3130,6 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 if st.session_state.itinerary_html:
-    with st.expander("Step 3 — Review final PDF-style preview", expanded=True):
-        st.markdown('<div class="workflow-note">This is the final preview surface used for the PDF export. Return to Step 2 for more edits.</div>', unsafe_allow_html=True)
-        st.html(st.session_state.itinerary_html)
-
     st.subheader("Step 4 — Export")
     st.markdown('<div class="workflow-note">Save your editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
 
