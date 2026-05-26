@@ -824,6 +824,58 @@ def test_cover_crop_focus_options_change_vertical_crop():
                 raise AssertionError("Bottom crop focus should keep lower foreground detail visible.")
 
 
+
+
+def test_day_rendering_packing_helpers_are_self_contained_after_split():
+    from ui.day_rendering import can_pack_days, can_pack_three_days
+
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Leisure",
+            "effective_type": "Leisure",
+            "city": "Oslo",
+            "title": "Spend time at leisure",
+            "details": "Relaxed day.",
+        }
+    ]
+
+    assert_equal(
+        can_pack_days("Day 1", rows, "Day 2", rows, {"day_page_layout": "One day per page"}),
+        False,
+        "Day packing helper should be self-contained and disabled for the current one-day layout.",
+    )
+    assert_equal(
+        can_pack_three_days([("Day 1", rows), ("Day 2", rows), ("Day 3", rows)], {"day_page_layout": "One day per page"}),
+        False,
+        "Three-day packing helper should be self-contained and disabled for the current one-day layout.",
+    )
+
+def test_apply_output_edits_preserves_activity_time_range_after_split():
+    import types
+
+    sys.modules.setdefault("streamlit", types.SimpleNamespace(session_state={}))
+    from ui.output_edits import apply_output_edits
+
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "city": "Tromsø",
+            "title": "Fjord Tour",
+            "time": "9:00 AM",
+            "duration": "5 hours 30 minutes",
+        }
+    ]
+
+    edited_rows = apply_output_edits(rows, {"rows": {}})
+    assert_equal(
+        edited_rows[0].get("time"),
+        "9:00 AM - 2:30 PM",
+        "Output edit application should keep activity time ranges working after module split.",
+    )
+
 def test_visual_editor_html_sanitizer():
     from ui.editor_sanitizer import clean_visual_editor_html
 
@@ -860,6 +912,8 @@ def run_all():
         test_pdf_export_places_day_image_from_current_page_story,
         test_cover_crop_protects_upper_image_content,
         test_cover_crop_focus_options_change_vertical_crop,
+        test_day_rendering_packing_helpers_are_self_contained_after_split,
+        test_apply_output_edits_preserves_activity_time_range_after_split,
         test_visual_editor_html_sanitizer,
     ]
 

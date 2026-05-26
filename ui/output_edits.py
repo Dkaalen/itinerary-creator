@@ -19,7 +19,7 @@ from generator import (
 )
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES, DETAIL_LEVELS
-from ui.day_rendering import get_activity_description, list_to_text, text_to_list
+from ui.day_rendering import display_time_with_duration, get_activity_description, list_to_text, text_to_list
 
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
