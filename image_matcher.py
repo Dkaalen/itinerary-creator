@@ -408,41 +408,75 @@ def _season_available_for_context(candidates: list[ImageCandidate], context: dic
     return False
 
 
+def _candidate_to_payload(day: str, candidate: ImageCandidate, score: int, reasons: list[str]) -> dict:
+    return {
+        "day": day,
+        "path": candidate.path,
+        "score": score,
+        "reason": "; ".join(reasons) if reasons else "destination match",
+        "city": candidate.city,
+        "country": candidate.country,
+        "filename": candidate.filename,
+        "themes": list(candidate.themes),
+        "seasons": list(candidate.seasons),
+    }
+
+
 def _select_best_candidate_for_context(
     day: str,
     context: dict,
     candidates: list[ImageCandidate],
     used_paths: set[str] | None = None,
+    *,
+    allow_default_repair: bool = True,
 ) -> dict | None:
     used_paths = used_paths or set()
     best = None
     require_matching_season = _season_available_for_context(candidates, context)
     day_season = normalize_keyword(context.get("season", ""))
 
+    skipped_default_candidates: list[ImageCandidate] = []
+
     for candidate in candidates:
         normalized_path = str(Path(candidate.path).resolve())
         if normalized_path in used_paths:
             continue
         if require_matching_season and day_season not in set(candidate.seasons):
+            if _is_global_default_candidate(candidate):
+                skipped_default_candidates.append(candidate)
             continue
 
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
             continue
-        payload = {
-            "day": day,
-            "path": candidate.path,
-            "score": score,
-            "reason": "; ".join(reasons) if reasons else "destination match",
-            "city": candidate.city,
-            "country": candidate.country,
-            "filename": candidate.filename,
-            "themes": list(candidate.themes),
-            "seasons": list(candidate.seasons),
-        }
+        payload = _candidate_to_payload(day, candidate, score, reasons)
         if best is None or (payload["score"], payload["filename"]) > (best["score"], best["filename"]):
             best = payload
-    return best
+
+    if best or not allow_default_repair:
+        return best
+
+    # Defensive fallback: a root-level Default image should be used whenever a
+    # destination image is unavailable. This branch intentionally ignores the
+    # broad season filter because a generic image is still better than a blank
+    # page, and users can manually replace it in the visual editor.
+    default_candidates = [
+        candidate for candidate in candidates
+        if _is_global_default_candidate(candidate)
+        and str(Path(candidate.path).resolve()) not in used_paths
+    ]
+    if not default_candidates:
+        return None
+
+    default_best = None
+    for candidate in default_candidates:
+        score, reasons = _score_default_candidate(candidate, context)
+        score = max(1, score)
+        reasons = list(reasons or []) + ["defensive default repair"]
+        payload = _candidate_to_payload(day, candidate, score, reasons)
+        if default_best is None or (payload["score"], payload["filename"]) > (default_best["score"], default_best["filename"]):
+            default_best = payload
+    return default_best
 
 
 def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:

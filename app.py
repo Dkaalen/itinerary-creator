@@ -52,7 +52,7 @@ from layout_policy import (
 from ui.editor_sanitizer import clean_visual_editor_html
 
 
-APP_VERSION = "2026-05-22 v36c14-smart-default-image-fallback"
+APP_VERSION = "2026-05-26 v36c17-default-fallback-trace"
 
 
 st.set_page_config(
@@ -1366,7 +1366,80 @@ def select_default_fallback_image(day, rows, used_paths=None):
     if not default_paths:
         return None
     matches = select_day_images({day: rows}, default_paths, used_paths=used_paths or set())
-    return matches.get(day)
+    match = matches.get(day)
+    if match:
+        return match
+    return select_default_fallback_image_direct(day, rows, used_paths=used_paths)
+
+
+def score_default_file_for_day(path, rows):
+    """Small filesystem-level fallback scorer used only as a last repair step."""
+    text_parts = []
+    for row in rows or []:
+        text_parts.extend([
+            row.get("city", ""), row.get("title", ""), row.get("original_title", ""),
+            row.get("details", ""), row.get("display_description", ""),
+            " ".join(row.get("includes", []) or []),
+        ])
+    day_text = clean_space(" ".join(str(part or "") for part in text_parts)).lower()
+    filename = Path(path).stem.lower().replace("_", " ")
+    combined = f"{day_text} {filename}"
+
+    rules = [
+        (("northern light", "aurora"), ("northern", "aurora", "lights"), 80),
+        (("reindeer", "sami"), ("reindeer", "sledding"), 75),
+        (("fjord", "cruise", "harbour", "harbor", "waterfront", "lake"), ("fjord", "lake", "water", "waterfall"), 65),
+        (("mountain", "valley", "viewpoint", "scenic", "road", "national park"), ("mountain", "valley", "road", "forest", "scenic"), 55),
+        (("city", "old town", "street", "arrival", "departure", "stockholm", "copenhagen", "helsinki"), ("city", "street", "buildings", "skyline"), 50),
+        (("winter", "snow", "arctic", "ice"), ("winter", "snowy", "snow", "forest"), 45),
+    ]
+    score = 10
+    for day_words, file_words, points in rules:
+        if any(word in day_text for word in day_words) and any(word in filename for word in file_words):
+            score += points
+    # Prefer season-consistent fallback images, but never require them.
+    if any(token in day_text for token in ["winter", "snow", "arctic", "ice", "northern light", "aurora"]) and "winter" in filename:
+        score += 20
+    if any(token in day_text for token in ["summer", "green", "fjord", "cruise", "waterfront"]) and "summer" in filename:
+        score += 10
+    return score
+
+
+def select_default_fallback_image_direct(day, rows, used_paths=None):
+    """Last-resort direct scan of image_bank/Default folders.
+
+    This deliberately bypasses the normal image-bank metadata pipeline. It is
+    only used when that pipeline returns no image even though a root Default
+    folder exists. The goal is to prevent a blank day-image area whenever the
+    app has usable generic fallback imagery on disk.
+    """
+    used = {normalize_path_key(path) for path in (used_paths or set())}
+    image_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    candidates = []
+    for default_dir in get_default_image_bank_paths():
+        for path in sorted(Path(default_dir).rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in image_extensions:
+                continue
+            key = normalize_path_key(path)
+            if key in used:
+                continue
+            candidates.append(path)
+    if not candidates:
+        return None
+
+    best_path = max(candidates, key=lambda path: (score_default_file_for_day(path, rows), path.name.lower()))
+    score = score_default_file_for_day(best_path, rows)
+    return {
+        "day": day,
+        "path": str(best_path),
+        "score": score,
+        "reason": "direct root Default fallback repair",
+        "city": "Default",
+        "country": "",
+        "filename": best_path.stem,
+        "themes": [],
+        "seasons": [],
+    }
 
 
 def get_writable_image_bank_path():
@@ -2142,6 +2215,38 @@ def get_current_day_image_matches(output_edits):
     return select_day_images_with_overrides(group_rows_by_day(edited_rows), output_edits)
 
 
+def get_day_image_selection_trace(parsed_rows, output_edits=None):
+    """Return a compact per-day trace for diagnosing image selection."""
+    if not parsed_rows:
+        return []
+    edited_rows = apply_output_edits(parsed_rows, output_edits or {})
+    grouped = group_rows_by_day(edited_rows)
+    matches = select_day_images_with_overrides(grouped, output_edits or {})
+    trace = []
+    for day, rows in grouped.items():
+        city = get_primary_city(rows)
+        match = matches.get(day)
+        default_candidate_count = 0
+        destination_candidate_count = 0
+        city_key = clean_space(city).lower()
+        for candidate in scan_image_bank(get_image_bank_paths()):
+            candidate_city = clean_space(candidate.city).lower()
+            if candidate_city in {"default", "defoult"}:
+                default_candidate_count += 1
+            elif city_key and candidate_city == city_key:
+                destination_candidate_count += 1
+        trace.append({
+            "day": day,
+            "city": city,
+            "selected": Path(match.get("path", "")).name if match else "No image selected",
+            "path": match.get("path", "") if match else "",
+            "reason": match.get("reason", "") if match else "",
+            "default_candidates": default_candidate_count,
+            "destination_candidates": destination_candidate_count,
+        })
+    return trace
+
+
 def set_day_image_mode(output_edits, day, mode, path=""):
     choice = get_day_image_choice(output_edits, day)
     choice["mode"] = mode
@@ -2868,6 +2973,17 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         if not custom_blocks_html:
             custom_blocks_html = "".join(block.get("html", "") for block in build_day_blocks(rows))
 
+        image_data_uri = image_to_data_uri(image_path) if image_path else ""
+        if image_match and image_path and not image_data_uri:
+            # If a selected path cannot be read, immediately retry the root
+            # Default folders directly so the visual editor and PDF handoff do
+            # not silently degrade to an empty image area.
+            repaired_match = select_default_fallback_image_direct(day, rows)
+            if repaired_match:
+                image_match = repaired_match
+                image_path = repaired_match.get("path", "")
+                image_data_uri = image_to_data_uri(image_path) if image_path else ""
+
         day_payload = {
             "day": day,
             "label": day,
@@ -2880,9 +2996,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
                 "mode": image_choice.get("mode", "auto"),
                 "path": image_path,
                 "name": Path(image_path).name if image_path else "",
-                "data_uri": image_to_data_uri(image_path) if image_path else "",
+                "data_uri": image_data_uri,
                 "crop_focus": get_day_image_crop_focus(output_edits, day),
                 "options": image_options,
+                "reason": image_match.get("reason", "") if image_match else "",
+                "score": image_match.get("score", "") if image_match else "",
             },
         }
 
@@ -4003,8 +4121,17 @@ with st.sidebar:
             f"{image_diag.get('destination_images', 0)} destination · "
             f"{len(default_paths)} Default folder(s)"
         )
-    except Exception:
-        st.caption("Image scan unavailable.")
+        if st.session_state.get("parsed_rows") and st.session_state.get("output_edits"):
+            with st.expander("Image selection trace", expanded=False):
+                for item in get_day_image_selection_trace(st.session_state.parsed_rows, st.session_state.output_edits):
+                    st.caption(
+                        f"{item['day']} · {item['city']}: {item['selected']} "
+                        f"| destination {item['destination_candidates']} · Default {item['default_candidates']}"
+                    )
+                    if item.get("reason"):
+                        st.caption(f"Reason: {item['reason']}")
+    except Exception as exc:
+        st.caption(f"Image scan unavailable: {exc}")
 
     if previous_external_image_bank_path != st.session_state.external_image_bank_path:
         mark_output_dirty()
