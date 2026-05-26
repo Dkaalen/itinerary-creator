@@ -955,6 +955,51 @@ def test_parser_split_public_imports_remain_stable():
         "Compatibility wrapper should return the same parser output as the split parser implementation.",
     )
 
+
+def test_generator_split_public_imports_remain_stable():
+    from generator import (
+        create_trip_title,
+        create_day_title,
+        create_day_intro,
+        create_whats_included,
+        group_rows_by_day,
+    )
+    from itinerary_generation.titles import create_trip_title as split_create_trip_title
+    from itinerary_generation.day_text import create_day_intro as split_create_day_intro
+
+    raw_rows = [
+        {
+            "day": "Day 1",
+            "type": "Arrival",
+            "effective_type": "Arrival",
+            "city": "Oslo",
+            "title": "Welcome to Norway",
+            "details": "Oslo: Welcome to Norway",
+        },
+        {
+            "day": "Day 1",
+            "type": "Hotel",
+            "effective_type": "Hotel",
+            "city": "Oslo",
+            "title": "Hotel Bristol Oslo",
+            "details": "Breakfast included",
+        },
+        {
+            "day": "Day 2",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "city": "Oslo",
+            "title": "Northern Lights Experience",
+            "details": "Northern lights search with local guide",
+            "includes": ["Local guide"],
+        },
+    ]
+    grouped = group_rows_by_day(raw_rows)
+    assert_equal(create_trip_title(raw_rows, grouped), split_create_trip_title(raw_rows, grouped), "Generator wrapper should match split trip-title implementation.")
+    assert_equal(create_day_intro(grouped["Day 1"]), split_create_day_intro(grouped["Day 1"]), "Generator wrapper should match split day-intro implementation.")
+    assert_contains(create_day_title(grouped["Day 1"]), "Oslo", "Generator wrapper should still expose day-title helpers.")
+    assert_contains("\n".join(create_whats_included(raw_rows, grouped)), "Accommodation", "Generator wrapper should still expose inclusion helpers.")
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -986,6 +1031,7 @@ def run_all():
         test_day_page_rendering_helpers_are_self_contained_after_split,
         test_activity_block_helpers_are_self_contained_after_split,
         test_parser_split_public_imports_remain_stable,
+        test_generator_split_public_imports_remain_stable,
     ]
 
     for test in tests:
