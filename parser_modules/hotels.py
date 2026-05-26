@@ -1,0 +1,135 @@
+import re
+
+import diagnostics
+from text_polish import polish_client_text, polish_hotel_name
+from parser_modules.common import clean_space
+from parser_modules.details import extract_between_markers
+
+def parse_meal_plan(value):
+    text = clean_space(value)
+    lower = text.lower()
+
+    if not text:
+        return ""
+
+    # Important: detect exclusions before generic breakfast detection.
+    if ("without" in lower or "no " in lower or "not included" in lower or "not incl" in lower) and ("breakfast" in lower or "brekafast" in lower):
+        return "without breakfast"
+
+    if "breakfast" in lower or "brekafast" in lower:
+        if "dinner" in lower:
+            return "breakfast and dinner"
+        return "breakfast"
+
+    if "half board" in lower:
+        return "half board"
+
+    if "full board" in lower:
+        return "full board"
+
+    if "dinner" in lower:
+        return "dinner"
+
+    return ""
+
+
+def clean_room_category(value):
+    room = clean_space(value)
+
+    room = re.sub(r"^\d+\s*x\s*", "", room, flags=re.IGNORECASE)
+    room = room.replace("Doubel", "Double").replace("doubel", "double")
+
+    return clean_space(room)
+
+
+def parse_hotel_details(row, main_text, night_count_hint=""):
+    """
+    Parses accommodation details from both supported formats.
+
+    Standard:
+    Check in ... for a 2 night stay - Scandic Rovaniemi City - Standard Room - Breakfast included
+
+    Colleague:
+    3 Star , Hotel Arthur, 2xNight , 1xStandard Doubel Room, Incl Brekafast
+    """
+
+    text = clean_space(main_text)
+    lower = text.lower()
+
+    hotel_name = ""
+    nights = ""
+    room_category = ""
+    meal_plan = ""
+
+    if night_count_hint and str(night_count_hint).strip().isdigit():
+        nights = str(night_count_hint).strip()
+
+    match = re.search(r"for\s+a\s+(\d+)\s+night", lower)
+    if match:
+        nights = match.group(1)
+
+    match = re.search(r"(\d+)\s*x\s*night", lower)
+    if match and not nights:
+        nights = match.group(1)
+
+    # Standard dash format.
+    if " - " in text:
+        parts = [clean_space(part) for part in text.split(" - ") if clean_space(part)]
+
+        for part in parts:
+            part_lower = part.lower()
+
+            if "check in" in part_lower or "night stay" in part_lower:
+                continue
+
+            if "breakfast" in part_lower or "meal" in part_lower or "dinner" in part_lower:
+                meal_plan = parse_meal_plan(part)
+                continue
+
+            if not hotel_name:
+                hotel_name = part
+            elif not room_category:
+                room_category = clean_room_category(part)
+
+    # Comma format.
+    if not hotel_name or not room_category:
+        comma_parts = [clean_space(part) for part in re.split(r",|\|", text) if clean_space(part)]
+
+        for part in comma_parts:
+            part_lower = part.lower()
+
+            if re.search(r"\d+\s*star", part_lower) or re.search(r"\d+\s*x\s*night", part_lower):
+                continue
+
+            if "incl" in part_lower or "breakfast" in part_lower or "brekafast" in part_lower or "dinner" in part_lower:
+                meal_plan = meal_plan or parse_meal_plan(part)
+                continue
+
+            if "room" in part_lower or "igloo" in part_lower or "suite" in part_lower or "cabin" in part_lower:
+                room_category = room_category or clean_room_category(part)
+                continue
+
+            if not hotel_name:
+                hotel_name = part
+
+    # If hotel name is missing in the text, avoid using the whole raw line.
+    if hotel_name and any(marker in hotel_name.lower() for marker in ["check in", "night stay", "incl"]):
+        hotel_name = ""
+
+    hotel_name = polish_hotel_name(hotel_name)
+    room_category = polish_client_text(room_category)
+    meal_plan = polish_client_text(meal_plan)
+
+    if not hotel_name:
+        diagnostics.warn(
+            "hotel_name_missing",
+            f"Could not extract hotel name from: {text[:80]}",
+            raw_value=text,
+        )
+
+    return {
+        "hotel_name": hotel_name,
+        "hotel_nights": nights,
+        "room_category": room_category,
+        "meal_plan": meal_plan,
+    }

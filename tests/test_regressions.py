@@ -930,6 +930,31 @@ def test_activity_block_helpers_are_self_contained_after_split():
     assert_contains(block["html"], "Northern Lights Experience", "Activity block should render after module split.")
     assert_contains(block["html"], "Local guide", "Activity inclusions should render after module split.")
 
+
+def test_parser_split_public_imports_remain_stable():
+    from itinerary_parser import (
+        clean_space,
+        normalize_time_text,
+        extract_duration_from_description,
+        parse_itinerary,
+    )
+    from parser_modules.parser_main import parse_itinerary as split_parse_itinerary
+
+    assert_equal(clean_space("  Oslo   City  "), "Oslo City", "Parser wrapper should still expose clean_space.")
+    assert_equal(normalize_time_text("20:00"), "8:00 PM", "Parser wrapper should still expose time normalization.")
+    assert_equal(
+        extract_duration_from_description("Tromsø: Fjord Tour | 9 AM | 5.5 Hrs | What's included?"),
+        "5 hours 30 minutes",
+        "Parser wrapper should still expose extraction helpers after split.",
+    )
+
+    raw = "Day 1\tActivity\t01.01.2027\t\tOslo: Guided Walk - Time: 10:00 am - 12:00 pm - Includes: Guide"
+    assert_equal(
+        parse_itinerary(raw),
+        split_parse_itinerary(raw),
+        "Compatibility wrapper should return the same parser output as the split parser implementation.",
+    )
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -960,6 +985,7 @@ def run_all():
         test_final_page_notes_helper_is_self_contained_after_split,
         test_day_page_rendering_helpers_are_self_contained_after_split,
         test_activity_block_helpers_are_self_contained_after_split,
+        test_parser_split_public_imports_remain_stable,
     ]
 
     for test in tests:

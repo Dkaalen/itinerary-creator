@@ -1,0 +1,252 @@
+import re
+
+from parser_modules.common import *  # noqa: F401,F403
+from parser_modules.time_parsing import normalize_time_text
+
+def standardize_row_text(row):
+    """Applies client-facing cleanup after row parsing and effective type detection."""
+
+    # Do not run the broad client-text polish on parsed time values.
+    # Time fields are normalized by the dedicated time parser; broad punctuation
+    # polish can corrupt clock syntax if it ever changes colon spacing.
+    for key in ["city", "title", "details", "duration", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
+        if key in row and row.get(key):
+            row[key] = fix_common_text(row[key])
+
+    if row.get("time"):
+        row["time"] = normalize_time_text(row["time"])
+
+    for key in ["notable_sights", "includes"]:
+        if key in row and isinstance(row.get(key), list):
+            row[key] = [fix_common_text(item) for item in row[key] if fix_common_text(item)]
+
+    row_type = row.get("effective_type") or row.get("type", "")
+    title = row.get("title", "")
+    details = row.get("details", "")
+    city = row.get("city", "")
+    combined_lower = f"{title} {details}".lower()
+
+    if row_type == "Transfer":
+        if "self transfer" in combined_lower:
+            row["title"] = standardize_self_transfer_title(title, details, city)
+        elif "private" in combined_lower:
+            row["title"] = standardize_private_transfer_title(title, details, city)
+        elif "shuttle" in combined_lower:
+            row["title"] = standardize_shuttle_transfer_title(title, details, city)
+
+    if row_type in {"Transport", "Train", "Flight", "Cruise", "Ferry"}:
+        row["title"] = create_clean_transport_title(row)
+
+    return row
+
+
+def extract_detail(text, label):
+    marker = f"{label}:"
+
+    if marker not in text:
+        return ""
+
+    after_marker = text.split(marker, 1)[1]
+
+    for next_marker in DETAIL_MARKERS:
+        if next_marker in after_marker:
+            after_marker = after_marker.split(next_marker, 1)[0]
+
+    return after_marker.strip(" -")
+
+
+def extract_between_markers(text, start_patterns, stop_patterns):
+    """
+    Extract a section from long supplier-style descriptions.
+
+    Used for colleague paste formats where cells contain blocks like:
+    What's included?
+    item
+    item
+    Pick up / meeting point
+    address
+    """
+
+    if not text:
+        return ""
+
+    lowered = text.lower()
+    starts = []
+
+    for pattern in start_patterns:
+        match = re.search(pattern, lowered, flags=re.IGNORECASE)
+        if match:
+            starts.append(match.end())
+
+    if not starts:
+        return ""
+
+    start = min(starts)
+    section = text[start:]
+
+    stop_positions = []
+    section_lower = section.lower()
+
+    for pattern in stop_patterns:
+        match = re.search(pattern, section_lower, flags=re.IGNORECASE)
+        if match:
+            stop_positions.append(match.start())
+
+    if stop_positions:
+        section = section[:min(stop_positions)]
+
+    return section.strip(" :|-\n\r\t")
+
+
+def clean_title(text):
+    """
+    Removes labelled detail sections and long supplier text from a title.
+    """
+
+    title = clean_space(text)
+
+    # Standard format: "Title - Time: ... - Includes: ..."
+    for marker in DETAIL_MARKERS:
+        if marker in title:
+            title = title.split(marker, 1)[0]
+
+    # Colleague format: "Title | 20:00 | 5 Hrs | Overview..."
+    if "|" in title:
+        title = title.split("|", 1)[0]
+
+    # Prevent very long paragraphs from becoming titles.
+    for marker in [
+        "What's included",
+        "What’s included",
+        "Overview",
+        "What to expect",
+        "Pick up / meeting point",
+        "Meeting point",
+    ]:
+        index = title.lower().find(marker.lower())
+        if index > 0:
+            title = title[:index]
+
+    title = title.strip(" -:|")
+
+    # Remove duplicated city prefix if the product title starts with "City: Title".
+    if ":" in title:
+        possible_city, rest = title.split(":", 1)
+        if len(possible_city.strip()) <= 25 and rest.strip():
+            title = rest.strip()
+
+    return polish_title(clean_space(title))
+
+
+def split_comma_list(text, *, protect_compound_phrases=False):
+    if not text:
+        return []
+
+    if isinstance(text, list):
+        return [clean_space(item) for item in text if clean_space(item)]
+
+    text = str(text).replace("\r", "\n")
+
+    # Multiline supplier blocks should normally be one item per line. If a
+    # pasted line itself contains several comma-separated inclusions, split that
+    # line as well, while later re-merging protected phrases such as
+    # "Professional, English-speaking guide".
+    if "\n" in text:
+        parts = []
+        for line in text.splitlines():
+            clean_line = clean_space(line.strip("•-* \t"))
+            if not clean_line:
+                continue
+            comma_parts = [clean_space(item) for item in clean_line.split(",") if clean_space(item)]
+            if len(comma_parts) > 1:
+                parts.extend(comma_parts)
+            else:
+                parts.append(clean_line)
+    else:
+        parts = [clean_space(item) for item in str(text).split(",") if clean_space(item)]
+
+    # Remove section headers that sometimes leak into supplier inclusion lists.
+    parts = [
+        part for part in parts
+        if clean_space(part).lower().strip(':?') not in {
+            "what's included",
+            "what’s included",
+            "includes",
+            "included",
+        }
+    ]
+
+    if not protect_compound_phrases:
+        return polish_inclusion_items(parts)
+
+    merged = []
+    attach_to_previous_prefixes = (
+        "english-speaking",
+        "english speaker",
+        "english - speaker",
+        "norwegian-speaking",
+        "norwegian speaker",
+        "sami-speaking",
+        "van or coach",
+        "coach or van",
+        "bus or coach",
+        "small-group",
+        "small group",
+    )
+
+    for part in parts:
+        lower = part.lower()
+
+        if merged and lower.startswith(attach_to_previous_prefixes):
+            merged[-1] = f"{merged[-1]}, {part}"
+        else:
+            merged.append(part)
+
+    return polish_inclusion_items(merged)
+
+
+def detect_effective_type(item_type, title, details):
+    combined = f"{title} {details}".lower().strip()
+    normalized_item_type = normalize_type(item_type)
+
+    # Hop-on hop-off / city pass style products are client activities, not
+    # transport segments, even if the word "bus" appears in the title.
+    if normalized_item_type == "Activity" and any(
+        marker in combined
+        for marker in ["hop on", "hop-on", "hop off", "hop-off", "24 hrs ticket", "24 hour ticket"]
+    ):
+        return "Activity"
+
+    if "norway in a nutshell" in combined:
+        return "Transport"
+
+    if (
+        "flight to" in combined
+        or combined.startswith("flight ")
+        or re.search(r"\bflight\s*[:|]", combined)
+        or re.search(r"\bflight\s+[a-zà-ÿøåäö\s]+\s+to\s+", combined)
+    ):
+        return "Flight"
+
+    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined:
+        return "Train"
+
+    if "cruise to" in combined or "overnight cruise" in combined:
+        return "Cruise"
+
+    if "ferry to" in combined:
+        return "Ferry"
+
+    # For explicit activity rows, do not downgrade the activity just because the
+    # supplier text mentions a bus/coach as part of the experience.
+    if normalized_item_type == "Activity":
+        return "Activity"
+
+    if (
+        "coach transfer" in combined
+        or combined.startswith("bus")
+        or " bus " in f" {combined} "
+    ) and "private" not in combined:
+        return "Transport"
+
+    return normalized_item_type
