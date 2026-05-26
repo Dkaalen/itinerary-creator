@@ -10,7 +10,13 @@ import html
 import mimetypes
 import re
 
-from image_matcher import select_day_image, select_day_images, scan_image_bank
+from image_matcher import (
+    build_day_context,
+    scan_image_bank,
+    score_image_for_day,
+    select_day_image,
+    select_day_images,
+)
 from text_polish import polish_title
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -73,6 +79,47 @@ def image_to_data_uri(path):
         return f"data:{mime};base64,{encoded}"
     except Exception:
         return ""
+
+
+
+
+def image_to_preview_data_uri(path, max_size=(1100, 760), quality=74):
+    """Return a browser-friendly preview data URI instead of the original image.
+
+    The visual editor only needs a screen preview. Sending original local image
+    files through Streamlit can create enormous component payloads when the
+    image bank contains high-resolution photos. This helper keeps the editor
+    responsive while the PDF exporter continues to use the original file path.
+    """
+    try:
+        from io import BytesIO
+        from PIL import Image
+
+        path = Path(path)
+        if not path.exists() or not path.is_file():
+            return ""
+        with Image.open(path) as img:
+            img = img.convert("RGB")
+            img.thumbnail(max_size, Image.LANCZOS)
+            buffer = BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/jpeg;base64,{encoded}"
+    except Exception:
+        # Fall back only for very small files. Large originals are exactly what
+        # caused Streamlit message-size failures, so never blindly encode them.
+        try:
+            path = Path(path)
+            if path.exists() and path.stat().st_size <= 750_000:
+                return image_to_data_uri(path)
+        except Exception:
+            pass
+    return ""
+
+
+def image_to_option_preview_data_uri(path):
+    """Return a tiny preview used only after choosing a replacement image."""
+    return image_to_preview_data_uri(path, max_size=(420, 300), quality=60)
 
 
 def get_day_image_overrides(output_edits=None):
@@ -176,12 +223,7 @@ def list_city_image_options(city):
 
 
 def list_replacement_image_options(city):
-    """Return useful replacement pictures for a day.
-
-    Destination-specific images are listed first. Root Default images are also
-    included so the picture changer still works when a destination relies on
-    the fallback image bank.
-    """
+    """Return replacement pictures for a city, with Default images available."""
     city_key = clean_space(city).lower()
     city_options = []
     default_options = []
@@ -199,6 +241,51 @@ def list_replacement_image_options(city):
             default_options.append(path)
             seen.add(key)
     return sorted(city_options, key=lambda path: path.name.lower()) + sorted(default_options, key=lambda path: path.name.lower())
+
+
+def list_replacement_image_options_for_rows(day, rows, limit=30):
+    """Return lightweight, relevance-ranked replacement options for a day.
+
+    The returned items intentionally contain no base64 image payload. The visual
+    editor receives labels and paths only, preventing replacement lists from
+    sending the full image bank to the browser.
+    """
+    candidates = scan_image_bank(get_image_bank_path())
+    if not candidates:
+        return []
+    context = build_day_context(day, rows or [])
+    scored = []
+    seen = set()
+    for candidate in candidates:
+        path = Path(candidate.path)
+        key = normalize_path_key(path)
+        if key in seen:
+            continue
+        score, reasons = score_image_for_day(candidate, context)
+        if score <= 0:
+            continue
+        scored.append((score, candidate.filename.lower(), candidate, reasons))
+        seen.add(key)
+    scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    options = []
+    for score, _filename, candidate, reasons in scored[:limit]:
+        path = Path(candidate.path)
+        options.append({
+            "path": str(path),
+            "name": path.name,
+            "score": score,
+            "reason": "; ".join(reasons or []),
+            "themes": list(candidate.themes),
+            "seasons": list(candidate.seasons),
+            "city": candidate.city,
+        })
+    return options
+
+
+def get_image_preview_for_path(path, option=False):
+    if not path:
+        return ""
+    return image_to_option_preview_data_uri(path) if option else image_to_preview_data_uri(path)
 
 
 def save_uploaded_day_image(uploaded_file, city, season, label=""):
@@ -254,7 +341,7 @@ def render_day_image_slot(day, rows, match=None, output_edits=None):
     image_path = match.get("path", "")
     crop_focus = get_day_image_crop_focus(output_edits, day)
     object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
-    data_uri = image_to_data_uri(image_path)
+    data_uri = image_to_preview_data_uri(image_path)
     preview_img = ""
     if data_uri:
         preview_img = (

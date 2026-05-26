@@ -215,9 +215,9 @@ function editableHtml(value, key, cls='') {
 function imageHtml(day, dayIndex) {
   const img = day.image || {};
   const options = img.options || [];
-  const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
+  const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
   const hasImage = !!img.data_uri;
-  const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : '<span>No picture selected</span>';
+  const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : `<span>${img.pending_preview ? 'Replacement selected — save to update preview' : 'No picture selected'}</span>`;
   return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}">
       ${src}
       <div class="image-actions">
@@ -337,10 +337,25 @@ function adjustDayImages() {
     stage.style.height = `${imageHeight}px`;
   });
 }
+
+function pruneForSave(value) {
+  const copy = JSON.parse(JSON.stringify(value || {}));
+  (copy.days || []).forEach(day => {
+    if (!day.image) return;
+    delete day.image.data_uri;
+    delete day.image.auto_data_uri;
+    delete day.image.options;
+    // Keep upload data only for real uploads. Existing preview images should
+    // never be posted back to Streamlit just because the user edited text.
+    if (day.image.upload && !day.image.upload.data_uri) delete day.image.upload;
+  });
+  return copy;
+}
+
 function attachHandlers() {
   document.getElementById('saveBtn').addEventListener('click', () => {
     const data = collect();
-    Streamlit.setComponentValue(JSON.stringify(data));
+    Streamlit.setComponentValue(JSON.stringify(pruneForSave(data)));
     const note = document.getElementById('savedNote');
     note.classList.add('show');
     setTimeout(() => note.classList.remove('show'), 1500);
@@ -378,8 +393,9 @@ function attachHandlers() {
           const selected = (day.image.options || []).find(opt => opt.path === sel.value) || {};
           day.image.mode = 'manual';
           day.image.path = sel.value;
-          day.image.data_uri = selected.data_uri || day.image.data_uri || '';
+          day.image.data_uri = '';
           day.image.name = selected.name || sel.options[sel.selectedIndex]?.text || '';
+          day.image.pending_preview = true;
         }
       }
       draw();

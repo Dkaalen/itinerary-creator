@@ -308,6 +308,70 @@ def test_swedish_itinerary_uses_root_default_when_no_sweden_images_exist():
         )
 
 
+def test_default_fallback_prefers_semantic_match_over_season_only_match():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(default_dir / "Default_Winter_Northern_Lights_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "15.01.2027",
+                    "city": "Helsinki",
+                    "title": "Guided walking tour through the city centre",
+                    "details": "Architecture, streets and skyline views.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Default fallback should provide a city image for a city sightseeing day.")
+        assert_contains(
+            Path(match["path"]).name,
+            "City_Sunset_Skyline",
+            "A city sightseeing day should prefer a city Default image over an unrelated winter aurora image.",
+        )
+
+
+def test_default_fallback_prefers_road_image_for_coach_transfer():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Winter_Snowy_Winter_Road_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(default_dir / "Default_Winter_Northern_Lights_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 5",
+            [
+                {
+                    "day": "Day 5",
+                    "date": "18.11.2026",
+                    "city": "Saariselkä",
+                    "title": "Coach transfer to Saariselkä",
+                    "details": "Long distance comfortable panorama coach transfer by road.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Coach transfer day should receive a relevant Default fallback image.")
+        assert_contains(
+            Path(match["path"]).name,
+            "Road",
+            "A coach transfer day should prefer a road/journey Default image.",
+        )
+
+
 def test_image_bank_diagnostics_counts_root_default_images():
     from PIL import Image
 
@@ -334,6 +398,8 @@ def run_all():
         test_default_fallback_does_not_reuse_images_until_needed,
         test_multi_country_external_image_bank_paths_are_supported,
         test_swedish_itinerary_uses_root_default_when_no_sweden_images_exist,
+        test_default_fallback_prefers_semantic_match_over_season_only_match,
+        test_default_fallback_prefers_road_image_for_coach_transfer,
         test_image_bank_diagnostics_counts_root_default_images,
     ]
 

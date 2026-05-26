@@ -31,15 +31,16 @@ CITY_ALIASES = {
 THEME_ALIASES = {
     "northern lights": {"northern", "lights", "northernlights", "aurora", "basecamp", "chase", "hunt"},
     "fjord": {"fjord", "fjords", "kvaloya", "kvaløya", "sommaroy", "sommarøy", "cruise", "boat", "lake", "waterfall"},
-    "city": {"city", "center", "centre", "street", "streets", "walking", "sightseeing", "landmarks", "arrival", "departure", "skyline", "buildings"},
+    "city": {"city", "center", "centre", "street", "streets", "walking", "walk", "sightseeing", "landmarks", "arrival", "departure", "skyline", "buildings", "urban", "architecture"},
     "waterfront": {"waterfront", "harbour", "harbor", "brygge", "aker", "bjorvika", "bjørvika", "opera", "skyline", "coast", "coastal"},
-    "mountain": {"mountain", "mountains", "viewpoint", "view", "hike", "hiking", "valley", "road", "scenic", "landscape", "forest"},
+    "mountain": {"mountain", "mountains", "viewpoint", "view", "hike", "hiking", "valley", "scenic", "landscape", "forest", "nature"},
     "winter": {"winter", "snow", "snowy", "ice", "icy", "arctic", "frozen"},
     "old town": {"old", "town", "oldtown", "historic", "medieval"},
     "santa": {"santa", "claus", "christmas", "arctic", "circle"},
-    "wildlife": {"wildlife", "ranua", "animals", "zoo", "reindeer"},
+    "wildlife": {"wildlife", "ranua", "animals", "zoo", "reindeer", "husky", "huskies", "sled", "sledding"},
     "igloo": {"glass", "igloo", "kakslauttanen", "arctic", "resort"},
-    "train": {"train", "rail", "railway", "nutshell", "flam", "flåm"},
+    "train": {"train", "rail", "railway", "station", "overnight", "santa", "express", "nutshell", "flam", "flåm"},
+    "road journey": {"road", "route", "coach", "bus", "panorama", "drive", "driving", "vehicle"},
     "funicular": {"funicular", "floibanen", "fløibanen", "mountain", "view"},
 }
 

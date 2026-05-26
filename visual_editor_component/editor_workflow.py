@@ -18,8 +18,8 @@ from itinerary_generation.summaries import create_journey_arc, create_trip_glanc
 from images.app_image_selection import (
     get_day_image_choice,
     get_day_image_crop_focus,
-    image_to_data_uri,
-    list_replacement_image_options,
+    get_image_preview_for_path,
+    list_replacement_image_options_for_rows,
     normalize_crop_focus,
     save_data_uri_day_image,
     select_day_images_with_overrides,
@@ -70,21 +70,15 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         city = day_edits.get("city") or get_primary_city(rows)
         match = image_matches.get(day)
         image_path = match.get("path") if match else ""
-        options = []
-        for path in list_replacement_image_options(city):
-            options.append({
-                "path": str(path),
-                "name": path.name,
-                "data_uri": image_to_data_uri(path),
-            })
+        options = list_replacement_image_options_for_rows(day, rows)
         image_obj = {
             "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
             "path": image_path or "",
             "name": Path(image_path).name if image_path else "",
-            "data_uri": image_to_data_uri(image_path) if image_path else "",
+            "data_uri": get_image_preview_for_path(image_path) if image_path else "",
             "auto_path": image_path or "",
             "auto_name": Path(image_path).name if image_path else "",
-            "auto_data_uri": image_to_data_uri(image_path) if image_path else "",
+            "auto_data_uri": get_image_preview_for_path(image_path) if image_path else "",
             "crop_focus": get_day_image_crop_focus(output_edits, day),
             "options": options,
         }

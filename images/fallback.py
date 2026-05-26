@@ -16,8 +16,14 @@ def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tup
     candidate_themes = set(candidate.themes)
     day_tokens = set(day_context.get("tokens", set()))
     day_themes = set(day_context.get("themes", set()))
+    primary_themes = set(day_context.get("primary_themes", set()))
 
-    theme_matches = candidate_themes & day_themes
+    primary_theme_matches = candidate_themes & primary_themes
+    if primary_theme_matches:
+        score += 22 * len(primary_theme_matches)
+        reasons.append("fallback primary theme match: " + ", ".join(sorted(primary_theme_matches)))
+
+    theme_matches = (candidate_themes & day_themes) - primary_theme_matches
     if theme_matches:
         score += 20 * len(theme_matches)
         reasons.append("fallback theme match: " + ", ".join(sorted(theme_matches)))
