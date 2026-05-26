@@ -22,6 +22,14 @@ def get_client_activity_phrase(row):
     return title or "your included experience"
 
 
+def _activity_phrase_with_city(activity_title, city_text):
+    title = str(activity_title or "your included experience").strip()
+    city = str(city_text or "").strip()
+    if city and city.lower() in title.lower():
+        return title
+    return f"{title} in {city}" if city else title
+
+
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a premium, client-facing day intro.
 
@@ -99,17 +107,18 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"{activity_title} is the main arranged experience in {city_text}, with the rest of the day kept flexible."
 
+            activity_with_city = _activity_phrase_with_city(activity_title, city_text)
             intro_variants = [
                 (
                     f"{activity_title} gives the day a clear focus in {city_text}, "
                     f"with time around the experience kept open and comfortable."
                 ),
                 (
-                    f"The day is shaped around {activity_title} in {city_text}, "
+                    f"The day is shaped around {activity_with_city}, "
                     f"balanced with space to enjoy the destination at an easy pace."
                 ),
                 (
-                    f"A planned highlight brings you into {activity_title} in {city_text}, "
+                    f"A planned highlight brings you into {activity_with_city}, "
                     f"while the rest of the schedule remains relaxed and simple."
                 ),
                 (
@@ -121,13 +130,13 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             return intro_variants[variant_index]
 
     if (transports or route_transfers) and city:
-        route_titles = [get_transfer_travel_title(row) for row in route_transfers]
-        transport_titles = [row.get("title", "") for row in transports]
-        combined_titles = " ".join(route_titles + transport_titles)
         destination_city = ""
-        for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
-            if possible_city.lower() in combined_titles.lower():
-                destination_city = "Saariselkä" if possible_city == "Saariselka" else possible_city
+        travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)]
+        for row in travel_rows:
+            row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
+            for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
+                if possible_city.lower() in row_text.lower():
+                    destination_city = "Saariselkä" if possible_city == "Saariselka" else possible_city
         display_city = destination_city or city
         if detail_level == "Elegant concise":
             return f"Continue your journey with arranged travel connected to {display_city}."

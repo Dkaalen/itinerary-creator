@@ -239,7 +239,7 @@ def render_split_list_pages(title, items, items_per_page=24):
     return html_text
 
 
-def render_categorized_inclusions_pages(title, sections):
+def render_inclusion_sections_inner_html(sections):
     clean_sections = []
     for section in sections or []:
         section_title = str(section.get("title", "")).strip()
@@ -247,17 +247,28 @@ def render_categorized_inclusions_pages(title, sections):
         if section_title and items:
             clean_sections.append({"title": section_title, "items": items})
 
-    if not clean_sections:
-        return ""
-
-    html_text = f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}</div>'
+    html_text = ""
     for section in clean_sections:
         html_text += '<div class="content-block inclusion-category-block">'
         html_text += f'<div class="section-title">{esc(section["title"])}</div>'
         html_text += render_list_items(section["items"], class_name="detail-list inclusion-category-list")
         html_text += '</div>'
-    html_text += '</div>'
     return html_text
+
+
+def render_categorized_inclusions_pages(title, sections):
+    inner_html = render_inclusion_sections_inner_html(sections)
+    if not inner_html:
+        return ""
+
+    return f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
+
+
+def render_custom_html_final_page(title, inner_html, page_class="final-list-page"):
+    inner_html = clean_visual_editor_html(inner_html or "")
+    if not inner_html:
+        return ""
+    return f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
 
 
 def render_text_paragraph_page(title, paragraphs):

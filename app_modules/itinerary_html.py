@@ -12,6 +12,7 @@ from ui.day_rendering import (
     render_optional_addons_pages,
     render_split_list_pages,
     render_categorized_inclusions_pages,
+    render_custom_html_final_page,
     render_text_paragraph_page,
     text_to_list,
 )
@@ -29,7 +30,25 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
-    journey_arc = create_journey_arc(grouped_days)
+    saved_trip_glance = output_edits.get("trip_glance") or {}
+    if isinstance(saved_trip_glance, dict):
+        for label, value in saved_trip_glance.items():
+            if label in trip_glance:
+                trip_glance[label] = value
+
+    saved_journey_arc = output_edits.get("journey_arc")
+    if isinstance(saved_journey_arc, list) and saved_journey_arc:
+        journey_arc = [
+            {
+                "chapter": str(row.get("chapter", "")).strip(),
+                "days": str(row.get("days", "")).strip(),
+                "experience": str(row.get("experience", "")).strip(),
+            }
+            for row in saved_journey_arc
+            if isinstance(row, dict)
+        ]
+    else:
+        journey_arc = create_journey_arc(grouped_days)
 
     manual_whats_included = text_to_list(output_edits.get("whats_included_text", ""))
     categorized_inclusions = create_categorized_inclusions(parsed_rows, grouped_days)
@@ -522,7 +541,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     html_text += render_day_pages(grouped_days, output_edits)
 
-    if manual_whats_included:
+    if output_edits.get("whats_included_html"):
+        html_text += render_custom_html_final_page("What’s included", output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
+    elif manual_whats_included:
         html_text += render_split_list_pages("What’s included", whats_included)
     else:
         html_text += render_categorized_inclusions_pages("What’s included", categorized_inclusions)

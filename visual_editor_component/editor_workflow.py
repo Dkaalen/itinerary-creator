@@ -13,18 +13,51 @@ from generator import (
     create_trip_title,
     get_primary_city,
 )
+from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
     get_day_image_choice,
     get_day_image_crop_focus,
     image_to_data_uri,
-    list_city_image_options,
+    list_replacement_image_options,
     normalize_crop_focus,
+    save_data_uri_day_image,
     select_day_images_with_overrides,
 )
+from ui.day_pages import render_inclusion_sections_inner_html
 from ui.day_rendering import build_day_blocks, get_detail_level_name
 from ui.editor_sanitizer import clean_visual_editor_html
 from visual_editor_component.editor_bridge import render_visual_page_editor
+
+
+def _get_trip_glance(parsed_rows, grouped_days, output_edits):
+    generated = create_trip_glance(parsed_rows, grouped_days)
+    saved = (output_edits or {}).get("trip_glance") or {}
+    if isinstance(saved, dict):
+        for key, value in saved.items():
+            if key in generated:
+                generated[key] = value
+    return generated
+
+
+def _get_journey_arc(grouped_days, output_edits):
+    saved = (output_edits or {}).get("journey_arc")
+    if isinstance(saved, list) and saved:
+        clean_rows = []
+        for row in saved:
+            if isinstance(row, dict):
+                clean_rows.append({
+                    "chapter": str(row.get("chapter", "")).strip(),
+                    "days": str(row.get("days", "")).strip(),
+                    "experience": str(row.get("experience", "")).strip(),
+                })
+        if clean_rows:
+            return clean_rows
+    return create_journey_arc(grouped_days)
+
+
+def _build_generated_inclusions_html(parsed_rows, grouped_days):
+    return render_inclusion_sections_inner_html(create_categorized_inclusions(parsed_rows, grouped_days))
 
 
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
@@ -37,16 +70,23 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         city = day_edits.get("city") or get_primary_city(rows)
         match = image_matches.get(day)
         image_path = match.get("path") if match else ""
+        options = []
+        for path in list_replacement_image_options(city):
+            options.append({
+                "path": str(path),
+                "name": path.name,
+                "data_uri": image_to_data_uri(path),
+            })
         image_obj = {
             "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
             "path": image_path or "",
             "name": Path(image_path).name if image_path else "",
             "data_uri": image_to_data_uri(image_path) if image_path else "",
+            "auto_path": image_path or "",
+            "auto_name": Path(image_path).name if image_path else "",
+            "auto_data_uri": image_to_data_uri(image_path) if image_path else "",
             "crop_focus": get_day_image_crop_focus(output_edits, day),
-            "options": [
-                {"path": str(path), "name": path.name}
-                for path in list_city_image_options(city)
-            ],
+            "options": options,
         }
 
         blocks_html = day_edits.get("blocks_html")
@@ -63,6 +103,8 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "image": image_obj,
         })
 
+    generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
+
     return {
         "cover": {
             "cover_kicker": output_edits.get("cover_kicker", "Curated Travel Itinerary"),
@@ -71,11 +113,12 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
         },
         "summary": {
-            "trip_glance": create_trip_glance(parsed_rows, grouped_days),
-            "journey_arc": create_journey_arc(grouped_days),
+            "trip_glance": _get_trip_glance(parsed_rows, grouped_days, output_edits),
+            "journey_arc": _get_journey_arc(grouped_days, output_edits),
         },
         "days": payload_days,
         "final_pages": {
+            "whats_included_html": output_edits.get("whats_included_html") or generated_inclusions_html,
             "whats_included_text": output_edits.get("whats_included_text", ""),
             "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
@@ -97,6 +140,24 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     for key in ["cover_kicker", "trip_title", "trip_subtitle", "destinations_line"]:
         if key in cover:
             output_edits[key] = str(cover.get(key, "")).strip()
+
+    summary = data.get("summary", {}) or {}
+    if isinstance(summary.get("trip_glance"), dict):
+        output_edits["trip_glance"] = {
+            str(key).strip(): str(value).strip()
+            for key, value in summary.get("trip_glance", {}).items()
+            if str(key).strip()
+        }
+    if isinstance(summary.get("journey_arc"), list):
+        output_edits["journey_arc"] = [
+            {
+                "chapter": str(row.get("chapter", "")).strip(),
+                "days": str(row.get("days", "")).strip(),
+                "experience": str(row.get("experience", "")).strip(),
+            }
+            for row in summary.get("journey_arc", [])
+            if isinstance(row, dict)
+        ]
 
     day_payloads = data.get("days", []) or []
     for day_payload in day_payloads:
@@ -120,14 +181,28 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
                 mode = "auto"
             choice["mode"] = mode
             choice["crop_focus"] = normalize_crop_focus(image_payload.get("crop_focus", choice.get("crop_focus", "top")))
-            if mode == "manual":
+
+            upload = image_payload.get("upload") or {}
+            if mode == "manual" and upload.get("data_uri"):
+                saved_path = save_data_uri_day_image(
+                    upload.get("data_uri", ""),
+                    upload.get("filename", "uploaded_image.jpg"),
+                    day_edits.get("city") or day_payload.get("city", ""),
+                    upload.get("season", "Summer"),
+                    upload.get("label", ""),
+                )
+                choice["path"] = saved_path or str(image_payload.get("path") or choice.get("path", "")).strip()
+            elif mode == "manual":
                 choice["path"] = str(image_payload.get("path") or choice.get("path", "")).strip()
             elif mode in {"auto", "none"}:
                 choice["path"] = ""
 
     final_pages = data.get("final_pages", {}) or {}
+    if "whats_included_html" in final_pages:
+        output_edits["whats_included_html"] = clean_visual_editor_html(final_pages.get("whats_included_html", ""))
+        output_edits["whats_included_text"] = ""
     for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
-        if key in final_pages:
+        if key in final_pages and key != "whats_included_text":
             output_edits[key] = str(final_pages.get(key, "")).strip()
 
     if mark_dirty:

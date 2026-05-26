@@ -8,7 +8,7 @@ from images.app_image_selection import (
     CROP_FOCUS_LABELS,
     CROP_FOCUS_OPTIONS,
     get_day_image_choice,
-    list_city_image_options,
+    list_replacement_image_options,
     normalize_crop_focus,
     normalize_path_key,
     save_uploaded_day_image,
@@ -74,7 +74,7 @@ def render_day_picture_action_panel(day, rows, output_edits, current_match=None,
         choice["crop_focus"] = new_focus
         mark_output_dirty()
 
-    options = list_city_image_options(city)
+    options = list_replacement_image_options(city)
     st.markdown("**Replace from image bank**")
     if options:
         option_labels = [path.name for path in options]

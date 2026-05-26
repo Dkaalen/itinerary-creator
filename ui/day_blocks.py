@@ -273,7 +273,9 @@ def build_arrival_block(row):
 
 
 def build_departure_block(row):
-    title = polish_title(row.get("title", "") or "Departure home")
+    title = polish_title(row.get("title", "") or "")
+    if not title or title.lower().strip(" .") in {"departure", "departure day"}:
+        title = "Onward travel arrangements"
 
     html_text = f'<div class="content-block departure-block" data-row-id="{esc(row.get("row_id", ""))}">'
     html_text += '<div class="section-title">Departure</div>'

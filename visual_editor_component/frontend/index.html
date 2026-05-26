@@ -167,9 +167,10 @@
     .upload-label input { display: none; }
     .final-page .page-content { padding-top: 86px; }
     .final-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 26px; line-height: 1.18; margin-bottom: 10px; }
-    .final-edit-box {
+    .final-edit-box, .final-html-box {
       width: 100%; min-height: 720px; border: 1px dashed rgba(31,52,70,.20); background: rgba(255,255,255,.16); color: var(--body); font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.45; padding: 10px; border-radius: 8px; white-space: pre-wrap;
     }
+    .final-html-box { white-space: normal; }
     .saved-note { color: #bfe7d9; font-weight: 700; font-size: 12px; display: none; }
     .saved-note.show { display: inline; }
     .help-strip { margin-top: 10px; color: #a9b6c2; font-size: 12px; line-height: 1.4; text-align: center; }
@@ -214,7 +215,7 @@ function editableHtml(value, key, cls='') {
 function imageHtml(day, dayIndex) {
   const img = day.image || {};
   const options = img.options || [];
-  const optionHtml = options.map(opt => `<option value="${esc(opt.path)}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
+  const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
   const hasImage = !!img.data_uri;
   const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : '<span>No picture selected</span>';
   return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}">
@@ -236,17 +237,23 @@ function imageHtml(day, dayIndex) {
 function summaryPage(summary) {
   const glance = summary?.trip_glance || {};
   const arc = summary?.journey_arc || [];
-  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div><div>${esc(glance[key])}</div></div>`).join('');
-  const arcRows = arc.map(row => `<tr><td>${esc(row.chapter)}</td><td>${esc(row.days)}</td><td>${esc(row.experience)}</td></tr>`).join('');
+  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value')}</div>`).join('');
+  const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
   return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page"><div class="page-content">
     <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
     <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
   </div></div></div>`;
 }
-function finalPage(label, title, key, text) {
+function finalTextPage(label, title, key, text) {
   return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
     <div class="final-title">${esc(title)}</div>
     ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
+  </div></div></div>`;
+}
+function finalHtmlPage(label, title, key, html) {
+  return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
+    <div class="final-title">${esc(title)}</div>
+    ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
   </div></div></div>`;
 }
 function render(payload) {
@@ -279,9 +286,9 @@ function draw() {
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
     </div>${imageHtml(day, i)}</div></div>`;
   });
-  h += finalPage('Included', "What's included", 'whats_included_text', model.final_pages?.whats_included_text || '');
-  h += finalPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
-  h += finalPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
+  h += finalHtmlPage('Included', "What's included", 'whats_included_html', model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || '');
+  h += finalTextPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
+  h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
   h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
@@ -348,17 +355,34 @@ function attachHandlers() {
   });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
+      collect();
       const idx = Number(btn.getAttribute('data-day-index'));
       const action = btn.getAttribute('data-img-action');
       const day = model.days[idx];
       if (!day || !day.image) return;
-      if (action === 'auto') { day.image.mode = 'auto'; day.image.path = ''; }
-      if (action === 'none') { day.image.mode = 'none'; day.image.path = ''; day.image.data_uri = ''; }
+      if (action === 'auto') {
+        day.image.mode = 'auto';
+        day.image.path = '';
+        day.image.data_uri = day.image.auto_data_uri || day.image.data_uri || '';
+        day.image.name = day.image.auto_name || day.image.name || '';
+      }
+      if (action === 'none') {
+        day.image.mode = 'none';
+        day.image.path = '';
+        day.image.data_uri = '';
+        day.image.name = '';
+      }
       if (action === 'manual') {
         const sel = document.querySelector(`[data-img-bank="${idx}"]`);
-        if (sel && sel.value) { day.image.mode = 'manual'; day.image.path = sel.value; }
+        if (sel && sel.value) {
+          const selected = (day.image.options || []).find(opt => opt.path === sel.value) || {};
+          day.image.mode = 'manual';
+          day.image.path = sel.value;
+          day.image.data_uri = selected.data_uri || day.image.data_uri || '';
+          day.image.name = selected.name || sel.options[sel.selectedIndex]?.text || '';
+        }
       }
-      btn.closest('.image-stage').style.outline = '3px solid rgba(232,182,86,.55)';
+      draw();
     });
   });
   document.querySelectorAll('[data-img-focus]').forEach(sel => {

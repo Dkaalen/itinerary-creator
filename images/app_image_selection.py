@@ -175,6 +175,32 @@ def list_city_image_options(city):
     return sorted(options, key=lambda path: path.name.lower())
 
 
+def list_replacement_image_options(city):
+    """Return useful replacement pictures for a day.
+
+    Destination-specific images are listed first. Root Default images are also
+    included so the picture changer still works when a destination relies on
+    the fallback image bank.
+    """
+    city_key = clean_space(city).lower()
+    city_options = []
+    default_options = []
+    seen = set()
+    for candidate in scan_image_bank(get_image_bank_path()):
+        path = Path(candidate.path)
+        key = normalize_path_key(path)
+        if key in seen:
+            continue
+        candidate_city = clean_space(candidate.city).lower()
+        if city_key and candidate_city == city_key:
+            city_options.append(path)
+            seen.add(key)
+        elif candidate_city == "default":
+            default_options.append(path)
+            seen.add(key)
+    return sorted(city_options, key=lambda path: path.name.lower()) + sorted(default_options, key=lambda path: path.name.lower())
+
+
 def save_uploaded_day_image(uploaded_file, city, season, label=""):
     if not uploaded_file:
         return ""
@@ -194,6 +220,28 @@ def save_uploaded_day_image(uploaded_file, city, season, label=""):
 
     target_path.write_bytes(uploaded_file.getbuffer())
     return str(target_path)
+
+
+
+
+def save_data_uri_day_image(data_uri, filename, city, season='Summer', label=''):
+    """Save a visual-editor uploaded data URI into the local image bank."""
+    if not data_uri or not str(data_uri).startswith('data:'):
+        return ''
+    try:
+        header, encoded = str(data_uri).split(',', 1)
+        raw = base64.b64decode(encoded)
+    except Exception:
+        return ''
+
+    class _UploadedBytes:
+        def __init__(self, name, data):
+            self.name = name or 'uploaded_image.jpg'
+            self._data = data
+        def getbuffer(self):
+            return self._data
+
+    return save_uploaded_day_image(_UploadedBytes(filename, raw), city, season, label)
 
 
 def render_day_image_slot(day, rows, match=None, output_edits=None):

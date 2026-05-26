@@ -538,6 +538,8 @@ def run_all():
         test_generator_split_public_imports_remain_stable,
         test_colleague_duration_with_dot_minutes,
         test_content_cleanup_for_helsinki_lapland_sample,
+        test_travel_intro_uses_final_transport_destination,
+        test_departure_block_avoids_duplicate_departure_line,
     ]
 
     for test in tests:
@@ -614,6 +616,24 @@ Professional driver & guide (English)
     assert_contains("\n".join(section_titles), "Activities & experiences", "Categorized inclusions should include activities.")
     accommodation_text = "\n".join(section["items"][0] for section in sections if section["title"] == "Accommodation")
     assert_contains(accommodation_text, "Room category", "Accommodation inclusions should include rooming details.")
+
+
+def test_travel_intro_uses_final_transport_destination():
+    rows = [
+        {"day": "Day 6", "type": "Transfer", "effective_type": "Transfer", "city": "Saariselkä", "title": "Coach Transfer to Rovaniemi Bus Station", "details": "Bus from Saariselkä to Rovaniemi Bus Station"},
+        {"day": "Day 6", "type": "Transfer", "effective_type": "Transfer", "city": "Rovaniemi", "title": "Overnight Train to Helsinki", "details": "Overnight Train Transfer with the Santa Claus Express to Helsinki"},
+    ]
+    intro = create_day_intro(rows, detail_level="Rich descriptive")
+    assert_contains(intro, "Helsinki", "Travel intro should follow the final onward transport destination.")
+    assert_not_contains(intro, "towards Rovaniemi", "Travel intro should not stop at an intermediate station when later transport continues onward.")
+
+
+def test_departure_block_avoids_duplicate_departure_line():
+    from ui.day_blocks import build_departure_block
+
+    block = build_departure_block({"row_id": "departure-1", "title": "Departure"})
+    assert_contains(block["html"], "Onward travel arrangements", "Generic departure rows should get a more client-facing line.")
+    assert_not_contains(block["html"], '>Departure</div><div class="body-text strong-line">Departure', "Departure block should not repeat the word Departure as both heading and body.")
 
 
 if __name__ == "__main__":
