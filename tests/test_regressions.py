@@ -20,7 +20,7 @@ from generator import (
 )
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
-from image_matcher import scan_image_bank, select_day_image, select_day_images
+from image_matcher import scan_image_bank, select_day_image, select_day_images, get_image_bank_diagnostics
 from layout_policy import (
     DEFAULT_DAY_PAGE_LAYOUT,
     DAY_PAGE_LAYOUTS,
@@ -563,6 +563,62 @@ def test_multi_country_external_image_bank_paths_are_supported():
             "Exact country/destination matches in an external image bank should work for future Nordic countries.",
         )
 
+def test_swedish_itinerary_uses_root_default_when_no_sweden_images_exist():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        local_bank = Path(tmp) / "image_bank"
+        default_dir = local_bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(default_dir / "Default_Winter_Northern_Lights_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Winter_Reindeer_Winter_Forest_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+
+        grouped = {
+            "Day 1": [
+                {
+                    "day": "Day 1",
+                    "date": "10.02.2027",
+                    "city": "Stockholm",
+                    "title": "Old Town and Waterfront Walking Tour",
+                    "details": "Historic streets, colourful buildings, harbourfront views and island scenery.",
+                }
+            ],
+            "Day 2": [
+                {
+                    "day": "Day 2",
+                    "date": "11.02.2027",
+                    "city": "Kiruna",
+                    "title": "Northern Lights Evening Search",
+                    "details": "Arctic night sky, aurora viewing and snowy landscapes.",
+                }
+            ],
+        }
+        matches = select_day_images(grouped, local_bank)
+        if not matches.get("Day 1") or not matches.get("Day 2"):
+            raise AssertionError("Swedish destinations without Sweden folders should still receive root Default fallback images.")
+        assert_contains(
+            str(matches["Day 2"].get("path", "")).replace("\\", "/"),
+            "Default/Default_Winter_Northern_Lights",
+            "Northern lights text should pick a relevant root Default aurora image.",
+        )
+
+
+def test_image_bank_diagnostics_counts_root_default_images():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        (bank / "Default").mkdir(parents=True)
+        (bank / "Norway" / "Oslo").mkdir(parents=True)
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(bank / "Default" / "Default_Winter_Northern_Lights_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(bank / "Norway" / "Oslo" / "Oslo_Summer_Opera_House_01.jpg", format="JPEG")
+
+        diagnostics = get_image_bank_diagnostics(bank)
+        assert_equal(diagnostics["total_images"], 2, "Diagnostics should count all scanned images.")
+        assert_equal(diagnostics["default_images"], 1, "Diagnostics should count root Default images.")
+        assert_equal(diagnostics["destination_images"], 1, "Diagnostics should count destination images separately.")
+
 def test_layout_policy_one_day_per_page():
     assert_equal(
         DEFAULT_DAY_PAGE_LAYOUT,
@@ -797,6 +853,8 @@ def run_all():
         test_destination_specific_image_wins_over_default_fallback,
         test_default_fallback_does_not_reuse_images_until_needed,
         test_multi_country_external_image_bank_paths_are_supported,
+        test_swedish_itinerary_uses_root_default_when_no_sweden_images_exist,
+        test_image_bank_diagnostics_counts_root_default_images,
         test_layout_policy_one_day_per_page,
         test_pdf_day_image_layout_rules,
         test_pdf_export_places_day_image_from_current_page_story,

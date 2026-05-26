@@ -244,6 +244,37 @@ def scan_image_bank(image_bank_path: Path | str | list | tuple | set = "image_ba
     return candidates
 
 
+def get_image_bank_diagnostics(image_bank_path: Path | str | list | tuple | set = "image_bank") -> dict:
+    """Return lightweight scan diagnostics for the app sidebar/debug panels.
+
+    This intentionally reuses scan_image_bank rather than maintaining a second
+    scanner. The counts make it obvious when the root Default folder is not
+    being picked up, which is the most important failure mode for missing
+    destination fallback imagery.
+    """
+    paths = _coerce_image_bank_paths(image_bank_path)
+    candidates = scan_image_bank(paths)
+    default_images = [candidate for candidate in candidates if _is_global_default_candidate(candidate)]
+    destination_images = [candidate for candidate in candidates if not _is_global_default_candidate(candidate)]
+    by_city: dict[str, int] = {}
+    by_country: dict[str, int] = {}
+    for candidate in candidates:
+        city_key = candidate.city or "Default"
+        country_key = candidate.country or "Global"
+        by_city[city_key] = by_city.get(city_key, 0) + 1
+        by_country[country_key] = by_country.get(country_key, 0) + 1
+
+    return {
+        "paths": [str(path) for path in paths],
+        "existing_paths": [str(path) for path in paths if path.exists() and path.is_dir()],
+        "total_images": len(candidates),
+        "default_images": len(default_images),
+        "destination_images": len(destination_images),
+        "by_city": dict(sorted(by_city.items(), key=lambda item: item[0].lower())),
+        "by_country": dict(sorted(by_country.items(), key=lambda item: item[0].lower())),
+    }
+
+
 def build_day_context(day: str, rows: list[dict]) -> dict:
     city = ""
     parts = [day]

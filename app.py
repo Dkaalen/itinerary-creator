@@ -41,7 +41,7 @@ from generator import (
     get_transfer_travel_title,
     is_self_arranged,
 )
-from image_matcher import select_day_image, select_day_images, scan_image_bank, format_match_for_debug
+from image_matcher import select_day_image, select_day_images, scan_image_bank, format_match_for_debug, get_image_bank_diagnostics
 from layout_policy import (
     DEFAULT_DAY_PAGE_LAYOUT,
     DAY_PAGE_LAYOUTS,
@@ -1397,9 +1397,10 @@ def normalize_crop_focus(value):
 
 def get_day_image_choice(output_edits, day):
     day_images = get_day_image_overrides(output_edits)
-    choice = day_images.setdefault(day, {"mode": "auto", "path": "", "crop_focus": "top"})
+    choice = day_images.setdefault(day, {"mode": "auto", "path": "", "crop_focus": "top", "removed_by_user": False})
     choice.setdefault("mode", "auto")
     choice.setdefault("path", "")
+    choice.setdefault("removed_by_user", False)
     choice["crop_focus"] = normalize_crop_focus(choice.get("crop_focus", "top"))
     return choice
 
@@ -1425,6 +1426,24 @@ def day_image_match_from_path(day, path, reason="manual selection"):
     }
 
 
+def get_effective_day_image_choice(output_edits, day):
+    """Return the effective image choice for a day.
+
+    Earlier experimental editor versions could persist {mode: "none"} even
+    when the user had not deliberately removed a picture. Treat those stale
+    unmarked removals as automatic so the Default fallback can recover. New
+    explicit removals are marked with removed_by_user=True and still work.
+    """
+    choice = get_day_image_choice(output_edits, day)
+    effective = dict(choice)
+    if effective.get("mode") == "none" and not effective.get("removed_by_user"):
+        effective["mode"] = "auto"
+        effective["path"] = ""
+    if effective.get("mode") == "manual" and not effective.get("path"):
+        effective["mode"] = "auto"
+    return effective
+
+
 def select_day_images_with_overrides(grouped_days, output_edits=None):
     """Apply day image review choices while preserving no-reuse behavior."""
 
@@ -1435,7 +1454,7 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
     # Manual and removed choices first, so automatic selections cannot reuse a
     # picture selected by the user on another day.
     for day, rows in (grouped_days or {}).items():
-        choice = overrides.get(day, {}) or {}
+        choice = get_effective_day_image_choice(output_edits, day)
         mode = choice.get("mode", "auto")
         manual_path = choice.get("path", "")
 
@@ -2091,6 +2110,7 @@ def set_day_image_mode(output_edits, day, mode, path=""):
     choice = get_day_image_choice(output_edits, day)
     choice["mode"] = mode
     choice["path"] = path if mode == "manual" else ""
+    choice["removed_by_user"] = mode == "none"
     mark_output_dirty()
 
 
@@ -2801,7 +2821,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
         original_rows = grouped_days.get(day, rows)
         image_match = image_matches.get(day)
-        image_choice = get_day_image_choice(output_edits, day)
+        image_choice = get_effective_day_image_choice(output_edits, day)
         image_path = image_match.get("path", "") if image_match else ""
         city = day_edit.get("city") or get_primary_city(rows)
         image_options = []
@@ -2906,6 +2926,7 @@ def apply_visual_editor_payload(editor_payload, parsed_rows, output_edits):
             choice = get_day_image_choice(output_edits, day)
             choice["mode"] = mode if mode in {"auto", "manual", "none"} else "auto"
             choice["path"] = path if choice["mode"] == "manual" else ""
+            choice["removed_by_user"] = choice["mode"] == "none"
             choice["crop_focus"] = crop_focus
 
         for row_data in day_data.get("rows", []):
@@ -3937,6 +3958,16 @@ with st.sidebar:
         st.caption(f"Using external image bank: {external_path}")
     else:
         st.caption("Using local ./image_bank only.")
+    try:
+        image_diag = get_image_bank_diagnostics(get_image_bank_paths())
+        st.caption(
+            f"Image scan: {image_diag.get('total_images', 0)} total · "
+            f"{image_diag.get('default_images', 0)} Default · "
+            f"{image_diag.get('destination_images', 0)} destination"
+        )
+    except Exception:
+        st.caption("Image scan unavailable.")
+
     if previous_external_image_bank_path != st.session_state.external_image_bank_path:
         mark_output_dirty()
 
