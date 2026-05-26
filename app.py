@@ -52,7 +52,7 @@ from layout_policy import (
 from ui.editor_sanitizer import clean_visual_editor_html
 
 
-APP_VERSION = "2026-05-22 v36c13-editor-pdf-alignment"
+APP_VERSION = "2026-05-22 v36c14-smart-default-image-fallback"
 
 
 st.set_page_config(
@@ -1310,7 +1310,40 @@ def can_pack_three_days(day_rows_triple, output_edits=None):
 
 
 def get_image_bank_path():
+    """Local lightweight image bank kept with the app for tests/fallbacks."""
     return Path(__file__).parent / "image_bank"
+
+
+def get_external_image_bank_path():
+    value = clean_space(st.session_state.get("external_image_bank_path", ""))
+    if not value:
+        return None
+    try:
+        path = Path(value).expanduser()
+    except Exception:
+        return None
+    if path.exists() and path.is_dir():
+        return path
+    return None
+
+
+def get_image_bank_paths():
+    """Return image banks in scan order.
+
+    The small repo image_bank remains the safe fallback. A full local bank can
+    live outside the repository, for example:
+    C:/Users/DennisKålen/Desktop/itinerary_app/image-bank-full
+    """
+    paths = []
+    external = get_external_image_bank_path()
+    if external:
+        paths.append(external)
+    paths.append(get_image_bank_path())
+    return paths
+
+def get_writable_image_bank_path():
+    """Prefer saving uploads into the external full bank when it is configured."""
+    return get_external_image_bank_path() or get_image_bank_path()
 
 
 def normalize_path_key(value):
@@ -1329,7 +1362,7 @@ def slugify_filename(value):
 
 def infer_country_for_city(city):
     city_key = clean_space(city).lower()
-    for candidate in scan_image_bank(get_image_bank_path()):
+    for candidate in scan_image_bank(get_image_bank_paths()):
         if clean_space(candidate.city).lower() == city_key and candidate.country:
             return candidate.country
     return "Custom"
@@ -1421,7 +1454,7 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
             else:
                 selected[day] = None
 
-    base_matches = select_day_images(grouped_days, get_image_bank_path(), used_paths=used_paths.copy())
+    base_matches = select_day_images(grouped_days, get_image_bank_paths(), used_paths=used_paths.copy())
 
     for day, rows in (grouped_days or {}).items():
         if day in selected:
@@ -1440,10 +1473,15 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
 
 def list_city_image_options(city):
     city_key = clean_space(city).lower()
-    options = []
-    for candidate in scan_image_bank(get_image_bank_path()):
-        if clean_space(candidate.city).lower() == city_key:
-            options.append(Path(candidate.path))
+    destination_options = []
+    default_options = []
+    for candidate in scan_image_bank(get_image_bank_paths()):
+        candidate_city = clean_space(candidate.city).lower()
+        if candidate_city == city_key:
+            destination_options.append(Path(candidate.path))
+        elif candidate_city in {"default", "defoult"}:
+            default_options.append(Path(candidate.path))
+    options = destination_options or default_options
     return sorted(options, key=lambda path: path.name.lower())
 
 
@@ -1455,7 +1493,7 @@ def save_uploaded_day_image(uploaded_file, city, season, label=""):
     season_name = season if season in {"Summer", "Winter"} else "Summer"
     stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or Path(uploaded_file.name).stem)]
     suffix = Path(uploaded_file.name).suffix.lower() or ".jpg"
-    target_dir = get_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
+    target_dir = get_writable_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
 
@@ -1471,7 +1509,7 @@ def save_uploaded_day_image(uploaded_file, city, season, label=""):
 def render_day_image_slot(day, rows, match=None, output_edits=None):
     """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
-        match = select_day_image(day, rows, get_image_bank_path())
+        match = select_day_image(day, rows, get_image_bank_paths())
     if not match:
         return ""
 
@@ -2724,7 +2762,7 @@ def save_base64_day_image(data_url, filename, city, season="Summer", label="visu
             suffix = ".jpg"
 
     stem_bits = [slugify_filename(city_name), season_name, slugify_filename(label or source_name)]
-    target_dir = get_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
+    target_dir = get_writable_image_bank_path() / slugify_filename(country) / slugify_filename(city_name)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / ("_".join([bit for bit in stem_bits if bit]) + suffix)
 
@@ -3880,6 +3918,27 @@ with st.sidebar:
     previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
     st.session_state.day_page_layout = selected_day_layout
     st.caption("One itinerary day per A4 page.")
+
+    st.divider()
+    st.subheader("Image bank")
+    external_default = "C:/Users/DennisKålen/Desktop/itinerary_app/image-bank-full"
+    external_image_bank_path = st.text_input(
+        "External image-bank path",
+        value=st.session_state.get("external_image_bank_path", ""),
+        placeholder=external_default,
+        help="Optional full image bank outside the Git project. The app also scans the local ./image_bank fallback.",
+    )
+    previous_external_image_bank_path = st.session_state.get("external_image_bank_path", "")
+    st.session_state.external_image_bank_path = external_image_bank_path.strip()
+    external_path = get_external_image_bank_path()
+    if st.session_state.external_image_bank_path and not external_path:
+        st.caption("External image bank not found. Using local ./image_bank only.")
+    elif external_path:
+        st.caption(f"Using external image bank: {external_path}")
+    else:
+        st.caption("Using local ./image_bank only.")
+    if previous_external_image_bank_path != st.session_state.external_image_bank_path:
+        mark_output_dirty()
 
     if st.session_state.get("output_edits"):
         st.session_state.output_edits["color_preset"] = selected_preset

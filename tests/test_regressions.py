@@ -432,6 +432,137 @@ def test_day_image_selection_does_not_reuse_images_and_prefers_available_season(
             raise AssertionError("Winter-dated itineraries should prefer available Winter images.")
 
 
+
+def test_root_default_fallback_is_used_when_destination_missing_and_is_relevant():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(
+            default_dir / "Default_Winter_Northern_Lights_01.jpg", format="JPEG"
+        )
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(
+            default_dir / "Default_Summer_Scenic_Fjord_View_01.jpg", format="JPEG"
+        )
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "15.01.2027",
+                    "city": "Narvik",
+                    "title": "Northern lights evening experience",
+                    "details": "Aurora viewing and winter sky photography.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Missing destination should fall back to the root Default image bank.")
+        assert_contains(
+            Path(match["path"]).name,
+            "Northern_Lights",
+            "Default fallback should choose a semi-relevant northern-lights image when the day mentions aurora.",
+        )
+        assert_contains(
+            str(match.get("reason", "")),
+            "global default fallback",
+            "Default fallback matches should explain that they came from the global default pool.",
+        )
+
+
+def test_destination_specific_image_wins_over_default_fallback():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        oslo_dir = bank / "Norway" / "Oslo"
+        default_dir = bank / "Default"
+        oslo_dir.mkdir(parents=True)
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(oslo_dir / "Oslo_Summer_Opera_House_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(default_dir / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "15.07.2027",
+                    "city": "Oslo",
+                    "title": "Oslo Opera House and city waterfront",
+                    "details": "City sightseeing near the harbour.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Oslo day should receive an Oslo image.")
+        assert_contains(
+            str(match.get("path", "")).replace("\\", "/"),
+            "Norway/Oslo",
+            "Destination-specific folders should beat the root Default fallback.",
+        )
+
+
+def test_default_fallback_does_not_reuse_images_until_needed():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        for name in [
+            "Default_Summer_Scenic_Fjord_View_01.jpg",
+            "Default_Summer_Aerial_Fjord_View_01.jpg",
+        ]:
+            Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / name, format="JPEG")
+
+        grouped = {
+            "Day 1": [{"day": "Day 1", "date": "15.07.2027", "city": "Geilo", "title": "Scenic fjord route", "details": "Fjord views."}],
+            "Day 2": [{"day": "Day 2", "date": "16.07.2027", "city": "Lillehammer", "title": "Fjord viewpoint", "details": "Scenic landscape."}],
+        }
+        matches = select_day_images(grouped, bank)
+        paths = [match["path"] for match in matches.values() if match]
+        assert_equal(len(paths), 2, "Two missing destinations should receive two Default fallback images when available.")
+        assert_equal(len(set(paths)), 2, "Default fallback images should not be reused within the same itinerary.")
+
+
+def test_multi_country_external_image_bank_paths_are_supported():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        local_bank = Path(tmp) / "local_image_bank"
+        external_bank = Path(tmp) / "external_image_bank"
+        (local_bank / "Default").mkdir(parents=True)
+        (external_bank / "Finland" / "Helsinki").mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(local_bank / "Default" / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(external_bank / "Finland" / "Helsinki" / "Helsinki_Summer_City_Centre_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "15.07.2027",
+                    "city": "Helsinki",
+                    "title": "Helsinki city centre walking tour",
+                    "details": "Guided sightseeing in Finland.",
+                }
+            ],
+            [external_bank, local_bank],
+        )
+        if not match:
+            raise AssertionError("Multi-country external image bank should be scanned.")
+        assert_contains(
+            str(match.get("path", "")).replace("\\", "/"),
+            "Finland/Helsinki",
+            "Exact country/destination matches in an external image bank should work for future Nordic countries.",
+        )
+
 def test_layout_policy_one_day_per_page():
     assert_equal(
         DEFAULT_DAY_PAGE_LAYOUT,
@@ -662,6 +793,10 @@ def run_all():
         test_image_bank_matching_is_destination_specific,
         test_image_bank_missing_folder_is_safe,
         test_day_image_selection_does_not_reuse_images_and_prefers_available_season,
+        test_root_default_fallback_is_used_when_destination_missing_and_is_relevant,
+        test_destination_specific_image_wins_over_default_fallback,
+        test_default_fallback_does_not_reuse_images_until_needed,
+        test_multi_country_external_image_bank_paths_are_supported,
         test_layout_policy_one_day_per_page,
         test_pdf_day_image_layout_rules,
         test_pdf_export_places_day_image_from_current_page_story,

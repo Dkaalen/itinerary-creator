@@ -5,14 +5,22 @@ Image-bank matching for itinerary day imagery.
 
 Expected folder shape:
     image_bank/
+        Default/
+            Default_Summer_Fjord_View_01.jpg
+            Default_Winter_Northern_Lights_01.jpg
         Norway/
             Oslo/
                 Oslo_Summer_Opera_House.jpg
                 Oslo_Winter_Northern_Lights.jpg
+        Finland/
+        Sweden/
+        Denmark/
+        Iceland/
 
-The matcher is intentionally conservative: if there is no image for the day's
-own destination/city, it returns None. A missing image is better than a wrong
-image in a premium itinerary.
+Matching is destination-first. A destination/city image always wins when it is
+available. If a destination is missing, the root-level Default folder provides
+a controlled fallback pool, scored against day content so generic images still
+feel semi-relevant.
 """
 
 from __future__ import annotations
@@ -45,12 +53,14 @@ CITY_ALIASES = {
 
 THEME_ALIASES = {
     "northern lights": {"northern", "lights", "northernlights", "aurora", "basecamp", "chase", "hunt"},
-    "fjord": {"fjord", "fjords", "kvaloya", "kvaløya", "sommaroy", "sommarøy", "cruise", "boat"},
-    "city": {"city", "center", "centre", "street", "streets", "walking", "sightseeing", "landmarks"},
-    "waterfront": {"waterfront", "harbour", "harbor", "brygge", "aker", "bjorvika", "bjørvika", "opera", "skyline"},
+    "fjord": {"fjord", "fjords", "kvaloya", "kvaløya", "sommaroy", "sommarøy", "cruise", "boat", "lake", "waterfall"},
+    "city": {"city", "center", "centre", "street", "streets", "walking", "sightseeing", "landmarks", "arrival", "departure", "skyline", "buildings"},
+    "waterfront": {"waterfront", "harbour", "harbor", "brygge", "aker", "bjorvika", "bjørvika", "opera", "skyline", "coast", "coastal"},
+    "mountain": {"mountain", "mountains", "viewpoint", "view", "hike", "hiking", "valley", "road", "scenic", "landscape", "forest"},
+    "winter": {"winter", "snow", "snowy", "ice", "icy", "arctic", "frozen"},
     "old town": {"old", "town", "oldtown", "historic", "medieval"},
     "santa": {"santa", "claus", "christmas", "arctic", "circle"},
-    "wildlife": {"wildlife", "ranua", "animals", "zoo"},
+    "wildlife": {"wildlife", "ranua", "animals", "zoo", "reindeer"},
     "igloo": {"glass", "igloo", "kakslauttanen", "arctic", "resort"},
     "train": {"train", "rail", "railway", "nutshell", "flam", "flåm"},
     "funicular": {"funicular", "floibanen", "fløibanen", "mountain", "view"},
@@ -171,8 +181,15 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
         relative = path
 
     parts = list(relative.parts)
-    country = parts[0] if len(parts) >= 3 else ""
-    city = parts[1] if len(parts) >= 3 else (parts[0] if len(parts) >= 2 else "")
+    # Standard destination folders are Country/City/Image. A root-level Default
+    # folder is special: Default/Image. This avoids having to duplicate default
+    # images inside every country folder.
+    if len(parts) >= 2 and normalize_keyword(parts[0]) in {"default", "defoult"}:
+        country = ""
+        city = "Default"
+    else:
+        country = parts[0] if len(parts) >= 3 else ""
+        city = parts[1] if len(parts) >= 3 else (parts[0] if len(parts) >= 2 else "")
     filename = path.stem
     token_source = " ".join([country, city, filename.replace("_", " ")])
     tokens = tokenize(token_source)
@@ -190,13 +207,39 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
     )
 
 
-def scan_image_bank(image_bank_path: Path | str = "image_bank") -> list[ImageCandidate]:
-    base = Path(image_bank_path)
-    if not base.exists() or not base.is_dir():
-        return []
+def _coerce_image_bank_paths(image_bank_path: Path | str | list | tuple | set = "image_bank") -> list[Path]:
+    if isinstance(image_bank_path, (list, tuple, set)):
+        values = list(image_bank_path)
+    else:
+        values = [image_bank_path]
+
+    paths: list[Path] = []
+    seen: set[str] = set()
+    for value in values:
+        if not value:
+            continue
+        path = Path(value).expanduser()
+        key = str(path.resolve()) if path.exists() else str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        paths.append(path)
+    return paths
+
+
+def scan_image_bank(image_bank_path: Path | str | list | tuple | set = "image_bank") -> list[ImageCandidate]:
     candidates = []
-    for path in sorted(base.rglob("*")):
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS:
+    seen_files: set[str] = set()
+    for base in _coerce_image_bank_paths(image_bank_path):
+        if not base.exists() or not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in IMAGE_EXTENSIONS:
+                continue
+            key = str(path.resolve())
+            if key in seen_files:
+                continue
+            seen_files.add(key)
             candidates.append(extract_image_metadata(path, base))
     return candidates
 
@@ -231,6 +274,47 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
     }
 
 
+def _is_global_default_candidate(candidate: ImageCandidate) -> bool:
+    return normalize_keyword(candidate.city) in {"default", "defoult"}
+
+
+def _candidate_destination_matches(candidate: ImageCandidate, day_context: dict) -> bool:
+    day_city_variants = set(day_context.get("city_variants", set()))
+    if not day_city_variants:
+        return False
+    candidate_city_variants = city_variants(candidate.city)
+    return bool(candidate_city_variants & day_city_variants)
+
+
+def _score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
+    score = 8
+    reasons = ["global default fallback"]
+    candidate_tokens = set(candidate.tokens)
+    candidate_themes = set(candidate.themes)
+    day_tokens = set(day_context.get("tokens", set()))
+    day_themes = set(day_context.get("themes", set()))
+
+    theme_matches = candidate_themes & day_themes
+    if theme_matches:
+        score += 20 * len(theme_matches)
+        reasons.append("fallback theme match: " + ", ".join(sorted(theme_matches)))
+
+    day_season = normalize_keyword(day_context.get("season", ""))
+    candidate_seasons = set(candidate.seasons)
+    if day_season and day_season in candidate_seasons:
+        score += 8
+        reasons.append(f"fallback season match: {day_season}")
+
+    token_matches = (candidate_tokens & day_tokens) - {"default", "summer", "winter", "unknown"}
+    if token_matches:
+        score += min(16, 3 * len(token_matches))
+        reasons.append("fallback keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
+
+    # Keep generic defaults safely below real destination matches, but make
+    # obviously relevant defaults rank above unrelated generic defaults.
+    return min(score, 55), reasons
+
+
 def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
     score = 0
     reasons = []
@@ -243,7 +327,10 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     candidate_city_variants = city_variants(candidate.city)
     filename_city_variants = city_variants(candidate.filename)
 
-    # Hard destination rule: no image for this destination means no image.
+    if _is_global_default_candidate(candidate):
+        return _score_default_candidate(candidate, day_context)
+
+    # Destination-specific rule: non-default images must match the day's city.
     if not day_city_variants or not (candidate_city_variants & day_city_variants):
         return 0, ["no destination match"]
 
@@ -278,12 +365,10 @@ def _season_available_for_context(candidates: list[ImageCandidate], context: dic
     if not day_season:
         return False
 
-    day_city_variants = set(context.get("city_variants", set()))
     for candidate in candidates:
         if day_season not in set(candidate.seasons):
             continue
-        candidate_city_variants = city_variants(candidate.city)
-        if candidate_city_variants & day_city_variants:
+        if _candidate_destination_matches(candidate, context) or _is_global_default_candidate(candidate):
             return True
     return False
 
