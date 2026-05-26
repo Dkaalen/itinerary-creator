@@ -536,6 +536,8 @@ def run_all():
         test_activity_block_helpers_are_self_contained_after_split,
         test_parser_split_public_imports_remain_stable,
         test_generator_split_public_imports_remain_stable,
+        test_colleague_duration_with_dot_minutes,
+        test_content_cleanup_for_helsinki_lapland_sample,
     ]
 
     for test in tests:
@@ -545,5 +547,76 @@ def run_all():
 
 
 
+def test_colleague_duration_with_dot_minutes():
+    assert_equal(
+        format_duration_display("2.15 Hr"),
+        "2 hours 15 minutes",
+        "Supplier shorthand 2.15 Hr should mean 2 hours 15 minutes, not decimal hours.",
+    )
+    assert_equal(
+        expand_time_with_duration("10:30 AM", "2.15 Hr"),
+        "10:30 AM - 12:45 PM",
+        "2.15 Hr should calculate the correct end time.",
+    )
+
+
+def test_content_cleanup_for_helsinki_lapland_sample():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+
+    raw = """
+	Day 1	Hotel	2	14/11/2026	16/11/2026					Helsinki 	3 Star ,Hotel Arthur , 2xNight , 2x Standard Room 1xStandard Triple Room, Incl Brekafast 
+	Day 2	Activity		15/11/2026						Helsinki 	A Finntastic Walking Tour in Helsinki | 10:30  AM | 2.15 Hr | Professional authorised Helsinki Guide 
+	Day 3	Hotel	2	16/11/2026	18/11/2026					Rovaniemi	3 Star , Hotel Aakenus  2xNight , 3x Tirple Room, Incl Brekafast 
+	Day 4	Activity		17/11/2026						Rovaniemi	Rovaniemi: Meet Santa Claus, Reindeer Ride & Greet Huskies |08:30 AM | 5 hrs
+
+What's included?
+Baby seat are provided if needed
+Professional driver & guide (English)
+	Day 7	Departure		20/11/2026						Helsinki 	Departure
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    room_values = {row.get("title"): row.get("room_category") for row in rows if row.get("effective_type") == "Hotel"}
+    assert_equal(
+        room_values.get("Hotel Arthur"),
+        "Standard Room and Standard Triple Room",
+        "Multiple room categories should be separated cleanly.",
+    )
+    assert_equal(
+        room_values.get("Hotel Aakenus"),
+        "Triple Room",
+        "Common room typo should be corrected.",
+    )
+
+    activity_rows = [row for row in rows if row.get("effective_type") == "Activity"]
+    assert_equal(
+        activity_rows[0].get("time"),
+        "10:30 AM - 12:45 PM",
+        "The Helsinki walking tour should display the correct time range.",
+    )
+    joined_includes = "\n".join(item for row in activity_rows for item in row.get("includes", []))
+    assert_contains(joined_includes, "Baby seats are provided if needed", "Baby-seat text should be grammatical.")
+
+    glance = create_trip_glance(rows, grouped)
+    assert_equal(glance.get("End"), "Helsinki", "Trip glance should end at the final day city, not the last unique destination.")
+
+    departure_intro = create_day_intro(grouped["Day 7"], detail_level="Rich descriptive")
+    assert_not_contains(
+        departure_intro.lower(),
+        "arranged transfer",
+        "Departure-only days should not invent an airport transfer.",
+    )
+
+    sections = create_categorized_inclusions(rows, grouped)
+    section_titles = [section["title"] for section in sections]
+    assert_contains("\n".join(section_titles), "Accommodation", "Categorized inclusions should include accommodation.")
+    assert_contains("\n".join(section_titles), "Activities & experiences", "Categorized inclusions should include activities.")
+    accommodation_text = "\n".join(section["items"][0] for section in sections if section["title"] == "Accommodation")
+    assert_contains(accommodation_text, "Room category", "Accommodation inclusions should include rooming details.")
+
+
 if __name__ == "__main__":
     run_all()
+
+

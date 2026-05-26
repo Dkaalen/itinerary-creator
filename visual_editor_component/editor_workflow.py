@@ -13,6 +13,7 @@ from generator import (
     create_trip_title,
     get_primary_city,
 )
+from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
     get_day_image_choice,
     get_day_image_crop_focus,
@@ -64,9 +65,14 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     return {
         "cover": {
+            "cover_kicker": output_edits.get("cover_kicker", "Curated Travel Itinerary"),
             "trip_title": output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
             "trip_subtitle": output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
             "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+        },
+        "summary": {
+            "trip_glance": create_trip_glance(parsed_rows, grouped_days),
+            "journey_arc": create_journey_arc(grouped_days),
         },
         "days": payload_days,
         "final_pages": {
@@ -88,7 +94,7 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         return False
 
     cover = data.get("cover", {}) or {}
-    for key in ["trip_title", "trip_subtitle", "destinations_line"]:
+    for key in ["cover_kicker", "trip_title", "trip_subtitle", "destinations_line"]:
         if key in cover:
             output_edits[key] = str(cover.get(key, "")).strip()
 

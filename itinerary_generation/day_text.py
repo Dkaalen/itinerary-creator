@@ -9,6 +9,7 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.transport import (
     get_first_transfer_title,
+    get_transfer_travel_title,
     has_airport_arrival_transfer,
     has_only_departure_arrangements,
     is_route_transfer,
@@ -45,6 +46,11 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
 
     if has_only_departure_arrangements(day_rows) and city:
         transfer_title = get_first_transfer_title(day_rows).lower()
+        has_transfer_row = any(get_row_type(row) == "Transfer" for row in day_rows)
+        if not has_transfer_row:
+            if detail_level == "Rich descriptive":
+                return f"Your journey comes to a close in {city} today, with time for check-out and your onward travel arrangements."
+            return f"Your journey comes to a close in {city} today."
         if "self-guided" in transfer_title or "self transfer" in transfer_title:
             return f"After check-out, please make your own way to {city} Airport for your onward journey."
         if detail_level == "Rich descriptive":
@@ -115,11 +121,19 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             return intro_variants[variant_index]
 
     if (transports or route_transfers) and city:
+        route_titles = [get_transfer_travel_title(row) for row in route_transfers]
+        transport_titles = [row.get("title", "") for row in transports]
+        combined_titles = " ".join(route_titles + transport_titles)
+        destination_city = ""
+        for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
+            if possible_city.lower() in combined_titles.lower():
+                destination_city = "Saariselkä" if possible_city == "Saariselka" else possible_city
+        display_city = destination_city or city
         if detail_level == "Elegant concise":
-            return f"Continue your journey with arranged travel connected to {city}."
+            return f"Continue your journey with arranged travel connected to {display_city}."
         if detail_level == "Rich descriptive":
-            return f"The journey continues towards {city}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
-        return f"Continue your journey with arranged travel connected to {city}. The route is structured to stay clear, comfortable, and easy to follow."
+            return f"The journey continues towards {display_city}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
+        return f"Continue your journey with arranged travel connected to {display_city}. The route is structured to stay clear, comfortable, and easy to follow."
 
     if transfers and city:
         if detail_level == "Elegant concise":

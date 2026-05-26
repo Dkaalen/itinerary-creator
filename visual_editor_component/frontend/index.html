@@ -107,6 +107,13 @@
       margin-bottom: 34px;
     }
     .cover-destinations { color: var(--body); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+    .summary-card { border: 1px solid rgba(31,52,70,.16); background: rgba(255,255,255,.16); padding: 24px; margin-bottom: 28px; }
+    .summary-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 28px; margin-bottom: 14px; }
+    .glance-row { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(31,52,70,.12); font-size: 14px; line-height: 1.45; }
+    .glance-label { font-weight: 800; color: var(--ink); }
+    .journey-table { width: 100%; border-collapse: collapse; color: var(--body); font-size: 13px; line-height: 1.4; }
+    .journey-table th { text-align: left; color: var(--ink); padding: 8px 6px; border-bottom: 1px solid rgba(31,52,70,.18); }
+    .journey-table td { padding: 9px 6px; border-bottom: 1px solid rgba(31,52,70,.12); vertical-align: top; }
     .day-label { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
     .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 12px; }
     .city { margin-bottom: 20px; }
@@ -226,6 +233,16 @@ function imageHtml(day, dayIndex) {
       </div>
     </div>`;
 }
+function summaryPage(summary) {
+  const glance = summary?.trip_glance || {};
+  const arc = summary?.journey_arc || [];
+  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div><div>${esc(glance[key])}</div></div>`).join('');
+  const arcRows = arc.map(row => `<tr><td>${esc(row.chapter)}</td><td>${esc(row.days)}</td><td>${esc(row.experience)}</td></tr>`).join('');
+  return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page"><div class="page-content">
+    <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
+    <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
+  </div></div></div>`;
+}
 function finalPage(label, title, key, text) {
   return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
     <div class="final-title">${esc(title)}</div>
@@ -233,7 +250,7 @@ function finalPage(label, title, key, text) {
   </div></div></div>`;
 }
 function render(payload) {
-  initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},days:[],final_pages:{}}));
+  initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
   model = JSON.parse(JSON.stringify(initialPayload));
   uploadedImages = {};
   draw();
@@ -247,11 +264,12 @@ function draw() {
     </div>
     <div class="page-stack">`;
   h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page"><div class="page-content">
-      <div class="cover-kicker">Curated Travel Itinerary</div>
+      ${editableText(model.cover?.cover_kicker || 'Curated Travel Itinerary', 'cover.cover_kicker', 'cover-kicker')}
       ${editableText(model.cover?.trip_title, 'cover.trip_title', 'cover-title')}
       ${editableText(model.cover?.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
       ${editableText(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
     </div></div></div>`;
+  h += summaryPage(model.summary || {});
   (model.days || []).forEach((day, i) => {
     h += `<div class="page-wrap"><div class="page-label">${esc(day.day)}</div><div class="a4-page day-page"><div class="page-content">
       <div class="day-label">${esc(day.label || day.day)}</div>

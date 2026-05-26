@@ -4,8 +4,10 @@ from itinerary_generation.common import (
     get_primary_city,
     get_row_type,
     get_unique_cities,
+    is_valid_destination_city,
     main_rows_only,
 )
+from place_aliases import canonicalize_place_name
 from itinerary_generation.transport import (
     has_glass_igloo_or_arctic_resort,
     has_norway_in_a_nutshell,
@@ -18,8 +20,13 @@ def create_trip_glance(parsed_rows, grouped_days):
     day_count = get_day_count(grouped_days)
     nights = max(day_count - 1, 0)
 
-    start_city = cities[0] if cities else "TBA"
-    end_city = cities[-1] if cities else "TBA"
+    row_cities = [
+        canonicalize_place_name(row.get("city", ""))
+        for row in parsed_rows
+        if is_valid_destination_city(canonicalize_place_name(row.get("city", "")))
+    ]
+    start_city = row_cities[0] if row_cities else (cities[0] if cities else "TBA")
+    end_city = row_cities[-1] if row_cities else (cities[-1] if cities else "TBA")
     destinations = " · ".join(cities) if cities else "TBA"
 
     hotel_rows = [row for row in parsed_rows if get_row_type(row) == "Hotel"]

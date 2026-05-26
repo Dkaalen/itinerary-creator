@@ -60,16 +60,40 @@ def looks_like_departure_text(value: str) -> bool:
     return sum(1 for marker in markers if marker in lower) >= 2 or ("return flight" in lower and "airport" in lower)
 
 
-def normalize_room_category(value: str) -> str:
+def _normalize_single_room_category(value: str) -> str:
     room = polish_client_text(value)
     room = re.sub(r"^\s*\d+\s*x\s*", "", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
     room = re.sub(r"\bStandard\s+room\b", "Standard Room", room, flags=re.IGNORECASE)
     room = re.sub(r"\bStandard\s+Double\s+room\b", "Standard Double Room", room, flags=re.IGNORECASE)
     room = re.sub(r"\bStandard\s+Double\s+Room\b", "Standard Double Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bTriple\s+room\b", "Triple Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bPanorama\s+suite\b", "Panorama Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall\s+Glass\s+Igloo\b", "Small Glass Igloo", room, flags=re.IGNORECASE)
+    return clean_space(room.strip(" ,-"))
+
+
+def normalize_room_category(value: str) -> str:
+    room = polish_client_text(value)
+    room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
+    room = re.sub(r"(?<=\D)(\d+\s*x\s*)", r" \1", room, flags=re.IGNORECASE)
     if re.search(r"\bnight'?s?\b", room, flags=re.IGNORECASE):
         return ""
-    return clean_space(room.strip(" ,-"))
+
+    multi_room_pattern = re.compile(
+        r"(?:\d+\s*x\s*)?(.+?(?:Room|Suite|Cabin|Igloo))(?=\s+\d+\s*x|$)",
+        flags=re.IGNORECASE,
+    )
+    matches = [_normalize_single_room_category(match.group(1)) for match in multi_room_pattern.finditer(room)]
+    matches = [match for match in matches if match]
+    if matches:
+        deduped = []
+        for match in matches:
+            if match not in deduped:
+                deduped.append(match)
+        return " and ".join(deduped)
+
+    return _normalize_single_room_category(room)
 
 
 def normalize_meal_plan(value: str, source_text: str = "") -> str:
@@ -129,8 +153,10 @@ def clean_hotel_name_from_source(row: dict) -> str:
         if re.search(r"\b\d\s*[- ]?star\b", lower):
             continue
         if re.search(r"\b\d+\s*x?\s*night", lower):
-            # Some weak inputs use "2 Night's Hotel Scandic Kemi".
+            # Some weak inputs use either "2 Night's Hotel Scandic Kemi" or
+            # "Hotel Aakenus 2xNight" in the same comma fragment.
             trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?night'?s?\s*", "", part_clean, flags=re.IGNORECASE).strip(" ,-:")
+            trailing = re.sub(r"\s*\d+\s*(?:x\s*)?night'?s?\s*$", "", trailing, flags=re.IGNORECASE).strip(" ,-:")
             if trailing:
                 part_clean = trailing
                 lower = part_clean.lower()
@@ -185,6 +211,7 @@ def normalize_hotel_row(row: dict) -> dict:
         if trimmed:
             name = trimmed
 
+    name = re.sub(r"\bSariselka\b", "Saariselkä", name, flags=re.IGNORECASE)
     row["hotel_name"] = name
     row["title"] = name
     row["room_category"] = room
@@ -271,6 +298,7 @@ def normalize_inclusion_value(value: str) -> str:
     item = re.sub(r"\bcoffee\s+and\s+waffles\s*/\s*cookies\b", "Coffee and waffles or cookies", item, flags=re.IGNORECASE)
     item = re.sub(r"\bhot\s+drinks?\s+and\s+snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", item, flags=re.IGNORECASE)
     item = re.sub(r"\bauthorized\s+english\s*-\s*speaker\s+guide\b", "Authorised English-speaking guide", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bbaby\s+seats?\s+[åa]re\s+provided\s+if\s+needed\b", "Baby seats are provided if needed", item, flags=re.IGNORECASE)
     item = re.sub(r"\bhot\s+drink\s+and\s+biscuits?\s+[åa]re\s+provided\b", "Hot drink and biscuits are provided", item, flags=re.IGNORECASE)
     item = re.sub(r"\bwarm\s+drink\s+and\s+cookies\s+[åa]re\s+included\b", "Warm drink and cookies are included", item, flags=re.IGNORECASE)
     item = re.sub(r"\bfood\s+and\s+drinks\s+[å]re\b", "Food and drinks are included", item, flags=re.IGNORECASE)

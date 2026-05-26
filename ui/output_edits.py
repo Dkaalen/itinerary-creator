@@ -97,6 +97,7 @@ def apply_rich_writing_to_all_days(parsed_rows, output_edits):
 
 def make_output_edit_state(parsed_rows, grouped_days):
     edits = {
+        "cover_kicker": "Curated Travel Itinerary",
         "trip_title": create_trip_title(parsed_rows, grouped_days),
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),
@@ -105,7 +106,8 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "day_page_layout": st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT),
         "days": {},
         "rows": {},
-        "whats_included_text": list_to_text(create_whats_included(parsed_rows, grouped_days)),
+        "whats_included_text": "",
+        "whats_included_mode": "auto_categorized",
         "whats_not_included_text": list_to_text(create_whats_not_included()),
         "important_travel_notes_text": list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES),
     }

@@ -35,6 +35,36 @@ def _normalize_decimal(value: str) -> Decimal | None:
         return None
 
 
+def _parse_hour_duration_minutes(value: str) -> int | None:
+    """Parse supplier hour values into minutes.
+
+    Decimal-looking durations such as 2.15 Hr are often colleague shorthand for
+    2 hours 15 minutes, not 2.15 decimal hours. We treat two-digit fractional
+    parts below 60 as clock-style minutes, while preserving normal decimal
+    values such as 2.5 Hr -> 2 hours 30 minutes.
+    """
+
+    text = str(value or "").replace(",", ".").strip()
+    match = re.fullmatch(r"(\d+)(?:\.(\d+))?", text)
+    if not match:
+        return None
+
+    hours = int(match.group(1))
+    fraction = match.group(2) or ""
+    if not fraction:
+        return hours * 60
+
+    if len(fraction) == 2:
+        minute_value = int(fraction)
+        if 0 <= minute_value < 60:
+            return hours * 60 + minute_value
+
+    decimal_hours = _normalize_decimal(text)
+    if decimal_hours is None:
+        return None
+    return int((decimal_hours * Decimal(60)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
 def parse_duration_minutes(value: str):
     """Return duration in minutes for common supplier duration strings.
 
@@ -67,9 +97,9 @@ def parse_duration_minutes(value: str):
         flags=re.IGNORECASE,
     )
     if hour_match:
-        hours = _normalize_decimal(hour_match.group(1))
-        if hours is not None:
-            total += int((hours * Decimal(60)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        hour_minutes = _parse_hour_duration_minutes(hour_match.group(1))
+        if hour_minutes is not None:
+            total += hour_minutes
 
     minute_match = re.search(
         r"\b(\d+)\s*(?:minutes?|mins?|min|m)\b",

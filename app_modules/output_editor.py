@@ -51,6 +51,11 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
     render_picture_studio(grouped_days, output_edits)
 
     with st.expander("Cover and summary pages", expanded=False):
+        output_edits["cover_kicker"] = st.text_input(
+            "Cover label",
+            value=output_edits.get("cover_kicker", "Curated Travel Itinerary"),
+            key="edit_cover_kicker",
+        )
         output_edits["trip_title"] = st.text_input(
             "Cover title",
             value=output_edits.get("trip_title", ""),
@@ -204,8 +209,9 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
                                 )
 
     with st.expander("Edit final inclusion / exclusion pages", expanded=False):
+        st.caption("Leave the included-services box empty to use the automatic categorized inclusion page. Add text only when you want to override it manually.")
         output_edits["whats_included_text"] = st.text_area(
-            "What’s included, one item per line",
+            "Manual override for What’s included, one item per line",
             value=output_edits.get("whats_included_text", ""),
             height=220,
             key="edit_whats_included_text",

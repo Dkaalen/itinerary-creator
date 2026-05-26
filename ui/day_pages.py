@@ -239,6 +239,27 @@ def render_split_list_pages(title, items, items_per_page=24):
     return html_text
 
 
+def render_categorized_inclusions_pages(title, sections):
+    clean_sections = []
+    for section in sections or []:
+        section_title = str(section.get("title", "")).strip()
+        items = normalize_list(section.get("items", []))
+        if section_title and items:
+            clean_sections.append({"title": section_title, "items": items})
+
+    if not clean_sections:
+        return ""
+
+    html_text = f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}</div>'
+    for section in clean_sections:
+        html_text += '<div class="content-block inclusion-category-block">'
+        html_text += f'<div class="section-title">{esc(section["title"])}</div>'
+        html_text += render_list_items(section["items"], class_name="detail-list inclusion-category-list")
+        html_text += '</div>'
+    html_text += '</div>'
+    return html_text
+
+
 def render_text_paragraph_page(title, paragraphs):
     clean_paragraphs = [polish_client_text(item) for item in normalize_list(paragraphs) if polish_client_text(item)]
     if not clean_paragraphs:

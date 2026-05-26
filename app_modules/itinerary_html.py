@@ -1,6 +1,7 @@
 import json
 
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
+from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 from ui.day_rendering import (
@@ -10,6 +11,7 @@ from ui.day_rendering import (
     render_day_pages,
     render_optional_addons_pages,
     render_split_list_pages,
+    render_categorized_inclusions_pages,
     render_text_paragraph_page,
     text_to_list,
 )
@@ -22,16 +24,16 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     colors = get_color_preset(output_edits)
     colors_json = esc(json.dumps(colors))
 
+    cover_kicker = output_edits.get("cover_kicker") or "Curated Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     journey_arc = create_journey_arc(grouped_days)
 
-    if output_edits.get("whats_included_text"):
-        whats_included = text_to_list(output_edits.get("whats_included_text"))
-    else:
-        whats_included = create_whats_included(parsed_rows, grouped_days)
+    manual_whats_included = text_to_list(output_edits.get("whats_included_text", ""))
+    categorized_inclusions = create_categorized_inclusions(parsed_rows, grouped_days)
+    whats_included = manual_whats_included or create_whats_included(parsed_rows, grouped_days)
 
     optional_addons = create_optional_addons(parsed_rows)
     if output_edits.get("whats_not_included_text"):
@@ -415,6 +417,22 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin-bottom: 5px;
         }}
 
+        .inclusion-category-block {{
+            margin-bottom: 20px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+
+        .inclusion-category-block .section-title {{
+            margin-top: 0;
+            font-size: 12px;
+        }}
+
+        .inclusion-category-list li {{
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }}
+
         .important-notes-page .note-paragraph {{
             font-size: 14px;
             line-height: 1.55;
@@ -451,7 +469,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
         <div class="a4-page cover-page">
-            <div class="cover-kicker">Curated Travel Itinerary</div>
+            <div class="cover-kicker">{esc(cover_kicker)}</div>
             <div class="cover-title">{esc(trip_title)}</div>
             <div class="cover-subtitle">{esc(trip_subtitle)}</div>
             <div class="cover-destinations">{esc(destinations_line)}</div>
@@ -504,7 +522,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     html_text += render_day_pages(grouped_days, output_edits)
 
-    html_text += render_split_list_pages("What’s included", whats_included)
+    if manual_whats_included:
+        html_text += render_split_list_pages("What’s included", whats_included)
+    else:
+        html_text += render_categorized_inclusions_pages("What’s included", categorized_inclusions)
     html_text += render_optional_addons_pages(optional_addons)
     html_text += render_split_list_pages("What’s not included", whats_not_included)
     html_text += render_text_paragraph_page("Important travel notes", important_travel_notes)
