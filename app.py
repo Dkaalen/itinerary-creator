@@ -1330,16 +1330,44 @@ def get_external_image_bank_path():
 def get_image_bank_paths():
     """Return image banks in scan order.
 
-    The small repo image_bank remains the safe fallback. A full local bank can
-    live outside the repository, for example:
+    The small repo image_bank is always scanned. A full local bank can live
+    outside the repository, for example:
     C:/Users/DennisKålen/Desktop/itinerary_app/image-bank-full
+
+    Keep the repo bank first so root-level image_bank/Default is never lost
+    when an external path is missing, empty, or not available in deployment.
+    Destination-specific images still win by score even when they come from the
+    external bank.
     """
-    paths = []
+    paths = [get_image_bank_path()]
     external = get_external_image_bank_path()
     if external:
         paths.append(external)
-    paths.append(get_image_bank_path())
     return paths
+
+
+def get_default_image_bank_paths():
+    """Return explicit root Default folders used as a hard fallback.
+
+    scan_image_bank() supports scanning these folders directly. This protects
+    the app from any pipeline step that accidentally misses the root Default
+    folder while resolving normal country/destination image banks.
+    """
+    paths = []
+    for root in get_image_bank_paths():
+        default_dir = Path(root) / "Default"
+        if default_dir.exists() and default_dir.is_dir():
+            paths.append(default_dir)
+    return paths
+
+
+def select_default_fallback_image(day, rows, used_paths=None):
+    default_paths = get_default_image_bank_paths()
+    if not default_paths:
+        return None
+    matches = select_day_images({day: rows}, default_paths, used_paths=used_paths or set())
+    return matches.get(day)
+
 
 def get_writable_image_bank_path():
     """Prefer saving uploads into the external full bank when it is configured."""
@@ -1479,6 +1507,12 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
         if day in selected:
             continue
         match = base_matches.get(day)
+        if not match:
+            # Hard repair path: if the normal merged bank pipeline fails to
+            # produce a city match, explicitly try root-level Default folders.
+            # This is the expected fallback for countries/destinations that do
+            # not have their own image folders yet, such as early Sweden tests.
+            match = select_default_fallback_image(day, rows, used_paths=used_paths.copy())
         if match:
             key = normalize_path_key(match.get("path", ""))
             if key in used_paths:
@@ -1529,6 +1563,8 @@ def render_day_image_slot(day, rows, match=None, output_edits=None):
     """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
         match = select_day_image(day, rows, get_image_bank_paths())
+    if not match:
+        match = select_default_fallback_image(day, rows)
     if not match:
         return ""
 
@@ -3960,10 +3996,12 @@ with st.sidebar:
         st.caption("Using local ./image_bank only.")
     try:
         image_diag = get_image_bank_diagnostics(get_image_bank_paths())
+        default_paths = get_default_image_bank_paths()
         st.caption(
             f"Image scan: {image_diag.get('total_images', 0)} total · "
             f"{image_diag.get('default_images', 0)} Default · "
-            f"{image_diag.get('destination_images', 0)} destination"
+            f"{image_diag.get('destination_images', 0)} destination · "
+            f"{len(default_paths)} Default folder(s)"
         )
     except Exception:
         st.caption("Image scan unavailable.")

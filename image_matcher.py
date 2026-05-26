@@ -182,9 +182,13 @@ def extract_image_metadata(image_path: Path, image_bank_path: Path | str) -> Ima
 
     parts = list(relative.parts)
     # Standard destination folders are Country/City/Image. A root-level Default
-    # folder is special: Default/Image. This avoids having to duplicate default
-    # images inside every country folder.
-    if len(parts) >= 2 and normalize_keyword(parts[0]) in {"default", "defoult"}:
+    # folder is special: Default/Image. Also support scanning the Default folder
+    # itself directly, because the app uses that as a hard fallback repair path
+    # when an external image-bank setting is missing or empty.
+    if normalize_keyword(base.name) in {"default", "defoult"}:
+        country = ""
+        city = "Default"
+    elif len(parts) >= 2 and normalize_keyword(parts[0]) in {"default", "defoult"}:
         country = ""
         city = "Default"
     else:
