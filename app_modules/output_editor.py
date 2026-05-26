@@ -1,6 +1,8 @@
 import streamlit as st
 
-from generator import create_day_intro, create_day_title, get_primary_city, get_row_type, group_rows_by_day
+from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
+from itinerary_generation.day_text import create_day_intro
+from itinerary_generation.titles import create_day_title
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
 from ui.day_rendering import get_activity_description, list_to_text
 from ui.output_edits import (

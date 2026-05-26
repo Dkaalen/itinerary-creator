@@ -1,14 +1,8 @@
 import json
 
-from generator import (
-    create_destinations_line,
-    create_journey_arc,
-    create_trip_glance,
-    create_trip_subtitle,
-    create_trip_title,
-    create_whats_included,
-    create_whats_not_included,
-)
+from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
+from itinerary_generation.summaries import create_journey_arc, create_trip_glance
+from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 from ui.day_rendering import (
     create_optional_addons,
     esc,

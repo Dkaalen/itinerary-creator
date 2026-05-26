@@ -1,14 +1,14 @@
 import streamlit as st
 
-from generator import (
+from itinerary_generation.common import (
     TRANSPORT_TYPES,
-    create_activity_inclusions,
-    create_client_activity_title,
     get_row_type,
     group_rows_by_day,
     is_self_arranged,
 )
+from itinerary_generation.titles import create_client_activity_title
 from ui.day_rendering import get_activity_logistics, is_self_arranged_transport
+from ui.final_pages import create_activity_inclusions
 from ui.output_edits import apply_output_edits, apply_rich_writing_to_all_days, mark_output_dirty
 
 

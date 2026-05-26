@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from generator import get_primary_city, group_rows_by_day
+from itinerary_generation.common import get_primary_city, group_rows_by_day
 from ui.output_edits import apply_output_edits, mark_output_dirty
 from images.app_image_selection import (
     CROP_FOCUS_LABELS,

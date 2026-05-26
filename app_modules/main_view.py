@@ -14,7 +14,7 @@ from ui.output_edits import (
     make_output_edit_state,
     mark_output_dirty,
 )
-from generator import group_rows_by_day
+from itinerary_generation.common import group_rows_by_day
 from visual_editor_component.editor_workflow import render_visual_editor
 
 from app_modules.itinerary_html import build_itinerary_html

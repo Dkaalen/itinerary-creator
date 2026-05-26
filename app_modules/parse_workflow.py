@@ -1,6 +1,6 @@
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
-from generator import get_row_type
+from itinerary_generation.common import get_row_type
 
 
 def parse_and_normalize_itinerary(raw_text):

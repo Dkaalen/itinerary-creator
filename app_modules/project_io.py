@@ -2,7 +2,7 @@ import json
 
 import streamlit as st
 
-from generator import group_rows_by_day
+from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
 from ui.output_edits import (
     apply_output_edits,
