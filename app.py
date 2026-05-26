@@ -53,6 +53,8 @@ from ui.app_constants import (
     PRESET_ORDER,
 )
 from ui.styles import apply_global_styles
+from ui.editor_sanitizer import clean_visual_editor_html
+from visual_editor_component.editor_bridge import render_visual_page_editor
 from images.app_image_selection import (
     CROP_FOCUS_LABELS,
     CROP_FOCUS_OPTIONS,
@@ -74,7 +76,7 @@ from images.app_image_selection import (
 )
 
 
-APP_VERSION = "2026-05-22 v36c7-picture-studio"
+APP_VERSION = "2026-05-26 v36c19-visual-editor-split"
 
 
 st.set_page_config(
@@ -1172,8 +1174,12 @@ def render_day_section(day, rows, output_edits=None, packed=False, triple=False)
                 <div class="intro">{esc(day_intro)}</div>
     '''
 
-    for block in blocks:
-        html_text += block["html"]
+    blocks_override = day_edits.get("blocks_html")
+    if blocks_override:
+        html_text += clean_visual_editor_html(blocks_override)
+    else:
+        for block in blocks:
+            html_text += block["html"]
 
     html_text += "</section>"
     return html_text
@@ -2109,10 +2115,20 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             justify-content: center;
         }}
 
+        .single-day-page {{
+            display: flex;
+            flex-direction: column;
+        }}
+
+        .single-day-page .day-section {{
+            flex: 0 0 auto;
+        }}
+
         .day-image-slot {{
-            margin: 24px -64px -66px -64px;
+            margin: auto -64px -66px -64px;
             height: 410px;
             overflow: hidden;
+            flex: 0 0 410px;
         }}
 
         .day-image-preview-img {{
@@ -2551,6 +2567,120 @@ def build_full_html_document(itinerary_html):
 """
 
 
+def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
+    """Build the editable A4-page payload used by the visual editor component."""
+    image_matches = select_day_images_with_overrides(grouped_days, output_edits)
+    payload_days = []
+
+    for day, rows in grouped_days.items():
+        day_edits = (output_edits or {}).get("days", {}).get(day, {})
+        city = day_edits.get("city") or get_primary_city(rows)
+        match = image_matches.get(day)
+        image_path = match.get("path") if match else ""
+        image_obj = {
+            "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
+            "path": image_path or "",
+            "name": Path(image_path).name if image_path else "",
+            "data_uri": image_to_data_uri(image_path) if image_path else "",
+            "crop_focus": get_day_image_crop_focus(output_edits, day),
+            "options": [
+                {"path": str(path), "name": path.name}
+                for path in list_city_image_options(city)
+            ],
+        }
+
+        blocks_html = day_edits.get("blocks_html")
+        if not blocks_html:
+            blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
+
+        payload_days.append({
+            "day": day,
+            "label": day,
+            "title": day_edits.get("title") or create_day_title(rows),
+            "city": city,
+            "intro": day_edits.get("intro") or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
+            "blocks_html": blocks_html,
+            "image": image_obj,
+        })
+
+    return {
+        "cover": {
+            "trip_title": output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
+            "trip_subtitle": output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
+            "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+        },
+        "days": payload_days,
+        "final_pages": {
+            "whats_included_text": output_edits.get("whats_included_text", ""),
+            "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
+            "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
+        },
+    }
+
+
+def apply_visual_editor_result(result, output_edits):
+    """Persist visual editor edits into the normal output_edits structure."""
+    if not result:
+        return False
+    try:
+        data = json.loads(result) if isinstance(result, str) else result
+    except Exception:
+        st.warning("Visual editor edits could not be read. Please try saving again.")
+        return False
+
+    cover = data.get("cover", {}) or {}
+    for key in ["trip_title", "trip_subtitle", "destinations_line"]:
+        if key in cover:
+            output_edits[key] = str(cover.get(key, "")).strip()
+
+    day_payloads = data.get("days", []) or []
+    for day_payload in day_payloads:
+        day = day_payload.get("day")
+        if not day:
+            continue
+        day_edits = output_edits.setdefault("days", {}).setdefault(day, {})
+        for key in ["title", "city", "intro"]:
+            if key in day_payload:
+                day_edits[key] = str(day_payload.get(key, "")).strip()
+        if "blocks_html" in day_payload:
+            cleaned_blocks = clean_visual_editor_html(day_payload.get("blocks_html", ""))
+            if cleaned_blocks:
+                day_edits["blocks_html"] = cleaned_blocks
+
+        image_payload = day_payload.get("image") or {}
+        if image_payload:
+            choice = get_day_image_choice(output_edits, day)
+            mode = str(image_payload.get("mode") or choice.get("mode", "auto")).strip().lower()
+            if mode not in {"auto", "manual", "none"}:
+                mode = "auto"
+            choice["mode"] = mode
+            choice["crop_focus"] = normalize_crop_focus(image_payload.get("crop_focus", choice.get("crop_focus", "top")))
+            if mode == "manual":
+                choice["path"] = str(image_payload.get("path") or choice.get("path", "")).strip()
+            elif mode in {"auto", "none"}:
+                choice["path"] = ""
+
+    final_pages = data.get("final_pages", {}) or {}
+    for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
+        if key in final_pages:
+            output_edits[key] = str(final_pages.get(key, "")).strip()
+
+    mark_output_dirty()
+    return True
+
+
+def render_visual_editor(parsed_rows, grouped_days, output_edits):
+    """Render and process the direct editable A4-page editor."""
+    payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
+    result = render_visual_page_editor(payload, key="visual_page_editor")
+    if result and result != st.session_state.get("_last_visual_editor_result"):
+        st.session_state["_last_visual_editor_result"] = result
+        if apply_visual_editor_result(result, output_edits):
+            rebuild_current_preview(mark_pdf_dirty=True)
+            st.success("Edits saved to preview and PDF export.")
+            st.rerun()
+
+
 def save_html_file(itinerary_html):
     try:
         outputs_folder = Path("outputs")
@@ -2910,6 +3040,7 @@ def reset_project_state(clear_raw_text=True):
         "output_edits",
         "last_generated_raw_text",
         "parser_diagnostics",
+        "_last_visual_editor_result",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -3099,21 +3230,17 @@ if show_debug and st.session_state.parsed_rows:
                     f"{row.get('title')} ({row.get('city')})"
                 )
 
-if st.session_state.itinerary_html:
-    with st.expander("Step 2 — Preview itinerary", expanded=True):
-        st.caption("This preview now follows the PDF image direction more closely. The downloaded PDF remains the final source of truth.")
-        st.html(st.session_state.itinerary_html)
-
 if st.session_state.parsed_rows and st.session_state.output_edits:
-    with st.expander("Step 3 — Review & edit generated itinerary", expanded=False):
-        render_output_editor(
-            st.session_state.parsed_rows,
-            group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
-            st.session_state.output_edits,
-        )
-
     edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
+
+    with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
+        st.markdown(
+            '<div class="workflow-note">Click directly into the A4 pages and type. Use the save button inside the editor before reviewing/exporting.</div>',
+            unsafe_allow_html=True,
+        )
+        render_visual_editor(edited_rows, edited_grouped_days, st.session_state.output_edits)
+
     rebuilt_html = build_itinerary_html(
         edited_rows,
         edited_grouped_days,
@@ -3128,6 +3255,19 @@ if st.session_state.parsed_rows and st.session_state.output_edits:
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
     elif st.session_state.itinerary_html and not st.session_state.html_path:
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+
+if st.session_state.itinerary_html:
+    with st.expander("Step 3 — Review final PDF-style preview", expanded=False):
+        st.caption("This preview is not editable. It is the final layout check before PDF export.")
+        st.html(st.session_state.itinerary_html)
+
+if st.session_state.parsed_rows and st.session_state.output_edits and show_debug:
+    with st.expander("Advanced fallback text and image editor", expanded=False):
+        render_output_editor(
+            st.session_state.parsed_rows,
+            group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
+            st.session_state.output_edits,
+        )
 
 if st.session_state.itinerary_html:
     st.subheader("Step 4 — Export")
