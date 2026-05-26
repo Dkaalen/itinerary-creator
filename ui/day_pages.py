@@ -1,14 +1,20 @@
 """A4 day-page rendering and packing helpers."""
 
-from generator import create_day_intro, create_day_title, get_primary_city
+import re
+
+from generator import create_day_intro, create_day_title, get_primary_city, get_row_type
 from layout_policy import (
     is_day_packing_enabled,
     is_three_day_packing_enabled as policy_is_three_day_packing_enabled,
 )
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
+from text_polish import polish_client_text
 from ui.day_blocks import build_day_blocks
+from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import (
     esc,
+    normalize_list,
+    render_list_items,
     get_day_page_layout_name,
     get_detail_level_name,
     is_smart_day_packing_enabled,

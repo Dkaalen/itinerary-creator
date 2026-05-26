@@ -20,6 +20,11 @@ from text_polish import (
     polish_inclusion_items,
     polish_title,
 )
+from ui.final_pages import (
+    clean_activity_inclusion_items,
+    get_fallback_activity_inclusions,
+    prioritize_inline_inclusions,
+)
 from ui.render_helpers import (
     clean_space,
     display_time,

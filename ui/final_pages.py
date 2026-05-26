@@ -15,8 +15,10 @@ from ui.render_helpers import (
     display_time,
     esc,
     get_activity_logistics,
+    is_self_arranged_transport,
     normalize_list,
     render_list_items,
+    text_to_list,
 )
 
 

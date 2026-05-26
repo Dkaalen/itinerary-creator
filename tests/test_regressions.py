@@ -888,6 +888,48 @@ def test_visual_editor_html_sanitizer():
     assert_not_contains(clean.lower(), "style=", "Sanitizer should remove inline styles.")
 
 
+
+def test_final_page_notes_helper_is_self_contained_after_split():
+    from ui.final_pages import get_important_travel_notes
+
+    notes = get_important_travel_notes({"important_travel_notes_text": "First note\nSecond note"})
+    assert_equal(
+        notes,
+        ["First note", "Second note"],
+        "Final-page notes helper should import text conversion dependencies after module split.",
+    )
+
+
+def test_day_page_rendering_helpers_are_self_contained_after_split():
+    from ui.day_pages import render_split_list_pages, render_text_paragraph_page, get_day_pack_stats
+
+    list_html = render_split_list_pages("What’s included", ["Hotel", "Transfer"], items_per_page=10)
+    assert_contains(list_html, "What’s included", "Split list pages should render after module split.")
+    assert_contains(list_html, "Hotel", "Split list pages should include list items after module split.")
+
+    notes_html = render_text_paragraph_page("Important travel notes", ["Schedules may change."])
+    assert_contains(notes_html, "Important travel notes", "Text paragraph pages should render after module split.")
+    assert_contains(notes_html, "Schedules may change.", "Text paragraph pages should include note text after module split.")
+
+    stats = get_day_pack_stats("Day 1", [{"type": "Activity", "effective_type": "Activity", "title": "Walking Tour"}], {})
+    assert_equal(stats["activity_count"], 1, "Day packing stats should import row-type helpers after module split.")
+
+
+def test_activity_block_helpers_are_self_contained_after_split():
+    from ui.day_blocks import build_activity_block
+
+    row = {
+        "type": "Activity",
+        "effective_type": "Activity",
+        "title": "Northern Lights Experience",
+        "time": "8:00 PM",
+        "duration": "2 hours",
+        "includes": ["Local guide", "Northern lights search"],
+    }
+    block = build_activity_block(row)
+    assert_contains(block["html"], "Northern Lights Experience", "Activity block should render after module split.")
+    assert_contains(block["html"], "Local guide", "Activity inclusions should render after module split.")
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -915,6 +957,9 @@ def run_all():
         test_day_rendering_packing_helpers_are_self_contained_after_split,
         test_apply_output_edits_preserves_activity_time_range_after_split,
         test_visual_editor_html_sanitizer,
+        test_final_page_notes_helper_is_self_contained_after_split,
+        test_day_page_rendering_helpers_are_self_contained_after_split,
+        test_activity_block_helpers_are_self_contained_after_split,
     ]
 
     for test in tests:
