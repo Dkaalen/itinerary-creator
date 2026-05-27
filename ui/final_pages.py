@@ -40,14 +40,18 @@ def get_fallback_activity_inclusions(row):
 
     if "tallin" in full_text or "tallinn" in full_text or title == "Day Trip to Tallinn":
         inclusions = []
+        is_self_guided = bool(re.search(r"\bself[-\s]?guided\b", full_text, flags=re.IGNORECASE))
         if "port transfer" in full_text or "helsinki port" in full_text or "hotel pick" in full_text:
             inclusions.append("Helsinki port transfers")
         if "star class" in full_text:
             inclusions.append("Star Class ferry ticket")
         elif "ferry ticket" in full_text or "cruise ticket" in full_text or "day trip to tallinn" in str(title).lower():
             inclusions.append("Helsinki–Tallinn ferry crossing")
-        if "guided" in full_text and ("old town" in full_text or "tallinn" in full_text or "tallin" in full_text):
-            inclusions.append("Guided Old Town tour")
+        if "old town" in full_text or "tallinn" in full_text or "tallin" in full_text:
+            if is_self_guided:
+                inclusions.append("Self-guided Old Town visit")
+            elif "guided" in full_text:
+                inclusions.append("Guided Old Town tour")
         if not inclusions:
             inclusions = ["Helsinki–Tallinn ferry crossing", "Time to explore Tallinn Old Town"]
         return inclusions
@@ -78,7 +82,7 @@ def get_fallback_activity_inclusions(row):
     return []
 
 
-def prioritize_inline_inclusions(items, max_items=5):
+def prioritize_inline_inclusions(items, max_items=6):
     """Keep inline inclusions premium and compact.
 
     Day pages should show the most useful inclusions without turning into an
@@ -95,25 +99,40 @@ def prioritize_inline_inclusions(items, max_items=5):
             continue
         if any(marker in lower for marker in ["tax", "service fee", "goods and services"]):
             continue
+        if "small group" in lower or ("max " in lower and "guest" in lower):
+            continue
+        # The title already tells the client they are visiting Santa Claus Village;
+        # keep limited day-page inclusion space for more concrete inclusions like
+        # snowmobiling, reindeer sleigh rides, winter equipment and lunch.
+        if "fun visit to santa claus village" in lower:
+            continue
         clean_items.append(item)
 
     def score(item):
         lower = item.lower()
+        if "small group" in lower or "max " in lower and "guest" in lower:
+            return 99
         if "pick" in lower or "drop" in lower or "transfer" in lower:
             return 0
-        if "guide" in lower or "guided" in lower:
+        if "guide" in lower or "guided" in lower or "certified" in lower:
             return 1
         if "reindeer" in lower or "snowmobile" in lower or "santa claus" in lower or "husky" in lower:
             return 2
-        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
+        if any(marker in lower for marker in ["thermal", "overall", "winter clothes", "winter equipment", "equipment", "boots", "gloves", "balaclava", "helmet", "survival suit", "floating suit"]):
             return 3
-        if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
+        if "photo" in lower or "camera" in lower or "dslr" in lower:
             return 4
-        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower:
+        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower or "barbecue" in lower or "bbq" in lower:
             return 5
-        if "photo" in lower or "camera" in lower or "thermal" in lower or "overall" in lower or "equipment" in lower or "tripod" in lower:
+        if "hike" in lower or "canyon" in lower or "waterfall" in lower:
             return 6
-        return 6
+        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
+            return 7
+        if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
+            return 8
+        if "meteorological" in lower or "observation" in lower:
+            return 9
+        return 10
 
     ordered = sorted(enumerate(clean_items), key=lambda pair: (score(pair[1]), pair[0]))
     selected = [item for _, item in ordered[:max_items]]

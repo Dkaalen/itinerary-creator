@@ -272,12 +272,16 @@ def render_inclusion_sections_inner_html(sections):
         html_text += f'<div class="section-title">{esc(section["title"])}</div>'
 
         plain_items = []
+        multiline_count = 0
         for item in section["items"]:
             if "\n" in item:
                 if plain_items:
                     html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
                     plain_items = []
+                if multiline_count:
+                    html_text += '<div class="body-text inclusion-entry-spacer">&nbsp;</div>'
                 html_text += _render_inclusion_item(item)
+                multiline_count += 1
             else:
                 plain_items.append(item)
 

@@ -541,6 +541,7 @@ def run_all():
         test_travel_intro_uses_final_transport_destination,
         test_departure_block_avoids_duplicate_departure_line,
         test_bad_input_contextual_travel_and_activity_cleanup,
+        test_self_guided_tallinn_is_not_labeled_guided,
         test_multiline_inclusion_entries_render_pdf_visible_text,
     ]
 
@@ -693,8 +694,11 @@ Traditional Finnish lunch buffet
     santa = [row for row in rows if row.get("day") == "Day 4" and row.get("effective_type") == "Activity"][0]
     assert_equal(santa.get("title"), "Santa Claus Village by Snowmobile & Reindeer Sleigh", "Snowmobile and reindeer titles should preserve the core activity.")
     assert_equal(santa.get("time"), "8:15 AM - 1:15 PM", "Spaced times such as 8 15 should parse as 8:15 AM and expand with duration.")
-    santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 5)
-    assert_contains("\n".join(santa_inline), "Short reindeer sleigh ride experience", "Important reindeer ride inclusion should survive compact day-page prioritization.")
+    santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 6)
+    santa_inline_text = "\n".join(santa_inline)
+    assert_contains(santa_inline_text, "Short reindeer sleigh ride experience", "Important reindeer ride inclusion should survive compact day-page prioritization.")
+    assert_contains(santa_inline_text, "Winter equipment provided", "Winter equipment should survive compact day-page prioritization.")
+    assert_contains(santa_inline_text, "Traditional Finnish lunch buffet", "Included lunch should survive compact day-page prioritization.")
 
     reindeer_hunt = [row for row in rows if row.get("day") == "Day 7" and row.get("effective_type") == "Activity"][0]
     assert_equal(reindeer_hunt.get("title"), "Northern Lights Hunt by Reindeer", "Aurora wording should become Northern Lights while preserving the reindeer differentiator.")
@@ -706,11 +710,28 @@ Traditional Finnish lunch buffet
     assert_not_contains(day7_intro, "towards Rovaniemi", "Travel-day intro should not point back to the origin city.")
 
     sections = create_categorized_inclusions(rows, grouped)
+    section_titles = [section.get("title") for section in sections]
+    assert_not_contains("\n".join(section_titles), "Guides & local support", "Guide-support summaries should not repeat or misstate self-guided activity details.")
     all_inclusions = "\n".join(item for section in sections for item in section.get("items", []))
     assert_contains(all_inclusions, "Arctic City Hotel, Rovaniemi", "Accommodation section should include hotel entries.")
     assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
     assert_contains(all_inclusions, "Coach Transfer to Kakslauttanen", "Coach transfer section should include the arranged coach transfer.")
     assert_contains(all_inclusions, "Northern Lights Hunt by Reindeer", "Separate reindeer Northern Lights activity should not be deduplicated away.")
+
+
+def test_self_guided_tallinn_is_not_labeled_guided():
+    from ui.final_pages import get_fallback_activity_inclusions
+
+    row = {
+        "title": "Day Trip to Tallinn",
+        "original_title": "Excursion to Tallinn - Helsinki Port transfers included (hotel pick up and drop off) - Self guided tour of Old Town Tallinn - Time: 10:30 am - 07:30 pm Cruise Duration 2 Hr",
+        "details": "Self guided tour of Old Town Tallinn",
+        "includes": [],
+    }
+    inclusions = get_fallback_activity_inclusions(row)
+    inclusion_text = "\n".join(inclusions)
+    assert_contains(inclusion_text, "Self-guided Old Town visit", "Self-guided Tallinn visits should be labeled as self-guided.")
+    assert_not_contains(inclusion_text, "Guided Old Town tour", "Self-guided Tallinn visits should not be mislabeled as guided tours.")
 
 
 def test_multiline_inclusion_entries_render_pdf_visible_text():

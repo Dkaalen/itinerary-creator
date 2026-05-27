@@ -221,10 +221,9 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     if meal_items:
         sections.append({"title": "Meals included", "items": meal_items})
 
-    support_items = _guide_support_items(activity_rows)
-    if support_items:
-        sections.append({"title": "Guides & local support", "items": support_items})
-
+    # Guide/local-support details are already shown within each relevant day.
+    # Keeping them off the commercial inclusions summary avoids repetition and
+    # prevents self-guided experiences from being misrepresented as guided.
     return sections
 
 

@@ -465,6 +465,11 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin-bottom: 0;
         }}
 
+        .inclusion-entry-spacer {{
+            height: 8px;
+            line-height: 8px;
+        }}
+
         .important-notes-page .note-paragraph {{
             font-size: 14px;
             line-height: 1.55;
