@@ -5,7 +5,7 @@ from app_modules.main_view import render_app
 from app_modules.project_io import initialise_state
 
 
-APP_VERSION = "2026-05-27 v36c48-day-image-divider-hotfix"
+APP_VERSION = "2026-05-27 v36c49-day-image-divider-refinement"
 
 
 st.set_page_config(

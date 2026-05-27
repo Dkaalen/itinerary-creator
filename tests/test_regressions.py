@@ -510,7 +510,8 @@ def test_day_page_editorial_parity_markup():
 
     final_html_css = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
     assert_contains(final_html_css, ".day-image-slot::after", "Final preview should draw the emblem divider on the day image edge.")
-    assert_contains(final_html_css, "box-shadow: inset 0 1px 0", "Final preview should keep the divider attached to the image top edge.")
+    assert_contains(final_html_css, "box-shadow: inset 0 2px 0", "Final preview should keep the thicker divider attached to the image top edge.")
+    assert_contains(final_html_css, "background: transparent", "The day-image emblem should not draw a patch behind the divider.")
 
     editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
     assert_contains(editor_html, "day-kicker", "The visual editor preview must use the same day-kicker structure as final preview/PDF.")
