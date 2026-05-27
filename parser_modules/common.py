@@ -102,6 +102,7 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bNutsheel\b", "Nutshell"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
     (r"\bBrekafast\b", "Breakfast"),
+    (r"\bOverngiht\b", "Overnight"),
     (r"\bBrekfast\b", "Breakfast"),
     (r"\bDoubel\b", "Double"),
     (r"\bArrnaged\b", "arranged"),
@@ -120,6 +121,8 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\binlcuded\b", "included"),
     (r"\bInlcuded\b", "Included"),
     (r"\bIncludse\b", "Includes"),
+    (r"\bFull\s+Pention\b", "Full pension"),
+    (r"\bFull\s+Pension\b", "Full pension"),
     (r"\bTromso\b", "Tromsø"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),
@@ -189,21 +192,53 @@ def normalize_place_name(value):
 
 
 def extract_route_points(text):
-    """Returns (origin, destination) from common route phrasings."""
+    """Returns (origin, destination) from common route phrasings.
+
+    The helper is deliberately route-based, not itinerary-specific. It handles
+    simple transport rows ("Train: Oslo to Bergen") and multi-leg rows where an
+    intermediate stop appears before the final destination ("Copenhagen to
+    Malmö to Stockholm").
+    """
 
     source = fix_common_text(text)
     source = source.replace("–", "-")
 
-    explicit = re.search(
-        r"\b(?:flight|train|coach|bus|ferry|cruise)\s*(?:[:|])?\s*([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s*(?:\||-|,|;|$)|\s+Day\b|\s+self\b|\s+cost\b|\s+not\b|\s+sitting\b)",
+    # Trim supplier schedule/details so they do not become part of the city.
+    route_source = re.split(
+        r"\s+-\s+(?:departure|arrival|time|includes|included|excludes|luggage|cabin)\b|\s+\|\s+(?:departure|arrival|time|includes|included|excludes)\b",
         source,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+
+    prefix_origin = ""
+    prefix_match = re.match(r"^([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+):\s*(.+)$", route_source)
+    if prefix_match and is_valid_city_value(prefix_match.group(1)):
+        prefix_origin = normalize_place_name(prefix_match.group(1))
+        route_source = prefix_match.group(2)
+
+    # Explicit transport route with one or more "to" segments. Use the final
+    # segment as destination, not an intermediate change point such as Malmö.
+    transport_route = re.search(
+        r"\b(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*(?:[:|])?\s*(.+?\s+to\s+.+)$",
+        route_source,
         flags=re.IGNORECASE,
     )
-    if explicit:
-        origin = normalize_place_name(explicit.group(1))
-        destination = normalize_place_name(re.split(r"\s+(?:train|flight|coach|bus|ferry|cruise)\b|\s+to\s+", explicit.group(2), maxsplit=1, flags=re.IGNORECASE)[0])
-        if destination.lower() not in {"hotel", "station", "airport", "accommodation"}:
-            return origin, destination
+    if transport_route:
+        route_text = clean_space(transport_route.group(1)).strip(" -:|.")
+        if prefix_origin and route_text.lower().startswith("to "):
+            route_text = f"{prefix_origin} {route_text}"
+        pieces = [clean_space(part).strip(" -:|.") for part in re.split(r"\s+to\s+", route_text, flags=re.IGNORECASE) if clean_space(part).strip(" -:|.")]
+        if len(pieces) >= 2:
+            origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", pieces[0], flags=re.IGNORECASE).strip(" -:|.")
+            destination_raw = re.split(r"\s+-\s+(?:bus|coach|flight|train)\b|\s+bus\s+\d+\b|\s+time\b|\s+departure\b|\s+arrival\b|\s*\|", pieces[-1], maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+            origin = normalize_place_name(origin_raw)
+            if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
+                origin = prefix_origin
+            destination_raw = re.split(r"\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}", destination_raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+            destination = normalize_place_name(destination_raw)
+            if destination.lower() not in {"hotel", "station", "airport", "accommodation"}:
+                return origin, destination
 
     patterns = [
         r"\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+-\s+|\s+\|\s+|,|$)",
@@ -212,14 +247,17 @@ def extract_route_points(text):
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, source, flags=re.IGNORECASE)
+        match = re.search(pattern, route_source, flags=re.IGNORECASE)
         if not match:
             continue
 
-        origin = normalize_place_name(match.group(1))
-        destination = normalize_place_name(match.group(2))
+        origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", match.group(1), flags=re.IGNORECASE).strip(" -:|.")
+        destination_raw = re.split(r"\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}|\s*\|", match.group(2), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+        origin = normalize_place_name(origin_raw)
+        if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
+            origin = prefix_origin
+        destination = normalize_place_name(destination_raw)
 
-        # Avoid private shorthand being treated as cities in route titles.
         if destination.lower() in {"hotel", "station", "airport", "accommodation"}:
             continue
 

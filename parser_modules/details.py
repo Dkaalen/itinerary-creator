@@ -256,7 +256,14 @@ def detect_effective_type(item_type, title, details):
     ):
         return "Flight"
 
-    if "train to" in combined or "train transfer" in combined or "express train" in combined or "overnight train" in combined:
+    if (
+        "train to" in combined
+        or "train transfer" in combined
+        or "express train" in combined
+        or "overnight train" in combined
+        or re.search(r"\btrain\s*[:|]", combined)
+        or re.search(r"\btrain\s+[a-zà-ÿøåäö\s]+\s+to\s+", combined)
+    ):
         return "Train"
 
     if "cruise to" in combined or "overnight cruise" in combined:

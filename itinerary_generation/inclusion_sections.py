@@ -10,11 +10,12 @@ from __future__ import annotations
 import re
 from collections import OrderedDict
 
+from parser_modules.common import extract_route_points
 from place_aliases import canonicalize_place_name
 from text_polish import polish_hotel_name, polish_inclusion_item, polish_title
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only, has_self_drive_markers
-from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
+from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from itinerary_generation.titles import create_client_activity_title
 
 
@@ -34,6 +35,33 @@ def _add_unique(items: list[str], item: str) -> None:
     clean_item = _clean_multiline(item)
     if clean_item and clean_item not in items:
         items.append(clean_item)
+
+
+def _is_self_transfer_row(row: dict) -> bool:
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    return get_row_type(row) == "Transfer" and "self transfer" in text
+
+
+def _is_cruise_leisure_row(row: dict) -> bool:
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    return get_row_type(row) == "Cruise" and "leisure" in text and "cruise" in text
+
+
+def _is_cruise_arrival_row(row: dict) -> bool:
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    return get_row_type(row) == "Cruise" and "arrival" in text
+
+
+def _route_transport_line(row: dict) -> str:
+    row_type = get_row_type(row)
+    # Private/self/local transfers should keep their standardized transfer
+    # wording. Premium route wording is for route transport such as rail,
+    # flights, coaches and cruises.
+    if row_type == "Transfer":
+        return get_premium_transport_phrase(row) if is_route_transfer(row) else ""
+    if row_type in TRANSPORT_TYPES:
+        return get_premium_transport_phrase(row)
+    return ""
 
 def _format_meal_plan(meal_plan: str) -> str:
     meal = _clean(meal_plan).lower()
@@ -107,7 +135,11 @@ def _clean_transport_title(row: dict) -> str:
         # Parser standardization already knows the direction (hotel → airport,
         # airport → hotel, station → hotel, etc.). Reusing it prevents final
         # inclusions from flipping departure transfers into arrival transfers.
-        return polish_title(title or "Private transfer")
+        clean_title = polish_title(title or "Private transfer")
+        city = canonicalize_place_name(row.get("city", ""))
+        if city and clean_title.lower() in {"private transfer to your accommodation", "private transfer from your accommodation"}:
+            return f"{clean_title} in {city}"
+        return clean_title
 
     if row_type in TRANSPORT_TYPES:
         return polish_title(title or get_transfer_travel_title(row))
@@ -121,7 +153,7 @@ def _transport_bucket(row: dict) -> str:
     if "private" in text:
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
-        return "Self transfers"
+        return ""
     if row_type == "Train" or "train" in text:
         return "Rail journeys"
     if row_type == "Flight" or "flight" in text:
@@ -134,7 +166,9 @@ def _transport_bucket(row: dict) -> str:
 
 
 def _transport_line(row: dict) -> str:
-    title = _clean_transport_title(row)
+    if _is_cruise_leisure_row(row):
+        return ""
+    title = _route_transport_line(row) or _clean_transport_title(row)
     extras = []
     for item in row.get("includes", []) or []:
         item = polish_inclusion_item(item, title)
@@ -148,12 +182,16 @@ def _transport_line(row: dict) -> str:
                 item = "ticket included"
         if item and item.lower() not in title.lower():
             _add_unique(extras, item)
+    cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
+    if get_row_type(row) == "Cruise" and cabin_match:
+        _add_unique(extras, f"{polish_title(cabin_match.group(1))} cabin")
     luggage = polish_inclusion_item(row.get("luggage_included", ""), title)
     if luggage:
         _add_unique(extras, luggage)
     if extras:
         detail = _join_detail_parts(extras).strip(" .")
         if detail:
+            detail = re.sub(r"\bFull pension Meal plan\b", "full pension meal plan", detail, flags=re.IGNORECASE)
             detail = detail[:1].upper() + detail[1:]
             return f"{title}\n{detail}."
     return title
@@ -263,12 +301,14 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
         row_type = get_row_type(row)
         if row_type not in set(TRANSPORT_TYPES) | {"Transfer"}:
             continue
-        if is_self_arranged(row):
+        if is_self_arranged(row) or _is_self_transfer_row(row) or _is_cruise_leisure_row(row) or _is_cruise_arrival_row(row):
             continue
         line = _transport_line(row)
         if not line:
             continue
         bucket = _transport_bucket(row)
+        if not bucket:
+            continue
         transport_buckets.setdefault(bucket, [])
         _add_unique(transport_buckets[bucket], line)
 

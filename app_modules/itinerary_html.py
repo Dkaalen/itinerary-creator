@@ -74,6 +74,11 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     cover_theme = get_cover_theme(parsed_rows, output_edits)
     cover_kicker = output_edits.get("cover_kicker") or "Curated Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
+    cover_title_class = "cover-title"
+    if len(str(trip_title)) <= 24:
+        cover_title_class += " cover-title-fit"
+    elif len(str(trip_title)) <= 32:
+        cover_title_class += " cover-title-balanced"
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
     trip_subtitle_html = _balanced_cover_subtitle_html(trip_subtitle)
     cover_background_data_uri = cover_theme.get("background_data_uri", "")
@@ -246,7 +251,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: visible;
             flex: 0 0 410px;
             position: relative;
-            border-top: 4px solid rgba(184,149,85,.92);
+            border-top: 5px solid rgba(184,149,85,.96);
             box-shadow: none;
             box-sizing: border-box;
         }}
@@ -267,15 +272,15 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             content: "✦";
             position: absolute;
             left: 50%;
-            top: 0;
+            top: 2.5px;
             transform: translate(-50%, -50%);
             width: auto;
             height: auto;
             line-height: 1;
             text-align: center;
             font-family: Georgia, 'Times New Roman', serif;
-            font-size: 14px;
-            color: rgba(184,149,85,.96);
+            font-size: 17px;
+            color: rgba(184,149,85,1);
             background: transparent;
             z-index: 3;
             pointer-events: none;
@@ -630,7 +635,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             <div class="cover-main">
                 <div class="cover-emblem" aria-hidden="true"></div>
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
-                <div class="cover-title">{esc(trip_title)}</div>
+                <div class="{esc(cover_title_class)}">{esc(trip_title)}</div>
                 <div class="cover-subtitle">{trip_subtitle_html}</div>
                 <div class="cover-rule"></div>
                 <div class="cover-destination-card">

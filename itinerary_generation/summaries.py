@@ -165,6 +165,13 @@ def describe_city_experience(rows):
 
     candidates = []
 
+    if _has(text, "spend time at leisure onboard the cruise") and row_types == {"Cruise"}:
+        candidates.append("Coastal cruise at leisure")
+    if _has(text, "cruise to bergen") and _has(text, "kirkenes"):
+        candidates.append("Cruise departure towards Bergen")
+    if _has(text, "cruise arrival to bergen", "arrival to bergen"):
+        candidates.append("Cruise arrival and Bergen stay")
+
     if has_tallinn:
         candidates.append("Tallinn day trip and onward train")
     if has_nutshell:
@@ -205,7 +212,10 @@ def describe_city_experience(rows):
     if _has(text, "lofoten", "henningsvær", "haukland", "trollfjord"):
         candidates.append("Lofoten scenery and Trollfjord cruising")
     elif has_fjord and has_cable:
-        candidates.append("Arctic fjords and cable car views")
+        if _has(text, "arctic", "tromsø", "tromso", "alta"):
+            candidates.append("Arctic fjords and cable car views")
+        else:
+            candidates.append("Fjord views and funicular")
     elif has_fjord and has_whale:
         candidates.append("Coastal wildlife and fjord scenery")
     elif has_fjord:

@@ -510,7 +510,7 @@ def test_day_page_editorial_parity_markup():
 
     final_html_css = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
     assert_contains(final_html_css, ".day-image-slot::after", "Final preview should draw the emblem divider on the day image edge.")
-    assert_contains(final_html_css, "border-top: 4px solid rgba(184,149,85,.92)", "Final preview should keep one thicker solid divider attached to the image top edge.")
+    assert_contains(final_html_css, "border-top: 5px solid rgba(184,149,85,.96)", "Final preview should keep one thicker solid divider attached to the image edge.")
     assert_contains(final_html_css, "box-shadow: none", "Final preview divider should not use a two-tone shadow line.")
     assert_contains(final_html_css, "background: transparent", "The day-image emblem should not draw a patch behind the divider.")
 
@@ -607,6 +607,8 @@ def run_all():
         test_real_input_fixture_bank_core_expectations,
         test_v36c52_content_quality_hardening_rules,
         test_v36c53_optional_arc_transfer_quality_gate,
+        test_v36c54_transport_cruise_inclusion_quality_gate,
+        test_v36c55_premium_transport_wording_system,
         test_context_city_fill_prevents_journey_chapters,
         test_optional_addon_inclusion_fragments_are_merged,
         test_hotel_name_before_room_marker_is_parsed_generally,
@@ -815,7 +817,7 @@ Traditional Finnish lunch buffet
     all_inclusions = "\n".join(item for section in sections for item in section.get("items", []))
     assert_contains(all_inclusions, "Arctic City Hotel, Rovaniemi", "Accommodation section should include hotel entries.")
     assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
-    assert_contains(all_inclusions, "Coach Transfer to Kakslauttanen", "Coach transfer section should include the arranged coach transfer.")
+    assert_contains(all_inclusions, "Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen", "Coach transfer section should include the arranged coach transfer with premium route wording.")
     assert_contains(all_inclusions, "Northern Lights Hunt by Reindeer", "Separate reindeer Northern Lights activity should not be deduplicated away.")
 
 
@@ -1074,7 +1076,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     day8_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 8"]) if block)
     assert_contains(day8_html, "Self transfer from your hotel to the bus station", "Self transfers to bus station should be labeled as self transfers, not self-guided transfers.")
     assert_not_contains(day8_html, "Self-guided transfer", "Self transfer wording should not use the confusing self-guided label.")
-    assert_contains(day8_html, "Coach Transfer to Alta", "Coach transfer should point to Alta.")
+    assert_contains(day8_html, "Panoramic Coach Transfer from Tromsø to Alta", "Coach transfer should preserve the actual route to Alta with premium wording.")
     assert_not_contains(day8_html, "Coach Transfer to Tromsø", "Coach transfer should not point back to the origin city.")
 
     optional_rows = [row for row in rows if row.get("is_optional")]
@@ -1114,6 +1116,92 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     day13_cruise_title = create_day_title(cruise_grouped["Day 13"])
     assert_contains(day13_cruise_title, "Cruise arrival to Bergen", "Cruise arrival days should mention the arrival city instead of a generic Cruise title.")
 
+
+
+def test_v36c54_transport_cruise_inclusion_quality_gate():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from itinerary_generation.inclusions import create_whats_not_included
+    from itinerary_generation.titles import create_day_title
+    from itinerary_generation.day_text import create_day_intro
+    from ui.day_blocks import build_day_blocks
+    from ui.day_pages import render_categorized_inclusions_pages
+
+    short_norway = """
+	Day 1	Transfer 		05/06/2026					Oslo	Private Airport to Hotel
+	Day 1	Hotel	2	05/06/2026	07/06/2026				Oslo	3 Star, Scandic St Olavs Plass , 2xNight , 1xStandard Family Quadruple room , Incl Brekafast (City Centre )
+	Day 3	Activity		07/06/2026					Bergen	Train : Oslo to Bergen | 14:25 - 21:33 |
+	Day 3	Hotel	2	07/06/2026	09/06/2026				Bergen	3 Star, Scandic Bergen City, 2xNight, 1xFamily Room, Incl Brekafast
+	Day 5	Transfer 	1	09/06/2026	10/06/2026				Bergen	Overngiht Cruise , Bergen to Alesund | 1x Cabin ( Polar Outside ) | Tuesday 09 Jun 2026 8:30 pm Wednesday 10 Jun 2026 9:45 am
+	Day 6	Hotel	1	10/06/2026	11/06/2026				Alesund	4 Star, Quality Hotel Ålesund, 1xNight, 1xStandard Family Room, Incl Brekafast
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(short_norway))
+    grouped = group_rows_by_day(rows)
+
+    assert_equal(create_day_title(grouped["Day 3"]), "Train to Bergen", "Point-to-point train rows pasted as activities should become transport day titles.")
+    day3_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 3"]) if block)
+    assert_contains(day3_html, "Scenic Train Transfer from Oslo to Bergen", "Train rows should render as premium travel arrangements, not activities.")
+    assert_not_contains(day3_html, "Afternoon Experience", "Train transfers should not render as experience blocks.")
+
+    day5_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 5"]) if block)
+    assert_contains(day5_html, "Overnight Coastal Cruise from Bergen to Ålesund", "Overnight cruise routes should preserve origin and destination with premium cruise wording.")
+    assert_contains(day5_html, "Polar Outside cabin", "Overnight cruise cabin details should be preserved where provided.")
+    assert_not_contains(day5_html, "Overngiht", "Common cruise typos should be cleaned before rendering.")
+
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    cruise_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "scandinavia_autumn_cruise.txt").read_text(encoding="utf-8")))
+    cruise_grouped = group_rows_by_day(cruise_rows)
+    day4_html = "\n".join(block["html"] for block in build_day_blocks(cruise_grouped["Day 4"]) if block)
+    assert_equal(create_day_title(cruise_grouped["Day 4"]), "Train to Stockholm", "Multi-leg rail days should title the final destination, not the intermediate change point.")
+    assert_contains(create_day_intro(cruise_grouped["Day 4"], detail_level="Rich descriptive"), "Stockholm", "Multi-leg train intros should point to the final destination.")
+    assert_contains(day4_html, "Scenic Train Transfer from Copenhagen to Stockholm, via Malmö", "Multi-leg rail routes should preserve the intermediate change point without becoming the title.")
+
+    day8_intro = create_day_intro(cruise_grouped["Day 8"], detail_level="Rich descriptive")
+    assert_contains(day8_intro, "Bergen", "Cruise start intros should point towards the cruise destination.")
+    assert_not_contains(day8_intro, "towards Kirkenes", "Cruise start intros should not point back to the origin port.")
+    day13_html = "\n".join(block["html"] for block in build_day_blocks(cruise_grouped["Day 13"]) if block)
+    assert_contains(day13_html, "Cruise arrival to Bergen", "Cruise arrival should render as an arrival, not another generic cruise to Bergen.")
+    assert_contains(day13_html, "2:45 PM", "Cruise arrival times should be preserved when supplied.")
+
+    sections = create_categorized_inclusions(cruise_rows, cruise_grouped)
+    inclusion_text = "\n".join(item for section in sections for item in section.get("items", []))
+    assert_not_contains(inclusion_text, "Spend time at leisure onboard the cruise", "Cruise leisure days should not be commercial inclusions.")
+    assert_not_contains(inclusion_text, "Self transfer", "Self transfers must never appear in the inclusions list.")
+    pages_html = render_categorized_inclusions_pages("What’s included", sections)
+    assert_contains(pages_html, "What’s included continued", "Long categorized inclusions should split into explicit continued pages instead of orphan bullets.")
+
+    alta_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "finland_norway_autumn_alta.txt").read_text(encoding="utf-8")))
+    alta_grouped = group_rows_by_day(alta_rows)
+    alta_sections = create_categorized_inclusions(alta_rows, alta_grouped)
+    alta_inclusion_text = "\n".join(item for section in alta_sections for item in section.get("items", []))
+    assert_not_contains(alta_inclusion_text, "Self transfer", "Self transfers should remain day logistics only, not included services.")
+    assert_contains("\n".join(create_whats_not_included(alta_rows)), "Optional add-ons", "Optional add-ons should remain commercially clear in exclusions.")
+
+
+def test_v36c55_premium_transport_wording_system():
+    from ui.day_blocks import build_day_blocks
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+
+    raw = """
+	Day 1	Activity		05/06/2026								Bergen	Train : Oslo to Bergen | 14:25 - 21:33 |
+	Day 2	Train		06/06/2026								Stockholm	Copenhagen: Scenic Train Transfer to Malmø to Stockholm - Departure from Copenhagen: 1:59 pm - Arrival in Malmø: 2:40 pm - Departure from Malmø: 3:07 pm - Arrival in Stockholm: 7:35 pm - Includes: First class tickets
+	Day 3	Transfer		07/06/2026								Alta	Tromsø: Long distance panorama coach transfer to Alta - Bus 150 - Time: 4:00 pm - 10:20 pm
+	Day 4	Flight		08/06/2026								Kirkenes	Stockholm: Flight to Kirkenes, via Oslo - Time: 4:10 pm - 8:30 pm - Includes: Flex tickets, luggage
+	Day 5	Cruise		09/06/2026	10/06/2026						Bergen	Kirkenes: Atlantic Ocean Cruise to Bergen onboard MC Havila Castor - Departure from Kirkenes: 12:30 pm - Includes: Balcony Suite, Full Pension Meal plan
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    html = "\n".join("\n".join(block["html"] for block in build_day_blocks(day_rows) if block) for day_rows in grouped.values())
+    assert_contains(html, "Scenic Train Transfer from Oslo to Bergen", "Point-to-point rail should use premium scenic transfer wording.")
+    assert_contains(html, "Scenic Train Transfer from Copenhagen to Stockholm, via Malmö", "Multi-leg rail should keep the final destination and via stop.")
+    assert_contains(html, "Panoramic Coach Transfer from Tromsø to Alta", "Panoramic/long-distance coach rows should use premium coach wording.")
+    assert_contains(html, "Flight from Stockholm to Kirkenes, via Oslo", "Flights should preserve via-city wording.")
+    assert_contains(html, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise rows should use premium cruise wording with ship name when present.")
+
+    sections = create_categorized_inclusions(rows, grouped)
+    inclusion_text = "\n".join(item for section in sections for item in section.get("items", []))
+    assert_contains(inclusion_text, "Scenic Train Transfer from Oslo to Bergen", "Rail inclusions should use the same premium wording as day pages.")
+    assert_contains(inclusion_text, "Flight from Stockholm to Kirkenes, via Oslo", "Flight inclusions should use premium route wording.")
+    assert_contains(inclusion_text, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise inclusions should use premium route wording.")
 
 
 def test_hotel_name_before_room_marker_is_parsed_generally():

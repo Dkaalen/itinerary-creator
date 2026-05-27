@@ -1,3 +1,5 @@
+import re
+
 from itinerary_generation.common import (
     TRANSPORT_TYPES,
     get_activity_text,
@@ -15,6 +17,7 @@ from itinerary_generation.transport import (
     is_route_transfer,
 )
 from itinerary_generation.titles import create_client_activity_title
+from parser_modules.common import extract_route_points
 
 
 def get_client_activity_phrase(row):
@@ -216,10 +219,14 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         destination_city = ""
         travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
         for row in travel_rows:
-            row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
-            for possible_city in ROUTE_CITY_CANDIDATES:
-                if possible_city.lower() in row_text.lower():
-                    destination_city = _canonical_route_city(possible_city)
+            row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+            _, route_destination = extract_route_points(row_text)
+            if route_destination and str(route_destination).lower() not in {"hotel", "station", "airport", "accommodation", "your accommodation"}:
+                destination_city = _canonical_route_city(route_destination)
+                continue
+            title_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+(?:\s+[A-Za-zÀ-ÿøØåÅäÄöÖ]+)?)\s*$", str(row.get("title", "")), flags=re.IGNORECASE)
+            if title_match and title_match.group(1).lower() not in {"hotel", "station", "airport", "accommodation", "your accommodation"}:
+                destination_city = _canonical_route_city(title_match.group(1))
         display_city = destination_city or city
         if detail_level == "Elegant concise":
             return f"Continue your journey with arranged travel connected to {display_city}."

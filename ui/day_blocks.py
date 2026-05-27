@@ -10,7 +10,7 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
-from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
+from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from text_polish import (
     format_duration_display,
     polish_client_text,
@@ -19,6 +19,7 @@ from text_polish import (
     polish_inclusion_items,
     polish_title,
 )
+from parser_modules.common import extract_route_points
 from ui.final_pages import (
     clean_activity_inclusion_items,
     get_fallback_activity_inclusions,
@@ -262,9 +263,8 @@ def build_leisure_block(row=None):
     html_text += '<div class="section-title">Your Free Time</div>'
     html_text += (
         '<div class="body-text">'
-        'Time at leisure is included so the day does not feel overfilled. '
-        'Use this space to settle in, explore nearby streets, enjoy a relaxed meal, '
-        'or simply take the destination at your own pace.'
+        'Enjoy the remaining time at your own pace, whether you prefer a relaxed meal, '
+        'a quiet walk nearby or simply settling into the destination.'
         '</div>'
     )
     html_text += "</div>"
@@ -274,6 +274,29 @@ def build_leisure_block(row=None):
         "row_id": row_id,
         "html": html_text,
     }
+
+
+def _is_cruise_leisure_row(row):
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    return get_row_type(row) == "Cruise" and "leisure" in text and "cruise" in text
+
+
+def build_cruise_leisure_block(row):
+    html_text = f'<div class="content-block cruise-leisure-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    html_text += '<div class="section-title">Onboard leisure</div>'
+    html_text += '<div class="body-text strong-line">Spend time at leisure onboard the cruise</div>'
+    html_text += (
+        '<div class="body-text">'
+        'Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, '
+        'use the ship facilities and settle into the rhythm of the voyage.'
+        '</div>'
+    )
+    html_text += "</div>"
+    return {"kind": "cruise_leisure", "row_id": row.get("row_id", ""), "html": html_text}
+
+
+def _transport_route_phrase(row):
+    return get_premium_transport_phrase(row)
 
 
 def build_arrival_block(row):
@@ -516,6 +539,8 @@ def is_travel_sequence_candidate(row):
     """Rows that form chronological travel arrangements within a day."""
 
     row_type = get_row_type(row)
+    if _is_cruise_leisure_row(row):
+        return False
     return row_type == "Transfer" or row_type in TRANSPORT_TYPES
 
 
@@ -539,6 +564,9 @@ def get_travel_sequence_line(row):
         return polish_title(row.get("title", ""))
 
     if row_type in TRANSPORT_TYPES:
+        route_phrase = _transport_route_phrase(row)
+        if route_phrase:
+            return polish_title(route_phrase)
         return polish_title(row.get("title", ""))
 
     return polish_title(row.get("title", ""))
@@ -578,14 +606,33 @@ def _norway_nutshell_lines(row):
     return lines
 
 
+def _inline_arrival_time(row):
+    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+    match = re.search(r"\barrival\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ\s]+\s+at\s+(\d{1,2}:\d{2}\s*(?:am|pm))", text, flags=re.IGNORECASE)
+    if match:
+        return display_time(match.group(1))
+    if get_row_type(row) == "Cruise" and "overnight" in text.lower():
+        times = re.findall(r"\b\d{1,2}:\d{2}\s*(?:am|pm)\b", text, flags=re.IGNORECASE)
+        if len(times) >= 2:
+            return display_time(times[-1])
+    return ""
+
+
 def get_travel_arrangement_line(row):
     title = get_travel_sequence_line(row)
-    time = display_time(row.get("time", ""))
+    time = display_time(row.get("time", "")) or _inline_arrival_time(row)
     duration = polish_client_text(row.get("duration", ""))
     details = []
 
     if time:
         details.append(time)
+    arrival_time = _inline_arrival_time(row)
+    if arrival_time and arrival_time != time:
+        details.append(f"arrives {arrival_time}")
+    if get_row_type(row) == "Cruise":
+        cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
+        if cabin_match:
+            details.append(f"{polish_title(cabin_match.group(1))} cabin")
     if duration and " - " not in time:
         clean_duration = format_duration_display(duration)
         if clean_duration:
@@ -633,6 +680,7 @@ def build_day_blocks(rows):
 
     blocks = []
     travel_group = []
+    departure_day = any(get_row_type(row) == "Departure" for row in rows)
 
     def flush_travel_group():
         nonlocal travel_group
@@ -647,6 +695,10 @@ def build_day_blocks(rows):
         title = row.get("title", "")
 
         if is_travel_sequence_candidate(row):
+            if departure_day and row_type == "Transfer" and "to your accommodation" in str(row.get("title", "")).lower():
+                row = dict(row)
+                city = get_primary_city(rows) or row.get("city", "")
+                row["title"] = f"Private transfer from your hotel to {polish_title(city)} Airport" if city else "Private transfer from your hotel to the airport"
             travel_group.append(row)
             continue
 
@@ -666,6 +718,8 @@ def build_day_blocks(rows):
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
             blocks.append(build_leisure_block(row))
+        elif _is_cruise_leisure_row(row):
+            blocks.append(build_cruise_leisure_block(row))
         elif title:
             included_block = build_included_today_block([polish_title(title)])
             if included_block:

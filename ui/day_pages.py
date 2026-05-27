@@ -1,6 +1,6 @@
 """A4 day-page rendering helpers."""
 
-from itinerary_generation.common import get_primary_city
+from itinerary_generation.common import get_primary_city, get_row_type
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.titles import create_day_title
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
@@ -21,6 +21,8 @@ def render_day_section(day, rows, output_edits=None):
     detail_level = get_detail_level_name(output_edits)
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
+    if not city and any(get_row_type(row) == "Cruise" for row in rows):
+        city = "Cruise"
     blocks = build_day_blocks(rows)
     day_number = str(day).replace("Day", "").strip() or str(day).strip()
     day_kicker_html = f"DAY {esc(day_number)}"
@@ -169,12 +171,59 @@ def render_inclusion_sections_inner_html(sections):
         html_text += '</div>'
     return html_text
 
+def _estimate_inclusion_section_units(section):
+    """Approximate vertical space for keeping inclusion categories together.
+
+    The real PDF renderer has exact font metrics, but this deterministic estimate
+    prevents the worst case: orphan bullets flowing onto a new page without their
+    category heading. Categories are moved as whole blocks whenever possible.
+    """
+    units = 4  # section title and spacing
+    for item in section.get("items", []) or []:
+        text = str(item or "")
+        lines = [line for line in text.split("\n") if line.strip()] or [text]
+        units += 2 + max(0, len(lines) - 1)
+        if len(text) > 90:
+            units += 1
+        if len(text) > 170:
+            units += 1
+    return units
+
+
 def render_categorized_inclusions_pages(title, sections):
-    inner_html = render_inclusion_sections_inner_html(sections)
-    if not inner_html:
+    clean_sections = []
+    for section in sections or []:
+        section_title = str(section.get("title", "")).strip()
+        items = [str(item or "").strip() for item in (section.get("items", []) or []) if str(item or "").strip()]
+        if section_title and items:
+            clean_sections.append({"title": section_title, "items": items})
+
+    if not clean_sections:
         return ""
 
-    return f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
+    pages = []
+    current = []
+    current_units = 7  # final page title and top spacing
+    max_units = 58
+
+    for section in clean_sections:
+        section_units = _estimate_inclusion_section_units(section)
+        if current and current_units + section_units > max_units:
+            pages.append(current)
+            current = []
+            current_units = 7
+        current.append(section)
+        current_units += section_units
+
+    if current:
+        pages.append(current)
+
+    html_text = ""
+    for index, page_sections in enumerate(pages):
+        continued = "" if index == 0 else " continued"
+        inner_html = render_inclusion_sections_inner_html(page_sections)
+        html_text += f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
+    return html_text
 
 
 def render_custom_html_final_page(title, inner_html, page_class="final-list-page"):

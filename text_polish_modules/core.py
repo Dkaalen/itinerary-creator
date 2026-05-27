@@ -102,6 +102,9 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bHot\s+drinks?\s*&\s*snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
     text = re.sub(r"\bHot\s+drinks?\s+and\s+snacks?\s+or\s+cookies\b", "Hot drinks and snacks or cookies", text, flags=re.IGNORECASE)
     text = re.sub(r"\bcolder lagoon\b", "cold lagoon", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bin central of\s+", "in central ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPick-up/drop-off in central of\s+", "Pick-up/drop-off in central ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bFull\s+Pention\b", "Full pension", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.

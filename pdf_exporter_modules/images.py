@@ -244,11 +244,11 @@ class SamePageDayImage(Flowable):
         # Draw one solid divider after the image so its vertical center sits on
         # the image edge. The emblem has no filled background.
         canv.setStrokeColor(divider_color)
-        canv.setLineWidth(3.6)
+        canv.setLineWidth(5.0)
         canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)
         canv.setFillColor(divider_color)
-        canv.setFont("Times-Roman", 11.8)
-        canv.drawCentredString(center_x, image_top_y - 4.6, "✦")
+        canv.setFont("Times-Roman", 14.5)
+        canv.drawCentredString(center_x, image_top_y - 5.3, "✦")
         canv.restoreState()
 
 
