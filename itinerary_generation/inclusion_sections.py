@@ -104,9 +104,9 @@ def _clean_transport_title(row: dict) -> str:
     if row_type == "Transfer":
         if is_route_transfer(row):
             return get_transfer_travel_title(row)
-        if "private" in combined and "airport" in combined and ("hotel" in combined or "accommodation" in combined):
-            city = canonicalize_place_name(row.get("city", ""))
-            return f"Private transfer from {city} Airport to your accommodation" if city else "Private airport transfer to your accommodation"
+        # Parser standardization already knows the direction (hotel → airport,
+        # airport → hotel, station → hotel, etc.). Reusing it prevents final
+        # inclusions from flipping departure transfers into arrival transfers.
         return polish_title(title or "Private transfer")
 
     if row_type in TRANSPORT_TYPES:
@@ -120,6 +120,8 @@ def _transport_bucket(row: dict) -> str:
     row_type = get_row_type(row)
     if "private" in text:
         return "Private transfers"
+    if "self-guided" in text or "self transfer" in text:
+        return "Self transfers"
     if row_type == "Train" or "train" in text:
         return "Rail journeys"
     if row_type == "Flight" or "flight" in text:

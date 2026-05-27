@@ -201,7 +201,20 @@ def clean_activity_inclusion_items(items, title=""):
         if text and text not in clean_items:
             clean_items.append(text)
 
-    clean_items = polish_inclusion_items(clean_items, title)
+    merged_items = []
+    for item in polish_inclusion_items(clean_items, title):
+        lower = item.lower().strip(" .")
+        if merged_items:
+            prev_lower = merged_items[-1].lower()
+            if (lower in {"boots", "gloves", "shoes", "balaclava & goggles", "balaclava and goggles"} or lower.startswith(("boots,", "gloves,", "shoes,"))) and any(marker in prev_lower for marker in ["thermal suit", "warm thermal", "boots", "gloves"]):
+                merged_items[-1] = f"{merged_items[-1].rstrip(' .')}, {item}"
+                continue
+            if lower == "camera tripods" and "camera assistance" in prev_lower:
+                merged_items[-1] = "Camera assistance and tripods"
+                continue
+        merged_items.append(item)
+
+    clean_items = polish_inclusion_items(merged_items, title)
     if not clean_items or all(looks_like_descriptive_prose(item) for item in clean_items):
         return []
     return clean_items
@@ -220,7 +233,7 @@ def create_optional_addons(parsed_rows):
             title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
         duration = str(row.get("duration", "")).strip()
-        includes = polish_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
+        includes = clean_activity_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
         if row_type == "Activity" and not includes:
             includes = get_fallback_activity_inclusions(row)
         meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")

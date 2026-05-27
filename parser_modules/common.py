@@ -244,6 +244,12 @@ def standardize_private_transfer_title(title, details, city):
     if "airport to hotel" in lower or "airport to accommodation" in lower:
         return f"Private transfer from {airport} to your accommodation"
 
+    if "bus station" in lower or "bustation" in lower:
+        if "hotel to" in lower or "to bus" in lower:
+            return "Private transfer from your hotel to the bus station"
+        if "to hotel" in lower or "to accommodation" in lower or "station to" in lower:
+            return "Private transfer from the bus station to your accommodation"
+
     if "hotel to station" in lower or "accommodation to station" in lower:
         return "Private transfer from your hotel to the station"
 
@@ -268,18 +274,24 @@ def standardize_self_transfer_title(title, details, city):
     airport = city_airport(city)
 
     if "hotel to airport" in lower or "accommodation to airport" in lower or "to airport" in lower:
-        return f"Self-guided transfer from your hotel to {airport}"
+        return f"Self transfer from your hotel to {airport}"
 
     if "airport to hotel" in lower or "airport to accommodation" in lower:
-        return f"Self-guided transfer from {airport} to your accommodation"
+        return f"Self transfer from {airport} to your accommodation"
+
+    if "bus station" in lower or "bustation" in lower:
+        if "hotel to" in lower or "to bus" in lower:
+            return "Self transfer from your hotel to the bus station"
+        if "to hotel" in lower or "to accommodation" in lower or "station to" in lower:
+            return "Self transfer from the bus station to your accommodation"
 
     if "hotel to station" in lower or "to station" in lower:
-        return "Self-guided transfer from your hotel to the station"
+        return "Self transfer from your hotel to the station"
 
     if "station to hotel" in lower or "station to accommodation" in lower:
-        return "Self-guided transfer from the station to your accommodation"
+        return "Self transfer from the station to your accommodation"
 
-    return fix_common_text(title).replace("Self transfer", "Self-guided transfer")
+    return fix_common_text(title).replace("Self-guided transfer", "Self transfer")
 
 
 def standardize_shuttle_transfer_title(title, details, city):
@@ -342,9 +354,18 @@ def create_clean_transport_title(row):
 
     if row_type in {"Cruise", "Ferry"}:
         label = "Ferry" if row_type == "Ferry" else "Cruise"
+        if row_type == "Cruise" and "spend time at leisure" in lower:
+            return "Spend time at leisure onboard the cruise"
+        if row_type == "Cruise" and ("onboard" in lower or "on board" in lower) and "leisure" in lower:
+            return "Spend time at leisure onboard the cruise"
+        cruise_arrival = re.search(r"\barrival\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+at\b|\s*(?:\||-|,|;|$))", text, flags=re.IGNORECASE)
+        if row_type == "Cruise" and cruise_arrival:
+            arrival_city = normalize_place_name(cruise_arrival.group(1).strip(" -:|."))
+            if arrival_city:
+                return f"Cruise arrival to {arrival_city}"
         if destination:
             return f"{label} to {destination}"
-        if city:
+        if city and city.lower() != "cruise":
             return f"{label} to {city}"
         return label
 

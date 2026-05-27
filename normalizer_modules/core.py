@@ -561,8 +561,45 @@ def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
 
     return updated
 
+def _fill_missing_context_cities(rows: list[dict]) -> list[dict]:
+    """Fill safe missing city values from nearby itinerary context.
+
+    Some supplier sheets leave the city column empty on activity/hotel rows
+    because the city is implied by the previous or same-day row. Filling these
+    rows prevents summary chapters such as "Journey" and day headers with no
+    city, while avoiding transport rows where multiple route cities may appear.
+    """
+    updated = [copy.deepcopy(row) for row in rows or []]
+    city_by_day: dict[str, str] = {}
+
+    preferred_types = {"Hotel", "Activity", "Arrival", "Departure", "Leisure"}
+    for row in updated:
+        city = canonicalize_place_name(row.get("city", ""))
+        if city and get_row_type(row) in preferred_types and not is_likely_service_text(city) and city.lower() not in {"accommodation", "journey"}:
+            city_by_day.setdefault(row.get("day", ""), city)
+
+    previous_city = ""
+    fillable_types = {"Hotel", "Activity", "Arrival", "Departure", "Leisure"}
+    for row in updated:
+        row_type = get_row_type(row)
+        city = canonicalize_place_name(row.get("city", ""))
+        if city and not is_likely_service_text(city) and city.lower() not in {"accommodation", "journey"}:
+            previous_city = city
+            continue
+        if city.lower() in {"accommodation", "journey"}:
+            row["city"] = ""
+        if row_type in fillable_types:
+            inferred = city_by_day.get(row.get("day", "")) or previous_city
+            if inferred:
+                row["city"] = inferred
+                city_by_day.setdefault(row.get("day", ""), inferred)
+                previous_city = inferred
+    return updated
+
+
 def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
     normalized = [normalize_row(row) for row in rows or []]
+    normalized = _fill_missing_context_cities(normalized)
     normalized = apply_contextual_travel_corrections(normalized)
     normalized = add_repeated_activity_context(normalized)
     return normalized

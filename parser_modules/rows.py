@@ -2,6 +2,12 @@ import hashlib
 
 from parser_modules.common import *  # noqa: F401,F403
 
+
+def is_trailing_status_cell(value):
+    """Return True for stray spreadsheet markers that are not itinerary content."""
+    text = clean_space(value).strip('"\' \t')
+    return text.lower() in {"", "x", "yes", "no", "true", "false", "-", "—"}
+
 def preprocess_raw_rows(raw_text):
     """
     Rebuild rows when Excel cells contain line breaks.
@@ -62,15 +68,21 @@ def find_day_index(parts):
 
 def find_description_cell(parts):
     """
-    Return the rightmost non-empty cell as the description, while preserving
-    internal line breaks from long pasted supplier descriptions.
+    Return the rightmost meaningful content cell as the description.
+
+    Some exported spreadsheet rows end with status cells such as ``x`` or a
+    stray quote after the real description. Those markers must not replace the
+    supplier text or cause a valid activity row to be skipped.
     """
 
     for part in reversed(parts):
         raw_value = str(part or "").strip()
 
-        if raw_value:
-            value = raw_value.strip('"')
+        if is_trailing_status_cell(raw_value):
+            continue
+
+        value = raw_value.strip('"')
+        if value.strip():
             return value.strip()
 
     return ""
@@ -88,7 +100,7 @@ def find_city_cell(parts, description_index):
     for index in range(description_index - 1, -1, -1):
         value = clean_space(parts[index]).strip('"')
 
-        if not value:
+        if not value or is_trailing_status_cell(value):
             continue
 
         if is_valid_city_value(value):
@@ -99,7 +111,7 @@ def find_city_cell(parts, description_index):
 
 def get_description_index(parts):
     for index in range(len(parts) - 1, -1, -1):
-        if clean_space(parts[index]):
+        if clean_space(parts[index]) and not is_trailing_status_cell(parts[index]):
             return index
 
     return -1

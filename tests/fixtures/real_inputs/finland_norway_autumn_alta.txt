@@ -1,0 +1,56 @@
+	Day 1	Transfer 		24/10/2026					Helsinki 	Private Airport to Hotel
+	Day 1	Hotel	1	24/10/2026	25/10/2026				Helsinki 	4 Star , Home Hotel Jugend, 1xNight , 1xStandard Double Room / twin beds , Incl Brekafast 
+	Day 2	Activity		25/10/2026					Helsinki 	A Finntastic Walking Tour in Helsinki | 10:30  AM | 2.15 Hr | Professional authorised Helsinki Guide 
+	Day 2	Transfer 		25/10/2026					Helsinki 	Private Hotel to Station
+	Day 2	Transfer 		25/10/2026					Helsinki 	Overnight Train : Overnight Train Transfer with the Santa Claus Express to Rovaniemi - 11:13 pm - 10:59 am - 1  x  downstairs cabin for two people
+	Day 3	Transfer 		26/10/2026					Rovaniemi	Private Station to Hotel
+	Day 3	Hotel	2	26/10/2026	28/10/2026				Rovaniemi	4 Star ,Scandic Pohjanhovi , 2xNight , 1xStandard Double Room, Incl Brekafast 
+	Day 3	Activity		26/10/2026					Rovaniemi	Rovaniemi: Northern Lights Unlimited Mileage Photo Tour - Time: 08:00 pm - 01:00 am - Meeting point: Book Lapland Office - Includes: Pick-up/drop-off in central Rovaniemi, Knowledgeable, English-speaking guides, Professional DSLR photography (unlimited), Meteorological observations, Thermal winter clothing, Hot drinks & snacks or cookies
+	Day 4	Activity		27/10/2026					Rovaniemi	Visit to Santa Claus Village & Visit Reindeer | 10 AM | 4 Hrs | Knowledgeable, English-speaking guide ,Pick-up/drop-off in central Rovaniemi ,Personal encounter with Santa Claus ,Arctic Circle Certificate & lunch buffet | Pick up / meeting point Nordic Unique Travels Office, Maakuntakatu 29, Rovaniemi
+	Day 4	Activity		27/10/2026					Rovaniemi	"Rovaniemi: Small-Group Aurora Hunt by Minibus - Time: 7:00 pm - 10:00 pm - Meeting point: Lapland Royal Adventures Office - Includes: Pick-up/drop-off from central Rovaniemi, Knowledgeable, English-speaking guide, Dedicated Northern Lights chase by minibus, Cozy blankets, hot drinks and a snack					x	"
+	Day 5	Transfer 		28/10/2026					Rovaniemi	Private Hotel to Airport
+	Day 5	Transfer 		28/10/2026					Tromso	Flight | Rovaniemi to Tromso | Self arrnaged price not included | Bus Is not available in October month 
+	Day 5	Transfer 		28/10/2026					Tromso	Private Airport to Hotel
+	Day 5	Hotel	3	28/10/2026	31/10/2026				Tromso	3 Star ,Thon Hotel Polar , 3xNight , 1xStandard Double Room, Incl Brekafast 
+	Day 6	Activity		29/10/2026					Tromso	Tromsø: Reindeer Feeding and Sámi Culture - Time: 09:45 am - 2:30 pm - Meeting point: Radisson Blu Hotel's main entrance (Sjøgata 7) - Includes: Scenic transfers (45 min each way), Knowledgeable English and Norwegian speaking guide, Feeding the herd at our camp, Hot beverages and hot meal (traditional Sámi stew or vegetable/lentil soup), Cultural introduction about Sámi history and daily life, A chance to see the northern lights from our camp, Thermal suit and warm snow boots
+	Day 6	Activity		29/10/2026					Tromso	Tromsø: Northern Lights Chase with Pro Photographer - Time: 6:00 pm - 12:00 am - Meeting point: Roald Amundsens plass 1A - Includes: Professional, English-speaking Aurora photographer guides, Transportation by comfortable minibus, van or coach, Help with camera settings and Aurora Borealis photography, Hot drinks and cookies
+	Day 7	Activity		30/10/2026					Tromso	Tromsø: Photo Tour to Arctic Landscapes and Fjords - Time: 10:00 am - 3:00 pm - Meeting point: Roald Amundsens plass 1A - Includes: Departure from central Tromsø. Drop-off to your hotel, Professional, English-speaking photo guides, Scenic fjord safari by comfortable minivan vehicle, Help with camera settings and nature photography, Usually a small-group experience with 4-8 guests, Soup or expedition food, coffee and waffles/cookies
+	Day 8	Transfer 		31/10/2026					Tromso	Self Transfer Hotel to Bus station 
+	Day 8	Transfer 		31/10/2026					Alta	Tromsø: Long distance panorama coach transfer to Alta - Bus 150 - Time: 4:00 pm - 10:20 pm - Excludes: Tickets (To be bought on site)
+	Day 8	Transfer 		31/10/2026					Alta	Self Transfer  Bustation to Hotel 
+	Day 8	Hotel	2	31/10/2026	02/11/2026				Alta	4Star  , Scandic Alta , 2xNight , 1xStandard Double Room, Incl Brekafast 
+	Day 9	Activity		01/11/2026					Alta	"Optional Addon (210 EUR per person ) | Alta: Whale Watching & Arctic Wildlife Safari by RIB Boat | 10:15 | 4 hrs 
+
+Overview
+Feel the raw power of Arctic waters beneath you as your RIB boat cuts through fjord swells, bringing you eye-level with humpback whales and orcas in their winter hunting grounds.
+
+What's included?
+Pick-up/drop-off in central Alta
+
+Knowledgeable, English-speaking guide
+
+RIB boat trip with a certified driver
+
+Rental of warm thermal suits
+
+Boots, gloves, balaclava & goggles
+
+Hot coffee, tea and snacks"
+	Day 9	Activity		01/11/2026					Alta	"Alta: Northern Lights Tour by Minibus with Photo Assistance |20:00 | 5 hrs  Overview
+Experience the Aurora Borealis in the City of Northern Lights
+
+What's included?
+Pick-up and drop-off in central of Alta
+
+Professional, English-speaking guide
+
+Camera assistance, camera tripods
+
+Portrait photo sent to your email
+
+Free rental of thermal suits, shoes
+
+Cookies and cake and warm drinks
+
+Warm soup with bread is provided"
+	Day 10	Transfer 		02/11/2026					Alta	Private Hotel to Airport

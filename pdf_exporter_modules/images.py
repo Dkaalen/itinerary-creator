@@ -241,17 +241,14 @@ class SamePageDayImage(Flowable):
         )
         divider_color = colors.HexColor("#b89555")
         center_x = self.absolute_x + (self.content_width / 2.0)
-        # Draw after the image so the divider is visually centered on the image edge.
-        # The emblem has no filled background, avoiding the previous patch/notch effect.
-        canv.setStrokeColor(colors.HexColor("#d8cec2"))
-        canv.setLineWidth(2.7)
-        canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)
+        # Draw one solid divider after the image so its vertical center sits on
+        # the image edge. The emblem has no filled background.
         canv.setStrokeColor(divider_color)
-        canv.setLineWidth(1.1)
+        canv.setLineWidth(3.6)
         canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)
         canv.setFillColor(divider_color)
-        canv.setFont("Times-Roman", 10.8)
-        canv.drawCentredString(center_x, image_top_y - 4.2, "✦")
+        canv.setFont("Times-Roman", 11.8)
+        canv.drawCentredString(center_x, image_top_y - 4.6, "✦")
         canv.restoreState()
 
 

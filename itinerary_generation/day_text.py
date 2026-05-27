@@ -48,7 +48,7 @@ def _canonical_route_city(name):
 ROUTE_CITY_CANDIDATES = [
     "Helsinki", "Rovaniemi", "Saariselkä", "Saariselka",
     "Kakslauttanen", "Kakslauttenen", "Ivalo",
-    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso", "Svolvær", "Svolvaer", "Svolaver", "Gothenburg", "Göteborg", "Malmo", "Malmø",
+    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso", "Svolvær", "Svolvaer", "Svolaver", "Gothenburg", "Göteborg", "Malmo", "Malmø", "Alta", "Kirkenes",
 ]
 
 
@@ -198,7 +198,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 ),
                 (
                     f"Your main experience today is {activity_title}, offering a well-paced "
-                    f"way to enjoy {destination_wording} without overfilling the day."
+                    f"way to enjoy the experience without overfilling the day."
                 ),
             ]
             variant_index = (get_day_number(day_rows[0].get("day", "")) - 1) % len(intro_variants)

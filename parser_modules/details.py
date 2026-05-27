@@ -175,7 +175,13 @@ def split_comma_list(text, *, protect_compound_phrases=False):
                 "access to ",
                 "one drink of ",
                 "two additional ",
-            )) or ("coffee" in lower_line and "snack" in lower_line) or ("fish soup" in lower_line and "lunch" in lower_line)
+                "boots",
+                "gloves",
+                "camera assistance",
+                "cookies and cake",
+                "hot coffee",
+                "hot beverages",
+            )) or ("coffee" in lower_line and "snack" in lower_line) or ("fish soup" in lower_line and "lunch" in lower_line) or ("thermal suit" in lower_line and "boots" in lower_line)
             if preserve_as_one:
                 parts.append(clean_line)
                 continue
@@ -263,6 +269,19 @@ def detect_effective_type(item_type, title, details):
     # supplier text mentions a bus/coach as part of the experience.
     if normalized_item_type == "Activity":
         return "Activity"
+
+    # Plain private/self-guided/local transfers remain transfers even when the
+    # destination text contains "bus station". Long-distance coach/bus rows can
+    # still become Transport below.
+    if normalized_item_type == "Transfer" and any(
+        marker in combined
+        for marker in [
+            "self transfer", "self-guided transfer", "private",
+            "hotel to", "airport to", "station to", "to hotel",
+            "to airport", "to station", "accommodation", "bus station", "bustation",
+        ]
+    ) and "coach transfer to" not in combined and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+        return "Transfer"
 
     if (
         "coach transfer" in combined

@@ -510,7 +510,8 @@ def test_day_page_editorial_parity_markup():
 
     final_html_css = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
     assert_contains(final_html_css, ".day-image-slot::after", "Final preview should draw the emblem divider on the day image edge.")
-    assert_contains(final_html_css, "box-shadow: inset 0 2px 0", "Final preview should keep the thicker divider attached to the image top edge.")
+    assert_contains(final_html_css, "border-top: 4px solid rgba(184,149,85,.92)", "Final preview should keep one thicker solid divider attached to the image top edge.")
+    assert_contains(final_html_css, "box-shadow: none", "Final preview divider should not use a two-tone shadow line.")
     assert_contains(final_html_css, "background: transparent", "The day-image emblem should not draw a patch behind the divider.")
 
     editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
@@ -605,6 +606,9 @@ def run_all():
         test_multiline_supplier_inclusion_commas_are_preserved,
         test_real_input_fixture_bank_core_expectations,
         test_v36c52_content_quality_hardening_rules,
+        test_v36c53_optional_arc_transfer_quality_gate,
+        test_context_city_fill_prevents_journey_chapters,
+        test_optional_addon_inclusion_fragments_are_merged,
         test_hotel_name_before_room_marker_is_parsed_generally,
         test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
     ]
@@ -1020,7 +1024,7 @@ def test_real_input_fixture_bank_core_expectations():
     blue = next(row for row in iceland_rows if row.get("city") == "Blue Lagoon")
     assert_equal(create_client_activity_title(blue), "Blue Lagoon Premium Admission", "Blue Lagoon should render as admission, not generic guided experience.")
     blue_includes = "\n".join(blue.get("includes", []))
-    assert_contains(blue_includes, "Unlimited use of steam bath, sauna, and colder lagoon", "Spa comma inclusions should stay together.")
+    assert_contains(blue_includes, "Unlimited use of steam bath, sauna, and cold lagoon", "Spa comma inclusions should stay together.")
     whale = next(row for row in iceland_rows if "Whale" in row.get("title", ""))
     assert_equal(whale.get("duration"), "2.5–3.5 hours", "Whale watching duration range should be preserved.")
     fosshotel = next(row for row in iceland_rows if "Fosshotel" in row.get("hotel_name", ""))
@@ -1036,6 +1040,80 @@ def test_real_input_fixture_bank_core_expectations():
     explore_html = build_day_overview_block(explore_row)["html"]
     assert_contains(explore_html, "Explore at your own pace", "Explore fixture should not use Suggested Route.")
     assert_not_contains(explore_html, "Suggested Route", "Explore fixture should not use route label.")
+
+
+def test_v36c53_optional_arc_transfer_quality_gate():
+    from generator import create_day_title, create_journey_arc
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from itinerary_generation.inclusions import create_whats_not_included
+    from itinerary_generation.titles import create_client_activity_title
+    from ui.day_blocks import build_day_blocks
+    from ui.render_helpers import get_activity_description
+
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    # Strict Journey Arc gate: every real fixture should remain compact enough
+    # for the summary table instead of wrapping into long keyword lists.
+    for fixture_path in sorted(fixtures.glob("*.txt")):
+        fixture_rows = normalize_itinerary_rows(parse_itinerary(fixture_path.read_text(encoding="utf-8")))
+        fixture_grouped = group_rows_by_day(fixture_rows)
+        for chapter in create_journey_arc(fixture_grouped):
+            assert len(chapter.get("experience", "")) <= 48, f"Journey Arc row too long in {fixture_path.name}: {chapter!r}"
+            assert_not_contains(chapter.get("experience", ""), "local food culture, scenic nature experiences", "Arc phrases should not be long keyword lists.")
+            assert_not_contains(chapter.get("chapter", ""), "Journey", "Known cruise/service chapters should use a more specific chapter label.")
+
+    raw = (fixtures / "finland_norway_autumn_alta.txt").read_text(encoding="utf-8")
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    day4_titles = [row.get("title") for row in grouped["Day 4"] if row.get("effective_type") == "Activity"]
+    assert_contains("\n".join(day4_titles), "Santa Claus Village & Reindeer Visit", "The first Day 4 activity should remain visible.")
+    assert_contains("\n".join(day4_titles), "Small-Group Aurora Hunt by Minibus", "The second Day 4 activity must not be skipped by trailing spreadsheet markers.")
+
+    day8_title = create_day_title(grouped["Day 8"])
+    assert_equal(day8_title, "Coach Transfer to Alta", "Coach transfer days should title the actual destination, not the origin city.")
+    day8_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 8"]) if block)
+    assert_contains(day8_html, "Self transfer from your hotel to the bus station", "Self transfers to bus station should be labeled as self transfers, not self-guided transfers.")
+    assert_not_contains(day8_html, "Self-guided transfer", "Self transfer wording should not use the confusing self-guided label.")
+    assert_contains(day8_html, "Coach Transfer to Alta", "Coach transfer should point to Alta.")
+    assert_not_contains(day8_html, "Coach Transfer to Tromsø", "Coach transfer should not point back to the origin city.")
+
+    optional_rows = [row for row in rows if row.get("is_optional")]
+    assert optional_rows, "Optional add-on rows should be detected even when Optional Addon appears inside the activity cell."
+    optional_title = create_client_activity_title(optional_rows[0])
+    assert_equal(optional_title, "Whale Watching & Arctic Wildlife Safari", "Optional whale/RIB add-ons should keep their specific title.")
+    assert "Day 9" in grouped, "The main Day 9 should remain after optional add-ons are excluded from grouped days."
+    day9_titles = "\n".join(row.get("title", "") for row in grouped["Day 9"])
+    assert_not_contains(day9_titles, "Optional Addon", "Optional add-ons must not appear as normal included day activities.")
+    assert_not_contains(day9_titles, "Whale Watching", "Optional whale watching must not become the main day title.")
+
+    inclusions = "\n".join(item for sec in create_categorized_inclusions(rows, grouped) for item in sec.get("items", []))
+    assert_not_contains(inclusions, "Whale Watching & Arctic Wildlife Safari", "Optional add-ons must not appear in normal inclusions.")
+    assert_not_contains(inclusions, "Whale Watching From Downtown", "Generic whale title should not leak for the optional Alta RIB safari.")
+    assert_contains(inclusions, "Northern Lights Experience", "The included Alta northern lights activity should remain included.")
+
+    not_included = "\n".join(create_whats_not_included(rows))
+    assert_contains(not_included, "Optional add-ons and experiences", "Optional add-ons should be commercially clear in exclusions.")
+    assert_contains(not_included, "Tickets or services marked as excluded", "Excludes/tickets on-site notes should reach exclusions.")
+    assert_contains(not_included, "Self-arranged flights or transport", "Self-arranged flight/transport rows should reach exclusions.")
+
+    reindeer = next(row for row in rows if "Reindeer Feeding" in row.get("title", ""))
+    reindeer_desc = get_activity_description(reindeer)
+    assert_contains(reindeer_desc, "Sámi culture", "Reindeer/Sámi descriptions should focus on culture and herd experience.")
+    assert_not_contains(reindeer_desc, "Northern Lights hunt by reindeer", "Daytime reindeer/Sámi culture should not be mislabeled as a northern lights hunt.")
+
+    alta_nl = next(row for row in rows if row.get("city") == "Alta" and "Northern Lights" in row.get("title", ""))
+    alta_inclusions = "\n".join(alta_nl.get("includes", []))
+    assert_contains(alta_inclusions, "Camera assistance, camera tripods", "Camera assistance/tripods should not split into orphan bullets.")
+
+    cruise_raw = (fixtures / "scandinavia_autumn_cruise.txt").read_text(encoding="utf-8")
+    cruise_rows = normalize_itinerary_rows(parse_itinerary(cruise_raw))
+    cruise_grouped = group_rows_by_day(cruise_rows)
+    day9_cruise_html = "\n".join(block["html"] for block in build_day_blocks(cruise_grouped["Day 9"]) if block)
+    assert_contains(day9_cruise_html, "Spend time at leisure onboard the cruise", "Cruise leisure days should use onboard cruise wording, not a generic Cruise label.")
+    assert_not_contains(day9_cruise_html, ">Cruise<", "Cruise-only leisure days should not render as a vague Cruise row.")
+    day13_cruise_title = create_day_title(cruise_grouped["Day 13"])
+    assert_contains(day13_cruise_title, "Cruise arrival to Bergen", "Cruise arrival days should mention the arrival city instead of a generic Cruise title.")
+
 
 
 def test_hotel_name_before_room_marker_is_parsed_generally():
@@ -1054,6 +1132,32 @@ def test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words()
     assert_contains(text, "Þingvellir National Park", "Known place aliases should still normalize.")
     assert_not_contains(text, "National Park National Park", "Place aliases should not duplicate canonical suffixes.")
     assert_contains(text, "tours are unique", "Common English words should not be rewritten as place aliases.")
+
+
+def test_context_city_fill_prevents_journey_chapters():
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    raw = (fixtures / "finland_norway_winter_variant.txt").read_text(encoding="utf-8")
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    day2 = grouped.get("Day 2", [])
+    assert day2, "Fixture should include Day 2."
+    assert_contains("\n".join(row.get("city", "") for row in day2), "Helsinki", "City should be inferred from itinerary context when supplier leaves the city cell blank.")
+    chapters = create_journey_arc(grouped)
+    chapter_names = "\n".join(chapter.get("chapter", "") for chapter in chapters)
+    assert_not_contains(chapter_names, "Journey", "Known same/previous-city context should prevent generic Journey chapters.")
+
+
+def test_optional_addon_inclusion_fragments_are_merged():
+    from ui.final_pages import create_optional_addons
+
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    raw = (fixtures / "finland_norway_autumn_alta.txt").read_text(encoding="utf-8")
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    addons = create_optional_addons(rows)
+    assert addons, "Optional add-ons should be extracted from the fixture."
+    include_text = "\n".join(item for addon in addons for item in addon.get("includes", []))
+    assert_contains(include_text, "Rental of warm thermal suits, boots, gloves, balaclava & goggles", "Thermal suit gear fragments should merge into one optional add-on inclusion.")
+    assert_not_contains(include_text, "\nboots", "Boots should not render as an orphan optional add-on bullet.")
 
 
 if __name__ == "__main__":

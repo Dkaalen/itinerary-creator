@@ -169,7 +169,7 @@ def build_self_transfer_block(row, title_override=None):
     city = polish_title(row.get("city", ""))
 
     html_text = f'<div class="content-block self-transfer-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += '<div class="section-title">Self-Guided Transfer</div>'
+    html_text += '<div class="section-title">Self Transfer</div>'
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     if city:
@@ -177,7 +177,7 @@ def build_self_transfer_block(row, title_override=None):
 
     html_text += (
         '<div class="body-text muted-note">'
-        'This is a self-guided transfer, so please make your own way between these points. '
+        'This is a self transfer, so please make your own way between these points. '
         'Transfer costs are not included unless specifically stated elsewhere in the itinerary.'
         '</div>'
     )
@@ -338,6 +338,9 @@ def _polish_overview_item(value):
     item = re.sub(r"\bTo\b", "to", item)
     item = re.sub(r"\bFrom\b", "from", item)
     item = re.sub(r"\bAnd\b", "and", item)
+    item = re.sub(r"\bScenic Return Drive to\b", "Scenic return drive to", item)
+    item = re.sub(r"\bLuxury Stay\b", "Overnight near Glacier Lagoon", item)
+    item = re.sub(r"\bDiamond Beach\b", "Diamond Beach area", item)
     return polish_title(item)
 
 

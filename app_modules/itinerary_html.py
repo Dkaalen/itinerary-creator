@@ -246,8 +246,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: visible;
             flex: 0 0 410px;
             position: relative;
-            border-top: 3px solid rgba(216,206,194,.98);
-            box-shadow: inset 0 2px 0 rgba(184,149,85,.74);
+            border-top: 4px solid rgba(184,149,85,.92);
+            box-shadow: none;
             box-sizing: border-box;
         }}
 
@@ -257,8 +257,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             left: 0;
             right: 0;
             top: 0;
-            height: 30px;
-            background: linear-gradient(to bottom, rgba(244,239,232,.24), rgba(244,239,232,0));
+            height: 26px;
+            background: linear-gradient(to bottom, rgba(244,239,232,.16), rgba(244,239,232,0));
             z-index: 1;
             pointer-events: none;
         }}
@@ -267,14 +267,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             content: "✦";
             position: absolute;
             left: 50%;
-            top: 1.5px;
+            top: 0;
             transform: translate(-50%, -50%);
             width: auto;
             height: auto;
             line-height: 1;
             text-align: center;
             font-family: Georgia, 'Times New Roman', serif;
-            font-size: 13px;
+            font-size: 14px;
             color: rgba(184,149,85,.96);
             background: transparent;
             z-index: 3;

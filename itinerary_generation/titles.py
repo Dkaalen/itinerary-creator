@@ -45,7 +45,11 @@ def create_client_activity_title(row):
         return "Drysuit Snorkelling in Silfra"
 
     if "whale watching" in full_text:
-        return "Whale Watching From Downtown"
+        if "arctic wildlife" in full_text or "rib boat" in full_text or "wildlife safari" in full_text:
+            return "Whale Watching & Arctic Wildlife Safari"
+        if "from downtown" in full_text:
+            return "Whale Watching From Downtown"
+        return "Whale Watching"
 
     if "tallinn" in full_text:
         return "Day Trip to Tallinn"

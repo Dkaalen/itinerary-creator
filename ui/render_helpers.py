@@ -377,10 +377,12 @@ def get_activity_description(row, detail_level=None):
         return "Travel by snowmobile towards Santa Claus Village, with time for the festive village atmosphere and a short reindeer sleigh experience in the Arctic setting."
     if "santa claus village" in combined and "reindeer" in combined:
         return "Visit Santa Claus Village and enjoy a classic Arctic reindeer experience, combining festive atmosphere with a memorable Lapland tradition."
+    if ("reindeer feeding" in combined or "sámi" in combined or "sami" in combined) and not ("northern lights chase" in combined or "northern lights hunt" in combined or "aurora hunt" in combined):
+        return "Meet the reindeer herd, learn about Sámi culture and enjoy a warm meal as part of the Arctic experience."
     if "northern lights basecamp" in combined:
         return "Spend the evening at a dedicated Northern Lights basecamp, with time to wait for the aurora in a comfortable Arctic setting."
     if "northern lights" in combined or "aurora" in combined:
-        if "reindeer" in combined:
+        if "reindeer" in combined and ("hunt" in combined or "chase" in combined):
             return "Head into the winter landscape for a Northern Lights hunt by reindeer, with warm drinks and Arctic atmosphere included in the experience."
         if "bbq" in combined or "barbecue" in combined or "lappish" in combined:
             return "Head away from the city lights in search of the Northern Lights, with a Lappish barbecue and time by the fire in the winter landscape."
@@ -400,6 +402,8 @@ def get_activity_description(row, detail_level=None):
     if "funicular" in combined or "fløibanen" in combined:
         return "Ride the Fløibanen funicular for an easy ascent above Bergen and views over the city, harbour and surrounding mountains."
 
+    if "photo tour" in combined and ("fjord" in combined or "landscape" in combined):
+        return f"Explore scenic fjords and Arctic landscapes{destination_phrase}, with guidance on viewpoints and photography along the way."
     if "walking" in combined or "guided" in combined:
         return f"Enjoy a guided experience{destination_phrase}, with local context and a clear route through the day’s main highlights."
     if "boat" in combined or "cruise" in combined or "canal" in combined:

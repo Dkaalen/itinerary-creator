@@ -124,14 +124,22 @@ def create_whats_not_included(parsed_rows=None):
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
         "Porterage unless specified",
-        "Self-guided transfers and self-arranged travel costs unless specifically stated",
+        "Self transfers and self-arranged travel costs unless specifically stated",
         "Travel insurance",
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",
     ]
     text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in (parsed_rows or [])).lower()
-    if "self arranged" in text or "self-arranged" in text or "cost not included" in text or "price not included" in text:
+    if "self arranged" in text or "self-arranged" in text or "self arrnaged" in text or "cost not included" in text or "price not included" in text:
         note = "Self-arranged flights or transport listed in the itinerary, unless specifically stated as included"
+        if note not in items:
+            items.insert(1, note)
+    if "optional addon" in text or "optional add-on" in text or "optional add on" in text:
+        note = "Optional add-ons and experiences unless specifically selected"
+        if note not in items:
+            items.insert(1, note)
+    if "excludes" in text or "not included" in text or "to be bought on site" in text:
+        note = "Tickets or services marked as excluded or to be bought on site"
         if note not in items:
             items.insert(1, note)
     return items

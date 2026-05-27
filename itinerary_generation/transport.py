@@ -33,7 +33,9 @@ def _route_destination_from_text(value):
         flags=re.IGNORECASE,
     )
     if explicit:
-        return canonicalize_place_name(re.split(r"\s+(?:train|flight|coach|bus|ferry|cruise)\b|\s+to\s+", explicit.group(2).strip(" -:|."), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|."))
+        dest = re.split(r"\s+(?:train|flight|coach|bus|ferry|cruise)\b|\s+to\s+", explicit.group(2).strip(" -:|."), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+        dest = re.sub(r"\bArctic Resort\b", "", dest, flags=re.IGNORECASE).strip(" -:|.")
+        return canonicalize_place_name(dest)
 
     # Use the last route-like destination in the string. This works for messy
     # rows such as "Tromsø to Bergen" or "Flight Bergen to Svolvær".
@@ -54,7 +56,7 @@ def is_route_transfer(row):
         return False
     text = f'{row.get("title", "")} {row.get("details", "")}'
     lower = text.lower()
-    if any(marker in lower for marker in ["private", "shuttle", "self transfer", "hotel to", "airport to", "station to", "to hotel", "to airport", "to station", "accommodation"]):
+    if any(marker in lower for marker in ["private", "shuttle", "self transfer", "hotel to", "airport to", "to hotel", "to airport", "to station", "accommodation"]):
         return False
     destination = _route_destination_from_text(text)
     return bool(destination and is_valid_destination_city(destination))
@@ -72,7 +74,7 @@ def get_transfer_travel_title(row):
     if ("ferry" in lower or "cruise" in lower) and destination:
         return f"Ferry to {destination}" if "ferry" in lower else f"Cruise to {destination}"
     if ("coach" in lower or "bus" in lower) and destination:
-        return f"Coach transfer to {destination}"
+        return f"Coach Transfer to {destination}"
     if destination:
         return f"Travel to {destination}"
     return polish_title(row.get("title", "") or "Travel today")

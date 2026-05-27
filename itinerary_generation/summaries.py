@@ -106,6 +106,23 @@ def _add_theme(items, theme):
         items.append(theme)
 
 
+def _title_case_arc(text: str) -> str:
+    text = str(text or "").strip()
+    if not text:
+        return "Time to explore at your own pace"
+    return text[:1].upper() + text[1:]
+
+
+def _compact_arc_phrase(candidates):
+    """Pick a short Journey Arc phrase suitable for one table row."""
+    for phrase in candidates:
+        phrase = _title_case_arc(phrase)
+        if len(phrase) <= 48:
+            return phrase
+    phrase = _title_case_arc(candidates[0] if candidates else "Time to explore at your own pace")
+    return phrase[:45].rstrip(" ,") + "..." if len(phrase) > 48 else phrase
+
+
 def describe_city_experience(rows):
     text = " ".join(
         " ".join([
@@ -118,75 +135,120 @@ def describe_city_experience(rows):
         for row in rows
     )
     row_types = {get_row_type(row) for row in rows}
-    cities = {str(row.get("city", "")).strip().lower() for row in rows if str(row.get("city", "")).strip()}
 
     if has_glass_igloo_or_arctic_resort(rows):
-        return "Arctic resort stay, glass igloo experience and remote Lapland scenery"
+        return "Arctic resort and glass igloo stay"
 
-    themes = []
+    has_arrival = any(get_row_type(row) == "Arrival" for row in rows)
+    has_departure = any(get_row_type(row) == "Departure" for row in rows)
+    has_hotel_only = row_types == {"Hotel"}
+    travel_only_with_hotel = row_types.issubset({"Hotel", "Transfer", "Flight", "Train", "Transport", "Cruise", "Ferry"}) and any(get_row_type(row) == "Hotel" for row in rows)
 
-    if any(get_row_type(row) == "Arrival" for row in rows):
-        _add_theme(themes, "arrival")
+    has_nutshell = has_norway_in_a_nutshell(rows) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
+    has_self_drive = _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "route suggested", "scenic drive", "return drive", "road trip")
+    has_lagoon = _has(text, "blue lagoon", "sky lagoon", "spa", "wellness", "7-step", "ritual")
+    has_silfra = _has(text, "silfra", "snork")
+    has_golden = _has(text, "golden circle", "kerið", "kerid")
+    has_south = _has(text, "south coast", "diamond beach", "black sand")
+    has_adventure = _has(text, "atv", "quad", "glacier", "hike", "hiking", "crampon")
+    has_whale = _has(text, "whale", "wildlife", "rib boat")
+    has_fjord = _has(text, "fjord", "trollfjord", "cruise", "catamaran", "silent electric ship") or ("boat" in text and not _has(text, "stockholm", "vasa", "old town"))
+    has_food = _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner", "meal")
+    has_tallinn = _has(text, "tallinn")
+    has_city = _has(text, "vasa", "old town", "museum", "walking tour", "city walk", "must-see", "guided visit", "helsinki guide", "senate square", "senate squate")
+    has_nature = _has(text, "forest tower", "forgotten giants", "nature hike", "haukland", "henningsvær", "photo tour", "arctic landscape")
+    has_aurora = _has(text, "northern light", "aurora")
+    has_leisure = _has(text, "leisure", "spend time at leisure", "free time", "explore")
+    has_reindeer_sami = _has(text, "reindeer", "sámi", "sami", "husky", "santa claus village")
+    has_cable = _has(text, "fjellheisen", "cable car", "funicular", "fløibanen", "floibanen")
+    has_flight = _has(text, "flight")
 
-    if has_norway_in_a_nutshell(rows) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway"):
-        _add_theme(themes, "Norway in a Nutshell route")
-        _add_theme(themes, "scenic rail and fjord travel")
+    candidates = []
 
-    if _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "route suggested", "scenic drive", "return drive", "road trip"):
-        _add_theme(themes, "scenic self-drive route")
+    if has_tallinn:
+        candidates.append("Tallinn day trip and onward train")
+    if has_nutshell:
+        candidates.append("Norway in a Nutshell and scenic rail")
+    if has_golden and has_silfra:
+        candidates.append("Golden Circle and Silfra snorkelling")
+    elif has_silfra:
+        candidates.append("Silfra snorkelling")
+    elif has_golden:
+        candidates.append("Golden Circle route")
 
-    if _has(text, "blue lagoon", "sky lagoon", "spa", "wellness", "7-step", "ritual"):
-        _add_theme(themes, "lagoon and wellness experiences")
+    if has_lagoon and has_self_drive and has_whale:
+        candidates.append("Lagoon, self-drive route and whale watching")
+    elif has_lagoon and has_self_drive:
+        candidates.append("Lagoon and scenic self-drive route")
+    elif has_lagoon:
+        candidates.append("Lagoon and wellness")
 
-    if _has(text, "silfra", "snork"):
-        _add_theme(themes, "Silfra snorkelling")
+    if has_south and has_adventure:
+        candidates.append("South Coast scenery and soft adventure")
+    elif has_south:
+        candidates.append("South Coast scenery")
 
-    if _has(text, "golden circle", "kerið", "kerid"):
-        _add_theme(themes, "Golden Circle route")
-
-    if _has(text, "south coast", "waterfall", "diamond beach", "black sand"):
-        _add_theme(themes, "South Coast scenery")
-
-    if _has(text, "atv", "quad", "glacier", "hike", "hiking", "crampon"):
-        _add_theme(themes, "soft adventure experiences")
-
-    if _has(text, "whale", "sea eagle", "wildlife"):
-        _add_theme(themes, "coastal wildlife")
-
-    if _has(text, "fjord", "trollfjord", "cruise", "boat", "catamaran", "silent electric ship"):
-        _add_theme(themes, "fjord scenery and coastal cruising")
-
-    if _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner"):
-        _add_theme(themes, "local food culture")
-
-    if _has(text, "vasa", "old town", "museum", "walking tour", "city walk", "must-see", "guided visit"):
-        _add_theme(themes, "guided city discovery")
-
-    if _has(text, "forest tower", "forgotten giants", "nature hike", "haukland", "henningsvær", "photo tour"):
-        _add_theme(themes, "scenic nature experiences")
-
-    if _has(text, "northern light", "aurora"):
-        _add_theme(themes, "Northern Lights experiences")
-
-    if _has(text, "leisure", "spend time at leisure", "free time", "explore"):
-        _add_theme(themes, "time at leisure")
-
-    if row_types == {"Hotel"}:
-        _add_theme(themes, "accommodation as listed")
-
-    if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
-        _add_theme(themes, "arrival and accommodation as listed")
-
-    if not themes:
-        if any(get_row_type(row) in {"Flight", "Train", "Transfer", "Transport"} for row in rows):
-            themes.append("onward travel and accommodation as listed")
+    if has_reindeer_sami and has_aurora:
+        if "santa claus village" in text:
+            candidates.append("Aurora, Santa Village and Arctic experiences")
+        elif has_fjord or has_nature:
+            candidates.append("Sámi culture, fjords and northern lights")
         else:
-            themes.append("time to explore at your own pace")
+            candidates.append("Aurora, Sámi culture and Arctic experiences")
+    elif has_reindeer_sami:
+        candidates.append("Sámi culture and Arctic experiences")
+    elif has_aurora and has_whale:
+        candidates.append("Wildlife, aurora and Arctic coast")
+    elif has_aurora:
+        candidates.append("Northern Lights experiences")
 
-    # Avoid generic/repeated wording when more distinctive themes exist.
-    themes = [theme for theme in themes if not (theme == "guided city discovery" and len(themes) > 1 and any(t != theme for t in themes))] or themes
-    return ", ".join(themes[:3]).capitalize()
+    if _has(text, "lofoten", "henningsvær", "haukland", "trollfjord"):
+        candidates.append("Lofoten scenery and Trollfjord cruising")
+    elif has_fjord and has_cable:
+        candidates.append("Arctic fjords and cable car views")
+    elif has_fjord and has_whale:
+        candidates.append("Coastal wildlife and fjord scenery")
+    elif has_fjord:
+        candidates.append("Fjord scenery and coastal cruising")
 
+    if has_city and _has(text, "vasa", "old town", "stockholm"):
+        candidates.append("Old Town, Vasa Museum and city discovery")
+    elif has_city and has_arrival:
+        candidates.append("Arrival and guided city discovery")
+    elif has_city:
+        candidates.append("Guided city discovery")
+
+    if has_food and not any("food" in c.lower() for c in candidates):
+        candidates.append("Local food culture")
+    if has_nature and not any(marker in " ".join(candidates).lower() for marker in ["nature", "lofoten", "arctic fjords", "south coast"]):
+        candidates.append("Scenic nature experiences")
+    if has_leisure and len(candidates) < 2:
+        candidates.append("Time at leisure")
+
+    if not candidates and _has(text, "coach transfer", "bus 150", "long distance panorama coach") and has_aurora:
+        candidates.append("Coach journey and Northern Lights")
+    if has_departure and not candidates:
+        candidates.append("Departure arrangements")
+    if has_arrival and not candidates:
+        candidates.append("Arrival and accommodation")
+    if has_hotel_only:
+        candidates.append("Accommodation as listed")
+    if travel_only_with_hotel and not candidates:
+        if has_flight:
+            candidates.append("Onward flight and accommodation")
+        else:
+            candidates.append("Onward travel and accommodation")
+    if not candidates:
+        candidates.append("Time to explore at your own pace")
+
+    # Prefer the most distinctive compact phrase, then add at most one short
+    # secondary theme if the phrase remains safely one-line in the summary table.
+    primary = candidates[0]
+    if len(candidates) > 1:
+        combined = f"{primary}, {candidates[1].lower()}"
+        if len(combined) <= 48 and not any(word in primary.lower() for word in candidates[1].lower().split()[:2]):
+            return _compact_arc_phrase([combined, primary])
+    return _compact_arc_phrase([primary])
 
 def format_day_range(days):
     if not days:
@@ -218,7 +280,7 @@ def create_journey_arc(grouped_days):
         city = get_primary_city(rows)
 
         if not city:
-            city = "Journey"
+            city = "Cruise" if any(get_row_type(row) == "Cruise" for row in rows) else "Journey"
 
         if current_city is None:
             current_city = city

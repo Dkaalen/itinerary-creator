@@ -153,6 +153,15 @@ def parse_itinerary(raw_text):
 
         main_text = description.strip().strip('"')
 
+        # Optional add-ons often arrive as normal activity rows where the first
+        # phrase says "Optional Addon (...)" rather than as a separate optional
+        # section. Mark them here so they stay out of the included day plan and
+        # commercial inclusions while still being available for optional pages.
+        if not is_optional and is_optional_addon_header(main_text):
+            is_optional = True
+            row["is_optional"] = True
+            row["row_id"] = f"opt_{row['row_id']}"
+
         if separate_city:
             row["city"] = separate_city
 
