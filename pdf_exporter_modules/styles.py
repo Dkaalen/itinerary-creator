@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup  # noqa: F401 - keeps dependency explicit for expo
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
 PAGE_BACKGROUND = colors.HexColor("#f4efe8")
@@ -67,6 +68,19 @@ def page_background(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(PAGE_BACKGROUND)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+
+    # Subtle editorial corner accents. These are drawn directly into the PDF so
+    # the exported file keeps the same premium frame as the HTML preview without
+    # consuming any itinerary text space.
+    canvas.setStrokeColor(LINE)
+    canvas.setLineWidth(0.45)
+    page_w, page_h = A4
+    top = page_h - 18 * mm
+    right = page_w - 18 * mm
+    accent = 23 * mm
+    canvas.line(right - accent, top, right, top)
+    canvas.line(right, top, right, top - accent)
+    canvas.line(18 * mm, 16 * mm, 46 * mm, 16 * mm)
     canvas.restoreState()
 
 
@@ -122,7 +136,7 @@ def make_styles():
             fontSize=25,
             leading=30,
             textColor=INK,
-            spaceAfter=14,
+            spaceAfter=7,
         ),
         "day_label": ParagraphStyle(
             "day_label",

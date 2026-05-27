@@ -543,6 +543,7 @@ def run_all():
         test_bad_input_contextual_travel_and_activity_cleanup,
         test_self_guided_tallinn_is_not_labeled_guided,
         test_multiline_inclusion_entries_render_pdf_visible_text,
+        test_multiline_transport_inclusions_render_as_bullets,
     ]
 
     for test in tests:
@@ -768,6 +769,19 @@ def test_multiline_inclusion_entries_render_pdf_visible_text():
     assert_contains(html, "Hotel Arthur, Helsinki", "Multiline inclusion title should render in HTML.")
     assert_contains(html, "2 nights. Standard Room. Breakfast included.", "Multiline inclusion details should render as PDF-readable body text.")
     assert_not_contains(html, '<div class="inclusion-entry">', "Multiline inclusion text should not be hidden inside unsupported wrapper elements.")
+    assert_not_contains(html, "inclusion-multiline-list", "Accommodation multiline entries should remain unbulleted.")
+
+
+def test_multiline_transport_inclusions_render_as_bullets():
+    from ui.day_pages import render_inclusion_sections_inner_html
+
+    html = render_inclusion_sections_inner_html([
+        {"title": "Coach transfers", "items": ["Coach Transfer to Kakslauttanen\nCoach ticket included."]}
+    ])
+    assert_contains(html, "inclusion-multiline-list", "Multiline transport inclusions should use a bullet list for preview/PDF parity.")
+    assert_contains(html, "<li>", "Multiline transport inclusions should render as bullet items.")
+    assert_contains(html, "Coach Transfer to Kakslauttanen", "Coach transfer title should be visible in the bullet item.")
+    assert_contains(html, "Coach ticket included.", "Coach transfer detail should be visible in the bullet item.")
 
 
 if __name__ == "__main__":

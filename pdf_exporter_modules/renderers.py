@@ -11,17 +11,37 @@ from .images import add_day_image_if_possible
 from .story import add_bullets, add_paragraph, make_table
 
 
+def add_premium_rule(story, width=32 * mm, space_after=9):
+    """Add a thin editorial accent rule below major headings."""
+    table = Table([[""]], colWidths=[width], hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 0.45, pdf_styles.LINE),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(table)
+    story.append(Spacer(1, space_after))
+
+
 def render_cover_page(page, story, styles):
     story.append(Spacer(1, 95 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
     add_paragraph(story, page.select_one(".cover-subtitle").get_text(" ") if page.select_one(".cover-subtitle") else "", styles["cover_subtitle"])
+    add_premium_rule(story, width=44 * mm, space_after=9)
     add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
 
 
 def render_glance_page(page, story, styles):
     title = page.select_one(".glance-title")
     add_paragraph(story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"])
+    add_premium_rule(story)
 
     rows = []
     for row in page.select(".glance-row"):
@@ -39,6 +59,7 @@ def render_glance_page(page, story, styles):
 
     journey_title = page.select_one(".journey-title")
     add_paragraph(story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["page_title"])
+    add_premium_rule(story)
 
     table_rows = []
     header_cells = [clean_text(th.get_text(" ")) for th in page.select(".journey-table th")]
@@ -181,6 +202,8 @@ def render_general_page(
         tag = page.select_one(selector)
         if tag:
             add_paragraph(story, tag.get_text(" "), styles[style_name])
+            if selector == ".final-page-title":
+                add_premium_rule(story)
 
     render_content_blocks(page, story, styles)
 

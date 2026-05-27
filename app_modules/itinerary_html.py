@@ -78,6 +78,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .a4-page {{
+            position: relative;
             width: 794px;
             min-height: 1123px;
             background: var(--page-bg);
@@ -92,10 +93,44 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: hidden;
         }}
 
+        .a4-page::before,
+        .a4-page::after {{
+            content: "";
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+        }}
+
+        .a4-page::before {{
+            top: 32px;
+            right: 34px;
+            width: 58px;
+            height: 58px;
+            border-top: 1px solid var(--line);
+            border-right: 1px solid var(--line);
+            opacity: 0.85;
+        }}
+
+        .a4-page::after {{
+            left: 34px;
+            bottom: 32px;
+            width: 70px;
+            height: 1px;
+            background: var(--line);
+            opacity: 0.7;
+        }}
+
         .cover-page {{
             display: flex;
             flex-direction: column;
             justify-content: center;
+        }}
+
+        .cover-page::before {{
+            width: 92px;
+            height: 92px;
+            top: 44px;
+            right: 48px;
         }}
 
         .single-day-page {{
@@ -146,6 +181,15 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin-bottom: 18px;
         }}
 
+        .cover-subtitle::after {{
+            content: "";
+            display: block;
+            width: 112px;
+            height: 1px;
+            background: var(--line);
+            margin-top: 22px;
+        }}
+
         .cover-destinations {{
             font-family: Arial, sans-serif;
             font-size: 15px;
@@ -171,6 +215,17 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 30px;
             margin-bottom: 16px;
             color: var(--ink);
+        }}
+
+        .glance-title::after,
+        .journey-title::after,
+        .final-page-title::after {{
+            content: "";
+            display: block;
+            width: 86px;
+            height: 1px;
+            background: var(--line);
+            margin-top: 12px;
         }}
 
         .glance-row {{
@@ -218,6 +273,21 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .journey-days {{
             white-space: nowrap;
+        }}
+
+        .day-section {{
+            position: relative;
+        }}
+
+        .day-section::before {{
+            content: "";
+            position: absolute;
+            left: -18px;
+            top: 5px;
+            width: 2px;
+            height: 54px;
+            background: var(--accent);
+            opacity: 0.42;
         }}
 
         .day-label {{
@@ -460,9 +530,22 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin-bottom: 2px;
         }}
 
+        .inclusion-multiline-list {{
+            margin-bottom: 8px;
+        }}
+
+        .inclusion-multiline-list .inclusion-entry-title {{
+            display: block;
+            margin-bottom: 2px;
+        }}
+
         .inclusion-entry-detail {{
             color: var(--muted);
             margin-bottom: 0;
+        }}
+
+        .inclusion-multiline-list .inclusion-entry-detail {{
+            display: block;
         }}
 
         .inclusion-entry-spacer {{

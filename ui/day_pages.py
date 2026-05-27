@@ -239,7 +239,7 @@ def render_split_list_pages(title, items, items_per_page=24):
     return html_text
 
 
-def _render_inclusion_item(item):
+def _render_inclusion_item(item, *, bullet_multiline=False):
     text = str(item or "").replace("\r\n", "\n").strip()
     if not text:
         return ""
@@ -250,6 +250,17 @@ def _render_inclusion_item(item):
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     if not lines:
         return ""
+
+    if bullet_multiline:
+        detail_html = "".join(
+            f'<span class="inclusion-entry-detail">{esc(line)}</span>'
+            for line in lines[1:]
+        )
+        return (
+            '<ul class="detail-list inclusion-category-list inclusion-multiline-list">'
+            f'<li><span class="strong-line inclusion-entry-title">{esc(lines[0])}</span>{detail_html}</li>'
+            '</ul>'
+        )
 
     html_text = f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>'
     for line in lines[1:]:
@@ -273,14 +284,15 @@ def render_inclusion_sections_inner_html(sections):
 
         plain_items = []
         multiline_count = 0
+        bullet_multiline = section["title"].strip().lower() != "accommodation"
         for item in section["items"]:
             if "\n" in item:
                 if plain_items:
                     html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
                     plain_items = []
-                if multiline_count:
+                if multiline_count and not bullet_multiline:
                     html_text += '<div class="body-text inclusion-entry-spacer">&nbsp;</div>'
-                html_text += _render_inclusion_item(item)
+                html_text += _render_inclusion_item(item, bullet_multiline=bullet_multiline)
                 multiline_count += 1
             else:
                 plain_items.append(item)
