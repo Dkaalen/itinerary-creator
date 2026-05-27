@@ -194,6 +194,65 @@ def test_cover_crop_focus_options_change_vertical_crop():
 
 
 
+def test_summary_background_tint_keeps_artwork_visible():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        background_path = tmp_path / "summary_background.jpg"
+        image = Image.new("RGB", (200, 300), (10, 95, 170))
+        pixels = image.load()
+        for x in range(200):
+            for y in range(300):
+                if y < 130:
+                    pixels[x, y] = (244, 239, 232)
+                else:
+                    pixels[x, y] = (8, 80, 155)
+        image.save(background_path, format="JPEG", quality=92)
+
+        html_path = tmp_path / "preview.html"
+        pdf_path = tmp_path / "preview.pdf"
+        html_path.write_text(
+            (
+                '<html><body>'
+                f'<div class="a4-page summary-page" data-cover-background-path="{background_path}">'
+                '<div class="glance-card"><div class="glance-title">Your Trip at a Glance</div>'
+                '<div class="glance-row"><div class="glance-label">Duration</div><div class="glance-value">8 days</div></div></div>'
+                '<div class="journey-arc"><div class="journey-title">Your Journey Arc</div>'
+                '<table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead>'
+                '<tbody><tr><td>Helsinki</td><td>1</td><td>Arrival</td></tr></tbody></table></div>'
+                '</div></body></html>'
+            ),
+            encoding="utf-8",
+        )
+
+        export_html_to_pdf(html_path, pdf_path)
+
+        try:
+            import fitz
+        except Exception as exc:  # pragma: no cover - local dependency guard
+            raise AssertionError(f"PyMuPDF/fitz is required for rendered PDF summary checks: {exc}")
+
+        document = fitz.open(pdf_path)
+        try:
+            page = document.load_page(0)
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
+            lower_center = pixmap.pixel(pixmap.width // 2, int(pixmap.height * 0.82))
+            page_bg = (244, 239, 232)
+            if sum(abs(int(lower_center[i]) - page_bg[i]) for i in range(3)) < 45:
+                raise AssertionError("Summary seasonal background should remain visible through the PDF tint.")
+        finally:
+            document.close()
+
+
+def test_pdf_paragraph_styles_prevent_awkward_word_splitting():
+    from pdf_exporter_modules.styles import make_styles
+
+    generated_styles = make_styles()
+    for name in ["day_title", "intro", "body", "bullet", "bullet_continuation", "table_cell"]:
+        style = generated_styles[name]
+        assert_equal(getattr(style, "splitLongWords", None), 0, f"{name} should not split long words in PDF output.")
+
 
 def run_all():
     tests = [
@@ -201,6 +260,8 @@ def run_all():
         test_pdf_export_places_day_image_from_current_page_story,
         test_cover_crop_protects_upper_image_content,
         test_cover_crop_focus_options_change_vertical_crop,
+        test_summary_background_tint_keeps_artwork_visible,
+        test_pdf_paragraph_styles_prevent_awkward_word_splitting,
     ]
 
     for test in tests:

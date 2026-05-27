@@ -176,12 +176,13 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     add_paragraph(story, clean_text(route_text).upper(), styles["cover_destinations"])
 
 
-def _boxed_story_table(flowables, width=160 * mm, padding=10):
+def _boxed_story_table(flowables, width=160 * mm, padding=10, background=None):
     table = Table([[flowables]], colWidths=[width], hAlign="LEFT")
+    card_background = background if background is not None else pdf_styles.CARD
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), pdf_styles.CARD),
+                ("BACKGROUND", (0, 0), (-1, -1), card_background),
                 ("BOX", (0, 0), (-1, -1), 0.5, pdf_styles.LINE),
                 ("LEFTPADDING", (0, 0), (-1, -1), padding),
                 ("RIGHTPADDING", (0, 0), (-1, -1), padding),
@@ -199,7 +200,7 @@ def add_soft_summary_background(page, story, html_path=None, temp_dir=None):
     background_path = resolve_image_path(page.get("data-cover-background-path"), html_path) if html_path else None
     if background_path and temp_dir:
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
-        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.48))
+        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.38))
 
 
 def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
@@ -222,7 +223,7 @@ def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
     if rows:
         glance_story.append(make_table(rows, [34 * mm, 104 * mm], styles))
 
-    story.append(_boxed_story_table(glance_story))
+    story.append(_boxed_story_table(glance_story, background=pdf_styles.SUMMARY_CARD))
     story.append(Spacer(1, 16 * mm))
 
     journey_story = []
@@ -242,7 +243,7 @@ def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
     if table_rows:
         journey_story.append(make_table(table_rows, [34 * mm, 16 * mm, 90 * mm], styles))
 
-    story.append(_boxed_story_table(journey_story))
+    story.append(_boxed_story_table(journey_story, background=pdf_styles.SUMMARY_CARD))
 
 
 def _activity_time_range_text(time_text, duration_text):

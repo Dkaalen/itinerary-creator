@@ -159,11 +159,14 @@ class FullPageTint(Flowable):
 
     def drawOn(self, canv, x, y, _sW=0):
         canv.saveState()
+        canv.setFillColor(self.color)
+        # ReportLab can reset transparency when a new fill color is applied,
+        # so set the alpha after the color. This keeps summary-page seasonal
+        # artwork visible under the readability wash in exported PDFs.
         try:
             canv.setFillAlpha(self.alpha)
         except Exception:
             pass
-        canv.setFillColor(self.color)
         canv.rect(0, 0, self.page_width, self.page_height, fill=1, stroke=0)
         canv.restoreState()
 

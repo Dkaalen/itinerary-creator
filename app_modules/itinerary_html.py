@@ -194,7 +194,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             /* Use a direct layered background instead of a pseudo-element so
                Streamlit preview and browser print/export both keep the image visible. */
             background-image:
-                linear-gradient(rgba(244,239,232,.48), rgba(244,239,232,.48)),
+                linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)),
                 var(--cover-bg-image);
             background-size: cover, cover;
             background-position: center center, center center;
@@ -203,7 +203,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .summary-page .glance-card,
         .summary-page .journey-arc {{
-            background: rgba(255,255,255,.70);
+            background: rgba(255,255,255,.76);
             backdrop-filter: blur(1px);
             box-shadow: 0 10px 26px rgba(31,52,70,.06);
         }}

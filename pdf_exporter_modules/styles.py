@@ -12,6 +12,7 @@ BODY = colors.HexColor("#2f2f2f")
 MUTED = colors.HexColor("#7b746c")
 LINE = colors.HexColor("#d8cec2")
 CARD = colors.Color(1, 1, 1, alpha=0.35)
+SUMMARY_CARD = colors.Color(1, 1, 1, alpha=0.72)
 
 DEFAULT_PDF_COLORS = {
     "page_bg": "#f4efe8",
@@ -132,6 +133,8 @@ def make_styles():
             fontSize=25,
             leading=30,
             textColor=INK,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=7,
         ),
         "day_label": ParagraphStyle(
@@ -141,6 +144,8 @@ def make_styles():
             fontSize=25,
             leading=29,
             textColor=INK,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=3,
         ),
         "day_title": ParagraphStyle(
@@ -150,6 +155,8 @@ def make_styles():
             fontSize=20,
             leading=24,
             textColor=INK,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=8,
         ),
         "city": ParagraphStyle(
@@ -168,6 +175,8 @@ def make_styles():
             fontSize=11.5,
             leading=16,
             textColor=BODY,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=14,
         ),
         "section": ParagraphStyle(
@@ -187,6 +196,8 @@ def make_styles():
             fontSize=10.2,
             leading=14,
             textColor=BODY,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=3,
         ),
         "body_bold": ParagraphStyle(
@@ -196,6 +207,8 @@ def make_styles():
             fontSize=10.5,
             leading=14,
             textColor=BODY,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceAfter=4,
         ),
         "activity_title": ParagraphStyle(
@@ -205,6 +218,8 @@ def make_styles():
             fontSize=13.5,
             leading=17,
             textColor=INK,
+            splitLongWords=0,
+            wordWrap="LTR",
             spaceBefore=10,
             spaceAfter=5,
         ),
@@ -215,6 +230,8 @@ def make_styles():
             fontSize=10.0,
             leading=13,
             textColor=BODY,
+            splitLongWords=0,
+            wordWrap="LTR",
             leftIndent=0,
             firstLineIndent=0,
             spaceAfter=0,
@@ -226,6 +243,8 @@ def make_styles():
             fontSize=10.0,
             leading=13,
             textColor=MUTED,
+            splitLongWords=0,
+            wordWrap="LTR",
             leftIndent=0,
             firstLineIndent=0,
             spaceAfter=0,
@@ -245,5 +264,7 @@ def make_styles():
             fontSize=8.6,
             leading=11.6,
             textColor=BODY,
+            splitLongWords=0,
+            wordWrap="LTR",
         ),
     }
