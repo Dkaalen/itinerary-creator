@@ -74,6 +74,9 @@ def create_client_activity_title(row):
     if not is_northern_lights:
         return title
 
+    if "reindeer" in full_text and ("hunt" in full_text or "hunting" in full_text or "chase" in full_text):
+        return "Northern Lights Hunt by Reindeer"
+
     if "basecamp" in full_text or "base camp" in full_text:
         return "Northern Lights Basecamp"
 

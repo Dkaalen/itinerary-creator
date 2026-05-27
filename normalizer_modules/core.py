@@ -70,6 +70,8 @@ def _normalize_single_room_category(value: str) -> str:
     room = re.sub(r"\bTriple\s+room\b", "Triple Room", room, flags=re.IGNORECASE)
     room = re.sub(r"\bPanorama\s+suite\b", "Panorama Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall\s+Glass\s+Igloo\b", "Small Glass Igloo", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bWest\s+or\s+east\s+Village\b", "West or East Village", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bSmall Glass Igloo\s+(West or East Village)\b", r"Small Glass Igloo, \1", room, flags=re.IGNORECASE)
     return clean_space(room.strip(" ,-"))
 
 
@@ -227,6 +229,8 @@ def normalize_activity_title(row: dict) -> str:
 
     if looks_like_departure_text(source):
         return f"Departure from {city}" if city else "Departure"
+    if ("aurora" in lower or "northern light" in lower) and "reindeer" in lower and ("hunt" in lower or "hunting" in lower or "chase" in lower):
+        return "Northern Lights Hunt by Reindeer"
     if "tallin" in lower or "tallinn" in lower:
         if "old town" in lower and "guided" in lower and not any(marker in lower for marker in ["helsinki", "ferry", "cruise", "star class", "port"]):
             return "Tallinn Old Town Guided Tour"
@@ -238,6 +242,8 @@ def normalize_activity_title(row: dict) -> str:
     if "must-see bergen" in lower or ("bergen" in lower and "foot and boat" in lower):
         return "Bergen Walking & Boat Tour"
     if "santa claus village" in lower and ("reindeer" in lower or "safari" in lower):
+        if "snowmobile" in lower or "snowmobiles" in lower:
+            return "Santa Claus Village by Snowmobile & Reindeer Sleigh"
         if "husky" in lower:
             return "City Highlights, Santa Claus Village & Husky-Reindeer Safari"
         return "Santa Claus Village & Reindeer Visit"
@@ -310,6 +316,16 @@ def normalize_inclusion_value(value: str) -> str:
     item = re.sub(r"\bHotel Pick-up/drop-off\b", "Hotel pick-up/drop-off", item, flags=re.IGNORECASE)
     item = re.sub(r"\bTour guiding\b", "Local guide service", item, flags=re.IGNORECASE)
     item = re.sub(r"\bTour transportation\b", "Transport during the tour", item, flags=re.IGNORECASE)
+    item = re.sub(r'^Include\s*[,":]?\s*', "", item, flags=re.IGNORECASE)
+    if re.fullmatch(r"Overalls", item, flags=re.IGNORECASE):
+        item = "Winter equipment provided"
+    item = re.sub(r"\bThermal\s+Winter\s+overalls\b", "Thermal overalls", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bWinter clothes\s*\(Winter overalls and boots\)", "Winter clothes (overalls and boots)", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bTransfer from and to\b", "Transfer to and from", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bboots\b", "boots", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bgloves\b", "gloves", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bbalaclava\s*&\s*helmet\b", "balaclava and helmet", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bWinter equipment\b", "Winter equipment", item, flags=re.IGNORECASE)
     item = re.sub(r"\bComfortable coach transport with toilet\b", "Comfortable coach transport with onboard toilet", item, flags=re.IGNORECASE)
     item = re.sub(r"\bNorthern Lights instructions video on coach\b", "Northern Lights briefing on board", item, flags=re.IGNORECASE)
     item = re.sub(r"\b([Hh])elp with camera settings and nature photos,\s*Small-group experience", r"Help with camera settings and nature photos, Small-group experience", item)
@@ -334,6 +350,14 @@ def split_and_merge_inclusions(items: list[str]) -> list[str]:
             cleaned.append("English- and French-speaking guide")
             index += 2
             continue
+        if lower in {"winter overalls", "winter equipment provided"} and next_lower == "boots":
+            following = [raw_items[i].lower().strip(" ,.:&") for i in range(index + 2, min(index + 5, len(raw_items)))]
+            if "gloves" in following or any("balaclava" in value for value in following):
+                cleaned.append("Winter equipment provided")
+                index += 1
+                while index < len(raw_items) and raw_items[index].lower().strip(" ,.:&") in {"boots", "gloves", "balaclava and helmet"}:
+                    index += 1
+                continue
         if lower == "stories" and next_lower in {"legends and explanations", "legends & explanation"}:
             cleaned.append("Stories, legends and explanations")
             index += 2
@@ -346,6 +370,15 @@ def split_and_merge_inclusions(items: list[str]) -> list[str]:
                 part = normalize_inclusion_value(part)
                 if part and part not in cleaned:
                     cleaned.append(part)
+            index += 1
+            continue
+
+        if "guided hike in korouoma canyon," in lower:
+            first = re.split(r",\s*(?=Small groups|small groups)", item, maxsplit=1)[0].strip()
+            item = normalize_inclusion_value(first)
+            lower = item.lower().strip(" ,.:")
+
+        if lower in {"small groups", "small groups (max 8 guests)", "max 8 guests"}:
             index += 1
             continue
 
@@ -468,7 +501,64 @@ def add_repeated_activity_context(rows: list[dict]) -> list[dict]:
     return updated
 
 
+
+
+def _day_number_value(value: str) -> int:
+    match = re.search(r"\d+", str(value or ""))
+    return int(match.group(0)) if match else 0
+
+
+def _next_main_city(rows: list[dict], current_index: int) -> str:
+    current_day = _day_number_value(rows[current_index].get("day", ""))
+    for later in rows[current_index + 1:]:
+        later_day = _day_number_value(later.get("day", ""))
+        if later_day and current_day and later_day <= current_day:
+            continue
+        city = canonicalize_place_name(later.get("city", ""))
+        if city and get_row_type(later) in {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Departure"}:
+            return city
+    return ""
+
+
+def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
+    updated = [copy.deepcopy(row) for row in rows or []]
+    previous_overnight_destination = ""
+
+    for index, row in enumerate(updated):
+        row_type = get_row_type(row)
+        full = text_blob(row).lower()
+
+        if row_type == "Train" and "overnight" in full and "train" in full:
+            next_city = _next_main_city(updated, index)
+            row_city = canonicalize_place_name(row.get("city", ""))
+            if next_city and next_city != row_city:
+                row["title"] = f"Overnight Train to {next_city}"
+                previous_overnight_destination = next_city
+            else:
+                previous_overnight_destination = row_city or next_city
+            continue
+
+        if row_type == "Transfer":
+            title_lower = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
+            city = canonicalize_place_name(row.get("city", ""))
+            day = row.get("day", "")
+            same_day_has_hotel = any(
+                other is not row and other.get("day") == day and get_row_type(other) == "Hotel"
+                for other in updated
+            )
+            if (
+                "hotel to station" in title_lower
+                and previous_overnight_destination
+                and city == previous_overnight_destination
+                and same_day_has_hotel
+            ):
+                row["title"] = "Private transfer from the station to your hotel"
+                row["original_title"] = row.get("original_title") or "Private Hotel to Station"
+
+    return updated
+
 def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
     normalized = [normalize_row(row) for row in rows or []]
+    normalized = apply_contextual_travel_corrections(normalized)
     normalized = add_repeated_activity_context(normalized)
     return normalized

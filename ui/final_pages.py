@@ -103,14 +103,16 @@ def prioritize_inline_inclusions(items, max_items=5):
             return 0
         if "guide" in lower or "guided" in lower:
             return 1
-        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
+        if "reindeer" in lower or "snowmobile" in lower or "santa claus" in lower or "husky" in lower:
             return 2
-        if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
+        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
             return 3
-        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower:
+        if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
             return 4
-        if "photo" in lower or "camera" in lower or "thermal" in lower or "overall" in lower or "tripod" in lower:
+        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower:
             return 5
+        if "photo" in lower or "camera" in lower or "thermal" in lower or "overall" in lower or "equipment" in lower or "tripod" in lower:
+            return 6
         return 6
 
     ordered = sorted(enumerate(clean_items), key=lambda pair: (score(pair[1]), pair[0]))

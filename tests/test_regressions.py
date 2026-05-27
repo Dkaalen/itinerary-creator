@@ -540,6 +540,8 @@ def run_all():
         test_content_cleanup_for_helsinki_lapland_sample,
         test_travel_intro_uses_final_transport_destination,
         test_departure_block_avoids_duplicate_departure_line,
+        test_bad_input_contextual_travel_and_activity_cleanup,
+        test_multiline_inclusion_entries_render_pdf_visible_text,
     ]
 
     for test in tests:
@@ -655,6 +657,71 @@ def test_departure_block_avoids_duplicate_departure_line():
     block = build_departure_block({"row_id": "departure-1", "title": "Departure"})
     assert_contains(block["html"], "Journey home", "Generic departure rows should get a warmer client-facing line.")
     assert_not_contains(block["html"], '>Departure</div><div class="body-text strong-line">Departure', "Departure block should not repeat the word Departure as both heading and body.")
+
+
+def test_bad_input_contextual_travel_and_activity_cleanup():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from ui.final_pages import clean_activity_inclusion_items, prioritize_inline_inclusions
+
+    raw = """
+	Day 2	Transfer 		14/01/2026					Helsinki 	Overnight Train : Overnight Train Transfer with the Santa Claus Express to Helsinki - 21:00 pm - 09:00 am - 1  x  downstairs cabin for two people
+	Day 3	Transfer 		15/01/2026					Rovaniemi	Private Hotel to Station
+	Day 3	Hotel	3	15/01/2026	18/01/2026				Rovaniemi	4 Star, Arctic City Hotel , 3xnight , 1x Standard Room , Incl breakfast 
+	Day 4	Activity		16/01/2026					Rovaniemi	Rovaniemi: Santa Claus Village by Snowmobiles and Reindeer | 8 15 | 5 Hrs | Twin Driving
+
+What's included?
+Pick-up/drop-off in central Rovaniemi
+Knowledgeable, English-speaking guide
+Snowmobile ride: approximately 1 hour
+Fun visit to Santa Claus Village
+Short reindeer sleigh ride experience
+Overalls, boots, gloves, balaclava & helmet
+Traditional Finnish lunch buffet
+	Day 7	Transfer 		19/01/2026					Rovaniemi	Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Kakslauttenen Arctic Resort - 11:45 am - 3:02 pm - Tickets Included
+	Day 7	Hotel	1	19/01/2026	20/01/2026				Kakslauttenen	4 Star , kakslauttenen Arctic Resort ,  1xngiht , 1x Small Glass Igloo West or east Village , , Incl Breakfast + Dinner 
+	Day 7	Activity		19/01/2026					Kakslauttenen	AURORA HUNTING WITH REINDEER |19:30 | 2 Hrs |  Include ,Transfer from and to Kakslauttanen ,Winter equipment ,Hot berry juice | Meeting point : Aurora Reception at West Village
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    titles_by_day = {row.get("day"): row.get("title") for row in rows if row.get("effective_type") == "Train"}
+    assert_equal(titles_by_day.get("Day 2"), "Overnight Train to Rovaniemi", "Overnight train destination should use next-day city context when supplier text contradicts the route.")
+
+    day3_transfer = [row for row in rows if row.get("day") == "Day 3" and row.get("effective_type") == "Transfer"][0]
+    assert_equal(day3_transfer.get("title"), "Private transfer from the station to your hotel", "Arrival-after-overnight-train context should correct hotel-to-station typos.")
+
+    santa = [row for row in rows if row.get("day") == "Day 4" and row.get("effective_type") == "Activity"][0]
+    assert_equal(santa.get("title"), "Santa Claus Village by Snowmobile & Reindeer Sleigh", "Snowmobile and reindeer titles should preserve the core activity.")
+    assert_equal(santa.get("time"), "8:15 AM - 1:15 PM", "Spaced times such as 8 15 should parse as 8:15 AM and expand with duration.")
+    santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 5)
+    assert_contains("\n".join(santa_inline), "Short reindeer sleigh ride experience", "Important reindeer ride inclusion should survive compact day-page prioritization.")
+
+    reindeer_hunt = [row for row in rows if row.get("day") == "Day 7" and row.get("effective_type") == "Activity"][0]
+    assert_equal(reindeer_hunt.get("title"), "Northern Lights Hunt by Reindeer", "Aurora wording should become Northern Lights while preserving the reindeer differentiator.")
+    assert_contains("\n".join(reindeer_hunt.get("includes", [])), "Transfer to and from Kakslauttanen", "Pipe-style Include sections should parse transfer inclusions.")
+    assert_contains("\n".join(reindeer_hunt.get("includes", [])), "Hot berry juice", "Pipe-style Include sections should parse hot berry juice.")
+
+    day7_intro = create_day_intro(grouped["Day 7"], detail_level="Rich descriptive")
+    assert_contains(day7_intro, "Kakslauttanen", "Travel-day intro should identify the actual onward destination, not the origin city.")
+    assert_not_contains(day7_intro, "towards Rovaniemi", "Travel-day intro should not point back to the origin city.")
+
+    sections = create_categorized_inclusions(rows, grouped)
+    all_inclusions = "\n".join(item for section in sections for item in section.get("items", []))
+    assert_contains(all_inclusions, "Arctic City Hotel, Rovaniemi", "Accommodation section should include hotel entries.")
+    assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
+    assert_contains(all_inclusions, "Coach Transfer to Kakslauttanen", "Coach transfer section should include the arranged coach transfer.")
+    assert_contains(all_inclusions, "Northern Lights Hunt by Reindeer", "Separate reindeer Northern Lights activity should not be deduplicated away.")
+
+
+def test_multiline_inclusion_entries_render_pdf_visible_text():
+    from ui.day_pages import render_inclusion_sections_inner_html
+
+    html = render_inclusion_sections_inner_html([
+        {"title": "Accommodation", "items": ["Hotel Arthur, Helsinki\n2 nights. Standard Room. Breakfast included."]}
+    ])
+    assert_contains(html, "Hotel Arthur, Helsinki", "Multiline inclusion title should render in HTML.")
+    assert_contains(html, "2 nights. Standard Room. Breakfast included.", "Multiline inclusion details should render as PDF-readable body text.")
+    assert_not_contains(html, '<div class="inclusion-entry">', "Multiline inclusion text should not be hidden inside unsupported wrapper elements.")
 
 
 if __name__ == "__main__":

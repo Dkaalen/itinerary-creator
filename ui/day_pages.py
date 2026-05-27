@@ -251,11 +251,9 @@ def _render_inclusion_item(item):
     if not lines:
         return ""
 
-    html_text = '<div class="inclusion-entry">'
-    html_text += f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>'
+    html_text = f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>'
     for line in lines[1:]:
         html_text += f'<div class="body-text inclusion-entry-detail">{esc(line)}</div>'
-    html_text += '</div>'
     return html_text
 
 

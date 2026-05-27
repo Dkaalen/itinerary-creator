@@ -70,6 +70,10 @@ def extract_time_from_description(main_text):
         single_time = find_single_clock_time(part)
         if single_time:
             return normalize_time_text(single_time)
+        spaced_time = re.match(r"^\s*(\d{1,2})\s+(\d{2})\s*(?:([AaPp]\.?[Mm]\.?))?\s*$", part)
+        if spaced_time:
+            suffix = spaced_time.group(3) or ""
+            return normalize_time_text(f"{spaced_time.group(1)}:{spaced_time.group(2)} {suffix}".strip())
 
     clock_range = find_clock_range(main_text)
     if clock_range:
@@ -146,6 +150,7 @@ def extract_includes_from_description(main_text):
             r"what'?s included\??",
             r"what’s included\??",
             r"\bincludes\s*:\s*",
+            r"\binclude\s*[,|:]\s*",
         ],
         [
             r"pick[-\s]*up\s*/\s*meeting\s*point",
@@ -184,6 +189,7 @@ def extract_includes_from_description(main_text):
                 "included", "ticket", "pick-up", "pickup", "drop-off", "lunch",
                 "certificate", "transport", "guide", "meal", "snack", "drink",
                 "photograph", "camera", "tax", "overalls", "tripod", "ferry",
+                "equipment", "berry juice", "hot berry", "winter",
             ]
             prose_markers = [
                 "tour gives", "take a stroll", "listen to", "make sense",

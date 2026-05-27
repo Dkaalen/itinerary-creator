@@ -388,16 +388,24 @@ def get_activity_description(row, detail_level=None):
     # shown in the Time / Duration / Pick-up lines.
     if "suomenlinna" in combined:
         return "A guided introduction to Helsinki’s city highlights combined with a visit to the historic sea fortress island of Suomenlinna."
+    if "korouoma" in combined or "frozen waterfall" in combined:
+        return "Explore Korouoma Canyon on a guided winter hike, with frozen waterfalls, snowy forest scenery and a warm barbecue break included along the way."
+    if "santa claus village" in combined and "snowmobile" in combined and "reindeer" in combined:
+        return "Travel by snowmobile towards Santa Claus Village, with time for the festive village atmosphere and a short reindeer sleigh experience in the Arctic setting."
+    if "santa claus village" in combined and "reindeer" in combined:
+        return "Visit Santa Claus Village and enjoy a classic Arctic reindeer experience, combining festive atmosphere with a memorable Lapland tradition."
     if "northern lights basecamp" in combined:
         return "Spend the evening at a dedicated Northern Lights basecamp, with time to wait for the aurora in a comfortable Arctic setting."
     if "northern lights" in combined or "aurora" in combined:
+        if "reindeer" in combined:
+            return "Head into the winter landscape for a Northern Lights hunt by reindeer, with warm drinks and Arctic atmosphere included in the experience."
+        if "bbq" in combined or "barbecue" in combined or "lappish" in combined:
+            return "Head away from the city lights in search of the Northern Lights, with a Lappish barbecue and time by the fire in the winter landscape."
         if "hunt" in combined or "chase" in combined:
             return "Head out in search of the Northern Lights with local guidance, using the evening conditions to find the best available viewing areas."
         if "floating" in combined or "float" in combined:
             return "Experience the Arctic night from a peaceful frozen-lake setting, with specialist equipment provided for the ice-floating experience."
         return "Enjoy an evening Northern Lights experience designed around the Arctic sky, local conditions, and the chance to see the aurora."
-    if "santa claus village" in combined and "reindeer" in combined:
-        return "Visit Santa Claus Village and enjoy a classic Arctic reindeer experience, combining festive atmosphere with a memorable Lapland tradition."
     if "ranua" in combined or "wildlife" in combined:
         return "Travel to Ranua Wildlife Park for a look at Arctic wildlife in a forested Lapland setting, with time to enjoy the experience at an easy pace."
     if "fjord tour" in combined or "kvaløya" in combined or "sommarøy" in combined:

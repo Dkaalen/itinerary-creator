@@ -34,9 +34,17 @@ def _canonical_route_city(name):
     clean = str(name or "").strip()
     replacements = {
         "saariselka": "Saariselkä",
+        "kakslauttenen": "Kakslauttanen",
         "tromso": "Tromsø",
     }
     return replacements.get(clean.lower(), clean)
+
+
+ROUTE_CITY_CANDIDATES = [
+    "Helsinki", "Rovaniemi", "Saariselkä", "Saariselka",
+    "Kakslauttanen", "Kakslauttenen", "Ivalo",
+    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso",
+]
 
 
 def _ordered_route_cities(day_rows):
@@ -52,7 +60,7 @@ def _ordered_route_cities(day_rows):
             continue
         add_city(row.get("city", ""))
         row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
-        for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
+        for possible_city in ROUTE_CITY_CANDIDATES:
             if possible_city.lower() in row_text.lower():
                 add_city(possible_city)
     return cities
@@ -195,9 +203,9 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
         for row in travel_rows:
             row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
-            for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
+            for possible_city in ROUTE_CITY_CANDIDATES:
                 if possible_city.lower() in row_text.lower():
-                    destination_city = "Saariselkä" if possible_city == "Saariselka" else possible_city
+                    destination_city = _canonical_route_city(possible_city)
         display_city = destination_city or city
         if detail_level == "Elegant concise":
             return f"Continue your journey with arranged travel connected to {display_city}."
