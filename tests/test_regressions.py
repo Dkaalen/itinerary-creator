@@ -508,9 +508,14 @@ def test_day_page_editorial_parity_markup():
     assert_contains(html, "ROVANIEMI", "The day kicker city should render in uppercase for preview/PDF parity.")
     assert_not_contains(html, "Today’s setting", "The rejected setting label must not render on day pages.")
 
+    final_html_css = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
+    assert_contains(final_html_css, ".day-image-slot::after", "Final preview should draw the emblem divider on the day image edge.")
+    assert_contains(final_html_css, "box-shadow: inset 0 1px 0", "Final preview should keep the divider attached to the image top edge.")
+
     editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
     assert_contains(editor_html, "day-kicker", "The visual editor preview must use the same day-kicker structure as final preview/PDF.")
     assert_contains(editor_html, "summaryStyle", "The visual editor summary page must receive the seasonal background inline.")
+    assert_contains(editor_html, ".image-stage::after", "The visual editor should draw the same emblem divider on the day image edge.")
     assert_not_contains(editor_html, "Today’s setting", "The visual editor preview must not render the rejected setting label.")
 
 def run_all():
