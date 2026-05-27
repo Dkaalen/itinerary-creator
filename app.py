@@ -5,7 +5,7 @@ from app_modules.main_view import render_app
 from app_modules.project_io import initialise_state
 
 
-APP_VERSION = "2026-05-27 v36c40-seasonal-cover-backgrounds"
+APP_VERSION = "2026-05-27 v36c41-seasonal-cover-pdf-parity"
 
 
 st.set_page_config(

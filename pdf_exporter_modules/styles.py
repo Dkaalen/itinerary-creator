@@ -2,9 +2,8 @@ import json
 
 from bs4 import BeautifulSoup  # noqa: F401 - keeps dependency explicit for export environment
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
 PAGE_BACKGROUND = colors.HexColor("#f4efe8")
@@ -232,8 +231,8 @@ def make_styles():
             "table_cell",
             parent=base["Normal"],
             fontName="Helvetica",
-            fontSize=8.8,
-            leading=12,
+            fontSize=8.6,
+            leading=11.6,
             textColor=BODY,
         ),
     }

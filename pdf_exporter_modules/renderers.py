@@ -1,10 +1,7 @@
 import re
 
-from pathlib import Path
-
-from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import Flowable, KeepTogether, Paragraph, Spacer, Table, TableStyle
 
 from text_polish import expand_time_with_duration
 
@@ -12,6 +9,69 @@ from . import styles as pdf_styles
 from .html_utils import clean_text, para_text
 from .images import FullPageBackgroundImage, add_day_image_if_possible, resolve_image_path
 from .story import add_bullets, add_paragraph, make_table
+
+
+class CoverEmblem(Flowable):
+    """Small centered circular cover emblem used by the PDF cover."""
+
+    def __init__(self, size=15 * mm, color=None):
+        super().__init__()
+        self.width = float(size)
+        self.height = float(size)
+        self.color = color or pdf_styles.MUTED
+
+    def wrap(self, availWidth, availHeight):
+        return self.width, self.height
+
+    def split(self, availWidth, availHeight):
+        return []
+
+    def draw(self):
+        canv = self.canv
+        canv.saveState()
+        canv.setStrokeColor(self.color)
+        canv.setFillColor(self.color)
+        canv.setLineWidth(0.45)
+        radius = self.width / 2.0
+        canv.circle(radius, radius, radius - 0.8, stroke=1, fill=0)
+        canv.setFont("Times-Roman", 10)
+        canv.drawCentredString(radius, radius - 3.2, "✦")
+        canv.restoreState()
+
+
+class CenterDiamondRule(Flowable):
+    """Centered thin rule with a small diamond, matching the HTML cover accent."""
+
+    def __init__(self, width=44 * mm, height=7 * mm, color=None):
+        super().__init__()
+        self.width = float(width)
+        self.height = float(height)
+        self.color = color or pdf_styles.MUTED
+
+    def wrap(self, availWidth, availHeight):
+        return self.width, self.height
+
+    def split(self, availWidth, availHeight):
+        return []
+
+    def draw(self):
+        canv = self.canv
+        y = self.height / 2.0
+        canv.saveState()
+        canv.setStrokeColor(self.color)
+        canv.setFillColor(self.color)
+        canv.setLineWidth(0.35)
+        canv.line(0, y, self.width, y)
+        diamond = 2.0
+        x = self.width / 2.0
+        path = canv.beginPath()
+        path.moveTo(x, y + diamond)
+        path.lineTo(x + diamond, y)
+        path.lineTo(x, y - diamond)
+        path.lineTo(x - diamond, y)
+        path.close()
+        canv.drawPath(path, stroke=0, fill=1)
+        canv.restoreState()
 
 
 def add_premium_rule(story, width=32 * mm, space_after=9):
@@ -32,6 +92,20 @@ def add_premium_rule(story, width=32 * mm, space_after=9):
     story.append(Spacer(1, space_after))
 
 
+def add_cover_rule(story, width=44 * mm, space_after=9):
+    table = Table([[CenterDiamondRule(width=width, color=pdf_styles.MUTED)]], colWidths=[width], hAlign="CENTER")
+    table.setStyle(
+        TableStyle(
+            [
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(table)
+    story.append(Spacer(1, space_after))
 
 
 def _text_with_line_breaks(tag) -> str:
@@ -65,16 +139,34 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     background_path = resolve_image_path(page.get("data-cover-background-path"), html_path) if html_path else None
     if background_path and temp_dir:
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
-    story.append(Spacer(1, 34 * mm))
+
+    story.append(Spacer(1, 17 * mm))
+    emblem = Table([[CoverEmblem(color=pdf_styles.MUTED)]], colWidths=[15 * mm], hAlign="CENTER")
+    emblem.setStyle(
+        TableStyle(
+            [
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(emblem)
+    story.append(Spacer(1, 9 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
+    add_cover_rule(story, width=50 * mm, space_after=6)
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
+    add_cover_rule(story, width=42 * mm, space_after=4)
     subtitle = _text_with_line_breaks(page.select_one(".cover-subtitle"))
     add_paragraph(story, subtitle, styles["cover_subtitle"])
-    add_premium_rule(story, width=56 * mm, space_after=12)
+    story.append(Spacer(1, 7 * mm))
     add_paragraph(story, "Route", styles["cover_route_label"])
-    add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
+    route_text = page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else ""
+    add_paragraph(story, clean_text(route_text).upper(), styles["cover_destinations"])
 
-def _boxed_story_table(flowables, width=145 * mm, padding=14):
+
+def _boxed_story_table(flowables, width=160 * mm, padding=10):
     table = Table([[flowables]], colWidths=[width], hAlign="LEFT")
     table.setStyle(
         TableStyle(
@@ -108,7 +200,7 @@ def render_glance_page(page, story, styles):
             ])
 
     if rows:
-        glance_story.append(make_table(rows, [34 * mm, 91 * mm], styles))
+        glance_story.append(make_table(rows, [34 * mm, 104 * mm], styles))
 
     story.append(_boxed_story_table(glance_story))
     story.append(Spacer(1, 16 * mm))
@@ -128,9 +220,10 @@ def render_glance_page(page, story, styles):
             table_rows.append([Paragraph(para_text(cell), styles["table_cell"]) for cell in cells])
 
     if table_rows:
-        journey_story.append(make_table(table_rows, [24 * mm, 16 * mm, 85 * mm], styles))
+        journey_story.append(make_table(table_rows, [34 * mm, 16 * mm, 90 * mm], styles))
 
     story.append(_boxed_story_table(journey_story))
+
 
 def _activity_time_range_text(time_text, duration_text):
     """PDF-side fallback: expand clean single start time + duration to a range."""

@@ -1,10 +1,12 @@
+import html as html_lib
+
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
 from . import styles as pdf_styles
-from .html_utils import clean_text, para_text, para_text_with_breaks
+from .html_utils import clean_text, para_text
 
 
 def add_paragraph(story, text, style, spacer_after=0):
@@ -24,6 +26,20 @@ def _clean_bullet_text(value):
         return clean_text(text)
     lines = [" ".join(line.split()) for line in text.splitlines()]
     return "\n".join(line for line in lines if line)
+
+
+def _bullet_para_text(value):
+    """Preserve multiline bullet details with a visible continuation indent."""
+    text = str(value or "").replace("\xa0", " ")
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        return ""
+    rendered = []
+    for index, line in enumerate(lines):
+        prefix = "&nbsp;&nbsp;&nbsp;&nbsp;" if index else ""
+        rendered.append(prefix + html_lib.escape(line))
+    return "<br/>".join(rendered)
 
 
 def add_bullets(story, items, styles):
@@ -47,7 +63,7 @@ def add_bullets(story, items, styles):
     for item in clean_items:
         rows.append([
             Paragraph("&#8226;", bullet_style),
-            Paragraph(para_text(item), styles["bullet"]),
+            Paragraph(_bullet_para_text(item), styles["bullet"]),
         ])
 
     table = Table(
