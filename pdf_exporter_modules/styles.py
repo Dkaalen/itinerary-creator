@@ -219,6 +219,17 @@ def make_styles():
             firstLineIndent=0,
             spaceAfter=0,
         ),
+        "bullet_continuation": ParagraphStyle(
+            "bullet_continuation",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=10.0,
+            leading=13,
+            textColor=MUTED,
+            leftIndent=0,
+            firstLineIndent=0,
+            spaceAfter=0,
+        ),
         "table_header": ParagraphStyle(
             "table_header",
             parent=base["Normal"],

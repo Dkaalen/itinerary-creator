@@ -113,7 +113,7 @@ class FullPageBackgroundImage(Flowable):
         self.page_height = float(page_height)
 
     def wrap(self, availWidth, availHeight):
-        return 0, 0
+        return 0, 0.01
 
     def split(self, availWidth, availHeight):
         return []
@@ -152,7 +152,7 @@ class FullPageTint(Flowable):
         self.page_height = float(page_height)
 
     def wrap(self, availWidth, availHeight):
-        return 0, 0
+        return 0, 0.01
 
     def split(self, availWidth, availHeight):
         return []

@@ -69,7 +69,7 @@ def add_bullets(story, items, styles):
         for continuation in lines[1:]:
             rows.append([
                 Paragraph("", bullet_style),
-                Paragraph(html_lib.escape(continuation), styles["bullet"]),
+                Paragraph(html_lib.escape(continuation), styles["bullet_continuation"]),
             ])
 
     table = Table(

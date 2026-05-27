@@ -199,7 +199,7 @@ def add_soft_summary_background(page, story, html_path=None, temp_dir=None):
     background_path = resolve_image_path(page.get("data-cover-background-path"), html_path) if html_path else None
     if background_path and temp_dir:
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
-        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.76))
+        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.48))
 
 
 def render_glance_page(page, story, styles, html_path=None, temp_dir=None):

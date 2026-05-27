@@ -191,29 +191,21 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .summary-page {{
-            background-image: var(--cover-bg-image);
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-        }}
-
-        .summary-page::before {{
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: rgba(244,239,232,.76);
-            z-index: 0;
-        }}
-
-        .summary-page > * {{
-            position: relative;
-            z-index: 1;
+            /* Use a direct layered background instead of a pseudo-element so
+               Streamlit preview and browser print/export both keep the image visible. */
+            background-image:
+                linear-gradient(rgba(244,239,232,.48), rgba(244,239,232,.48)),
+                var(--cover-bg-image);
+            background-size: cover, cover;
+            background-position: center center, center center;
+            background-repeat: no-repeat, no-repeat;
         }}
 
         .summary-page .glance-card,
         .summary-page .journey-arc {{
-            background: rgba(255,255,255,.58);
+            background: rgba(255,255,255,.70);
             backdrop-filter: blur(1px);
+            box-shadow: 0 10px 26px rgba(31,52,70,.06);
         }}
 
         .single-day-page {{
