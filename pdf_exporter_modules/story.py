@@ -4,7 +4,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
 from . import styles as pdf_styles
-from .html_utils import clean_text, para_text
+from .html_utils import clean_text, para_text, para_text_with_breaks
 
 
 def add_paragraph(story, text, style, spacer_after=0):

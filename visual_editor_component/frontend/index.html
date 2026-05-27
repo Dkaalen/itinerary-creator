@@ -83,9 +83,9 @@
     }
     .page-content { padding: 88px 88px 46px; position: relative; z-index: 2; }
     .cover-page { display: flex; flex-direction: column; }
-    .cover-page .page-content { min-height: var(--page-h); box-sizing: border-box; padding: 96px 74px 74px; display: flex; flex-direction: column; }
+    .cover-page .page-content { min-height: var(--page-h); box-sizing: border-box; padding: 74px; display: flex; flex-direction: column; justify-content: center; }
     .cover-main { max-width: 585px; }
-    .cover-destination-card { margin-top: auto; border-top: 1px solid rgba(31,52,70,.18); padding-top: 22px; max-width: 590px; }
+    .cover-destination-card { margin-top: 34px; border-top: 1px solid rgba(31,52,70,.18); padding-top: 22px; max-width: 590px; }
     .cover-destination-label { font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 10px; }
     .cover-kicker, .city, .section-title, .row-type {
       font-family: Arial, Helvetica, sans-serif;
@@ -295,10 +295,10 @@ function draw() {
         ${editableText(model.cover?.trip_title, 'cover.trip_title', 'cover-title')}
         ${editableText(model.cover?.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
         <div class="cover-rule"></div>
-      </div>
-      <div class="cover-destination-card">
-        <div class="cover-destination-label">Route</div>
-        ${editableText(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
+        <div class="cover-destination-card">
+          <div class="cover-destination-label">Route</div>
+          ${editableText(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
+        </div>
       </div>
     </div></div></div>`;
   h += summaryPage(model.summary || {});

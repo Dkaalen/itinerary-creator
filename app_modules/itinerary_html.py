@@ -142,8 +142,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .cover-page {{
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            padding: 96px 74px 74px 74px;
+            justify-content: center;
+            padding: 74px 74px;
         }}
 
         .cover-main {{
@@ -151,7 +151,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .cover-destination-card {{
-            margin-top: auto;
+            margin-top: 34px;
             border-top: 1px solid var(--line);
             padding-top: 22px;
             max-width: 590px;
@@ -502,10 +502,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
                 <div class="cover-title">{esc(trip_title)}</div>
                 <div class="cover-subtitle">{trip_subtitle_html}</div>
                 <div class="cover-rule"></div>
-            </div>
-            <div class="cover-destination-card">
-                <div class="cover-destination-label">Route</div>
-                <div class="cover-destinations">{esc(destinations_line)}</div>
+                <div class="cover-destination-card">
+                    <div class="cover-destination-label">Route</div>
+                    <div class="cover-destinations">{esc(destinations_line)}</div>
+                </div>
             </div>
         </div>
 

@@ -147,10 +147,8 @@ def _join_destinations_naturally(cities):
 
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
-    cities = get_unique_cities(parsed_rows)
 
     text = " ".join(row.get("details", "").lower() for row in parsed_rows)
-    destination_text = _join_destinations_naturally(cities)
 
     winter_markers = [
         "winter", "snow", "lapland", "rovaniemi", "saariselkä", "saariselka",
@@ -159,15 +157,10 @@ def create_trip_subtitle(parsed_rows, grouped_days):
     ]
     has_winter_focus = any(marker in text for marker in winter_markers)
 
-    if cities:
-        if has_winter_focus:
-            return f"A winter journey through {destination_text}"
-        return f"A carefully arranged journey through {destination_text}"
-
     if has_winter_focus:
-        return "A Nordic winter journey with Arctic experiences and scenic travel"
+        return "A premium Nordic winter journey with scenic travel and Arctic experiences"
 
-    return "A carefully arranged Nordic journey"
+    return "A carefully arranged Nordic journey with seamless travel and curated experiences"
 
 def create_destinations_line(parsed_rows):
     cities = get_unique_cities(parsed_rows)

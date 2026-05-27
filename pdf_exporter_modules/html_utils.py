@@ -21,3 +21,9 @@ def para_text(value):
 def has_class(tag, class_name):
     classes = tag.get("class") or []
     return class_name in classes
+
+
+def para_text_with_breaks(value):
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    lines = [" ".join(line.replace("\xa0", " ").split()) for line in text.split("\n")]
+    return "<br/>".join(html_lib.escape(line) for line in lines if line)

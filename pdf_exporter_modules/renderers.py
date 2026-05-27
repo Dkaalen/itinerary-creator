@@ -1,5 +1,6 @@
 import re
 
+from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
 
@@ -58,20 +59,38 @@ def _li_text_with_line_breaks(li) -> str:
 
 
 def render_cover_page(page, story, styles):
-    story.append(Spacer(1, 72 * mm))
+    # Keep the cover as one composed editorial block, matching the direct preview.
+    story.append(Spacer(1, 86 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
     subtitle = _text_with_line_breaks(page.select_one(".cover-subtitle"))
     add_paragraph(story, subtitle, styles["cover_subtitle"])
-    add_premium_rule(story, width=44 * mm, space_after=72)
+    add_premium_rule(story, width=44 * mm, space_after=18)
     add_paragraph(story, "Route", styles["cover_route_label"])
     add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
 
+def _boxed_story_table(flowables, width=145 * mm, padding=14):
+    table = Table([[flowables]], colWidths=[width], hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), pdf_styles.CARD),
+                ("BOX", (0, 0), (-1, -1), 0.5, pdf_styles.LINE),
+                ("LEFTPADDING", (0, 0), (-1, -1), padding),
+                ("RIGHTPADDING", (0, 0), (-1, -1), padding),
+                ("TOPPADDING", (0, 0), (-1, -1), padding),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), padding),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    return table
+
 
 def render_glance_page(page, story, styles):
+    glance_story = []
     title = page.select_one(".glance-title")
-    add_paragraph(story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"])
-    add_premium_rule(story)
+    add_paragraph(glance_story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"], spacer_after=6)
 
     rows = []
     for row in page.select(".glance-row"):
@@ -84,12 +103,14 @@ def render_glance_page(page, story, styles):
             ])
 
     if rows:
-        story.append(make_table(rows, [38 * mm, 107 * mm], styles))
-        story.append(Spacer(1, 14))
+        glance_story.append(make_table(rows, [34 * mm, 91 * mm], styles))
 
+    story.append(_boxed_story_table(glance_story))
+    story.append(Spacer(1, 16 * mm))
+
+    journey_story = []
     journey_title = page.select_one(".journey-title")
-    add_paragraph(story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["page_title"])
-    add_premium_rule(story)
+    add_paragraph(journey_story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["page_title"], spacer_after=6)
 
     table_rows = []
     header_cells = [clean_text(th.get_text(" ")) for th in page.select(".journey-table th")]
@@ -102,8 +123,9 @@ def render_glance_page(page, story, styles):
             table_rows.append([Paragraph(para_text(cell), styles["table_cell"]) for cell in cells])
 
     if table_rows:
-        story.append(make_table(table_rows, [34 * mm, 22 * mm, 89 * mm], styles))
+        journey_story.append(make_table(table_rows, [24 * mm, 16 * mm, 85 * mm], styles))
 
+    story.append(_boxed_story_table(journey_story))
 
 def _activity_time_range_text(time_text, duration_text):
     """PDF-side fallback: expand clean single start time + duration to a range."""

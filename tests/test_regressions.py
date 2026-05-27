@@ -17,6 +17,7 @@ from generator import (
     create_day_intro,
     create_trip_glance,
 )
+from itinerary_generation.titles import create_trip_subtitle
 from itinerary_parser import extract_duration_from_description, parse_itinerary
 from normalizer import normalize_itinerary_rows
 from layout_policy import (
@@ -513,6 +514,7 @@ def run_all():
         test_travel_intro_uses_final_transport_destination,
         test_departure_block_avoids_duplicate_departure_line,
         test_bad_input_contextual_travel_and_activity_cleanup,
+        test_trip_subtitle_uses_generic_winter_wording,
         test_self_guided_tallinn_is_not_labeled_guided,
         test_multiline_inclusion_entries_render_pdf_visible_text,
         test_multiline_transport_inclusions_render_as_bullets,
@@ -552,9 +554,12 @@ def test_trip_subtitle_uses_generic_winter_wording():
     subtitle = create_trip_subtitle(rows, grouped)
     assert_equal(
         subtitle,
-        "A winter journey through Helsinki, Rovaniemi and Saariselkä",
-        "Cover subtitle should use polished generic route wording.",
+        "A premium Nordic winter journey with scenic travel and Arctic experiences",
+        "Cover subtitle should use generic premium wording instead of repeating the route.",
     )
+    assert_not_contains(subtitle, "Helsinki", "Cover subtitle should not repeat destinations already shown in the Route line.")
+    assert_not_contains(subtitle, "Rovaniemi", "Cover subtitle should not repeat destinations already shown in the Route line.")
+    assert_not_contains(subtitle, "Saariselkä", "Cover subtitle should not repeat destinations already shown in the Route line.")
     assert_not_contains(subtitle, "Local Food", "Hotel meals should not create a food-focused subtitle theme.")
     assert_not_contains(subtitle, "—", "Cover subtitle should avoid em-dash theme chains.")
 
