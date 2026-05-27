@@ -124,14 +124,15 @@ def _text_with_line_breaks(tag) -> str:
 
 
 def _li_text_with_line_breaks(li) -> str:
-    lines = []
-    for child in li.find_all(recursive=False):
-        line = clean_text(child.get_text(" "))
-        if line:
-            lines.append(line)
-    if lines:
-        return "\n".join(lines)
-    return clean_text(li.get_text(" "))
+    """Return list-item text while preserving explicit HTML line breaks.
+
+    Transport inclusions can be rendered as a single bullet with a short
+    detail line below it. BeautifulSoup's default get_text(" ") collapses
+    those <br> tags, so use the same line-break-aware extraction as the
+    cover subtitle and fall back safely for plain one-line items.
+    """
+    text = _text_with_line_breaks(li)
+    return text or clean_text(li.get_text(" "))
 
 
 def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
@@ -140,7 +141,7 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     if background_path and temp_dir:
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
 
-    story.append(Spacer(1, 17 * mm))
+    story.append(Spacer(1, 9 * mm))
     emblem = Table([[CoverEmblem(color=pdf_styles.MUTED)]], colWidths=[15 * mm], hAlign="CENTER")
     emblem.setStyle(
         TableStyle(
@@ -153,14 +154,14 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
         )
     )
     story.append(emblem)
-    story.append(Spacer(1, 9 * mm))
+    story.append(Spacer(1, 6 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
-    add_cover_rule(story, width=50 * mm, space_after=6)
+    add_cover_rule(story, width=50 * mm, space_after=4)
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
-    add_cover_rule(story, width=42 * mm, space_after=4)
+    add_cover_rule(story, width=42 * mm, space_after=3)
     subtitle = _text_with_line_breaks(page.select_one(".cover-subtitle"))
     add_paragraph(story, subtitle, styles["cover_subtitle"])
-    story.append(Spacer(1, 7 * mm))
+    story.append(Spacer(1, 4 * mm))
     add_paragraph(story, "Route", styles["cover_route_label"])
     route_text = page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else ""
     add_paragraph(story, clean_text(route_text).upper(), styles["cover_destinations"])

@@ -28,22 +28,20 @@ def _clean_bullet_text(value):
     return "\n".join(line for line in lines if line)
 
 
-def _bullet_para_text(value):
-    """Preserve multiline bullet details with a visible continuation indent."""
+def _bullet_lines(value):
     text = str(value or "").replace("\xa0", " ")
     lines = [" ".join(line.split()) for line in text.splitlines()]
-    lines = [line for line in lines if line]
-    if not lines:
-        return ""
-    rendered = []
-    for index, line in enumerate(lines):
-        prefix = "&nbsp;&nbsp;&nbsp;&nbsp;" if index else ""
-        rendered.append(prefix + html_lib.escape(line))
-    return "<br/>".join(rendered)
+    return [line for line in lines if line]
 
 
 def add_bullets(story, items, styles):
-    """Render bullet lists as a table for stable PDF bullet alignment."""
+    """Render bullet lists as a table for stable PDF bullet alignment.
+
+    Multiline items are split into one bullet row followed by continuation
+    rows in the text column. This makes details such as "Coach ticket
+    included" visually sit under the bullet text rather than at the page
+    margin, and avoids relying on whitespace inside a Paragraph.
+    """
 
     clean_items = [_clean_bullet_text(item) for item in items if _clean_bullet_text(item)]
     if not clean_items:
@@ -61,10 +59,18 @@ def add_bullets(story, items, styles):
 
     rows = []
     for item in clean_items:
+        lines = _bullet_lines(item)
+        if not lines:
+            continue
         rows.append([
             Paragraph("&#8226;", bullet_style),
-            Paragraph(_bullet_para_text(item), styles["bullet"]),
+            Paragraph(html_lib.escape(lines[0]), styles["bullet"]),
         ])
+        for continuation in lines[1:]:
+            rows.append([
+                Paragraph("", bullet_style),
+                Paragraph(html_lib.escape(continuation), styles["bullet"]),
+            ])
 
     table = Table(
         rows,
