@@ -1,0 +1,181 @@
+	Day 1	Transfer 		04/06/2026					Oslo	Private Airport to Hotel
+	Day 1	Hotel	1	04/06/2026	05/06/2026				Oslo	3 Star ,K7 Hotel Oslo or similar , 1xNight , 1xStandard Family  Room, Incl Brekafast 
+	Day 1	Activity		04/06/2026					Oslo	"Oslo: Fjord Cruise with Silent Electric Ship | 01:30  AM | 2 Hrs | What's included?
+
+Cruise on the Oslo Fjord
+English and Norwegian speaking guides
+Cafe on board
+Drinks & light snacks available for purchase
+Free tap water
+Free Wi-Fi"""
+	Day 2	Activity		05/06/2026					Bergen	"Oslo to Bergen | Norway in a Nutshell®| with Lugagge porter 
+Oslo - Flåm - Nærøyfjord - Bergen
+
+Friday, Jun 5
+09:18 Oslo
+14:20 Myrdal via Train 
+14:41 Myrdal
+15:39 Flåm Via Train 
+17:30 Flåm
+19:20 Gudvangen via Cruise 
+19:30 Gudvangen
+20:30 Voss via Scenic Bus 
+21:07 Voss
+22:30 Bergen Via Train
+"
+	Day 2	Hotel	2	05/06/2026	07/06/2026				Bergen	4 Star, Thon Hotel Orion or similar  , 2xNight , 1xStandard Family Room, Incl Brekafast 
+	Day 3	Activity		06/06/2026					Bergen	"Bergen : Must-See Bergen on Foot and Boat | 10:30 AM | 2 Hrs | This 2-in-1 tour gives you the total Bergen experience. Take a stroll through the old timber town, listen to the incredible stories from its past and make sense of the smorgasbord of centuries. To top it all, get into the arena where the city shaped itself: the fjord. The best way to understand this waterworld is to take a boat ride with the locals.
+
+Pick up / meeting point
+Strandkaien 3, Bergen
+"
+	Day 3	Activity		06/06/2026					Bergen	"Bergen Roundtrip Fløibanen Tickets | The Fløibanen funicular in Bergen is one of Norway’s best-known and most visited attractions. The journey up to Fløyen (320 m above sea level) takes about 5–8 minutes.
+
+Meeting Point : Vetrlidsallmenningen 23A, 5014 "
+	Day 4	Transfer 		07/06/2026					Bergen	Private Hotel to Airport
+	Day 4	Transfer 		07/06/2026					Svolvær	Flight Bergen to SVolaver | Cost not included , self arranged 
+	Day 4	Transfer 		07/06/2026					Svolvær	Private Airport to Hotel
+	Day 4	Hotel	3	07/06/2026	10/06/2026				Svolvær	3 Star,Scandic Vestfjord Lofoten or similar  , 2xNight , 1xStandard Family  Room, Incl Brekafast 
+	Day 5	Activity		08/06/2026					Svolvær	"Svolvær: Photo Tour Henningsvær & Haukland Beach |09:30 | 7 hrs  Pick up / meeting point
+Svolvær Tourist Information office, Torget 18
+
+Overview
+This extraordinary 7-hour Winter Photography Tour of the Lofoten Islands will guide you through a journey to the best locations, allowing you to witness the mesmerizing Arctic lights. Take unforgettable pictures and better understand the rich culture connected to the region.
+
+What's included?
+Pick-up/drop-off in central Svolvær
+Knowledgeable, English-speaking guide
+Private minivan transportation
+Professional photos & instructions
+Small group, maximum 7 adults
+Coffee or tea to keep you warm
+
+What to expect?
+Explore the wonders of the Lofoten Islands, a small archipelago located 200 kilometers above the Polar Circle, renowned for its Arctic lights and breathtaking colors. Join our daily photography tour as we search for the best light and locations to capture unique and unrepeatable pictures.
+
+The islands, inhabited since the Viking age, offer unforgettable sights, from majestic nature with steep peaks rising from the sea to pristine white-sand beaches and vivid blue waters that defy Arctic expectations.
+
+Our tour takes you to the wild and untamed Atlantic side, where Haukland Beach's tropical beauty and Utakleiv's surfer's paradise are just some of the natural wonders awaiting you.
+
+Immerse yourself in the rich history, culture, and folklore of the Lofoten islands by visiting ancient fishing hamlets like Nusfjord and Henningsvær. These fantastic fishing villages hold a glorious past, with picturesque architecture and a profound connection to fishing during the Middle Ages.
+
+Guided by our English-speaking expert, you'll have ample time to admire and photograph the enchanting scenery, breathing in the Arctic atmosphere. The tour's duration varies based on lighting conditions, with a focus on allowing you to enjoy and capture fantastic pictures.
+
+The Lofoten Islands' amazing nature, unique light, and complex history have drawn famous photographers and artists from around the world, inspiring awe-inspiring artwork."
+	Day 6	Activity		09/06/2026					Svolvær	"Svolvær: Trollfjord Cruise & Sea Eagle Safari by Catamaran |10 AM | 3 Hrs  Pick up / meeting point
+Svolvær Harbor, Torget 22
+
+Overview
+Join us on an unforgettable journey from Svolvær to the legendary Trollfjord, one of Norway’s most dramatic natural wonders.
+
+What's included?
+Knowledgeable, English-speaking guide
+Sightseeing and sea eagle watching
+Light fishing experience during the tour
+Unique piece of digital art as a memory
+Comfortable thermal suits and lifejackets
+We serve homemade fish soup for lunch
+Warm coffee, tea, and snacks
+
+What to expect?
+Discover Lofoten’s wild beauty aboard Arctic Queen
+
+Join us on an unforgettable journey from Svolvær to the legendary Trollfjord, one of Norway’s most dramatic natural wonders. On board Arctic Queen, our elegant 44-foot yacht, you can experience Lofoten’s magic at your own pace: deep blue fjords, the open sea, and steep mountains rising straight from the water.
+
+The first photo shows Arctic Princess gliding quietly into the narrow entrance of Trollfjord, where steep granite walls rise from the sea and the Arctic light colors the landscape in soft tones of gold and blue.
+
+This trip is more than ordinary sightseeing. It is a journey into the heart of Northern Norway. As we leave Svolvær harbor, we pass small fishing villages, quiet bays, and untouched landscapes that have inspired Arctic explorers and artists for generations.
+
+When the sea eagles appear, everything seems to pause. Their wings spread wide above the cliffs as they circle effortlessly over the fjord. You will have the chance to watch them up close, wild and powerful.
+
+If you like, we can stop for a bit of light fishing. Arctic Queen carries simple gear, and with some luck we may catch cod or pollock fresh from the sea. If we do, we will prepare it on board so you can enjoy an authentic taste of Lofoten.
+
+As we approach the narrow entrance to Trollfjord, surrounded by towering peaks, the atmosphere becomes almost unreal. It is a place where silence and grandeur meet, where nature dominates, and where old stories feel alive.
+
+On the return to Svolvær, we cruise slowly while you enjoy coffee, tea, and local snacks on deck or in the cozy saloon. From the flybridge, you can enjoy wide views of the fjords and islands, giving you a front-row seat to one of Norway’s most beautiful landscapes."
+	Day 7	Transfer 		10/06/2026					Svolvær	Private Hotel to Airport
+	Day 7	Transfer 		10/06/2026					Tromso	Flight | Svolaver to Tromso | self arranged 
+	Day 7	Transfer 		10/06/2026					Tromso	Private Airport to Hotel
+	Day 7	Hotel	2	10/06/2026	12/06/2026				Tromso	3 Star, Quality  Hotel Saga   , 2xNight , 1xStandard Family  Room, Incl Brekafast 
+	Day 8	Activity		11/06/2026					Tromso	"Tromsø: Accessible Fjord Tour of Kvaløya & Sommarøy incl. Lunch | 10 AM | 5 hrs 
+
+| Overview
+On this tour we will travel in our minibus around the fjords of the island of Kvaløya, nearby Tromsø, and enjoy a nice lunch on Sommarøy island.
+
+What's included?
+Pick-up/drop-off in central Tromsø
+Knowledgeable, multilingual guide
+Free photographs from the trip
+2-course meal with coffee or tea
+
+What to expect?
+The tour starts at the meeting point. From there we will drive west, crossing the bridge that connects Tromsø to the island of Kvaløya.
+
+During this trip we will cross 3 fjords. And we will drive across the valley of Kattfjordeidet. There will be short stops to take photos and experience nature. Sometimes we can see reindeer and other animals roaming free.
+
+The destination is Sommarøy, “the Summer Island”. There we will enjoy a warm lunch inside the Sommarøy Arctic Hotel.
+
+To return we will take the road on the south-east coast of Kvaløya. During this ride we can enjoy the views of the Sund and the mountains of Malangen.
+
+The tour finishes at our original meeting point after approximately 5 hours.
+
+In all our tours we accept wheelchair users or people with reduced mobility. We also are prepared to guide people with visual or hearing impairments. And we always work on creating a comfortable experience for neurodivergent people as well."
+	Day 8	Activity		11/06/2026					Tromso	"Round Trip Ticket: Enjoy the spectacular view of Tromsø and its beautiful surroundings from above, daytime or evening.
+
+Meeting Point :Sollivegen 12, 9020 Tromsdalen, Norway."
+	Day 9	Transfer 		12/06/2026					Tromso	Private Hotel to Airport
+	Day 9	Transfer 		12/06/2026					Stockholm	Flight : Tromso to Stockholm | self Arranged 
+	Day 9	Transfer 		12/06/2026					Stockholm	Private Airport to Hotel
+	Day 9	Hotel	2	12/06/2026	14/06/2026				Stockholm	4Star ,Biz Apartment Gärdet, 2xNight , 1x large  Double Room, Incl Brekafast 
+	Day 10	Activity		13/06/2026					Stockholm	"Stockholm: Must-See Tour incl. Vasa Museum, Old Town & Boat Trip | 09:30 | 3 Hrs 
+
+Pick up / meeting point
+Gustav the III Obeilisk, Stockholm
+
+Overview
+Experience the best of Stockholm and uncover the secrets of the city with this guided tour. Places we visit include the Vasa Museum, Old Town, Royal Castle, Riddarholm Church, Storkyrkan, German Church
+
+What's included?
+Knowledgeable, English-speaking guide
+Guided visit to the Stockholm Vasa Museum
+Visit to Old Town, Royal Castle & Riddarholmen
+Visit to Storkyrkan & German Church
+
+What to expect?
+Uncover the secrets of the city with this guided tour. Take a stroll on the cobblestone filled streets through Stockholm’s Old Town and delve into the deep history of the Swedish capital. Explore the “city of islands” from the marine point of view on a 10min ferry trip. Let your guide take you on a walk on Djurgården to the Vasa Museum, the legendary flagship of the Swedish Navy.
+
+Start at a easy to find central location: Gustav the III obeilisk / Slottsbacken obliisk.
+Experience the rich history of Stockholm’s Old Town.
+* Enjoy the striking views of the city from the water.
+* Visit the Vasa Museum
+
+On this trip you’ll explore old town stockholm visiting or passing by all major points of interest: Stockholm palace, Storkyrkan, main square Stortorget, Riddarholmen, house of knights, experience the smallest ally in Stockholm, the metal statue of St George and the dragon in Old town, a boat trip and short guided walk trough Djurgården isle passing by Viking Museum, museum of wrecks, Liljevalls and the former navy quarters galärvarvet ending with a guided tour in the world famous Vasa Museum."
+	Day 11	Transfer 		14/06/2026					Gothenburg	Train Stockholm to Gothernburg | Day Train | sitting seat
+	Day 11	Hotel	1	14/06/2026	15/06/2026				Gothenburg	3Star , 1xNight , 1xStandard Double Room, Incl Brekafast 
+	Day 12	Transfer 		15/06/2026					Copenhagen	Train Gothenburg to Copenhagen | sitting seat
+	Day 12	Hotel	2	15/06/2026	17/06/2026				Copenhagen	3 Star ,,ProfilHotels Richmond  2xNight , 1xStandard Double Room, Incl Brekafast , Extra bed not included 
+	Day 13	Activity		16/06/2026					Copenhagen	"Copenhagen: Forest Tower & Forgotten Giants Day Tour | 10 AM | 5.5 Hrs| Pick up / meeting point
+Colbjørnsensgade 15, Copenhagen
+
+Overview
+TIME Magazine named the Forest Tower one of the 100 greatest places to visit worldwide in 2019. Enjoy a visit to this architectural masterpiece, set in the heart of one of the country’s most scenic forest landscapes.
+
+What's included?
+Pick-up/drop-off from central Copenhagen
+Transportation by air-conditioned minibus
+Guided visit to Copenhagen Forest Tower
+Guided visit to The Forgotten Giants site
+
+Not inlcuded :Entrance ticket to Forest Tower
+Food and drinks are excluded
+
+What to expect?
+Visitors follow a 1.2‑kilometer elevated wooden boardwalk that winds gently through the treetops. The path leads to the Forest Tower itself, a striking 45‑meter spiraling structure rising above the canopy. Walking the tower’s curved ramp offers a calm, panoramic ascent where the forest opens up step by step. At the top, the 360‑degree view stretches across rolling woodlands, lakes, and fields, making it one of the most photogenic spots in Denmark. Many travelers describe standing on the summit of this “wooden skyscraper” as a highlight of their entire trip.
+
+The Forgotten Giants: A Modern Fairy Tale Hidden in Nature
+
+The “Forgotten Giants” are a beloved outdoor art treasure scattered around the outskirts of Copenhagen. Created by Danish artist Thomas Dambo, the project features six enormous wooden sculptures built entirely from recycled materials and locally sourced scrap wood. Each giant is placed in a quiet, natural setting - meadows, forests, lakesides - encouraging visitors to explore lesser‑known green areas around the city.
+
+Every sculpture has its own personality and story, and part of the charm is the sense of discovery. They are intentionally hidden, turning the visit into a playful treasure hunt for adults and children alike. On this tour, we visit two of these impressive giants, giving you time to walk around them, appreciate the craftsmanship, and enjoy the peaceful surroundings where they rest.
+"
+	Day 14	Transfer 		17/06/2026					Copenhagen	Private Hotel to Airport

@@ -148,6 +148,20 @@ def format_duration_display(value: str) -> str:
 
     label_stripped = _DURATION_LABEL_RE.sub("", raw).strip(" -|:")
 
+    # Preserve explicit duration ranges as ranges. Do this before converting to
+    # minutes, otherwise a supplier value such as "2.5 -3.5h" collapses to the
+    # upper bound ("3 hours 30 minutes") and loses important client-facing
+    # uncertainty. This is a general duration rule, not tied to any itinerary.
+    hour_range = re.search(
+        r"\b(\d+(?:\s*[.,]\s*\d+)?)\s*(?:-|–|to)\s*(\d+(?:\s*[.,]\s*\d+)?)\s*(?:h|hr|hrs|hour|hours)\b",
+        label_stripped,
+        flags=re.IGNORECASE,
+    )
+    if hour_range:
+        start = re.sub(r"\s*([.,])\s*", r"\1", hour_range.group(1)).replace(",", ".")
+        end = re.sub(r"\s*([.,])\s*", r"\1", hour_range.group(2)).replace(",", ".")
+        return f"{start}–{end} hours"
+
     minute_range = re.search(
         r"\b(\d+)\s*(?:-|–)\s*(\d+)\s*(minutes?)\b",
         label_stripped,

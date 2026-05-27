@@ -163,6 +163,22 @@ def split_comma_list(text, *, protect_compound_phrases=False):
             clean_line = clean_space(line.strip("•-* \t"))
             if not clean_line:
                 continue
+            lower_line = clean_line.lower()
+            # Most multiline supplier sections are one inclusion per line, but
+            # older compact supplier lines use commas to list separate gear
+            # items. Preserve natural single-phrase inclusions that contain
+            # commas, especially admission/spa wording like "Unlimited use of
+            # steam bath, sauna, and cold lagoon".
+            preserve_as_one = lower_line.startswith((
+                "unlimited use of ",
+                "use of ",
+                "access to ",
+                "one drink of ",
+                "two additional ",
+            ))
+            if preserve_as_one:
+                parts.append(clean_line)
+                continue
             comma_parts = [clean_space(item) for item in clean_line.split(",") if clean_space(item)]
             if len(comma_parts) > 1:
                 parts.extend(comma_parts)

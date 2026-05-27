@@ -551,6 +551,10 @@ def run_all():
         test_multiline_transport_inclusions_render_as_bullets,
         test_day_page_editorial_parity_markup,
         test_generalized_iceland_self_drive_logic,
+        test_duration_ranges_are_preserved_for_display,
+        test_day_overview_rental_explore_and_acronym_rendering,
+        test_multiline_supplier_inclusion_commas_are_preserved,
+        test_real_input_fixture_bank_core_expectations,
         test_hotel_name_before_room_marker_is_parsed_generally,
         test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
     ]
@@ -864,6 +868,124 @@ Please check-in 30 minutes before departure. Pick-up service is 75–45 minutes 
     whale = next(row for row in rows if "Whale" in row.get("title", ""))
     assert_equal(whale.get("duration"), "2.5–3.5 hours", "Activity duration should beat pick-up-window timing.")
     assert_not_contains(get_activity_description(whale), "Ranua", "Fallback descriptions must not leak unrelated itinerary content.")
+
+
+
+def test_duration_ranges_are_preserved_for_display():
+    assert_equal(
+        format_duration_display("Duration 2.5 -3.5h with panoramic views"),
+        "2.5–3.5 hours",
+        "Explicit duration ranges should not collapse to the upper bound.",
+    )
+
+
+def test_day_overview_rental_explore_and_acronym_rendering():
+    from ui.day_blocks import build_day_overview_block
+
+    rental_block = build_day_overview_block({
+        "row_id": "rental",
+        "details": "Pickupo Rental vehicle from Office or Airport| Pick Up Rental SUV |\nOtpions or similar category\n* Dacia Duster\nincluded\n✅ Automatic\n✅ Full insurance\nNot included : Safety deposit",
+    })
+    rental_html = rental_block["html"]
+    assert_contains(rental_html, "Rental vehicle", "Rental overviews should get a dedicated section label.")
+    assert_contains(rental_html, "Pick-up Rental SUV", "Rental pick-up wording should be normalized.")
+    assert_contains(rental_html, "Vehicle category examples", "Rental car examples should be grouped.")
+    assert_contains(rental_html, "Included with rental vehicle", "Rental included items should be grouped.")
+    assert_not_contains(rental_html, "<li>included</li>", "The word included should not render as a bullet.")
+
+    explore_block = build_day_overview_block({
+        "row_id": "explore",
+        "details": "Explore\n* lava fields\n* hidden cafes\nOptional:\n* horse riding",
+    })
+    explore_html = explore_block["html"]
+    assert_contains(explore_html, "Explore at your own pace", "Explore days should not be labelled as route days.")
+    assert_not_contains(explore_html, "Suggested Route", "Explore-only days should not use the route label.")
+
+    route_block = build_day_overview_block({"row_id": "route", "details": "SOUTH COAST WATERFALLS + ATV + VIK"})
+    route_html = route_block["html"]
+    assert_contains(route_html, "ATV", "Common acronyms should keep their uppercase form.")
+    assert_not_contains(route_html, "Atv", "Acronyms should not be title-cased.")
+
+
+def test_multiline_supplier_inclusion_commas_are_preserved():
+    from parser_modules.details import split_comma_list
+
+    includes = split_comma_list("Access to the Blue Lagoon\nUnlimited use of steam bath, sauna, and cold lagoon\nUse of towel", protect_compound_phrases=True)
+    assert_contains("\n".join(includes), "Unlimited use of steam bath, sauna, and cold lagoon", "One supplier inclusion line with natural commas should remain one bullet.")
+    assert_not_contains("\n".join(includes), "\nsauna", "Natural comma phrases should not become separate bullets.")
+
+
+def test_real_input_fixture_bank_core_expectations():
+    from generator import create_trip_title, create_trip_glance, create_destinations_line
+    from itinerary_generation.titles import create_client_activity_title
+    from ui.day_blocks import build_day_overview_block
+
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    expectations = {
+        "iceland_self_drive_summer.txt": {
+            "title": "Iceland Summer Journey",
+            "route_contains": ["Blue Lagoon", "Reykjavík", "Öræfi"],
+            "style_contains": "self-drive",
+            "forbidden": ["Nordic Summer Journey", "Bluelagoon", "National Park National Park", "Ranua"],
+        },
+        "norway_sweden_denmark_summer.txt": {
+            "title": "Scandinavian Summer Journey",
+            "route_contains": ["Oslo", "Stockholm", "Copenhagen"],
+            "forbidden": ["Nordic Summer Journey"],
+        },
+        "finland_norway_winter_variant.txt": {
+            "title": "Nordic Winter Journey",
+            "route_contains": ["Helsinki", "Rovaniemi", "Bergen", "Oslo"],
+        },
+        "scandinavia_autumn_cruise.txt": {
+            "title": "Scandinavian Autumn Journey",
+            "route_contains": ["Copenhagen", "Stockholm", "Kirkenes", "Bergen", "Oslo"],
+        },
+        "finland_norway_winter_family.txt": {
+            "title": "Nordic Winter Journey",
+            "route_contains": ["Helsinki", "Rovaniemi", "Tromsø"],
+        },
+    }
+
+    for filename, expected in expectations.items():
+        raw = (fixtures / filename).read_text(encoding="utf-8")
+        rows = normalize_itinerary_rows(parse_itinerary(raw))
+        grouped = group_rows_by_day(rows)
+        title = create_trip_title(rows, grouped)
+        route = create_destinations_line(rows)
+        glance = create_trip_glance(rows, grouped)
+        combined = "\n".join(
+            [title, route, str(glance)]
+            + [str(row.get(key, "")) for row in rows for key in ["city", "title", "details", "duration", "hotel_name", "room_category"]]
+        )
+        assert_equal(title, expected["title"], f"Unexpected trip title for {filename}.")
+        for destination in expected.get("route_contains", []):
+            assert_contains(route, destination, f"Route should include {destination} for {filename}.")
+        if expected.get("style_contains"):
+            assert_contains(glance.get("Travel Style", ""), expected["style_contains"], f"Travel style mismatch for {filename}.")
+        for forbidden in expected.get("forbidden", []):
+            assert_not_contains(combined, forbidden, f"Forbidden text leaked for {filename}.")
+
+    iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_self_drive_summer.txt").read_text(encoding="utf-8")))
+    blue = next(row for row in iceland_rows if row.get("city") == "Blue Lagoon")
+    assert_equal(create_client_activity_title(blue), "Blue Lagoon Premium Admission", "Blue Lagoon should render as admission, not generic guided experience.")
+    blue_includes = "\n".join(blue.get("includes", []))
+    assert_contains(blue_includes, "Unlimited use of steam bath, sauna, and colder lagoon", "Spa comma inclusions should stay together.")
+    whale = next(row for row in iceland_rows if "Whale" in row.get("title", ""))
+    assert_equal(whale.get("duration"), "2.5–3.5 hours", "Whale watching duration range should be preserved.")
+    fosshotel = next(row for row in iceland_rows if "Fosshotel" in row.get("hotel_name", ""))
+    assert_equal(fosshotel.get("room_category"), "Standard Room - Triple", "Hotel parser should split hotel names before room markers.")
+
+    rental_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "Rental" in row.get("details", ""))
+    rental_html = build_day_overview_block(rental_row)["html"]
+    assert_contains(rental_html, "Rental vehicle", "Rental fixture should use the rental vehicle section.")
+    assert_contains(rental_html, "Included with rental vehicle", "Rental included details should be grouped.")
+    assert_not_contains(rental_html, "<li>included</li>", "Included should not be a raw rental bullet.")
+
+    explore_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "lava fields" in row.get("details", ""))
+    explore_html = build_day_overview_block(explore_row)["html"]
+    assert_contains(explore_html, "Explore at your own pace", "Explore fixture should not use Suggested Route.")
+    assert_not_contains(explore_html, "Suggested Route", "Explore fixture should not use route label.")
 
 
 def test_hotel_name_before_room_marker_is_parsed_generally():

@@ -91,6 +91,9 @@ def is_valid_destination_city(city):
         "optional add",
         "flight ",
     ]
+    invalid_exact = {"accommodation", "hotel", "train", "flight", "cruise", "departure", "arrival"}
+    if lower in invalid_exact:
+        return False
     if is_likely_service_text(city):
         return False
     if any(marker in lower for marker in invalid_markers):

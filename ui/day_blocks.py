@@ -289,6 +289,37 @@ def build_departure_block(row):
 
 
 
+def _polish_overview_item(value):
+    item = clean_space(str(value or "")).strip(" •-*|:")
+    if not item:
+        return ""
+    item = re.sub(r"\bPickupo\b", "Pick-up", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bPick\s+Up\b", "Pick-up", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bOtpions\b", "Options", item, flags=re.IGNORECASE)
+    item = item.replace("/", " / ")
+    item = re.sub(r"\s+", " ", item).strip()
+
+    if item.isupper() and len(item) > 4:
+        item = item.title()
+
+    acronym_map = {
+        "Atv": "ATV",
+        "Suv": "SUV",
+        "Spa": "SPA",
+        "Vat": "VAT",
+        "Wifi": "WiFi",
+        "Wi-Fi": "Wi-Fi",
+    }
+    for source, target in acronym_map.items():
+        item = re.sub(rf"\b{re.escape(source)}\b", target, item)
+
+    item = re.sub(r"\bReykjavik\b", "Reykjavík", item)
+    item = re.sub(r"\bKeflavik\b", "Keflavík", item)
+    item = re.sub(r"\bVik\b", "Vík", item)
+    item = re.sub(r"\bKerið\b", "Kerið", item)
+    return polish_title(item)
+
+
 def _split_day_overview_items(text):
     source = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
     source = re.sub(r"\bRoute\s+Suggested\b", "", source, flags=re.IGNORECASE)
@@ -313,19 +344,87 @@ def _split_day_overview_items(text):
         parts = [clean_space(part).strip(" •-*") for part in re.split(r"\s+\+\s+", line) if clean_space(part).strip(" •-*")]
         target = optional if in_optional else items
         for part in parts:
-            part = polish_title(part.title() if part.isupper() else part)
+            part = _polish_overview_item(part)
             if part and part not in target:
                 target.append(part)
 
     return items, optional
 
 
+def _is_rental_overview(text):
+    lower = str(text or "").lower()
+    return any(marker in lower for marker in ["rental vehicle", "rental car", "rental suv", "pick up rental", "pickup rental", "drop vehicle"])
+
+
+def _build_rental_overview_block(row):
+    text = str(row.get("details") or row.get("title") or "")
+    lines = []
+    for raw in text.replace("|", "\n").replace("✅", "").splitlines():
+        line = _polish_overview_item(raw)
+        if line:
+            lines.append(line)
+
+    pickup = []
+    examples = []
+    included = []
+    not_included = []
+    mode = "pickup"
+    for line in lines:
+        lower = line.lower().strip(" :")
+        if lower in {"included", "includes"}:
+            mode = "included"
+            continue
+        if lower.startswith("not included"):
+            mode = "not_included"
+            remainder = clean_space(re.sub(r"^not included\s*: ?", "", line, flags=re.IGNORECASE))
+            if remainder:
+                not_included.append(remainder)
+            continue
+        if "option" in lower and "similar category" in lower:
+            mode = "examples"
+            continue
+        if mode == "included":
+            included.append(line)
+        elif mode == "not_included":
+            not_included.append(line)
+        elif mode == "examples":
+            examples.append(line)
+        else:
+            pickup.append(line)
+
+    html_text = f'<div class="content-block day-overview-block rental-overview-block" data-row-id="{esc(row.get("row_id", ""))}">'
+    if pickup:
+        html_text += '<div class="section-title">Rental vehicle</div>'
+        html_text += render_list_items(pickup[:3])
+    if examples:
+        html_text += '<div class="section-title small-section">Vehicle category examples</div>'
+        html_text += render_list_items(examples)
+    if included:
+        html_text += '<div class="section-title small-section">Included with rental vehicle</div>'
+        html_text += render_list_items(included)
+    if not_included:
+        html_text += '<div class="section-title small-section">Not included</div>'
+        html_text += render_list_items(not_included)
+    html_text += "</div>"
+    return {"kind": "day_overview", "row_id": row.get("row_id", ""), "html": html_text}
+
+
 def build_day_overview_block(row):
     text = row.get("details") or row.get("title", "")
+    if _is_rental_overview(text):
+        return _build_rental_overview_block(row)
+
     items, optional = _split_day_overview_items(text)
     lower = str(text or "").lower()
+    explore_like = bool(re.search(r"(^|[\n|])\s*explore\b", str(text or ""), flags=re.IGNORECASE))
     route_like = any(marker in lower for marker in ["route", "drive", "waterfalls", "scenic", "return drive"])
-    section = "Suggested Route" if route_like else "Included Today"
+    if explore_like:
+        section = "Explore at your own pace"
+        items = [item for item in items if item.lower() != "explore"]
+    elif route_like:
+        section = "Suggested Route"
+    else:
+        section = "Included Today"
     html_text = f'<div class="content-block day-overview-block" data-row-id="{esc(row.get("row_id", ""))}">' 
     if items:
         html_text += f'<div class="section-title">{esc(section)}</div>'
