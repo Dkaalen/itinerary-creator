@@ -29,12 +29,42 @@ def add_premium_rule(story, width=32 * mm, space_after=9):
     story.append(Spacer(1, space_after))
 
 
+
+
+def _text_with_line_breaks(tag) -> str:
+    if not tag:
+        return ""
+    parts = []
+    for node in tag.descendants:
+        name = getattr(node, "name", None)
+        if name == "br":
+            parts.append("\n")
+        elif name is None:
+            parts.append(str(node))
+    text = "".join(parts).replace("\xa0", " ")
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    return "\n".join(line for line in lines if line)
+
+
+def _li_text_with_line_breaks(li) -> str:
+    lines = []
+    for child in li.find_all(recursive=False):
+        line = clean_text(child.get_text(" "))
+        if line:
+            lines.append(line)
+    if lines:
+        return "\n".join(lines)
+    return clean_text(li.get_text(" "))
+
+
 def render_cover_page(page, story, styles):
-    story.append(Spacer(1, 95 * mm))
+    story.append(Spacer(1, 72 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
-    add_paragraph(story, page.select_one(".cover-subtitle").get_text(" ") if page.select_one(".cover-subtitle") else "", styles["cover_subtitle"])
-    add_premium_rule(story, width=44 * mm, space_after=9)
+    subtitle = _text_with_line_breaks(page.select_one(".cover-subtitle"))
+    add_paragraph(story, subtitle, styles["cover_subtitle"])
+    add_premium_rule(story, width=44 * mm, space_after=72)
+    add_paragraph(story, "Route", styles["cover_route_label"])
     add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
 
 
@@ -107,7 +137,7 @@ def render_content_blocks(container, story, styles, compact=False, ultra=False):
                 elif "activity-inclusion-title" in element_classes:
                     add_paragraph(block_story, element.get_text(" "), styles["activity_title"])
                 elif element.name == "ul":
-                    add_bullets(block_story, [li.get_text(" ") for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
+                    add_bullets(block_story, [_li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
                 elif "body-text" in element_classes:
                     text = clean_text(element.get_text(" "))
                     if "activity-block" in classes and re.match(r"^time\s*:", text, flags=re.IGNORECASE):
@@ -208,7 +238,7 @@ def render_general_page(
     render_content_blocks(page, story, styles)
 
     for ul in page.find_all("ul", recursive=False):
-        add_bullets(story, [li.get_text(" ") for li in ul.find_all("li", recursive=False)], styles)
+        add_bullets(story, [_li_text_with_line_breaks(li) for li in ul.find_all("li", recursive=False)], styles)
 
     if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
         add_day_image_if_possible(

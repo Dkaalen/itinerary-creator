@@ -68,19 +68,6 @@ def page_background(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(PAGE_BACKGROUND)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-
-    # Subtle editorial corner accents. These are drawn directly into the PDF so
-    # the exported file keeps the same premium frame as the HTML preview without
-    # consuming any itinerary text space.
-    canvas.setStrokeColor(LINE)
-    canvas.setLineWidth(0.45)
-    page_w, page_h = A4
-    top = page_h - 18 * mm
-    right = page_w - 18 * mm
-    accent = 23 * mm
-    canvas.line(right - accent, top, right, top)
-    canvas.line(right, top, right, top - accent)
-    canvas.line(18 * mm, 16 * mm, 46 * mm, 16 * mm)
     canvas.restoreState()
 
 
@@ -119,6 +106,16 @@ def make_styles():
             alignment=TA_LEFT,
             spaceAfter=14,
         ),
+        "cover_route_label": ParagraphStyle(
+            "cover_route_label",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=7.5,
+            leading=10,
+            textColor=MUTED,
+            alignment=TA_LEFT,
+            spaceAfter=6,
+        ),
         "cover_destinations": ParagraphStyle(
             "cover_destinations",
             parent=base["Normal"],
@@ -127,7 +124,7 @@ def make_styles():
             leading=14,
             textColor=BODY,
             alignment=TA_LEFT,
-            spaceBefore=12,
+            spaceBefore=0,
         ),
         "page_title": ParagraphStyle(
             "page_title",

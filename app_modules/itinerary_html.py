@@ -19,6 +19,50 @@ from ui.day_rendering import (
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 
 
+def _balanced_cover_subtitle_html(subtitle: str) -> str:
+    """Return escaped cover subtitle HTML with a gentle line break to avoid orphan words."""
+    text = str(subtitle or "").strip()
+    if not text:
+        return ""
+
+    def escaped(value: str) -> str:
+        return esc(" ".join(value.split()))
+
+    if len(text) < 62 or " " not in text:
+        return escaped(text)
+
+    candidates = []
+    for marker in [", ", " and "]:
+        start = 0
+        while True:
+            idx = text.find(marker, start)
+            if idx == -1:
+                break
+            split_at = idx + (1 if marker == ", " else 0)
+            left = text[:split_at].strip()
+            right = text[split_at:].strip(" ,")
+            if len(left) >= 28 and len(right) >= 18:
+                candidates.append((abs(len(left) - 58), left, right))
+            start = idx + 1
+
+    if not candidates:
+        words = text.split()
+        best = None
+        for i in range(4, len(words) - 2):
+            left = " ".join(words[:i])
+            right = " ".join(words[i:])
+            if len(right) >= 18:
+                candidate = (abs(len(left) - 58), left, right)
+                best = candidate if best is None or candidate[0] < best[0] else best
+        if best:
+            _, left, right = best
+            return f"{escaped(left)}<br>{escaped(right)}"
+        return escaped(text)
+
+    _, left, right = sorted(candidates)[0]
+    return f"{escaped(left)}<br>{escaped(right)}"
+
+
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
     preset_name = get_color_preset_name(output_edits)
@@ -28,6 +72,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     cover_kicker = output_edits.get("cover_kicker") or "Curated Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
+    trip_subtitle_html = _balanced_cover_subtitle_html(trip_subtitle)
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     saved_trip_glance = output_edits.get("trip_glance") or {}
@@ -93,44 +138,22 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: hidden;
         }}
 
-        .a4-page::before,
-        .a4-page::after {{
-            content: "";
-            position: absolute;
-            pointer-events: none;
-            z-index: 1;
-        }}
-
-        .a4-page::before {{
-            top: 32px;
-            right: 34px;
-            width: 58px;
-            height: 58px;
-            border-top: 1px solid var(--line);
-            border-right: 1px solid var(--line);
-            opacity: 0.85;
-        }}
-
-        .a4-page::after {{
-            left: 34px;
-            bottom: 32px;
-            width: 70px;
-            height: 1px;
-            background: var(--line);
-            opacity: 0.7;
-        }}
-
         .cover-page {{
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
+            padding: 96px 74px 74px 74px;
         }}
 
-        .cover-page::before {{
-            width: 92px;
-            height: 92px;
-            top: 44px;
-            right: 48px;
+        .cover-main {{
+            max-width: 585px;
+        }}
+
+        .cover-destination-card {{
+            margin-top: auto;
+            border-top: 1px solid var(--line);
+            padding-top: 22px;
+            max-width: 590px;
         }}
 
         .single-day-page {{
@@ -159,55 +182,64 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .cover-kicker {{
             font-family: Arial, sans-serif;
-            font-size: 13px;
+            font-size: 12px;
             letter-spacing: 0.18em;
             text-transform: uppercase;
             color: var(--muted);
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }}
 
         .cover-title {{
-            font-size: 54px;
-            line-height: 1.05;
+            font-size: 56px;
+            line-height: 1.04;
             font-weight: 700;
             color: var(--ink);
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }}
 
         .cover-subtitle {{
+            max-width: 545px;
             font-size: 24px;
-            line-height: 1.25;
+            line-height: 1.28;
             color: var(--ink);
-            margin-bottom: 18px;
+            margin-bottom: 0;
+            text-wrap: balance;
         }}
 
-        .cover-subtitle::after {{
-            content: "";
-            display: block;
-            width: 112px;
+        .cover-rule {{
+            width: 132px;
             height: 1px;
             background: var(--line);
-            margin-top: 22px;
+            margin: 30px 0 0 0;
+        }}
+
+        .cover-destination-label {{
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
         }}
 
         .cover-destinations {{
             font-family: Arial, sans-serif;
-            font-size: 15px;
-            letter-spacing: 0.06em;
+            font-size: 14px;
+            line-height: 1.45;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--body);
-            margin-top: 24px;
         }}
 
         .glance-card,
         .journey-arc {{
-            background: var(--card);
+            background: rgba(255,255,255,0.18);
             border: 1px solid var(--line);
-            padding: 28px;
+            padding: 30px;
         }}
 
         .glance-card {{
-            margin-bottom: 34px;
+            margin-bottom: 36px;
         }}
 
         .glance-title,
@@ -273,21 +305,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .journey-days {{
             white-space: nowrap;
-        }}
-
-        .day-section {{
-            position: relative;
-        }}
-
-        .day-section::before {{
-            content: "";
-            position: absolute;
-            left: -18px;
-            top: 5px;
-            width: 2px;
-            height: 54px;
-            background: var(--accent);
-            opacity: 0.42;
         }}
 
         .day-label {{
@@ -589,10 +606,16 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
         <div class="a4-page cover-page">
-            <div class="cover-kicker">{esc(cover_kicker)}</div>
-            <div class="cover-title">{esc(trip_title)}</div>
-            <div class="cover-subtitle">{esc(trip_subtitle)}</div>
-            <div class="cover-destinations">{esc(destinations_line)}</div>
+            <div class="cover-main">
+                <div class="cover-kicker">{esc(cover_kicker)}</div>
+                <div class="cover-title">{esc(trip_title)}</div>
+                <div class="cover-subtitle">{trip_subtitle_html}</div>
+                <div class="cover-rule"></div>
+            </div>
+            <div class="cover-destination-card">
+                <div class="cover-destination-label">Route</div>
+                <div class="cover-destinations">{esc(destinations_line)}</div>
+            </div>
         </div>
 
         <div class="a4-page">

@@ -253,12 +253,12 @@ def _render_inclusion_item(item, *, bullet_multiline=False):
 
     if bullet_multiline:
         detail_html = "".join(
-            f'<span class="inclusion-entry-detail">{esc(line)}</span>'
+            f'<div class="inclusion-entry-detail">{esc(line)}</div>'
             for line in lines[1:]
         )
         return (
             '<ul class="detail-list inclusion-category-list inclusion-multiline-list">'
-            f'<li><span class="strong-line inclusion-entry-title">{esc(lines[0])}</span>{detail_html}</li>'
+            f'<li><div class="strong-line inclusion-entry-title">{esc(lines[0])}</div>{detail_html}</li>'
             '</ul>'
         )
 

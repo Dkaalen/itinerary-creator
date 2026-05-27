@@ -8,7 +8,14 @@ def clean_text(value):
 
 
 def para_text(value):
-    return html_lib.escape(clean_text(value))
+    if value is None:
+        return ""
+    text = str(value).replace("\xa0", " ")
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        return ""
+    return "<br/>".join(html_lib.escape(line) for line in lines)
 
 
 def has_class(tag, class_name):

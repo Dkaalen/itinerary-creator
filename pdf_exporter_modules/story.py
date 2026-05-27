@@ -8,18 +8,28 @@ from .html_utils import clean_text, para_text
 
 
 def add_paragraph(story, text, style, spacer_after=0):
-    text = clean_text(text)
-    if not text:
+    rendered = para_text(text)
+    if not rendered:
         return
-    story.append(Paragraph(para_text(text), style))
+    story.append(Paragraph(rendered, style))
     if spacer_after:
         story.append(Spacer(1, spacer_after))
+
+
+def _clean_bullet_text(value):
+    if value is None:
+        return ""
+    text = str(value).replace("\xa0", " ")
+    if "\n" not in text:
+        return clean_text(text)
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    return "\n".join(line for line in lines if line)
 
 
 def add_bullets(story, items, styles, compact=False, ultra=False):
     """Render bullet lists as a table for stable PDF bullet alignment."""
 
-    clean_items = [clean_text(item) for item in items if clean_text(item)]
+    clean_items = [_clean_bullet_text(item) for item in items if _clean_bullet_text(item)]
     if not clean_items:
         return
 
