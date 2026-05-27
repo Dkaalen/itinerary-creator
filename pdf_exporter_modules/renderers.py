@@ -7,7 +7,7 @@ from text_polish import expand_time_with_duration
 
 from . import styles as pdf_styles
 from .html_utils import clean_text, para_text
-from .images import FullPageBackgroundImage, add_day_image_if_possible, resolve_image_path
+from .images import FullPageBackgroundImage, FullPageTint, add_day_image_if_possible, resolve_image_path
 from .story import add_bullets, add_paragraph, make_table
 
 
@@ -124,13 +124,22 @@ def _text_with_line_breaks(tag) -> str:
 
 
 def _li_text_with_line_breaks(li) -> str:
-    """Return list-item text while preserving explicit HTML line breaks.
+    """Return list-item text while preserving explicit line structure.
 
-    Transport inclusions can be rendered as a single bullet with a short
-    detail line below it. BeautifulSoup's default get_text(" ") collapses
-    those <br> tags, so use the same line-break-aware extraction as the
-    cover subtitle and fall back safely for plain one-line items.
+    Some inclusion bullets are rendered as one <li> containing block children,
+    for example a strong title div followed by one or more detail divs.
+    BeautifulSoup's default text extraction joins those blocks together, so
+    collect direct child blocks as separate lines before falling back to br-aware
+    extraction for simpler list items.
     """
+    direct_lines = []
+    for child in li.find_all(recursive=False):
+        line = clean_text(child.get_text(" "))
+        if line:
+            direct_lines.append(line)
+    if direct_lines:
+        return "\n".join(direct_lines)
+
     text = _text_with_line_breaks(li)
     return text or clean_text(li.get_text(" "))
 
@@ -185,7 +194,17 @@ def _boxed_story_table(flowables, width=160 * mm, padding=10):
     return table
 
 
-def render_glance_page(page, story, styles):
+def add_soft_summary_background(page, story, html_path=None, temp_dir=None):
+    """Add the seasonal artwork softly behind the summary page cards."""
+    background_path = resolve_image_path(page.get("data-cover-background-path"), html_path) if html_path else None
+    if background_path and temp_dir:
+        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
+        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.76))
+
+
+def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
+    add_soft_summary_background(page, story, html_path=html_path, temp_dir=temp_dir)
+
     glance_story = []
     title = page.select_one(".glance-title")
     add_paragraph(glance_story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"], spacer_after=6)

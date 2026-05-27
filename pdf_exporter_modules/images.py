@@ -7,6 +7,7 @@ except Exception:  # pragma: no cover - export safely skips images if Pillow is 
     ImageOps = None
 
 from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import Flowable
 
@@ -137,6 +138,33 @@ class FullPageBackgroundImage(Flowable):
             preserveAspectRatio=False,
             mask="auto",
         )
+        canv.restoreState()
+
+
+class FullPageTint(Flowable):
+    """Draw a soft full-page tint over a background image for readability."""
+
+    def __init__(self, color=None, alpha=0.72, page_width=A4[0], page_height=A4[1]):
+        super().__init__()
+        self.color = color or colors.HexColor("#f4efe8")
+        self.alpha = float(alpha)
+        self.page_width = float(page_width)
+        self.page_height = float(page_height)
+
+    def wrap(self, availWidth, availHeight):
+        return 0, 0
+
+    def split(self, availWidth, availHeight):
+        return []
+
+    def drawOn(self, canv, x, y, _sW=0):
+        canv.saveState()
+        try:
+            canv.setFillAlpha(self.alpha)
+        except Exception:
+            pass
+        canv.setFillColor(self.color)
+        canv.rect(0, 0, self.page_width, self.page_height, fill=1, stroke=0)
         canv.restoreState()
 
 

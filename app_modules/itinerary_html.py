@@ -190,6 +190,32 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             max-width: 610px;
         }}
 
+        .summary-page {{
+            background-image: var(--cover-bg-image);
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+        }}
+
+        .summary-page::before {{
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(244,239,232,.76);
+            z-index: 0;
+        }}
+
+        .summary-page > * {{
+            position: relative;
+            z-index: 1;
+        }}
+
+        .summary-page .glance-card,
+        .summary-page .journey-arc {{
+            background: rgba(255,255,255,.58);
+            backdrop-filter: blur(1px);
+        }}
+
         .single-day-page {{
             display: flex;
             flex-direction: column;
@@ -557,7 +583,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             </div>
         </div>
 
-        <div class="a4-page">
+        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
             <div class="glance-card">
                 <div class="glance-title">Your Trip at a Glance</div>
     """

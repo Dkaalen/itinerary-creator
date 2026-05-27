@@ -50,7 +50,7 @@ def export_html_to_pdf(html_path, pdf_path):
             if "cover-page" in classes:
                 render_cover_page(page, story, styles, html_path=html_path, temp_dir=image_temp_dir)
             elif page.select_one(".glance-card") or page.select_one(".journey-arc"):
-                render_glance_page(page, story, styles)
+                render_glance_page(page, story, styles, html_path=html_path, temp_dir=image_temp_dir)
             else:
                 render_general_page(
                     page,
