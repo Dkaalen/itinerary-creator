@@ -694,11 +694,12 @@ Traditional Finnish lunch buffet
     santa = [row for row in rows if row.get("day") == "Day 4" and row.get("effective_type") == "Activity"][0]
     assert_equal(santa.get("title"), "Santa Claus Village by Snowmobile & Reindeer Sleigh", "Snowmobile and reindeer titles should preserve the core activity.")
     assert_equal(santa.get("time"), "8:15 AM - 1:15 PM", "Spaced times such as 8 15 should parse as 8:15 AM and expand with duration.")
-    santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 6)
+    santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 5)
     santa_inline_text = "\n".join(santa_inline)
     assert_contains(santa_inline_text, "Short reindeer sleigh ride experience", "Important reindeer ride inclusion should survive compact day-page prioritization.")
     assert_contains(santa_inline_text, "Winter equipment provided", "Winter equipment should survive compact day-page prioritization.")
     assert_contains(santa_inline_text, "Traditional Finnish lunch buffet", "Included lunch should survive compact day-page prioritization.")
+    assert_not_contains(santa_inline_text, "Knowledgeable, English-speaking guide", "Generic guide wording should be dropped before included meals when the day-page list is capped.")
 
     reindeer_hunt = [row for row in rows if row.get("day") == "Day 7" and row.get("effective_type") == "Activity"][0]
     assert_equal(reindeer_hunt.get("title"), "Northern Lights Hunt by Reindeer", "Aurora wording should become Northern Lights while preserving the reindeer differentiator.")
@@ -717,6 +718,30 @@ Traditional Finnish lunch buffet
     assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
     assert_contains(all_inclusions, "Coach Transfer to Kakslauttanen", "Coach transfer section should include the arranged coach transfer.")
     assert_contains(all_inclusions, "Northern Lights Hunt by Reindeer", "Separate reindeer Northern Lights activity should not be deduplicated away.")
+
+
+def test_korouoma_priority_keeps_thermal_and_barbecue():
+    from ui.final_pages import clean_activity_inclusion_items, prioritize_inline_inclusions
+
+    title = "Korouoma Frozen Waterfalls Hike & BBQ"
+    raw_items = [
+        "Pick-up/drop-off in central Rovaniemi",
+        "Transfers in brand-new 2025 Ford Tourneo",
+        "Professional and certified guide",
+        "Thermal overalls to keep you warm",
+        "4–6 km guided hike in Korouoma Canyon",
+        "Small groups (max 8 guests)",
+        "Hot drinks & barbecue",
+    ]
+
+    compact = prioritize_inline_inclusions(clean_activity_inclusion_items(raw_items, title), 5)
+    compact_text = "\n".join(compact)
+
+    assert_contains(compact_text, "Pick-up/drop-off in central Rovaniemi", "Korouoma inclusions should keep pick-up/drop-off logistics.")
+    assert_contains(compact_text, "Thermal overalls to keep you warm", "Korouoma inclusions should keep thermal equipment.")
+    assert_contains(compact_text, "4-6 km guided hike in Korouoma Canyon", "Korouoma inclusions should keep the signature guided hike.")
+    assert_contains(compact_text, "Hot drinks and barbecue", "Korouoma inclusions should keep the BBQ/hot drinks item.")
+    assert_not_contains(compact_text, "Small groups", "Group-size details should not take compact day-page inclusion space.")
 
 
 def test_self_guided_tallinn_is_not_labeled_guided():
