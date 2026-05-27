@@ -353,10 +353,22 @@ def get_activity_description(row, detail_level=None):
 
     clean_title = polish_title(create_client_activity_title(row) or row.get("title", "") or "Included experience")
     city_name = polish_title(row.get("city", ""))
+    destination_phrase = f" in {city_name}" if city_name else ""
     combined = f"{clean_title} {title}".lower()
 
     # Fallback descriptions should add atmosphere, not repeat logistics already
-    # shown in the Time / Duration / Pick-up lines.
+    # shown in the Time / Duration / Pick-up lines. They must never inject
+    # destination-specific content that is not supported by the current row.
+    if "blue lagoon" in combined or "sky lagoon" in combined or "lagoon" in combined and ("admission" in combined or "spa" in combined or "ritual" in combined):
+        return f"Enjoy this lagoon and wellness experience{destination_phrase}, with admission details arranged as part of the day."
+    if "whale watching" in combined or "whale" in combined:
+        return f"Join a whale watching experience{destination_phrase}, with time on the water and guidance from the local crew."
+    if "snork" in combined or "silfra" in combined:
+        return f"Experience Silfra with the arranged equipment and local guidance, following the meeting details provided for the activity."
+    if "atv" in combined or "quad" in combined:
+        return f"Head out on an ATV experience, with safety equipment and guidance provided for the route."
+    if "glacier" in combined or "crampon" in combined:
+        return f"Join a guided glacier experience, with the required safety equipment provided before heading onto the ice."
     if "suomenlinna" in combined:
         return "A guided introduction to Helsinki’s city highlights combined with a visit to the historic sea fortress island of Suomenlinna."
     if "korouoma" in combined or "frozen waterfall" in combined:
@@ -377,8 +389,10 @@ def get_activity_description(row, detail_level=None):
         if "floating" in combined or "float" in combined:
             return "Experience the Arctic night from a peaceful frozen-lake setting, with specialist equipment provided for the ice-floating experience."
         return "Enjoy an evening Northern Lights experience designed around the Arctic sky, local conditions, and the chance to see the aurora."
-    if "ranua" in combined or "wildlife" in combined:
+    if "ranua" in combined:
         return "Travel to Ranua Wildlife Park for a look at Arctic wildlife in a forested Lapland setting, with time to enjoy the experience at an easy pace."
+    if "wildlife" in combined:
+        return f"Enjoy a wildlife-focused experience{destination_phrase}, with the details arranged as part of the day."
     if "fjord tour" in combined or "kvaløya" in combined or "sommarøy" in combined:
         return "Explore the coastal scenery around Tromsø, with fjords, islands and Arctic landscapes forming the focus of the day."
     if "fjellheisen" in combined or "cable car" in combined:
@@ -386,7 +400,6 @@ def get_activity_description(row, detail_level=None):
     if "funicular" in combined or "fløibanen" in combined:
         return "Ride the Fløibanen funicular for an easy ascent above Bergen and views over the city, harbour and surrounding mountains."
 
-    destination_phrase = f" in {city_name}" if city_name else ""
     if "walking" in combined or "guided" in combined:
         return f"Enjoy a guided experience{destination_phrase}, with local context and a clear route through the day’s main highlights."
     if "boat" in combined or "cruise" in combined or "canal" in combined:

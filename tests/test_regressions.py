@@ -550,6 +550,9 @@ def run_all():
         test_multiline_inclusion_entries_render_pdf_visible_text,
         test_multiline_transport_inclusions_render_as_bullets,
         test_day_page_editorial_parity_markup,
+        test_generalized_iceland_self_drive_logic,
+        test_hotel_name_before_room_marker_is_parsed_generally,
+        test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
     ]
 
     for test in tests:
@@ -586,8 +589,8 @@ def test_trip_subtitle_uses_generic_winter_wording():
     subtitle = create_trip_subtitle(rows, grouped)
     assert_equal(
         subtitle,
-        "A premium Nordic winter journey with scenic travel and Arctic experiences",
-        "Cover subtitle should use generic premium wording instead of repeating the route.",
+        "A premium Finland winter journey with scenic travel and curated experiences",
+        "Single-country cover subtitle should use country-specific premium wording instead of repeating the route.",
     )
     assert_not_contains(subtitle, "Helsinki", "Cover subtitle should not repeat destinations already shown in the Route line.")
     assert_not_contains(subtitle, "Rovaniemi", "Cover subtitle should not repeat destinations already shown in the Route line.")
@@ -607,8 +610,8 @@ def test_seasonal_cover_title_and_subtitle_from_dates():
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
     assert_equal(detect_cover_season(rows), "summer", "July itineraries should use the summer cover season.")
-    assert_equal(create_trip_title(rows, grouped), "Nordic Summer Journey", "Multi-destination summer trips should get a summer cover title.")
-    assert_equal(create_trip_subtitle(rows, grouped), "A premium summer journey with scenic travel and curated experiences", "Summer cover subtitle should be seasonal and generic.")
+    assert_equal(create_trip_title(rows, grouped), "Finland Summer Journey", "Single-country multi-destination trips should use the country in the cover title.")
+    assert_equal(create_trip_subtitle(rows, grouped), "A premium Finland summer journey with scenic travel and curated experiences", "Single-country cover subtitle should be seasonal and country-aware.")
 
     theme = get_cover_theme(rows, {"cover_season": "winter"})
     assert_equal(theme.get("season"), "winter", "Manual cover season override should beat date detection.")
@@ -819,6 +822,66 @@ def test_multiline_transport_inclusions_render_as_bullets():
     assert_contains(html, "<li>", "Multiline transport inclusions should render as bullet items.")
     assert_contains(html, "Coach Transfer to Kakslauttanen", "Coach transfer title should be visible in the bullet item.")
     assert_contains(html, "Coach ticket included.", "Coach transfer detail should be visible in the bullet item.")
+
+
+def test_generalized_iceland_self_drive_logic():
+    from generator import create_trip_title, create_destinations_line, create_trip_glance
+    from itinerary_generation.titles import create_client_activity_title
+    from ui.render_helpers import get_activity_description
+
+    raw = """
+	Day 1	Transfer 		09/07/2026					Keflavik 	Arrival in Keflavik at 04:30 PM
+	Day 1	Day overview		09/07/2026					Keflavik 	"Pickupo Rental vehicle from Office or Airport| Pick Up Rental SUV |
+Options or similar category
+* Dacia Duster
+included
+✅ Automatic
+Not included : Safety deposit "
+	Day 1	Activity		09/07/2026					Bluelagoon	"Blue Lagoon Premium  Entry ticktes
+Included:
+Access to the Blue Lagoon
+Use of towel
+Use of bathrobe
+One drink of choice at the in-water bar"
+	Day 1	Hotel	1	09/07/2026	10/07/2026				Reykjavik	4 Star ,Hotel Reykjavík Grand , 1x Atrium View Double room ,full double bed, Incl Breakfast
+	Day 7	Activity		15/07/2026					Reykjavik	"Reykjavík: Whale Watching From Downtown |
+Pick up / meeting point : Old Harbour House, Ægisgarður 2, Reykjavík
+What's included?
+Pick-up/drop off in central of Reykjavík
+Professional, English-speaking guide
+Duration 2.5 -3.5h with panoramic views
+Warm blankets & restroom on board
+Please check-in 30 minutes before departure. Pick-up service is 75–45 minutes before departure."
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    assert_equal(create_trip_title(rows, grouped), "Iceland Summer Journey", "Iceland-only itineraries should not be branded Nordic.")
+    assert_contains(create_destinations_line(rows), "Blue Lagoon", "Concatenated place names should be normalized.")
+    glance = create_trip_glance(rows, grouped)
+    assert_contains(glance["Travel Style"], "self-drive", "Rental vehicle rows should create a self-drive travel style.")
+    blue = next(row for row in rows if row.get("city") == "Blue Lagoon")
+    assert_equal(create_client_activity_title(blue), "Blue Lagoon Premium Admission", "Admission products should not become guided experiences.")
+    whale = next(row for row in rows if "Whale" in row.get("title", ""))
+    assert_equal(whale.get("duration"), "2.5–3.5 hours", "Activity duration should beat pick-up-window timing.")
+    assert_not_contains(get_activity_description(whale), "Ranua", "Fallback descriptions must not leak unrelated itinerary content.")
+
+
+def test_hotel_name_before_room_marker_is_parsed_generally():
+    raw = """
+	Day 5	Hotel	1	13/07/2026	14/07/2026				Öræfi	Fosshotel Glacier Lagoon 1x Standard Room - Triple , incl breakfast
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    row = rows[0]
+    assert_equal(row.get("hotel_name"), "Fosshotel Glacier Lagoon", "Hotel parser should split hotel name before room count markers.")
+    assert_equal(row.get("room_category"), "Standard Room - Triple", "Room parser should remove the room-count prefix.")
+
+
+def test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words():
+    from place_aliases import normalize_place_text
+    text = normalize_place_text("Thingvellir National Park is beautiful. Our tours are unique.")
+    assert_contains(text, "Þingvellir National Park", "Known place aliases should still normalize.")
+    assert_not_contains(text, "National Park National Park", "Place aliases should not duplicate canonical suffixes.")
+    assert_contains(text, "tours are unique", "Common English words should not be rewritten as place aliases.")
 
 
 if __name__ == "__main__":

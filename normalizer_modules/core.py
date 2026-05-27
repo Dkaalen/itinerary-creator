@@ -441,12 +441,16 @@ def warn_suspicious_city(row: dict) -> None:
 def normalize_row(row: dict) -> dict:
     row = copy.deepcopy(row)
 
-    for key in ["city", "title", "original_title", "details", "duration", "meeting_point", "end_point", "luggage_included"]:
+    for key in ["city", "title", "original_title", "details", "meeting_point", "end_point", "luggage_included"]:
         if row.get(key):
             row[key] = polish_client_text(row[key])
 
     if row.get("duration"):
-        row["duration"] = format_duration_display(row["duration"])
+        duration_text = row["duration"]
+        if re.search(r"\d+(?:\.\d+)?\s*(?:-|–|to)\s*\d+(?:\.\d+)?\s*hours?", duration_text, flags=re.IGNORECASE):
+            row["duration"] = duration_text.replace("-", "–")
+        else:
+            row["duration"] = format_duration_display(duration_text)
 
     row["city"] = canonicalize_place_name(row.get("city", ""))
     warn_suspicious_city(row)

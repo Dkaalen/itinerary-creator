@@ -10,16 +10,35 @@ from parser_modules.time_parsing import (
     split_time_and_duration,
 )
 
+def _looks_like_pickup_window(text):
+    lower = str(text or "").lower()
+    return "before departure" in lower or "pick-up window" in lower or "pickup window" in lower
+
+
 def extract_duration_from_description(main_text):
+    main_text = re.sub(r"(\d)\s*\.\s*(\d)", r"\1.\2", str(main_text or ""))
     standard_time = extract_detail(main_text, "Time")
     _, duration = split_time_and_duration(standard_time)
     if duration:
         return duration
 
+    # Prefer explicit duration labels, especially when supplier text also
+    # contains pick-up windows such as "75–45 minutes before departure".
+    explicit_patterns = [
+        r"\bDuration\s*:?\s*(\d+(?:\s*[.,]\s*\d+)?\s*(?:-|–|to)\s*\d+(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour|h))\b",
+        r"\bDuration\s*:?\s*(\d+(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour|h))\b",
+    ]
+    for pattern in explicit_patterns:
+        match = re.search(pattern, main_text, flags=re.IGNORECASE)
+        if match:
+            return normalize_duration_text(match.group(1))
+
     pipe_parts = [clean_space(part) for part in main_text.split("|")]
-    for part in pipe_parts[1:4]:
+    for part in pipe_parts[1:5]:
+        if _looks_like_pickup_window(part):
+            continue
         match = re.search(
-            r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
+            r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:\s*[.,]\s*\d+)?\s*(?:-|–|to)?\s*\d*(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour|h))\b",
             part,
             flags=re.IGNORECASE,
         )
@@ -27,15 +46,15 @@ def extract_duration_from_description(main_text):
             return normalize_duration_text(match.group(1))
 
     match = re.search(
-        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour))\b",
+        r"\b((?:Cruise\s+Duration|Tour\s+Duration|Duration)?\s*:?\s*\d+(?:\s*[.,]\s*\d+)?\s*(?:-|–|to)?\s*\d*(?:\s*[.,]\s*\d+)?\s*(?:Hrs|Hr|hours|hour|h))\b",
         main_text,
         flags=re.IGNORECASE,
     )
-    if match:
+    if match and not _looks_like_pickup_window(main_text[match.start(): match.end() + 40]):
         return normalize_duration_text(match.group(1))
 
     minute_match = re.search(r"\b(\d+\s*(?:-|–)\s*\d+\s*minutes?)\b", main_text, flags=re.IGNORECASE)
-    if minute_match:
+    if minute_match and not _looks_like_pickup_window(main_text[minute_match.start(): minute_match.end() + 40]):
         return normalize_duration_text(minute_match.group(1))
 
     return ""
@@ -67,6 +86,8 @@ def extract_time_from_description(main_text):
         clock_range = find_clock_range(part)
         if clock_range:
             return normalize_time_text(clock_range)
+        if re.search(r"\b12\s+noon\b|\bnoon\b", part, flags=re.IGNORECASE):
+            return "12:00 PM"
         single_time = find_single_clock_time(part)
         if single_time:
             return normalize_time_text(single_time)
@@ -150,6 +171,7 @@ def extract_includes_from_description(main_text):
             r"what'?s included\??",
             r"what’s included\??",
             r"\bincludes\s*:\s*",
+            r"(?<!not\s)\bincluded\s*:\s*",
             r"\binclude\s*[,|:]\s*",
         ],
         [
@@ -189,7 +211,8 @@ def extract_includes_from_description(main_text):
                 "included", "ticket", "pick-up", "pickup", "drop-off", "lunch",
                 "certificate", "transport", "guide", "meal", "snack", "drink",
                 "photograph", "camera", "tax", "overalls", "tripod", "ferry",
-                "equipment", "berry juice", "hot berry", "winter",
+                "equipment", "berry juice", "hot berry", "winter", "admission",
+                "entry", "access", "ritual", "mask", "towel", "bathrobe", "locker",
             ]
             prose_markers = [
                 "tour gives", "take a stroll", "listen to", "make sense",

@@ -112,6 +112,23 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
             if not hotel_name:
                 hotel_name = part
 
+
+    # Some supplier rows omit a comma between hotel name and room count, e.g.
+    # "Fosshotel Glacier Lagoon 1x Standard Room - Triple". Treat the text
+    # before the first room/count marker as the hotel name and the remainder as
+    # the room category. This is a general hotel-pattern rule, not tied to one
+    # specific property.
+    if hotel_name and re.search(r"\b\d+\s*x\s+", hotel_name, flags=re.IGNORECASE):
+        split_match = re.search(r"\b\d+\s*x\s+", hotel_name, flags=re.IGNORECASE)
+        before = clean_space(hotel_name[:split_match.start()])
+        after = clean_space(hotel_name[split_match.start():])
+        if before and after:
+            hotel_name = before
+            room_category = room_category or clean_room_category(after)
+
+    if room_category and hotel_name and room_category.lower().startswith(hotel_name.lower()):
+        room_category = clean_room_category(clean_space(room_category[len(hotel_name):].strip(" ,-"))) or room_category
+
     # If hotel name is missing in the text, avoid using the whole raw line.
     if hotel_name and any(marker in hotel_name.lower() for marker in ["check in", "night stay", "incl"]):
         hotel_name = ""

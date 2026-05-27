@@ -1,7 +1,7 @@
 import re
 
 from parser_modules.common import *  # noqa: F401,F403
-from parser_modules.time_parsing import normalize_time_text
+from parser_modules.time_parsing import normalize_duration_text, normalize_time_text
 
 def standardize_row_text(row):
     """Applies client-facing cleanup after row parsing and effective type detection."""
@@ -9,12 +9,14 @@ def standardize_row_text(row):
     # Do not run the broad client-text polish on parsed time values.
     # Time fields are normalized by the dedicated time parser; broad punctuation
     # polish can corrupt clock syntax if it ever changes colon spacing.
-    for key in ["city", "title", "details", "duration", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
+    for key in ["city", "title", "details", "meeting_point", "end_point", "luggage_included", "hotel_name", "room_category", "meal_plan"]:
         if key in row and row.get(key):
             row[key] = fix_common_text(row[key])
 
     if row.get("time"):
         row["time"] = normalize_time_text(row["time"])
+    if row.get("duration"):
+        row["duration"] = normalize_duration_text(row["duration"])
 
     for key in ["notable_sights", "includes"]:
         if key in row and isinstance(row.get(key), list):
@@ -114,10 +116,13 @@ def clean_title(text):
     if "|" in title:
         title = title.split("|", 1)[0]
 
-    # Prevent very long paragraphs from becoming titles.
+    # Prevent long supplier sections from becoming titles. These markers may
+    # appear with or without a preceding dash in real pasted supplier cells.
     for marker in [
         "What's included",
         "What’s included",
+        "Included:",
+        "Includes:",
         "Overview",
         "What to expect",
         "Pick up / meeting point",
@@ -129,10 +134,11 @@ def clean_title(text):
 
     title = title.strip(" -:|")
 
-    # Remove duplicated city prefix if the product title starts with "City: Title".
-    if ":" in title:
+    # Remove duplicated city prefix only when the colon is clearly a city prefix.
+    # Do not split clock times such as "04:30 PM" in arrival rows.
+    if ":" in title and not re.search(r"\b\d{1,2}:\d{2}\b", title):
         possible_city, rest = title.split(":", 1)
-        if len(possible_city.strip()) <= 25 and rest.strip():
+        if len(possible_city.strip()) <= 25 and rest.strip() and is_valid_city_value(possible_city):
             title = rest.strip()
 
     return polish_title(clean_space(title))

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from place_aliases import canonicalize_place_name, is_likely_service_text
+from place_aliases import canonicalize_place_name, country_for_place, is_likely_service_text
 from text_polish import polish_client_text
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
@@ -144,6 +144,31 @@ def get_unique_cities(parsed_rows):
             cities.append(city)
 
     return cities
+
+
+def get_destination_countries(parsed_rows):
+    """Return unique known countries represented by itinerary destination cities."""
+    countries = []
+    for city in get_unique_cities(parsed_rows):
+        country = country_for_place(city)
+        if country and country not in countries:
+            countries.append(country)
+    return countries
+
+
+def has_self_drive_markers(parsed_rows):
+    """Detect self-drive/rental-car itinerary patterns without country-specific rules."""
+    markers = [
+        "rental vehicle", "rental car", "rental suv", "pick up rental",
+        "pickup rental", "drop vehicle", "drop off vehicle", "return vehicle",
+        "car rental", "self-drive", "self drive", "route suggested",
+        "scenic drive", "return drive", "countryside drive", "drive to",
+    ]
+    for row in parsed_rows or []:
+        text = f'{row.get("type", "")} {row.get("title", "")} {row.get("details", "")}'.lower()
+        if any(marker in text for marker in markers):
+            return True
+    return False
 
 
 def is_self_arranged(row):

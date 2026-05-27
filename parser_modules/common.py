@@ -115,6 +115,11 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),
     (r"\bWi-FI\b", "Wi-Fi"),
+    (r"\bPickupo\b", "Pick up"),
+    (r"\bOtpions\b", "Options"),
+    (r"\bticktes\b", "tickets"),
+    (r"\bROute\b", "Route"),
+    (r"\binlc\b", "incl"),
     (r"\b4Star\b", "4 Star"),
     (r"\b3Star\b", "3 Star"),
 ]

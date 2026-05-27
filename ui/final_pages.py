@@ -34,6 +34,24 @@ def get_fallback_activity_inclusions(row):
         + [str(item) for item in source_items]
     ).lower()
 
+    if "blue lagoon" in full_text or "sky lagoon" in full_text or "lagoon admission" in full_text:
+        inclusions = []
+        if "access" in full_text or "admission" in full_text or "entry" in full_text or "ticket" in full_text:
+            inclusions.append(f"{title.replace(' & 7-Step Ritual', '')} admission" if title else "Lagoon admission")
+        if "7-step" in full_text or "7 step" in full_text or "ritual" in full_text:
+            inclusions.append("Complete 7-step ritual")
+        if "towel" in full_text:
+            inclusions.append("Use of towel")
+        if "bathrobe" in full_text:
+            inclusions.append("Use of bathrobe")
+        if "locker" in full_text:
+            inclusions.append("Private locker")
+        if "mask" in full_text:
+            inclusions.append("Lagoon mask experience")
+        if "drink" in full_text:
+            inclusions.append("One drink of choice")
+        return inclusions or ["Admission included"]
+
     if "tallin" in full_text or "tallinn" in full_text or title == "Day Trip to Tallinn":
         inclusions = []
         is_self_guided = bool(re.search(r"\bself[-\s]?guided\b", full_text, flags=re.IGNORECASE))
@@ -69,10 +87,13 @@ def get_fallback_activity_inclusions(row):
     if "walking" in full_text and "canal" in full_text:
         return ["Guided walking tour", "Canal experience"]
 
+    if "whale watching" in full_text:
+        return ["Whale watching cruise", "Professional, English-speaking guide"]
+
     if "walking tour" in full_text or "guided" in full_text:
         return ["Guided experience"]
 
-    if "ticket" in full_text:
+    if "ticket" in full_text or "admission" in full_text or "entry" in full_text:
         return ["Ticket"]
 
     return []
@@ -94,6 +115,8 @@ def prioritize_inline_inclusions(items, max_items=6):
         if lower in {"guided experience", "experience as described in the day-by-day itinerary"} and len(items) > 1:
             continue
         if any(marker in lower for marker in ["tax", "service fee", "goods and services"]):
+            continue
+        if lower.startswith("duration") or " with panoramic views" in lower:
             continue
         if "small group" in lower or ("max " in lower and "guest" in lower):
             continue

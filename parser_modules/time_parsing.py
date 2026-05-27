@@ -188,6 +188,21 @@ def normalize_duration_text(value):
     if not duration:
         return ""
 
+    duration = duration.replace("–", "-")
+    already_expanded = re.search(r"\b\d+\s+hours?\s+\d+\s+minutes?\b", duration, flags=re.IGNORECASE)
+    if already_expanded:
+        return already_expanded.group(0)
+
+    range_hours = re.search(
+        r"\b(\d+(?:\s*[.,]\s*\d+)?)\s*(?:-|to)\s*(\d+(?:\s*[.,]\s*\d+)?)\s*(?:h|hr|hrs|hour|hours)\b",
+        duration,
+        flags=re.IGNORECASE,
+    )
+    if range_hours:
+        start = re.sub(r"\s*\.\s*", ".", range_hours.group(1)).replace(" ", "").replace(",", ".")
+        end = re.sub(r"\s*\.\s*", ".", range_hours.group(2)).replace(" ", "").replace(",", ".")
+        return f"{start}–{end} hours"
+
     minute_match = re.search(r"\b(\d+\s*(?:-|–)\s*\d+\s*minutes?)\b", duration, flags=re.IGNORECASE)
     if minute_match:
         return minute_match.group(1).replace("-", "–")

@@ -22,6 +22,8 @@ from itinerary_generation.common import (
     get_activity_text,
     has_hotel,
     get_unique_cities,
+    get_destination_countries,
+    has_self_drive_markers,
     is_self_arranged,
     get_primary_city,
 )

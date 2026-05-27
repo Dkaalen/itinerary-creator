@@ -188,8 +188,8 @@ PLACES = [
     {"country": "Iceland", "canonical": "Geysir", "kind": "attraction", "aliases": ["Geysir Geothermal Area"]},
     {"country": "Iceland", "canonical": "Gullfoss", "kind": "waterfall", "aliases": ["Gullfoss Waterfall"]},
     {"country": "Iceland", "canonical": "Kerið", "kind": "attraction", "aliases": ["Kerid", "Kerið Crater", "Kerid Crater"]},
-    {"country": "Iceland", "canonical": "Blue Lagoon", "kind": "attraction", "aliases": []},
-    {"country": "Iceland", "canonical": "Sky Lagoon", "kind": "attraction", "aliases": []},
+    {"country": "Iceland", "canonical": "Blue Lagoon", "kind": "attraction", "aliases": ["Bluelagoon", "Blue lagoon"]},
+    {"country": "Iceland", "canonical": "Sky Lagoon", "kind": "attraction", "aliases": ["Skylagoon", "Sky lagoon"]},
     {"country": "Iceland", "canonical": "Jökulsárlón", "kind": "lagoon", "aliases": ["Jokulsarlon", "Jökulsárlón Glacier Lagoon", "Jokulsarlon Glacier Lagoon"]},
     {"country": "Iceland", "canonical": "Diamond Beach", "kind": "beach", "aliases": []},
     {"country": "Iceland", "canonical": "Reynisfjara", "kind": "beach", "aliases": ["Reynisfjara Black Sand Beach"]},
@@ -280,6 +280,8 @@ def _build_alias_maps():
 
 ALIAS_TO_CANONICAL, ALIAS_RECORDS = _build_alias_maps()
 CANONICAL_PLACES = {place["canonical"] for place in PLACES}
+CANONICAL_TO_COUNTRY = {place["canonical"]: place["country"] for place in PLACES}
+CANONICAL_TO_KIND = {place["canonical"]: place.get("kind", "") for place in PLACES}
 
 
 @lru_cache(maxsize=4096)
@@ -294,6 +296,16 @@ def canonicalize_place_name(value: str) -> str:
 
 def is_known_place(value: str) -> bool:
     return canonicalize_place_name(value) in CANONICAL_PLACES
+
+
+def country_for_place(value: str) -> str:
+    """Return the country for a known canonical or alias place."""
+    return CANONICAL_TO_COUNTRY.get(canonicalize_place_name(value), "")
+
+
+def kind_for_place(value: str) -> str:
+    """Return the place kind for a known canonical or alias place."""
+    return CANONICAL_TO_KIND.get(canonicalize_place_name(value), "")
 
 
 def is_likely_service_text(value: str) -> bool:
@@ -317,13 +329,35 @@ def normalize_place_text(value: str) -> str:
     # Normalize punctuation variants before alias replacement.
     text = text.replace("–", "-").replace("—", "-")
 
+    common_word_aliases = {"are", "in", "to", "on", "at", "by"}
     for alias, canonical in ALIAS_RECORDS:
         if alias == canonical:
             continue
 
+        alias_key = _key(alias)
+        if alias_key in common_word_aliases:
+            continue
+        canonical_key = _key(canonical)
+        suffix_key = canonical_key[len(alias_key):].strip() if canonical_key.startswith(alias_key) else ""
         escaped = re.escape(alias)
         # Avoid replacing inside larger words, but allow punctuation/space around aliases.
         pattern = re.compile(rf"(?<![\wÀ-ÿ]){escaped}(?![\wÀ-ÿ])", flags=re.IGNORECASE)
-        text = pattern.sub(canonical, text)
+
+        def replace_alias(match):
+            # If an alias is already followed by the canonical suffix, do not
+            # expand it again. This prevents generic rules such as
+            # "Thingvellir" -> "Þingvellir National Park" from producing
+            # "Þingvellir National Park National Park" on later passes.
+            if suffix_key:
+                following = text[match.end(): match.end() + len(suffix_key) + 8]
+                if _key(following).startswith(suffix_key):
+                    return match.group(0)
+            return canonical
+
+        text = pattern.sub(replace_alias, text)
+
+    # Final defensive cleanup for duplicated place-type suffixes that may come
+    # from messy supplier text or repeated alias normalisation.
+    text = re.sub(r"\b(National Park)(?:\s+\1)+\b", r"\1", text, flags=re.IGNORECASE)
 
     return text

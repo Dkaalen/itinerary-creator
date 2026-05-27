@@ -9,6 +9,37 @@ def is_global_default_candidate(candidate: ImageCandidate) -> bool:
     return normalize_keyword(candidate.city) in {"default", "defoult"}
 
 
+def _conflict_penalty(candidate_themes: set[str], day_themes: set[str], day_tokens: set[str]) -> tuple[int, list[str]]:
+    """Penalize obviously contradictory default images.
+
+    This is intentionally generic: it rejects broad semantic conflicts rather
+    than tailoring to any one itinerary or destination.
+    """
+    penalties = []
+    penalty = 0
+
+    has = lambda *items: any(item in day_themes or item in day_tokens for item in items)
+    cand = lambda *items: any(item in candidate_themes for item in items)
+
+    if has("ocean", "whale", "whales", "boat") and cand("wildlife", "winter"):
+        penalty += 35
+        penalties.append("conflict: ocean activity vs wildlife/winter image")
+    if has("lagoon", "spa", "ritual", "wellness") and cand("city", "train", "wildlife"):
+        penalty += 35
+        penalties.append("conflict: lagoon/spa activity vs unrelated image")
+    if has("glacier", "crampon", "crampons") and cand("city", "train", "wildlife"):
+        penalty += 30
+        penalties.append("conflict: glacier activity vs unrelated image")
+    if has("black sand", "atv", "quad", "beach") and cand("city", "train", "wildlife"):
+        penalty += 25
+        penalties.append("conflict: outdoor route/activity vs unrelated image")
+    if has("summer") and cand("winter", "wildlife") and not (day_themes & {"winter", "northern lights"}):
+        penalty += 20
+        penalties.append("conflict: summer context vs winter image")
+
+    return penalty, penalties
+
+
 def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
     score = 8
     reasons = ["global default fallback"]
@@ -38,6 +69,11 @@ def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tup
     if token_matches:
         score += min(16, 3 * len(token_matches))
         reasons.append("fallback keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
+
+    penalty, penalty_reasons = _conflict_penalty(candidate_themes, day_themes, day_tokens)
+    if penalty:
+        score -= penalty
+        reasons.extend(penalty_reasons)
 
     return min(score, 55), reasons
 

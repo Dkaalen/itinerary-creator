@@ -4,6 +4,7 @@ from itinerary_generation.common import (
     get_primary_city,
     get_row_type,
     get_unique_cities,
+    has_self_drive_markers,
     is_valid_destination_city,
     main_rows_only,
 )
@@ -51,22 +52,30 @@ def create_trip_glance(parsed_rows, grouped_days):
 
     travel_style_parts = []
 
-    if has_private_transfer:
-        travel_style_parts.append("private transfers")
-
-    if has_self_transfer:
-        travel_style_parts.append("self-guided transfers")
-
-    if activity_rows:
-        travel_style_parts.append("guided experiences")
-
-    if hotel_rows:
-        travel_style_parts.append("arranged accommodation")
-
-    if travel_style_parts:
-        travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
+    if has_self_drive_markers(parsed_rows):
+        if hotel_rows:
+            travel_style_parts.append("curated stays")
+        travel_style_parts.append("scenic self-drive routes")
+        if activity_rows:
+            travel_style_parts.append("selected experiences")
+        travel_style = "Premium self-drive journey with " + ", ".join(travel_style_parts)
     else:
-        travel_style = "Independent journey with arranged services"
+        if has_private_transfer:
+            travel_style_parts.append("private transfers")
+
+        if has_self_transfer:
+            travel_style_parts.append("self-guided transfers")
+
+        if activity_rows:
+            travel_style_parts.append("guided experiences")
+
+        if hotel_rows:
+            travel_style_parts.append("arranged accommodation")
+
+        if travel_style_parts:
+            travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
+        else:
+            travel_style = "Independent journey with arranged services"
 
     hotel_level = "Hotels as specified in the itinerary"
 

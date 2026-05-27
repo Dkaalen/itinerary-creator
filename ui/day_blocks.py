@@ -288,6 +288,56 @@ def build_departure_block(row):
     }
 
 
+
+def _split_day_overview_items(text):
+    source = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    source = re.sub(r"\bRoute\s+Suggested\b", "", source, flags=re.IGNORECASE)
+    source = source.replace("✅", "")
+    items = []
+    optional = []
+    in_optional = False
+
+    # Preserve real supplier bullet lines first.
+    for raw_line in source.splitlines() if "\n" in source else re.split(r"\s*\|\s*", source):
+        line = clean_space(raw_line).strip(" •-*|:")
+        if not line:
+            continue
+        if line.lower().startswith("optional"):
+            in_optional = True
+            remainder = clean_space(re.sub(r"^optional\s*:?", "", line, flags=re.IGNORECASE))
+            if remainder:
+                line = remainder
+            else:
+                continue
+        # Split compact route shorthand like "GOLDEN CIRCLE + SILFRA + KERIÐ".
+        parts = [clean_space(part).strip(" •-*") for part in re.split(r"\s+\+\s+", line) if clean_space(part).strip(" •-*")]
+        target = optional if in_optional else items
+        for part in parts:
+            part = polish_title(part.title() if part.isupper() else part)
+            if part and part not in target:
+                target.append(part)
+
+    return items, optional
+
+
+def build_day_overview_block(row):
+    text = row.get("details") or row.get("title", "")
+    items, optional = _split_day_overview_items(text)
+    lower = str(text or "").lower()
+    route_like = any(marker in lower for marker in ["route", "drive", "waterfalls", "scenic", "return drive"])
+    section = "Suggested Route" if route_like else "Included Today"
+    html_text = f'<div class="content-block day-overview-block" data-row-id="{esc(row.get("row_id", ""))}">' 
+    if items:
+        html_text += f'<div class="section-title">{esc(section)}</div>'
+        html_text += render_list_items(items)
+    if optional:
+        html_text += '<div class="section-title small-section">Optional ideas</div>'
+        html_text += render_list_items(optional)
+    html_text += "</div>"
+    if not items and not optional:
+        return None
+    return {"kind": "day_overview", "row_id": row.get("row_id", ""), "html": html_text}
+
 def build_included_today_block(items):
     clean_items = polish_inclusion_items(normalize_list(items))
 
@@ -408,6 +458,10 @@ def build_day_blocks(rows):
 
         if row_type == "Departure":
             blocks.append(build_departure_block(row))
+        elif row_type == "Day Overview":
+            block = build_day_overview_block(row)
+            if block:
+                blocks.append(block)
         elif row_type == "Hotel":
             blocks.append(build_accommodation_block(row))
         elif row_type == "Arrival":

@@ -3,6 +3,8 @@ from itinerary_generation.common import (
     get_primary_city,
     get_row_type,
     get_unique_cities,
+    get_destination_countries,
+    has_self_drive_markers,
     clean_client_title,
     main_rows_only,
     has_hotel,
@@ -13,6 +15,7 @@ from itinerary_generation.transport import (
     has_only_departure_arrangements,
 )
 from itinerary_generation.cover_theme import (
+    SEASON_LABELS,
     SEASON_SUBTITLES,
     SEASON_TITLES,
     detect_cover_season,
@@ -27,6 +30,22 @@ def create_client_activity_title(row):
 
     title_text = f"{original_title} {title}".lower()
     full_text = f"{title_text} {details}".lower()
+
+    if "blue lagoon" in full_text or "bluelagoon" in full_text:
+        if "premium" in full_text:
+            return "Blue Lagoon Premium Admission"
+        return "Blue Lagoon Admission"
+
+    if "sky lagoon" in full_text or "skylagoon" in full_text:
+        if "saman" in full_text or "7-step" in full_text or "7 step" in full_text:
+            return "Sky Lagoon Saman Pass & 7-Step Ritual"
+        return "Sky Lagoon Admission"
+
+    if "silfra" in full_text and ("snork" in full_text or "drysuit" in full_text):
+        return "Drysuit Snorkelling in Silfra"
+
+    if "whale watching" in full_text:
+        return "Whale Watching From Downtown"
 
     if "tallinn" in full_text:
         return "Day Trip to Tallinn"
@@ -106,6 +125,19 @@ def create_trip_title(parsed_rows, grouped_days):
     cities = get_unique_cities(parsed_rows)
     day_count = get_day_count(grouped_days)
     season = detect_cover_season(parsed_rows)
+    season_label = SEASON_LABELS.get(season, "Summer")
+    countries = get_destination_countries(parsed_rows)
+
+    if len(countries) == 1:
+        return f"{countries[0]} {season_label} Journey"
+
+    scandinavian = {"Norway", "Sweden", "Denmark"}
+    nordic = scandinavian | {"Finland", "Iceland", "Estonia"}
+    country_set = set(countries)
+    if len(country_set) >= 2 and country_set.issubset(scandinavian):
+        return f"Scandinavian {season_label} Journey"
+    if len(country_set) >= 2 and country_set.issubset(nordic):
+        return f"Nordic {season_label} Journey"
 
     has_northern_lights = any(
         "northern light" in row.get("details", "").lower()
@@ -120,14 +152,12 @@ def create_trip_title(parsed_rows, grouped_days):
 
     if len(cities) == 1:
         city = cities[0]
-
         if has_northern_lights:
             return f"{city} Northern Lights Journey"
-
-        return f"{city} City Break"
+        return f"{city} {season_label} Journey"
 
     if len(cities) >= 2:
-        return SEASON_TITLES.get(season, "Nordic Summer Journey")
+        return SEASON_TITLES.get(season, f"{season_label} Journey")
 
     if has_northern_lights or has_lapland:
         return "Nordic Winter Journey"
@@ -152,7 +182,14 @@ def _join_destinations_naturally(cities):
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
     season = detect_cover_season(parsed_rows)
+    season_label = SEASON_LABELS.get(season, "summer").lower()
+    countries = get_destination_countries(parsed_rows)
+    scope = countries[0] if len(countries) == 1 else "Nordic"
+    if has_self_drive_markers(parsed_rows):
+        return f"A premium {scope} {season_label} self-drive journey with scenic routes and curated experiences"
     if season in SEASON_SUBTITLES:
+        if len(countries) == 1:
+            return f"A premium {scope} {season_label} journey with scenic travel and curated experiences"
         return SEASON_SUBTITLES[season]
     if has_winter_focus(parsed_rows):
         return SEASON_SUBTITLES["winter"]
