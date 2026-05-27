@@ -117,15 +117,19 @@
     .cover-rule { width: 160px; height: 1px; background: var(--cover-accent, #b89555); opacity: .55; margin: 24px auto 0 auto; position: relative; }
     .cover-rule::after { content: ""; width: 7px; height: 7px; background: var(--cover-accent, #b89555); position: absolute; left: 50%; top: -3px; transform: translateX(-50%) rotate(45deg); }
     .cover-destinations { color: var(--cover-ink, var(--body)); font-size: 13px; line-height: 1.45; text-transform: uppercase; letter-spacing: .08em; }
-    .summary-card { border: 1px solid rgba(31,52,70,.16); background: rgba(255,255,255,.16); padding: 24px; margin-bottom: 28px; }
+    .summary-page { background-size: cover, cover; background-position: center center, center center; background-repeat: no-repeat, no-repeat; }
+    .summary-card { border: 1px solid rgba(31,52,70,.16); background: rgba(255,255,255,.76); padding: 24px; margin-bottom: 28px; box-shadow: 0 10px 26px rgba(31,52,70,.06); }
     .summary-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 28px; margin-bottom: 14px; }
     .glance-row { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(31,52,70,.12); font-size: 14px; line-height: 1.45; }
     .glance-label { font-weight: 800; color: var(--ink); }
     .journey-table { width: 100%; border-collapse: collapse; color: var(--body); font-size: 13px; line-height: 1.4; }
     .journey-table th { text-align: left; color: var(--ink); padding: 8px 6px; border-bottom: 1px solid rgba(31,52,70,.18); }
     .journey-table td { padding: 9px 6px; border-bottom: 1px solid rgba(31,52,70,.12); vertical-align: top; }
+    .day-kicker { font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 800; margin-bottom: 14px; }
+    .day-kicker-symbol { color: var(--cover-accent, #b89555); letter-spacing: .10em; margin: 0 8px; }
+    .day-kicker-city { display: inline; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 800; }
     .day-label { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 12px; }
+    .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 20px; }
     .city { margin-bottom: 20px; }
     .intro { font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 1.5; margin-bottom: 22px; color: var(--body); }
     .day-blocks { position: relative; }
@@ -155,7 +159,7 @@
       bottom: 0;
       top: 610px;
       background: rgba(0,0,0,0.04);
-      border-top: 1px solid rgba(0,0,0,0.04);
+      border-top: 1px solid rgba(216,206,194,.92);
     }
     .image-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .image-stage.empty { display: flex; align-items: center; justify-content: center; color: #6b625a; font-weight: 700; }
@@ -234,6 +238,9 @@ function focusPos(focus) {
 function editableText(value, key, cls='') {
   return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
 }
+function editableSpan(value, key, cls='') {
+  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</span>`;
+}
 function editableHtml(value, key, cls='') {
   return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${value || ''}</div>`;
 }
@@ -264,7 +271,9 @@ function summaryPage(summary) {
   const arc = summary?.journey_arc || [];
   const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value')}</div>`).join('');
   const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
-  return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page"><div class="page-content">
+  const bg = model.cover?.cover_background_data_uri || '';
+  const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}');` : '';
+  return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
     <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
     <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
   </div></div></div>`;
@@ -311,10 +320,10 @@ function draw() {
     </div></div></div>`;
   h += summaryPage(model.summary || {});
   (model.days || []).forEach((day, i) => {
+    const dayNumber = String(day.day || '').replace(/^Day\s*/i, '').trim() || String(i + 1);
     h += `<div class="page-wrap"><div class="page-label">${esc(day.day)}</div><div class="a4-page day-page"><div class="page-content">
-      <div class="day-label">${esc(day.label || day.day)}</div>
+      <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')}</div>
       ${editableText(day.title, `days.${i}.title`, 'day-title')}
-      ${editableText(day.city, `days.${i}.city`, 'city')}
       ${editableText(day.intro, `days.${i}.intro`, 'intro')}
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
     </div>${imageHtml(day, i)}</div></div>`;

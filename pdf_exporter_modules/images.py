@@ -239,6 +239,9 @@ class SamePageDayImage(Flowable):
             preserveAspectRatio=False,
             mask="auto",
         )
+        canv.setStrokeColor(colors.HexColor("#d8cec2"))
+        canv.setLineWidth(0.45)
+        canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)
         canv.restoreState()
 
 

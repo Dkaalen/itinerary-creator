@@ -25,7 +25,7 @@ def render_day_section(day, rows, output_edits=None):
     day_number = str(day).replace("Day", "").strip() or str(day).strip()
     day_kicker_html = f"DAY {esc(day_number)}"
     if city:
-        day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(city)}'
+        day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(str(city).upper())}'
     html_text = f'''
             <section class="day-section" data-day="{esc(day)}">
                 <div class="day-kicker">{day_kicker_html}</div>
@@ -47,28 +47,19 @@ def render_day_section(day, rows, output_edits=None):
 
 
 def render_day_visual_block(day, rows, output_edits=None, image_match=None):
-    """Render the compact editorial setting label and the matched day image."""
+    """Render the matched day image with the premium edge divider handled by CSS/PDF."""
     if not image_match:
-        return ""
-
-    day_edits = (output_edits or {}).get("days", {}).get(day, {})
-    city = day_edits.get("city") or get_primary_city(rows)
-    if not city:
         return ""
 
     image_slot = render_day_image_slot(day, rows, match=image_match, output_edits=output_edits)
     if not image_slot:
         return ""
 
-    return f'''
+    return f"""
             <div class="day-visual-block">
-                <div class="day-image-setting">
-                    <div class="day-image-setting-label">Today’s setting</div>
-                    <div class="day-image-setting-place">{esc(city)}</div>
-                </div>
                 {image_slot}
             </div>
-    '''
+    """
 
 
 def render_day_page(day, rows, output_edits=None, image_match=None):

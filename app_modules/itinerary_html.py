@@ -239,30 +239,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             flex: 0 0 auto;
         }}
 
-        .day-image-setting {{
-            margin: 0 64px 13px 64px;
-            padding-top: 11px;
-            border-top: 1px solid rgba(216,206,194,.86);
-            display: flex;
-            align-items: baseline;
-            gap: 14px;
-        }}
-
-        .day-image-setting-label {{
-            font-family: Arial, sans-serif;
-            font-size: 10px;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: var(--accent);
-            white-space: nowrap;
-        }}
-
-        .day-image-setting-place {{
-            font-size: 16px;
-            line-height: 1.2;
-            color: var(--ink);
-        }}
 
         .day-image-slot {{
             margin: 0;
@@ -270,6 +246,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             overflow: hidden;
             flex: 0 0 410px;
             position: relative;
+            border-top: 1px solid rgba(216,206,194,.92);
+            box-sizing: border-box;
         }}
 
         .day-image-slot::before {{

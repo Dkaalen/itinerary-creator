@@ -491,6 +491,28 @@ def test_generator_split_public_imports_remain_stable():
     assert_contains(create_day_title(grouped["Day 1"]), "Oslo", "Generator wrapper should still expose day-title helpers.")
     assert_contains("\n".join(create_whats_included(raw_rows, grouped)), "Accommodation", "Generator wrapper should still expose inclusion helpers.")
 
+
+def test_day_page_editorial_parity_markup():
+    from ui.day_pages import render_day_page
+
+    rows = [{
+        "day": "Day 3",
+        "type": "Activity",
+        "city": "Rovaniemi",
+        "title": "Northern Lights Hunt",
+        "description": "Northern Lights Hunt",
+    }]
+    html = render_day_page("Day 3", rows, image_match=None)
+    assert_contains(html, "DAY 3", "Day pages should render the editorial day kicker.")
+    assert_contains(html, "✦", "Day pages should keep the premium emblem separator.")
+    assert_contains(html, "ROVANIEMI", "The day kicker city should render in uppercase for preview/PDF parity.")
+    assert_not_contains(html, "Today’s setting", "The rejected setting label must not render on day pages.")
+
+    editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    assert_contains(editor_html, "day-kicker", "The visual editor preview must use the same day-kicker structure as final preview/PDF.")
+    assert_contains(editor_html, "summaryStyle", "The visual editor summary page must receive the seasonal background inline.")
+    assert_not_contains(editor_html, "Today’s setting", "The visual editor preview must not render the rejected setting label.")
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -521,6 +543,7 @@ def run_all():
         test_self_guided_tallinn_is_not_labeled_guided,
         test_multiline_inclusion_entries_render_pdf_visible_text,
         test_multiline_transport_inclusions_render_as_bullets,
+        test_day_page_editorial_parity_markup,
     ]
 
     for test in tests:
