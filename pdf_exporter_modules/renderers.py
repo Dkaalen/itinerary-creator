@@ -92,6 +92,49 @@ def add_premium_rule(story, width=32 * mm, space_after=9):
     story.append(Spacer(1, space_after))
 
 
+def add_day_image_setting_pdf(page, story, styles, html_path=None):
+    """Add the compact editorial setting label above a day image."""
+    slot = page.select_one(".day-image-slot")
+    if not slot:
+        return
+    if html_path and not resolve_image_path(slot.get("data-image-path"), html_path):
+        return
+
+    setting = page.select_one(".day-image-setting")
+    if not setting:
+        return
+
+    label = setting.select_one(".day-image-setting-label")
+    place = setting.select_one(".day-image-setting-place")
+    label_text = clean_text(label.get_text(" ")).upper() if label else "TODAY’S SETTING"
+    place_text = clean_text(place.get_text(" ")) if place else ""
+    if not place_text:
+        return
+
+    table = Table(
+        [[
+            Paragraph(para_text(label_text), styles["image_setting_label"]),
+            Paragraph(para_text(place_text), styles["image_setting_place"]),
+        ]],
+        colWidths=[35 * mm, 108 * mm],
+        hAlign="LEFT",
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 0.45, pdf_styles.LINE),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
+    story.append(table)
+    story.append(Spacer(1, 5))
+
+
 def add_cover_rule(story, width=44 * mm, space_after=9):
     table = Table([[CenterDiamondRule(width=width, color=pdf_styles.MUTED)]], colWidths=[width], hAlign="CENTER")
     table.setStyle(
@@ -295,12 +338,19 @@ def render_content_blocks(container, story, styles):
 
 
 def render_day_section_pdf(section, story, styles):
-    for selector, style_name in [
-        (".day-label", "day_label"),
-        (".day-title", "day_title"),
-        (".city", "city"),
-        (".intro", "intro"),
-    ]:
+    kicker = section.select_one(".day-kicker")
+    if kicker:
+        add_paragraph(story, kicker.get_text(" "), styles["day_kicker"])
+    else:
+        label = section.select_one(".day-label")
+        if label and "day-label-legacy" not in (label.get("class") or []):
+            add_paragraph(story, label.get_text(" "), styles["day_label"])
+
+    selector_styles = [(".day-title", "day_title"), (".intro", "intro")]
+    if not kicker:
+        selector_styles.insert(1, (".city", "city"))
+
+    for selector, style_name in selector_styles:
         tag = section.select_one(selector)
         if tag:
             add_paragraph(story, tag.get_text(" "), styles[style_name])
@@ -326,6 +376,7 @@ def render_general_page(
         for index, section in enumerate(day_sections):
             render_day_section_pdf(section, story, styles)
         if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
+            add_day_image_setting_pdf(page, story, styles, html_path=html_path)
             add_day_image_if_possible(
                 page,
                 story,

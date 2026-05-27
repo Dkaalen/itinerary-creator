@@ -22,9 +22,14 @@ def render_day_section(day, rows, output_edits=None):
     day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
     city = day_edits.get("city") or get_primary_city(rows)
     blocks = build_day_blocks(rows)
+    day_number = str(day).replace("Day", "").strip() or str(day).strip()
+    day_kicker_html = f"DAY {esc(day_number)}"
+    if city:
+        day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(city)}'
     html_text = f'''
             <section class="day-section" data-day="{esc(day)}">
-                <div class="day-label">{esc(day)}</div>
+                <div class="day-kicker">{day_kicker_html}</div>
+                <div class="day-label day-label-legacy">{esc(day)}</div>
                 <div class="day-title">{esc(day_title)}</div>
                 <div class="city">{esc(city)}</div>
                 <div class="intro">{esc(day_intro)}</div>
@@ -41,11 +46,36 @@ def render_day_section(day, rows, output_edits=None):
     return html_text
 
 
+def render_day_visual_block(day, rows, output_edits=None, image_match=None):
+    """Render the compact editorial setting label and the matched day image."""
+    if not image_match:
+        return ""
+
+    day_edits = (output_edits or {}).get("days", {}).get(day, {})
+    city = day_edits.get("city") or get_primary_city(rows)
+    if not city:
+        return ""
+
+    image_slot = render_day_image_slot(day, rows, match=image_match, output_edits=output_edits)
+    if not image_slot:
+        return ""
+
+    return f'''
+            <div class="day-visual-block">
+                <div class="day-image-setting">
+                    <div class="day-image-setting-label">Today’s setting</div>
+                    <div class="day-image-setting-place">{esc(city)}</div>
+                </div>
+                {image_slot}
+            </div>
+    '''
+
+
 def render_day_page(day, rows, output_edits=None, image_match=None):
     return f'''
         <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
             {render_day_section(day, rows, output_edits)}
-            {render_day_image_slot(day, rows, match=image_match, output_edits=output_edits)}
+            {render_day_visual_block(day, rows, output_edits=output_edits, image_match=image_match)}
         </div>
     '''
 

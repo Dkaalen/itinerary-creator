@@ -191,8 +191,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .summary-page {{
-            /* Use a direct layered background instead of a pseudo-element so
-               Streamlit preview and browser print/export both keep the image visible. */
+            /* Fallback for preview; the element also receives an inline
+               background-image so Streamlit keeps the seasonal artwork. */
             background-image:
                 linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)),
                 var(--cover-bg-image);
@@ -217,11 +217,71 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             flex: 0 0 auto;
         }}
 
-        .day-image-slot {{
+        .day-kicker {{
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.25;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 14px;
+        }}
+
+        .day-kicker-symbol {{
+            color: var(--cover-accent);
+            letter-spacing: 0.10em;
+            margin: 0 8px;
+        }}
+
+        .day-visual-block {{
             margin: auto -64px -66px -64px;
+            flex: 0 0 auto;
+        }}
+
+        .day-image-setting {{
+            margin: 0 64px 13px 64px;
+            padding-top: 11px;
+            border-top: 1px solid rgba(216,206,194,.86);
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+        }}
+
+        .day-image-setting-label {{
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--accent);
+            white-space: nowrap;
+        }}
+
+        .day-image-setting-place {{
+            font-size: 16px;
+            line-height: 1.2;
+            color: var(--ink);
+        }}
+
+        .day-image-slot {{
+            margin: 0;
             height: 410px;
             overflow: hidden;
             flex: 0 0 410px;
+            position: relative;
+        }}
+
+        .day-image-slot::before {{
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, rgba(244,239,232,.28), rgba(244,239,232,0));
+            z-index: 1;
+            pointer-events: none;
         }}
 
         .day-image-preview-img {{
@@ -380,10 +440,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             color: var(--ink);
         }}
 
+        .day-label.day-label-legacy {{
+            display: none;
+        }}
+
         .day-title {{
             font-size: 27px;
             font-weight: 500;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             color: var(--ink);
         }}
 
@@ -394,6 +458,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             text-transform: uppercase;
             color: var(--muted);
             margin-bottom: 20px;
+        }}
+
+        .single-day-page .city {{
+            display: none;
         }}
 
         .intro {{
@@ -575,7 +643,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             </div>
         </div>
 
-        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
+        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" style="background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('{esc(cover_background_data_uri)}'); background-size: cover, cover; background-position: center center, center center; background-repeat: no-repeat, no-repeat;" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
             <div class="glance-card">
                 <div class="glance-title">Your Trip at a Glance</div>
     """
