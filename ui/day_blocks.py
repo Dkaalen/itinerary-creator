@@ -2,16 +2,15 @@
 
 import re
 
-from generator import (
+from itinerary_generation.common import (
     TRANSPORT_TYPES,
-    clean_include_item,
-    create_client_activity_title,
     get_primary_city,
     get_row_type,
-    get_transfer_travel_title,
-    is_route_transfer,
     is_self_arranged,
 )
+from itinerary_generation.inclusions import clean_include_item
+from itinerary_generation.titles import create_client_activity_title
+from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 from text_polish import (
     format_duration_display,
     polish_client_text,

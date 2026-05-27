@@ -243,7 +243,3 @@ def expand_time_with_duration(time_value: str, duration_value: str) -> str:
         return start_display
 
     return f"{start_display} - {_minutes_to_clock(start_minutes + duration_minutes)}"
-
-
-def display_activity_time(row: dict) -> str:
-    return expand_time_with_duration(row.get("time", ""), row.get("duration", ""))

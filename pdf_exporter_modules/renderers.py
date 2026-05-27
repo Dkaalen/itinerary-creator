@@ -115,7 +115,7 @@ def _activity_time_range_text(time_text, duration_text):
     return cleaned_time
 
 
-def render_content_blocks(container, story, styles, compact=False, ultra=False):
+def render_content_blocks(container, story, styles):
     for child in container.find_all(recursive=False):
         classes = child.get("class") or []
         if "content-block" in classes or "activity-inclusion-block" in classes:
@@ -133,19 +133,19 @@ def render_content_blocks(container, story, styles, compact=False, ultra=False):
                 element_classes = element.get("class") or []
 
                 if "section-title" in element_classes:
-                    add_paragraph(block_story, element.get_text(" "), styles["section_ultra" if ultra else ("section_compact" if compact else "section")])
+                    add_paragraph(block_story, element.get_text(" "), styles["section"])
                 elif "activity-inclusion-title" in element_classes:
                     add_paragraph(block_story, element.get_text(" "), styles["activity_title"])
                 elif element.name == "ul":
-                    add_bullets(block_story, [_li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles, compact=compact, ultra=ultra)
+                    add_bullets(block_story, [_li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles)
                 elif "body-text" in element_classes:
                     text = clean_text(element.get_text(" "))
                     if "activity-block" in classes and re.match(r"^time\s*:", text, flags=re.IGNORECASE):
                         text = _activity_time_range_text(text, duration_meta_text)
                     if "strong-line" in element_classes:
-                        add_paragraph(block_story, text, styles["body_bold_ultra" if ultra else ("body_bold_compact" if compact else "body_bold")])
+                        add_paragraph(block_story, text, styles["body_bold"])
                     else:
-                        add_paragraph(block_story, text, styles["body_ultra" if ultra else ("body_compact" if compact else "body")])
+                        add_paragraph(block_story, text, styles["body"])
 
             if "activity-block" in classes and block_story:
                 story.append(KeepTogether(block_story))
@@ -153,28 +153,7 @@ def render_content_blocks(container, story, styles, compact=False, ultra=False):
                 story.extend(block_story)
 
 
-def add_day_separator(story, styles, ultra=False):
-    story.append(Spacer(1, 4 if ultra else 6))
-    table = Table([[""]], colWidths=[145 * mm], hAlign="LEFT")
-    table.setStyle(
-        TableStyle(
-            [
-                ("LINEABOVE", (0, 0), (-1, -1), 0.45, pdf_styles.LINE),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    story.append(table)
-    story.append(Spacer(1, 5 if ultra else 7))
-
-
 def render_day_section_pdf(section, story, styles):
-    classes = section.get("class") or []
-    compact = "packed-section" in classes
-    ultra = "triple-packed-section" in classes
     for selector, style_name in [
         (".day-label", "day_label"),
         (".day-title", "day_title"),
@@ -183,10 +162,9 @@ def render_day_section_pdf(section, story, styles):
     ]:
         tag = section.select_one(selector)
         if tag:
-            style_key = f"{style_name}_ultra" if ultra else (f"{style_name}_compact" if compact else style_name)
-            add_paragraph(story, tag.get_text(" "), styles[style_key])
+            add_paragraph(story, tag.get_text(" "), styles[style_name])
 
-    render_content_blocks(section, story, styles, compact=compact, ultra=ultra)
+    render_content_blocks(section, story, styles)
 
 
 def render_general_page(
@@ -205,8 +183,6 @@ def render_general_page(
     day_sections = [child for child in page.find_all(recursive=False) if "day-section" in (child.get("class") or [])]
     if day_sections:
         for index, section in enumerate(day_sections):
-            if index > 0:
-                add_day_separator(story, styles, ultra="triple-packed-section" in (section.get("class") or []))
             render_day_section_pdf(section, story, styles)
         if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
             add_day_image_if_possible(

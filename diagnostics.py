@@ -28,7 +28,3 @@ def warn(category, message, raw_value=""):
 
 def get_warnings():
     return list(_warnings)
-
-
-def has_warnings():
-    return bool(_warnings)

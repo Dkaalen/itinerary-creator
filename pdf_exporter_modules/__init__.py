@@ -16,7 +16,6 @@ from .images import (
 )
 from .renderers import (
     _activity_time_range_text,
-    add_day_separator,
     render_content_blocks,
     render_cover_page,
     render_day_section_pdf,
@@ -37,7 +36,6 @@ from .styles import (
     hex_to_color,
     make_styles,
     page_background,
-    standardize_day_typography,
 )
 
 __all__ = [name for name in globals() if not name.startswith("_")]

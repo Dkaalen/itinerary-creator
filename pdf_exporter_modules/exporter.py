@@ -11,8 +11,7 @@ from .styles import (
     apply_pdf_palette,
     extract_pdf_palette,
     make_styles,
-    page_background,
-    standardize_day_typography,
+    page_background
 )
 
 
@@ -29,7 +28,7 @@ def export_html_to_pdf(html_path, pdf_path):
     apply_pdf_palette(extract_pdf_palette(soup))
     pages = soup.select(".a4-page")
 
-    styles = standardize_day_typography(make_styles())
+    styles = make_styles()
     doc = SimpleDocTemplate(
         str(pdf_path),
         pagesize=A4,

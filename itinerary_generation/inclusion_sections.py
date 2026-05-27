@@ -225,14 +225,3 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     # Keeping them off the commercial inclusions summary avoids repetition and
     # prevents self-guided experiences from being misrepresented as guided.
     return sections
-
-
-def flatten_inclusion_sections(sections: list[dict]) -> list[str]:
-    items: list[str] = []
-    for section in sections or []:
-        title = _clean(section.get("title", ""))
-        if title:
-            items.append(f"{title}:")
-        for item in section.get("items", []) or []:
-            items.append(item)
-    return items

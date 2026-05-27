@@ -26,7 +26,7 @@ def _clean_bullet_text(value):
     return "\n".join(line for line in lines if line)
 
 
-def add_bullets(story, items, styles, compact=False, ultra=False):
+def add_bullets(story, items, styles):
     """Render bullet lists as a table for stable PDF bullet alignment."""
 
     clean_items = [_clean_bullet_text(item) for item in items if _clean_bullet_text(item)]
@@ -35,10 +35,10 @@ def add_bullets(story, items, styles, compact=False, ultra=False):
 
     bullet_style = ParagraphStyle(
         "bullet_symbol",
-        parent=styles["bullet_ultra" if ultra else ("bullet_compact" if compact else "bullet")],
+        parent=styles["bullet"],
         fontName="Helvetica",
-        fontSize=7.4 if ultra else (7.6 if compact else 8.2),
-        leading=9.8 if ultra else (10.8 if compact else 13),
+        fontSize=8.2,
+        leading=13,
         textColor=pdf_styles.BODY,
         alignment=TA_LEFT,
     )
@@ -47,12 +47,12 @@ def add_bullets(story, items, styles, compact=False, ultra=False):
     for item in clean_items:
         rows.append([
             Paragraph("&#8226;", bullet_style),
-            Paragraph(para_text(item), styles["bullet_ultra" if ultra else ("bullet_compact" if compact else "bullet")]),
+            Paragraph(para_text(item), styles["bullet"]),
         ])
 
     table = Table(
         rows,
-        colWidths=[4.0 * mm if compact else 4.5 * mm, 142 * mm],
+        colWidths=[4.5 * mm, 142 * mm],
         hAlign="LEFT",
         splitByRow=True,
     )
@@ -69,7 +69,7 @@ def add_bullets(story, items, styles, compact=False, ultra=False):
     )
 
     story.append(table)
-    story.append(Spacer(1, 4 if compact else 7))
+    story.append(Spacer(1, 7))
 
 
 def make_table(data, widths, styles):

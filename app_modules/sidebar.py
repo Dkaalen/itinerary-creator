@@ -7,8 +7,7 @@ from itinerary_generation.common import (
     is_self_arranged,
 )
 from itinerary_generation.titles import create_client_activity_title
-from ui.day_rendering import get_activity_logistics, is_self_arranged_transport
-from ui.final_pages import create_activity_inclusions
+from ui.render_helpers import get_activity_logistics, is_self_arranged_transport
 from ui.output_edits import apply_output_edits, apply_rich_writing_to_all_days, mark_output_dirty
 
 
@@ -81,9 +80,6 @@ def make_title_suggestions(parsed_rows, grouped_days):
             clean.append(suggestion)
     return clean[:6]
 
-
-def get_activity_sections_count(parsed_rows):
-    return len(create_activity_inclusions(parsed_rows))
 
 
 def build_review_items(parsed_rows=None, grouped_days=None):

@@ -4,23 +4,19 @@ import copy
 
 import streamlit as st
 
-from generator import (
+from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
+from itinerary_generation.day_text import create_day_intro, create_travel_route_label
+from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
+from itinerary_generation.titles import (
     create_client_activity_title,
-    create_day_intro,
     create_day_title,
     create_destinations_line,
     create_trip_subtitle,
     create_trip_title,
-    create_whats_included,
-    create_whats_not_included,
-    create_travel_route_label,
-    get_primary_city,
-    get_row_type,
-    group_rows_by_day,
 )
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES, DETAIL_LEVELS
-from ui.day_rendering import display_time_with_duration, get_activity_description, list_to_text, text_to_list
+from ui.render_helpers import display_time_with_duration, get_activity_description, list_to_text, text_to_list
 
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):

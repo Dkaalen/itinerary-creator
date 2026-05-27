@@ -5,14 +5,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from generator import (
-    create_day_intro,
+from itinerary_generation.common import get_primary_city
+from itinerary_generation.day_text import create_day_intro, create_travel_route_label
+from itinerary_generation.titles import (
     create_day_title,
     create_destinations_line,
     create_trip_subtitle,
     create_trip_title,
-    create_travel_route_label,
-    get_primary_city,
 )
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
@@ -26,7 +25,8 @@ from images.app_image_selection import (
     select_day_images_with_overrides,
 )
 from ui.day_pages import render_inclusion_sections_inner_html
-from ui.day_rendering import build_day_blocks, get_detail_level_name
+from ui.day_blocks import build_day_blocks
+from ui.render_helpers import get_detail_level_name
 from ui.editor_sanitizer import clean_visual_editor_html
 from visual_editor_component.editor_bridge import render_visual_page_editor
 

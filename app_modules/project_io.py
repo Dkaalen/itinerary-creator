@@ -25,7 +25,7 @@ def initialise_state():
         "parser_diagnostics": [],
         "pdf_status": "Not created",
         "detail_level": "Rich descriptive",
-        "day_page_layout": "Smart compact pages",
+        "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
     }
 
     for key, value in defaults.items():

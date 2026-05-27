@@ -327,10 +327,3 @@ def normalize_place_text(value: str) -> str:
         text = pattern.sub(canonical, text)
 
     return text
-
-
-def get_place_summary() -> dict[str, int]:
-    summary: dict[str, int] = {}
-    for place in PLACES:
-        summary[place["country"]] = summary.get(place["country"], 0) + 1
-    return summary

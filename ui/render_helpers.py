@@ -3,18 +3,16 @@
 import html
 import re
 
-from generator import (
+from itinerary_generation.common import (
     TRANSPORT_TYPES,
-    clean_include_item,
-    create_client_activity_title,
-    create_day_intro,
-    create_day_title,
     get_primary_city,
     get_row_type,
-    get_transfer_travel_title,
-    is_route_transfer,
     is_self_arranged,
 )
+from itinerary_generation.day_text import create_day_intro
+from itinerary_generation.inclusions import clean_include_item
+from itinerary_generation.titles import create_client_activity_title, create_day_title
+from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 from text_polish import (
     expand_time_with_duration,
     format_duration_display,
@@ -25,38 +23,11 @@ from text_polish import (
     polish_title,
 )
 from itinerary_parser import normalize_time_text
-from layout_policy import (
-    DEFAULT_DAY_PAGE_LAYOUT,
-    is_day_packing_enabled,
-    is_three_day_packing_enabled as policy_is_three_day_packing_enabled,
-    normalize_day_page_layout,
-)
-from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
-from ui.editor_sanitizer import clean_visual_editor_html
-from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
 
 
 def get_detail_level_name(output_edits=None):
     """Return the fixed rich descriptive level used by the current app output."""
     return "Rich descriptive"
-
-
-def get_day_page_layout_name(output_edits=None):
-    """Return a safe day page layout from editable output state.
-
-    This mirrors the app-level helper but keeps packing/rendering helpers
-    self-contained after the UI split.
-    """
-    name = (output_edits or {}).get("day_page_layout") or DEFAULT_DAY_PAGE_LAYOUT
-    return normalize_day_page_layout(name)
-
-
-def is_smart_day_packing_enabled(output_edits=None):
-    return is_day_packing_enabled(get_day_page_layout_name(output_edits))
-
-
-def is_three_day_packing_enabled(output_edits=None):
-    return policy_is_three_day_packing_enabled(get_day_page_layout_name(output_edits))
 
 
 def esc(value):

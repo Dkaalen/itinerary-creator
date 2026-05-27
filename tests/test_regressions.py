@@ -343,31 +343,6 @@ def test_layout_policy_one_day_per_page():
     )
 
 
-def test_day_rendering_packing_helpers_are_self_contained_after_split():
-    from ui.day_rendering import can_pack_days, can_pack_three_days
-
-    rows = [
-        {
-            "day": "Day 1",
-            "type": "Leisure",
-            "effective_type": "Leisure",
-            "city": "Oslo",
-            "title": "Spend time at leisure",
-            "details": "Relaxed day.",
-        }
-    ]
-
-    assert_equal(
-        can_pack_days("Day 1", rows, "Day 2", rows, {"day_page_layout": "One day per page"}),
-        False,
-        "Day packing helper should be self-contained and disabled for the current one-day layout.",
-    )
-    assert_equal(
-        can_pack_three_days([("Day 1", rows), ("Day 2", rows), ("Day 3", rows)], {"day_page_layout": "One day per page"}),
-        False,
-        "Three-day packing helper should be self-contained and disabled for the current one-day layout.",
-    )
-
 def test_apply_output_edits_preserves_activity_time_range_after_split():
     import types
 
@@ -418,7 +393,7 @@ def test_final_page_notes_helper_is_self_contained_after_split():
 
 
 def test_day_page_rendering_helpers_are_self_contained_after_split():
-    from ui.day_pages import render_split_list_pages, render_text_paragraph_page, get_day_pack_stats
+    from ui.day_pages import render_split_list_pages, render_text_paragraph_page
 
     list_html = render_split_list_pages("What’s included", ["Hotel", "Transfer"], items_per_page=10)
     assert_contains(list_html, "What’s included", "Split list pages should render after module split.")
@@ -428,8 +403,6 @@ def test_day_page_rendering_helpers_are_self_contained_after_split():
     assert_contains(notes_html, "Important travel notes", "Text paragraph pages should render after module split.")
     assert_contains(notes_html, "Schedules may change.", "Text paragraph pages should include note text after module split.")
 
-    stats = get_day_pack_stats("Day 1", [{"type": "Activity", "effective_type": "Activity", "title": "Walking Tour"}], {})
-    assert_equal(stats["activity_count"], 1, "Day packing stats should import row-type helpers after module split.")
 
 
 def test_activity_block_helpers_are_self_contained_after_split():
@@ -528,7 +501,6 @@ def run_all():
         test_activity_intro_variation_not_templated,
         test_trip_glance_normal_hotels_are_arranged_accommodation,
         test_layout_policy_one_day_per_page,
-        test_day_rendering_packing_helpers_are_self_contained_after_split,
         test_apply_output_edits_preserves_activity_time_range_after_split,
         test_visual_editor_html_sanitizer,
         test_final_page_notes_helper_is_self_contained_after_split,

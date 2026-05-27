@@ -2,13 +2,9 @@
 
 import re
 
-from generator import (
-    TRANSPORT_TYPES,
-    clean_include_item,
-    create_client_activity_title,
-    get_row_type,
-    is_self_arranged,
-)
+from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
+from itinerary_generation.inclusions import clean_include_item
+from itinerary_generation.titles import create_client_activity_title
 from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
 from ui.render_helpers import (
@@ -184,35 +180,6 @@ def clean_activity_inclusion_items(items, title=""):
     return clean_items
 
 
-def create_activity_inclusions(parsed_rows):
-    activity_sections = []
-
-    for row in parsed_rows:
-        if get_row_type(row) != "Activity":
-            continue
-
-        title = create_client_activity_title(row) or row.get("title", "")
-        title = str(title).strip()
-        includes = clean_activity_inclusion_items(row.get("includes", []), title)
-
-        # Every activity should be represented on this page. If the supplier
-        # text does not contain a formal inclusion list, use a conservative
-        # fallback based on the activity type.
-        if not includes:
-            includes = get_fallback_activity_inclusions(row)
-
-        if not title or not includes:
-            continue
-
-        activity_sections.append({
-            "title": title,
-            "includes": includes,
-            "is_optional": bool(row.get("is_optional")),
-        })
-
-    return activity_sections
-
-
 def create_optional_addons(parsed_rows):
     optional_rows = [row for row in parsed_rows if row.get("is_optional")]
     addons = []
@@ -256,76 +223,6 @@ def create_optional_addons(parsed_rows):
         })
 
     return addons
-
-
-def estimate_activity_inclusion_units(section):
-    """Estimate how much vertical space an inclusion section needs on an A4 page.
-
-    The goal is to avoid the old fixed-count split where six compact sections
-    became five sections on one page and a nearly empty continued page. The
-    estimate intentionally stays conservative for long bullet text, while still
-    allowing compact ticket-style sections to share a page.
-    """
-
-    includes = normalize_list(section.get("includes", []))
-    title_units = 2.1
-    bullet_units = 0
-
-    for item in includes:
-        # One normal bullet line plus extra allowance for wrapped text.
-        bullet_units += 0.9 + max(0, (len(str(item)) - 86) / 86)
-
-    # Small spacing between activity sections.
-    return title_units + bullet_units + 0.55
-
-
-def chunk_activity_inclusions(activity_sections, max_units=43):
-    chunks = []
-    current_chunk = []
-    current_units = 0
-
-    for section in activity_sections:
-        section_units = estimate_activity_inclusion_units(section)
-
-        if current_chunk and current_units + section_units > max_units:
-            chunks.append(current_chunk)
-            current_chunk = [section]
-            current_units = section_units
-        else:
-            current_chunk.append(section)
-            current_units += section_units
-
-    if current_chunk:
-        chunks.append(current_chunk)
-
-    return chunks
-
-
-def render_activity_inclusions_pages(activity_sections):
-    if not activity_sections:
-        return ""
-
-    html_text = ""
-    chunks = chunk_activity_inclusions(activity_sections)
-
-    for index, chunk in enumerate(chunks):
-        continued = "" if index == 0 else " continued"
-
-        html_text += f"""
-        <div class="a4-page final-list-page activity-inclusions-page">
-            <div class="final-page-title">Activity inclusions{continued}</div>
-        """
-
-        for section in chunk:
-            html_text += '<div class="activity-inclusion-block">'
-            optional_label = "Optional: " if section.get("is_optional") else ""
-            html_text += f'<div class="activity-inclusion-title">{esc(optional_label + section["title"])}</div>'
-            html_text += render_list_items(section["includes"], class_name="final-list")
-            html_text += "</div>"
-
-        html_text += "</div>"
-
-    return html_text
 
 
 def render_optional_addons_pages(optional_addons, items_per_page=8):

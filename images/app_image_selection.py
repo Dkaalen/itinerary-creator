@@ -213,15 +213,6 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
     return selected
 
 
-def list_city_image_options(city):
-    city_key = clean_space(city).lower()
-    options = []
-    for candidate in scan_image_bank(get_image_bank_path()):
-        if clean_space(candidate.city).lower() == city_key:
-            options.append(Path(candidate.path))
-    return sorted(options, key=lambda path: path.name.lower())
-
-
 def list_replacement_image_options(city):
     """Return replacement pictures for a city, with Default images available."""
     city_key = clean_space(city).lower()

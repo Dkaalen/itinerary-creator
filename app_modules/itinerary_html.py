@@ -4,18 +4,19 @@ from itinerary_generation.inclusions import create_whats_included, create_whats_
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
-from ui.day_rendering import (
-    create_optional_addons,
-    esc,
-    get_important_travel_notes,
+from ui.day_pages import (
     render_day_pages,
-    render_optional_addons_pages,
     render_split_list_pages,
     render_categorized_inclusions_pages,
     render_custom_html_final_page,
     render_text_paragraph_page,
-    text_to_list,
 )
+from ui.final_pages import (
+    create_optional_addons,
+    get_important_travel_notes,
+    render_optional_addons_pages,
+)
+from ui.render_helpers import esc, text_to_list
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 
 
@@ -341,116 +342,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin-bottom: 15px;
             break-inside: avoid;
             page-break-inside: avoid;
-        }}
-
-        .packed-day-page {{
-            padding-top: 46px;
-            padding-bottom: 46px;
-        }}
-
-        .packed-section .day-label {{
-            font-size: 34px;
-            margin-bottom: 4px;
-        }}
-
-        .packed-section .day-title {{
-            font-size: 27px;
-            line-height: 1.16;
-            margin-bottom: 8px;
-        }}
-
-        .packed-section .city {{
-            font-size: 12px;
-            margin-bottom: 10px;
-        }}
-
-        .packed-section .intro {{
-            font-size: 15px;
-            line-height: 1.42;
-            margin-bottom: 12px;
-        }}
-
-        .packed-section .content-block {{
-            margin-bottom: 8px;
-        }}
-
-        .packed-section .section-title {{
-            font-size: 11px;
-            margin-top: 9px;
-            margin-bottom: 3px;
-        }}
-
-        .packed-section .body-text,
-        .packed-section li {{
-            font-size: 13.5px;
-            line-height: 1.32;
-            margin-bottom: 2px;
-        }}
-
-        .packed-section ul {{
-            margin-top: 3px;
-            margin-bottom: 6px;
-            padding-left: 17px;
-        }}
-
-        .day-separator {{
-            height: 1px;
-            background: var(--line);
-            margin: 16px 0 13px 0;
-        }}
-
-        .triple-day-page {{
-            padding-top: 38px;
-            padding-bottom: 38px;
-        }}
-
-        .triple-day-page .day-separator {{
-            margin: 9px 0 8px 0;
-        }}
-
-        .triple-packed-section .day-label {{
-            font-size: 34px;
-            margin-bottom: 3px;
-        }}
-
-        .triple-packed-section .day-title {{
-            font-size: 27px;
-            line-height: 1.16;
-            margin-bottom: 7px;
-        }}
-
-        .triple-packed-section .city {{
-            font-size: 12px;
-            margin-bottom: 8px;
-        }}
-
-        .triple-packed-section .intro {{
-            font-size: 15px;
-            line-height: 1.38;
-            margin-bottom: 9px;
-        }}
-
-        .triple-packed-section .content-block {{
-            margin-bottom: 5px;
-        }}
-
-        .triple-packed-section .section-title {{
-            font-size: 11px;
-            margin-top: 7px;
-            margin-bottom: 2px;
-        }}
-
-        .triple-packed-section .body-text,
-        .triple-packed-section li {{
-            font-size: 13.5px;
-            line-height: 1.30;
-            margin-bottom: 1px;
-        }}
-
-        .triple-packed-section ul {{
-            margin-top: 2px;
-            margin-bottom: 4px;
-            padding-left: 15px;
         }}
 
         .section-title {{

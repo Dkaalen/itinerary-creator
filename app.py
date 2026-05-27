@@ -5,7 +5,7 @@ from app_modules.main_view import render_app
 from app_modules.project_io import initialise_state
 
 
-APP_VERSION = "2026-05-26 v36c27-app-workflow-split"
+APP_VERSION = "2026-05-27 v36c38-cleanup"
 
 
 st.set_page_config(
