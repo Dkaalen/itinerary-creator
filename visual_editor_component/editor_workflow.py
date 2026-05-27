@@ -13,6 +13,7 @@ from itinerary_generation.titles import (
     create_trip_subtitle,
     create_trip_title,
 )
+from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
@@ -99,10 +100,16 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         })
 
     generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
+    cover_theme = get_cover_theme(parsed_rows, output_edits)
 
     return {
         "cover": {
             "cover_kicker": output_edits.get("cover_kicker", "Curated Travel Itinerary"),
+            "cover_season": cover_theme.get("season", "summer"),
+            "cover_background_data_uri": cover_theme.get("background_data_uri", ""),
+            "cover_ink": cover_theme.get("ink", "#1f3446"),
+            "cover_muted": cover_theme.get("muted", "#7b746c"),
+            "cover_accent": cover_theme.get("accent", "#b89555"),
             "trip_title": output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
             "trip_subtitle": output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
             "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),

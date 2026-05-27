@@ -4,6 +4,7 @@ from itinerary_generation.inclusions import create_whats_included, create_whats_
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
+from itinerary_generation.cover_theme import get_cover_theme
 from ui.day_pages import (
     render_day_pages,
     render_split_list_pages,
@@ -70,10 +71,13 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     colors = get_color_preset(output_edits)
     colors_json = esc(json.dumps(colors))
 
+    cover_theme = get_cover_theme(parsed_rows, output_edits)
     cover_kicker = output_edits.get("cover_kicker") or "Curated Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
     trip_subtitle_html = _balanced_cover_subtitle_html(trip_subtitle)
+    cover_background_data_uri = cover_theme.get("background_data_uri", "")
+    cover_background_path = cover_theme.get("background_path", "")
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     saved_trip_glance = output_edits.get("trip_glance") or {}
@@ -119,6 +123,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             --line: {esc(colors['line'])};
             --card: {esc(colors['card'])};
             --accent: {esc(colors['accent'])};
+            --cover-ink: {esc(cover_theme['ink'])};
+            --cover-muted: {esc(cover_theme['muted'])};
+            --cover-accent: {esc(cover_theme['accent'])};
+            --cover-bg-image: url("{esc(cover_background_data_uri)}");
             background: var(--preview-bg);
             padding: 32px 0 60px 0;
         }}
@@ -142,19 +150,44 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .cover-page {{
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            padding: 74px 74px;
+            align-items: center;
+            padding: 66px 72px;
+            background-image: var(--cover-bg-image);
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
         }}
 
         .cover-main {{
-            max-width: 585px;
+            max-width: 610px;
+            margin: 4px auto 0 auto;
+            text-align: center;
+        }}
+
+        .cover-emblem {{
+            width: 52px;
+            height: 52px;
+            border: 1px solid rgba(184,149,85,.72);
+            border-radius: 50%;
+            margin: 0 auto 15px auto;
+            position: relative;
+        }}
+
+        .cover-emblem::before {{
+            content: "✦";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 13px;
+            text-align: center;
+            font-size: 18px;
+            color: var(--cover-accent);
         }}
 
         .cover-destination-card {{
-            margin-top: 34px;
-            border-top: 1px solid var(--line);
-            padding-top: 22px;
-            max-width: 590px;
+            margin: 20px auto 0 auto;
+            padding-top: 0;
+            max-width: 610px;
         }}
 
         .single-day-page {{
@@ -186,32 +219,45 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 12px;
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 20px;
+            color: var(--cover-muted);
+            margin-bottom: 14px;
         }}
 
         .cover-title {{
-            font-size: 56px;
-            line-height: 1.04;
+            font-size: 58px;
+            line-height: 1.02;
             font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 20px;
+            color: var(--cover-ink);
+            margin-bottom: 18px;
         }}
 
         .cover-subtitle {{
-            max-width: 545px;
-            font-size: 24px;
+            max-width: 560px;
+            font-size: 22px;
             line-height: 1.28;
-            color: var(--ink);
-            margin-bottom: 0;
+            color: var(--cover-ink);
+            margin: 0 auto;
             text-wrap: balance;
         }}
 
         .cover-rule {{
-            width: 132px;
+            width: 160px;
             height: 1px;
-            background: var(--line);
-            margin: 30px 0 0 0;
+            background: var(--cover-accent);
+            opacity: 0.55;
+            margin: 24px auto 0 auto;
+            position: relative;
+        }}
+
+        .cover-rule::after {{
+            content: "";
+            width: 7px;
+            height: 7px;
+            background: var(--cover-accent);
+            position: absolute;
+            left: 50%;
+            top: -3px;
+            transform: translateX(-50%) rotate(45deg);
         }}
 
         .cover-destination-label {{
@@ -219,8 +265,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             font-size: 10px;
             letter-spacing: 0.16em;
             text-transform: uppercase;
-            color: var(--muted);
+            color: var(--cover-accent);
             margin-bottom: 10px;
+            font-weight: 700;
         }}
 
         .cover-destinations {{
@@ -229,7 +276,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             line-height: 1.45;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--body);
+            color: var(--cover-ink);
         }}
 
         .glance-card,
@@ -496,8 +543,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
-        <div class="a4-page cover-page">
+        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
             <div class="cover-main">
+                <div class="cover-emblem" aria-hidden="true"></div>
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
                 <div class="cover-title">{esc(trip_title)}</div>
                 <div class="cover-subtitle">{trip_subtitle_html}</div>

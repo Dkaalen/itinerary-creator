@@ -1,5 +1,7 @@
 import re
 
+from pathlib import Path
+
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
@@ -8,7 +10,7 @@ from text_polish import expand_time_with_duration
 
 from . import styles as pdf_styles
 from .html_utils import clean_text, para_text
-from .images import add_day_image_if_possible
+from .images import FullPageBackgroundImage, add_day_image_if_possible, resolve_image_path
 from .story import add_bullets, add_paragraph, make_table
 
 
@@ -58,14 +60,17 @@ def _li_text_with_line_breaks(li) -> str:
     return clean_text(li.get_text(" "))
 
 
-def render_cover_page(page, story, styles):
-    # Keep the cover as one composed editorial block, matching the direct preview.
-    story.append(Spacer(1, 86 * mm))
+def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
+    # Draw the static seasonal artwork first; all text remains editable/rendered.
+    background_path = resolve_image_path(page.get("data-cover-background-path"), html_path) if html_path else None
+    if background_path and temp_dir:
+        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
+    story.append(Spacer(1, 34 * mm))
     add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
     subtitle = _text_with_line_breaks(page.select_one(".cover-subtitle"))
     add_paragraph(story, subtitle, styles["cover_subtitle"])
-    add_premium_rule(story, width=44 * mm, space_after=18)
+    add_premium_rule(story, width=56 * mm, space_after=12)
     add_paragraph(story, "Route", styles["cover_route_label"])
     add_paragraph(story, page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else "", styles["cover_destinations"])
 

@@ -82,22 +82,24 @@
       border: 1px solid rgba(0,0,0,0.04);
     }
     .page-content { padding: 88px 88px 46px; position: relative; z-index: 2; }
-    .cover-page { display: flex; flex-direction: column; }
-    .cover-page .page-content { min-height: var(--page-h); box-sizing: border-box; padding: 74px; display: flex; flex-direction: column; justify-content: center; }
-    .cover-main { max-width: 585px; }
-    .cover-destination-card { margin-top: 34px; border-top: 1px solid rgba(31,52,70,.18); padding-top: 22px; max-width: 590px; }
-    .cover-destination-label { font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 10px; }
+    .cover-page { display: flex; flex-direction: column; background-size: cover; background-position: center center; background-repeat: no-repeat; }
+    .cover-page .page-content { min-height: var(--page-h); box-sizing: border-box; padding: 66px 72px; display: flex; flex-direction: column; align-items: center; }
+    .cover-main { max-width: 610px; margin: 4px auto 0 auto; text-align: center; }
+    .cover-emblem { width: 52px; height: 52px; border: 1px solid rgba(184,149,85,.72); border-radius: 50%; margin: 0 auto 15px auto; position: relative; }
+    .cover-emblem::before { content: "✦"; position: absolute; left: 0; right: 0; top: 13px; text-align: center; font-size: 18px; color: var(--cover-accent, #b89555); }
+    .cover-destination-card { margin: 20px auto 0 auto; padding-top: 0; max-width: 610px; }
+    .cover-destination-label { font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--cover-accent, #b89555); font-weight: 800; margin-bottom: 10px; }
     .cover-kicker, .city, .section-title, .row-type {
       font-family: Arial, Helvetica, sans-serif;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 12px;
       font-weight: 800;
-      color: var(--muted);
+      color: var(--cover-muted, var(--muted));
     }
     .cover-title {
       font-family: Georgia, 'Times New Roman', serif;
-      color: var(--ink);
+      color: var(--cover-ink, var(--ink));
       font-size: 47px;
       line-height: 1.04;
       font-weight: 700;
@@ -105,15 +107,16 @@
     }
     .cover-subtitle {
       font-family: Georgia, 'Times New Roman', serif;
-      color: var(--ink);
-      max-width: 545px;
+      color: var(--cover-ink, var(--ink));
+      max-width: 560px;
       font-size: 21px;
       line-height: 1.28;
-      margin-bottom: 0;
+      margin: 0 auto;
       text-wrap: balance;
     }
-    .cover-rule { width: 132px; height: 1px; background: rgba(31,52,70,.20); margin-top: 28px; }
-    .cover-destinations { color: var(--body); font-size: 13px; line-height: 1.45; text-transform: uppercase; letter-spacing: .08em; }
+    .cover-rule { width: 160px; height: 1px; background: var(--cover-accent, #b89555); opacity: .55; margin: 24px auto 0 auto; position: relative; }
+    .cover-rule::after { content: ""; width: 7px; height: 7px; background: var(--cover-accent, #b89555); position: absolute; left: 50%; top: -3px; transform: translateX(-50%) rotate(45deg); }
+    .cover-destinations { color: var(--cover-ink, var(--body)); font-size: 13px; line-height: 1.45; text-transform: uppercase; letter-spacing: .08em; }
     .summary-card { border: 1px solid rgba(31,52,70,.16); background: rgba(255,255,255,.16); padding: 24px; margin-bottom: 28px; }
     .summary-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 28px; margin-bottom: 14px; }
     .glance-row { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(31,52,70,.12); font-size: 14px; line-height: 1.45; }
@@ -220,6 +223,9 @@ let uploadedImages = {};
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 }
+function escAttr(s) {
+  return esc(s).replace(/'/g, '&#39;');
+}
 function focusPos(focus) {
   if (focus === 'bottom') return 'center 78%';
   if (focus === 'center') return 'center center';
@@ -289,8 +295,10 @@ function draw() {
       <div class="toolbar-actions"><span id="savedNote" class="saved-note">Saved to app</span><button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button><button class="primary" id="saveBtn" type="button">Save edits to preview/PDF</button></div>
     </div>
     <div class="page-stack">`;
-  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page"><div class="page-content">
+  const coverStyle = `background-image: url('${escAttr(model.cover?.cover_background_data_uri || '')}'); --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
+  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page" style="${coverStyle}"><div class="page-content">
       <div class="cover-main">
+        <div class="cover-emblem" aria-hidden="true"></div>
         ${editableText(model.cover?.cover_kicker || 'Curated Travel Itinerary', 'cover.cover_kicker', 'cover-kicker')}
         ${editableText(model.cover?.trip_title, 'cover.trip_title', 'cover-title')}
         ${editableText(model.cover?.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}

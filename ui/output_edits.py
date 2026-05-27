@@ -14,6 +14,7 @@ from itinerary_generation.titles import (
     create_trip_subtitle,
     create_trip_title,
 )
+from itinerary_generation.cover_theme import get_cover_season
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES, DETAIL_LEVELS
 from ui.render_helpers import display_time_with_duration, get_activity_description, list_to_text, text_to_list
@@ -95,6 +96,8 @@ def apply_rich_writing_to_all_days(parsed_rows, output_edits):
 def make_output_edit_state(parsed_rows, grouped_days):
     edits = {
         "cover_kicker": "Curated Travel Itinerary",
+        "cover_season": "automatic",
+        "detected_cover_season": get_cover_season(parsed_rows, {"cover_season": "automatic"}),
         "trip_title": create_trip_title(parsed_rows, grouped_days),
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),

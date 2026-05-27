@@ -2,7 +2,7 @@ import json
 
 from bs4 import BeautifulSoup  # noqa: F401 - keeps dependency explicit for export environment
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -79,32 +79,32 @@ def make_styles():
             "cover_kicker",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=9,
+            fontSize=8.8,
             leading=12,
             textColor=MUTED,
             uppercase=True,
-            alignment=TA_LEFT,
-            spaceAfter=12,
+            alignment=TA_CENTER,
+            spaceAfter=10,
         ),
         "cover_title": ParagraphStyle(
             "cover_title",
             parent=base["Title"],
             fontName="Times-Bold",
-            fontSize=38,
-            leading=42,
+            fontSize=42,
+            leading=45,
             textColor=INK,
-            alignment=TA_LEFT,
+            alignment=TA_CENTER,
             spaceAfter=12,
         ),
         "cover_subtitle": ParagraphStyle(
             "cover_subtitle",
             parent=base["Normal"],
             fontName="Times-Roman",
-            fontSize=17,
-            leading=22,
+            fontSize=15.5,
+            leading=20,
             textColor=INK,
-            alignment=TA_LEFT,
-            spaceAfter=14,
+            alignment=TA_CENTER,
+            spaceAfter=12,
         ),
         "cover_route_label": ParagraphStyle(
             "cover_route_label",
@@ -113,17 +113,17 @@ def make_styles():
             fontSize=7.5,
             leading=10,
             textColor=MUTED,
-            alignment=TA_LEFT,
+            alignment=TA_CENTER,
             spaceAfter=6,
         ),
         "cover_destinations": ParagraphStyle(
             "cover_destinations",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=10,
+            fontSize=9.8,
             leading=14,
             textColor=BODY,
-            alignment=TA_LEFT,
+            alignment=TA_CENTER,
             spaceBefore=0,
         ),
         "page_title": ParagraphStyle(

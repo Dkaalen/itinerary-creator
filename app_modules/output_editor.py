@@ -3,6 +3,7 @@ import streamlit as st
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.titles import create_day_title
+from itinerary_generation.cover_theme import SEASON_LABELS, SEASON_SUBTITLES, SEASON_TITLES, get_cover_season, get_cover_theme
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
 from ui.render_helpers import get_activity_description, list_to_text
 from ui.output_edits import (
@@ -51,6 +52,30 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
     render_picture_studio(grouped_days, output_edits)
 
     with st.expander("Cover and summary pages", expanded=False):
+        season_options = ["automatic", "winter", "spring", "summer", "autumn"]
+        current_season = output_edits.get("cover_season", "automatic")
+        if current_season not in season_options:
+            current_season = "automatic"
+        detected_season = get_cover_season(parsed_rows, {"cover_season": "automatic"})
+        selected_cover_season = st.selectbox(
+            "Cover season",
+            season_options,
+            index=season_options.index(current_season),
+            format_func=lambda value: "Automatic" if value == "automatic" else SEASON_LABELS.get(value, value.title()),
+            help=f"Automatic currently detects: {SEASON_LABELS.get(detected_season, detected_season.title())}.",
+            key="edit_cover_season",
+        )
+        if selected_cover_season != current_season:
+            current_title = output_edits.get("trip_title", "")
+            current_subtitle = output_edits.get("trip_subtitle", "")
+            output_edits["cover_season"] = selected_cover_season
+            cover_theme = get_cover_theme(parsed_rows, output_edits)
+            if not current_title or current_title in set(SEASON_TITLES.values()):
+                output_edits["trip_title"] = cover_theme.get("title", current_title)
+            if not current_subtitle or current_subtitle in set(SEASON_SUBTITLES.values()):
+                output_edits["trip_subtitle"] = cover_theme.get("subtitle", current_subtitle)
+        else:
+            output_edits["cover_season"] = selected_cover_season
         output_edits["cover_kicker"] = st.text_input(
             "Cover label",
             value=output_edits.get("cover_kicker", "Curated Travel Itinerary"),

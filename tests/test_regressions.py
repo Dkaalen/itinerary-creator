@@ -515,6 +515,9 @@ def run_all():
         test_departure_block_avoids_duplicate_departure_line,
         test_bad_input_contextual_travel_and_activity_cleanup,
         test_trip_subtitle_uses_generic_winter_wording,
+        test_seasonal_cover_title_and_subtitle_from_dates,
+        test_cover_background_assets_are_available,
+        test_korouoma_priority_keeps_thermal_and_barbecue,
         test_self_guided_tallinn_is_not_labeled_guided,
         test_multiline_inclusion_entries_render_pdf_visible_text,
         test_multiline_transport_inclusions_render_as_bullets,
@@ -562,6 +565,34 @@ def test_trip_subtitle_uses_generic_winter_wording():
     assert_not_contains(subtitle, "Saariselkä", "Cover subtitle should not repeat destinations already shown in the Route line.")
     assert_not_contains(subtitle, "Local Food", "Hotel meals should not create a food-focused subtitle theme.")
     assert_not_contains(subtitle, "—", "Cover subtitle should avoid em-dash theme chains.")
+
+
+def test_seasonal_cover_title_and_subtitle_from_dates():
+    from itinerary_generation.cover_theme import detect_cover_season, get_cover_theme
+    from itinerary_generation.titles import create_trip_title, create_trip_subtitle
+
+    raw = """
+	Day 1	Hotel	2	10/07/2026	12/07/2026					Helsinki 	Hotel Haven, breakfast included
+	Day 2	Activity		11/07/2026					Turku 	Archipelago cruise | 10:00 AM | 3 Hrs
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    assert_equal(detect_cover_season(rows), "summer", "July itineraries should use the summer cover season.")
+    assert_equal(create_trip_title(rows, grouped), "Nordic Summer Journey", "Multi-destination summer trips should get a summer cover title.")
+    assert_equal(create_trip_subtitle(rows, grouped), "A premium summer journey with scenic travel and curated experiences", "Summer cover subtitle should be seasonal and generic.")
+
+    theme = get_cover_theme(rows, {"cover_season": "winter"})
+    assert_equal(theme.get("season"), "winter", "Manual cover season override should beat date detection.")
+
+
+def test_cover_background_assets_are_available():
+    from itinerary_generation.cover_theme import get_cover_background_path
+
+    for season in ["winter", "spring", "summer", "autumn"]:
+        path = get_cover_background_path(season)
+        if not path or not path.exists():
+            raise AssertionError(f"Missing cover background asset for {season}: {path}")
+
 
 def test_content_cleanup_for_helsinki_lapland_sample():
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
@@ -717,8 +748,8 @@ def test_korouoma_priority_keeps_thermal_and_barbecue():
 
     assert_contains(compact_text, "Pick-up/drop-off in central Rovaniemi", "Korouoma inclusions should keep pick-up/drop-off logistics.")
     assert_contains(compact_text, "Thermal overalls to keep you warm", "Korouoma inclusions should keep thermal equipment.")
-    assert_contains(compact_text, "4-6 km guided hike in Korouoma Canyon", "Korouoma inclusions should keep the signature guided hike.")
-    assert_contains(compact_text, "Hot drinks and barbecue", "Korouoma inclusions should keep the BBQ/hot drinks item.")
+    assert_contains(compact_text, "4–6 km guided hike in Korouoma Canyon", "Korouoma inclusions should keep the signature guided hike.")
+    assert_contains(compact_text, "Hot drinks & barbecue", "Korouoma inclusions should keep the BBQ/hot drinks item.")
     assert_not_contains(compact_text, "Small groups", "Group-size details should not take compact day-page inclusion space.")
 
 

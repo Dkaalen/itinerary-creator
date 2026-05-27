@@ -12,6 +12,12 @@ from itinerary_generation.transport import (
     has_airport_arrival_transfer,
     has_only_departure_arrangements,
 )
+from itinerary_generation.cover_theme import (
+    SEASON_SUBTITLES,
+    SEASON_TITLES,
+    detect_cover_season,
+    has_winter_focus,
+)
 
 
 def create_client_activity_title(row):
@@ -99,6 +105,7 @@ def create_trip_title(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
     cities = get_unique_cities(parsed_rows)
     day_count = get_day_count(grouped_days)
+    season = detect_cover_season(parsed_rows)
 
     has_northern_lights = any(
         "northern light" in row.get("details", "").lower()
@@ -119,11 +126,8 @@ def create_trip_title(parsed_rows, grouped_days):
 
         return f"{city} City Break"
 
-    if len(cities) == 2:
-        if has_northern_lights or has_lapland:
-            return f"{cities[0]} & {cities[1]} Arctic Journey"
-
-        return f"{cities[0]} & {cities[1]} Nordic Journey"
+    if len(cities) >= 2:
+        return SEASON_TITLES.get(season, "Nordic Summer Journey")
 
     if has_northern_lights or has_lapland:
         return "Nordic Winter Journey"
@@ -147,19 +151,11 @@ def _join_destinations_naturally(cities):
 
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
-
-    text = " ".join(row.get("details", "").lower() for row in parsed_rows)
-
-    winter_markers = [
-        "winter", "snow", "lapland", "rovaniemi", "saariselkä", "saariselka",
-        "northern light", "aurora", "reindeer", "husky", "santa", "arctic",
-        "glass igloo", "kakslauttanen",
-    ]
-    has_winter_focus = any(marker in text for marker in winter_markers)
-
-    if has_winter_focus:
-        return "A premium Nordic winter journey with scenic travel and Arctic experiences"
-
+    season = detect_cover_season(parsed_rows)
+    if season in SEASON_SUBTITLES:
+        return SEASON_SUBTITLES[season]
+    if has_winter_focus(parsed_rows):
+        return SEASON_SUBTITLES["winter"]
     return "A carefully arranged Nordic journey with seamless travel and curated experiences"
 
 def create_destinations_line(parsed_rows):

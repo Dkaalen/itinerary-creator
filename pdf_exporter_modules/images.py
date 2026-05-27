@@ -100,6 +100,46 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
         return None
 
 
+class FullPageBackgroundImage(Flowable):
+    """Draw an image across the full physical A4 page behind cover text."""
+
+    def __init__(self, source_path, temp_dir, crop_focus="top", page_width=A4[0], page_height=A4[1]):
+        super().__init__()
+        self.source_path = Path(source_path)
+        self.temp_dir = temp_dir
+        self.crop_focus = normalize_crop_focus(crop_focus)
+        self.page_width = float(page_width)
+        self.page_height = float(page_height)
+
+    def wrap(self, availWidth, availHeight):
+        return 0, 0
+
+    def split(self, availWidth, availHeight):
+        return []
+
+    def drawOn(self, canv, x, y, _sW=0):
+        cropped_path = make_cover_cropped_image(
+            self.source_path,
+            self.page_width,
+            self.page_height,
+            self.temp_dir,
+            crop_focus=self.crop_focus,
+        )
+        if not cropped_path:
+            return
+        canv.saveState()
+        canv.drawImage(
+            str(cropped_path),
+            0,
+            0,
+            width=self.page_width,
+            height=self.page_height,
+            preserveAspectRatio=False,
+            mask="auto",
+        )
+        canv.restoreState()
+
+
 class SamePageDayImage(Flowable):
     """Draw a day image on the current A4 page without creating a new page."""
 
