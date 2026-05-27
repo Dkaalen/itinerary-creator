@@ -135,7 +135,7 @@ PLACES = [
 
     # Sweden
     {"country": "Sweden", "canonical": "Stockholm", "kind": "city", "aliases": []},
-    {"country": "Sweden", "canonical": "Gothenburg", "kind": "city", "aliases": ["Goteborg", "Göteborg"]},
+    {"country": "Sweden", "canonical": "Gothenburg", "kind": "city", "aliases": ["Goteborg", "Göteborg", "Gothernburg", "Gothenbrug"]},
     {"country": "Sweden", "canonical": "Malmö", "kind": "city", "aliases": ["Malmo"]},
     {"country": "Sweden", "canonical": "Uppsala", "kind": "city", "aliases": []},
     {"country": "Sweden", "canonical": "Västerås", "kind": "city", "aliases": ["Vasteras"]},

@@ -26,6 +26,15 @@ def _route_destination_from_text(value):
     if not text or " to " not in text.lower():
         return ""
 
+    # Prefer explicit transport route wording before broad "A to B" matching.
+    explicit = re.search(
+        r"\b(?:flight|train|coach|bus|ferry|cruise)\s*(?:[:|])?\s*([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s*(?:\||-|,|;|$)|\s+Day\b|\s+self\b|\s+cost\b|\s+not\b|\s+sitting\b)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if explicit:
+        return canonicalize_place_name(re.split(r"\s+(?:train|flight|coach|bus|ferry|cruise)\b|\s+to\s+", explicit.group(2).strip(" -:|."), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|."))
+
     # Use the last route-like destination in the string. This works for messy
     # rows such as "Tromsø to Bergen" or "Flight Bergen to Svolvær".
     matches = list(re.finditer(r"\bfrom\s+(.+?)\s+to\s+([^|,.;\n]+)|\b([^|,.;\n]+?)\s+to\s+([^|,.;\n]+)", text, flags=re.IGNORECASE))
@@ -36,7 +45,7 @@ def _route_destination_from_text(value):
     destination = match.group(2) or match.group(4) or ""
     destination = destination.strip(" -:|.")
     # Remove trailing supplier/status text.
-    destination = re.split(r"\s+(?:self|cost|price|not|included|arranged)\b", destination, flags=re.IGNORECASE)[0].strip(" -:|.")
+    destination = re.split(r"\s+(?:self|cost|price|not|included|arranged|day|sitting|seat|train|flight)\b", destination, flags=re.IGNORECASE)[0].strip(" -:|.")
     return canonicalize_place_name(destination)
 
 

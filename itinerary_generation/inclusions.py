@@ -118,8 +118,8 @@ def create_whats_included(parsed_rows, grouped_days):
     return included
 
 
-def create_whats_not_included():
-    return [
+def create_whats_not_included(parsed_rows=None):
+    items = [
         "International flights unless specifically listed",
         "Meals unless specifically stated",
         "Drinks unless specifically stated",
@@ -129,6 +129,12 @@ def create_whats_not_included():
         "Optional upgrades and personal expenses",
         "City taxes or local fees, where applicable",
     ]
+    text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in (parsed_rows or [])).lower()
+    if "self arranged" in text or "self-arranged" in text or "cost not included" in text or "price not included" in text:
+        note = "Self-arranged flights or transport listed in the itinerary, unless specifically stated as included"
+        if note not in items:
+            items.insert(1, note)
+    return items
 
 
 def create_final_note(parsed_rows, grouped_days):

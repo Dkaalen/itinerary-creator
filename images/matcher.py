@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .fallback import is_global_default_candidate, score_default_candidate
+from .fallback import is_global_default_candidate, score_default_candidate, _conflict_penalty
 from .metadata import (
     ImageCandidate,
     SEASON_ALIASES,
@@ -95,6 +95,9 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     candidate_tokens = set(candidate.tokens)
     candidate_themes = set(candidate.themes)
     day_tokens = set(day_context.get("tokens", set()))
+    day_season_token = normalize_keyword(day_context.get("season", ""))
+    if day_season_token:
+        day_tokens.add(day_season_token)
     day_themes = set(day_context.get("themes", set()))
     day_city_variants = set(day_context.get("city_variants", set()))
 
@@ -129,6 +132,11 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     if token_matches:
         score += min(20, 4 * len(token_matches))
         reasons.append("keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
+
+    penalty, penalty_reasons = _conflict_penalty(candidate_themes, day_themes, day_tokens)
+    if penalty:
+        score -= penalty
+        reasons.extend(penalty_reasons)
 
     return score, reasons
 
@@ -212,6 +220,19 @@ def select_best_candidate_for_context(
         payload = candidate_to_payload(day, candidate, score, reasons)
         if default_best is None or (payload["score"], payload["filename"]) > (default_best["score"], default_best["filename"]):
             default_best = payload
+
+    # If the only unused default is an obvious semantic conflict, reuse a
+    # safer default image rather than forcing a reindeer/aurora/winter image
+    # onto a summer city or culture day. This preserves uniqueness in normal
+    # cases while avoiding the most visible bad matches.
+    if default_best and default_best.get("score", 0) <= 5:
+        for candidate in [c for c in candidates if is_global_default_candidate(c)]:
+            score, reasons = score_default_candidate(candidate, context)
+            if score <= default_best.get("score", 0):
+                continue
+            payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["safe default reuse to avoid conflict"])
+            if default_best is None or (payload["score"], payload["filename"]) > (default_best["score"], default_best["filename"]):
+                default_best = payload
     return default_best
 
 

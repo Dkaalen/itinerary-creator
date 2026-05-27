@@ -301,8 +301,8 @@ def get_activity_description(row, detail_level=None):
         if detail_level == "Elegant concise":
             return "Travel through Lofoten by land and sea, including Trollfjord scenery."
         if detail_level == "Rich descriptive":
-            return "Experience Lofoten by land and sea, with time around Stokmarknes and a scenic cruise into the dramatic Trollfjord landscape."
-        return "Travel through Lofoten by land and sea, with time around Stokmarknes and a cruise into the dramatic Trollfjord."
+            return "Experience Lofoten by land and sea, with a scenic cruise into the dramatic Trollfjord landscape."
+        return "Travel through Lofoten by land and sea, with a scenic cruise into the dramatic Trollfjord."
 
     if "city walking" in title and "canal" in title and "copenhagen" in title:
         if detail_level == "Elegant concise":
@@ -360,7 +360,7 @@ def get_activity_description(row, detail_level=None):
     # shown in the Time / Duration / Pick-up lines. They must never inject
     # destination-specific content that is not supported by the current row.
     if "blue lagoon" in combined or "sky lagoon" in combined or "lagoon" in combined and ("admission" in combined or "spa" in combined or "ritual" in combined):
-        return f"Enjoy this lagoon and wellness experience{destination_phrase}, with admission details arranged as part of the day."
+        return "Enjoy this lagoon and wellness experience, with admission details arranged as part of the day."
     if "whale watching" in combined or "whale" in combined:
         return f"Join a whale watching experience{destination_phrase}, with time on the water and guidance from the local crew."
     if "snork" in combined or "silfra" in combined:

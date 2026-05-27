@@ -33,9 +33,18 @@ def _conflict_penalty(candidate_themes: set[str], day_themes: set[str], day_toke
     if has("black sand", "atv", "quad", "beach") and cand("city", "train", "wildlife"):
         penalty += 25
         penalties.append("conflict: outdoor route/activity vs unrelated image")
-    if has("summer") and cand("winter", "wildlife") and not (day_themes & {"winter", "northern lights"}):
-        penalty += 20
-        penalties.append("conflict: summer context vs winter image")
+    summer_context = "summer" in day_tokens or "summer" in day_themes
+    explicit_arctic_winter_activity = any(item in day_tokens for item in {"northernlights", "aurora", "snowmobile", "sledding"})
+    winter_intent = explicit_arctic_winter_activity
+    if summer_context and cand("winter", "wildlife", "northern lights") and not winter_intent:
+        penalty += 75
+        penalties.append("conflict: summer context vs winter/aurora/wildlife image")
+    if has("copenhagen", "denmark", "stockholm", "gothenburg") and cand("wildlife", "northern lights", "winter") and not winter_intent:
+        penalty += 55
+        penalties.append("conflict: city/summer context vs arctic winter image")
+    if has("forest tower", "forgotten giants", "copenhagen") and cand("northern lights", "wildlife", "winter"):
+        penalty += 60
+        penalties.append("conflict: Copenhagen nature/culture vs Arctic winter image")
 
     return penalty, penalties
 
@@ -46,6 +55,9 @@ def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tup
     candidate_tokens = set(candidate.tokens)
     candidate_themes = set(candidate.themes)
     day_tokens = set(day_context.get("tokens", set()))
+    day_season_token = normalize_keyword(day_context.get("season", ""))
+    if day_season_token:
+        day_tokens.add(day_season_token)
     day_themes = set(day_context.get("themes", set()))
     primary_themes = set(day_context.get("primary_themes", set()))
 

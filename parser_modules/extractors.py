@@ -179,7 +179,7 @@ def extract_includes_from_description(main_text):
             r"pickup\s*/\s*meeting\s*point",
             r"\bmeeting\s*point\b",
             r"\boverview\b",
-            r"\bnot included\b",
+            r"\bnot\s+in(?:cl|lc)uded\b",
             r"\bwhat to expect\b",
             r"\bimportant info\b",
             r"\bour floating suits\b",

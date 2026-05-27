@@ -175,7 +175,7 @@ def split_comma_list(text, *, protect_compound_phrases=False):
                 "access to ",
                 "one drink of ",
                 "two additional ",
-            ))
+            )) or ("coffee" in lower_line and "snack" in lower_line) or ("fish soup" in lower_line and "lunch" in lower_line)
             if preserve_as_one:
                 parts.append(clean_line)
                 continue
@@ -219,7 +219,7 @@ def split_comma_list(text, *, protect_compound_phrases=False):
     for part in parts:
         lower = part.lower()
 
-        if merged and lower.startswith(attach_to_previous_prefixes):
+        if merged and (lower.startswith(attach_to_previous_prefixes) or lower.startswith("and ")):
             merged[-1] = f"{merged[-1]}, {part}"
         else:
             merged.append(part)

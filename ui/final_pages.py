@@ -186,6 +186,10 @@ def clean_activity_inclusion_items(items, title=""):
 
         if lower in {"what's included", "what’s included", "includes", "included", "description", "overview"}:
             continue
+        if re.search(r"^not\s+in(?:cl|lc)uded\b|^excluded\b", lower, flags=re.IGNORECASE):
+            continue
+        if "included excluded" in lower or "food and drinks are excluded" in lower:
+            continue
 
         # Avoid long overview prose on the inclusion page.
         if looks_like_descriptive_prose(text):

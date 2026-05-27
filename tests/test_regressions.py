@@ -519,6 +519,55 @@ def test_day_page_editorial_parity_markup():
     assert_contains(editor_html, ".image-stage::after", "The visual editor should draw the same emblem divider on the day image edge.")
     assert_not_contains(editor_html, "Today’s setting", "The visual editor preview must not render the rejected setting label.")
 
+def test_v36c52_content_quality_hardening_rules():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from itinerary_generation.inclusions import create_whats_not_included
+    from ui.day_blocks import build_day_blocks, build_day_overview_block
+    from generator import create_day_title
+
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+
+    iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_self_drive_summer.txt").read_text(encoding="utf-8")))
+    iceland_grouped = group_rows_by_day(iceland_rows)
+    rental_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "Rental" in row.get("details", ""))
+    rental_html = build_day_overview_block(rental_row)["html"]
+    assert_contains(rental_html, "Pick up your rental SUV", "Rental pick-up should be a single polished sentence.")
+    assert_contains(rental_html, "Dacia Duster or similar", "Rental block should mention one example vehicle with or similar.")
+    assert_contains(rental_html, "Automatic transmission", "Rental included details should stay in the compact rental sentence.")
+    assert_not_contains(rental_html, "Pick-up Rental vehicle from Office", "Rental block should not repeat raw pickup supplier text.")
+    assert_not_contains(rental_html, "Vehicle category examples", "Rental day page should not list every example vehicle.")
+
+    sections = create_categorized_inclusions(iceland_rows, iceland_grouped)
+    section_titles = [section.get("title") for section in sections]
+    assert_not_contains("\n".join(section_titles), "Meals included", "Hotel breakfasts should not be repeated in a separate meals section.")
+    rental_section = next(section for section in sections if section.get("title") == "Rental vehicle")
+    rental_text = "\n".join(rental_section.get("items", []))
+    assert_contains(rental_text, "Rental SUV", "Self-drive inclusions should include a rental vehicle section.")
+
+    scandi_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "norway_sweden_denmark_summer.txt").read_text(encoding="utf-8")))
+    scandi_grouped = group_rows_by_day(scandi_rows)
+    day11_html = "\n".join(block["html"] for block in build_day_blocks(scandi_grouped["Day 11"]) if block)
+    assert_contains(create_day_title(scandi_grouped["Day 11"]), "Train to Gothenburg", "Transport day titles should remove duplicated route text.")
+    assert_not_contains(create_day_title(scandi_grouped["Day 11"]), "Gothernburg", "Known place typos should be corrected in transport titles.")
+    assert_not_contains(create_day_title(scandi_grouped["Day 11"]), "Train Stockholm to", "Transport day titles should not repeat origin-destination details.")
+    assert_contains(create_day_intro(scandi_grouped["Day 11"]), "Gothenburg", "Transfer intros should point to the destination city.")
+    assert_not_contains(create_day_intro(scandi_grouped["Day 11"]), "towards Stockholm", "Transfer intros should not point to the origin city.")
+
+    day13_html = "\n".join(block["html"] for block in build_day_blocks(scandi_grouped["Day 13"]) if block)
+    assert_not_contains(day13_html, "included excluded", "Contradictory included/excluded text must not render.")
+    assert_not_contains(day13_html, "Not included: Entrance", "Excluded entrance tickets should not appear under included experience bullets.")
+
+    not_included = "\n".join(create_whats_not_included(scandi_rows))
+    assert_contains(not_included, "Self-arranged flights or transport", "Self-arranged flights should be represented in exclusions.")
+
+    day6_html = "\n".join(block["html"] for block in build_day_blocks(scandi_grouped["Day 6"]) if block)
+    assert_not_contains(day6_html, "Stokmarknes", "Fallback descriptions must not introduce unsupported place names.")
+    assert_not_contains(day6_html, ">and snacks</li>", "Natural food/drink comma phrases should not leave orphan bullets.")
+
+    arc_text = "\n".join(item.get("experience", "") for item in create_journey_arc(scandi_grouped))
+    assert_not_contains(arc_text, "Guided sightseeing", "Journey arc should use specific themes instead of repeated generic guided sightseeing.")
+
+
 def run_all():
     tests = [
         test_time_expansion,
@@ -555,6 +604,7 @@ def run_all():
         test_day_overview_rental_explore_and_acronym_rendering,
         test_multiline_supplier_inclusion_commas_are_preserved,
         test_real_input_fixture_bank_core_expectations,
+        test_v36c52_content_quality_hardening_rules,
         test_hotel_name_before_room_marker_is_parsed_generally,
         test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
     ]
@@ -888,9 +938,9 @@ def test_day_overview_rental_explore_and_acronym_rendering():
     })
     rental_html = rental_block["html"]
     assert_contains(rental_html, "Rental vehicle", "Rental overviews should get a dedicated section label.")
-    assert_contains(rental_html, "Pick-up Rental SUV", "Rental pick-up wording should be normalized.")
-    assert_contains(rental_html, "Vehicle category examples", "Rental car examples should be grouped.")
-    assert_contains(rental_html, "Included with rental vehicle", "Rental included items should be grouped.")
+    assert_contains(rental_html, "Pick up your rental SUV", "Rental pick-up wording should be compressed into a client-facing sentence.")
+    assert_not_contains(rental_html, "Vehicle category examples", "Day-page rental blocks should not list every vehicle example.")
+    assert_contains(rental_html, "full insurance included", "Rental included items should be summarized in one sentence.")
     assert_not_contains(rental_html, "<li>included</li>", "The word included should not render as a bullet.")
 
     explore_block = build_day_overview_block({
@@ -979,7 +1029,7 @@ def test_real_input_fixture_bank_core_expectations():
     rental_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "Rental" in row.get("details", ""))
     rental_html = build_day_overview_block(rental_row)["html"]
     assert_contains(rental_html, "Rental vehicle", "Rental fixture should use the rental vehicle section.")
-    assert_contains(rental_html, "Included with rental vehicle", "Rental included details should be grouped.")
+    assert_contains(rental_html, "full insurance", "Rental included details should be summarized.")
     assert_not_contains(rental_html, "<li>included</li>", "Included should not be a raw rental bullet.")
 
     explore_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "lava fields" in row.get("details", ""))

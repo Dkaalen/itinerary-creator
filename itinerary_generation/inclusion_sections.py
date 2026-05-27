@@ -13,7 +13,7 @@ from collections import OrderedDict
 from place_aliases import canonicalize_place_name
 from text_polish import polish_hotel_name, polish_inclusion_item, polish_title
 
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only
+from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only, has_self_drive_markers
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 from itinerary_generation.titles import create_client_activity_title
 
@@ -173,6 +173,63 @@ def _guide_support_items(activity_rows: list[dict]) -> list[str]:
     return items
 
 
+def _extract_rental_summary(rows: list[dict]) -> list[str]:
+    source_rows = [row for row in rows if get_row_type(row) == "Day Overview" and re.search(r"rental\s+(?:vehicle|car|suv)|pick\s*up\s+rental|pickup\s+rental|drop\s+vehicle|return\s+vehicle", f'{row.get("title", "")} {row.get("details", "")}', flags=re.IGNORECASE)]
+    examples: list[str] = []
+    included: list[str] = []
+    has_suv = False
+    has_pickup = False
+    has_drop = False
+    for row in source_rows:
+        text = f'{row.get("title", "")}\n{row.get("details", "")}'.replace("|", "\n").replace("✅", "")
+        mode = "pickup"
+        for raw in text.splitlines():
+            line = _clean(raw).strip(" •-*:")
+            if not line:
+                continue
+            lower = line.lower()
+            if "rental suv" in lower or "suv" in lower:
+                has_suv = True
+            if "pick" in lower and "rental" in lower:
+                has_pickup = True
+            if "drop vehicle" in lower or "return vehicle" in lower:
+                has_drop = True
+            if lower in {"included", "includes"}:
+                mode = "included"
+                continue
+            if lower.startswith("not included"):
+                mode = "not_included"
+                continue
+            if "option" in lower and "similar category" in lower:
+                mode = "examples"
+                continue
+            if mode == "examples" and not re.search(r"option|similar", lower):
+                _add_unique(examples, polish_title(line))
+            elif mode == "included":
+                if lower == "automatic":
+                    line = "Automatic transmission"
+                _add_unique(included, polish_inclusion_item(line, "Rental vehicle"))
+    items: list[str] = []
+    vehicle_label = "Rental SUV" if has_suv else "Rental vehicle"
+    if has_pickup:
+        if examples:
+            _add_unique(items, f"{vehicle_label}, such as a {examples[0]} or similar")
+        else:
+            _add_unique(items, f"{vehicle_label} or similar")
+    if included:
+        detail = _join_detail_parts([item.lower() if item != "GPS" else item for item in included]).strip(" .")
+        if detail:
+            _add_unique(items, detail[:1].upper() + detail[1:] + " included")
+    if has_drop:
+        _add_unique(items, "Rental vehicle return at the rental office or airport")
+    return items
+
+
+def _has_non_breakfast_meal(meal: str) -> bool:
+    lower = _clean(meal).lower()
+    return bool(lower and "breakfast" not in lower and "without" not in lower) or any(marker in lower for marker in ["dinner", "lunch", "full board", "half board", "full pension"])
+
+
 def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     """Return inclusion sections as [{title, items}]."""
 
@@ -192,7 +249,9 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
         meal = _format_meal_plan(row.get("meal_plan", ""))
         city = canonicalize_place_name(row.get("city", ""))
         name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "accommodation")
-        if meal and "without" not in meal:
+        # Breakfast already appears inside the Accommodation section. Only
+        # keep a separate meals section for non-breakfast / board meals.
+        if meal and _has_non_breakfast_meal(meal):
             _add_unique(meal_items, f"{meal.capitalize()} at {name}{', ' + city if city else ''}")
 
     for row in activity_rows:
@@ -215,6 +274,9 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
         sections.append({"title": "Accommodation", "items": hotel_items})
     if activity_items:
         sections.append({"title": "Activities & experiences", "items": activity_items})
+    rental_items = _extract_rental_summary(rows) if has_self_drive_markers(rows) else []
+    if rental_items:
+        sections.append({"title": "Rental vehicle", "items": rental_items})
     for bucket, items in transport_buckets.items():
         if items:
             sections.append({"title": bucket, "items": items})

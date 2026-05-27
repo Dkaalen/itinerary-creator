@@ -36,6 +36,11 @@ def _canonical_route_city(name):
         "saariselka": "Saariselkä",
         "kakslauttenen": "Kakslauttanen",
         "tromso": "Tromsø",
+        "svolvaer": "Svolvær",
+        "svolaver": "Svolvær",
+        "gothernburg": "Gothenburg",
+        "göteborg": "Gothenburg",
+        "malmo": "Malmø",
     }
     return replacements.get(clean.lower(), clean)
 
@@ -43,7 +48,7 @@ def _canonical_route_city(name):
 ROUTE_CITY_CANDIDATES = [
     "Helsinki", "Rovaniemi", "Saariselkä", "Saariselka",
     "Kakslauttanen", "Kakslauttenen", "Ivalo",
-    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso",
+    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso", "Svolvær", "Svolvaer", "Svolaver", "Gothenburg", "Göteborg", "Malmo", "Malmø",
 ]
 
 
@@ -168,12 +173,21 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"{activity_title} is the main arranged experience in {city_text}, with the rest of the day kept flexible."
 
-            activity_with_city = _activity_phrase_with_city(activity_title, city_text)
+            activity_city = str(activities[0].get("city", "") or "").strip()
+            city_for_activity = city_text
+            if activity_city and city_text and activity_city.lower() != city_text.lower():
+                city_for_activity = ""
+            activity_with_city = _activity_phrase_with_city(activity_title, city_for_activity)
+            destination_wording = city_text if city_for_activity else "the day"
+            clear_focus_phrase = (
+                f"{activity_title} gives the day a clear focus in {city_text}, "
+                f"with time around the experience kept open and comfortable."
+            ) if city_for_activity else (
+                f"{activity_title} sets the tone for the day, "
+                f"with the wider arrangements kept clear and comfortable."
+            )
             intro_variants = [
-                (
-                    f"{activity_title} gives the day a clear focus in {city_text}, "
-                    f"with time around the experience kept open and comfortable."
-                ),
+                clear_focus_phrase,
                 (
                     f"The day is shaped around {activity_with_city}, "
                     f"balanced with space to enjoy the destination at an easy pace."
@@ -184,7 +198,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 ),
                 (
                     f"Your main experience today is {activity_title}, offering a well-paced "
-                    f"way to enjoy {city_text} without overfilling the day."
+                    f"way to enjoy {destination_wording} without overfilling the day."
                 ),
             ]
             variant_index = (get_day_number(day_rows[0].get("day", "")) - 1) % len(intro_variants)

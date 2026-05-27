@@ -97,59 +97,95 @@ def create_trip_glance(parsed_rows, grouped_days):
     }
 
 
+def _has(text, *markers):
+    return any(marker in text for marker in markers)
+
+
+def _add_theme(items, theme):
+    if theme and theme not in items:
+        items.append(theme)
+
+
 def describe_city_experience(rows):
-    text = " ".join(row.get("details", "").lower() for row in rows)
+    text = " ".join(
+        " ".join([
+            str(row.get("city", "")),
+            str(row.get("title", "")),
+            str(row.get("original_title", "")),
+            str(row.get("details", "")),
+            " ".join(row.get("includes", []) or []),
+        ]).lower()
+        for row in rows
+    )
     row_types = {get_row_type(row) for row in rows}
     cities = {str(row.get("city", "")).strip().lower() for row in rows if str(row.get("city", "")).strip()}
 
-    if "bergen" in cities and "Hotel" in row_types and not any(get_row_type(row) == "Activity" for row in rows):
-        return "Arrival in Bergen, overnight stay before the Norway in a Nutshell route"
-
     if has_glass_igloo_or_arctic_resort(rows):
-        return "Arctic resort stay, glass igloo experience, remote Lapland scenery"
+        return "Arctic resort stay, glass igloo experience and remote Lapland scenery"
 
-    if has_norway_in_a_nutshell(rows):
-        return "Norway in a Nutshell route, scenic rail and fjord landscapes"
-
-    if row_types == {"Hotel"}:
-        return "Accommodation as listed"
-
-    if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
-        return "Arrival and accommodation as listed"
-
-    experiences = []
+    themes = []
 
     if any(get_row_type(row) == "Arrival" for row in rows):
-        experiences.append("arrival")
+        _add_theme(themes, "arrival")
 
-    if "walking tour" in text or "guided" in text or "guide" in text:
-        experiences.append("guided sightseeing")
+    if has_norway_in_a_nutshell(rows) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway"):
+        _add_theme(themes, "Norway in a Nutshell route")
+        _add_theme(themes, "scenic rail and fjord travel")
 
-    if "northern light" in text or "aurora" in text:
-        experiences.append("Northern Lights experiences")
+    if _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "route suggested", "scenic drive", "return drive", "road trip"):
+        _add_theme(themes, "scenic self-drive route")
 
-    if "fjord" in text:
-        experiences.append("fjord scenery")
+    if _has(text, "blue lagoon", "sky lagoon", "spa", "wellness", "7-step", "ritual"):
+        _add_theme(themes, "lagoon and wellness experiences")
 
-    if "cruise" in text:
-        experiences.append("coastal cruising")
+    if _has(text, "silfra", "snork"):
+        _add_theme(themes, "Silfra snorkelling")
 
-    if "train" in text or "rail" in text:
-        experiences.append("scenic rail travel")
+    if _has(text, "golden circle", "kerið", "kerid"):
+        _add_theme(themes, "Golden Circle route")
 
-    if "food" in text or "dinner" in text or "tasting" in text:
-        experiences.append("local food culture")
+    if _has(text, "south coast", "waterfall", "diamond beach", "black sand"):
+        _add_theme(themes, "South Coast scenery")
 
-    if not experiences:
-        experiences.append("time to explore at your own pace")
+    if _has(text, "atv", "quad", "glacier", "hike", "hiking", "crampon"):
+        _add_theme(themes, "soft adventure experiences")
 
-    clean_experiences = []
+    if _has(text, "whale", "sea eagle", "wildlife"):
+        _add_theme(themes, "coastal wildlife")
 
-    for experience in experiences:
-        if experience not in clean_experiences:
-            clean_experiences.append(experience)
+    if _has(text, "fjord", "trollfjord", "cruise", "boat", "catamaran", "silent electric ship"):
+        _add_theme(themes, "fjord scenery and coastal cruising")
 
-    return ", ".join(clean_experiences[:4]).capitalize()
+    if _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner"):
+        _add_theme(themes, "local food culture")
+
+    if _has(text, "vasa", "old town", "museum", "walking tour", "city walk", "must-see", "guided visit"):
+        _add_theme(themes, "guided city discovery")
+
+    if _has(text, "forest tower", "forgotten giants", "nature hike", "haukland", "henningsvær", "photo tour"):
+        _add_theme(themes, "scenic nature experiences")
+
+    if _has(text, "northern light", "aurora"):
+        _add_theme(themes, "Northern Lights experiences")
+
+    if _has(text, "leisure", "spend time at leisure", "free time", "explore"):
+        _add_theme(themes, "time at leisure")
+
+    if row_types == {"Hotel"}:
+        _add_theme(themes, "accommodation as listed")
+
+    if row_types.issubset({"Hotel", "Transfer"}) and any(get_row_type(row) == "Hotel" for row in rows):
+        _add_theme(themes, "arrival and accommodation as listed")
+
+    if not themes:
+        if any(get_row_type(row) in {"Flight", "Train", "Transfer", "Transport"} for row in rows):
+            themes.append("onward travel and accommodation as listed")
+        else:
+            themes.append("time to explore at your own pace")
+
+    # Avoid generic/repeated wording when more distinctive themes exist.
+    themes = [theme for theme in themes if not (theme == "guided city discovery" and len(themes) > 1 and any(t != theme for t in themes))] or themes
+    return ", ".join(themes[:3]).capitalize()
 
 
 def format_day_range(days):

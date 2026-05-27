@@ -109,8 +109,17 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\binclued\b", "included"),
     (r"\bBergent\b", "Bergen"),
     (r"\bSvolaver\b", "Svolvær"),
+    (r"\bSVolaver\b", "Svolvær"),
     (r"\bSvolvaer\b", "Svolvær"),
     (r"\bSvoalvaer\b", "Svolvær"),
+    (r"\bTrosmø\b", "Tromsø"),
+    (r"\bTrosmo\b", "Tromsø"),
+    (r"\bGothernburg\b", "Gothenburg"),
+    (r"\bGothenbrug\b", "Gothenburg"),
+    (r"\baccommodaiton\b", "accommodation"),
+    (r"\binlcuded\b", "included"),
+    (r"\bInlcuded\b", "Included"),
+    (r"\bIncludse\b", "Includes"),
     (r"\bTromso\b", "Tromsø"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),
@@ -184,6 +193,17 @@ def extract_route_points(text):
 
     source = fix_common_text(text)
     source = source.replace("–", "-")
+
+    explicit = re.search(
+        r"\b(?:flight|train|coach|bus|ferry|cruise)\s*(?:[:|])?\s*([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s*(?:\||-|,|;|$)|\s+Day\b|\s+self\b|\s+cost\b|\s+not\b|\s+sitting\b)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if explicit:
+        origin = normalize_place_name(explicit.group(1))
+        destination = normalize_place_name(re.split(r"\s+(?:train|flight|coach|bus|ferry|cruise)\b|\s+to\s+", explicit.group(2), maxsplit=1, flags=re.IGNORECASE)[0])
+        if destination.lower() not in {"hotel", "station", "airport", "accommodation"}:
+            return origin, destination
 
     patterns = [
         r"\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+-\s+|\s+\|\s+|,|$)",

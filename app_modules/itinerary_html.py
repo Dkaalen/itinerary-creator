@@ -108,7 +108,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     if output_edits.get("whats_not_included_text"):
         whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
     else:
-        whats_not_included = create_whats_not_included()
+        whats_not_included = create_whats_not_included(parsed_rows)
 
     important_travel_notes = get_important_travel_notes(output_edits)
 

@@ -44,6 +44,29 @@ from ui.render_helpers import (
 )
 
 
+def _preserve_common_acronyms(text):
+    replacements = {
+        "Atv": "ATV", "Atvs": "ATVs", "Suv": "SUV", "Suvs": "SUVs",
+        "Spa": "SPA", "Vat": "VAT", "Wifi": "WiFi", "Wi-fi": "Wi-Fi",
+        "Dc3": "DC3", "Bbq": "BBQ",
+    }
+    result = str(text or "")
+    for source, target in replacements.items():
+        result = re.sub(rf"\b{re.escape(source)}\b", target, result)
+    return result
+
+
+def _client_title_case_fragment(value):
+    text = clean_space(str(value or ""))
+    if not text:
+        return ""
+    letters = [ch for ch in text if ch.isalpha()]
+    if letters and sum(1 for ch in letters if ch.isupper()) / max(len(letters), 1) > 0.65:
+        text = text.title()
+    return _preserve_common_acronyms(text)
+
+
+
 def build_activity_block(row):
     title = polish_title(row.get("title", ""))
     time = row.get("display_time") or row.get("time", "")
@@ -296,27 +319,25 @@ def _polish_overview_item(value):
     item = re.sub(r"\bPickupo\b", "Pick-up", item, flags=re.IGNORECASE)
     item = re.sub(r"\bPick\s+Up\b", "Pick-up", item, flags=re.IGNORECASE)
     item = re.sub(r"\bOtpions\b", "Options", item, flags=re.IGNORECASE)
+    item = re.sub(r"\binlcuded\b", "included", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bBrekafast\b", "Breakfast", item, flags=re.IGNORECASE)
     item = item.replace("/", " / ")
     item = re.sub(r"\s+", " ", item).strip()
 
-    if item.isupper() and len(item) > 4:
-        item = item.title()
+    item = _client_title_case_fragment(item)
 
-    acronym_map = {
-        "Atv": "ATV",
-        "Suv": "SUV",
-        "Spa": "SPA",
-        "Vat": "VAT",
-        "Wifi": "WiFi",
-        "Wi-Fi": "Wi-Fi",
-    }
-    for source, target in acronym_map.items():
-        item = re.sub(rf"\b{re.escape(source)}\b", target, item)
-
+    # Keep a few destination/place spellings client-facing.
     item = re.sub(r"\bReykjavik\b", "Reykjavík", item)
     item = re.sub(r"\bKeflavik\b", "Keflavík", item)
     item = re.sub(r"\bVik\b", "Vík", item)
-    item = re.sub(r"\bKerið\b", "Kerið", item)
+    item = re.sub(r"\bGothernburg\b", "Gothenburg", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bSvolaver\b", "Svolvær", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bTrosmø\b", "Tromsø", item, flags=re.IGNORECASE)
+    item = re.sub(r"\bKerid\b", "Kerið", item)
+    # Avoid title-casing small prepositions introduced by supplier shorthand.
+    item = re.sub(r"\bTo\b", "to", item)
+    item = re.sub(r"\bFrom\b", "from", item)
+    item = re.sub(r"\bAnd\b", "and", item)
     return polish_title(item)
 
 
@@ -364,7 +385,7 @@ def _build_rental_overview_block(row):
         if line:
             lines.append(line)
 
-    pickup = []
+    pickup_lines = []
     examples = []
     included = []
     not_included = []
@@ -390,23 +411,54 @@ def _build_rental_overview_block(row):
         elif mode == "examples":
             examples.append(line)
         else:
-            pickup.append(line)
+            pickup_lines.append(line)
+
+    is_dropoff = any("drop vehicle" in line.lower() or "return vehicle" in line.lower() for line in pickup_lines)
+    vehicle_type = "rental SUV" if any("suv" in line.lower() for line in pickup_lines + examples) else "rental vehicle"
+    first_example = examples[0] if examples else ""
 
     html_text = f'<div class="content-block day-overview-block rental-overview-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    if pickup:
-        html_text += '<div class="section-title">Rental vehicle</div>'
-        html_text += render_list_items(pickup[:3])
-    if examples:
-        html_text += '<div class="section-title small-section">Vehicle category examples</div>'
-        html_text += render_list_items(examples)
-    if included:
-        html_text += '<div class="section-title small-section">Included with rental vehicle</div>'
-        html_text += render_list_items(included)
+
+    if is_dropoff:
+        html_text += '<div class="section-title">Travel Arrangements</div>'
+        html_text += render_list_items(["Return your rental vehicle at the rental office or airport."])
+        html_text += "</div>"
+        return {"kind": "day_overview", "row_id": row.get("row_id", ""), "html": html_text}
+
+    pickup_sentence = f"Pick up your {vehicle_type}"
+    if first_example:
+        pickup_sentence += f", such as a {first_example} or similar"
+    else:
+        pickup_sentence += " or similar"
+    pickup_sentence += ", from the rental office or airport."
+
+    included_clean = []
+    for item in included:
+        low = item.lower()
+        if low == "automatic":
+            item = "automatic transmission"
+        included_clean.append(item)
+    if included_clean:
+        included_sentence = _join_rental_items(included_clean).capitalize() + " included."
+    else:
+        included_sentence = "Rental details as listed in the itinerary."
+
+    html_text += '<div class="section-title">Rental vehicle</div>'
+    html_text += render_list_items([pickup_sentence, included_sentence])
     if not_included:
         html_text += '<div class="section-title small-section">Not included</div>'
-        html_text += render_list_items(not_included)
+        html_text += render_list_items(not_included[:3])
     html_text += "</div>"
     return {"kind": "day_overview", "row_id": row.get("row_id", ""), "html": html_text}
+
+
+def _join_rental_items(items):
+    clean = [str(item).strip(" .") for item in items if str(item).strip(" .")]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0]
+    return ", ".join(clean[:-1]) + f" and {clean[-1]}"
 
 
 def build_day_overview_block(row):
@@ -421,6 +473,8 @@ def build_day_overview_block(row):
     if explore_like:
         section = "Explore at your own pace"
         items = [item for item in items if item.lower() != "explore"]
+    elif "return drive" in lower or "scenic drive" in lower:
+        section = "Today’s route"
     elif route_like:
         section = "Suggested Route"
     else:
@@ -487,6 +541,40 @@ def get_travel_sequence_line(row):
     return polish_title(row.get("title", ""))
 
 
+def _extract_timed_route_places(row):
+    text = str(row.get("details") or row.get("original_title") or row.get("title") or "")
+    places = []
+    for raw in text.replace("|", "\n").splitlines():
+        line = clean_space(raw)
+        if not re.match(r"^\d{1,2}:\d{2}\s+", line):
+            continue
+        # 09:18 Oslo / 14:20 Myrdal via Train
+        place = re.sub(r"^\d{1,2}:\d{2}\s+", "", line)
+        place = re.split(r"\s+via\s+|\s+Via\s+", place, maxsplit=1)[0].strip(" -:|,")
+        place = _polish_overview_item(place)
+        if place and place not in places:
+            places.append(place)
+    return places
+
+
+def _norway_nutshell_lines(row):
+    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    if "norway in a nutshell" not in text:
+        return []
+    places = _extract_timed_route_places(row)
+    lines = []
+    base = get_travel_sequence_line(row)
+    if places and len(places) >= 2:
+        lines.append(f"Norway in a Nutshell route from {places[0]} to {places[-1]}")
+        lines.append("Route: " + " → ".join(places))
+    elif base:
+        lines.append(base)
+    includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
+    if includes:
+        lines.append("Included journey: " + ", ".join(includes))
+    return lines
+
+
 def get_travel_arrangement_line(row):
     title = get_travel_sequence_line(row)
     time = display_time(row.get("time", ""))
@@ -506,6 +594,12 @@ def get_travel_arrangement_line(row):
 def build_travel_arrangements_block(travel_rows):
     items = []
     for row in travel_rows:
+        special_lines = _norway_nutshell_lines(row)
+        if special_lines:
+            for line in special_lines:
+                if line and line not in items:
+                    items.append(line)
+            continue
         line = get_travel_arrangement_line(row)
         if line and line not in items:
             items.append(line)
