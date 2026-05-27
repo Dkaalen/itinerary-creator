@@ -13,6 +13,7 @@ from generator import (
     create_trip_title,
     create_whats_included,
     create_whats_not_included,
+    create_travel_route_label,
     get_primary_city,
     get_row_type,
     group_rows_by_day,
@@ -116,7 +117,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         edits["days"][day] = {
             "title": create_day_title(rows),
             "intro": create_day_intro(rows, detail_level=edits["detail_level"]),
-            "city": get_primary_city(rows),
+            "city": create_travel_route_label(rows) or get_primary_city(rows),
         }
 
         for row in rows:

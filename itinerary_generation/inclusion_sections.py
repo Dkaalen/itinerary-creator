@@ -22,11 +22,18 @@ def _clean(value: str) -> str:
     return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
 
 
+def _clean_multiline(value: str) -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    if "\n" not in text:
+        return _clean(text)
+    lines = [_clean(line) for line in text.split("\n") if _clean(line)]
+    return "\n".join(lines)
+
+
 def _add_unique(items: list[str], item: str) -> None:
-    clean_item = _clean(item)
+    clean_item = _clean_multiline(item)
     if clean_item and clean_item not in items:
         items.append(clean_item)
-
 
 def _format_meal_plan(meal_plan: str) -> str:
     meal = _clean(meal_plan).lower()
@@ -64,16 +71,23 @@ def _hotel_line(row: dict) -> str:
     title = name
     if city:
         title += f", {city}"
+
+    detail_sentences = []
     if nights:
         night_word = "night" if nights == "1" else "nights"
-        title += f" — {nights} {night_word}"
-
-    details = []
+        detail_sentences.append(f"{nights} {night_word}")
     if room:
-        details.append(f"Room category: {room}")
+        detail_sentences.append(room)
     if meal:
-        details.append(meal.capitalize())
-    return f"{title} — {'; '.join(details)}" if details else title
+        detail_sentences.append(meal.capitalize())
+
+    if not detail_sentences:
+        return title
+
+    details = ". ".join(part.strip(" .") for part in detail_sentences if part.strip(" ."))
+    if details and not details.endswith("."):
+        details += "."
+    return f"{title}\n{details}"
 
 
 def _activity_line(row: dict) -> str:
@@ -136,7 +150,10 @@ def _transport_line(row: dict) -> str:
     if luggage:
         _add_unique(extras, luggage)
     if extras:
-        return f"{title} — {_join_detail_parts(extras)}"
+        detail = _join_detail_parts(extras).strip(" .")
+        if detail:
+            detail = detail[:1].upper() + detail[1:]
+            return f"{title}\n{detail}."
     return title
 
 

@@ -452,6 +452,19 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             line-height: 1.4;
         }}
 
+        .inclusion-entry {{
+            margin: 0 0 12px 0;
+        }}
+
+        .inclusion-entry-title {{
+            margin-bottom: 2px;
+        }}
+
+        .inclusion-entry-detail {{
+            color: var(--muted);
+            margin-bottom: 0;
+        }}
+
         .important-notes-page .note-paragraph {{
             font-size: 14px;
             line-height: 1.55;

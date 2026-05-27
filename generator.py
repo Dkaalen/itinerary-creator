@@ -54,6 +54,7 @@ from itinerary_generation.summaries import (
 from itinerary_generation.day_text import (
     get_client_activity_phrase,
     create_day_intro,
+    create_travel_route_label,
 )
 from itinerary_generation.inclusions import (
     sentence_case_transport_title,

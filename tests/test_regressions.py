@@ -562,6 +562,26 @@ def test_colleague_duration_with_dot_minutes():
     )
 
 
+
+
+def test_trip_subtitle_uses_generic_winter_wording():
+    raw = """
+	Day 1	Hotel	2	14/11/2026	16/11/2026					Helsinki 	Hotel Arthur, Breakfast included
+	Day 2	Activity		15/11/2026						Helsinki 	A Finntastic Walking Tour in Helsinki | Professional authorised Helsinki Guide
+	Day 3	Activity		16/11/2026						Rovaniemi	Lapland Northern Lights Rapid Photo Chase | Cookies & Hot drinks
+	Day 5	Hotel	1	18/11/2026	19/11/2026					Saariselka	Northern Light Village Sariselka, Incl Breakfast + Dinner
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    subtitle = create_trip_subtitle(rows, grouped)
+    assert_equal(
+        subtitle,
+        "A winter journey through Helsinki, Rovaniemi and Saariselkä",
+        "Cover subtitle should use polished generic route wording.",
+    )
+    assert_not_contains(subtitle, "Local Food", "Hotel meals should not create a food-focused subtitle theme.")
+    assert_not_contains(subtitle, "—", "Cover subtitle should avoid em-dash theme chains.")
+
 def test_content_cleanup_for_helsinki_lapland_sample():
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
@@ -615,7 +635,8 @@ Professional driver & guide (English)
     assert_contains("\n".join(section_titles), "Accommodation", "Categorized inclusions should include accommodation.")
     assert_contains("\n".join(section_titles), "Activities & experiences", "Categorized inclusions should include activities.")
     accommodation_text = "\n".join(section["items"][0] for section in sections if section["title"] == "Accommodation")
-    assert_contains(accommodation_text, "Room category", "Accommodation inclusions should include rooming details.")
+    assert_contains(accommodation_text, "Standard Room and Standard Triple Room", "Accommodation inclusions should include rooming details.")
+    assert_not_contains(accommodation_text, "—", "Accommodation inclusions should avoid em-dash-heavy formatting.")
 
 
 def test_travel_intro_uses_final_transport_destination():
@@ -624,7 +645,7 @@ def test_travel_intro_uses_final_transport_destination():
         {"day": "Day 6", "type": "Transfer", "effective_type": "Transfer", "city": "Rovaniemi", "title": "Overnight Train to Helsinki", "details": "Overnight Train Transfer with the Santa Claus Express to Helsinki"},
     ]
     intro = create_day_intro(rows, detail_level="Rich descriptive")
-    assert_contains(intro, "Helsinki", "Travel intro should follow the final onward transport destination.")
+    assert_contains(intro, "Saariselkä to Rovaniemi, overnight to Helsinki", "Travel intro should use a natural route label for multi-leg overnight travel.")
     assert_not_contains(intro, "towards Rovaniemi", "Travel intro should not stop at an intermediate station when later transport continues onward.")
 
 
@@ -632,7 +653,7 @@ def test_departure_block_avoids_duplicate_departure_line():
     from ui.day_blocks import build_departure_block
 
     block = build_departure_block({"row_id": "departure-1", "title": "Departure"})
-    assert_contains(block["html"], "Onward travel arrangements", "Generic departure rows should get a more client-facing line.")
+    assert_contains(block["html"], "Journey home", "Generic departure rows should get a warmer client-facing line.")
     assert_not_contains(block["html"], '>Departure</div><div class="body-text strong-line">Departure', "Departure block should not repeat the word Departure as both heading and body.")
 
 

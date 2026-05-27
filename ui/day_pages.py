@@ -239,11 +239,32 @@ def render_split_list_pages(title, items, items_per_page=24):
     return html_text
 
 
+def _render_inclusion_item(item):
+    text = str(item or "").replace("\r\n", "\n").strip()
+    if not text:
+        return ""
+
+    if "\n" not in text:
+        return f"<li>{esc(text)}</li>"
+
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    if not lines:
+        return ""
+
+    html_text = '<div class="inclusion-entry">'
+    html_text += f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>'
+    for line in lines[1:]:
+        html_text += f'<div class="body-text inclusion-entry-detail">{esc(line)}</div>'
+    html_text += '</div>'
+    return html_text
+
+
 def render_inclusion_sections_inner_html(sections):
     clean_sections = []
     for section in sections or []:
         section_title = str(section.get("title", "")).strip()
-        items = normalize_list(section.get("items", []))
+        raw_items = section.get("items", []) or []
+        items = [str(item or "").strip() for item in raw_items if str(item or "").strip()]
         if section_title and items:
             clean_sections.append({"title": section_title, "items": items})
 
@@ -251,10 +272,22 @@ def render_inclusion_sections_inner_html(sections):
     for section in clean_sections:
         html_text += '<div class="content-block inclusion-category-block">'
         html_text += f'<div class="section-title">{esc(section["title"])}</div>'
-        html_text += render_list_items(section["items"], class_name="detail-list inclusion-category-list")
+
+        plain_items = []
+        for item in section["items"]:
+            if "\n" in item:
+                if plain_items:
+                    html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
+                    plain_items = []
+                html_text += _render_inclusion_item(item)
+            else:
+                plain_items.append(item)
+
+        if plain_items:
+            html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
+
         html_text += '</div>'
     return html_text
-
 
 def render_categorized_inclusions_pages(title, sections):
     inner_html = render_inclusion_sections_inner_html(sections)

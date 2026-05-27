@@ -11,6 +11,7 @@ from generator import (
     create_destinations_line,
     create_trip_subtitle,
     create_trip_title,
+    create_travel_route_label,
     get_primary_city,
 )
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
@@ -67,7 +68,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     for day, rows in grouped_days.items():
         day_edits = (output_edits or {}).get("days", {}).get(day, {})
-        city = day_edits.get("city") or get_primary_city(rows)
+        city = day_edits.get("city") or create_travel_route_label(rows) or get_primary_city(rows)
         match = image_matches.get(day)
         image_path = match.get("path") if match else ""
         options = list_replacement_image_options_for_rows(day, rows)

@@ -30,6 +30,59 @@ def _activity_phrase_with_city(activity_title, city_text):
     return f"{title} in {city}" if city else title
 
 
+def _canonical_route_city(name):
+    clean = str(name or "").strip()
+    replacements = {
+        "saariselka": "Saariselkä",
+        "tromso": "Tromsø",
+    }
+    return replacements.get(clean.lower(), clean)
+
+
+def _ordered_route_cities(day_rows):
+    cities = []
+
+    def add_city(city):
+        city = _canonical_route_city(city)
+        if city and city.lower() not in [existing.lower() for existing in cities]:
+            cities.append(city)
+
+    for row in day_rows:
+        if get_row_type(row) not in TRANSPORT_TYPES and get_row_type(row) != "Transfer" and not is_route_transfer(row):
+            continue
+        add_city(row.get("city", ""))
+        row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
+        for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:
+            if possible_city.lower() in row_text.lower():
+                add_city(possible_city)
+    return cities
+
+
+def create_travel_route_label(day_rows):
+    """Return a natural route label for travel-only days, when clear enough."""
+
+    has_activity_or_hotel = any(get_row_type(row) in {"Activity", "Hotel"} for row in day_rows)
+    if has_activity_or_hotel:
+        return ""
+
+    travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
+    if len(travel_rows) < 2:
+        return ""
+
+    cities = _ordered_route_cities(day_rows)
+    if len(cities) < 3:
+        return ""
+
+    has_overnight_final_leg = any(
+        "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower()
+        for row in travel_rows[-1:]
+    )
+    if has_overnight_final_leg:
+        return f"{cities[0]} to {cities[-2]}, overnight to {cities[-1]}"
+
+    return f"{cities[0]} to {cities[-1]}"
+
+
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a premium, client-facing day intro.
 
@@ -57,8 +110,8 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         has_transfer_row = any(get_row_type(row) == "Transfer" for row in day_rows)
         if not has_transfer_row:
             if detail_level == "Rich descriptive":
-                return f"Your journey comes to a close in {city} today, with time for check-out and your onward travel arrangements."
-            return f"Your journey comes to a close in {city} today."
+                return f"Your journey comes to a close in {city} today, with time for check-out before you continue your travels home."
+            return f"Your journey comes to a close in {city} today before your journey home."
         if "self-guided" in transfer_title or "self transfer" in transfer_title:
             return f"After check-out, please make your own way to {city} Airport for your onward journey."
         if detail_level == "Rich descriptive":
@@ -130,8 +183,16 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             return intro_variants[variant_index]
 
     if (transports or route_transfers) and city:
+        route_label = create_travel_route_label(day_rows)
+        if route_label:
+            if detail_level == "Elegant concise":
+                return f"Continue your journey from {route_label}."
+            if detail_level == "Rich descriptive":
+                return f"The journey continues from {route_label}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
+            return f"Continue your journey from {route_label}. The route is structured to stay clear, comfortable, and easy to follow."
+
         destination_city = ""
-        travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)]
+        travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
         for row in travel_rows:
             row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
             for possible_city in ["Helsinki", "Rovaniemi", "Saariselkä", "Saariselka", "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso"]:

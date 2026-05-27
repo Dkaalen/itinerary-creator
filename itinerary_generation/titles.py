@@ -131,67 +131,40 @@ def create_trip_title(parsed_rows, grouped_days):
     return "Nordic Discovery Journey"
 
 
+def _join_destinations_naturally(cities):
+    clean_cities = [str(city or "").strip() for city in cities if str(city or "").strip()]
+    if not clean_cities:
+        return "the Nordics"
+    if len(clean_cities) == 1:
+        return clean_cities[0]
+    if len(clean_cities) == 2:
+        return f"{clean_cities[0]} and {clean_cities[1]}"
+    return ", ".join(clean_cities[:-1]) + f" and {clean_cities[-1]}"
+
+
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
-    day_count = get_day_count(grouped_days)
     cities = get_unique_cities(parsed_rows)
 
     text = " ".join(row.get("details", "").lower() for row in parsed_rows)
+    destination_text = _join_destinations_naturally(cities)
 
-    themes = []
-
-    if "northern light" in text or "aurora" in text:
-        themes.append("Northern Lights")
-
-    if any(marker in text for marker in ["glass igloo", "kakslauttanen", "arctic resort"]):
-        themes.append("Arctic Stays")
-
-    if "fjord" in text:
-        themes.append("Fjords")
-
-    if "cruise" in text:
-        themes.append("Coastal Cruises")
-
-    if "train" in text or "rail" in text or "norway in a nutshell" in text:
-        themes.append("Scenic Journeys")
-
-    if "food" in text or "dinner" in text or "tasting" in text:
-        themes.append("Local Food")
-
-    if "walking tour" in text or "guide" in text or "guided" in text:
-        themes.append("Guided Experiences")
-
-    if not themes:
-        themes.append("Culture")
-        themes.append("Comfortable Travel")
-
-    clean_themes = []
-    for theme in themes:
-        if theme not in clean_themes:
-            clean_themes.append(theme)
-
-    theme_text = ", ".join(clean_themes[:3])
-
-    # When there are many destinations, avoid overcrowding the cover subtitle.
-    if len(cities) >= 5:
-        city_set = {city.lower() for city in cities}
-        has_finland = any(city in city_set for city in ["helsinki", "rovaniemi", "ivalo", "kakslauttanen"])
-        has_norway = any(city in city_set for city in ["tromsø", "tromso", "bergen", "oslo"])
-
-        if has_finland and has_norway:
-            return f"{day_count} Days Across Finland and Norway — {theme_text}"
-
-        return f"{day_count} Days Across the Nordics — {theme_text}"
-
-    if len(cities) > 1:
-        destination_text = " · ".join(cities)
-        return f"{day_count} Days Across {destination_text} — {theme_text}"
+    winter_markers = [
+        "winter", "snow", "lapland", "rovaniemi", "saariselkä", "saariselka",
+        "northern light", "aurora", "reindeer", "husky", "santa", "arctic",
+        "glass igloo", "kakslauttanen",
+    ]
+    has_winter_focus = any(marker in text for marker in winter_markers)
 
     if cities:
-        return f"{day_count} Days in {cities[0]} — {theme_text}"
+        if has_winter_focus:
+            return f"A winter journey through {destination_text}"
+        return f"A carefully arranged journey through {destination_text}"
 
-    return f"{day_count} Days — {theme_text}"
+    if has_winter_focus:
+        return "A Nordic winter journey with Arctic experiences and scenic travel"
 
+    return "A carefully arranged Nordic journey"
 
 def create_destinations_line(parsed_rows):
     cities = get_unique_cities(parsed_rows)
