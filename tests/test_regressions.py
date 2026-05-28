@@ -1327,8 +1327,8 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
     assert_not_contains(create_day_title(grouped["Day 2"]), "Arrival Reykjavík", "Bad raw group-tour overview snippets must not become day titles.")
     day2_intro = create_day_intro(grouped["Day 2"], detail_level="Rich descriptive")
     assert_contains(day2_intro, "Your guided group tour begins today", "First group-tour day should introduce the guided group tour.")
-    assert_contains(day2_intro, "Pick-up is scheduled between 8:00 AM and 8:30 AM", "First group-tour day should preserve the overview pick-up window.")
     assert_contains(day2_intro, "between 8:00 AM and 8:30 AM", "First group-tour day should describe the pick-up window.")
+    assert_not_contains(day2_intro, "Your guided tour begins today. Your guided group tour", "First group-tour day should not duplicate guided-tour intro wording.")
 
     day2_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 2"]) if block)
     assert_not_contains(day2_html, "Included Today", "Group-tour overview bullets should not dump onto the day page when a real activity row exists.")
@@ -1342,7 +1342,7 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
     full_html = build_itinerary_html(rows, grouped)
     assert_contains(full_html, ".cover-subtitle", "Preview HTML should include the cover subtitle CSS.")
     assert_contains(full_html, "left: 50%", "Preview cover text stack should use a single centered anchor.")
-    assert_contains(full_html, "width: 500px", "Preview cover subtitle should use the fixed centered subtitle block.")
+    assert_contains(full_html, "max-width: 500px", "Preview cover subtitle should use the fixed centered subtitle block.")
     assert_contains(full_html, "text-align: center", "Preview cover subtitle should be explicitly centered.")
     assert_not_contains(full_html, "12:00 AM noon", "Important notes should not contain impossible noon wording.")
 

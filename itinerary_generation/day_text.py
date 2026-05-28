@@ -18,6 +18,7 @@ from itinerary_generation.transport import (
     is_route_transfer,
 )
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.content_engine import group_tour_pickup_window_from_overview, is_group_tour_overview
 from parser_modules.common import extract_route_points
 from place_aliases import country_for_place
 
@@ -81,8 +82,7 @@ def _arrival_transfer_phrase(day_rows):
 
 
 def _is_group_tour_overview(row):
-    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
-    return get_row_type(row) == "Day Overview" and any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
+    return is_group_tour_overview(row)
 
 
 def _format_group_tour_pickup_range(hour, minute, suffix):
@@ -100,15 +100,9 @@ def _format_group_tour_pickup_range(hour, minute, suffix):
 
 def _extract_group_tour_overview_start_time(day_rows):
     for row in day_rows:
-        if not _is_group_tour_overview(row):
-            continue
-        text = f'{row.get("title", "")} | {row.get("details", "")} | {row.get("original_title", "")}'
-        match = re.search(r"\|\s*(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)\b", text)
-        if match:
-            hour = int(match.group(1))
-            minute = match.group(2) or "00"
-            suffix = match.group(3).replace(".", "").upper()
-            return _format_group_tour_pickup_range(hour, minute, suffix)
+        pickup = group_tour_pickup_window_from_overview(row)
+        if pickup:
+            return pickup
     return ""
 
 
@@ -160,6 +154,16 @@ def create_travel_route_label(day_rows):
     return f"{cities[0]} to {cities[-1]}"
 
 
+def _natural_group_tour_focus(activity_title: str) -> str:
+    title = str(activity_title or "the first included experience").strip()
+    title = re.sub(r"^(Explore|Discover|Hike|Visit|Experience)\s+", "", title, flags=re.IGNORECASE).strip()
+    if not title:
+        return str(activity_title or "the first included experience")
+    if re.search(r"[&]|Valley|Waterfalls|Circle|Coast|Lagoon|Peninsula|Fjord|Tour", title):
+        return f"the {title}"
+    return title[:1].lower() + title[1:]
+
+
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     """Create a premium, client-facing day intro.
 
@@ -186,12 +190,14 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         activity_title = get_client_activity_phrase(activities[0]) if activities else "the first included experience"
         start_time = _extract_group_tour_overview_start_time(day_rows)
         if start_time:
-            pickup_sentence = f"Pick-up is scheduled {start_time} before you travel with your guide into {city_text}."
+            pickup_window = start_time[:1].lower() + start_time[1:]
+            pickup_sentence = f"Pick-up is scheduled {pickup_window} before you travel with your guide into {city_text}."
         else:
             pickup_sentence = f"After morning pick-up, travel with your guide into {city_text}."
+        focus = _natural_group_tour_focus(activity_title)
         return (
             f"Your guided group tour begins today. {pickup_sentence} "
-            f"Today introduces {activity_title}, setting the tone for the journey ahead."
+            f"This first stage is structured around {focus}, with the route, stops and overnight arrangements handled as part of the guided programme."
         )
 
     if has_only_departure_arrangements(day_rows) and city:

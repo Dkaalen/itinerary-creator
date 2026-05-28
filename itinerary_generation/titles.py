@@ -19,6 +19,7 @@ from itinerary_generation.transport import (
 )
 from text_polish import strip_price_fragments, polish_title
 from place_aliases import country_for_place
+from itinerary_generation.content_engine import cleaned_generic_activity_title
 from itinerary_generation.cover_theme import (
     SEASON_LABELS,
     SEASON_SUBTITLES,
@@ -103,39 +104,12 @@ def is_bad_raw_day_title(title: str) -> bool:
 def normalize_client_day_title(title: str, row: dict | None = None) -> str:
     """Polish recurring supplier/admin titles into client-facing day titles.
 
-    This is deliberately pattern-based rather than fixture-based. It handles
-    common supplier wording across inputs while preserving proper product names.
+    All day-title and inclusion-title paths should pass through this function so
+    raw supplier/admin wording cannot re-enter the PDF from a different layer.
     """
-    source = strip_price_fragments(title or "")
-    text = polish_title(clean_client_title(source))
-    full = f"{text} {(row or {}).get('title', '')} {(row or {}).get('original_title', '')} {(row or {}).get('details', '')}".lower()
-
-    text = re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
-    text = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", text, flags=re.IGNORECASE).strip(" -:|")
-    text = re.sub(r"\bWatch\s+Whales\b", "Whale Watching", text, flags=re.IGNORECASE)
-
-    if re.search(r"\bessential\s+oslo\b|\boslo\s*:\s*.*city\s+cent(?:er|re).*walking", full, flags=re.IGNORECASE):
-        return "Oslo Walking Tour"
-    if re.search(r"\ba\s+city\s+walk\s+in\s+the\s+old\s+town\b|old town.*famous attractions", full, flags=re.IGNORECASE):
-        if "stockholm" in full:
-            return "Stockholm Old Town Walking Tour"
-        return "Old Town Walking Tour"
-    if re.search(r"\btransported\s+tour\b.*runic|runic kingdom", full, flags=re.IGNORECASE):
-        return "Runic Kingdom & Viking History Tour"
-    if "secret food" in full and "copenhagen" in full:
-        return "Copenhagen Food Tour"
-    if re.search(r"city\s+walking\s+tour", full, flags=re.IGNORECASE):
-        if "reykjav" in full:
-            return "Reykjavík Walking Tour"
-        if "oslo" in full:
-            return "Oslo Walking Tour"
-        if "copenhagen" in full:
-            return "Copenhagen Walking Tour"
-        return "City Walking Tour"
-    if "fløibanen" in full or "floibanen" in full:
-        return "Fløibanen Funicular"
-    if "santa's igloos" in full or "glass igloo" in full:
-        return "Glass Igloo Stay in Rovaniemi"
+    row = row or {}
+    text = cleaned_generic_activity_title(title or "", row)
+    full = f"{text} {row.get('title', '')} {row.get('original_title', '')} {row.get('details', '')}".lower()
 
     if _looks_like_norway_in_a_nutshell(full):
         route_label = _route_label_from_activity_text(full)
@@ -260,7 +234,7 @@ def create_client_activity_title(row):
     )
 
     if not is_northern_lights:
-        return title
+        return normalize_client_day_title(title, row)
 
     if "reindeer" in full_text and ("hunt" in full_text or "hunting" in full_text or "chase" in full_text):
         return "Northern Lights Hunt by Reindeer"

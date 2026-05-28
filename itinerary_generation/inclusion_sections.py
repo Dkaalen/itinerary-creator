@@ -286,36 +286,30 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     transport_buckets: OrderedDict[str, list[str]] = OrderedDict()
     meal_items: list[str] = []
 
-    hotel_rows = [row for row in rows if get_row_type(row) == "Hotel"]
-    # group_rows_by_day adds synthetic placeholder hotels for group-tour
-    # overnights. They are not always present in parsed_rows, so pull them from
-    # grouped_days for the commercial inclusions page rather than dropping them.
     if grouped_days:
-        existing_hotel_keys = {
-            (str(row.get("day", "")), _clean(row.get("hotel_name") or row.get("title")).lower(), _clean(row.get("city", "")).lower())
-            for row in hotel_rows
-        }
+        # Accommodation must read in itinerary order. Pull rows from the grouped
+        # day structure because it contains synthetic group-tour overnights, and
+        # because parsed_rows alone would put those placeholders after the real
+        # post-tour hotel rows. Same-destination stays remain separate when they
+        # occur at different points in the route.
+        hotel_rows = []
+        seen_hotel_keys = set()
         for day, day_rows in grouped_days.items():
-            for row in day_rows:
-                if get_row_type(row) != "Hotel" or not row.get("is_group_tour_accommodation"):
+            for row_index, row in enumerate(day_rows):
+                if get_row_type(row) != "Hotel":
                     continue
-                key = (str(row.get("day", day)), _clean(row.get("hotel_name") or row.get("title")).lower(), _clean(row.get("city", "")).lower())
-                if key not in existing_hotel_keys:
-                    hotel_rows.append(row)
-                    existing_hotel_keys.add(key)
-    def _row_order(row: dict) -> tuple[int, int, str]:
-        day_match = re.search(r"\d+", str(row.get("day", "")))
-        day_number = int(day_match.group(0)) if day_match else 9999
-        try:
-            line_number = int(row.get("line_number") or 0)
-        except Exception:
-            line_number = 0
-        # Synthetic group-tour accommodation belongs in the normal day order,
-        # after named hotels already listed on that same day.
-        synthetic_rank = 1 if row.get("is_group_tour_accommodation") else 0
-        return (day_number, synthetic_rank, line_number)
-
-    hotel_rows.sort(key=_row_order)
+                key = (
+                    str(row.get("day", day)),
+                    str(row.get("row_id", "")) or str(row_index),
+                    _clean(row.get("hotel_name") or row.get("title")).lower(),
+                    _clean(row.get("city", "")).lower(),
+                )
+                if key in seen_hotel_keys:
+                    continue
+                hotel_rows.append(row)
+                seen_hotel_keys.add(key)
+    else:
+        hotel_rows = [row for row in rows if get_row_type(row) == "Hotel"]
     activity_rows = [row for row in rows if get_row_type(row) == "Activity"]
 
     for row in hotel_rows:

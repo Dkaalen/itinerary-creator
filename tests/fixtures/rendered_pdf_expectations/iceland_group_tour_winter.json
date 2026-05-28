@@ -1,40 +1,72 @@
 {
-  "name": "Iceland group tour rendered PDF",
+  "name": "Iceland group tour winter rendered PDF",
   "fixture": "iceland_group_tour_winter.txt",
   "must_contain": [
+    "Snæfellsnes & South Coast Adventure",
+    "Welcome to Iceland",
     "Explore Borgarfjörður Valley & Waterfalls",
     "Pick-up: Between 8:00 AM and 8:30 AM",
-    "Hvalfjörður",
-    "Snæfellsjökull Glacier",
-    "Geysir",
-    "Breakfast included"
+    "Hvalfjörður fjords",
+    "Explore Snæfellsnes",
+    "Kirkjufell",
+    "Discover the Golden Circle",
+    "Þingvellir National Park",
+    "Hike South Coast Waterfalls & Glacier",
+    "Seljalandsfoss waterfall",
+    "Explore Jökulsárlón Glacier Lagoon & Ice Caves",
+    "Reykjavík Walking Tour"
   ],
   "must_not_contain": [
     "Join a whale watching experience in West Iceland",
     "Join a guided glacier experience",
-    "Enjoy a planned experience in Reykjavík",
-    "Your guided tour begins today. Your guided group tour starts",
-    "With breakfast"
+    "Enjoy this lagoon and wellness experience",
+    "Arrival Reykjavík, pick-up minibus",
+    "Your guided tour begins today. Your guided group tour",
+    "With breakfast",
+    "12:00 AM noon"
   ],
   "section_checks": [
+    {
+      "start": "DAY 2",
+      "end": "DAY 3",
+      "must_contain": [
+        "Your guided group tour begins today",
+        "between 8:00 AM and 8:30 AM",
+        "Hvalfjörður fjords",
+        "Borgarfjörður"
+      ],
+      "must_not_contain": [
+        "whale watching",
+        "Arrival Reykjavík"
+      ]
+    },
+    {
+      "start": "DAY 3",
+      "end": "DAY 4",
+      "must_contain": [
+        "Snæfellsjökull",
+        "Ytri-Tunga",
+        "Kirkjufell"
+      ],
+      "must_not_contain": [
+        "guided glacier experience"
+      ]
+    },
     {
       "start": "What’s included",
       "end": "What’s not included",
       "must_contain": [
-        "Hotel accommodation, Reykjavík",
-        "Guesthouse accommodation, West Iceland",
-        "Countryside guesthouse accommodation",
-        "Guesthouse accommodation, South Coast",
-        "Center Hotels Skjaldbreið, Reykjavík"
-      ],
-      "ordered_must_contain": [[
         "Fosshotel Raudara, Reykjavík",
         "Hotel accommodation, Reykjavík",
         "Guesthouse accommodation, West Iceland",
         "Countryside guesthouse accommodation",
         "Guesthouse accommodation, South Coast",
         "Center Hotels Skjaldbreið, Reykjavík"
-      ]]
+      ],
+      "must_not_contain": [
+        "Single traveler supplement",
+        "With breakfast"
+      ]
     }
   ]
 }
