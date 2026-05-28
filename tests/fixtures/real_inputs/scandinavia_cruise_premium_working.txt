@@ -1,0 +1,67 @@
+Day 1	Arrival	01.10.2026					Copenhagen: Welcome to Denmark
+Day 1	Transfer	01.10.2026					Copenhagen: Private transfer to your accommodation
+Day 1	Hotel	01.10.2026	04.10.2026				Copenhagen: Check in to your accommodation for a 3 night stay - NH Collection Copenhagen - Premium waterfront view room - Breakfast included
+Day 1	Leisure	01.10.2026					Copenhagen: Spend time at leisure
+							
+Day 2	Activity	02.10.2026					Copenhagen: Secret Food Tours - Time: 11:30 am - 2:30 pm - Meeting point: Københavnerkirken, Bethesda, Rømersgade 17 - Includes: Two types of local Smørrebrød, Danish meatballs, Flæskesteg - roasted pork with crispy crackling, Organic Danish hot-dog, Luxurious cardamom twist, Our delicious Secret Dish, Carlsberg on draft, Organic Kombucha shot, Non-alcoholic options for those who don’t consume alcohol
+Day 2	Leisure	02.10.2026					Copenhagen: Spend time at leisure
+							
+Day 3	Activity	03.10.2026					Copenhagen: Grand Day Trip around Copenhagen - Time: 09:15 am - 06:00 pm - Meeting point: Hotel pick up - Includes: full day transportation, guide and entrance tickets to all the sites, Kronborg castle, frederiksborg palace, roskilde cathedral, the viking ship museum
+Day 3	Leisure	03.10.2026					Copenhagen: Spend time at leisure
+							
+Day 4	Transfer	04.10.2026					Copenhagen: Private transfer to Copenhagen Central Station
+Day 4	Train	04.10.2026					Copenhagen: Scenic Train Transfer to Malmø to Stockholm - Departure from Copenhagen: 1:59 pm - Arrival in Malmø: 2:40 pm - Departure from Malmø: 3:07 pm - Arrival in Stockholm: 7:35 pm - Includse: First class tickets
+Day 4	Transfer	04.10.2026					Stockholm: Private transfer to your accommodation
+Day 4	Hotel	04.10.2026	07.10.2026				Stockholm: Check in to your accommodation for a 3 night stay - Hotel Reisen in The Unbound Collection by Hyatt -  Nordic suite with sauna - Breakfast included
+Day 4	Leisure	04.10.2026					Stockholm: Spend time at leisure
+							
+Day 5	Activity	05.10.2026					Stockholm: A City Walk in The Old Town With Famous Attractions - Time: 5:30 pm - 7:30 pm - Meeting point: TBA - Includes: Informative tour of the Old Town, Passionate private guide, Visit of famous attractions, Walk by and learn about important sites, The narrow cosy alleys and their secrets
+Day 5	Leisure	05.10.2026					Stockholm: Spend time at leisure
+							
+Day 6	Activity	06.10.2026					Stockholm: Transported Tour - the Runic Kingdom Vikings - Time: 09:00 am - 5:00 pm - Meeting point: Hotel pick up - Includes: Professional, English-speaking guide
+Day 6	Leisure	06.10.2026					Stockholm: Spend time at leisure
+							
+Day 7	Transfer	07.10.2026					Stockholm: Private transfer to Stockholm Airport
+Day 7	Flight	07.10.2026					Stockholm: Flight to Kirkenes, via Oslo - Time: 4:10 pm - 8:30 pm - Includes: Flex tickets, luggage (1 x 23 kg check in and 1 x 8 kg carry on per person)
+Day 7	Transfer	07.10.2026					Kirkenes: Private transfer to your accommodation
+Day 7	Hotel	07.10.2026	08.10.2026				Kirkenes: Check in to your accommodation for a 1 night stay - Scandic Kirkenes - Junior suite - Breakfast included
+Day 7	Leisure	07.10.2026					Kirkenes: Spend time at leisure
+							
+Day 8	Transfer	08.10.2026					Kirkenes: Private transfer to Kirkenes Cruise Harbor
+Day 8	Cruise	08.10.2026	13.10.2026				Kirkenes: Atlantic Ocean Cruise to Bergen onboard MC Havila Castor  - Departure from Kirkenes: 12:30 pm - Includse: Balcony Suite, Full Pention Meal plan
+Day 8	Cruise	08.10.2026					Cruise: Spend time at leisure
+							
+Day 9	Cruise	09.10.2026					Cruise: Spend time at leisure
+							
+Day 10	Cruise	10.10.2026					Cruise: Spend time at leisure
+							
+Day 11	Cruise	11.10.2026					Cruise: Spend time at leisure
+							
+Day 12	Cruise	12.10.2026					Cruise: Spend time at leisure
+							
+Day 13	Cruise	13.10.2026					Cruise: Arrival to Bergen at  2:45 pm
+Day 13	Transfer	13.10.2026					Bergen: Private transfer to your accommodation
+Day 13	Hotel	13.10.2026	16.10.2026				Bergen: Check in to your accommodation for a 3 night stay - Bergen Bors -  Junior suite, city view - Breakfast included
+Day 13	Leisure	13.10.2026					Bergen: Spend time at leisure
+							
+Day 14	Activity	14.10.2026					Bergen: Food & Culture Walk with Tasting Stops & City Sightseeing - Time: 12:30 pm - 3:30 pm - Meeting point: Tourist Information, Strandkaien 3 - Includes: Knowledgeable, English-speaking guide, Five local food tastings enroute, Water and small beer tasting, Cultural and historical insights
+Day 14	Leisure	14.10.2026					Bergen: Spend time at leisure
+							
+Day 15	Activity	15.10.2026					Bergen: Mostraumen Majestic Fjord & Waterfall Cruise - Time: 10:30 am - 2:30 pm - Meeting point: Börshopen Pier, Strandkaien 13 - Includes: Round-trip cruise Bergen - Mostraumen - Bergen
+Day 15	Leisure	15.10.2026					Bergen: Spend time at leisure
+							
+Day 16	Transfer	16.10.2026					Bergen: Private transfer to Bergen Central Station
+Day 16	Activity	16.10.2026					Bergen to Oslo: Day Tour incl. the Flåm Train, Nærøyfjord Cruise & Luggage Transfer - Time: 08:00 am - 08:00 pm - Meeting point: Bergen Central Staion - Includes: All tickets, each timed for the perfect day tour, Your travel plan conveniently shared by e-mail, E-tickets for Voss railway: Bergen to Oslo, E-tickets for premium bus: Voss to Gudvangen, E-tickets for fjord cruise: Gudvangen to Flåm, E-tickets for Flåm railway: Flåm to Myrdal, E-tickets for Bergen railway: Myrdal to Oslo, Luggage transfer
+Day 16	Transfer	16.10.2026					Oslo: Private transfer to your accommodation
+Day 16	Hotel	16.10.2026	19.10.2026				Oslo: Check in to your accommodation for a 3 night stay - The Thief - THE THIEF SUITE - Breakfast included
+Day 16	Leisure	16.10.2026					Oslo: Spend time at leisure
+							
+Day 17	Activity	17.10.2026					Oslo: Best View of The Oslo Fjord Nature Hike with Local Guide - Time: 09:55 am - 1:55 pm - Meeting point: When in Norway, Kongens gate 14 - Includes: Pick-up and drop-off from central Oslo, Knowledgeable, English-speaking guide, Guided hike through the Nordmarka forests
+Day 17	Leisure	17.10.2026					Oslo: Spend time at leisure
+							
+Day 18	Activity	18.10.2026					Oslo: Norwegian Food Tour with Stops at Hidden City Gems - Time: 12:00 pm - 3:00 pm - Meeting point: Oslo Central Station, Jernbanetorget 1 - Includes: Local English-speaking guide, Explore hidden gems of Oslo, Public transport ticket, Food, skip the line entrance
+Day 18	Leisure	18.10.2026					Oslo: Spend time at leisure
+							
+Day 19	Transfer	19.10.2026					Oslo: Private transfer to your accommodation
+Day 19	Departure	19.10.2026					Oslo: Departure home
+							

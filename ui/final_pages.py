@@ -5,7 +5,7 @@ import re
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
-from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items
+from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items, polish_title, strip_price_fragments
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
 from ui.render_helpers import (
     display_time,
@@ -178,7 +178,7 @@ def looks_like_descriptive_prose(text):
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
-        text = polish_inclusion_item(str(item).strip(), title)
+        text = polish_inclusion_item(strip_price_fragments(str(item).strip()), title)
         lower = text.lower().strip(":? ")
 
         text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
@@ -187,6 +187,8 @@ def clean_activity_inclusion_items(items, title=""):
         if lower in {"what's included", "what’s included", "includes", "included", "description", "overview"}:
             continue
         if re.search(r"^not\s+in(?:cl|lc)uded\b|^excluded\b", lower, flags=re.IGNORECASE):
+            continue
+        if re.search(r"\b(price|cost|supplement)\b", lower, flags=re.IGNORECASE) and re.search(r"\b(per person|per passenger|eur|nok|usd|gbp|dkk|sek|isk|kr|€|\$|£|\d)\b", lower, flags=re.IGNORECASE):
             continue
         if "included excluded" in lower or "food and drinks are excluded" in lower:
             continue
@@ -227,16 +229,17 @@ def create_optional_addons(parsed_rows):
     for row in optional_rows:
         row_type = get_row_type(row)
         title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
-        title = str(title or row.get("title", "Optional add-on")).strip()
-        city = str(row.get("city", "")).strip()
+        title = polish_title(strip_price_fragments(str(title or row.get("title", "Optional add-on"))))
+        city = polish_title(str(row.get("city", "")).strip())
         if row_type == "Activity" and title.lower() in {"svolvær", "svolvaer", "svolaver", "svoalvaer"}:
             title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
-        duration = str(row.get("duration", "")).strip()
-        includes = clean_activity_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
+        duration = strip_price_fragments(str(row.get("duration", "")).strip())
+        includes = clean_activity_inclusion_items([clean_include_item(strip_price_fragments(item), title) for item in normalize_list(row.get("includes", []))], title)
         if row_type == "Activity" and not includes:
             includes = get_fallback_activity_inclusions(row)
         meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
+        meeting_point = strip_price_fragments(meeting_point)
 
         if not title:
             continue

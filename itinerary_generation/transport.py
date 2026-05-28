@@ -135,6 +135,28 @@ def _via_suffix(via_points):
     return ", via " + " and ".join(via_points)
 
 
+def _is_norway_in_a_nutshell_text(text):
+    lower = str(text or "").lower()
+    if "norway in a nutshell" in lower:
+        return True
+    has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
+    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
+    return has_flam and has_fjord
+
+
+def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
+    route_match = re.search(r"\b(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\s+to\s+(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\b", str(text or ""), flags=re.IGNORECASE)
+    if route_match:
+        origin, destination = polish_title(route_match.group(1)), polish_title(route_match.group(2))
+    else:
+        origin, destination = fallback_origin, fallback_destination
+    if origin and destination and origin.lower() != destination.lower():
+        return f"Norway in a Nutshell from {origin} to {destination}"
+    if destination:
+        return f"Norway in a Nutshell to {destination}"
+    return "Norway in a Nutshell"
+
+
 def get_premium_transport_phrase(row):
     """Client-facing transport label for day arrangements and inclusions."""
     row_type = get_row_type(row)
@@ -147,12 +169,8 @@ def get_premium_transport_phrase(row):
         return polish_title(row.get("title", "") or "Transfer")
 
     if row_type == "Train" or "train" in lower:
-        if "norway in a nutshell" in lower:
-            if origin and destination:
-                return f"Scenic Rail & Fjord Journey from {origin} to {destination}"
-            if destination:
-                return f"Norway in a Nutshell route to {destination}"
-            return "Norway in a Nutshell"
+        if _is_norway_in_a_nutshell_text(text):
+            return _norway_nutshell_route_label(text, origin, destination)
         label = "Overnight Train Transfer" if "overnight" in lower else "Scenic Train Transfer"
         if origin and destination:
             return f"{label} from {origin} to {destination}{_via_suffix(via)}"

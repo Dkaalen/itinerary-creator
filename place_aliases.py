@@ -279,6 +279,25 @@ def _build_alias_maps():
 
 
 ALIAS_TO_CANONICAL, ALIAS_RECORDS = _build_alias_maps()
+
+def _build_alias_patterns():
+    patterns = []
+    common_word_aliases = {"are", "in", "to", "on", "at", "by"}
+    for alias, canonical in ALIAS_RECORDS:
+        if alias == canonical:
+            continue
+        alias_key = _key(alias)
+        if alias_key in common_word_aliases:
+            continue
+        canonical_key = _key(canonical)
+        suffix_key = canonical_key[len(alias_key):].strip() if canonical_key.startswith(alias_key) else ""
+        escaped = re.escape(alias)
+        pattern = re.compile(rf"(?<![\wÀ-ÿ]){escaped}(?![\wÀ-ÿ])", flags=re.IGNORECASE)
+        patterns.append((pattern, canonical, suffix_key))
+    return patterns
+
+
+ALIAS_PATTERNS = _build_alias_patterns()
 CANONICAL_PLACES = {place["canonical"] for place in PLACES}
 CANONICAL_TO_COUNTRY = {place["canonical"]: place["country"] for place in PLACES}
 CANONICAL_TO_KIND = {place["canonical"]: place.get("kind", "") for place in PLACES}
@@ -329,21 +348,8 @@ def normalize_place_text(value: str) -> str:
     # Normalize punctuation variants before alias replacement.
     text = text.replace("–", "-").replace("—", "-")
 
-    common_word_aliases = {"are", "in", "to", "on", "at", "by"}
-    for alias, canonical in ALIAS_RECORDS:
-        if alias == canonical:
-            continue
-
-        alias_key = _key(alias)
-        if alias_key in common_word_aliases:
-            continue
-        canonical_key = _key(canonical)
-        suffix_key = canonical_key[len(alias_key):].strip() if canonical_key.startswith(alias_key) else ""
-        escaped = re.escape(alias)
-        # Avoid replacing inside larger words, but allow punctuation/space around aliases.
-        pattern = re.compile(rf"(?<![\wÀ-ÿ]){escaped}(?![\wÀ-ÿ])", flags=re.IGNORECASE)
-
-        def replace_alias(match):
+    for pattern, canonical, suffix_key in ALIAS_PATTERNS:
+        def replace_alias(match, canonical=canonical, suffix_key=suffix_key):
             # If an alias is already followed by the canonical suffix, do not
             # expand it again. This prevents generic rules such as
             # "Thingvellir" -> "Þingvellir National Park" from producing

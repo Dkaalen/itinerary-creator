@@ -11,11 +11,13 @@ from itinerary_generation.common import (
     main_rows_only,
     has_hotel,
 )
+from parser_modules.common import extract_route_points
 from itinerary_generation.transport import (
     get_primary_transport_title,
     has_airport_arrival_transfer,
     has_only_departure_arrangements,
 )
+from text_polish import strip_price_fragments, polish_title
 from itinerary_generation.cover_theme import (
     SEASON_LABELS,
     SEASON_SUBTITLES,
@@ -25,13 +27,51 @@ from itinerary_generation.cover_theme import (
 )
 
 
+def _route_label_from_activity_text(text: str) -> str:
+    route_match = re.search(r"\b(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\s+to\s+(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\b", text, flags=re.IGNORECASE)
+    if route_match:
+        origin, destination = route_match.group(1), route_match.group(2)
+    else:
+        origin, destination = extract_route_points(text)
+    origin = polish_title(origin) if origin else ""
+    destination = polish_title(destination) if destination else ""
+    if origin and destination and origin.lower() != destination.lower():
+        return f"Norway in a Nutshell from {origin} to {destination}"
+    if destination:
+        return f"Norway in a Nutshell to {destination}"
+    return "Norway in a Nutshell"
+
+
+def _looks_like_norway_in_a_nutshell(text: str) -> bool:
+    lower = str(text or "").lower()
+    if "norway in a nutshell" in lower:
+        return True
+    has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
+    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
+    has_route = bool(re.search(r"\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b.+\bto\b.+\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b", lower))
+    return has_flam and has_fjord and has_route
+
+
 def create_client_activity_title(row):
-    title = clean_client_title(row.get("title", ""))
-    original_title = clean_client_title(row.get("original_title", "") or title)
+    title = clean_client_title(strip_price_fragments(row.get("title", "")))
+    original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
+
+    if not title:
+        for segment in re.split(r"\s*\|\s*|\s+-\s+", details):
+            candidate = clean_client_title(strip_price_fragments(segment))
+            if candidate and not candidate.lower().startswith(("optional addon", "optional add-on", "optional add on")):
+                title = candidate
+                break
 
     title_text = f"{original_title} {title}".lower()
     full_text = f"{title_text} {details}".lower()
+
+    if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
+        return _route_label_from_activity_text(f"{original_title} {title} {details}")
+
+    if "santa claus" in full_text and "friends" in full_text:
+        return "Meet Santa Claus and his friends"
 
     if "blue lagoon" in full_text or "bluelagoon" in full_text:
         if "premium" in full_text:
