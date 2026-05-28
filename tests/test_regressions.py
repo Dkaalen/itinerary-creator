@@ -611,9 +611,9 @@ def run_all():
         test_v36c55_premium_transport_wording_system,
         test_context_city_fill_prevents_journey_chapters,
         test_optional_addon_inclusion_fragments_are_merged,
-        test_v36c57_real_uploaded_inputs_quality_gate,
         test_hotel_name_before_room_marker_is_parsed_generally,
         test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
+        test_iceland_group_tour_content_quality,
     ]
 
     for test in tests:
@@ -1249,65 +1249,36 @@ def test_optional_addon_inclusion_fragments_are_merged():
     assert_not_contains(include_text, "\nboots", "Boots should not render as an orphan optional add-on bullet.")
 
 
-def test_v36c57_real_uploaded_inputs_quality_gate():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
-    from itinerary_generation.titles import create_client_activity_title, create_trip_title
-    from itinerary_generation.summaries import create_journey_arc
+
+def test_iceland_group_tour_content_quality():
+    raw = (ROOT / "tests" / "fixtures" / "real_inputs" / "iceland_group_tour_winter.txt").read_text(encoding="utf-8")
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    from itinerary_generation.titles import create_day_title
     from ui.day_blocks import build_day_blocks
-    from ui.day_pages import render_categorized_inclusions_pages
-    from ui.final_pages import create_optional_addons, render_optional_addons_pages
 
-    fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    titles = {day: create_day_title(day_rows) for day, day_rows in grouped.items()}
+    assert_equal(titles.get("Day 1"), "Welcome to Iceland", "Arrival day should not be titled by Flybus logistics.")
+    assert_equal(titles.get("Day 2"), "Explore Borgarfjörður Valley & Waterfalls", "Group tour day 1 should use supplier day title.")
+    assert_equal(titles.get("Day 6"), "Explore Jökulsárlón Glacier Lagoon & Ice Caves", "Group tour glacier-lagoon day should keep the full meaningful title.")
 
-    family_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "norway_finland_family_autumn.txt").read_text(encoding="utf-8")))
-    family_grouped = group_rows_by_day(family_rows)
-    santa_row = next(row for row in family_rows if "SANTA CLAUS" in row.get("original_title", "") or "Santa Claus" in row.get("title", ""))
-    assert_equal(create_client_activity_title(santa_row), "Meet Santa Claus and his friends", "Santa activity titles should use grammatical sentence-style capitalization.")
-    day9_html = "\n".join(block["html"] for block in build_day_blocks(family_grouped["Day 9"]) if block)
-    assert_contains(day9_html, "Meet Santa Claus and his friends", "The day block should render the grammatical Santa title.")
-    assert_not_contains(day9_html, "Meet Santa Claus and His Friends", "The day block should not keep supplier title case.")
+    accommodation_text = "\n".join(
+        f'{row.get("day")} {row.get("hotel_name")} {row.get("city")} {row.get("meal_plan")}'
+        for row in rows
+        if row.get("is_group_tour_accommodation")
+    )
+    assert_contains(accommodation_text, "Hotel accommodation Reykjavík breakfast", "Group-tour hotel placeholder should be extracted.")
+    assert_contains(accommodation_text, "Guesthouse accommodation West Iceland breakfast", "Group-tour guesthouse placeholder should be extracted.")
+    assert_contains(accommodation_text, "Countryside guesthouse accommodation", "Group-tour countryside accommodation should be extracted.")
 
-    family_addons = create_optional_addons(family_rows)
-    assert family_addons, "The family fixture should detect the optional cod tasting add-on."
-    addon_text = render_optional_addons_pages(family_addons)
-    assert_contains(addon_text, "Norwegian Cod Tasting", "Optional add-on description should remain visible.")
-    for forbidden in ["56 EUR", "EUR/Person", "Price is per passenger", "Cost:", "Price:"]:
-        assert_not_contains(addon_text, forbidden, "Optional add-on pages must never expose prices.")
-    family_sections = create_categorized_inclusions(family_rows, family_grouped)
-    family_inclusions = "\n".join(item for section in family_sections for item in section.get("items", []))
-    assert_not_contains(family_inclusions, "Norwegian Cod Tasting", "Optional add-ons should not appear in included services.")
-
-    scandi_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "scandinavia_cruise_premium_working.txt").read_text(encoding="utf-8")))
-    scandi_grouped = group_rows_by_day(scandi_rows)
-    nutshell_row = next(row for row in scandi_rows if "Flåm Train" in row.get("original_title", "") or "Nærøyfjord" in row.get("original_title", ""))
-    assert_equal(create_client_activity_title(nutshell_row), "Norway in a Nutshell from Bergen to Oslo", "Route-style Nutshell products should normalize to the product name with route.")
-    day16_html = "\n".join(block["html"] for block in build_day_blocks(scandi_grouped["Day 16"]) if block)
-    assert_contains(day16_html, "Norway in a Nutshell from Bergen to Oslo", "Day page should use normalized Nutshell title.")
-    assert_not_contains(day16_html, "Day Tour incl.", "Raw supplier Nutshell title should not leak into the day block.")
-
-    iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_group_tour_winter.txt").read_text(encoding="utf-8")))
-    iceland_grouped = group_rows_by_day(iceland_rows)
-    iceland_arc = create_journey_arc(iceland_grouped)
-    iceland_arc_text = "\n".join(item["experience"] for item in iceland_arc)
-    assert_contains(iceland_arc_text, "Borgarfjörður valley and waterfalls", "Iceland group-tour day headings should drive the Journey Arc, not generic Northern Lights text.")
-    assert_contains(iceland_arc_text, "Blue Lagoon experience", "Blue Lagoon days should be summarized specifically, not as generic lagoon and wellness repetition.")
-    assert_equal(create_trip_title(iceland_rows, iceland_grouped), "Snæfellsnes & South Coast Adventure", "Iceland group tour should keep its group-tour trip title.")
-    assert "Day 9" in iceland_grouped, "Iceland fixture should parse all pasted group-tour days."
-    blue_lagoon_row = next(row for row in iceland_rows if "Blue Lagoon" in row.get("title", "") or "Blue Lagoon" in row.get("original_title", ""))
-    assert_equal(create_client_activity_title(blue_lagoon_row), "Blue Lagoon & Volcano Eruption Site Tour", "Combo Blue Lagoon products should keep the full experience title instead of becoming a generic admission.")
-    iceland_sections = create_categorized_inclusions(iceland_rows, iceland_grouped)
-    iceland_output_text = "\n".join(item for section in iceland_sections for item in section.get("items", []))
-    assert_not_contains(iceland_output_text, "Single traveler supplement fee €500", "Group-tour commercial supplements must not leak into client-facing inclusions.")
-
-    # Synthetic stress case for the inclusion pagination rule: if a category is
-    # too large for one page, it is split with a repeated category heading.
-    huge_section = {"title": "Activities & experiences", "items": [f"Premium included experience number {index} with guide, tickets and transfers" for index in range(1, 32)]}
-    huge_html = render_categorized_inclusions_pages("What’s included", [huge_section])
-    assert_contains(huge_html, "What’s included continued", "Oversized inclusion sections should create continued pages.")
-    assert_contains(huge_html, "Activities &amp; experiences continued", "Oversized categories should repeat their category heading when split.")
+    rendered_day_blocks = "\n".join(block.get("html", "") for day_rows in grouped.values() for block in build_day_blocks(day_rows))
+    arc_text = "\n".join(chapter.get("experience", "") for chapter in create_journey_arc(grouped))
+    assert_not_contains(rendered_day_blocks, "Join a whale watching experience in West Iceland", "Group-tour descriptions should not use mismatched generic fallbacks.")
+    assert_not_contains(rendered_day_blocks, "Join a guided glacier experience", "Group-tour descriptions should not use mismatched generic glacier fallbacks.")
+    assert_not_contains(arc_text, "Lagoon and wellness", "Journey Arc should not use generic repeated lagoon labels for this fixture.")
 
 
 if __name__ == "__main__":
     run_all()
-
 

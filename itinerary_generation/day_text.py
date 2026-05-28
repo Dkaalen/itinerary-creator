@@ -9,6 +9,7 @@ from itinerary_generation.common import (
     has_hotel,
     normalize_detail_level,
 )
+from place_aliases import country_for_place
 from itinerary_generation.transport import (
     get_first_transfer_title,
     get_transfer_travel_title,
@@ -136,18 +137,20 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         return f"After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
 
     if has_arrival and city:
+        welcome_place = country_for_place(city) if country_for_place(city) == "Iceland" else city
         if detail_level == "Elegant concise":
-            return f"Welcome to {city}. Settle in and enjoy a smooth start to your journey."
+            return f"Welcome to {welcome_place}. Settle in and enjoy a smooth start to your journey."
         if detail_level == "Rich descriptive":
-            return f"Welcome to {city}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
-        return f"Welcome to {city}. The day is kept simple and comfortable as you settle into your accommodation."
+            return f"Welcome to {welcome_place}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
+        return f"Welcome to {welcome_place}. The day is kept simple and comfortable as you settle into your accommodation."
 
     if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
+        welcome_place = country_for_place(city) if country_for_place(city) == "Iceland" else city
         if detail_level == "Elegant concise":
-            return f"Welcome to {city}. Settle in and enjoy a smooth start to your stay."
+            return f"Welcome to {welcome_place}. Settle in and enjoy a smooth start to your stay."
         if detail_level == "Rich descriptive":
-            return f"Welcome to {city}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
-        return f"Welcome to {city}. The day is kept simple and comfortable as you settle into your accommodation."
+            return f"Welcome to {welcome_place}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
+        return f"Welcome to {welcome_place}. The day is kept simple and comfortable as you settle into your accommodation."
 
     if has_departure and city:
         if detail_level == "Elegant concise":

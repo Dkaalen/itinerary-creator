@@ -12,6 +12,7 @@ from itinerary_generation.common import (
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, create_day_title
+from itinerary_generation.group_tours import extract_supplier_day_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 from text_polish import (
     expand_time_with_duration,
@@ -285,8 +286,42 @@ def is_self_arranged_transport(row):
     return (get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)) and is_self_arranged(row)
 
 
+
+def _supplier_description_from_day_text(row):
+    """Return a concise description from supplier day-specific prose.
+
+    This is used before generic fallback descriptions so a Borgarfjörður day does
+    not become whale watching, and a Snæfellsnes day does not become a glacier
+    hike just because those keywords appear elsewhere in the package.
+    """
+    text = str(row.get("details") or row.get("original_title") or "")
+    if not extract_supplier_day_title(text):
+        return ""
+    text = re.sub(r"^\s*Day\s*\d+\s*:\s*[^\n]+", "", text, flags=re.IGNORECASE).strip()
+    text = re.split(r"\n\s*(?:What\s+are\s+you\s+waiting\s+for|Start your adventure|Please note|What's included|What’s included)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    text = clean_space(text)
+    if not text:
+        return ""
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    selected = []
+    for sentence in sentences:
+        clean = clean_space(sentence)
+        if not clean:
+            continue
+        selected.append(clean)
+        if len(" ".join(selected)) >= 180 or len(selected) >= 2:
+            break
+    summary = " ".join(selected).strip()
+    if len(summary) > 360:
+        summary = summary[:340].rsplit(" ", 1)[0].strip() + "."
+    return polish_client_text(summary)
+
 def get_activity_description(row, detail_level=None):
     detail_level = detail_level or get_detail_level_name()
+    supplier_description = _supplier_description_from_day_text(row)
+    if supplier_description:
+        return supplier_description
+
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
 

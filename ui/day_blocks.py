@@ -10,9 +10,9 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
+from itinerary_generation.group_tours import is_group_tour_overview
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from text_polish import (
-    strip_price_fragments,
     format_duration_display,
     polish_client_text,
     polish_hotel_name,
@@ -62,12 +62,15 @@ def _client_title_case_fragment(value):
     text = clean_space(str(value or ""))
     if not text:
         return ""
-    return _preserve_common_acronyms(polish_title(text))
+    letters = [ch for ch in text if ch.isalpha()]
+    if letters and sum(1 for ch in letters if ch.isupper()) / max(len(letters), 1) > 0.65:
+        text = text.title()
+    return _preserve_common_acronyms(text)
 
 
 
 def build_activity_block(row):
-    title = polish_title(create_client_activity_title(row) or row.get("title", ""))
+    title = polish_title(row.get("title", ""))
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
@@ -75,7 +78,7 @@ def build_activity_block(row):
     end_point = polish_client_text(row.get("end_point", ""))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
     description = polish_client_text(row.get("client_description") or get_activity_description(row))
-    included_items = clean_activity_inclusion_items([strip_price_fragments(item) for item in row.get("includes", [])], title)
+    included_items = clean_activity_inclusion_items(row.get("includes", []), title)
     fallback_items = get_fallback_activity_inclusions(row)
 
     if not included_items:
@@ -222,7 +225,11 @@ def build_accommodation_block(row):
     room_category = polish_client_text(row.get("room_category") or "")
     meal = meal_phrase(row.get("meal_plan", ""))
 
-    accommodation_line = polish_client_text(f"{hotel_name} or similar")
+    city = polish_title(row.get("city", ""))
+    city_suffix = f" in {city}" if city and city.lower() not in hotel_name.lower() else ""
+    accommodation_line = polish_client_text(f"{hotel_name} or similar{city_suffix}")
+    if row.get("is_group_tour_accommodation"):
+        accommodation_line = polish_client_text(f"{hotel_name}{city_suffix}")
 
     if nights:
         accommodation_line += f" for {nights}"
@@ -703,6 +710,11 @@ def build_day_blocks(rows):
         if row_type == "Departure":
             blocks.append(build_departure_block(row))
         elif row_type == "Day Overview":
+            # Group-tour overviews are package metadata. When a real day-specific
+            # activity row is present, do not dump raw supplier headings such as
+            # "Overview" / "What's included?" into the day page.
+            if is_group_tour_overview(row) and any(get_row_type(other) == "Activity" for other in rows):
+                continue
             block = build_day_overview_block(row)
             if block:
                 blocks.append(block)

@@ -36,7 +36,10 @@ def preprocess_raw_rows(raw_text):
             continue
 
         parts = raw_line.split("\t")
-        starts_new_row = any(looks_like_day(part) for part in parts[:4])
+        # A real spreadsheet row is tab-separated. Supplier prose inside a quoted
+        # cell can begin with "Day 1:" / "Day 2:" and must stay attached to
+        # the current row, otherwise group-tour overviews are split apart.
+        starts_new_row = len(parts) > 1 and any(looks_like_day(part) for part in parts[:4])
 
         if not starts_new_row and is_optional_addon_header(raw_line):
             flush_current()

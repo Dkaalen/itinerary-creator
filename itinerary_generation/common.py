@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 
 from place_aliases import canonicalize_place_name, country_for_place, is_likely_service_text
+from itinerary_generation.group_tours import supplier_day_number
 from text_polish import polish_client_text
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
@@ -220,7 +221,16 @@ def get_primary_city(day_rows):
     if not day_rows:
         return ""
 
-    priority_types = ["Activity", "Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Arrival", "Departure", "Transfer"]
+    # In supplier group-tour days, a post-tour hotel row can be listed on the
+    # same calendar day as the final touring activity. The day header should
+    # still follow the activity destination, not the later hotel city.
+    for row in day_rows:
+        if get_row_type(row) == "Activity" and supplier_day_number(row):
+            city = canonicalize_place_name(row.get("city", "").strip())
+            if city and is_valid_destination_city(city):
+                return city
+
+    priority_types = ["Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Activity", "Arrival", "Departure", "Transfer"]
 
     for preferred_type in priority_types:
         for row in day_rows:

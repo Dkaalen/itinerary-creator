@@ -17,6 +17,7 @@ from collections import Counter
 import diagnostics
 from place_aliases import canonicalize_place_name, is_likely_service_text, is_known_place
 from text_polish import polish_client_text, polish_hotel_name, polish_inclusion_items, polish_inclusion_item, polish_title, expand_time_with_duration, format_duration_display
+from itinerary_generation.group_tours import add_group_tour_accommodation_rows, extract_supplier_day_title
 
 
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
@@ -222,43 +223,14 @@ def normalize_hotel_row(row: dict) -> dict:
     return row
 
 
-
-def _extract_supplier_day_heading(source: str) -> str:
-    """Extract the supplier's real day heading from long group-tour prose.
-
-    Group-tour activity rows often start with "Day 2: Explore ..." and then
-    continue with several paragraphs. The title must come from that first
-    heading, not from generic fallback tags or later marketing prose.
-    """
-    text = str(source or "").strip()
-    if not text:
-        return ""
-    first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
-    match = re.match(r"^Day\s+\d+\s*[:\-–]\s*(.+)$", first_line, flags=re.IGNORECASE)
-    if not match:
-        return ""
-    heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
-    heading = re.split(
-        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
-        heading,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0]
-    heading = heading.strip(" -:|.,")
-    if not heading:
-        return ""
-    if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
-        heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
-    return polish_title(heading)
-
 def normalize_activity_title(row: dict) -> str:
     source = text_blob(row)
     lower = source.lower()
     city = canonicalize_place_name(row.get("city", ""))
 
-    supplier_day_heading = _extract_supplier_day_heading(row.get("original_title") or row.get("details") or source)
-    if supplier_day_heading:
-        return supplier_day_heading
+    supplier_title = extract_supplier_day_title(f'{row.get("details", "")}\n{row.get("original_title", "")}\n{row.get("title", "")}')
+    if supplier_title:
+        return supplier_title
 
     if looks_like_departure_text(source):
         return f"Departure from {city}" if city else "Departure"
@@ -445,12 +417,18 @@ def normalize_time_range_fields(row: dict) -> dict:
 
 def normalize_transport_title(row: dict) -> dict:
     title = polish_title(row.get("title", ""))
+    title = re.sub(r"\s*,?\s*cost not included\s*,?\s*self[- ]?arranged\s*", " ", title, flags=re.IGNORECASE).strip(" ,-|")
+    title = re.sub(r"\s*,?\s*self[- ]?arranged\s*", " ", title, flags=re.IGNORECASE).strip(" ,-|")
+    title = re.sub(r"\s*,?\s*cost not included\s*", " ", title, flags=re.IGNORECASE).strip(" ,-|")
     details = polish_client_text(row.get("details", ""))
     full = f"{title} {details}".lower()
     if "tallin" in full:
         row["title"] = re.sub("Tallin", "Tallinn", title, flags=re.IGNORECASE)
     if "rovaneimi" in full:
         row["title"] = re.sub("Rovaneimi", "Rovaniemi", title, flags=re.IGNORECASE)
+    row["title"] = row.get("title") or title
+    if title:
+        row["title"] = title
     if row.get("type") == "Cruise" or "overnight cruise" in full:
         if "stockholm" in full:
             row["title"] = "Cruise to Stockholm"
@@ -491,7 +469,12 @@ def _is_rail_or_fjord_route_activity(row: dict) -> bool:
 
 def _is_route_transfer_activity(row: dict) -> bool:
     text = text_blob(row).lower()
-    return bool(re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text))
+    if re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text):
+        return True
+    return bool(
+        re.search(r"\b(?:long[- ]distance\s+)?(?:panorama|panoramic|scenic)?\s*(?:coach|bus)\s+(?:transfer\s+)?[a-zà-ÿøåäö ]+\s+to\s+", text)
+        or re.search(r"\b(?:train|flight|ferry|cruise)\s+[a-zà-ÿøåäö ]+\s+to\s+", text)
+    )
 
 def normalize_row(row: dict) -> dict:
     row = copy.deepcopy(row)
@@ -513,7 +496,7 @@ def normalize_row(row: dict) -> dict:
     row_type = get_row_type(row)
     full = text_blob(row)
 
-    if looks_like_departure_text(full):
+    if row_type in {"Departure", "Transfer"} and looks_like_departure_text(full):
         row["effective_type"] = "Departure"
         row["type"] = row.get("type") or "Departure"
         city = canonicalize_place_name(row.get("city", ""))
@@ -677,5 +660,6 @@ def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
     normalized = [normalize_row(row) for row in rows or []]
     normalized = _fill_missing_context_cities(normalized)
     normalized = apply_contextual_travel_corrections(normalized)
+    normalized = add_group_tour_accommodation_rows(normalized)
     normalized = add_repeated_activity_context(normalized)
     return normalized
