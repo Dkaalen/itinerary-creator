@@ -299,6 +299,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             line-height: 1.28;
             color: var(--cover-ink);
             margin: 0 auto;
+            text-align: center;
             text-wrap: balance;
         }}
 
@@ -339,6 +340,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--cover-ink);
+            max-width: 720px;
+            margin: 0 auto;
+            text-align: center;
+            text-wrap: balance;
         }}
 
         .glance-card,

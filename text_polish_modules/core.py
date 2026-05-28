@@ -105,6 +105,9 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bin central of\s+", "in central ", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPick-up/drop-off in central of\s+", "Pick-up/drop-off in central ", text, flags=re.IGNORECASE)
     text = re.sub(r"\bFull\s+Pention\b", "Full pension", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bFLybus\b", "Flybus", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bFlyBus\b", "Flybus", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -177,6 +180,8 @@ _TITLE_REPLACEMENTS = [
     (r"\bhelsinki\b", "Helsinki"),
     (r"\btallinn\b", "Tallinn"),
     (r"\bcopenhagen\b", "Copenhagen"),
+    (r"\bsvolv[aæ]r\b|\bsvolvaer\b|\bsvolaver\b", "Svolvær"),
+    (r"\bgothenburg\b|\bgothernburg\b", "Gothenburg"),
     (r"\bstockholm\b", "Stockholm"),
     (r"\bmalm[oø]\b", "Malmö"),
     (r"\bkirkenes\b", "Kirkenes"),

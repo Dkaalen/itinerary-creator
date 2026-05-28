@@ -222,10 +222,43 @@ def normalize_hotel_row(row: dict) -> dict:
     return row
 
 
+
+def _extract_supplier_day_heading(source: str) -> str:
+    """Extract the supplier's real day heading from long group-tour prose.
+
+    Group-tour activity rows often start with "Day 2: Explore ..." and then
+    continue with several paragraphs. The title must come from that first
+    heading, not from generic fallback tags or later marketing prose.
+    """
+    text = str(source or "").strip()
+    if not text:
+        return ""
+    first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
+    match = re.match(r"^Day\s+\d+\s*[:\-–]\s*(.+)$", first_line, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
+    heading = re.split(
+        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        heading,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    heading = heading.strip(" -:|.,")
+    if not heading:
+        return ""
+    if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
+        heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
+    return polish_title(heading)
+
 def normalize_activity_title(row: dict) -> str:
     source = text_blob(row)
     lower = source.lower()
     city = canonicalize_place_name(row.get("city", ""))
+
+    supplier_day_heading = _extract_supplier_day_heading(row.get("original_title") or row.get("details") or source)
+    if supplier_day_heading:
+        return supplier_day_heading
 
     if looks_like_departure_text(source):
         return f"Departure from {city}" if city else "Departure"

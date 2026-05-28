@@ -1,3 +1,4 @@
+import re
 from itinerary_generation.common import (
     get_day_count,
     get_day_number,
@@ -122,6 +123,16 @@ def _compact_arc_phrase(candidates):
 
 
 def describe_city_experience(rows):
+    # For multi-day destination chapters, do not let arrival/through-transport
+    # dominate the city summary when there are real destination experiences
+    # later in the same chapter. Example: Bergen should not be labelled as
+    # "Norway in a Nutshell" for the whole stay just because day 1 in Bergen is
+    # the arrival leg of that route.
+    primary_experience_rows = [
+        row for row in rows
+        if get_row_type(row) == "Activity" and (row.get("effective_type") or row.get("type")) == "Activity"
+    ]
+    text_rows = primary_experience_rows or rows
     text = " ".join(
         " ".join([
             str(row.get("city", "")),
@@ -130,7 +141,7 @@ def describe_city_experience(rows):
             str(row.get("details", "")),
             " ".join(row.get("includes", []) or []),
         ]).lower()
-        for row in rows
+        for row in text_rows
     )
     row_types = {get_row_type(row) for row in rows}
 
@@ -142,9 +153,9 @@ def describe_city_experience(rows):
     has_hotel_only = row_types == {"Hotel"}
     travel_only_with_hotel = row_types.issubset({"Hotel", "Transfer", "Flight", "Train", "Transport", "Cruise", "Ferry"}) and any(get_row_type(row) == "Hotel" for row in rows)
 
-    has_nutshell = has_norway_in_a_nutshell(rows) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
+    has_nutshell = (not primary_experience_rows and has_norway_in_a_nutshell(rows)) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
     has_self_drive = _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "rental car")
-    has_lagoon = _has(text, "blue lagoon", "sky lagoon", "spa", "wellness", "7-step", "ritual")
+    has_lagoon = _has(text, "blue lagoon", "sky lagoon", "wellness", "7-step", "ritual") or bool(re.search(r"\bspa\b", text))
     has_silfra = _has(text, "silfra", "snork")
     has_golden = _has(text, "golden circle", "kerið", "kerid")
     has_south = _has(text, "south coast", "diamond beach", "black sand")
@@ -162,6 +173,15 @@ def describe_city_experience(rows):
     has_flight = _has(text, "flight")
 
     candidates = []
+
+    if _has(text, "borgarfjörður", "borgarfjordur", "hraunfossar", "barnafoss"):
+        candidates.append("Borgarfjörður valley and waterfalls")
+    if _has(text, "snæfellsnes", "snaefellsnes", "kirkjufell", "arnarstapi"):
+        candidates.append("Snæfellsnes Peninsula highlights")
+    if _has(text, "south coast waterfalls", "seljalandsfoss", "skógafoss", "skogafoss", "reynisfjara"):
+        candidates.append("South Coast waterfalls and glacier hike")
+    if _has(text, "jökulsárlón", "jokulsarlon", "diamond beach", "ice cave"):
+        candidates.append("Glacier lagoon and ice caves")
 
     if _has(text, "spend time at leisure onboard the cruise") and row_types == {"Cruise"}:
         candidates.append("Coastal cruise at leisure")
@@ -186,7 +206,12 @@ def describe_city_experience(rows):
     elif has_lagoon and has_self_drive:
         candidates.append("Lagoon and scenic self-drive route")
     elif has_lagoon:
-        candidates.append("Lagoon and wellness")
+        if "blue lagoon" in text:
+            candidates.append("Blue Lagoon experience")
+        elif "sky lagoon" in text:
+            candidates.append("Sky Lagoon experience")
+        else:
+            candidates.append("Lagoon and wellness")
 
     if has_south and has_adventure:
         candidates.append("South Coast scenery and soft adventure")

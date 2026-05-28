@@ -220,7 +220,7 @@ def get_primary_city(day_rows):
     if not day_rows:
         return ""
 
-    priority_types = ["Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Activity", "Arrival", "Departure", "Transfer"]
+    priority_types = ["Activity", "Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Arrival", "Departure", "Transfer"]
 
     for preferred_type in priority_types:
         for row in day_rows:

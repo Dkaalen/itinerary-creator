@@ -52,10 +52,35 @@ def _looks_like_norway_in_a_nutshell(text: str) -> bool:
     return has_flam and has_fjord and has_route
 
 
+
+def _extract_supplier_day_heading(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+    first_line = next((line.strip() for line in raw.splitlines() if line.strip()), "")
+    match = re.match(r"^Day\s+\d+\s*[:\-–]\s*(.+)$", first_line, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
+    heading = re.split(
+        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        heading,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    heading = heading.strip(" -:|.,")
+    if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
+        heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
+    return polish_title(heading)
+
 def create_client_activity_title(row):
     title = clean_client_title(strip_price_fragments(row.get("title", "")))
     original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
+
+    supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
+    if supplier_heading and title.lower().startswith("guided experience"):
+        title = supplier_heading
 
     if not title:
         for segment in re.split(r"\s*\|\s*|\s+-\s+", details):
@@ -64,8 +89,9 @@ def create_client_activity_title(row):
                 title = candidate
                 break
 
-    title_text = f"{original_title} {title}".lower()
-    full_text = f"{title_text} {details}".lower()
+    title_text = str(title or original_title or "").lower()
+    original_title_text = str(original_title or "").lower()
+    full_text = f"{title_text} {original_title_text} {details}".lower()
 
     if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
         return _route_label_from_activity_text(f"{original_title} {title} {details}")
@@ -74,6 +100,8 @@ def create_client_activity_title(row):
         return "Meet Santa Claus and his friends"
 
     if "blue lagoon" in full_text or "bluelagoon" in full_text:
+        if any(marker in title_text for marker in ["volcano", "eruption", "fagradalsfjall"]):
+            return polish_title(title)
         if "premium" in full_text:
             return "Blue Lagoon Premium Admission"
         return "Blue Lagoon Admission"

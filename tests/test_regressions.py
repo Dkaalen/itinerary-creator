@@ -1252,6 +1252,7 @@ def test_optional_addon_inclusion_fragments_are_merged():
 def test_v36c57_real_uploaded_inputs_quality_gate():
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.titles import create_client_activity_title, create_trip_title
+    from itinerary_generation.summaries import create_journey_arc
     from ui.day_blocks import build_day_blocks
     from ui.day_pages import render_categorized_inclusions_pages
     from ui.final_pages import create_optional_addons, render_optional_addons_pages
@@ -1286,10 +1287,14 @@ def test_v36c57_real_uploaded_inputs_quality_gate():
 
     iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_group_tour_winter.txt").read_text(encoding="utf-8")))
     iceland_grouped = group_rows_by_day(iceland_rows)
+    iceland_arc = create_journey_arc(iceland_grouped)
+    iceland_arc_text = "\n".join(item["experience"] for item in iceland_arc)
+    assert_contains(iceland_arc_text, "Borgarfjörður valley and waterfalls", "Iceland group-tour day headings should drive the Journey Arc, not generic Northern Lights text.")
+    assert_contains(iceland_arc_text, "Blue Lagoon experience", "Blue Lagoon days should be summarized specifically, not as generic lagoon and wellness repetition.")
     assert_equal(create_trip_title(iceland_rows, iceland_grouped), "Snæfellsnes & South Coast Adventure", "Iceland group tour should keep its group-tour trip title.")
     assert "Day 9" in iceland_grouped, "Iceland fixture should parse all pasted group-tour days."
     blue_lagoon_row = next(row for row in iceland_rows if "Blue Lagoon" in row.get("title", "") or "Blue Lagoon" in row.get("original_title", ""))
-    assert_equal(create_client_activity_title(blue_lagoon_row), "Blue Lagoon Admission", "Known activity titles should still normalize in parsed real inputs.")
+    assert_equal(create_client_activity_title(blue_lagoon_row), "Blue Lagoon & Volcano Eruption Site Tour", "Combo Blue Lagoon products should keep the full experience title instead of becoming a generic admission.")
     iceland_sections = create_categorized_inclusions(iceland_rows, iceland_grouped)
     iceland_output_text = "\n".join(item for section in iceland_sections for item in section.get("items", []))
     assert_not_contains(iceland_output_text, "Single traveler supplement fee €500", "Group-tour commercial supplements must not leak into client-facing inclusions.")
