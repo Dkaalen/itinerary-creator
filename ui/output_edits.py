@@ -45,11 +45,10 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
         for row in rows:
             row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
             row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-            old_description = get_activity_description(row, old_detail)
-            new_description = get_activity_description(row, new_detail)
-            current_description = row_edit.get("client_description", "")
-            if old_description and (not current_description or current_description == old_description):
-                row_edit["client_description"] = new_description
+            # Description generation is centralized in the content engine.
+            # Preserve manual descriptions only; do not overwrite with generic
+            # fallback text when changing detail level.
+            row_edit.setdefault("client_description", row.get("client_description", ""))
 
     output_edits["detail_level"] = new_detail
     return output_edits
@@ -75,10 +74,12 @@ def apply_rich_writing_to_day(day, rows, output_edits):
     for row in rows:
         row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
         row_edit = output_edits.setdefault("rows", {}).setdefault(row_id, {})
-        if get_row_type(row) == "Activity":
-            description = get_activity_description(row, "Rich descriptive")
-            if description:
-                row_edit["client_description"] = description
+        # Do not pre-freeze generated activity descriptions in edit state.
+        # Final descriptions are selected by the central content engine at render
+        # time so real supplier text can outrank generic fallbacks. Manual edits
+        # are still preserved through apply_output_edits().
+        if get_row_type(row) == "Activity" and "client_description" not in row_edit:
+            row_edit["client_description"] = row.get("client_description", "")
 
     output_edits["detail_level"] = "Rich descriptive"
     return output_edits
@@ -128,7 +129,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
                 "city": row.get("city", ""),
                 "time": row.get("time", ""),
                 "duration": row.get("duration", ""),
-                "client_description": row.get("client_description") or get_activity_description(row, edits["detail_level"]),
+                "client_description": row.get("client_description", ""),
                 "meeting_point": row.get("meeting_point", ""),
                 "end_point": row.get("end_point", ""),
                 "luggage_included": row.get("luggage_included", ""),

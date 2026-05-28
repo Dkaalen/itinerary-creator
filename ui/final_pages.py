@@ -7,6 +7,7 @@ from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items, polish_title, strip_price_fragments
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES
+from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from ui.render_helpers import (
     display_time,
     esc,
@@ -237,7 +238,9 @@ def clean_activity_inclusion_items(items, title=""):
                 continue
         merged_items.append(item)
 
-    clean_items = [_polish_activity_bullet_case(item) for item in polish_inclusion_items(merged_items, title)]
+    clean_items = [_polish_activity_bullet_case(item) for item in merge_compound_inclusions(merged_items)]
+    clean_items = [sanitize_inclusion_item(item, title) for item in clean_items]
+    clean_items = [item for item in clean_items if item]
     if not clean_items or all(looks_like_descriptive_prose(item) for item in clean_items):
         return []
     return clean_items

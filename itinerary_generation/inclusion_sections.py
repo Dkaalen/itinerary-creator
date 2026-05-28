@@ -17,6 +17,7 @@ from text_polish import polish_hotel_name, polish_inclusion_item, polish_title
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only, has_self_drive_markers
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.content_engine import sanitize_inclusion_item, merge_compound_inclusions, clean_client_title
 
 
 def _clean(value: str) -> str:
@@ -121,6 +122,7 @@ def _hotel_line(row: dict) -> str:
 
 def _activity_line(row: dict) -> str:
     title = create_client_activity_title(row) or row.get("title", "")
+    title = clean_client_title(title, row) or title
     if "norway in a nutshell" in str(title).lower():
         return polish_title(title)
     return normalize_client_day_title(title, row)
@@ -176,7 +178,9 @@ def _transport_line(row: dict) -> str:
     title = get_premium_transport_phrase(row) or _route_transport_line(row) or _clean_transport_title(row)
     extras = []
     for item in row.get("includes", []) or []:
-        item = polish_inclusion_item(item, title)
+        item = sanitize_inclusion_item(item, title)
+        if not item:
+            continue
         lower = item.lower()
         if lower in {"tickets included", "ticket included"}:
             if "coach" in title.lower() or "bus" in title.lower():
@@ -194,6 +198,7 @@ def _transport_line(row: dict) -> str:
     if luggage:
         _add_unique(extras, luggage)
     if extras:
+        extras = merge_compound_inclusions(extras)
         detail = _join_detail_parts(extras).strip(" .")
         if detail:
             detail = re.sub(r"\bFull pension Meal plan\b", "full pension meal plan", detail, flags=re.IGNORECASE)

@@ -86,7 +86,7 @@
     .cover-page .page-content { position: absolute; inset: 0; min-height: var(--page-h); box-sizing: border-box; padding: 0; display: block; }
     .cover-emblem { width: 52px; height: 52px; border: 1px solid rgba(184,149,85,.72); border-radius: 50%; margin: 0 auto 15px auto; position: relative; }
     .cover-emblem::before { content: "✦"; position: absolute; left: 0; right: 0; top: 13px; text-align: center; font-size: 18px; color: var(--cover-accent, #b89555); }
-    .cover-main { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 610px; max-width: calc(100% - 144px); margin: 0; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .cover-main { position: absolute; top: 70px; left: 0; right: 0; transform: none; width: auto; max-width: none; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; }
     .cover-destination-card { margin: 20px auto 0 auto; padding-top: 0; max-width: 610px; }
     .cover-destination-label { font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--cover-accent, #b89555); font-weight: 800; margin-bottom: 10px; }
     .cover-kicker, .city, .section-title, .row-type {
@@ -109,8 +109,9 @@
       font-family: Georgia, 'Times New Roman', serif;
       color: var(--cover-ink, var(--ink));
       display: block;
-      width: 100%;
-      max-width: 500px;
+      width: 610px;
+      max-width: calc(100% - 144px);
+      box-sizing: border-box;
       font-size: 21px;
       line-height: 1.28;
       margin: 0 auto;
@@ -153,6 +154,8 @@
     [contenteditable="true"]:hover { background: rgba(232, 182, 86, 0.16); box-shadow: 0 0 0 1px rgba(232,182,86,0.24); }
     [contenteditable="true"]:focus { background: rgba(255, 246, 213, 0.94); box-shadow: 0 0 0 2px var(--focus); }
     .editable-inline { padding: 1px 2px; margin-left: -2px; }
+    .cover-main .editable-inline { margin-left: 0 !important; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; align-self: center !important; }
+    .cover-main .cover-title, .cover-main .cover-subtitle, .cover-main .cover-destinations, .cover-main .cover-kicker { margin-left: auto !important; margin-right: auto !important; text-align: center !important; }
     .day-blocks[contenteditable="true"] { padding: 2px; margin: -2px; }
     .image-stage {
       position: absolute;

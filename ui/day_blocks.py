@@ -10,8 +10,9 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
-from itinerary_generation.content_engine import client_activity_description, group_tour_pickup_window_from_overview, is_group_tour_overview
+from itinerary_generation.content_engine import client_activity_description, group_tour_pickup_window_from_overview, is_group_tour_overview, merge_compound_inclusions, sanitize_inclusion_item, clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
+from itinerary_generation.canonical_builder import canonical_activity_block, canonical_accommodation_block, should_hide_note_row
 from text_polish import (
     strip_price_fragments,
     format_duration_display,
@@ -163,69 +164,31 @@ def _supplier_activity_description(row, max_sentences=4):
 
 
 def build_activity_block(row):
-    title = normalize_client_day_title(create_client_activity_title(row) or row.get("title", ""), row)
-    time = row.get("display_time") or row.get("time", "")
-    duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
-    meeting_label, meeting_point = get_activity_logistics(row)
-    meeting_point = polish_client_text(meeting_point)
-    end_point = polish_client_text(row.get("end_point", ""))
-    notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
-    description = client_activity_description(row, get_activity_description(row))
-    included_items = clean_activity_inclusion_items([strip_price_fragments(item) for item in row.get("includes", [])], title)
-    fallback_items = get_fallback_activity_inclusions(row)
+    block = canonical_activity_block(row)
 
-    if not included_items:
-        included_items = fallback_items
-    elif title == "Day Trip to Tallinn" and fallback_items:
-        for item in fallback_items:
-            if item not in included_items:
-                included_items.append(item)
-        if "Guided experience" in included_items and len(included_items) > 1:
-            included_items = [item for item in included_items if item != "Guided experience"]
+    html_text = f'<div class="content-block activity-block" data-row-id="{esc(block.row_id)}">'
+    html_text += f'<div class="section-title">{esc(block.section_title)}</div>'
+    html_text += f'<div class="body-text strong-line">{esc(block.title)}</div>'
 
-    included_items = polish_inclusion_items(included_items, title)
+    for meta in block.meta:
+        if meta.value:
+            html_text += f'<div class="body-text"><span class="meta-label">{esc(meta.label)}:</span> {esc(meta.value)}</div>'
 
-    html_text = f'<div class="content-block activity-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += f'<div class="section-title">{esc(get_time_period(time))}</div>'
-    html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
-
-    time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
-    pickup_range = row.get("group_tour_pickup_range", "")
-    if pickup_range:
-        html_text += f'<div class="body-text"><span class="meta-label">Pick-up:</span> {esc(pickup_range)}</div>'
-    elif time_display:
-        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time_display)}</div>'
-
-    if duration:
-        duration_label = get_activity_duration_label(row, duration)
-        clean_duration = format_duration_display(duration)
-        html_text += f'<div class="body-text"><span class="meta-label">{esc(duration_label)}:</span> {esc(clean_duration)}</div>'
-
-    if meeting_point:
-        html_text += f'<div class="body-text"><span class="meta-label">{esc(meeting_label)}:</span> {esc(meeting_point)}</div>'
-
-    if included_items:
+    if block.includes:
         html_text += '<div class="section-title small-section">Included With This Experience</div>'
-        html_text += render_list_items(prioritize_inline_inclusions(included_items, max_items=5))
+        html_text += render_list_items(block.includes)
 
-    if end_point:
-        html_text += f'<div class="body-text"><span class="meta-label">End point:</span> {esc(end_point)}</div>'
-
-    if description:
+    if block.description:
         html_text += '<div class="section-title small-section">Description</div>'
-        html_text += f'<div class="body-text muted-note">{esc(description)}</div>'
+        html_text += f'<div class="body-text muted-note">{esc(block.description)}</div>'
 
-    if notable_sights:
+    if block.notable_sights:
         html_text += '<div class="section-title small-section">Notable Sights</div>'
-        html_text += render_list_items(notable_sights)
+        html_text += render_list_items(block.notable_sights)
 
     html_text += "</div>"
 
-    return {
-        "kind": "activity",
-        "row_id": row.get("row_id", ""),
-        "html": html_text,
-    }
+    return {"kind": block.kind, "row_id": block.row_id, "html": html_text}
 
 
 def build_transport_block(row, title_override=None):
@@ -316,48 +279,14 @@ def build_self_arranged_travel_block(row, title_override=None):
 
 
 def build_accommodation_block(row):
-    hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
-    nights = plural_nights(row.get("hotel_nights", ""))
-    room_category = polish_client_text(row.get("room_category") or "")
-    meal = meal_phrase(row.get("meal_plan", ""))
-    city = polish_title(row.get("city", ""))
-
-    accommodation_line = polish_client_text(f"{hotel_name} or similar")
-    if row.get("is_group_tour_accommodation"):
-        accommodation_line = polish_client_text(hotel_name)
-
-    if city and city.lower() not in accommodation_line.lower():
-        accommodation_line += f" in {city}"
-
-    if nights:
-        accommodation_line += f" for {nights}"
-
-    room_line_parts = []
-
-    if room_category:
-        room_line_parts.append(f"Room category: {room_category}")
-
-    if meal:
-        if room_line_parts:
-            room_line_parts[-1] += f", {meal}"
-        else:
-            room_line_parts.append(meal.capitalize())
-
-    html_text = f'<div class="content-block accommodation-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    section_title = "Overnight" if row.get("is_group_tour_accommodation") else "Accommodation"
-    html_text += f'<div class="section-title">{esc(section_title)}</div>'
-    html_text += f'<div class="body-text strong-line">{esc(accommodation_line)}</div>'
-
-    for line in room_line_parts:
-        html_text += f'<div class="body-text">{esc(line)}</div>'
-
+    block = canonical_accommodation_block(row)
+    html_text = f'<div class="content-block accommodation-block" data-row-id="{esc(block.row_id)}">'
+    html_text += f'<div class="section-title">{esc(block.section_title)}</div>'
+    html_text += f'<div class="body-text strong-line">{esc(block.title)}</div>'
+    for line in block.lines:
+        html_text += f'<div class="body-text muted-note">{esc(line)}</div>'
     html_text += "</div>"
-
-    return {
-        "kind": "accommodation",
-        "row_id": row.get("row_id", ""),
-        "html": html_text,
-    }
+    return {"kind": block.kind, "row_id": block.row_id, "html": html_text}
 
 
 def build_leisure_block(row=None):
@@ -665,7 +594,7 @@ def get_travel_sequence_line(row):
         return polish_title(get_transfer_travel_title(row) or row.get("title", ""))
 
     if row_type == "Transfer":
-        return polish_title(row.get("title", ""))
+        return clean_client_title(row.get("title", ""), row)
 
     if row_type in TRANSPORT_TYPES:
         phrase = get_premium_transport_phrase(row)
@@ -841,6 +770,11 @@ def build_day_blocks(rows):
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
             blocks.append(build_leisure_block(row))
+        elif row_type in {"Notes", "Note"}:
+            # Internal / operational notes must not leak into client-facing PDFs.
+            if should_hide_note_row(row):
+                continue
+            continue
         elif _is_cruise_leisure_row(row):
             blocks.append(build_cruise_leisure_block(row))
         elif title:

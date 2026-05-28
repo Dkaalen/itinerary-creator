@@ -19,7 +19,7 @@ from itinerary_generation.transport import (
 )
 from text_polish import strip_price_fragments, polish_title
 from place_aliases import country_for_place
-from itinerary_generation.content_engine import cleaned_generic_activity_title
+from itinerary_generation.content_engine import cleaned_generic_activity_title, clean_client_title as engine_clean_client_title
 from itinerary_generation.cover_theme import (
     SEASON_LABELS,
     SEASON_SUBTITLES,
@@ -87,6 +87,10 @@ BAD_TITLE_PATTERNS = [
     r"\bself[-\s]?arranged\b",
     r"\bwhat'?s\s+included\b",
     r"\boverview\b",
+    r"\bopening hours\b",
+    r"\bincludese\b",
+    r"\bleisure as requested\b",
+    r"\bself\s+transfer\s+to\b",
 ]
 
 
@@ -126,6 +130,13 @@ def create_client_activity_title(row):
     title = clean_client_title(strip_price_fragments(row.get("title", "")))
     original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
+
+    # First pass through the central title sanitizer. If it can identify a
+    # high-confidence client-facing title (museum, leisure, raw ticket/admin
+    # title, etc.), use it before older product-specific fallbacks.
+    sanitized_title = engine_clean_client_title(title or original_title or details, row)
+    if sanitized_title and not is_bad_raw_day_title(sanitized_title):
+        title = sanitized_title
 
     supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
     if supplier_heading and (title.lower().startswith("guided experience") or is_bad_raw_day_title(title)):
@@ -398,6 +409,15 @@ def create_day_title(day_rows):
             if not is_bad_raw_day_title(candidate):
                 return candidate
 
+    # Route-aware scenic journeys should keep their destination in the day title,
+    # even when the row has been reclassified from Activity to Transport.
+    for row in day_rows:
+        full_row_text = f"{row.get('original_title', '')} {row.get('title', '')} {row.get('details', '')}"
+        if _looks_like_norway_in_a_nutshell(full_row_text):
+            route_title = normalize_client_day_title(_route_label_from_activity_text(full_row_text), row)
+            if route_title:
+                return route_title
+
     # Travel days with a hotel check-in should be titled by the main travel
     # movement rather than by a later evening activity or transfer.
     if hotel_present and transport_title:
@@ -427,6 +447,8 @@ def create_day_title(day_rows):
                         return f"Stay in {city}"
 
                 if title:
+                    if item_type == "Leisure" and city:
+                        return f"A day at leisure in {city}"
                     clean_title = normalize_client_day_title(title, row)
                     return clean_title or title
 

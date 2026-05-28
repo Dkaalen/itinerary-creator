@@ -194,7 +194,7 @@ def is_valid_destination_city(city):
         "addon on request",
         "flight ",
     ]
-    invalid_exact = {"accommodation", "hotel", "train", "flight", "cruise", "departure", "arrival"}
+    invalid_exact = {"accommodation", "hotel", "train", "flight", "cruise", "departure", "arrival", "car", "drive", "self drive", "self-drive"}
     if lower in invalid_exact:
         return False
     if any(re.search(pattern, lower) for pattern in [r"\bshower\b", r"\bsink\b", r"\bwc in carriage\b", r"\bbenefits\b", r"\bmade bed\b", r"women's", r"men's compartment"]):

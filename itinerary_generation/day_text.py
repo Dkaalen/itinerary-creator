@@ -328,11 +328,20 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         return f"Continue your journey with arranged travel connected to {display_city}. The route is structured to stay clear, comfortable, and easy to follow."
 
     if transfers and city:
+        transfer_text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in transfers).lower()
+        if "self transfer" in transfer_text or "self-drive" in transfer_text or "drive" in transfer_text or "car rental" in transfer_text:
+            if "jökulsárlón" in transfer_text or "jokulsarlon" in transfer_text:
+                return "Set out on a scenic self-drive day towards Jökulsárlón, with the route and accommodation arranged so you can travel at your own pace."
+            if "reykjav" in transfer_text:
+                return "Continue your self-drive journey back towards Reykjavík, with time to enjoy the route before checking in to your next stay."
+            if "car rental" in transfer_text or "rental" in transfer_text:
+                return "Pick up your rental vehicle today and begin the self-drive portion of the journey, with the route planned clearly for the day ahead."
+            return f"Continue by self-drive or self transfer in {city}, with the day structured to keep the route clear and easy to follow."
         if detail_level == "Elegant concise":
-            return f"Arrangements in {city} are kept smooth and simple."
+            return f"Today’s logistics in {city} are kept smooth and simple."
         if detail_level == "Rich descriptive":
-            return f"The arrangements in {city} are designed to keep the day smooth and comfortable, with the key logistics handled clearly."
-        return f"Arrangements in {city} are designed to keep the journey smooth and easy to follow."
+            return f"Today’s arrangements in {city} are kept clear and comfortable, with the key logistics handled in an easy-to-follow way."
+        return f"Today’s arrangements in {city} are kept smooth and easy to follow."
 
     if leisure and city:
         if detail_level == "Elegant concise":

@@ -166,11 +166,12 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         .cover-main {{
             position: absolute;
             top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 610px;
-            max-width: calc(100% - 144px);
-            margin: 0;
+            left: 0;
+            right: 0;
+            transform: none;
+            width: auto;
+            max-width: none;
+            margin: 0 auto;
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -303,8 +304,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .cover-subtitle {{
             display: block;
-            width: 500px;
-            max-width: 500px;
+            width: 610px;
+            max-width: calc(100% - 144px);
             font-size: 22px;
             line-height: 1.28;
             color: var(--cover-ink);

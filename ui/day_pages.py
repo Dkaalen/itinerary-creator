@@ -1,8 +1,7 @@
 """A4 day-page rendering helpers."""
 
 from itinerary_generation.common import get_primary_city, get_row_type
-from itinerary_generation.day_text import create_day_intro
-from itinerary_generation.titles import create_day_title
+from itinerary_generation.canonical_builder import canonical_day
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
 from text_polish import polish_client_text
 from ui.day_blocks import build_day_blocks
@@ -17,14 +16,13 @@ from ui.render_helpers import (
 
 def render_day_section(day, rows, output_edits=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
-    day_title = day_edits.get("title") or create_day_title(rows)
     detail_level = get_detail_level_name(output_edits)
-    day_intro = day_edits.get("intro") or create_day_intro(rows, detail_level=detail_level)
-    city = day_edits.get("city") or get_primary_city(rows)
-    if not city and any(get_row_type(row) == "Cruise" for row in rows):
-        city = "Cruise"
+    canonical = canonical_day(day, rows, output_edits=output_edits, detail_level=detail_level)
+    day_title = canonical.title
+    day_intro = canonical.intro
+    city = canonical.city
     blocks = build_day_blocks(rows)
-    day_number = str(day).replace("Day", "").strip() or str(day).strip()
+    day_number = canonical.number
     day_kicker_html = f"DAY {esc(day_number)}"
     if city:
         day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(str(city).upper())}'

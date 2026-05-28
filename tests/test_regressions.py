@@ -1341,8 +1341,9 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
 
     full_html = build_itinerary_html(rows, grouped)
     assert_contains(full_html, ".cover-subtitle", "Preview HTML should include the cover subtitle CSS.")
-    assert_contains(full_html, "left: 50%", "Preview cover text stack should use a single centered anchor.")
-    assert_contains(full_html, "max-width: 500px", "Preview cover subtitle should use the fixed centered subtitle block.")
+    assert_contains(full_html, "left: 0", "Preview cover text stack should span the A4 page and center its children.")
+    assert_contains(full_html, "right: 0", "Preview cover text stack should share the full A4 center axis.")
+    assert_contains(full_html, "transform: none", "Preview cover alignment should not rely on a separate subtitle offset.")
     assert_contains(full_html, "text-align: center", "Preview cover subtitle should be explicitly centered.")
     assert_not_contains(full_html, "12:00 AM noon", "Important notes should not contain impossible noon wording.")
 
