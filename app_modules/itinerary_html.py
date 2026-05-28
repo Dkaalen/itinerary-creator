@@ -168,9 +168,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             max-width: 610px;
             margin: 4px auto 0 auto;
             text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }}
 
         .cover-emblem {{
@@ -194,11 +191,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .cover-destination-card {{
-            width: 100%;
             margin: 20px auto 0 auto;
             padding-top: 0;
             max-width: 610px;
-            text-align: center;
         }}
 
         .summary-page {{
@@ -300,12 +295,14 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .cover-subtitle {{
-            width: 100%;
+            display: block;
+            width: 560px;
             max-width: 560px;
             font-size: 22px;
             line-height: 1.28;
             color: var(--cover-ink);
-            margin: 0 auto;
+            margin-left: auto;
+            margin-right: auto;
             text-align: center;
             text-wrap: balance;
         }}

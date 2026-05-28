@@ -14,7 +14,16 @@ from itinerary_generation.common import (
 
 def has_airport_arrival_transfer(day_rows):
     text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
-    return ("airport" in text and ("to hotel" in text or "to accommodation" in text or "to your accommodation" in text))
+    return (
+        "airport" in text
+        and (
+            "to hotel" in text
+            or "to accommodation" in text
+            or "to your accommodation" in text
+            or "to city centre" in text
+            or "to city center" in text
+        )
+    )
 
 
 def has_airport_departure_transfer(day_rows):
@@ -273,10 +282,7 @@ def get_primary_transport_title(day_rows):
     for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
-                if preferred_type == "Flight":
-                    title = get_premium_transport_phrase(row) or polish_title(str(row.get("title", "")).strip())
-                else:
-                    title = polish_title(str(row.get("title", "")).strip())
+                title = polish_title(str(row.get("title", "")).strip())
                 if title:
                     return title
 

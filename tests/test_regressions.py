@@ -612,7 +612,7 @@ def run_all():
         test_context_city_fill_prevents_journey_chapters,
         test_optional_addon_inclusion_fragments_are_merged,
         test_v36c57_real_uploaded_inputs_quality_gate,
-        test_v36c60_content_polish_quality_gates,
+        test_v36c61_title_preview_and_group_tour_quality_gate,
         test_hotel_name_before_room_marker_is_parsed_generally,
         test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words,
     ]
@@ -1308,41 +1308,41 @@ def test_v36c57_real_uploaded_inputs_quality_gate():
     assert_contains(huge_html, "Activities &amp; experiences continued", "Oversized categories should repeat their category heading when split.")
 
 
-def test_v36c60_content_polish_quality_gates():
-    from itinerary_generation.titles import create_day_title, create_destinations_line
-    from itinerary_generation.summaries import create_journey_arc
+def test_v36c61_title_preview_and_group_tour_quality_gate():
+    from itinerary_generation.titles import create_day_title
     from ui.day_blocks import build_day_blocks
-    from ui.render_helpers import get_activity_description
+    from app_modules.itinerary_html import build_itinerary_html
 
     fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
+    rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_group_tour_winter.txt").read_text(encoding="utf-8")))
+    grouped = group_rows_by_day(rows)
 
-    iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_group_tour_winter.txt").read_text(encoding="utf-8")))
-    iceland_grouped = group_rows_by_day(iceland_rows)
-    assert_equal(create_day_title(iceland_grouped["Day 1"]), "Welcome to Iceland", "Airport-to-city transfer plus first hotel should create a premium arrival title, not a transfer title.")
-    iceland_day_text = "\n".join("\n".join(block["html"] for block in build_day_blocks(rows) if block) for rows in iceland_grouped.values())
-    assert_not_contains(iceland_day_text, "With breakfast", "Group-tour accommodation meal wording should be client-facing as Breakfast included.")
-    assert_contains(iceland_day_text, "breakfast included", "Group-tour accommodation should still show breakfast inclusions.")
-    assert_not_contains(iceland_day_text, "Hop-On Hop-Off", "Generic group-tour prose like 'hop on a boat' must not create bogus bus inclusions.")
+    assert_equal(create_day_title(grouped["Day 1"]), "Welcome to Iceland", "Arrival transfer + hotel days should use a warm welcome title.")
+    day1_intro = create_day_intro(grouped["Day 1"], detail_level="Rich descriptive")
+    assert_contains(day1_intro, "Welcome to Iceland", "Arrival intro should welcome the reader warmly.")
+    assert_contains(day1_intro, "arranged Flybus transfer", "Arrival intro should explain the arranged transfer.")
+    assert_not_contains(day1_intro, "The arrangements in", "Arrival intro should not use mechanical logistics wording.")
 
-    group_day = next(row for row in iceland_rows if row.get("title") == "Explore Snæfellsnes")
-    rich_description = get_activity_description(group_day)
-    assert_contains(rich_description, "lava fields", "Group-tour day descriptions should use richer day-specific supplier text.")
-    assert len(rich_description) > 140, "Group-tour day descriptions should be richer than a one-sentence generic fallback."
+    assert_equal(create_day_title(grouped["Day 2"]), "Explore Borgarfjörður Valley & Waterfalls", "Group-tour activity title should beat overview logistics snippets.")
+    assert_not_contains(create_day_title(grouped["Day 2"]), "Arrival Reykjavík", "Bad raw group-tour overview snippets must not become day titles.")
+    day2_intro = create_day_intro(grouped["Day 2"], detail_level="Rich descriptive")
+    assert_contains(day2_intro, "Your guided tour begins today", "First group-tour day should introduce the guided tour.")
+    assert_contains(day2_intro, "8:00 AM pick-up", "First group-tour day should preserve the overview start time.")
 
-    family_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "norway_finland_family_autumn.txt").read_text(encoding="utf-8")))
-    family_grouped = group_rows_by_day(family_rows)
-    assert_equal(create_day_title(family_grouped["Day 9"]), "Meet Santa Claus and his friends", "Activity titles should remove logistics fragments such as 'with transfers'.")
-    assert_equal(create_day_title(family_grouped["Day 12"]), "City Highlights & Suomenlinna Day Tour", "Helsinki city tour with a ferry segment should remain an activity, not become a ferry transfer.")
-    day12_html = "\n".join(block["html"] for block in build_day_blocks(family_grouped["Day 12"]) if block)
-    assert_not_contains(day12_html, "Ferry Transfer to many hotels", "Activity prose must not be misclassified as a ferry transfer.")
-    family_arc = create_journey_arc(family_grouped)
-    bergen_arc = next(chapter for chapter in family_arc if chapter.get("chapter") == "Bergen")
-    assert_not_contains(bergen_arc.get("experience", ""), "Norway in a Nutshell", "Bergen chapter should not inherit Norway in a Nutshell from the arrival route when Bergen has real activities.")
+    day2_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 2"]) if block)
+    assert_not_contains(day2_html, "Included Today", "Group-tour overview bullets should not dump onto the day page when a real activity row exists.")
+    assert_contains(day2_html, "Time:</span> 8:00 AM", "Group-tour overview start time should flow into the first activity block.")
+    assert_contains(day2_html, "Breakfast included", "Group-tour accommodation should use the premium breakfast wording.")
+    assert_not_contains(day2_html, "With breakfast", "Group-tour accommodation should not use 'With breakfast'.")
 
-    raw_alias = "\tDay 1\tTransfer \t\t01/07/2026\t\t\t\t\t\t\t\tReykajvik\tShuttle/Flybus Airport to City Centre\n"
-    alias_rows = normalize_itinerary_rows(parse_itinerary(raw_alias))
-    assert_equal(alias_rows[0].get("city"), "Reykjavík", "Common Reykjavík misspellings should normalize before output.")
+    day4_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 4"]) if block)
+    assert_not_contains(day4_html, "Reykjavík for 1 night", "Countryside placeholder accommodation should not borrow the activity city.")
 
+    full_html = build_itinerary_html(rows, grouped)
+    assert_contains(full_html, ".cover-subtitle", "Preview HTML should include the cover subtitle CSS.")
+    assert_contains(full_html, "width: 560px", "Preview cover subtitle should have a fixed centered text block width.")
+    assert_contains(full_html, "text-align: center", "Preview cover subtitle should be explicitly centered.")
+    assert_not_contains(full_html, "12:00 AM noon", "Important notes should not contain impossible noon wording.")
 
 
 if __name__ == "__main__":

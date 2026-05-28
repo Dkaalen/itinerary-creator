@@ -10,9 +10,9 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
-from itinerary_generation.group_tours import is_group_tour_overview
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from text_polish import (
+    strip_price_fragments,
     format_duration_display,
     polish_client_text,
     polish_hotel_name,
@@ -62,23 +62,69 @@ def _client_title_case_fragment(value):
     text = clean_space(str(value or ""))
     if not text:
         return ""
-    letters = [ch for ch in text if ch.isalpha()]
-    if letters and sum(1 for ch in letters if ch.isupper()) / max(len(letters), 1) > 0.65:
-        text = text.title()
-    return _preserve_common_acronyms(text)
+    return _preserve_common_acronyms(polish_title(text))
+
+
+def _is_group_tour_overview_row(row):
+    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+    return get_row_type(row) == "Day Overview" and any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
+
+
+def _group_tour_start_time(rows):
+    for row in rows:
+        if not _is_group_tour_overview_row(row):
+            continue
+        text = f'{row.get("title", "")} | {row.get("details", "")} | {row.get("original_title", "")}'
+        match = re.search(r"\|\s*(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)\b", text)
+        if match:
+            hour = int(match.group(1))
+            minute = match.group(2) or "00"
+            suffix = match.group(3).replace(".", "").upper()
+            return f"{hour}:{minute} {suffix}"
+    return ""
+
+
+def _supplier_day_description(row, max_sentences=4):
+    """Use the actual supplier day prose for guided/group-tour day blocks.
+
+    Generic fallbacks should only be used when supplier text is thin. For rows
+    beginning ``Day N: ...`` we keep the first useful sentences after the
+    heading, trimming marketing calls-to-action and optional add-on paragraphs.
+    """
+
+    source = str(row.get("details") or row.get("original_title") or "").strip()
+    if not re.match(r"^\s*Day\s+\d+\s*[:\-–]", source, flags=re.IGNORECASE):
+        return ""
+    text = re.sub(r"^\s*Day\s+\d+\s*[:\-–]\s*[^\n]+", "", source, count=1, flags=re.IGNORECASE).strip()
+    if not text:
+        return ""
+    text = re.split(r"\n\s*(?:What's included|What’s included|Not Included|Please note|Optional|What to expect)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    text = re.sub(r"\bBook this .*?$", "", text, flags=re.IGNORECASE | re.DOTALL)
+    sentences = re.split(r"(?<=[.!?])\s+", clean_space(text))
+    useful = []
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if any(marker in sentence.lower() for marker in ["what are you waiting", "book your", "check availability"]):
+            continue
+        useful.append(sentence)
+        if len(useful) >= max_sentences:
+            break
+    return polish_client_text(" ".join(useful))
 
 
 
 def build_activity_block(row):
-    title = polish_title(row.get("title", ""))
+    title = polish_title(create_client_activity_title(row) or row.get("title", ""))
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
     meeting_point = polish_client_text(meeting_point)
     end_point = polish_client_text(row.get("end_point", ""))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
-    description = polish_client_text(row.get("client_description") or get_activity_description(row))
-    included_items = clean_activity_inclusion_items(row.get("includes", []), title)
+    description = polish_client_text(row.get("client_description") or _supplier_day_description(row) or get_activity_description(row))
+    included_items = clean_activity_inclusion_items([strip_price_fragments(item) for item in row.get("includes", [])], title)
     fallback_items = get_fallback_activity_inclusions(row)
 
     if not included_items:
@@ -224,12 +270,14 @@ def build_accommodation_block(row):
     nights = plural_nights(row.get("hotel_nights", ""))
     room_category = polish_client_text(row.get("room_category") or "")
     meal = meal_phrase(row.get("meal_plan", ""))
-
     city = polish_title(row.get("city", ""))
-    city_suffix = f" in {city}" if city and city.lower() not in hotel_name.lower() else ""
-    accommodation_line = polish_client_text(f"{hotel_name} or similar{city_suffix}")
+
+    accommodation_line = polish_client_text(f"{hotel_name} or similar")
     if row.get("is_group_tour_accommodation"):
-        accommodation_line = polish_client_text(f"{hotel_name}{city_suffix}")
+        accommodation_line = polish_client_text(hotel_name)
+
+    if city and city.lower() not in accommodation_line.lower():
+        accommodation_line += f" in {city}"
 
     if nights:
         accommodation_line += f" for {nights}"
@@ -246,7 +294,8 @@ def build_accommodation_block(row):
             room_line_parts.append(meal.capitalize())
 
     html_text = f'<div class="content-block accommodation-block" data-row-id="{esc(row.get("row_id", ""))}">'
-    html_text += '<div class="section-title">Accommodation</div>'
+    section_title = "Overnight" if row.get("is_group_tour_accommodation") else "Accommodation"
+    html_text += f'<div class="section-title">{esc(section_title)}</div>'
     html_text += f'<div class="body-text strong-line">{esc(accommodation_line)}</div>'
 
     for line in room_line_parts:
@@ -684,6 +733,8 @@ def build_day_blocks(rows):
     blocks = []
     travel_group = []
     departure_day = any(get_row_type(row) == "Departure" for row in rows)
+    has_activity = any(get_row_type(row) == "Activity" for row in rows)
+    group_tour_start_time = _group_tour_start_time(rows)
 
     def flush_travel_group():
         nonlocal travel_group
@@ -710,10 +761,7 @@ def build_day_blocks(rows):
         if row_type == "Departure":
             blocks.append(build_departure_block(row))
         elif row_type == "Day Overview":
-            # Group-tour overviews are package metadata. When a real day-specific
-            # activity row is present, do not dump raw supplier headings such as
-            # "Overview" / "What's included?" into the day page.
-            if is_group_tour_overview(row) and any(get_row_type(other) == "Activity" for other in rows):
+            if has_activity and _is_group_tour_overview_row(row):
                 continue
             block = build_day_overview_block(row)
             if block:
@@ -723,6 +771,9 @@ def build_day_blocks(rows):
         elif row_type == "Arrival":
             blocks.append(build_arrival_block(row))
         elif row_type == "Activity":
+            if group_tour_start_time and not row.get("time"):
+                row = dict(row)
+                row["time"] = group_tour_start_time
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
             blocks.append(build_leisure_block(row))

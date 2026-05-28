@@ -272,79 +272,27 @@ def meal_phrase(value):
 
     lower = value.lower()
 
-    if lower in {"breakfast", "with breakfast"}:
-        return "breakfast included"
-    if lower in {"dinner", "with dinner"}:
-        return "dinner included"
-    if lower in {"breakfast and dinner", "with breakfast and dinner"}:
-        return "breakfast and dinner included"
-    if lower in {"half board", "with half board"}:
-        return "half board included"
-    if lower in {"full board", "with full board"}:
-        return "full board included"
-    if lower.startswith("without "):
-        return value
-    if "included" in lower:
+    if lower.startswith("with ") or lower.startswith("without "):
         return value
 
-    return f"{value} included"
+    if lower == "breakfast":
+        return "breakfast included"
+    if lower == "breakfast and dinner":
+        return "breakfast and dinner included"
+    if lower in ["dinner", "half board", "full board"]:
+        return f"{lower} included"
+
+    return f"with {value}"
 
 
 def is_self_arranged_transport(row):
     return (get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)) and is_self_arranged(row)
 
 
-
-def _extract_supplier_day_description(row, max_sentences=4, max_chars=520):
-    """Use richer day-specific supplier prose for group-tour day rows.
-
-    Rows that start with "Day N: ..." usually belong to a guided group tour.
-    Generic fallback descriptions are too thin for these pages, so extract a
-    concise client-facing summary from the actual day text while removing
-    marketing/optional fragments and keeping the rule independent of any one
-    itinerary.
-    """
-    source = str(row.get("details") or row.get("original_title") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
-    if not re.match(r"^\s*Day\s+\d+\s*[:\-–]", source, flags=re.IGNORECASE):
-        return ""
-    # Drop the heading line and keep the real day prose.
-    lines = [clean_space(line) for line in source.splitlines()]
-    if lines and re.match(r"^Day\s+\d+\s*[:\-–]", lines[0], flags=re.IGNORECASE):
-        lines = lines[1:]
-    text = " ".join(line for line in lines if line)
-    text = re.split(r"\b(?:Optional|Another optional extra|Check availability|Immerse yourself|Book this|What are you waiting for)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
-    text = polish_client_text(text)
-    if not text:
-        return ""
-
-    # Split into sentences while keeping abbreviations/initialisms reasonably safe.
-    candidates = re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-ÝÆØÅÄÖÞ])", text)
-    sentences = []
-    for sentence in candidates:
-        clean_sentence = clean_space(sentence).strip(" -")
-        if not clean_sentence:
-            continue
-        lower = clean_sentence.lower()
-        if any(marker in lower for marker in ["check availability", "book this", "what are you waiting for"]):
-            continue
-        sentences.append(clean_sentence)
-        joined = " ".join(sentences)
-        if len(sentences) >= max_sentences or len(joined) >= max_chars:
-            break
-    summary = " ".join(sentences).strip()
-    if len(summary) > max_chars:
-        cut = summary[:max_chars].rsplit(" ", 1)[0].strip(" ,;:-")
-        summary = cut + "."
-    return summary
-
 def get_activity_description(row, detail_level=None):
     detail_level = detail_level or get_detail_level_name()
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
-
-    supplier_description = _extract_supplier_day_description(row)
-    if supplier_description:
-        return supplier_description
 
     if "wildlife photography" in title and "longyearbyen" in title:
         return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."

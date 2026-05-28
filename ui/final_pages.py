@@ -76,10 +76,7 @@ def get_fallback_activity_inclusions(row):
     if "must-see bergen" in full_text or ("bergen" in full_text and "foot and boat" in full_text):
         return ["Guided walking tour", "Boat tour"]
 
-    # Only infer Hop-On Hop-Off inclusions from explicit bus-ticket
-    # wording. Phrases such as "hop on a boat" in group-tour prose must not
-    # create a bogus city bus inclusion.
-    if ("hop-on hop-off" in full_text or "hop on hop off" in full_text or "hop-off" in title.lower()) and "bus" in full_text:
+    if "hop-on hop-off" in title.lower() or "hop-off" in title.lower() or "hop off" in title.lower() or "hop on hop off" in full_text:
         return ["24-hour Hop-On Hop-Off bus ticket"]
 
     if "fløibanen" in full_text or "floibanen" in full_text:

@@ -18,6 +18,7 @@ from itinerary_generation.transport import (
     has_only_departure_arrangements,
 )
 from text_polish import strip_price_fragments, polish_title
+from place_aliases import country_for_place
 from itinerary_generation.cover_theme import (
     SEASON_LABELS,
     SEASON_SUBTITLES,
@@ -73,13 +74,37 @@ def _extract_supplier_day_heading(text: str) -> str:
         heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
     return polish_title(heading)
 
+
+BAD_TITLE_PATTERNS = [
+    r"\barrival\s+[^,|]+,\s*pick[-\s]?up\b",
+    r"\bpick[-\s]?up\s+minibus\b",
+    r"\bpick[-\s]?up\s*/\s*drop[-\s]?off\b",
+    r"\bprivate\s+(?:airport|hotel|station)\s+to\b",
+    r"\bshuttle\s*/?\s*flybus\b",
+    r"\bwith\s+transfers?\b",
+    r"\bcost\s+not\s+included\b",
+    r"\bself[-\s]?arranged\b",
+    r"\bwhat'?s\s+included\b",
+    r"\boverview\b",
+]
+
+
+def is_bad_raw_day_title(title: str) -> bool:
+    text = str(title or "").strip()
+    if not text:
+        return True
+    lower = text.lower()
+    if len(text) > 85:
+        return True
+    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in BAD_TITLE_PATTERNS)
+
 def create_client_activity_title(row):
     title = clean_client_title(strip_price_fragments(row.get("title", "")))
     original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
 
     supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
-    if supplier_heading and title.lower().startswith("guided experience"):
+    if supplier_heading and (title.lower().startswith("guided experience") or is_bad_raw_day_title(title)):
         title = supplier_heading
 
     if not title:
@@ -91,6 +116,11 @@ def create_client_activity_title(row):
 
     title_text = str(title or original_title or "").lower()
     original_title_text = str(original_title or "").lower()
+    full_text = f"{title_text} {original_title_text} {details}".lower()
+
+    title = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", str(title or ""), flags=re.IGNORECASE).strip(" -:|")
+    title = re.sub(r"^Watch\s+Whales\b", "Whale Watching", title, flags=re.IGNORECASE).strip()
+    title_text = title.lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
 
     if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
@@ -136,7 +166,7 @@ def create_client_activity_title(row):
     if "arctic route" in full_text or "senja" in full_text and "coach" in full_text:
         return "Arctic Route Coach Transfer"
 
-    if "hop on" in full_text or "hop-on" in full_text or "hop off" in full_text or "hop-off" in full_text:
+    if "hop-on" in title_text or "hop off" in title_text or "hop-off" in title_text or "hop on hop off" in full_text:
         if "copenhagen" in full_text:
             return "Copenhagen Hop-On Hop-Off Bus Ticket"
         if "bergen" in full_text:
@@ -315,10 +345,24 @@ def create_day_title(day_rows):
         return f"Departure from {city}"
 
     if has_arrival and city:
-        return f"Welcome to {city}"
+        return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
 
-    # Day overview rows in group-tour/package itineraries should drive the day
-    # title, except rental-vehicle logistics which are rendered as a block only.
+    # Colleague format often starts with a transfer + hotel, without an explicit
+    # Arrival row. Treat airport/city-centre transfer + accommodation as arrival
+    # before allowing the transfer text to become the title.
+    if hotel_present and not activity_rows and has_airport_arrival_transfer(day_rows) and city:
+        return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
+
+    # Real day/activity headings should beat supplier overview snippets such as
+    # "Day 1: Arrival Reykjavík, pick-up minibus". Those snippets are useful
+    # logistics, but they are not premium client-facing day titles.
+    if activity_rows:
+        title = create_client_activity_title(activity_rows[0])
+        if title and not is_bad_raw_day_title(title):
+            return title
+
+    # Day overview rows may drive the title only when no better activity title
+    # exists, and never when they look like admin/logistics copy.
     for overview in overview_rows:
         overview_text = f'{overview.get("title", "")} {overview.get("details", "")}'.strip()
         lower_overview = overview_text.lower()
@@ -326,22 +370,9 @@ def create_day_title(day_rows):
             continue
         match = re.search(r"\bDay\s*\d+\s*:\s*([^\n|]+)", overview_text, flags=re.IGNORECASE)
         if match:
-            return clean_client_title(match.group(1).strip())
-
-    # Colleague format often starts with a transfer + hotel, without an explicit
-    # Arrival row. Treat airport-to-hotel + accommodation as an arrival day only
-    # when there is no separate flight/train/coach movement on the same day.
-    day_text_blob = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
-    airport_to_arrival_area = "airport" in day_text_blob and any(marker in day_text_blob for marker in ["to hotel", "to accommodation", "to your accommodation", "to city centre", "to city center", "airport to city"])
-    has_route_transport = any(get_row_type(row) in {"Flight", "Train", "Transport", "Cruise", "Ferry"} for row in day_rows)
-    if hotel_present and city and (has_airport_arrival_transfer(day_rows) or airport_to_arrival_area) and not has_route_transport:
-        country = (get_destination_countries(day_rows) or [""])[0]
-        if country and len({country_for_row for country_for_row in get_destination_countries(day_rows)}) == 1:
-            # Iceland arrivals are more premium and natural as a country welcome;
-            # city arrivals elsewhere should remain city-specific.
-            if country == "Iceland":
-                return "Welcome to Iceland"
-        return f"Welcome to {city}"
+            candidate = clean_client_title(match.group(1).strip())
+            if not is_bad_raw_day_title(candidate):
+                return candidate
 
     # Travel days with a hotel check-in should be titled by the main travel
     # movement rather than by a later evening activity or transfer.
@@ -350,13 +381,6 @@ def create_day_title(day_rows):
 
     if has_departure and city:
         return f"Departure from {city}"
-
-    # If the day has an activity and later transport but no hotel check-in, let
-    # the client-facing experience lead the day title.
-    if activity_rows:
-        title = create_client_activity_title(activity_rows[0])
-        if title:
-            return title
 
     if transport_title:
         return transport_title

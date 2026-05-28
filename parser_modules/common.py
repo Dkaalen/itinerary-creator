@@ -105,9 +105,14 @@ def is_valid_city_value(value):
 
 COMMON_TEXT_REPLACEMENTS = [
     (r"\bNUtshell\b", "Nutshell"),
+    (r"\bFLybus\b", "Flybus"),
+    (r"\bFlyBus\b", "Flybus"),
+    (r"\bReykajvik\b", "Reykjavík"),
+    (r"\bReykavik\b", "Reykjavík"),
+    (r"\bCity Centre\b", "city centre"),
+    (r"\bStaion\b", "Station"),
     (r"\bNutsheel\b", "Nutshell"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
-    (r"\bFlybus\b", "Flybus"),
     (r"\bBrekafast\b", "Breakfast"),
     (r"\bOverngiht\b", "Overnight"),
     (r"\bBrekfast\b", "Breakfast"),

@@ -9,7 +9,6 @@ from itinerary_generation.common import (
     has_hotel,
     normalize_detail_level,
 )
-from place_aliases import country_for_place
 from itinerary_generation.transport import (
     get_first_transfer_title,
     get_transfer_travel_title,
@@ -20,6 +19,7 @@ from itinerary_generation.transport import (
 )
 from itinerary_generation.titles import create_client_activity_title
 from parser_modules.common import extract_route_points
+from place_aliases import country_for_place
 
 
 def get_client_activity_phrase(row):
@@ -55,6 +55,52 @@ ROUTE_CITY_CANDIDATES = [
     "Kakslauttanen", "Kakslauttenen", "Ivalo",
     "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso", "Svolvær", "Svolvaer", "Svolaver", "Gothenburg", "Göteborg", "Malmo", "Malmø", "Alta", "Kirkenes",
 ]
+
+
+def _arrival_display_destination(city):
+    """Use a warm destination label for arrival intros."""
+    country = country_for_place(city)
+    if country == "Iceland":
+        return "Iceland"
+    return city or "the destination"
+
+
+def _arrival_transfer_phrase(day_rows):
+    for row in day_rows:
+        if get_row_type(row) != "Transfer":
+            continue
+        title = get_first_transfer_title([row]) or row.get("title", "")
+        lower = str(title).lower()
+        if "self" in lower:
+            return "After arrival, make your own way to your accommodation."
+        if "flybus" in lower or "shuttle" in lower:
+            return "On arrival, your arranged Flybus transfer will take you from the airport towards your accommodation area."
+        if "private" in lower or "transfer" in lower:
+            return "On arrival, your arranged transfer will take you from the airport to your accommodation."
+    return "On arrival, make your way to your accommodation and check in."
+
+
+def _is_group_tour_overview(row):
+    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+    return get_row_type(row) == "Day Overview" and any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
+
+
+def _extract_group_tour_overview_start_time(day_rows):
+    for row in day_rows:
+        if not _is_group_tour_overview(row):
+            continue
+        text = f'{row.get("title", "")} | {row.get("details", "")} | {row.get("original_title", "")}'
+        match = re.search(r"\|\s*(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)\b", text)
+        if match:
+            hour = int(match.group(1))
+            minute = match.group(2) or "00"
+            suffix = match.group(3).replace(".", "").upper()
+            return f"{hour}:{minute} {suffix}"
+    return ""
+
+
+def _is_group_tour_start_day(day_rows):
+    return any(_is_group_tour_overview(row) for row in day_rows) and any(get_row_type(row) == "Activity" for row in day_rows)
 
 
 def _ordered_route_cities(day_rows):
@@ -123,6 +169,15 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     route_transfers = [row for row in transfers if is_route_transfer(row)]
     leisure = [row for row in day_rows if get_row_type(row) == "Leisure"]
 
+    if _is_group_tour_start_day(day_rows):
+        activity_title = get_client_activity_phrase(activities[0]) if activities else "your guided tour"
+        start_time = _extract_group_tour_overview_start_time(day_rows)
+        pickup_phrase = f"After your {start_time} pick-up" if start_time else "After morning pick-up"
+        return (
+            f"Your guided tour begins today. {pickup_phrase}, travel with your guide into {city_text}, "
+            f"with the first experience introducing the opening highlights of the journey."
+        )
+
     if has_only_departure_arrangements(day_rows) and city:
         transfer_title = get_first_transfer_title(day_rows).lower()
         has_transfer_row = any(get_row_type(row) == "Transfer" for row in day_rows)
@@ -137,20 +192,22 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         return f"After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
 
     if has_arrival and city:
-        welcome_place = country_for_place(city) if country_for_place(city) == "Iceland" else city
+        destination = _arrival_display_destination(city)
+        transfer_phrase = _arrival_transfer_phrase(day_rows)
         if detail_level == "Elegant concise":
-            return f"Welcome to {welcome_place}. Settle in and enjoy a smooth start to your journey."
+            return f"Welcome to {destination}. {transfer_phrase}"
         if detail_level == "Rich descriptive":
-            return f"Welcome to {welcome_place}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
-        return f"Welcome to {welcome_place}. The day is kept simple and comfortable as you settle into your accommodation."
+            return f"Welcome to {destination}. {transfer_phrase} After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impression of the destination."
+        return f"Welcome to {destination}. {transfer_phrase} After check-in, enjoy time to settle in."
 
     if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
-        welcome_place = country_for_place(city) if country_for_place(city) == "Iceland" else city
+        destination = _arrival_display_destination(city)
+        transfer_phrase = _arrival_transfer_phrase(day_rows)
         if detail_level == "Elegant concise":
-            return f"Welcome to {welcome_place}. Settle in and enjoy a smooth start to your stay."
+            return f"Welcome to {destination}. {transfer_phrase}"
         if detail_level == "Rich descriptive":
-            return f"Welcome to {welcome_place}. Your arrival day is kept relaxed and comfortable, with time to settle into your accommodation and get your first feel for the destination."
-        return f"Welcome to {welcome_place}. The day is kept simple and comfortable as you settle into your accommodation."
+            return f"Welcome to {destination}. {transfer_phrase} After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impression of the destination."
+        return f"Welcome to {destination}. {transfer_phrase} After check-in, enjoy time to settle in."
 
     if has_departure and city:
         if detail_level == "Elegant concise":

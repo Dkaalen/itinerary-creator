@@ -36,10 +36,11 @@ def preprocess_raw_rows(raw_text):
             continue
 
         parts = raw_line.split("\t")
-        # A real spreadsheet row is tab-separated. Supplier prose inside a quoted
-        # cell can begin with "Day 1:" / "Day 2:" and must stay attached to
-        # the current row, otherwise group-tour overviews are split apart.
-        starts_new_row = len(parts) > 1 and any(looks_like_day(part) for part in parts[:4])
+        # A supplier paragraph inside a quoted spreadsheet cell may begin with
+        # "Day 1: ...". That is not a new spreadsheet row unless the line still
+        # has tab-separated row cells. Without this guard, group-tour overview
+        # inclusions are split away before the parser can use them.
+        starts_new_row = "\t" in raw_line and any(looks_like_day(part) for part in parts[:4])
 
         if not starts_new_row and is_optional_addon_header(raw_line):
             flush_current()
