@@ -194,9 +194,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .cover-destination-card {{
+            width: 100%;
             margin: 20px auto 0 auto;
             padding-top: 0;
-            width: 100%;
             max-width: 610px;
             text-align: center;
         }}
@@ -347,6 +347,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--cover-ink);
+            max-width: 720px;
+            margin: 0 auto;
             text-align: center;
             text-wrap: balance;
         }}

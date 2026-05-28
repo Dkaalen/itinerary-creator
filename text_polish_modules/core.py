@@ -108,6 +108,16 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bFLybus\b", "Flybus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bFlyBus\b", "Flybus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bReykajvik\b|\bReykavik\b", "Reykjavík", text, flags=re.IGNORECASE)
+
+    # Normalize compact supplier time text such as "between 8am and 8.30"
+    # before punctuation spacing runs. This keeps group-tour descriptions
+    # readable without changing non-time decimal values elsewhere.
+    text = re.sub(r"(?<!:)(?<!\d)(\d{1,2})\s*a\.?m\.?\b", r"\1:00 AM", text, flags=re.IGNORECASE)
+    text = re.sub(r"(?<!:)(?<!\d)(\d{1,2})\s*p\.?m\.?\b", r"\1:00 PM", text, flags=re.IGNORECASE)
+    text = re.sub(r"(\bbetween\s+\d{1,2}:\d{2}\s+(?:AM|PM)\s+and\s+)(\d{1,2})\.(\d{2})", r"\1\2:\3", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+AM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM))", r"between \1 AM and \2 AM", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+PM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM))", r"between \1 PM and \2 PM", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -278,7 +288,9 @@ def sentence_style_title(value: str) -> str:
     # Common grammatical fix shown by the itinerary owner as a quality gate.
     text = re.sub(r"\bMeet Santa Claus and His Friends\b", "Meet Santa Claus and his friends", text, flags=re.IGNORECASE)
     text = re.sub(r"\bSanta Claus and His Friends\b", "Santa Claus and his friends", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bwith Transfers\b", "with transfers", text)
+    text = re.sub(r"\bwith\s+transfers\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bWatch\s+Whales\b", "Whale Watching", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s{2,}", " ", text)
     return clean_space(text).strip(" -:|")
 
 

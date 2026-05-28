@@ -12,7 +12,6 @@ from itinerary_generation.common import (
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, create_day_title
-from itinerary_generation.group_tours import extract_supplier_day_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 from text_polish import (
     expand_time_with_duration,
@@ -273,13 +272,22 @@ def meal_phrase(value):
 
     lower = value.lower()
 
-    if lower.startswith("with ") or lower.startswith("without "):
+    if lower in {"breakfast", "with breakfast"}:
+        return "breakfast included"
+    if lower in {"dinner", "with dinner"}:
+        return "dinner included"
+    if lower in {"breakfast and dinner", "with breakfast and dinner"}:
+        return "breakfast and dinner included"
+    if lower in {"half board", "with half board"}:
+        return "half board included"
+    if lower in {"full board", "with full board"}:
+        return "full board included"
+    if lower.startswith("without "):
+        return value
+    if "included" in lower:
         return value
 
-    if lower in ["breakfast", "dinner", "half board", "full board", "breakfast and dinner"]:
-        return f"with {lower}"
-
-    return f"with {value}"
+    return f"{value} included"
 
 
 def is_self_arranged_transport(row):
@@ -287,43 +295,56 @@ def is_self_arranged_transport(row):
 
 
 
-def _supplier_description_from_day_text(row):
-    """Return a concise description from supplier day-specific prose.
+def _extract_supplier_day_description(row, max_sentences=4, max_chars=520):
+    """Use richer day-specific supplier prose for group-tour day rows.
 
-    This is used before generic fallback descriptions so a Borgarfjörður day does
-    not become whale watching, and a Snæfellsnes day does not become a glacier
-    hike just because those keywords appear elsewhere in the package.
+    Rows that start with "Day N: ..." usually belong to a guided group tour.
+    Generic fallback descriptions are too thin for these pages, so extract a
+    concise client-facing summary from the actual day text while removing
+    marketing/optional fragments and keeping the rule independent of any one
+    itinerary.
     """
-    text = str(row.get("details") or row.get("original_title") or "")
-    if not extract_supplier_day_title(text):
+    source = str(row.get("details") or row.get("original_title") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not re.match(r"^\s*Day\s+\d+\s*[:\-–]", source, flags=re.IGNORECASE):
         return ""
-    text = re.sub(r"^\s*Day\s*\d+\s*:\s*[^\n]+", "", text, flags=re.IGNORECASE).strip()
-    text = re.split(r"\n\s*(?:What\s+are\s+you\s+waiting\s+for|Start your adventure|Please note|What's included|What’s included)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
-    text = clean_space(text)
+    # Drop the heading line and keep the real day prose.
+    lines = [clean_space(line) for line in source.splitlines()]
+    if lines and re.match(r"^Day\s+\d+\s*[:\-–]", lines[0], flags=re.IGNORECASE):
+        lines = lines[1:]
+    text = " ".join(line for line in lines if line)
+    text = re.split(r"\b(?:Optional|Another optional extra|Check availability|Immerse yourself|Book this|What are you waiting for)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
+    text = polish_client_text(text)
     if not text:
         return ""
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-    selected = []
-    for sentence in sentences:
-        clean = clean_space(sentence)
-        if not clean:
+
+    # Split into sentences while keeping abbreviations/initialisms reasonably safe.
+    candidates = re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-ÝÆØÅÄÖÞ])", text)
+    sentences = []
+    for sentence in candidates:
+        clean_sentence = clean_space(sentence).strip(" -")
+        if not clean_sentence:
             continue
-        selected.append(clean)
-        if len(" ".join(selected)) >= 180 or len(selected) >= 2:
+        lower = clean_sentence.lower()
+        if any(marker in lower for marker in ["check availability", "book this", "what are you waiting for"]):
+            continue
+        sentences.append(clean_sentence)
+        joined = " ".join(sentences)
+        if len(sentences) >= max_sentences or len(joined) >= max_chars:
             break
-    summary = " ".join(selected).strip()
-    if len(summary) > 360:
-        summary = summary[:340].rsplit(" ", 1)[0].strip() + "."
-    return polish_client_text(summary)
+    summary = " ".join(sentences).strip()
+    if len(summary) > max_chars:
+        cut = summary[:max_chars].rsplit(" ", 1)[0].strip(" ,;:-")
+        summary = cut + "."
+    return summary
 
 def get_activity_description(row, detail_level=None):
     detail_level = detail_level or get_detail_level_name()
-    supplier_description = _supplier_description_from_day_text(row)
-    if supplier_description:
-        return supplier_description
-
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
+
+    supplier_description = _extract_supplier_day_description(row)
+    if supplier_description:
+        return supplier_description
 
     if "wildlife photography" in title and "longyearbyen" in title:
         return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."

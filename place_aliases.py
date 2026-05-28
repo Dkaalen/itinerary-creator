@@ -168,7 +168,7 @@ PLACES = [
     {"country": "Sweden", "canonical": "Kiruna Airport", "kind": "airport", "aliases": ["KRN"]},
 
     # Iceland
-    {"country": "Iceland", "canonical": "Reykjavík", "kind": "city", "aliases": ["Reykjavik"]},
+    {"country": "Iceland", "canonical": "Reykjavík", "kind": "city", "aliases": ["Reykjavik", "Reykajvik", "Reykavik"]},
     {"country": "Iceland", "canonical": "Keflavík", "kind": "town", "aliases": ["Keflavik"]},
     {"country": "Iceland", "canonical": "Akureyri", "kind": "town", "aliases": []},
     {"country": "Iceland", "canonical": "Vík", "kind": "village", "aliases": ["Vik", "Vík í Mýrdal", "Vik i Myrdal"]},

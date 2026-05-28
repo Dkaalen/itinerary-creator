@@ -11,13 +11,13 @@ from itinerary_generation.common import (
     main_rows_only,
     has_hotel,
 )
-from place_aliases import country_for_place
-from itinerary_generation.group_tours import extract_supplier_day_title, is_group_tour_overview
+from parser_modules.common import extract_route_points
 from itinerary_generation.transport import (
     get_primary_transport_title,
     has_airport_arrival_transfer,
     has_only_departure_arrangements,
 )
+from text_polish import strip_price_fragments, polish_title
 from itinerary_generation.cover_theme import (
     SEASON_LABELS,
     SEASON_SUBTITLES,
@@ -27,23 +27,81 @@ from itinerary_generation.cover_theme import (
 )
 
 
-def create_client_activity_title(row):
-    supplier_title = extract_supplier_day_title(f'{row.get("details", "")}\n{row.get("original_title", "")}\n{row.get("title", "")}')
-    if supplier_title:
-        return supplier_title
+def _route_label_from_activity_text(text: str) -> str:
+    route_match = re.search(r"\b(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\s+to\s+(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\b", text, flags=re.IGNORECASE)
+    if route_match:
+        origin, destination = route_match.group(1), route_match.group(2)
+    else:
+        origin, destination = extract_route_points(text)
+    origin = polish_title(origin) if origin else ""
+    destination = polish_title(destination) if destination else ""
+    if origin and destination and origin.lower() != destination.lower():
+        return f"Norway in a Nutshell from {origin} to {destination}"
+    if destination:
+        return f"Norway in a Nutshell to {destination}"
+    return "Norway in a Nutshell"
 
-    title = clean_client_title(row.get("title", ""))
-    original_title = clean_client_title(row.get("original_title", "") or title)
+
+def _looks_like_norway_in_a_nutshell(text: str) -> bool:
+    lower = str(text or "").lower()
+    if "norway in a nutshell" in lower:
+        return True
+    has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
+    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
+    has_route = bool(re.search(r"\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b.+\bto\b.+\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b", lower))
+    return has_flam and has_fjord and has_route
+
+
+
+def _extract_supplier_day_heading(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+    first_line = next((line.strip() for line in raw.splitlines() if line.strip()), "")
+    match = re.match(r"^Day\s+\d+\s*[:\-–]\s*(.+)$", first_line, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
+    heading = re.split(
+        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        heading,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    heading = heading.strip(" -:|.,")
+    if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
+        heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
+    return polish_title(heading)
+
+def create_client_activity_title(row):
+    title = clean_client_title(strip_price_fragments(row.get("title", "")))
+    original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
 
-    title_text = f"{original_title} {title}".lower()
-    full_text = f"{title_text} {details}".lower()
+    supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
+    if supplier_heading and title.lower().startswith("guided experience"):
+        title = supplier_heading
+
+    if not title:
+        for segment in re.split(r"\s*\|\s*|\s+-\s+", details):
+            candidate = clean_client_title(strip_price_fragments(segment))
+            if candidate and not candidate.lower().startswith(("optional addon", "optional add-on", "optional add on")):
+                title = candidate
+                break
+
+    title_text = str(title or original_title or "").lower()
+    original_title_text = str(original_title or "").lower()
+    full_text = f"{title_text} {original_title_text} {details}".lower()
+
+    if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
+        return _route_label_from_activity_text(f"{original_title} {title} {details}")
+
+    if "santa claus" in full_text and "friends" in full_text:
+        return "Meet Santa Claus and his friends"
 
     if "blue lagoon" in full_text or "bluelagoon" in full_text:
-        if any(marker in full_text for marker in ["volcano", "eruption", "fagradalsfjall", "geldingadalir"]):
-            return "Blue Lagoon & Volcano Eruption Site Tour"
-        if "comfort" in full_text:
-            return "Blue Lagoon Comfort Admission"
+        if any(marker in title_text for marker in ["volcano", "eruption", "fagradalsfjall"]):
+            return polish_title(title)
         if "premium" in full_text:
             return "Blue Lagoon Premium Admission"
         return "Blue Lagoon Admission"
@@ -243,16 +301,6 @@ def create_destinations_line(parsed_rows):
     return " · ".join(cities)
 
 
-def _arrival_title_for_city(city: str) -> str:
-    city = str(city or "").strip()
-    if not city:
-        return "Welcome"
-    country = country_for_place(city)
-    if country == "Iceland":
-        return "Welcome to Iceland"
-    return f"Welcome to {city}"
-
-
 def create_day_title(day_rows):
     city = get_primary_city(day_rows)
 
@@ -267,13 +315,11 @@ def create_day_title(day_rows):
         return f"Departure from {city}"
 
     if has_arrival and city:
-        return _arrival_title_for_city(city)
+        return f"Welcome to {city}"
 
     # Day overview rows in group-tour/package itineraries should drive the day
     # title, except rental-vehicle logistics which are rendered as a block only.
     for overview in overview_rows:
-        if is_group_tour_overview(overview) and activity_rows:
-            continue
         overview_text = f'{overview.get("title", "")} {overview.get("details", "")}'.strip()
         lower_overview = overview_text.lower()
         if re.search(r"rental\s+(?:vehicle|car|suv)|pick\s*up\s+rental|pickup\s+rental|drop\s+vehicle|return\s+vehicle", lower_overview):
@@ -283,10 +329,19 @@ def create_day_title(day_rows):
             return clean_client_title(match.group(1).strip())
 
     # Colleague format often starts with a transfer + hotel, without an explicit
-    # Arrival row. Treat airport-to-hotel + accommodation as an arrival day before
-    # considering generic transport titles.
-    if hotel_present and has_airport_arrival_transfer(day_rows) and city:
-        return _arrival_title_for_city(city)
+    # Arrival row. Treat airport-to-hotel + accommodation as an arrival day only
+    # when there is no separate flight/train/coach movement on the same day.
+    day_text_blob = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
+    airport_to_arrival_area = "airport" in day_text_blob and any(marker in day_text_blob for marker in ["to hotel", "to accommodation", "to your accommodation", "to city centre", "to city center", "airport to city"])
+    has_route_transport = any(get_row_type(row) in {"Flight", "Train", "Transport", "Cruise", "Ferry"} for row in day_rows)
+    if hotel_present and city and (has_airport_arrival_transfer(day_rows) or airport_to_arrival_area) and not has_route_transport:
+        country = (get_destination_countries(day_rows) or [""])[0]
+        if country and len({country_for_row for country_for_row in get_destination_countries(day_rows)}) == 1:
+            # Iceland arrivals are more premium and natural as a country welcome;
+            # city arrivals elsewhere should remain city-specific.
+            if country == "Iceland":
+                return "Welcome to Iceland"
+        return f"Welcome to {city}"
 
     # Travel days with a hotel check-in should be titled by the main travel
     # movement rather than by a later evening activity or transfer.

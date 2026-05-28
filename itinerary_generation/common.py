@@ -2,7 +2,6 @@ import re
 from collections import OrderedDict
 
 from place_aliases import canonicalize_place_name, country_for_place, is_likely_service_text
-from itinerary_generation.group_tours import supplier_day_number
 from text_polish import polish_client_text
 
 TRANSPORT_TYPES = ["Transport", "Train", "Flight", "Cruise", "Ferry"]
@@ -140,6 +139,23 @@ def has_hotel(day_rows):
     return any(get_row_type(row) == "Hotel" for row in day_rows)
 
 
+
+def get_display_destination_city(city):
+    """Return the route/glance display form of an itinerary city.
+
+    Accommodation placeholders such as "Vík area" and "Höfn area" are useful
+    on the day page, but they make cover routes and the trip glance look
+    cluttered. Collapse those to their base destination when possible.
+    """
+    clean = canonicalize_place_name(str(city or "").strip())
+    if not clean:
+        return ""
+    area_match = re.match(r"^(.+?)\s+area$", clean, flags=re.IGNORECASE)
+    if area_match:
+        base = canonicalize_place_name(area_match.group(1).strip())
+        return base or area_match.group(1).strip()
+    return clean
+
 def get_unique_cities(parsed_rows):
     cities = []
 
@@ -147,7 +163,7 @@ def get_unique_cities(parsed_rows):
         if is_optional_row(row):
             continue
 
-        city = canonicalize_place_name(row.get("city", "").strip())
+        city = get_display_destination_city(row.get("city", "").strip())
 
         if is_valid_destination_city(city) and city not in cities:
             cities.append(city)
@@ -221,16 +237,7 @@ def get_primary_city(day_rows):
     if not day_rows:
         return ""
 
-    # In supplier group-tour days, a post-tour hotel row can be listed on the
-    # same calendar day as the final touring activity. The day header should
-    # still follow the activity destination, not the later hotel city.
-    for row in day_rows:
-        if get_row_type(row) == "Activity" and supplier_day_number(row):
-            city = canonicalize_place_name(row.get("city", "").strip())
-            if city and is_valid_destination_city(city):
-                return city
-
-    priority_types = ["Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Activity", "Arrival", "Departure", "Transfer"]
+    priority_types = ["Activity", "Hotel", "Flight", "Train", "Transport", "Cruise", "Ferry", "Arrival", "Departure", "Transfer"]
 
     for preferred_type in priority_types:
         for row in day_rows:
