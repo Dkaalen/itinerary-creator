@@ -9,7 +9,7 @@ from itinerary_generation.common import (
     is_self_arranged,
 )
 from itinerary_generation.inclusions import clean_include_item
-from itinerary_generation.titles import create_client_activity_title
+from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from text_polish import (
     strip_price_fragments,
@@ -70,6 +70,19 @@ def _is_group_tour_overview_row(row):
     return get_row_type(row) == "Day Overview" and any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
 
 
+def _format_time_range_from_start(hour, minute, suffix):
+    start = f"{hour}:{minute} {suffix}"
+    try:
+        end_minute = int(minute) + 30
+        end_hour = int(hour) + (1 if end_minute >= 60 else 0)
+        end_minute = end_minute % 60
+        if suffix == "PM" and end_hour > 12:
+            end_hour -= 12
+        return f"Between {start} and {end_hour}:{end_minute:02d} {suffix}"
+    except Exception:
+        return start
+
+
 def _group_tour_start_time(rows):
     for row in rows:
         if not _is_group_tour_overview_row(row):
@@ -80,11 +93,11 @@ def _group_tour_start_time(rows):
             hour = int(match.group(1))
             minute = match.group(2) or "00"
             suffix = match.group(3).replace(".", "").upper()
-            return f"{hour}:{minute} {suffix}"
+            return _format_time_range_from_start(hour, minute, suffix)
     return ""
 
 
-def _supplier_day_description(row, max_sentences=4):
+def _supplier_day_description(row, max_sentences=6):
     """Use the actual supplier day prose for guided/group-tour day blocks.
 
     Generic fallbacks should only be used when supplier text is thin. For rows
@@ -115,15 +128,55 @@ def _supplier_day_description(row, max_sentences=4):
 
 
 
+def _supplier_activity_description(row, max_sentences=4):
+    """Extract useful supplier prose before falling back to generic copy."""
+    day_specific = _supplier_day_description(row, max_sentences=max_sentences)
+    if day_specific:
+        return day_specific
+    source = str(row.get("details") or row.get("original_title") or "").strip()
+    if not source:
+        return ""
+    # Prefer What to expect, then Overview, then remaining prose after title line.
+    candidates = []
+    for marker in [r"What to expect\??", r"Overview"]:
+        match = re.search(marker + r"\s*(.+)", source, flags=re.IGNORECASE | re.DOTALL)
+        if match:
+            candidates.append(match.group(1))
+    if not candidates:
+        # Supplier rows that contain only title/time/meeting/includes metadata
+        # are not narrative descriptions. Let the curated fallback handle those.
+        if not re.search(r"\b(overview|what to expect|description)\b", source, flags=re.IGNORECASE):
+            if "|" in source or re.search(r"\btime\s*:", source, flags=re.IGNORECASE) or re.search(r"\bincludes?\s*:", source, flags=re.IGNORECASE):
+                return ""
+        candidates.append(source)
+    for candidate in candidates:
+        text = re.split(r"\n\s*(?:What's included|What’s included|Included With|Please note|Not included|Meeting Point|Pick up / meeting point|Pick-up / meeting point)\b", candidate, maxsplit=1, flags=re.IGNORECASE)[0]
+        text = re.sub(r"^.*?\|\s*", "", text, count=1).strip() if "|" in text.split("\n", 1)[0] else text
+        sentences = []
+        for sentence in re.split(r"(?<=[.!?])\s+", clean_space(text)):
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            lower = sentence.lower()
+            if any(bad in lower for bad in ["price is per", "please arrive", "book your", "check availability", "what are you waiting"]):
+                continue
+            sentences.append(sentence)
+            if len(sentences) >= max_sentences:
+                break
+        if sentences:
+            return polish_client_text(" ".join(sentences))
+    return ""
+
+
 def build_activity_block(row):
-    title = polish_title(create_client_activity_title(row) or row.get("title", ""))
+    title = normalize_client_day_title(create_client_activity_title(row) or row.get("title", ""), row)
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
     meeting_point = polish_client_text(meeting_point)
     end_point = polish_client_text(row.get("end_point", ""))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
-    description = polish_client_text(row.get("client_description") or _supplier_day_description(row) or get_activity_description(row))
+    description = polish_client_text(row.get("client_description") or _supplier_activity_description(row) or get_activity_description(row))
     included_items = clean_activity_inclusion_items([strip_price_fragments(item) for item in row.get("includes", [])], title)
     fallback_items = get_fallback_activity_inclusions(row)
 
@@ -143,9 +196,11 @@ def build_activity_block(row):
     html_text += f'<div class="body-text strong-line">{esc(title)}</div>'
 
     time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
-    if time_display:
-        time_label = "Pick-up" if row.get("is_group_tour_start_activity") else "Time"
-        html_text += f'<div class="body-text"><span class="meta-label">{esc(time_label)}:</span> {esc(time_display)}</div>'
+    pickup_range = row.get("group_tour_pickup_range", "")
+    if pickup_range:
+        html_text += f'<div class="body-text"><span class="meta-label">Pick-up:</span> {esc(pickup_range)}</div>'
+    elif time_display:
+        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time_display)}</div>'
 
     if duration:
         duration_label = get_activity_duration_label(row, duration)
@@ -770,12 +825,15 @@ def build_day_blocks(rows):
         elif row_type == "Hotel":
             blocks.append(build_accommodation_block(row))
         elif row_type == "Arrival":
-            blocks.append(build_arrival_block(row))
+            # Arrival titles/intros already welcome the traveller. Avoid adding
+            # a second raw block like "Arrival / Welcome to Denmark".
+            generic_arrival = re.search(r"^(arrival|welcome\s+to\s+.+)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+            if not generic_arrival:
+                blocks.append(build_arrival_block(row))
         elif row_type == "Activity":
             if group_tour_start_time and not row.get("time"):
                 row = dict(row)
-                row["time"] = group_tour_start_time
-                row["is_group_tour_start_activity"] = True
+                row["group_tour_pickup_range"] = group_tour_start_time
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
             blocks.append(build_leisure_block(row))

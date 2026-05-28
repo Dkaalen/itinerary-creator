@@ -98,6 +98,48 @@ def is_bad_raw_day_title(title: str) -> bool:
         return True
     return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in BAD_TITLE_PATTERNS)
 
+
+
+def normalize_client_day_title(title: str, row: dict | None = None) -> str:
+    """Polish recurring supplier/admin titles into client-facing day titles.
+
+    This is deliberately pattern-based rather than fixture-based. It handles
+    common supplier wording across inputs while preserving proper product names.
+    """
+    source = strip_price_fragments(title or "")
+    text = polish_title(clean_client_title(source))
+    full = f"{text} {(row or {}).get('title', '')} {(row or {}).get('original_title', '')} {(row or {}).get('details', '')}".lower()
+
+    text = re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\bWatch\s+Whales\b", "Whale Watching", text, flags=re.IGNORECASE)
+
+    if re.search(r"\bessential\s+oslo\b|\boslo\s*:\s*.*city\s+cent(?:er|re).*walking", full, flags=re.IGNORECASE):
+        return "Oslo Walking Tour"
+    if re.search(r"\ba\s+city\s+walk\s+in\s+the\s+old\s+town\b|old town.*famous attractions", full, flags=re.IGNORECASE):
+        if "stockholm" in full:
+            return "Stockholm Old Town Walking Tour"
+        return "Old Town Walking Tour"
+    if re.search(r"\btransported\s+tour\b.*runic|runic kingdom", full, flags=re.IGNORECASE):
+        return "Runic Kingdom & Viking History Tour"
+    if "secret food" in full and "copenhagen" in full:
+        return "Copenhagen Food Tour"
+    if "fløibanen" in full or "floibanen" in full:
+        return "Fløibanen Funicular"
+    if "santa's igloos" in full or "glass igloo" in full:
+        return "Glass Igloo Stay in Rovaniemi"
+
+    if _looks_like_norway_in_a_nutshell(full):
+        route_label = _route_label_from_activity_text(full)
+        # Day titles read better with the destination focus; inclusions can keep
+        # the full from/to route wording.
+        dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", route_label)
+        if dest_match:
+            return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}"
+        return route_label
+
+    return polish_title(text)
+
 def create_client_activity_title(row):
     title = clean_client_title(strip_price_fragments(row.get("title", "")))
     original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
@@ -359,7 +401,7 @@ def create_day_title(day_rows):
     if activity_rows:
         title = create_client_activity_title(activity_rows[0])
         if title and not is_bad_raw_day_title(title):
-            return title
+            return normalize_client_day_title(title, activity_rows[0])
 
     # Day overview rows may drive the title only when no better activity title
     # exists, and never when they look like admin/logistics copy.
@@ -395,8 +437,15 @@ def create_day_title(day_rows):
         for row in day_rows:
             if get_row_type(row) == item_type:
                 title = row.get("title", "").strip()
+                if item_type == "Hotel":
+                    hotel_text = f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
+                    if re.search(r"glass\s+igloo|santa's\s+igloos", hotel_text, flags=re.IGNORECASE):
+                        return "Glass Igloo Stay in Rovaniemi"
+                    if city:
+                        return f"Stay in {city}"
 
                 if title:
-                    return title
+                    clean_title = normalize_client_day_title(title, row)
+                    return clean_title or title
 
     return "Day at leisure"

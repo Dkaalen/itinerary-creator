@@ -16,7 +16,7 @@ from text_polish import polish_hotel_name, polish_inclusion_item, polish_title
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only, has_self_drive_markers
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
-from itinerary_generation.titles import create_client_activity_title
+from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
 
 
 def _clean(value: str) -> str:
@@ -90,7 +90,8 @@ def _join_detail_parts(parts: list[str]) -> str:
 
 
 def _hotel_line(row: dict) -> str:
-    name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation")
+    raw_name = row.get("hotel_name") or row.get("title") or "Accommodation"
+    name = polish_hotel_name(re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", str(raw_name), flags=re.IGNORECASE))
     city = canonicalize_place_name(row.get("city", ""))
     nights = _clean(row.get("hotel_nights", ""))
     room = _clean(row.get("room_category", ""))
@@ -120,7 +121,9 @@ def _hotel_line(row: dict) -> str:
 
 def _activity_line(row: dict) -> str:
     title = create_client_activity_title(row) or row.get("title", "")
-    return polish_title(title)
+    if "norway in a nutshell" in str(title).lower():
+        return polish_title(title)
+    return normalize_client_day_title(title, row)
 
 
 def _clean_transport_title(row: dict) -> str:
@@ -284,6 +287,22 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     meal_items: list[str] = []
 
     hotel_rows = [row for row in rows if get_row_type(row) == "Hotel"]
+    # group_rows_by_day adds synthetic placeholder hotels for group-tour
+    # overnights. They are not always present in parsed_rows, so pull them from
+    # grouped_days for the commercial inclusions page rather than dropping them.
+    if grouped_days:
+        existing_hotel_keys = {
+            (str(row.get("day", "")), _clean(row.get("hotel_name") or row.get("title")).lower(), _clean(row.get("city", "")).lower())
+            for row in hotel_rows
+        }
+        for day, day_rows in grouped_days.items():
+            for row in day_rows:
+                if get_row_type(row) != "Hotel" or not row.get("is_group_tour_accommodation"):
+                    continue
+                key = (str(row.get("day", day)), _clean(row.get("hotel_name") or row.get("title")).lower(), _clean(row.get("city", "")).lower())
+                if key not in existing_hotel_keys:
+                    hotel_rows.append(row)
+                    existing_hotel_keys.add(key)
     activity_rows = [row for row in rows if get_row_type(row) == "Activity"]
 
     for row in hotel_rows:

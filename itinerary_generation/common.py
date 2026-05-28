@@ -241,16 +241,15 @@ def has_hotel(day_rows):
 
 
 def get_display_destination_city(city):
-    """Return a client-facing destination label for route/glance summaries.
+    """Return the client-facing city label used in route/glance summaries.
 
-    Keep real destination names canonical, but collapse supplier accommodation
-    placeholders such as ``Vík area``/``Höfn area`` to the destination itself.
+    Synthetic group-tour accommodation rows sometimes use area labels such as
+    "Vík area" or "Höfn area". The cover/glance route should keep the travel
+    route clean, so those area suffixes are collapsed to the destination name.
     """
-    clean = canonicalize_place_name(str(city or "").strip())
-    if not clean:
-        return ""
-    clean = re.sub(r"\s+area$", "", clean, flags=re.IGNORECASE).strip()
-    return canonicalize_place_name(clean)
+    value = canonicalize_place_name(str(city or "").strip())
+    value = re.sub(r"\s+area$", "", value, flags=re.IGNORECASE).strip()
+    return value
 
 def get_unique_cities(parsed_rows):
     cities = []
@@ -259,7 +258,7 @@ def get_unique_cities(parsed_rows):
         if is_optional_row(row):
             continue
 
-        city = canonicalize_place_name(row.get("city", "").strip())
+        city = get_display_destination_city(row.get("city", "").strip())
 
         if is_valid_destination_city(city) and city not in cities:
             cities.append(city)

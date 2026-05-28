@@ -5,7 +5,7 @@ from app_modules.main_view import render_app
 from app_modules.project_io import initialise_state
 
 
-APP_VERSION = "2026-05-28 v36c62-content-quality"
+APP_VERSION = "2026-05-28 v36c63-content-rules-quality-pipeline"
 
 
 st.set_page_config(

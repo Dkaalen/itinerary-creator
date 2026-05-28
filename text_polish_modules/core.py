@@ -125,7 +125,6 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"([,.;])(?=\S)", r"\1 ", text)
     text = re.sub(r"(?<!\d):(?!\d)(?=\S)", ": ", text)
     text = re.sub(r"\b(\d{1,2}):\s+(\d{2})\s*([AP]M)\b", r"\1:\2 \3", text, flags=re.IGNORECASE)
-    text = re.sub(r"\b12:00\s+AM\s+noon\b", "12:00 noon", text, flags=re.IGNORECASE)
     return clean_space(text)
 
 

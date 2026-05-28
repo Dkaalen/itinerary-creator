@@ -54,6 +54,12 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     """
 
     text = clean_space(main_text)
+    # Supplier accommodation rows often start with admin wording such as
+    # "Accommodation: Check-in at Santa's Igloos". That wording is useful
+    # to identify the row, but it should not become the hotel name or a day
+    # title. Strip the admin prefix before hotel/room parsing.
+    text = re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip()
     lower = text.lower()
 
     hotel_name = ""
@@ -98,14 +104,26 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
         for part in comma_parts:
             part_lower = part.lower()
 
-            if re.search(r"\d+\s*star", part_lower) or re.search(r"\d+\s*x\s*night", part_lower):
+            if re.search(r"\d+\s*x\s*night", part_lower):
+                continue
+
+            if re.search(r"\d+\s*[- ]?star", part_lower):
+                # Keep the property name when a star rating is prefixed, e.g.
+                # "3-star Hotel Arthur". Only the rating itself is metadata.
+                cleaned_part = clean_space(re.sub(r"\b\d+\s*[- ]?star\b", "", part, flags=re.IGNORECASE))
+                if cleaned_part and not hotel_name:
+                    hotel_name = cleaned_part
                 continue
 
             if "incl" in part_lower or "breakfast" in part_lower or "brekafast" in part_lower or "dinner" in part_lower:
                 meal_plan = meal_plan or parse_meal_plan(part)
                 continue
 
-            if "room" in part_lower or "igloo" in part_lower or "suite" in part_lower or "cabin" in part_lower:
+            room_like = (
+                "room" in part_lower or "suite" in part_lower or "cabin" in part_lower
+                or ("igloo" in part_lower and re.search(r"\b(premium|standard|aurora|glass|\d+\s*x)", part_lower))
+            )
+            if room_like:
                 room_category = room_category or clean_room_category(part)
                 continue
 

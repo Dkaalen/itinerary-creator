@@ -282,6 +282,14 @@ def get_primary_transport_title(day_rows):
     for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
+                source_text = _transport_source_text(row)
+                if _is_norway_in_a_nutshell_text(source_text):
+                    premium = get_premium_transport_phrase(row)
+                    if premium:
+                        # Day titles read cleaner with destination focus, while
+                        # inclusions/travel lines keep the full from/to route.
+                        dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", premium)
+                        return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else premium
                 title = polish_title(str(row.get("title", "")).strip())
                 if title:
                     return title
