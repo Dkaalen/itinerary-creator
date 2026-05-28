@@ -2,7 +2,7 @@
   "name": "Scandinavia autumn cruise rendered PDF",
   "fixture": "scandinavia_autumn_cruise.txt",
   "must_contain": [
-    "Scandinavian Autumn Journey",
+    "Scandinavian Coastal Voyage",
     "Train to Stockholm",
     "Scenic Train Transfer from Copenhagen to Stockholm, via Malmö",
     "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor",

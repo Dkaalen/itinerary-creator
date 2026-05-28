@@ -42,11 +42,15 @@ def _clean_route_place(value):
     raw = str(value or "").strip(" -:|.,")
     raw = re.sub(r"^(?:from|to)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     raw = re.split(r"\s+-\s+|\s+\|\s+|\s+at\s+\d{1,2}:\d{2}|\s+\d{1,2}:\d{2}", raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
+    if re.search(r"fl[åa]msbanen", raw, flags=re.IGNORECASE):
+        raw = "Flåm"
+    if re.search(r"one[- ]?way geiranger fjord cruise", raw, flags=re.IGNORECASE):
+        raw = "Ålesund"
     place = canonicalize_place_name(raw)
     lower = place.lower()
     if lower in _ROUTE_PREFIX_ORIGINS | {"", "hotel", "station", "airport", "accommodation", "your accommodation"}:
         return ""
-    if any(marker in lower for marker in ["santa claus express", "downstairs cabin", "tickets included", "meal plan"]):
+    if any(marker in lower for marker in ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "shower", "sink", "wc in carriage", "women's", "men's", "benefits", "made bed"]):
         return ""
     return place
 
@@ -58,6 +62,15 @@ def get_route_points_for_transport(row):
     details and original text, because supplier cells often put the route in
     any of those locations.
     """
+    source_text = _transport_source_text(row)
+    station_match = re.search(r"\b([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+(?:Central|station)\s*[–-]\s*([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+station\b", source_text, flags=re.IGNORECASE)
+    if station_match:
+        return _clean_route_place(station_match.group(1)), _clean_route_place(station_match.group(2))
+
+    plain_from_match = re.search(r"\bfrom\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+(?:Central|station)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+(?:Central|station)\b", source_text, flags=re.IGNORECASE)
+    if plain_from_match:
+        return _clean_route_place(plain_from_match.group(1)), _clean_route_place(plain_from_match.group(2))
+
     # Prefer the parser-normalized title for destination, but enrich it with
     # origin from supplier details when the destination matches. This avoids
     # stale contradictory details while still producing useful route wording.
@@ -130,12 +143,15 @@ def get_premium_transport_phrase(row):
     origin, destination = get_route_points_for_transport(row)
     via = get_route_via_points(row, origin, destination)
 
+    if row_type == "Transfer" and any(marker in lower for marker in ["private", "self transfer", "shuttle", "hotel to", "airport to", "to hotel", "to airport", "to station", "to your accommodation"]):
+        return polish_title(row.get("title", "") or "Transfer")
+
     if row_type == "Train" or "train" in lower:
         if "norway in a nutshell" in lower:
             if origin and destination:
-                return f"Norway in a Nutshell route from {origin} to {destination}"
+                return f"Scenic Rail & Fjord Journey from {origin} to {destination}"
             if destination:
-                return f"Norway in a Nutshell to {destination}"
+                return f"Norway in a Nutshell route to {destination}"
             return "Norway in a Nutshell"
         label = "Overnight Train Transfer" if "overnight" in lower else "Scenic Train Transfer"
         if origin and destination:
@@ -165,6 +181,9 @@ def get_premium_transport_phrase(row):
         return label
 
     if row_type in {"Cruise", "Ferry"} or "cruise" in lower or "ferry" in lower:
+        if "geiranger fjord cruise" in lower or "geirangerfjord" in lower:
+            if destination and destination.lower() == "geiranger":
+                return "Geirangerfjord Cruise from Ålesund to Geiranger" if origin else "One-way Geirangerfjord Cruise to Geiranger"
         is_ferry = row_type == "Ferry" or ("ferry" in lower and "cruise" not in lower)
         if row_type == "Cruise" and "arrival" in lower:
             return f"Cruise arrival to {destination}" if destination else "Cruise arrival"

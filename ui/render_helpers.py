@@ -290,6 +290,15 @@ def get_activity_description(row, detail_level=None):
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
 
+    if "wildlife photography" in title and "longyearbyen" in title:
+        return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."
+
+    if "mountain hike" in title and "abisko" in title:
+        return "Hike in the Abisko mountain landscape, with time for views, local nature stories and the included food stop during the excursion."
+
+    if "fjord" in title and ("minivan" in title or "vip" in title or "kvaløya" in title or "sommarøy" in title):
+        return "Explore the coastal scenery around Tromsø by road, with fjords, mountains, beaches and Arctic landscapes forming the focus of the day."
+
     if "fjellheisen" in title or "round trip ticket" in title:
         if detail_level == "Elegant concise":
             return "Ride Fjellheisen for panoramic views over Tromsø."

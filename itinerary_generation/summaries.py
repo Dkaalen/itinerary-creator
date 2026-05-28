@@ -45,10 +45,8 @@ def create_trip_glance(parsed_rows, grouped_days):
         for row in transfer_rows
     )
 
-    has_self_transfer = any(
-        "self transfer" in row.get("details", "").lower()
-        for row in transfer_rows
-    )
+    # Self transfers are day logistics, not a premium trip-style feature.
+    has_self_transfer = False
 
     travel_style_parts = []
 
@@ -63,8 +61,8 @@ def create_trip_glance(parsed_rows, grouped_days):
         if has_private_transfer:
             travel_style_parts.append("private transfers")
 
-        if has_self_transfer:
-            travel_style_parts.append("self-guided transfers")
+        if any(get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transport"} for row in parsed_rows):
+            travel_style_parts.append("scenic transport")
 
         if activity_rows:
             travel_style_parts.append("guided experiences")
@@ -145,7 +143,7 @@ def describe_city_experience(rows):
     travel_only_with_hotel = row_types.issubset({"Hotel", "Transfer", "Flight", "Train", "Transport", "Cruise", "Ferry"}) and any(get_row_type(row) == "Hotel" for row in rows)
 
     has_nutshell = has_norway_in_a_nutshell(rows) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
-    has_self_drive = _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "route suggested", "scenic drive", "return drive", "road trip")
+    has_self_drive = _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "rental car")
     has_lagoon = _has(text, "blue lagoon", "sky lagoon", "spa", "wellness", "7-step", "ritual")
     has_silfra = _has(text, "silfra", "snork")
     has_golden = _has(text, "golden circle", "kerið", "kerid")
@@ -212,14 +210,19 @@ def describe_city_experience(rows):
     if _has(text, "lofoten", "henningsvær", "haukland", "trollfjord"):
         candidates.append("Lofoten scenery and Trollfjord cruising")
     elif has_fjord and has_cable:
-        if _has(text, "arctic", "tromsø", "tromso", "alta"):
-            candidates.append("Arctic fjords and cable car views")
+        if _has(text, "bergen", "fløibanen", "floibanen") and not _has(text, "tromsø", "tromso", "alta", "svalbard", "kiruna"):
+            candidates.append("City, fjord and funicular")
+        elif _has(text, "arctic", "tromsø", "tromso", "alta", "svalbard", "kiruna"):
+            candidates.append("Arctic fjords and viewpoints")
         else:
             candidates.append("Fjord views and funicular")
     elif has_fjord and has_whale:
         candidates.append("Coastal wildlife and fjord scenery")
     elif has_fjord:
-        candidates.append("Fjord scenery and coastal cruising")
+        if _has(text, "bergen") and not _has(text, "arctic", "tromsø", "tromso", "alta", "svalbard", "kiruna"):
+            candidates.append("Bergen fjords and coastal cruising")
+        else:
+            candidates.append("Fjord scenery and coastal cruising")
 
     if has_city and _has(text, "vasa", "old town", "stockholm"):
         candidates.append("Old Town, Vasa Museum and city discovery")

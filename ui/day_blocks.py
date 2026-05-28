@@ -564,10 +564,8 @@ def get_travel_sequence_line(row):
         return polish_title(row.get("title", ""))
 
     if row_type in TRANSPORT_TYPES:
-        route_phrase = _transport_route_phrase(row)
-        if route_phrase:
-            return polish_title(route_phrase)
-        return polish_title(row.get("title", ""))
+        phrase = get_premium_transport_phrase(row)
+        return polish_title(phrase or row.get("title", ""))
 
     return polish_title(row.get("title", ""))
 
@@ -596,7 +594,7 @@ def _norway_nutshell_lines(row):
     lines = []
     base = get_travel_sequence_line(row)
     if places and len(places) >= 2:
-        lines.append(f"Norway in a Nutshell route from {places[0]} to {places[-1]}")
+        lines.append(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}")
         lines.append("Route: " + " → ".join(places))
     elif base:
         lines.append(base)

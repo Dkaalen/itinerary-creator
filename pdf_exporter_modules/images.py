@@ -240,15 +240,12 @@ class SamePageDayImage(Flowable):
             mask="auto",
         )
         divider_color = colors.HexColor("#b89555")
-        center_x = self.absolute_x + (self.content_width / 2.0)
-        # Draw one solid divider after the image so its vertical center sits on
-        # the image edge. The emblem has no filled background.
+        # Draw one clean, solid divider with its vertical center aligned to the
+        # top edge of the image. The decorative emblem is intentionally omitted
+        # for a cleaner day-page transition.
         canv.setStrokeColor(divider_color)
         canv.setLineWidth(5.0)
         canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)
-        canv.setFillColor(divider_color)
-        canv.setFont("Times-Roman", 14.5)
-        canv.drawCentredString(center_x, image_top_y - 5.3, "✦")
         canv.restoreState()
 
 

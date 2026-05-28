@@ -504,20 +504,20 @@ def test_day_page_editorial_parity_markup():
     }]
     html = render_day_page("Day 3", rows, image_match=None)
     assert_contains(html, "DAY 3", "Day pages should render the editorial day kicker.")
-    assert_contains(html, "✦", "Day pages should keep the premium emblem separator.")
+    assert_contains(html, "day-kicker", "Day pages should keep the premium editorial day header structure.")
     assert_contains(html, "ROVANIEMI", "The day kicker city should render in uppercase for preview/PDF parity.")
     assert_not_contains(html, "Today’s setting", "The rejected setting label must not render on day pages.")
 
     final_html_css = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
-    assert_contains(final_html_css, ".day-image-slot::after", "Final preview should draw the emblem divider on the day image edge.")
+    assert_not_contains(final_html_css, ".day-image-slot::after", "Final preview should no longer draw the decorative image divider emblem.")
     assert_contains(final_html_css, "border-top: 5px solid rgba(184,149,85,.96)", "Final preview should keep one thicker solid divider attached to the image edge.")
     assert_contains(final_html_css, "box-shadow: none", "Final preview divider should not use a two-tone shadow line.")
-    assert_contains(final_html_css, "background: transparent", "The day-image emblem should not draw a patch behind the divider.")
+    assert_not_contains(final_html_css, 'content: "✦";\n            position: absolute;\n            left: 50%;', "The day-image divider emblem should be fully removed.")
 
     editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
     assert_contains(editor_html, "day-kicker", "The visual editor preview must use the same day-kicker structure as final preview/PDF.")
     assert_contains(editor_html, "summaryStyle", "The visual editor summary page must receive the seasonal background inline.")
-    assert_contains(editor_html, ".image-stage::after", "The visual editor should draw the same emblem divider on the day image edge.")
+    assert_not_contains(editor_html, ".image-stage::after", "The visual editor should no longer draw the decorative image divider emblem.")
     assert_not_contains(editor_html, "Today’s setting", "The visual editor preview must not render the rejected setting label.")
 
 def test_v36c52_content_quality_hardening_rules():
@@ -670,7 +670,7 @@ def test_seasonal_cover_title_and_subtitle_from_dates():
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
     assert_equal(detect_cover_season(rows), "summer", "July itineraries should use the summer cover season.")
-    assert_equal(create_trip_title(rows, grouped), "Finland Summer Journey", "Single-country multi-destination trips should use the country in the cover title.")
+    assert_equal(create_trip_title(rows, grouped), "Finland Summer Escape", "Single-country multi-destination trips should use the country in the cover title.")
     assert_equal(create_trip_subtitle(rows, grouped), "A premium Finland summer journey with scenic travel and curated experiences", "Single-country cover subtitle should be seasonal and country-aware.")
 
     theme = get_cover_theme(rows, {"cover_season": "winter"})
@@ -915,7 +915,7 @@ Please check-in 30 minutes before departure. Pick-up service is 75–45 minutes 
 """
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
-    assert_equal(create_trip_title(rows, grouped), "Iceland Summer Journey", "Iceland-only itineraries should not be branded Nordic.")
+    assert_equal(create_trip_title(rows, grouped), "Iceland Summer Escape", "Iceland-only itineraries should not be branded Nordic.")
     assert_contains(create_destinations_line(rows), "Blue Lagoon", "Concatenated place names should be normalized.")
     glance = create_trip_glance(rows, grouped)
     assert_contains(glance["Travel Style"], "self-drive", "Rental vehicle rows should create a self-drive travel style.")
@@ -979,26 +979,26 @@ def test_real_input_fixture_bank_core_expectations():
     fixtures = Path(__file__).resolve().parent / "fixtures" / "real_inputs"
     expectations = {
         "iceland_self_drive_summer.txt": {
-            "title": "Iceland Summer Journey",
+            "title": "Iceland Summer Escape",
             "route_contains": ["Blue Lagoon", "Reykjavík", "Öræfi"],
             "style_contains": "self-drive",
             "forbidden": ["Nordic Summer Journey", "Bluelagoon", "National Park National Park", "Ranua"],
         },
         "norway_sweden_denmark_summer.txt": {
-            "title": "Scandinavian Summer Journey",
+            "title": "Scandinavian Summer Discovery",
             "route_contains": ["Oslo", "Stockholm", "Copenhagen"],
             "forbidden": ["Nordic Summer Journey"],
         },
         "finland_norway_winter_variant.txt": {
-            "title": "Nordic Winter Journey",
+            "title": "Lapland & Norway Northern Lights Escape",
             "route_contains": ["Helsinki", "Rovaniemi", "Bergen", "Oslo"],
         },
         "scandinavia_autumn_cruise.txt": {
-            "title": "Scandinavian Autumn Journey",
+            "title": "Scandinavian Coastal Voyage",
             "route_contains": ["Copenhagen", "Stockholm", "Kirkenes", "Bergen", "Oslo"],
         },
         "finland_norway_winter_family.txt": {
-            "title": "Nordic Winter Journey",
+            "title": "Lapland & Norway Northern Lights Escape",
             "route_contains": ["Helsinki", "Rovaniemi", "Tromsø"],
         },
     }

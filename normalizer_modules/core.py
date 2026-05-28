@@ -261,6 +261,14 @@ def normalize_activity_title(row: dict) -> str:
         return "Helsinki Guided Walking Tour"
     if "lofoten" in lower and "trollfjord" in lower:
         return "Lofoten Day Tour & Trollfjord Cruise"
+    if "arctic route" in lower or ("senja" in lower and "coach" in lower):
+        return "Arctic Route Coach Transfer"
+    if "wildlife photography" in lower and "longyearbyen" in lower:
+        return "Wildlife Photography Around Longyearbyen"
+    if "wildlife and glacier" in lower:
+        return "Wildlife & Glacier Experience"
+    if "mountain hike" in lower and "abisko" in lower:
+        return "Mountain Hike in Abisko"
     if "hop" in lower and "off" in lower and "bus" in lower:
         if "bergen" in lower:
             return "Bergen Hop-On Hop-Off Bus Ticket"
@@ -438,6 +446,20 @@ def warn_suspicious_city(row: dict) -> None:
         )
 
 
+
+def _is_rail_or_fjord_route_activity(row: dict) -> bool:
+    text = text_blob(row).lower()
+    return (
+        "norway in a nutshell" in text
+        or re.search(r"\btrain\s*[:|]", text)
+        or ("flåm train" in text or "flam train" in text or "flåm railway" in text or "flam railway" in text)
+        or ("nærøyfjord" in text or "naeroyfjord" in text) and ("rail" in text or "train" in text or "luggage transfer" in text)
+    )
+
+def _is_route_transfer_activity(row: dict) -> bool:
+    text = text_blob(row).lower()
+    return bool(re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text))
+
 def normalize_row(row: dict) -> dict:
     row = copy.deepcopy(row)
 
@@ -469,16 +491,37 @@ def normalize_row(row: dict) -> dict:
         return normalize_hotel_row(row)
 
     if row_type == "Activity":
-        title = normalize_activity_title(row)
-        row["title"] = title
-        row["original_title"] = row.get("original_title") or title
-        if row.get("time"):
-            row["display_time"] = expand_time_with_duration(row.get("time", ""), row.get("duration", ""))
-        else:
-            row["display_time"] = ""
-        row["display_duration"] = format_duration_display(row.get("duration", "")) if row.get("duration") else ""
+        if _is_rail_or_fjord_route_activity(row):
+            row["effective_type"] = "Train"
+            if "norway in a nutshell" in full.lower():
+                row["title"] = normalize_transport_title(row).get("title", row.get("title", ""))
+            row_type = "Train"
+        elif _is_route_transfer_activity(row):
+            # Some sheets paste simple transport rows in the Activity column.
+            # Preserve them as transport so they do not become guided experiences.
+            if "flight" in full.lower():
+                row["effective_type"] = "Flight"
+                row_type = "Flight"
+            elif "cruise" in full.lower() or "ferry" in full.lower():
+                row["effective_type"] = "Cruise"
+                row_type = "Cruise"
+            elif "coach" in full.lower() or "bus" in full.lower():
+                row["effective_type"] = "Transport"
+                row_type = "Transport"
+            elif "train" in full.lower():
+                row["effective_type"] = "Train"
+                row_type = "Train"
+        if row_type == "Activity":
+            title = normalize_activity_title(row)
+            row["title"] = title
+            row["original_title"] = row.get("original_title") or title
+            if row.get("time"):
+                row["display_time"] = expand_time_with_duration(row.get("time", ""), row.get("duration", ""))
+            else:
+                row["display_time"] = ""
+            row["display_duration"] = format_duration_display(row.get("duration", "")) if row.get("duration") else ""
 
-    if row_type in TRANSPORT_TYPES or row_type == "Transfer":
+    if get_row_type(row) in TRANSPORT_TYPES or row_type == "Transfer":
         row = normalize_transport_title(row)
 
     if isinstance(row.get("includes"), list):

@@ -268,24 +268,6 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             pointer-events: none;
         }}
 
-        .day-image-slot::after {{
-            content: "✦";
-            position: absolute;
-            left: 50%;
-            top: 2.5px;
-            transform: translate(-50%, -50%);
-            width: auto;
-            height: auto;
-            line-height: 1;
-            text-align: center;
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 17px;
-            color: rgba(184,149,85,1);
-            background: transparent;
-            z-index: 3;
-            pointer-events: none;
-        }}
-
         .day-image-preview-img {{
             display: block;
             width: 100%;

@@ -1,3 +1,4 @@
+import re
 from collections import OrderedDict
 
 from place_aliases import canonicalize_place_name, country_for_place, is_likely_service_text
@@ -89,10 +90,14 @@ def is_valid_destination_city(city):
         "airport to hotel",
         "optional addon",
         "optional add",
+        "optinal addon",
+        "addon on request",
         "flight ",
     ]
     invalid_exact = {"accommodation", "hotel", "train", "flight", "cruise", "departure", "arrival"}
     if lower in invalid_exact:
+        return False
+    if any(re.search(pattern, lower) for pattern in [r"\bshower\b", r"\bsink\b", r"\bwc in carriage\b", r"\bbenefits\b", r"\bmade bed\b", r"women's", r"men's compartment"]):
         return False
     if is_likely_service_text(city):
         return False
@@ -160,16 +165,25 @@ def get_destination_countries(parsed_rows):
 
 
 def has_self_drive_markers(parsed_rows):
-    """Detect self-drive/rental-car itinerary patterns without country-specific rules."""
-    markers = [
+    """Detect true rental-car/self-drive itinerary patterns.
+
+    Do not treat ordinary self transfers, coach routes, supplier prose like
+    "we drive", or scenic/return-drive day descriptions as self-drive. The
+    itinerary should only be labelled self-drive when a rental vehicle/car is
+    explicitly part of the arranged journey.
+    """
+    positive_markers = [
         "rental vehicle", "rental car", "rental suv", "pick up rental",
         "pickup rental", "drop vehicle", "drop off vehicle", "return vehicle",
-        "car rental", "self-drive", "self drive", "route suggested",
-        "scenic drive", "return drive", "countryside drive", "drive to",
+        "car rental", "hire car",
+    ]
+    negative_markers = [
+        "self transfer", "self-arranged", "self arranged", "coach", "bus",
+        "flight", "train", "cruise", "ferry", "private transfer",
     ]
     for row in parsed_rows or []:
-        text = f'{row.get("type", "")} {row.get("title", "")} {row.get("details", "")}'.lower()
-        if any(marker in text for marker in markers):
+        text = f'{row.get("type", "")} {row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+        if any(marker in text for marker in positive_markers) and not ("self transfer" in text and "rental" not in text):
             return True
     return False
 

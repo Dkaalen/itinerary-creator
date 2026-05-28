@@ -1,3 +1,5 @@
+import re
+
 from itinerary_generation.common import (
     get_day_count,
     get_primary_city,
@@ -63,6 +65,9 @@ def create_client_activity_title(row):
     if "fløibanen" in full_text or "floibanen" in full_text:
         return "Fløibanen Funicular"
 
+    if "arctic route" in full_text or "senja" in full_text and "coach" in full_text:
+        return "Arctic Route Coach Transfer"
+
     if "hop on" in full_text or "hop-on" in full_text or "hop off" in full_text or "hop-off" in full_text:
         if "copenhagen" in full_text:
             return "Copenhagen Hop-On Hop-Off Bus Ticket"
@@ -73,6 +78,12 @@ def create_client_activity_title(row):
     if "city walking" in full_text and "canal" in full_text and "copenhagen" in full_text:
         return "Copenhagen Walking & Canal Tour"
 
+    if "wildlife photography" in full_text and "longyearbyen" in full_text:
+        return "Wildlife Photography Around Longyearbyen"
+    if "wildlife and glacier" in full_text:
+        return "Wildlife & Glacier Experience"
+    if "mountain hike" in full_text and "abisko" in full_text:
+        return "Mountain Hike in Abisko"
     if "round trip ticket" in full_text and "trom" in full_text:
         return "Fjellheisen Cable Car"
 
@@ -131,40 +142,54 @@ def create_trip_title(parsed_rows, grouped_days):
     season = detect_cover_season(parsed_rows)
     season_label = SEASON_LABELS.get(season, "Summer")
     countries = get_destination_countries(parsed_rows)
+    text = " ".join(f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}' for row in parsed_rows).lower()
+
+    is_group_tour = any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
+    has_cruise_heavy = sum(1 for row in parsed_rows if get_row_type(row) == "Cruise") >= 3
+    has_nutshell = "norway in a nutshell" in text or ("flåm" in text or "flam" in text) and ("nærøyfjord" in text or "naeroyfjord" in text)
+    has_aurora = any(marker in text for marker in ["northern light", "aurora", "icehotel", "kiruna", "svalbard", "lapland"])
+    has_western_norway = set(cities).intersection({"Bergen", "Ålesund", "Geiranger", "Solvorn", "Flåm", "Myrdal"}) and len(set(cities)) >= 3 and countries == ["Norway"]
+
+    if is_group_tour and countries == ["Iceland"]:
+        if "snæfellsnes" in text or "snaefellsnes" in text:
+            return "Snæfellsnes & South Coast Adventure"
+        return "Iceland Guided Discovery"
+
+    if has_western_norway:
+        return "Western Norway Scenic Escape"
+    if has_cruise_heavy and len(countries) >= 2:
+        return "Scandinavian Coastal Voyage" if set(countries).issubset({"Norway", "Sweden", "Denmark"}) else "Nordic Coastal Voyage"
+    if has_aurora and countries == ["Sweden"]:
+        return "Swedish Lapland Aurora Break"
+    if has_aurora and countries == ["Norway"] and any(city in cities for city in ["Tromsø", "Svalbard", "Kiruna"]):
+        return "Arctic Norway Adventure"
+    if has_nutshell and countries == ["Norway"]:
+        return "Norway Fjord & Rail Journey"
 
     if len(countries) == 1:
-        return f"{countries[0]} {season_label} Journey"
+        country = countries[0]
+        if season in {"spring", "summer", "autumn"}:
+            return f"{country} {season_label} Escape"
+        return f"{country} {season_label} Journey"
 
     scandinavian = {"Norway", "Sweden", "Denmark"}
     nordic = scandinavian | {"Finland", "Iceland", "Estonia"}
     country_set = set(countries)
     if len(country_set) >= 2 and country_set.issubset(scandinavian):
-        return f"Scandinavian {season_label} Journey"
+        return f"Scandinavian {season_label} Discovery"
     if len(country_set) >= 2 and country_set.issubset(nordic):
-        return f"Nordic {season_label} Journey"
-
-    has_northern_lights = any(
-        "northern light" in row.get("details", "").lower()
-        or "aurora" in row.get("details", "").lower()
-        for row in parsed_rows
-    )
-
-    has_lapland = any(
-        city.lower() in ["rovaniemi", "levi", "saariselkä", "saariselka", "kittilä", "kittila", "kakslauttenen", "kakslauttanen", "ivalo"]
-        for city in cities
-    )
+        if has_aurora:
+            return "Lapland & Norway Northern Lights Escape"
+        return f"Nordic {season_label} Highlights"
 
     if len(cities) == 1:
         city = cities[0]
-        if has_northern_lights:
+        if has_aurora:
             return f"{city} Northern Lights Journey"
         return f"{city} {season_label} Journey"
 
     if len(cities) >= 2:
         return SEASON_TITLES.get(season, f"{season_label} Journey")
-
-    if has_northern_lights or has_lapland:
-        return "Nordic Winter Journey"
 
     if day_count >= 10:
         return "Grand Nordic Journey"
@@ -216,12 +241,24 @@ def create_day_title(day_rows):
     hotel_present = has_hotel(day_rows)
     transport_title = get_primary_transport_title(day_rows)
     activity_rows = [row for row in day_rows if get_row_type(row) == "Activity"]
+    overview_rows = [row for row in day_rows if get_row_type(row) == "Day Overview"]
 
     if has_only_departure_arrangements(day_rows) and city:
         return f"Departure from {city}"
 
     if has_arrival and city:
         return f"Welcome to {city}"
+
+    # Day overview rows in group-tour/package itineraries should drive the day
+    # title, except rental-vehicle logistics which are rendered as a block only.
+    for overview in overview_rows:
+        overview_text = f'{overview.get("title", "")} {overview.get("details", "")}'.strip()
+        lower_overview = overview_text.lower()
+        if re.search(r"rental\s+(?:vehicle|car|suv)|pick\s*up\s+rental|pickup\s+rental|drop\s+vehicle|return\s+vehicle", lower_overview):
+            continue
+        match = re.search(r"\bDay\s*\d+\s*:\s*([^\n|]+)", overview_text, flags=re.IGNORECASE)
+        if match:
+            return clean_client_title(match.group(1).strip())
 
     # Travel days with a hotel check-in should be titled by the main travel
     # movement rather than by a later evening activity or transfer.

@@ -63,7 +63,11 @@ def is_optional_addon_header(value):
     text = clean_space(value).lower()
     text = re.sub(r"[^a-z0-9 ]+", " ", text)
     text = clean_space(text)
-    return "optional" in text and ("addon" in text or "add on" in text or "addons" in text or "add ons" in text)
+    # Supplier sheets contain many typo variants: optional addon, optinal addon,
+    # optional add-on, addon on request. Treat all as optional commercial items.
+    has_optional = "optional" in text or "optinal" in text or "on request" in text
+    has_addon = any(marker in text for marker in ["addon", "add on", "addons", "add ons", "add on request", "addon on request"])
+    return has_optional and (has_addon or "on request" in text)
 
 
 INVALID_CITY_MARKERS = [
@@ -73,6 +77,8 @@ INVALID_CITY_MARKERS = [
     "airport to hotel",
     "optional addon",
     "optional add on",
+    "optinal addon",
+    "addon on request",
     "flight ",
 ]
 
@@ -123,6 +129,11 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bIncludse\b", "Includes"),
     (r"\bFull\s+Pention\b", "Full pension"),
     (r"\bFull\s+Pension\b", "Full pension"),
+    (r"\bOptinal\b", "Optional"),
+    (r"\bRecepion\b", "Reception"),
+    (r"\bStaion\b", "Station"),
+    (r"\bKriuna\b", "Kiruna"),
+    (r"\bwitj\b", "with"),
     (r"\bTromso\b", "Tromsø"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),

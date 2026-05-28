@@ -154,6 +154,8 @@ def _transport_bucket(row: dict) -> str:
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
         return ""
+    if "norway in a nutshell" in text or "nærøyfjord" in text or "naeroyfjord" in text or "flåm" in text or "flam" in text:
+        return "Scenic rail & fjord journeys"
     if row_type == "Train" or "train" in text:
         return "Rail journeys"
     if row_type == "Flight" or "flight" in text:
@@ -168,7 +170,7 @@ def _transport_bucket(row: dict) -> str:
 def _transport_line(row: dict) -> str:
     if _is_cruise_leisure_row(row):
         return ""
-    title = _route_transport_line(row) or _clean_transport_title(row)
+    title = get_premium_transport_phrase(row) or _route_transport_line(row) or _clean_transport_title(row)
     extras = []
     for item in row.get("includes", []) or []:
         item = polish_inclusion_item(item, title)
@@ -301,7 +303,10 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
         row_type = get_row_type(row)
         if row_type not in set(TRANSPORT_TYPES) | {"Transfer"}:
             continue
+        text_for_skip = f'{row.get("title", "")} {row.get("details", "")}'.lower()
         if is_self_arranged(row) or _is_self_transfer_row(row) or _is_cruise_leisure_row(row) or _is_cruise_arrival_row(row):
+            continue
+        if row_type == "Transfer" and text_for_skip.strip().startswith("arrival in") and "private" not in text_for_skip and "shuttle" not in text_for_skip:
             continue
         line = _transport_line(row)
         if not line:
