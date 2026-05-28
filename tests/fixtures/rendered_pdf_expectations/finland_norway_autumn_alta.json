@@ -1,0 +1,39 @@
+{
+  "name": "Finland Norway autumn Alta rendered PDF",
+  "fixture": "finland_norway_autumn_alta.txt",
+  "must_contain": [
+    "Nordic Autumn Journey",
+    "Panoramic Coach Transfer from Tromsø to Alta",
+    "Self transfer from your hotel to the bus station",
+    "Self transfer from the bus station to your accommodation",
+    "Optional add-ons",
+    "Day 9 — Whale Watching & Arctic Wildlife Safari",
+    "Rental of warm thermal suits, boots, gloves, balaclava & goggles"
+  ],
+  "must_not_contain": [
+    "Coach Transfer to Tromsø",
+    "Self-guided transfer",
+    "Northern Lights hunt by reindeer",
+    "Guided sightseeing"
+  ],
+  "section_checks": [
+    {
+      "start": "What’s included",
+      "end": "Optional add-ons",
+      "must_contain": [
+        "Northern Lights Experience",
+        "Panoramic Coach Transfer from Tromsø to Alta"
+      ],
+      "must_not_contain": [
+        "Whale Watching & Arctic Wildlife Safari",
+        "Self transfer"
+      ]
+    },
+    {
+      "start": "What’s not included",
+      "must_not_contain": [
+        "Self-guided"
+      ]
+    }
+  ]
+}

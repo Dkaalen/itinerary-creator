@@ -1,0 +1,39 @@
+{
+  "name": "Iceland self-drive summer rendered PDF",
+  "fixture": "iceland_self_drive_summer.txt",
+  "must_contain": [
+    "Iceland Summer Journey",
+    "Premium self-drive journey",
+    "Blue Lagoon Premium Admission",
+    "Rental SUV, such as a Dacia Duster or similar",
+    "Drysuit Snorkelling in Silfra",
+    "Duration: 2.5–3.5 hours",
+    "Sky Lagoon Saman Pass & 7-Step Ritual",
+    "Fosshotel Glacier Lagoon"
+  ],
+  "must_not_contain": [
+    "Nordic Summer Journey",
+    "Bluelagoon",
+    "National Park National Park",
+    "Guided sightseeing",
+    "Ranua Wildlife Park",
+    "Pick-up Rental vehicle from Office or Airport",
+    "Vehicle category examples",
+    "colder lagoon"
+  ],
+  "section_checks": [
+    {
+      "start": "What’s included",
+      "end": "What’s not included",
+      "must_contain": [
+        "Rental vehicle",
+        "Rental SUV, such as a Dacia Duster or similar"
+      ],
+      "must_not_contain": [
+        "Meals included",
+        "Breakfast included at",
+        "Self transfer"
+      ]
+    }
+  ]
+}

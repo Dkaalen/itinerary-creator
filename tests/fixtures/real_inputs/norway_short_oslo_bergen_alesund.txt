@@ -1,0 +1,20 @@
+	Day 1	Transfer 		05/06/2026					Oslo	Private Airport to Hotel
+	Day 1	Hotel	2	05/06/2026	07/06/2026				Oslo	3 Star, Scandic St Olavs Plass , 2xNight , 1xStandard Family Quadruple room , Incl Brekafast (City Centre )
+	Day 2	Activity		06/06/2026					Oslo	" Oslo : Essential Oslo, City Center Guided Walking Tour | 10 AM | 2 Hrs | Experience the beauty of the Norwegian capital on foot with this walking tour Meet our guide near the University of Oslo,"
+	Day 2	Activity		06/06/2026					Oslo	"From Oslo: Fjord Cruise with Silent Electric Ship | 10 AM | 2 Hrs | What's included?
+Cruise on the Oslo Fjord
+English and Norwegian speaking guides
+Cafe on board
+Drinks & light snacks available for purchase
+Free tap water
+Free Wi-Fi"
+	Day 3	Activity		07/06/2026					Bergen	Train : Oslo to Bergen | 14:25 - 21:33 | 
+	Day 3	Hotel	2	07/06/2026	09/06/2026				Bergen	3 Star,Scandic Bergen City  , 2xNight , 1xFamily Room , Incl Brekafast 
+	Day 4	Activity		08/06/2026					Bergen	Bergen : Must-See Bergen on Foot and Boat | 10:30 AM | 2 Hrs | This 2-in-1 tour gives you the total Bergen experience.
+	Day 5	Activity		09/06/2026					Bergen	Bergen Roundtrip Fløibanen Tickets | The Fløibanen funicular in Bergen is one of Norway’s best-known and most visited attractions. The journey up to Fløyen (320 m above sea level) takes about 5–8 minutes.
+	Day 5	Transfer 	1	09/06/2026	10/06/2026				Bergen	"Overngiht Cruise , Bergen to Alesund | 1x Cabin ( Polar Outside )  | Tuesday 09 Jun 2026
+8:30 pm
+Wednesday 10 Jun 2026
+9:45 am"
+	Day 6	Hotel	1	10/06/2026	11/06/2026				Alesund	4 Star ,Quality Hotel Ålesund, 1xNight , 1xStandard Family  Room, Incl Brekafast 
+	Day 7	Transfer 		11/06/2026					Alesund	Private Hotel to Airport
