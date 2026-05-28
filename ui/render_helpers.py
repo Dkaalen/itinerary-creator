@@ -289,10 +289,118 @@ def is_self_arranged_transport(row):
     return (get_row_type(row) in TRANSPORT_TYPES or is_route_transfer(row)) and is_self_arranged(row)
 
 
+
+_SUPPLIER_SECTION_LABEL_RE = re.compile(
+    r"^\s*(?:overview|what(?:'|’)s included\??|what to expect\??|please note:?|not included:?|includes?:?|pick up\s*/\s*meeting point|meeting point)\s*$",
+    flags=re.IGNORECASE,
+)
+
+_BAD_DESCRIPTION_FALLBACK_MARKERS = [
+    "join a whale watching experience",
+    "join a guided glacier experience",
+    "enjoy a planned experience",
+    "enjoy a guided experience",
+    "enjoy this lagoon and wellness experience",
+]
+
+
+def _strip_supplier_day_heading(text: str) -> str:
+    text = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        return ""
+    lines = text.split("\n")
+    if lines:
+        lines[0] = re.sub(r"^\s*Day\s*\d+\s*[:\-–]\s*[^\n|]+\s*", "", lines[0], flags=re.IGNORECASE).strip()
+    return "\n".join(line for line in lines if line.strip()).strip()
+
+
+def _extract_section_after_label(text: str, labels: tuple[str, ...]) -> str:
+    lines = [line.strip() for line in str(text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    capture = False
+    out: list[str] = []
+    label_patterns = tuple(label.lower() for label in labels)
+    for line in lines:
+        clean = line.strip(" :-")
+        lower = clean.lower()
+        if not capture and any(lower.startswith(label) for label in label_patterns):
+            capture = True
+            remainder = re.sub(r"^\s*(?:" + "|".join(re.escape(label) for label in labels) + r")\s*[:?\-]*\s*", "", line, flags=re.IGNORECASE).strip()
+            if remainder:
+                out.append(remainder)
+            continue
+        if capture:
+            if _SUPPLIER_SECTION_LABEL_RE.match(clean):
+                break
+            out.append(line)
+    return "\n".join(out).strip()
+
+
+def _trim_description_sentences(text: str, max_words: int = 90, min_sentences: int = 2) -> str:
+    cleaned = polish_client_text(_strip_supplier_day_heading(text))
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|•")
+    if not cleaned:
+        return ""
+    # Remove supplier sales closers that read poorly in a client proposal.
+    cleaned = re.sub(r"\b(?:What are you waiting for\?|Start your adventure now by booking a date\.?|Come and join us[^.?!]*[.?!])", "", cleaned, flags=re.IGNORECASE).strip()
+    sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+    selected: list[str] = []
+    word_count = 0
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        words = sentence.split()
+        if selected and word_count + len(words) > max_words and len(selected) >= min_sentences:
+            break
+        selected.append(sentence)
+        word_count += len(words)
+        if word_count >= max_words and len(selected) >= min_sentences:
+            break
+    result = " ".join(selected).strip()
+    if len(result.split()) < 12:
+        return ""
+    return result
+
+
+def _real_supplier_description(row: dict, max_words: int = 90) -> str:
+    """Prefer real supplier prose over generic fallbacks.
+
+    This is intentionally broad and data-driven: if the row has a substantial
+    day/activity body, use it before any keyword fallback such as whale/glacier.
+    """
+    raw_sources = [row.get("description", ""), row.get("details", ""), row.get("original_title", "")]
+    for raw in raw_sources:
+        text = str(raw or "")
+        if not text.strip():
+            continue
+        # Prefer explicit narrative sections in supplier rows.
+        for labels in (("What to expect", "What to expect?"), ("Overview",), ("Description",)):
+            section = _extract_section_after_label(text, labels)
+            candidate = _trim_description_sentences(section, max_words=max_words)
+            if candidate:
+                return candidate
+        # Rows that only contain title/time/meeting/includes metadata do not
+        # have narrative prose. Let the curated fallback write the description.
+        if not re.match(r"^\s*Day\s*\d+\s*[:\-–]", text, flags=re.IGNORECASE):
+            lower_text = text.lower()
+            has_metadata = any(marker in lower_text for marker in [" time:", " meeting point", " includes:", " what's included", " what’s included"])
+            has_section = any(marker in lower_text for marker in ["overview", "what to expect", "description:"])
+            if has_metadata and not has_section:
+                continue
+        candidate = _trim_description_sentences(text, max_words=max_words)
+        if candidate:
+            return candidate
+    return ""
+
+
 def get_activity_description(row, detail_level=None):
     detail_level = detail_level or get_detail_level_name()
     title = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
     city = str(row.get("city", "")).strip().lower()
+
+    real_description = _real_supplier_description(row, max_words=115 if re.search(r"^\s*Day\s*\d+\s*:", str(row.get("details", "")), flags=re.IGNORECASE) else 85)
+    if real_description:
+        return real_description
 
     if "wildlife photography" in title and "longyearbyen" in title:
         return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."

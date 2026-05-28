@@ -175,6 +175,27 @@ def looks_like_descriptive_prose(text):
     return len(str(text or "")) > 95 and any(marker in lower for marker in prose_markers)
 
 
+
+def _polish_activity_bullet_case(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    replacements = {
+        r"\bfull day transportation\b": "Full day transportation",
+        r"\bguide and entrance tickets\b": "Guide and entrance tickets",
+        r"\bfrederiksborg palace\b": "Frederiksborg Palace",
+        r"\broskilde cathedral\b": "Roskilde Cathedral",
+        r"\bthe viking ship museum\b": "The Viking Ship Museum",
+        r"\bviking ship museum\b": "Viking Ship Museum",
+        r"\bskip the line entrance\b": "Skip-the-line entrance",
+    }
+    for pattern, replacement in replacements.items():
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    if text and text[0].islower():
+        text = text[0].upper() + text[1:]
+    return text
+
+
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
@@ -216,7 +237,7 @@ def clean_activity_inclusion_items(items, title=""):
                 continue
         merged_items.append(item)
 
-    clean_items = polish_inclusion_items(merged_items, title)
+    clean_items = [_polish_activity_bullet_case(item) for item in polish_inclusion_items(merged_items, title)]
     if not clean_items or all(looks_like_descriptive_prose(item) for item in clean_items):
         return []
     return clean_items

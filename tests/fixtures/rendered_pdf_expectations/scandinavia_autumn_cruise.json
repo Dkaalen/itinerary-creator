@@ -8,13 +8,21 @@
     "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor",
     "Spend time at leisure onboard the cruise",
     "Cruise arrival to Bergen",
-    "full pension meal plan"
+    "full pension meal plan",
+    "Copenhagen Food Tour",
+    "Stockholm Old Town Walking Tour",
+    "Runic Kingdom & Viking History Tour",
+    "Norway in a Nutshell to Oslo"
   ],
   "must_not_contain": [
     "Train to Malmö",
     "Full Pention",
     "Self-guided transfer",
-    "Guided sightseeing"
+    "Guided sightseeing",
+    "Departure home",
+    "Departure\nDeparture home",
+    "frederiksborg palace",
+    "roskilde cathedral"
   ],
   "section_checks": [
     {

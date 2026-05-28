@@ -124,6 +124,14 @@ def normalize_client_day_title(title: str, row: dict | None = None) -> str:
         return "Runic Kingdom & Viking History Tour"
     if "secret food" in full and "copenhagen" in full:
         return "Copenhagen Food Tour"
+    if re.search(r"city\s+walking\s+tour", full, flags=re.IGNORECASE):
+        if "reykjav" in full:
+            return "Reykjavík Walking Tour"
+        if "oslo" in full:
+            return "Oslo Walking Tour"
+        if "copenhagen" in full:
+            return "Copenhagen Walking Tour"
+        return "City Walking Tour"
     if "fløibanen" in full or "floibanen" in full:
         return "Fløibanen Funicular"
     if "santa's igloos" in full or "glass igloo" in full:

@@ -654,15 +654,26 @@ def is_travel_sequence_candidate(row):
     return row_type == "Transfer" or row_type in TRANSPORT_TYPES
 
 
+
+def _clean_self_arranged_title(value: str, fallback: str = "Self-arranged travel") -> str:
+    title = clean_space(str(value or "")) or fallback
+    title = re.sub(r"\bCost\s+not\s+included\b", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\bSelf[-\s]?Arranged\b", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\bnot\s+included\b", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"[,|]+", ",", title).strip(" ,-|:")
+    title = re.sub(r"\s{2,}", " ", title).strip()
+    return polish_title(title or fallback)
+
+
 def get_travel_sequence_line(row):
     row_type = get_row_type(row)
 
     if row_type == "Transfer" and is_self_arranged(row):
-        title = polish_title(get_transfer_travel_title(row) or row.get("title", "Self-arranged travel"))
+        title = _clean_self_arranged_title(get_transfer_travel_title(row) or row.get("title", "Self-arranged travel"))
         return f"{title} (self-arranged, not included)"
 
     if row_type in TRANSPORT_TYPES and is_self_arranged(row):
-        title = polish_title(row.get("title", "Self-arranged travel"))
+        title = _clean_self_arranged_title(row.get("title", "Self-arranged travel"))
         if row_type == "Flight" and title.lower().startswith("flight"):
             return f"Self-arranged {title[0].lower() + title[1:]} (not included)"
         return f"{title} (self-arranged, not included)"
@@ -815,7 +826,11 @@ def build_day_blocks(rows):
         flush_travel_group()
 
         if row_type == "Departure":
-            blocks.append(build_departure_block(row))
+            # The day title/intro already handles ordinary departure rows.
+            # Avoid a duplicate block such as "Departure / Departure home".
+            generic_departure = re.search(r"^(departure|departure\s+home|journey\s+home)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+            if not generic_departure:
+                blocks.append(build_departure_block(row))
         elif row_type == "Day Overview":
             if has_activity and _is_group_tour_overview_row(row):
                 continue

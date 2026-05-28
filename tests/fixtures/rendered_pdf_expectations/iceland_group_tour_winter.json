@@ -1,0 +1,40 @@
+{
+  "name": "Iceland group tour rendered PDF",
+  "fixture": "iceland_group_tour_winter.txt",
+  "must_contain": [
+    "Explore Borgarfjörður Valley & Waterfalls",
+    "Pick-up: Between 8:00 AM and 8:30 AM",
+    "Hvalfjörður",
+    "Snæfellsjökull Glacier",
+    "Geysir",
+    "Breakfast included"
+  ],
+  "must_not_contain": [
+    "Join a whale watching experience in West Iceland",
+    "Join a guided glacier experience",
+    "Enjoy a planned experience in Reykjavík",
+    "Your guided tour begins today. Your guided group tour starts",
+    "With breakfast"
+  ],
+  "section_checks": [
+    {
+      "start": "What’s included",
+      "end": "What’s not included",
+      "must_contain": [
+        "Hotel accommodation, Reykjavík",
+        "Guesthouse accommodation, West Iceland",
+        "Countryside guesthouse accommodation",
+        "Guesthouse accommodation, South Coast",
+        "Center Hotels Skjaldbreið, Reykjavík"
+      ],
+      "ordered_must_contain": [[
+        "Fosshotel Raudara, Reykjavík",
+        "Hotel accommodation, Reykjavík",
+        "Guesthouse accommodation, West Iceland",
+        "Countryside guesthouse accommodation",
+        "Guesthouse accommodation, South Coast",
+        "Center Hotels Skjaldbreið, Reykjavík"
+      ]]
+    }
+  ]
+}

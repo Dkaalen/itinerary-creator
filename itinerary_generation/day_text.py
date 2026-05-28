@@ -186,15 +186,12 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         activity_title = get_client_activity_phrase(activities[0]) if activities else "the first included experience"
         start_time = _extract_group_tour_overview_start_time(day_rows)
         if start_time:
-            first_time_match = re.search(r"(\d{1,2}:\d{2}\s+(?:AM|PM))", start_time)
-            first_time = first_time_match.group(1) if first_time_match else "morning"
-            pickup_phrase = f"your {first_time} pick-up window, {start_time},"
+            pickup_sentence = f"Pick-up is scheduled {start_time} before you travel with your guide into {city_text}."
         else:
-            pickup_phrase = "morning pick-up"
+            pickup_sentence = f"After morning pick-up, travel with your guide into {city_text}."
         return (
-            f"Your guided tour begins today. Your guided group tour starts with {pickup_phrase} "
-            f"before you travel with your guide into {city_text}. The day introduces {activity_title}, "
-            f"setting the tone for the journey ahead."
+            f"Your guided group tour begins today. {pickup_sentence} "
+            f"Today introduces {activity_title}, setting the tone for the journey ahead."
         )
 
     if has_only_departure_arrangements(day_rows) and city:

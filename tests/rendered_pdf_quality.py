@@ -147,6 +147,17 @@ def assert_expectation(expectation: dict[str, Any], rendered_text: str) -> None:
                 f"Forbidden: {forbidden!r}"
             )
 
+    for ordered in expectation.get("ordered_must_contain", []):
+        cursor = -1
+        for expected in ordered:
+            needle = compact_text(expected)
+            found = single_line.find(needle, cursor + 1)
+            if found == -1:
+                raise AssertionError(
+                    f"{expectation.get('name', 'Rendered PDF')} missing ordered text after position {cursor}: {expected!r}"
+                )
+            cursor = found
+
     for section in expectation.get("section_checks", []):
         section_text = compact_text(section_between(text, section["start"], section.get("end")))
         for expected in section.get("must_contain", []):
@@ -159,6 +170,16 @@ def assert_expectation(expectation: dict[str, Any], rendered_text: str) -> None:
                 raise AssertionError(
                     f"{expectation.get('name', 'Rendered PDF')} section {section['start']!r} contains forbidden text: {forbidden!r}"
                 )
+        for ordered in section.get("ordered_must_contain", []):
+            cursor = -1
+            for expected in ordered:
+                needle = compact_text(expected)
+                found = section_text.find(needle, cursor + 1)
+                if found == -1:
+                    raise AssertionError(
+                        f"{expectation.get('name', 'Rendered PDF')} section {section['start']!r} missing ordered text after position {cursor}: {expected!r}"
+                    )
+                cursor = found
 
 
 def expectation_files() -> list[Path]:

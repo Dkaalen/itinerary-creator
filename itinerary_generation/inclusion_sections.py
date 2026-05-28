@@ -303,6 +303,19 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
                 if key not in existing_hotel_keys:
                     hotel_rows.append(row)
                     existing_hotel_keys.add(key)
+    def _row_order(row: dict) -> tuple[int, int, str]:
+        day_match = re.search(r"\d+", str(row.get("day", "")))
+        day_number = int(day_match.group(0)) if day_match else 9999
+        try:
+            line_number = int(row.get("line_number") or 0)
+        except Exception:
+            line_number = 0
+        # Synthetic group-tour accommodation belongs in the normal day order,
+        # after named hotels already listed on that same day.
+        synthetic_rank = 1 if row.get("is_group_tour_accommodation") else 0
+        return (day_number, synthetic_rank, line_number)
+
+    hotel_rows.sort(key=_row_order)
     activity_rows = [row for row in rows if get_row_type(row) == "Activity"]
 
     for row in hotel_rows:

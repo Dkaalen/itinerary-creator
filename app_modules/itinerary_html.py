@@ -303,14 +303,17 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .cover-subtitle {{
             display: block;
-            width: 100%;
+            width: 500px;
             max-width: 500px;
             font-size: 22px;
             line-height: 1.28;
             color: var(--cover-ink);
             margin: 0 auto;
-            text-align: center;
+            padding-left: 0;
+            padding-right: 0;
+            text-align: center !important;
             text-wrap: balance;
+            align-self: center;
         }}
 
         .cover-rule {{
