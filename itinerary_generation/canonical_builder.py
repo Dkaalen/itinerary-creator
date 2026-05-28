@@ -69,9 +69,11 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     end_point = polish_client_text(row.get("end_point", ""))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
 
-    # Fallback is passed in only as a final fallback. The content engine rejects
-    # stale generated text and prioritises row-specific supplier prose.
-    description = client_activity_description(row, get_activity_description(row))
+    # Fallback is passed in only as a final fallback. Descriptions are composed
+    # from canonical display facts so supplier paragraphs cannot pass through.
+    description_row = dict(row)
+    description_row["display_title"] = title
+    description = client_activity_description(description_row, get_activity_description(row))
 
     included_items = clean_activity_inclusion_items(
         [strip_price_fragments(item) for item in row.get("includes", [])], title

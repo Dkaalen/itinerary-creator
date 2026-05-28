@@ -28,8 +28,18 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     ("broken_train_fragment", r"s compartment Overnight Train"),
     ("car_drive_destination", r"\bCAR\s*·\s*DRIVE\b"),
     ("standalone_local_bullet", r"<li>\s*Local\s*</li>"),
+    ("standalone_experienced_bullet", r"<li>\s*Experienced\s*</li>"),
+    ("split_personal_experience_bullet", r"<li>\s*Personal experience\s*</li>"),
     ("fløibanen_bad_duration", r"Fløibanen[\s\S]{0,500}Duration:</span>\s*5[–-]8 minutes"),
     ("internal_icebreaker_note", r"There are 2 options in Icebreaker"),
+    ("supplier_hype_instagram", r"\bInstagram account pop\b"),
+    ("supplier_call_to_action", r"\bCome and join us\b|\bWhat are you waiting for\b|\bStart your adventure\b"),
+    ("raw_group_tour_supplier_phrase", r"\bPrepare to explore amazing things\b|\bThirsty\?\b|\binstant foot wetness\b"),
+    ("generic_day_intro_planned_highlight", r"\bA planned highlight brings you into\b"),
+    ("generic_day_intro_main_experience", r"\bYour main experience today is\b"),
+    ("generic_day_intro_shaped_around", r"\bThe day is shaped around\b"),
+    ("generic_focus_phrase", r"\bgives the day a clear focus\b|\boffering a well-paced way\b"),
+    ("raw_supplier_brand_in_description", r"Enjoy Secret Food Tours\b"),
 ]
 
 

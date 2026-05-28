@@ -18,7 +18,7 @@ from itinerary_generation.transport import (
     is_route_transfer,
 )
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
-from itinerary_generation.content_engine import group_tour_pickup_window_from_overview, is_group_tour_overview
+from itinerary_generation.content_engine import group_tour_pickup_window_from_overview, is_group_tour_overview, is_supplier_day_row
 from parser_modules.common import extract_route_points
 from place_aliases import country_for_place
 
@@ -156,6 +156,17 @@ def create_travel_route_label(day_rows):
 
 def _natural_group_tour_focus(activity_title: str) -> str:
     title = str(activity_title or "the first included experience").strip()
+    lower = title.lower()
+    if "borgarfjör" in lower or "borgarfjord" in lower:
+        return "the Borgarfjörður region and its waterfalls"
+    if "snæfellsnes" in lower or "snaefellsnes" in lower:
+        return "the Snæfellsnes Peninsula"
+    if "golden circle" in lower:
+        return "the Golden Circle"
+    if "south coast" in lower and "glacier" in lower:
+        return "the South Coast waterfalls and glacier landscape"
+    if "jökulsárlón" in lower or "jokulsarlon" in lower:
+        return "Jökulsárlón Glacier Lagoon, Diamond Beach and the ice cave landscape"
     title = re.sub(r"^(Explore|Discover|Hike|Visit|Experience)\s+", "", title, flags=re.IGNORECASE).strip()
     if not title:
         return str(activity_title or "the first included experience")
@@ -242,6 +253,14 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         activity_title = get_client_activity_phrase(activities[0])
         activity_text = get_activity_text(activities[0])
 
+        if is_supplier_day_row(activities[0]):
+            focus = _natural_group_tour_focus(activity_title)
+            return (
+                f"Your guided group tour continues today with {focus}. "
+                "The day is organised around the included route, guided stops and overnight arrangements, "
+                "so you can focus on the landscapes and places visited along the way."
+            )
+
         if "tallinn" in activity_text:
             if any(get_row_type(row) == "Train" and "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in day_rows):
                 if detail_level == "Elegant concise":
@@ -272,23 +291,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 f"{activity_title} sets the tone for the day, "
                 f"with the wider arrangements kept clear and comfortable."
             )
-            intro_variants = [
-                clear_focus_phrase,
-                (
-                    f"The day is shaped around {activity_with_city}, "
-                    f"balanced with space to enjoy the destination at an easy pace."
-                ),
-                (
-                    f"A planned highlight brings you into {activity_with_city}, "
-                    f"while the rest of the schedule remains relaxed and simple."
-                ),
-                (
-                    f"Your main experience today is {activity_title}, offering a well-paced "
-                    f"way to enjoy the experience without overfilling the day."
-                ),
-            ]
-            variant_index = (get_day_number(day_rows[0].get("day", "")) - 1) % len(intro_variants)
-            return intro_variants[variant_index]
+            return (
+                f"Today is centred on {activity_with_city}, with the surrounding schedule kept clear and comfortable. "
+                "This gives the experience space in the day without making the itinerary feel rushed."
+            )
 
     if (transports or route_transfers) and city:
         transport_context = " ".join(f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}' for row in transports + route_transfers).lower()

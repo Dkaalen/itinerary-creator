@@ -13,6 +13,7 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text, polish_title, strip_price_fragments, polish_inclusion_item, polish_inclusion_items
+from itinerary_generation.description_composer import compose_activity_description
 
 
 def clean_inline(value: str) -> str:
@@ -179,30 +180,10 @@ def safe_generic_description(row: dict) -> str:
 
 
 def client_activity_description(row: dict, fallback: str = "") -> str:
-    """Final description rule: real row text first, generic fallback last.
+    """Compose final premium activity text from facts, not supplier paragraphs."""
 
-    Group-tour supplier day rows are never allowed to fall back to unrelated
-    known-product copy if the supplier row contains useful day-specific prose.
-    """
-
-    explicit = sanitize_supplier_prose(row.get("client_description") or "", max_sentences=4)
-    # Auto-generated/edit-state descriptions from older builds must not block
-    # better row-specific supplier text. Keep only genuinely clean manual text.
-    if explicit and not looks_like_generated_fallback(explicit) and not has_raw_supplier_residue(explicit):
-        return explicit
-    own_text = supplier_activity_body(row, max_sentences=14 if is_supplier_day_row(row) else 4)
-    if own_text:
-        return own_text
-    included_description = _description_from_included_items(row)
-    if included_description:
-        clean_included = sanitize_supplier_prose(included_description, max_sentences=3)
-        if clean_included and not has_raw_supplier_residue(clean_included):
-            return clean_included
-    clean_fallback = sanitize_supplier_prose(fallback, max_sentences=3)
-    if clean_fallback and not has_raw_supplier_residue(clean_fallback) and not looks_like_generated_fallback(clean_fallback):
-        if not re.search(r"\b(?:entry\s+)?tickets?\b", clean_fallback, flags=re.IGNORECASE) or re.search(r"museum|ferry", clean_fallback, flags=re.IGNORECASE):
-            return clean_fallback
-    return safe_generic_description(row)
+    draft = compose_activity_description(row, fallback=fallback)
+    return draft.text
 
 
 def clean_admin_title_fragment(value: str) -> str:
@@ -436,8 +417,12 @@ def merge_compound_inclusions(items: list[str]) -> list[str]:
         if not item:
             continue
         lower = item.lower().strip(" .")
-        if lower == "english-speaking guide" and merged and merged[-1].lower().strip(" .") == "local":
-            merged[-1] = "Local English-speaking guide"
+        if lower == "english-speaking guide" and merged and merged[-1].lower().strip(" .") in {"local", "experienced"}:
+            prefix = merged[-1].strip(" .")
+            merged[-1] = f"{prefix} English-speaking guide"
+            continue
+        if lower == "personal experience" and merged and merged[-1].lower().strip(" .") == "live host for a fun":
+            merged[-1] = "Live host for a fun, personal experience"
             continue
         if lower in {"shoes", "gloves", "wool socks", "shoes, wool socks, gloves)"} and merged and "thermal clothing" in merged[-1].lower():
             if item.lower() not in merged[-1].lower():
