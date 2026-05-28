@@ -144,7 +144,8 @@ def build_activity_block(row):
 
     time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
     if time_display:
-        html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(time_display)}</div>'
+        time_label = "Pick-up" if row.get("is_group_tour_start_activity") else "Time"
+        html_text += f'<div class="body-text"><span class="meta-label">{esc(time_label)}:</span> {esc(time_display)}</div>'
 
     if duration:
         duration_label = get_activity_duration_label(row, duration)
@@ -774,6 +775,7 @@ def build_day_blocks(rows):
             if group_tour_start_time and not row.get("time"):
                 row = dict(row)
                 row["time"] = group_tour_start_time
+                row["is_group_tour_start_activity"] = True
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
             blocks.append(build_leisure_block(row))

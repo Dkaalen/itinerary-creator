@@ -116,8 +116,8 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"(?<!:)(?<!\d)(\d{1,2})\s*a\.?m\.?\b", r"\1:00 AM", text, flags=re.IGNORECASE)
     text = re.sub(r"(?<!:)(?<!\d)(\d{1,2})\s*p\.?m\.?\b", r"\1:00 PM", text, flags=re.IGNORECASE)
     text = re.sub(r"(\bbetween\s+\d{1,2}:\d{2}\s+(?:AM|PM)\s+and\s+)(\d{1,2})\.(\d{2})", r"\1\2:\3", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+AM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM))", r"between \1 AM and \2 AM", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+PM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM))", r"between \1 PM and \2 PM", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+AM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM|noon))", r"between \1 AM and \2 AM", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbetween\s+(\d{1,2}:\d{2})\s+PM\s+and\s+(\d{1,2}:\d{2})(?!\s*(?:AM|PM|noon))", r"between \1 PM and \2 PM", text, flags=re.IGNORECASE)
 
     # Normalize punctuation spacing, but never insert spaces inside clock times
     # such as 10:30 AM or 3:00 PM.
@@ -125,6 +125,7 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"([,.;])(?=\S)", r"\1 ", text)
     text = re.sub(r"(?<!\d):(?!\d)(?=\S)", ": ", text)
     text = re.sub(r"\b(\d{1,2}):\s+(\d{2})\s*([AP]M)\b", r"\1:\2 \3", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b12:00\s+AM\s+noon\b", "12:00 noon", text, flags=re.IGNORECASE)
     return clean_space(text)
 
 

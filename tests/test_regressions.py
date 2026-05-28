@@ -1321,6 +1321,7 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
     day1_intro = create_day_intro(grouped["Day 1"], detail_level="Rich descriptive")
     assert_contains(day1_intro, "Welcome to Iceland", "Arrival intro should welcome the reader warmly.")
     assert_contains(day1_intro, "arranged Flybus transfer", "Arrival intro should explain the arranged transfer.")
+    assert_contains(day1_intro, "After check-in at your accommodation", "Arrival intro should guide the reader through check-in.")
     assert_not_contains(day1_intro, "The arrangements in", "Arrival intro should not use mechanical logistics wording.")
 
     assert_equal(create_day_title(grouped["Day 2"]), "Explore Borgarfjörður Valley & Waterfalls", "Group-tour activity title should beat overview logistics snippets.")
@@ -1331,7 +1332,7 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
 
     day2_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 2"]) if block)
     assert_not_contains(day2_html, "Included Today", "Group-tour overview bullets should not dump onto the day page when a real activity row exists.")
-    assert_contains(day2_html, "Time:</span> 8:00 AM", "Group-tour overview start time should flow into the first activity block.")
+    assert_contains(day2_html, "Pick-up:</span> 8:00 AM", "Group-tour overview start time should flow into the first activity block as a pick-up time.")
     assert_contains(day2_html, "Breakfast included", "Group-tour accommodation should use the premium breakfast wording.")
     assert_not_contains(day2_html, "With breakfast", "Group-tour accommodation should not use 'With breakfast'.")
 
@@ -1340,8 +1341,9 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
 
     full_html = build_itinerary_html(rows, grouped)
     assert_contains(full_html, ".cover-subtitle", "Preview HTML should include the cover subtitle CSS.")
-    assert_contains(full_html, "width: 560px", "Preview cover subtitle should have a fixed centered text block width.")
+    assert_contains(full_html, "width: 500px", "Preview cover subtitle should have a fixed centered text block width.")
     assert_contains(full_html, "text-align: center", "Preview cover subtitle should be explicitly centered.")
+    assert_contains(full_html, "A premium Iceland summer journey with<br>scenic travel and curated experiences", "Cover subtitle should use a balanced two-line split in preview HTML.")
     assert_not_contains(full_html, "12:00 AM noon", "Important notes should not contain impossible noon wording.")
 
 

@@ -22,7 +22,13 @@ from app_modules.display_settings import get_color_preset, get_color_preset_name
 
 
 def _balanced_cover_subtitle_html(subtitle: str) -> str:
-    """Return escaped cover subtitle HTML with a gentle line break to avoid orphan words."""
+    """Return escaped cover subtitle HTML with a balanced manual line break.
+
+    The Streamlit preview does not always support CSS ``text-wrap: balance``
+    consistently. Use a deterministic, visually balanced two-line split so the
+    subtitle block stays centered under the cover title instead of creating a
+    long first line that appears left-shifted.
+    """
     text = str(subtitle or "").strip()
     if not text:
         return ""
@@ -30,38 +36,25 @@ def _balanced_cover_subtitle_html(subtitle: str) -> str:
     def escaped(value: str) -> str:
         return esc(" ".join(value.split()))
 
-    if len(text) < 62 or " " not in text:
+    if len(text) < 54 or " " not in text:
         return escaped(text)
 
-    candidates = []
-    for marker in [", ", " and "]:
-        start = 0
-        while True:
-            idx = text.find(marker, start)
-            if idx == -1:
-                break
-            split_at = idx + (1 if marker == ", " else 0)
-            left = text[:split_at].strip()
-            right = text[split_at:].strip(" ,")
-            if len(left) >= 28 and len(right) >= 18:
-                candidates.append((abs(len(left) - 58), left, right))
-            start = idx + 1
+    words = text.split()
+    best = None
+    for index in range(3, len(words) - 2):
+        left = " ".join(words[:index])
+        right = " ".join(words[index:])
+        if len(left) < 22 or len(right) < 18:
+            continue
+        # Prefer similarly sized lines and avoid an extremely short second line.
+        score = abs(len(left) - len(right)) + (8 if len(right) < 26 else 0)
+        candidate = (score, left, right)
+        best = candidate if best is None or candidate[0] < best[0] else best
 
-    if not candidates:
-        words = text.split()
-        best = None
-        for i in range(4, len(words) - 2):
-            left = " ".join(words[:i])
-            right = " ".join(words[i:])
-            if len(right) >= 18:
-                candidate = (abs(len(left) - 58), left, right)
-                best = candidate if best is None or candidate[0] < best[0] else best
-        if best:
-            _, left, right = best
-            return f"{escaped(left)}<br>{escaped(right)}"
+    if not best:
         return escaped(text)
 
-    _, left, right = sorted(candidates)[0]
+    _, left, right = best
     return f"{escaped(left)}<br>{escaped(right)}"
 
 
@@ -296,8 +289,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .cover-subtitle {{
             display: block;
-            width: 560px;
-            max-width: 560px;
+            width: 500px;
+            max-width: 500px;
             font-size: 22px;
             line-height: 1.28;
             color: var(--cover-ink);

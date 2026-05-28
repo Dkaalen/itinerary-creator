@@ -239,6 +239,19 @@ def has_hotel(day_rows):
     return any(get_row_type(row) == "Hotel" for row in day_rows)
 
 
+
+def get_display_destination_city(city):
+    """Return a client-facing destination label for route/glance summaries.
+
+    Keep real destination names canonical, but collapse supplier accommodation
+    placeholders such as ``Vík area``/``Höfn area`` to the destination itself.
+    """
+    clean = canonicalize_place_name(str(city or "").strip())
+    if not clean:
+        return ""
+    clean = re.sub(r"\s+area$", "", clean, flags=re.IGNORECASE).strip()
+    return canonicalize_place_name(clean)
+
 def get_unique_cities(parsed_rows):
     cities = []
 
