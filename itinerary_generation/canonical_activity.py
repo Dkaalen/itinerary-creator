@@ -1,0 +1,87 @@
+"""Canonical activity block builder."""
+
+from __future__ import annotations
+
+import re
+
+from itinerary_generation.canonical_helpers import _is_fløibanen, _row_id
+from itinerary_generation.canonical_model import CanonicalBlock, CanonicalMetaLine
+from itinerary_generation.content_engine import clean_client_title, client_activity_description, merge_compound_inclusions
+from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, strip_price_fragments
+from ui.final_pages import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
+from ui.render_helpers import (
+    display_time_with_duration,
+    get_activity_description,
+    get_activity_duration_label,
+    get_activity_logistics,
+    get_time_period,
+    normalize_list,
+)
+
+
+def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
+    title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
+    title = clean_client_title(title, row) or "Experience"
+    time = row.get("display_time") or row.get("time", "")
+    duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
+    meeting_label, meeting_point = get_activity_logistics(row)
+    meeting_point = polish_client_text(meeting_point)
+    end_point = polish_client_text(row.get("end_point", ""))
+    notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
+
+    description_row = dict(row)
+    description_row["display_title"] = title
+    description = client_activity_description(description_row, get_activity_description(row))
+
+    included_items = clean_activity_inclusion_items(
+        [strip_price_fragments(item) for item in row.get("includes", [])], title
+    )
+    fallback_items = get_fallback_activity_inclusions(row)
+    if not included_items:
+        included_items = fallback_items
+    elif title == "Day Trip to Tallinn" and fallback_items:
+        for item in fallback_items:
+            if item not in included_items:
+                included_items.append(item)
+        if "Guided experience" in included_items and len(included_items) > 1:
+            included_items = [item for item in included_items if item != "Guided experience"]
+    included_items = list(dict.fromkeys(included_items))
+    included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=5)
+
+    meta: list[CanonicalMetaLine] = []
+    pickup_range = row.get("group_tour_pickup_range", "") or group_tour_pickup_range
+    if pickup_range:
+        meta.append(CanonicalMetaLine("Pick-up", pickup_range))
+    else:
+        time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
+        if time_display:
+            meta.append(CanonicalMetaLine("Time", time_display))
+
+    if duration and not _is_fløibanen(title):
+        meta.append(CanonicalMetaLine(get_activity_duration_label(row, duration), format_duration_display(duration)))
+    if _is_fløibanen(title):
+        meta.append(CanonicalMetaLine("Ticket", "Round-trip funicular ticket valid for a flexible visit to Mount Fløyen during the day."))
+    if meeting_point:
+        meta.append(CanonicalMetaLine(meeting_label, meeting_point))
+    if end_point:
+        meta.append(CanonicalMetaLine("End point", end_point))
+
+    warnings: list[str] = []
+    if "|" in description:
+        warnings.append("description_contains_pipe")
+    if re.search(r"\b(?:opening hours|includese|tickets only|carried out|participanter)\b", f"{title} {description}", re.I):
+        warnings.append("raw_supplier_residue")
+
+    return CanonicalBlock(
+        kind="activity",
+        row_id=_row_id(row),
+        section_title=get_time_period(time),
+        title=title,
+        meta=meta,
+        includes=included_items,
+        description=description,
+        notable_sights=notable_sights,
+        source_row_ids=[_row_id(row)],
+        warnings=warnings,
+    )

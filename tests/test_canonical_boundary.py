@@ -9,7 +9,7 @@ def _source(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_activity_renderer_uses_canonical_activity_block():
+def test_activity_renderer_delegates_to_canonical_renderer():
     source = _source("ui/day_blocks.py")
     tree = ast.parse(source)
 
@@ -24,7 +24,7 @@ def test_activity_renderer_uses_canonical_activity_block():
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     ]
 
-    assert "canonical_activity_block" in calls
+    assert calls == ["render_activity_block"]
 
 
 def test_activity_renderer_does_not_read_raw_supplier_title_directly():
@@ -51,3 +51,21 @@ def test_activity_renderer_does_not_read_raw_supplier_title_directly():
             raw_title_reads.append(first_arg.value)
 
     assert raw_title_reads == []
+
+def test_accommodation_renderer_delegates_to_canonical_renderer():
+    source = _source("ui/day_blocks.py")
+    tree = ast.parse(source)
+
+    build_accommodation = next(
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "build_accommodation_block"
+    )
+
+    calls = [
+        node.func.id
+        for node in ast.walk(build_accommodation)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    ]
+
+    assert calls == ["render_accommodation_block"]
+

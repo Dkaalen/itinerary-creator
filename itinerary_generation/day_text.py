@@ -1,9 +1,12 @@
+"""Create client-facing day intro text."""
+
+from __future__ import annotations
+
 import re
 
 from itinerary_generation.common import (
     TRANSPORT_TYPES,
     get_activity_text,
-    get_day_number,
     get_primary_city,
     get_row_type,
     has_hotel,
@@ -17,171 +20,16 @@ from itinerary_generation.transport import (
     has_only_departure_arrangements,
     is_route_transfer,
 )
-from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
-from itinerary_generation.content_engine import group_tour_pickup_window_from_overview, is_group_tour_overview, is_supplier_day_row
+from itinerary_generation.content_engine import is_supplier_day_row
+from itinerary_generation.day_activity_text import get_client_activity_phrase, _activity_phrase_with_city
+from itinerary_generation.day_arrival_text import _arrival_display_destination, _arrival_transfer_phrase
+from itinerary_generation.day_group_tour_text import (
+    _extract_group_tour_overview_start_time,
+    _is_group_tour_start_day,
+    _natural_group_tour_focus,
+)
+from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
 from parser_modules.common import extract_route_points
-from place_aliases import country_for_place
-
-
-def get_client_activity_phrase(row):
-    title = create_client_activity_title(row) or row.get("title", "your included experience")
-    return normalize_client_day_title(title, row) or title or "your included experience"
-
-
-def _activity_phrase_with_city(activity_title, city_text):
-    title = str(activity_title or "your included experience").strip()
-    city = str(city_text or "").strip()
-    if city and city.lower() in title.lower():
-        return title
-    return f"{title} in {city}" if city else title
-
-
-def _canonical_route_city(name):
-    clean = str(name or "").strip()
-    replacements = {
-        "saariselka": "Saariselkä",
-        "kakslauttenen": "Kakslauttanen",
-        "tromso": "Tromsø",
-        "svolvaer": "Svolvær",
-        "svolaver": "Svolvær",
-        "gothernburg": "Gothenburg",
-        "göteborg": "Gothenburg",
-        "malmo": "Malmø",
-    }
-    return replacements.get(clean.lower(), clean)
-
-
-ROUTE_CITY_CANDIDATES = [
-    "Helsinki", "Rovaniemi", "Saariselkä", "Saariselka",
-    "Kakslauttanen", "Kakslauttenen", "Ivalo",
-    "Oslo", "Bergen", "Copenhagen", "Stockholm", "Tromsø", "Tromso", "Svolvær", "Svolvaer", "Svolaver", "Gothenburg", "Göteborg", "Malmo", "Malmø", "Alta", "Kirkenes",
-]
-
-
-def _arrival_display_destination(city):
-    """Use a warm destination label for arrival intros."""
-    country = country_for_place(city)
-    if country == "Iceland":
-        return "Iceland"
-    return city or "the destination"
-
-
-def _arrival_transfer_phrase(day_rows):
-    for row in day_rows:
-        if get_row_type(row) != "Transfer":
-            continue
-        title = get_first_transfer_title([row]) or row.get("title", "")
-        lower = str(title).lower()
-        if "self" in lower:
-            return "After arrival, make your own way to your accommodation."
-        if "flybus" in lower or "shuttle" in lower:
-            return "On arrival, your arranged Flybus transfer will take you from the airport towards your accommodation area."
-        if "private" in lower or "transfer" in lower:
-            return "On arrival, your arranged transfer will take you from the airport to your accommodation."
-    return "On arrival, make your way to your accommodation and check in."
-
-
-def _is_group_tour_overview(row):
-    return is_group_tour_overview(row)
-
-
-def _format_group_tour_pickup_range(hour, minute, suffix):
-    start = f"{hour}:{minute} {suffix}"
-    try:
-        end_minute = int(minute) + 30
-        end_hour = int(hour) + (1 if end_minute >= 60 else 0)
-        end_minute = end_minute % 60
-        if suffix == "PM" and end_hour > 12:
-            end_hour -= 12
-        return f"between {start} and {end_hour}:{end_minute:02d} {suffix}"
-    except Exception:
-        return f"at {start}"
-
-
-def _extract_group_tour_overview_start_time(day_rows):
-    for row in day_rows:
-        pickup = group_tour_pickup_window_from_overview(row)
-        if pickup:
-            return pickup
-    return ""
-
-
-def _is_group_tour_start_day(day_rows):
-    return any(_is_group_tour_overview(row) for row in day_rows) and any(get_row_type(row) == "Activity" for row in day_rows)
-
-
-def _ordered_route_cities(day_rows):
-    cities = []
-
-    def add_city(city):
-        city = _canonical_route_city(city)
-        if city and city.lower() not in [existing.lower() for existing in cities]:
-            cities.append(city)
-
-    for row in day_rows:
-        if get_row_type(row) not in TRANSPORT_TYPES and get_row_type(row) != "Transfer" and not is_route_transfer(row):
-            continue
-        add_city(row.get("city", ""))
-        row_text = get_transfer_travel_title(row) if is_route_transfer(row) else f'{row.get("title", "")} {row.get("details", "")}'
-        for possible_city in ROUTE_CITY_CANDIDATES:
-            if possible_city.lower() in row_text.lower():
-                add_city(possible_city)
-    return cities
-
-
-def create_travel_route_label(day_rows):
-    """Return a natural route label for travel-only days, when clear enough."""
-
-    has_activity_or_hotel = any(get_row_type(row) in {"Activity", "Hotel"} for row in day_rows)
-    if has_activity_or_hotel:
-        return ""
-
-    travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
-    if len(travel_rows) < 2:
-        return ""
-
-    cities = _ordered_route_cities(day_rows)
-    if len(cities) < 3:
-        return ""
-
-    has_overnight_final_leg = any(
-        "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower()
-        for row in travel_rows[-1:]
-    )
-    if has_overnight_final_leg:
-        return f"{cities[0]} to {cities[-2]}, overnight to {cities[-1]}"
-
-    return f"{cities[0]} to {cities[-1]}"
-
-
-def _natural_group_tour_focus(activity_title: str, source_text: str = "") -> str:
-    title = str(activity_title or "the first included experience").strip()
-    combined = f"{title} {source_text}"
-    lower = combined.lower()
-    if "borgarfjör" in lower or "borgarfjord" in lower:
-        return "the Borgarfjörður region and its waterfalls"
-    if "snæfellsnes" in lower or "snaefellsnes" in lower:
-        return "the Snæfellsnes Peninsula"
-    if "golden circle" in lower:
-        return "the Golden Circle"
-    if "south coast" in lower and "glacier" in lower:
-        return "the South Coast waterfalls and glacier landscape"
-    if "jökulsárlón" in lower or "jokulsarlon" in lower:
-        return "Jökulsárlón Glacier Lagoon, Diamond Beach and the ice cave landscape"
-    if "eastfjords" in lower:
-        return "the Eastfjords and local life"
-    if "north iceland" in lower or "mývatn" in lower or "myvatn" in lower:
-        return "North Iceland"
-    if "whale" in lower and "hauganes" in lower:
-        return "Whale Watching in Hauganes before the return to Reykjavík"
-    if "whale" in lower:
-        return "Whale Watching"
-    title = re.sub(r"^(Explore|Discover|Hike|Visit|Experience|Watch)\s+", "", title, flags=re.IGNORECASE).strip()
-    if not title:
-        return str(activity_title or "the first included experience")
-    if re.search(r"[&]|Valley|Waterfalls|Circle|Coast|Lagoon|Peninsula|Fjord|Tour", title):
-        return f"the {title}"
-    return title[:1].lower() + title[1:]
 
 
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):

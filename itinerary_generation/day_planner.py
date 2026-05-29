@@ -1,7 +1,7 @@
 """Day-level planning before row rendering.
 
 The planner looks at all rows for one itinerary day and decides the client-facing
-shape of the day: pattern, title, intro, and a few rendering hints.  This keeps
+shape of the day: pattern, title, intro, and a few rendering hints. This keeps
 multi-row days from being titled or described by whichever raw row happens to
 appear first.
 """
@@ -11,11 +11,28 @@ import re
 from dataclasses import dataclass, field
 
 from itinerary_generation.common import get_primary_city, get_row_type, has_hotel
-from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title, create_day_title
-from itinerary_generation.transport import get_premium_transport_phrase, get_route_points_for_transport, has_airport_arrival_transfer, has_airport_departure_transfer
 from itinerary_generation.content_engine import is_supplier_day_row
-from place_aliases import canonicalize_place_name, country_for_place
-from text_polish import polish_client_text, polish_title
+from itinerary_generation.day_intro_planner import _group_tour_intro_from_source, _intro_for_title
+from itinerary_generation.day_row_selectors import (
+    _activity_rows,
+    _all_text,
+    _has_text,
+    _is_empty_activity,
+    _text,
+)
+from itinerary_generation.day_title_planner import (
+    _arrival_title,
+    _departure_title,
+    _destination_from_transport,
+    _hop_on_title,
+    _leisure_title,
+    _multi_activity_title,
+    _single_activity_title,
+    _transport_title,
+)
+from itinerary_generation.titles import create_day_title
+from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
+from text_polish import polish_title
 
 
 @dataclass(slots=True)
@@ -37,135 +54,6 @@ ADMIN_TITLE_PATTERNS = [
     r"\bincludes?\b",
     r"\btickets?\b.*\bopening\b",
 ]
-
-
-def _text(row: dict) -> str:
-    return " ".join(str(row.get(key, "") or "") for key in ["title", "details", "original_title"] if str(row.get(key, "") or "").strip())
-
-
-def _all_text(rows: list[dict]) -> str:
-    return " ".join(_text(row) for row in rows)
-
-
-def _is_empty_activity(row: dict) -> bool:
-    if get_row_type(row) != "Activity":
-        return False
-    raw = _text(row).strip()
-    city = str(row.get("city", "") or "").strip()
-    if not raw:
-        return True
-    cleaned = re.sub(r"\s+", " ", raw).strip(" -:|")
-    return bool(city and cleaned.lower() == city.lower())
-
-
-def _activity_rows(rows: list[dict]) -> list[dict]:
-    return [row for row in rows if get_row_type(row) == "Activity" and not _is_empty_activity(row)]
-
-
-def _has_text(rows: list[dict], *needles: str) -> bool:
-    lower = _all_text(rows).lower()
-    return any(needle.lower() in lower for needle in needles)
-
-
-def _clean_title(value: str) -> str:
-    title = polish_title(polish_client_text(value)).strip(" -:|")
-    title = re.sub(r"\bToday\b\s*$", "", title, flags=re.I).strip(" -:|")
-    title = re.sub(r"\b3-4\s*hours\b", "", title, flags=re.I).strip(" -:|")
-    title = re.sub(r"\bFjord Cruise\s+Day Trip\b", "Fjord Cruise", title, flags=re.I).strip(" -:|")
-    return title
-
-
-def _destination_from_transport(rows: list[dict]) -> str:
-    for row in rows:
-        if get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transfer", "Transport"}:
-            _, dest = get_route_points_for_transport(row)
-            if dest:
-                return polish_title(dest)
-    return ""
-
-
-def _transport_title(rows: list[dict]) -> str:
-    for row in rows:
-        row_type = get_row_type(row)
-        row_text = _text(row)
-        if row_type in {"Train", "Flight", "Cruise", "Ferry", "Transport"} or re.search(r"\b(?:train|flight|cruise|ferry|coach|bus)\b", row_text, flags=re.I):
-            phrase = get_premium_transport_phrase(row)
-            if phrase:
-                if row_type == "Train" and "norway in a nutshell" not in row_text.lower():
-                    _, destination = get_route_points_for_transport(row)
-                    if destination:
-                        if "overnight" in row_text.lower():
-                            return f"Overnight train to {polish_title(destination)}"
-                        return f"Train to {polish_title(destination)}"
-                return polish_title(phrase)
-    for row in rows:
-        if get_row_type(row) == "Transfer":
-            phrase = get_premium_transport_phrase(row)
-            if phrase:
-                return polish_title(phrase)
-    return ""
-
-
-def _single_activity_title(row: dict) -> str:
-    title = normalize_client_day_title(create_client_activity_title(row), row)
-    return _clean_title(title)
-
-
-def _multi_activity_title(rows: list[dict], city: str) -> str:
-    text = _all_text(rows).lower()
-    if "mostraumen" in text and ("fløibanen" in text or "floibanen" in text):
-        return "Bergen Fjord Cruise & Fløibanen"
-    if ("walking" in text or "on foot" in text) and ("boat" in text or "fjord" in text) and ("fløibanen" in text or "floibanen" in text):
-        return "Bergen Walking, Boat Tour & Fløibanen"
-    if "walking" in text and ("fjord cruise" in text or "silent electric" in text or "oslo fjord" in text or "oslofjord" in text):
-        return "Oslo Walking Tour & Fjord Cruise"
-    if "husky" in text and "reindeer" in text:
-        return "Husky & Reindeer Experiences"
-    if "food tour" in text and city:
-        return f"{city} Food Tour"
-    return ""
-
-
-def _hop_on_title(city: str) -> str:
-    return f"Explore {city} at your own pace" if city else "Explore the city at your own pace"
-
-
-def _leisure_title(city: str) -> str:
-    return f"A day at leisure in {city}" if city else "A day at leisure"
-
-
-def _arrival_title(city: str) -> str:
-    country = country_for_place(city) if city else ""
-    if country == "Iceland":
-        return "Welcome to Iceland"
-    return f"Welcome to {city}" if city else "Welcome"
-
-
-def _departure_title(city: str) -> str:
-    return f"Departure from {city}" if city else "Departure"
-
-
-def _group_tour_intro_from_source(title: str, source: str) -> str:
-    lower = f"{title} {source}".lower()
-    if "whale" in lower and "hauganes" in lower:
-        return "Your guided group tour continues today to Hauganes for Whale Watching before returning to Reykjavík. The day is organised around the included boat experience and the final guided route back to the capital."
-    return ""
-
-def _intro_for_title(title: str, city: str, pattern: str) -> str:
-    if pattern == "leisure_day":
-        return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests." if city else "Enjoy a slower day, with time to explore independently or relax."
-    if pattern == "multi_activity_day":
-        return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
-    if pattern == "travel_day":
-        dest = re.sub(r"^(?:Train|Flight|Cruise|Coach Transfer|Scenic Train Transfer|Panoramic Coach Transfer)\s+(?:from\s+.+?\s+)?to\s+", "", title, flags=re.I)
-        return f"The journey continues towards {dest}, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow." if dest and dest != title else "The journey continues today, with the travel arrangements structured to keep the route clear, comfortable, and easy to follow."
-    if pattern == "self_drive_route_day":
-        return f"Today’s self-drive route is arranged to keep the journey clear and scenic, with suggested stops and overnight plans laid out in a simple way."
-    if pattern == "hop_on_city_day":
-        return f"Use the day flexibly to explore {city} at your own pace, with sightseeing transport arranged to make the city’s main areas easy to reach." if city else "Use the day flexibly to explore at your own pace, with sightseeing transport arranged to make the main areas easy to reach."
-    if pattern == "single_activity_day":
-        return f"Today is centred on {title} in {city}, with the surrounding schedule kept clear and comfortable." if city and city.lower() not in title.lower() else f"Today is centred on {title}, with the surrounding schedule kept clear and comfortable."
-    return ""
 
 
 def plan_day(rows: list[dict]) -> DayPlan:
@@ -242,3 +130,25 @@ def plan_day(rows: list[dict]) -> DayPlan:
 
     title = _leisure_title(city)
     return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)
+
+
+__all__ = [
+    "ADMIN_TITLE_PATTERNS",
+    "DayPlan",
+    "_activity_rows",
+    "_all_text",
+    "_arrival_title",
+    "_departure_title",
+    "_destination_from_transport",
+    "_group_tour_intro_from_source",
+    "_has_text",
+    "_hop_on_title",
+    "_intro_for_title",
+    "_is_empty_activity",
+    "_leisure_title",
+    "_multi_activity_title",
+    "_single_activity_title",
+    "_text",
+    "_transport_title",
+    "plan_day",
+]

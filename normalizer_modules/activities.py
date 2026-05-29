@@ -1,0 +1,140 @@
+"""Activity title normalization helpers."""
+
+import re
+
+from place_aliases import canonicalize_place_name
+from text_polish import polish_title
+from normalizer_modules.text_utils import text_blob, _lower_key
+
+def _is_group_tour_overview(row: dict) -> bool:
+    text = text_blob(row).lower()
+    return (row.get("type") == "Day Overview" or row.get("effective_type") == "Day Overview") and any(
+        marker in text for marker in ["group tour", "holiday package", "sharing room basis"]
+    )
+
+def looks_like_departure_text(value: str) -> bool:
+    lower = _lower_key(value)
+    markers = [
+        "check out",
+        "transfer to the airport",
+        "drop at the airport",
+        "return flight",
+        "bound for home",
+        "departure home",
+        "onward flight",
+        "packed breakfast",
+    ]
+    return sum(1 for marker in markers if marker in lower) >= 2 or ("return flight" in lower and "airport" in lower)
+
+def _extract_supplier_day_heading(source: str) -> str:
+    """Extract the supplier's real day heading from long group-tour prose.
+
+    Group-tour activity rows often start with "Day 2: Explore ..." and then
+    continue with several paragraphs. The title must come from that first
+    heading, not from generic fallback tags or later marketing prose.
+    """
+    text = str(source or "").strip()
+    if not text:
+        return ""
+    first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
+    match = re.match(r"^Day\s+\d+\s*[:\-–]\s*(.+)$", first_line, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
+    heading = re.split(
+        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        heading,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    heading = heading.strip(" -:|.,")
+    if not heading:
+        return ""
+    if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
+        heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
+    return polish_title(heading)
+
+def normalize_activity_title(row: dict) -> str:
+    source = text_blob(row)
+    lower = source.lower()
+    city = canonicalize_place_name(row.get("city", ""))
+
+    supplier_day_heading = _extract_supplier_day_heading(row.get("original_title") or row.get("details") or source)
+    if supplier_day_heading:
+        return supplier_day_heading
+
+    if looks_like_departure_text(source):
+        return f"Departure from {city}" if city else "Departure"
+    if ("aurora" in lower or "northern light" in lower) and "reindeer" in lower and ("hunt" in lower or "hunting" in lower or "chase" in lower):
+        return "Northern Lights Hunt by Reindeer"
+    if "tallin" in lower or "tallinn" in lower:
+        if "old town" in lower and "guided" in lower and not any(marker in lower for marker in ["helsinki", "ferry", "cruise", "star class", "port"]):
+            return "Tallinn Old Town Guided Tour"
+        return "Day Trip to Tallinn"
+    if "fjellheisen" in lower or ("round trip ticket" in lower and "trom" in lower) or "cable car" in lower:
+        return "Fjellheisen Cable Car"
+    if "essential oslo" in lower or ("oslo" in lower and "city center guided walking tour" in lower):
+        return "Oslo City Center Walking Tour"
+    if "must-see bergen" in lower or ("bergen" in lower and "foot and boat" in lower):
+        return "Bergen Walking & Boat Tour"
+    if "santa claus village" in lower and ("reindeer" in lower or "safari" in lower):
+        if "snowmobile" in lower or "snowmobiles" in lower:
+            return "Santa Claus Village by Snowmobile & Reindeer Sleigh"
+        if "husky" in lower:
+            return "City Highlights, Santa Claus Village & Husky-Reindeer Safari"
+        return "Santa Claus Village & Reindeer Visit"
+    if "guided city tour" in lower and "narvik" in lower:
+        return "Narvik Guided City Tour"
+    if "ice bar" in lower and ("kiruna" in lower or "jukkasjärvi" in lower or "gällivare" in lower or "gallivare" in lower):
+        return "Icehotel, Kiruna & Gällivare Touring Day"
+    if "trom" in lower and "city sightseeing" in lower:
+        if "aurora" in lower or "northern light" in lower:
+            return "Tromsø City Sightseeing & Northern Lights Chase"
+        return "Tromsø City Sightseeing"
+    if "arctic wildlife" in lower and "ranua" in lower:
+        return "Arctic Wildlife Adventure to Ranua Park"
+    if "guided walking tour of helsinki" in lower or ("helsinki" in lower and "guided walking tour" in lower):
+        return "Helsinki Guided Walking Tour"
+    if "lofoten" in lower and "trollfjord" in lower:
+        return "Lofoten Day Tour & Trollfjord Cruise"
+    if "arctic route" in lower or ("senja" in lower and "coach" in lower):
+        return "Arctic Route Coach Transfer"
+    if "wildlife photography" in lower and "longyearbyen" in lower:
+        return "Wildlife Photography Around Longyearbyen"
+    if "wildlife and glacier" in lower:
+        return "Wildlife & Glacier Experience"
+    if "mountain hike" in lower and "abisko" in lower:
+        return "Mountain Hike in Abisko"
+    if "hop" in lower and "off" in lower and "bus" in lower:
+        if "bergen" in lower:
+            return "Bergen Hop-On Hop-Off Bus Ticket"
+        if "copenhagen" in lower:
+            return "Copenhagen Hop-On Hop-Off Bus Ticket"
+        return "Hop-On Hop-Off Bus Ticket"
+
+    # Fix "Private" or time-string titles from pipe-formatted rows
+    raw_title = row.get("title", "").strip()
+    if raw_title.lower() in {"private", "private day tour", ""} and "|" in row.get("details", ""):
+        detail_parts = [p.strip() for p in row.get("details", "").split("|")]
+        for part in detail_parts[1:]:
+            part_clean = re.sub(r"^\d+\s*(am|pm|hrs?|hour)", "", part, flags=re.IGNORECASE).strip(" -:")
+            part_clean = re.sub(r"\b\d+\s*hrs?\b", "", part_clean, flags=re.IGNORECASE).strip(" -:")
+            if len(part_clean) > 5 and not re.match(r"^\d", part_clean):
+                return polish_title(part_clean)
+
+    if re.match(r"^from\s+\d", raw_title.lower()) or re.match(r"^\d+\s*(am|pm)\s+to\s+\d", raw_title.lower()):
+        if "sightseeing" in lower or "private" in lower:
+            return f"Private Sightseeing{' in ' + city if city else ''}"
+        return f"Guided Experience{' in ' + city if city else ''}"
+
+    title = polish_title(row.get("title", ""))
+    if len(title) > 90 or title.count(".") >= 2:
+        first = re.split(r"[.|]", title, maxsplit=1)[0].strip(" ,-:")
+        if len(first) <= 70 and first:
+            title = first
+        elif city:
+            title = f"Guided experience in {city}"
+        else:
+            title = "Guided experience"
+    return polish_title(title)
+
