@@ -61,8 +61,8 @@ def _group_tour_pickup_window(rows: Iterable[dict]) -> str:
 
 
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
-    title = normalize_client_day_title(create_client_activity_title(row) or row.get("title", ""), row)
-    title = clean_client_title(title, row)
+    title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
+    title = clean_client_title(title, row) or "Experience"
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
@@ -88,6 +88,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
                 included_items.append(item)
         if "Guided experience" in included_items and len(included_items) > 1:
             included_items = [item for item in included_items if item != "Guided experience"]
+    included_items = list(dict.fromkeys(included_items))
     included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=5)
 
     meta: list[CanonicalMetaLine] = []
