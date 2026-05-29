@@ -14,11 +14,6 @@ _SLEEPER_CABIN_PATTERNS = [
 ]
 
 
-def _title_case_cabin_detail(value: str) -> str:
-    text = polish_title(value)
-    return " ".join(part[:1].upper() + part[1:] for part in text.split())
-
-
 def get_train_cabin_detail(row: dict) -> str:
     """Return supported sleeper-cabin detail for train rows only.
 
@@ -36,7 +31,7 @@ def get_train_cabin_detail(row: dict) -> str:
 
     cabin_match = re.search(r"\bcabin\s*\(([^)]+)\)", source, flags=re.IGNORECASE)
     if cabin_match:
-        return f"{_title_case_cabin_detail(cabin_match.group(1))} sleeper cabin"
+        return f"{polish_title(cabin_match.group(1))} sleeper cabin"
 
     if re.search(r"\bsleeper\s+cabin\b|\bsleeping\s+cabin\b", source, flags=re.IGNORECASE):
         return "Sleeper cabin"
