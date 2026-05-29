@@ -72,6 +72,7 @@ def test_v36c54_transport_cruise_inclusion_quality_gate():
     day8_intro = create_day_intro(cruise_grouped["Day 8"], detail_level="Rich descriptive")
     assert_contains(day8_intro, "Bergen", "Cruise start intros should point towards the cruise destination.")
     assert_not_contains(day8_intro, "towards Kirkenes", "Cruise start intros should not point back to the origin port.")
+    assert_equal(create_day_title(cruise_grouped["Day 13"]), "Cruise arrival to Bergen", "Cruise arrival day titles should preserve arrival wording.")
     day13_html = "\n".join(block["html"] for block in build_day_blocks(cruise_grouped["Day 13"]) if block)
     assert_contains(day13_html, "Cruise arrival to Bergen", "Cruise arrival should render as an arrival, not another generic cruise to Bergen.")
     assert_contains(day13_html, "2:45 PM", "Cruise arrival times should be preserved when supplied.")

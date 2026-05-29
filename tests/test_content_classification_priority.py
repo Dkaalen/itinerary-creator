@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from generator import create_day_title, group_rows_by_day
 from itinerary_generation.canonical_activity import canonical_activity_block
 from itinerary_generation.transport import get_transfer_travel_title
@@ -8,7 +6,13 @@ from normalizer import normalize_itinerary_rows
 from ui.travel_sequence_blocks import get_travel_arrangement_line, _norway_nutshell_lines
 
 
-FIXTURE_TEXT = Path('/mnt/data/Pasted text.txt').read_text(encoding='utf-8')
+FIXTURE_TEXT = """
+	Day 4	Activity		27/10/2026								Rovaniemi	Rovaniemi: Small-Group Aurora Hunt by Minibus - Time: 7:00 pm - 10:00 pm
+	Day 4	Activity		27/10/2026								Rovaniemi	Rovaniemi: Northern Lights Ice Floating - Time: 8:00 pm - 11:00 pm - Includes: Thermal survival suit, Floating in a frozen lake, Warm drinks and cookies
+	Day 5	Transfer 		28/10/2026								Kakslauttenen	Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Kakslauttenen Arctic Resort - 11:45 am - 3:02 pm - Tickets Included
+	Day 7	Activity		30/10/2026								Tromso	Tromsø: Photo Tour to Arctic Landscapes and Fjords - Time: 10:00 am - 3:00 pm - Includes: Professional photo guides, Scenic fjord safari by comfortable minivan vehicle, Help with camera settings and nature photography, Reindeer sometimes wander through this landscape, Soup and coffee
+	Day 9	Transfer		01/11/2026								Oslo	Norway in a Nutshell | Bergen to Oslo | 8:30 am - 10:30 pm | Includes: Train Bergen to Voss, Bus to Gudvangen, Fjord cruise, Flåm Railway, Bergen Railway to Oslo
+"""
 
 
 def _rows_by_day():
@@ -51,3 +55,20 @@ def test_norway_in_a_nutshell_travel_line_preserves_timing():
     lines = _norway_nutshell_lines(row)
 
     assert lines[0] == 'Norway in a Nutshell to Oslo — 8:30 AM - 10:30 PM'
+
+
+def test_generic_cable_car_viewpoint_ticket_gets_flexible_ticket_wording():
+    row = {
+        "type": "Activity",
+        "effective_type": "Activity",
+        "city": "Tromsø",
+        "title": "Round trip cable car ticket to the mountain viewpoint",
+        "details": "Tickets only. Valid for a flexible visit during opening hours.",
+        "includes": ["Round-trip cable car ticket"],
+    }
+
+    block = canonical_activity_block(row)
+
+    assert "flexible visit" in block.description
+    assert "view" in block.description.lower()
+    assert "Tickets only" not in block.description

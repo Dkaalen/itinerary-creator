@@ -153,7 +153,7 @@ def _destination_focused_transport_title(row, premium: str) -> str:
     if "ferry" in lower:
         return f"Ferry to {destination}"
     if "cruise" in lower:
-        return f"Cruise to {destination}"
+        return f"Cruise arrival to {destination}" if "arrival" in lower else f"Cruise to {destination}"
     return polish_title(premium)
 
 

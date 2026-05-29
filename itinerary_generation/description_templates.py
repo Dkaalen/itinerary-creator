@@ -74,6 +74,15 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
     if "fjellheisen" in full or ("round trip ticket" in full and "trom" in full):
         return "Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains."
+    if (
+        ("cable car" in full or "funicular" in full or "gondola" in full)
+        and ("ticket" in full or "admission" in full)
+        and ("view" in full or "mountain" in full or "viewpoint" in full)
+    ):
+        return polish_client_text(
+            f"Use your pre-arranged ticket for a flexible visit by cable car{city_phrase}, "
+            "with time to enjoy the mountain viewpoint and surrounding views during the day."
+        )
     if "blue lagoon" in full and "volcano" in full:
         return "Begin with a guided visit to the Fagradalsfjall volcano area before ending the day in the warm geothermal waters of the Blue Lagoon. The experience balances dramatic volcanic scenery with time to relax."
     if "lava show" in full:

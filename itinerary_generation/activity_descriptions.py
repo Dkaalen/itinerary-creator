@@ -54,6 +54,12 @@ def safe_generic_description(row: dict) -> str:
         return "Visit the Munch Museum at your own pace with pre-arranged admission tickets."
     if "fløibanen" in lower or "floibanen" in lower:
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the views over Bergen."
+    if (
+        ("cable car" in lower or "funicular" in lower or "gondola" in lower)
+        and ("ticket" in lower or "admission" in lower)
+        and ("view" in lower or "mountain" in lower or "viewpoint" in lower)
+    ):
+        return f"Use your pre-arranged ticket for a flexible visit by cable car{place}, with time to enjoy the mountain viewpoint and surrounding views during the day."
     if "blue lagoon" in lower and "volcano" in lower:
         return "Combine a guided visit to the Fagradalsfjall volcano area with time to relax in the warm geothermal waters of the Blue Lagoon."
     if "blue lagoon" in lower:
