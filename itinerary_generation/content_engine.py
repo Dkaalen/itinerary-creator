@@ -13,6 +13,7 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text, polish_title, strip_price_fragments, polish_inclusion_item, polish_inclusion_items
+from itinerary_generation.title_safety import is_forbidden_client_title, strip_supplier_title_cta
 from itinerary_generation.description_composer import compose_activity_description
 
 
@@ -298,6 +299,7 @@ def looks_like_generated_fallback(value: str) -> bool:
 
 def strip_supplier_title_metadata(value: str) -> str:
     text = repair_common_supplier_typos(strip_price_fragments(clean_inline(value)))
+    text = strip_supplier_title_cta(text)
     text = re.sub(r"\s*\|\s*.*$", "", text).strip()
     text = re.sub(r"\s+-\s*(?:Opening Hours|Time|Includes?|Includese|Meeting point)\s*:.*$", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\bOpening Hours\s*:.*$", "", text, flags=re.IGNORECASE).strip(" -:|")
@@ -315,6 +317,9 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     text = strip_supplier_title_metadata(value or row.get("title", "") or row.get("original_title", ""))
     full = f"{text} {row.get('title','')} {row.get('original_title','')} {row.get('details','')}".lower()
     city = canonicalize_place_name(row.get("city", ""))
+
+    if is_forbidden_client_title(text):
+        return ""
 
     if "tallinn" in full and ("day trip" in full or "excursion" in full or "ferry" in full):
         return "Day Trip to Tallinn"
