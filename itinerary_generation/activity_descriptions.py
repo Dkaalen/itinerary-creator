@@ -58,6 +58,17 @@ def safe_generic_description(row: dict) -> str:
         return "Combine a guided visit to the Fagradalsfjall volcano area with time to relax in the warm geothermal waters of the Blue Lagoon."
     if "blue lagoon" in lower:
         return "Enjoy time at the Blue Lagoon, with admission arranged as part of the day."
+    if (
+        "photo tour" in lower
+        or "photo excursion" in lower
+        or "arctic landscapes" in lower
+        or "scenic fjord safari" in lower
+        or "camera settings" in lower
+        or "nature photos" in lower
+    ) and ("fjord" in lower or "landscape" in lower or "scenic" in lower):
+        return f"Travel outside {city or 'the city'} on a guided photo-focused excursion through Arctic landscapes, fjords and coastal scenery."
+    if "ice floating" in lower or ("floating" in lower and ("thermal" in lower or "wetsuit" in lower or "frozen lake" in lower)):
+        return f"Float in a frozen lake{place}, wearing a thermal survival suit while the Arctic night sky forms the focus of the experience."
     if "northern lights" in lower or "aurora" in lower:
         return "Head out in search of the Northern Lights, with the route adapted to the evening conditions and local guidance included."
     if "ferry" in lower and "tallinn" in lower:

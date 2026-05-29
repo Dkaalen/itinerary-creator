@@ -90,6 +90,32 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "korouoma" in full:
         return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
 
+    # High-confidence activity identities must beat incidental keywords.
+    # For example, a fjord photo tour may mention that reindeer sometimes
+    # wander through the area, but that should not turn the description into
+    # a reindeer-feeding experience.
+    if (
+        "photo tour" in full
+        or "photo excursion" in full
+        or "arctic landscapes" in full
+        or "scenic fjord safari" in full
+        or "camera settings" in full
+        or "nature photos" in full
+        or "sommaroy" in full
+        or "sommarøy" in full
+    ) and ("fjord" in full or "landscape" in full or "scenic" in full):
+        base = f"Travel outside {city} on a guided photo-focused excursion" if city else "Travel on a guided photo-focused excursion"
+        return polish_client_text(
+            f"{base} through Arctic landscapes, fjords and coastal scenery, "
+            "with stops shaped around the weather, light and viewpoints of the day."
+        )
+
+    if "ice floating" in full or ("floating" in full and ("thermal" in full or "wetsuit" in full or "frozen lake" in full)):
+        return polish_client_text(
+            f"Float in a frozen lake{city_phrase} wearing a thermal survival suit, with warm drinks and cookies included "
+            "and the Arctic night sky forming the focus of the experience."
+        )
+
     if "santa claus" in full and "friends" in full:
         return "Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included."
     if "husky" in full and "reindeer" in full:

@@ -78,6 +78,11 @@ def _extract_timed_route_places(row):
             places.append(place)
     return places
 
+def _line_with_time(label, row):
+    time = display_time(row.get("time", "")) or _inline_arrival_time(row)
+    return f"{label} — {time}" if time else label
+
+
 def _norway_nutshell_lines(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
     if "norway in a nutshell" not in text:
@@ -86,10 +91,10 @@ def _norway_nutshell_lines(row):
     lines = []
     base = get_travel_sequence_line(row)
     if places and len(places) >= 2:
-        lines.append(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}")
+        lines.append(_line_with_time(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}", row))
         lines.append("Route: " + " → ".join(places))
     elif base:
-        lines.append(base)
+        lines.append(_line_with_time(base, row))
     includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
     if includes:
         lines.append("Included journey: " + ", ".join(includes))

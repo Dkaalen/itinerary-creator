@@ -105,19 +105,56 @@ def get_premium_transport_phrase(row):
 def get_transfer_travel_title(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'
     lower = text.lower()
-    destination = _route_destination_from_text(text) or canonicalize_place_name(row.get("city", ""))
+    _, route_destination = get_route_points_for_transport(row)
+    text_destination = _route_destination_from_text(text)
+    city_destination = canonicalize_place_name(row.get("city", ""))
 
-    if "flight" in lower and destination:
-        return f"Flight to {destination}"
-    if "train" in lower and destination:
-        return f"Train to {destination}"
-    if ("ferry" in lower or "cruise" in lower) and destination:
-        return f"Ferry to {destination}" if "ferry" in lower else f"Cruise to {destination}"
-    if ("coach" in lower or "bus" in lower) and destination:
-        return f"Coach Transfer to {destination}"
+    if "flight" in lower:
+        destination = text_destination or route_destination or city_destination
+        return f"Flight to {destination}" if destination else polish_title(row.get("title", "") or "Flight")
+    if "train" in lower:
+        destination = text_destination or route_destination or city_destination
+        return f"Train to {destination}" if destination else polish_title(row.get("title", "") or "Train")
+    if "ferry" in lower or "cruise" in lower:
+        destination = text_destination or route_destination or city_destination
+        if destination:
+            return f"Ferry to {destination}" if "ferry" in lower else f"Cruise to {destination}"
+    if "coach" in lower or "bus" in lower:
+        destination = route_destination or text_destination or city_destination
+        return f"Coach Transfer to {destination}" if destination else polish_title(row.get("title", "") or "Coach Transfer")
+
+    destination = text_destination or route_destination or city_destination
     if destination:
         return f"Travel to {destination}"
     return polish_title(row.get("title", "") or "Travel today")
+
+
+def _destination_focused_transport_title(row, premium: str) -> str:
+    """Return a concise day-heading version of a route transport phrase.
+
+    Detailed route wording belongs in the travel-arrangements block and final
+    inclusions. Day headings should usually communicate the movement and final
+    destination without operational clutter such as origin stations, tickets or
+    timing.
+    """
+
+    _, destination = get_route_points_for_transport(row)
+    if not destination:
+        return polish_title(premium)
+
+    lower = f"{premium} {_transport_source_text(row)}".lower()
+    destination = polish_title(destination)
+    if "flight" in lower:
+        return f"Flight to {destination}"
+    if "train" in lower:
+        return f"Overnight train to {destination}" if "overnight" in lower else f"Train to {destination}"
+    if "coach" in lower or "bus" in lower:
+        return f"Coach Transfer to {destination}"
+    if "ferry" in lower:
+        return f"Ferry to {destination}"
+    if "cruise" in lower:
+        return f"Cruise to {destination}"
+    return polish_title(premium)
 
 
 def get_primary_transport_title(day_rows):
@@ -132,6 +169,9 @@ def get_primary_transport_title(day_rows):
                         # inclusions/travel lines keep the full from/to route.
                         dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", premium)
                         return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else premium
+                premium = get_premium_transport_phrase(row)
+                if premium:
+                    return _destination_focused_transport_title(row, premium)
                 title = polish_title(str(row.get("title", "")).strip())
                 if title:
                     return title
