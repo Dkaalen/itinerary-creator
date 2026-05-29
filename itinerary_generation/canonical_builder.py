@@ -134,14 +134,13 @@ def _source_text(row: dict) -> str:
 
 
 def _meal_already_listed(row: dict, meal: str) -> bool:
-    """Return true when the accommodation meal is already shown elsewhere."""
+    """Return true when the accommodation meal is already in inclusions."""
 
     if not meal:
         return False
 
     include_text = " ".join(normalize_list(row.get("includes", [])))
-    source = f"{include_text} {row.get('details', '')} {row.get('original_title', '')}"
-    normalized = re.sub(r"[^a-z0-9]+", " ", source.lower())
+    normalized = re.sub(r"[^a-z0-9]+", " ", include_text.lower())
     normalized = f" {normalized} "
     meal_lower = meal.lower()
 
