@@ -388,6 +388,53 @@ def test_image_bank_diagnostics_counts_root_default_images():
         assert_equal(diagnostics["destination_images"], 1, "Diagnostics should count destination images separately.")
 
 
+
+def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
+    import images.app_image_selection as app_images
+
+    original_root = app_images.APP_ROOT
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            full = root / "image_bank_full"
+            fallback = root / "image_bank"
+            full.mkdir()
+            fallback.mkdir()
+            app_images.APP_ROOT = root
+
+            assert_equal(
+                app_images.get_image_bank_paths(),
+                [full, fallback],
+                "App image helper should scan image_bank_full before image_bank when both exist.",
+            )
+            assert_equal(
+                app_images.get_image_bank_path(),
+                full,
+                "App image helper should use image_bank_full as the primary writable bank when present.",
+            )
+    finally:
+        app_images.APP_ROOT = original_root
+
+
+def test_v36c72_app_image_bank_paths_fall_back_to_small_bank():
+    import images.app_image_selection as app_images
+
+    original_root = app_images.APP_ROOT
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fallback = root / "image_bank"
+            fallback.mkdir()
+            app_images.APP_ROOT = root
+
+            assert_equal(
+                app_images.get_image_bank_scan_paths(),
+                [fallback],
+                "App image helper should keep image_bank as fallback when image_bank_full is absent.",
+            )
+    finally:
+        app_images.APP_ROOT = original_root
+
 def run_all():
     tests = [
         test_image_bank_matching_is_destination_specific,
@@ -401,6 +448,8 @@ def run_all():
         test_default_fallback_prefers_semantic_match_over_season_only_match,
         test_default_fallback_prefers_road_image_for_coach_transfer,
         test_image_bank_diagnostics_counts_root_default_images,
+        test_v36c72_app_image_bank_paths_prefer_full_then_fallback,
+        test_v36c72_app_image_bank_paths_fall_back_to_small_bank,
     ]
 
     for test in tests:

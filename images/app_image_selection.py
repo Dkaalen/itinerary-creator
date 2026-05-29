@@ -44,8 +44,27 @@ CROP_FOCUS_OBJECT_POSITIONS = {
     "bottom": "center 78%",
 }
 
+def get_image_bank_paths():
+    """Return image-bank paths in priority order.
+
+    ``image_bank_full`` is the production/main bank when present.
+    ``image_bank`` remains the small fallback bank for local clean zips and
+    deployments that do not include the full bank.
+    """
+    full_bank = APP_ROOT / "image_bank_full"
+    fallback_bank = APP_ROOT / "image_bank"
+    paths = [path for path in (full_bank, fallback_bank) if path.exists()]
+    return paths or [fallback_bank]
+
+
 def get_image_bank_path():
-    return APP_ROOT / "image_bank"
+    """Return the primary writable image-bank path."""
+    return get_image_bank_paths()[0]
+
+
+def get_image_bank_scan_paths():
+    """Return all image-bank paths used for matching and replacement scans."""
+    return get_image_bank_paths()
 
 
 def normalize_path_key(value):
