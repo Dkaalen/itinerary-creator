@@ -1352,3 +1352,60 @@ if __name__ == "__main__":
     run_all()
 
 
+
+
+def test_semantic_casing_normalizes_group_tour_phrases():
+    from text_polish import polish_client_text, polish_title
+
+    examples = {
+        "south Coast & Katla Ice Cave": "South Coast & Katla Ice Cave",
+        "eastfjords & Local Life": "Eastfjords & Local Life",
+        "north Iceland": "North Iceland",
+        "whale Watching": "Whale Watching",
+    }
+    for raw, expected in examples.items():
+        assert polish_client_text(raw) == expected
+        assert polish_title(raw) == expected
+
+
+def test_v36c71_title_admin_safety_blocks_supplier_titles():
+    from app_modules.itinerary_html import build_itinerary_html
+    from generator import group_rows_by_day
+    from itinerary_generation.content_validator import validate_html
+    from ui.day_blocks import build_arrival_block
+
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Activity",
+            "city": "Oslo",
+            "title": "Final timing to be shared in Voucher",
+            "original_title": "Final timing to be shared in Voucher",
+            "details": "Final timing to be shared in Voucher",
+            "row_id": "admin-title-activity",
+        },
+        {
+            "day": "Day 2",
+            "type": "Activity",
+            "city": "Oslo",
+            "title": "Book today: Oslo walking tour",
+            "original_title": "Book today: Oslo walking tour",
+            "details": "Meet your guide for a relaxed city walking tour through central Oslo.",
+            "row_id": "cta-title-activity",
+        },
+    ]
+    html = build_itinerary_html(rows, group_rows_by_day(rows), output_edits={})
+
+    assert_not_contains(html, "Final timing to be shared in Voucher", "Voucher timing text must not render as an activity/day title.")
+    assert_not_contains(html, "Book today", "Supplier call-to-action text must not render in titles.")
+    assert_contains(html, "Oslo walking tour", "CTA stripping should preserve the real walking-tour title without the call-to-action prefix.")
+    assert not validate_html(html)
+
+    arrival_html = build_arrival_block({
+        "type": "Arrival",
+        "city": "Reykjavík",
+        "title": "Arrival Reykjavík, pick-up minibus",
+        "row_id": "raw-arrival-title",
+    })["html"]
+    assert_not_contains(arrival_html, "Arrival Reykjavík, pick-up minibus", "Arrival block titles must not expose raw pick-up logistics.")
+    assert_contains(arrival_html, "Arrival in Reykjavík", "Arrival block should fall back to a clean client-facing title.")

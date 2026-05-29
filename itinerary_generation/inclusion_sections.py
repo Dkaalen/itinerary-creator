@@ -275,6 +275,64 @@ def _extract_rental_summary(rows: list[dict]) -> list[str]:
     return items
 
 
+
+_GROUP_TOUR_ACTIVITY_SKIP_RE = re.compile(
+    r"\b(?:hotel|guesthouse|accommodation|w/\s*breakfast|with breakfast|breakfast|pick\W*up|return to|arrival\b)\b",
+    flags=re.IGNORECASE,
+)
+
+_GROUP_TOUR_ACTIVITY_KEEP_RE = re.compile(
+    r"\b(?:glacier hike|amphibian|boat ride|boat tour|ice cave|katla|whale watching|golden circle|waterfall|reynisfjara|diamond beach|j[öo]kuls[áa]rl[óo]n|skaftafell|eastfjords|fishing villages|dettifoss|m[ýy]vatn|go[ðd]afoss)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _group_tour_overview_activity_lines(rows: list[dict]) -> list[str]:
+    """Extract meaningful included group-tour activities from supplier overview rows.
+
+    Accommodation and admin lines remain in the accommodation/notes sections;
+    this helper only surfaces named experiences that change the commercial meaning
+    of the package.
+    """
+    items: list[str] = []
+    for row in rows:
+        text = f'{row.get("title", "")}\n{row.get("original_title", "")}\n{row.get("details", "")}'
+        in_included = False
+        for raw in text.replace("–", "-").splitlines():
+            line = _clean(raw).strip(" •-*|:")
+            if not line:
+                continue
+            lower = line.lower()
+            if lower in {"what's included?", "what’s included?", "what's included", "what’s included"}:
+                in_included = True
+                continue
+            if lower.startswith(("not included", "what to expect", "overview", "please note")):
+                if not lower.startswith("overview"):
+                    in_included = False
+                continue
+            if not in_included:
+                # Also catch compact prose summaries such as "included activities such as...".
+                prose = re.search(r"included activities such as (.+?)(?: are arranged|\.|$)", line, flags=re.IGNORECASE)
+                if prose:
+                    candidates = re.split(r",\s*|\s+and\s+", prose.group(1))
+                    for candidate in candidates:
+                        candidate = _clean(candidate).strip(" .")
+                        if candidate.lower().startswith("and "):
+                            candidate = candidate[4:].strip()
+                        if _GROUP_TOUR_ACTIVITY_KEEP_RE.search(candidate):
+                            _add_unique(items, polish_title(candidate))
+                continue
+            match = re.match(r"Day\s*\d+(?:\s*-\s*\d+)?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+            if not match:
+                continue
+            item = _clean(match.group(1)).strip(" .")
+            if not item or _GROUP_TOUR_ACTIVITY_SKIP_RE.search(item):
+                continue
+            if _GROUP_TOUR_ACTIVITY_KEEP_RE.search(item):
+                item = re.sub(r"\bvisit\b", "", item, flags=re.IGNORECASE).strip(" ,.-")
+                _add_unique(items, polish_title(item))
+    return items
+
 def _has_non_breakfast_meal(meal: str) -> bool:
     lower = _clean(meal).lower()
     return bool(lower and "breakfast" not in lower and "without" not in lower) or any(marker in lower for marker in ["dinner", "lunch", "full board", "half board", "full pension"])
@@ -329,6 +387,9 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
 
     for row in activity_rows:
         _add_unique(activity_items, _activity_line(row))
+
+    for item in _group_tour_overview_activity_lines(rows):
+        _add_unique(activity_items, item)
 
     for row in rows:
         row_type = get_row_type(row)

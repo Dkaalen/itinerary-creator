@@ -1,0 +1,47 @@
+{
+  "name": "Iceland group tour summer ring road rendered PDF",
+  "fixture": "iceland_group_tour_summer_ring_road.txt",
+  "must_contain": [
+    "Iceland Guided Discovery",
+    "Travel Style Guided small-group tour",
+    "Explore the Golden Circle",
+    "Discover South Coast & Katla Ice Cave",
+    "Hauganes for Whale Watching before returning to Reykjavík",
+    "Skaftafell glacier hike (3 h)",
+    "Jökulsárlón amphibian boat ride",
+    "Katla Ice Cave tour"
+  ],
+  "must_not_contain": [
+    "Travel Style Premium independent journey",
+    "continues through Reykjavík, with the day focused on whale Watching",
+    "south Coast",
+    "eastfjords",
+    "north Iceland",
+    "whale Watching",
+    "Reykjavík pickIup"
+  ],
+  "section_checks": [
+    {
+      "start": "Your Trip at a Glance",
+      "end": "Your Journey Arc",
+      "must_contain": ["Travel Style Guided small-group tour"],
+      "must_not_contain": ["independent journey"]
+    },
+    {
+      "start": "DAY 7",
+      "end": "DAY 8",
+      "must_contain": ["Hauganes", "Whale Watching", "returning to Reykjavík"],
+      "must_not_contain": ["continues through Reykjavík", "landscapes and cultural stops", "whale Watching"]
+    },
+    {
+      "start": "What’s included",
+      "end": "What’s not included",
+      "must_contain": [
+        "Katla Ice Cave tour",
+        "Skaftafell glacier hike",
+        "Jökulsárlón amphibian boat ride",
+        "Hauganes Whale Watching tour"
+      ]
+    }
+  ]
+}

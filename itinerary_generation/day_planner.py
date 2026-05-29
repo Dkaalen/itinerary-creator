@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from itinerary_generation.common import get_primary_city, get_row_type, has_hotel
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title, create_day_title
 from itinerary_generation.transport import get_premium_transport_phrase, get_route_points_for_transport, has_airport_arrival_transfer, has_airport_departure_transfer
+from itinerary_generation.content_engine import is_supplier_day_row
 from place_aliases import canonicalize_place_name, country_for_place
 from text_polish import polish_client_text, polish_title
 
@@ -144,6 +145,12 @@ def _departure_title(city: str) -> str:
     return f"Departure from {city}" if city else "Departure"
 
 
+def _group_tour_intro_from_source(title: str, source: str) -> str:
+    lower = f"{title} {source}".lower()
+    if "whale" in lower and "hauganes" in lower:
+        return "Your guided group tour continues today to Hauganes for Whale Watching before returning to Reykjavík. The day is organised around the included boat experience and the final guided route back to the capital."
+    return ""
+
 def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
         return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests." if city else "Enjoy a slower day, with time to explore independently or relax."
@@ -216,6 +223,10 @@ def plan_day(rows: list[dict]) -> DayPlan:
         if re.search(r"hop[- ]?on\s+hop[- ]?off", title, flags=re.I):
             title = _hop_on_title(city)
             return DayPlan("hop_on_city_day", title, _intro_for_title(title, city, "hop_on_city_day"), skip_empty_activity_rows=True)
+        if is_supplier_day_row(activity_rows[0]):
+            source_intro = _group_tour_intro_from_source(title, _text(activity_rows[0]))
+            if source_intro:
+                return DayPlan("group_tour_day", title, source_intro, skip_empty_activity_rows=True)
         return DayPlan("single_activity_day", title, _intro_for_title(title, city, "single_activity_day"), skip_empty_activity_rows=True)
 
     if travel_rows:

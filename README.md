@@ -5,16 +5,16 @@ Streamlit app for turning pasted itinerary spreadsheet rows into polished A4 tra
 ## Run locally
 
 ```powershell
-cd "C:\Users\DennisKålen\Desktop\itinerary_app\itinerary-creator"
+cd path/to/itinerary-creator
 python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 streamlit run app.py
 ```
 
 ## Test
 
 ```powershell
-python -m pytest -q tests/test_regressions.py tests/test_images.py tests/test_pdf.py tests/test_real_fixture_quality_gate.py
-python tests/test_rendered_pdf_quality.py
+python -m pytest tests/
 python -m compileall -q .
 ```
 

@@ -18,6 +18,7 @@ from itinerary_generation.transport import (
     has_only_departure_arrangements,
 )
 from text_polish import strip_price_fragments, polish_title
+from itinerary_generation.title_safety import BAD_TITLE_PATTERNS, is_forbidden_client_title
 from place_aliases import country_for_place
 from itinerary_generation.content_engine import cleaned_generic_activity_title, clean_client_title as engine_clean_client_title
 from itinerary_generation.cover_theme import (
@@ -77,22 +78,6 @@ def _extract_supplier_day_heading(text: str) -> str:
     return polish_title(heading)
 
 
-BAD_TITLE_PATTERNS = [
-    r"\barrival\s+[^,|]+,\s*pick[-\s]?up\b",
-    r"\bpick[-\s]?up\s+minibus\b",
-    r"\bpick[-\s]?up\s*/\s*drop[-\s]?off\b",
-    r"\bprivate\s+(?:airport|hotel|station)\s+to\b",
-    r"\bshuttle\s*/?\s*flybus\b",
-    r"\bwith\s+transfers?\b",
-    r"\bcost\s+not\s+included\b",
-    r"\bself[-\s]?arranged\b",
-    r"\bwhat'?s\s+included\b",
-    r"\boverview\b",
-    r"\bopening hours\b",
-    r"\bincludese\b",
-    r"\bleisure as requested\b",
-    r"\bself\s+transfer\s+to\b",
-]
 
 
 def is_bad_raw_day_title(title: str) -> bool:
@@ -102,7 +87,7 @@ def is_bad_raw_day_title(title: str) -> bool:
     lower = text.lower()
     if len(text) > 85:
         return True
-    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in BAD_TITLE_PATTERNS)
+    return is_forbidden_client_title(text) or any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in BAD_TITLE_PATTERNS)
 
 
 
@@ -125,6 +110,9 @@ def normalize_client_day_title(title: str, row: dict | None = None) -> str:
             return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}"
         return route_label
 
+    if not text or is_forbidden_client_title(text):
+        city = polish_title(row.get("city", ""))
+        return f"Experience in {city}" if city else "Guided experience"
     return polish_title(re.sub(r"\bToday\b\s*$", "", text, flags=re.IGNORECASE).strip(" -:|"))
 
 def create_client_activity_title(row):
@@ -149,6 +137,9 @@ def create_client_activity_title(row):
             if candidate and not candidate.lower().startswith(("optional addon", "optional add-on", "optional add on")):
                 title = candidate
                 break
+
+    if is_bad_raw_day_title(title):
+        title = ""
 
     title_text = str(title or original_title or "").lower()
     original_title_text = str(original_title or "").lower()

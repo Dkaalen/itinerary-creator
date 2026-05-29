@@ -10,6 +10,7 @@ from itinerary_generation.common import (
 )
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.title_safety import is_forbidden_client_title
 from itinerary_generation.content_engine import client_activity_description, group_tour_pickup_window_from_overview, is_group_tour_overview, merge_compound_inclusions, sanitize_inclusion_item, clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from itinerary_generation.canonical_builder import canonical_activity_block, canonical_accommodation_block, should_hide_note_row
@@ -336,8 +337,8 @@ def _transport_route_phrase(row):
 
 def build_arrival_block(row):
     city = polish_title(row.get("city", ""))
-    title = polish_title(row.get("title", ""))
-    if not title or title.lower().strip(" .") in {"arrival", "arrival day", "welcome", "welcome day"}:
+    title = clean_client_title(row.get("title", ""), row)
+    if is_forbidden_client_title(title) or not title or title.lower().strip(" .") in {"arrival", "arrival day", "welcome", "welcome day"}:
         title = f"Arrival in {city}" if city else "Arrival"
 
     html_text = f'<div class="content-block arrival-block" data-row-id="{esc(row.get("row_id", ""))}">'
@@ -353,8 +354,8 @@ def build_arrival_block(row):
 
 
 def build_departure_block(row):
-    title = polish_title(row.get("title", "") or "")
-    if not title or title.lower().strip(" .") in {"departure", "departure day"}:
+    title = clean_client_title(row.get("title", "") or "", row)
+    if is_forbidden_client_title(title) or not title or title.lower().strip(" .") in {"departure", "departure day"}:
         title = "Journey home"
 
     html_text = f'<div class="content-block departure-block" data-row-id="{esc(row.get("row_id", ""))}">'

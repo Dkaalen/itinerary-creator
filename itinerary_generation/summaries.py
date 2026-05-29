@@ -15,6 +15,7 @@ from itinerary_generation.transport import (
     has_glass_igloo_or_arctic_resort,
     has_norway_in_a_nutshell,
 )
+from itinerary_generation.group_tours import is_group_tour_overview
 
 
 def create_trip_glance(parsed_rows, grouped_days):
@@ -49,10 +50,17 @@ def create_trip_glance(parsed_rows, grouped_days):
 
     # Self transfers are day logistics, not a premium trip-style feature.
     has_self_transfer = False
+    has_group_tour = any(is_group_tour_overview(row) for row in parsed_rows)
 
     travel_style_parts = []
 
-    if has_self_drive_markers(parsed_rows):
+    if has_group_tour:
+        # Group-tour overviews are packaged guided products, not independent journeys.
+        if any("small" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in parsed_rows if is_group_tour_overview(row)):
+            travel_style = "Guided small-group tour"
+        else:
+            travel_style = "Guided group tour"
+    elif has_self_drive_markers(parsed_rows):
         if hotel_rows:
             travel_style_parts.append("curated stays")
         travel_style_parts.append("scenic self-drive routes")

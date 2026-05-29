@@ -91,7 +91,9 @@ LANDMARKS: list[tuple[str, str]] = [
     ("Gljúfrabúi", r"Glj[úu]frab[úu]i"),
     ("Skógafoss", r"Sk[óo]gafoss"),
     ("Reynisfjara", r"Reynisfjara"),
-    ("Jökulsárlón Glacier Lagoon", r"J[öo]kuls[áa]rl[óo]n"),
+    ("Skaftafell", r"Skaftafell"),
+    ("Vatnajökull", r"Vatnaj[öo]kull|Vatnajokull"),
+    ("Jökulsárlón Glacier Lagoon", r"J[öo]kuls[áa]rl[óo]n|Jokulsarlon"),
     ("Diamond Beach", r"Diamond Beach"),
     ("Blue Ice Cave", r"blue ice cave|ice cave"),
     ("Fagradalsfjall", r"Fagradalsfjall|Geldingadalir"),
@@ -99,6 +101,14 @@ LANDMARKS: list[tuple[str, str]] = [
     ("Hallgrímskirkja", r"Hallgr[íi]mskirkja"),
     ("Reykjavík landmarks", r"landmarks in Reykjav[íi]k|famous landmarks"),
     ("Reykjavík street art", r"street art"),
+    ("Hauganes", r"Hauganes"),
+    ("Eastfjords", r"Eastfjords"),
+    ("Hallormsstaðaskógar", r"Hallormssta[ðd]ask[óo]gar"),
+    ("Lake Lagafljót", r"Lagaflj[óo]t"),
+    ("Dettifoss waterfall", r"Dettifoss"),
+    ("Mývatn", r"M[ýy]vatn"),
+    ("Námskarð", r"N[áa]mskar[ðd]"),
+    ("Goðafoss waterfall", r"Go[ðd]afoss"),
     ("Lava Show Reykjavík", r"Lava Show"),
     ("Nuuksio National Park", r"Nuuksio"),
     ("Tallinn Old Town", r"Tallinn"),
@@ -213,7 +223,7 @@ def _join(items: Iterable[str], *, max_items: int = 5) -> str:
 
 
 def _focus_from_title(title: str) -> str:
-    t = re.sub(r"^(Explore|Discover|Hike|Visit|Experience|Enjoy)\s+", "", title, flags=re.I).strip()
+    t = re.sub(r"^(Explore|Discover|Hike|Visit|Experience|Enjoy|Watch)\s+", "", title, flags=re.I).strip()
     lower = t.lower()
     if "borgarfjör" in lower or "borgarfjord" in lower:
         return "the Borgarfjörður region and its waterfalls"
@@ -225,6 +235,12 @@ def _focus_from_title(title: str) -> str:
         return "the South Coast waterfalls and glacier landscape"
     if "jökulsárlón" in lower or "jokulsarlon" in lower:
         return "Jökulsárlón Glacier Lagoon, Diamond Beach and the ice cave landscape"
+    if "eastfjords" in lower:
+        return "the Eastfjords and local life"
+    if "north iceland" in lower:
+        return "North Iceland"
+    if "whale" in lower:
+        return "Whale Watching"
     if "blue lagoon" in lower and "volcano" in lower:
         return "the Fagradalsfjall volcano area and the Blue Lagoon"
     return t[:1].lower() + t[1:] if t else "the day’s main experience"
@@ -235,9 +251,17 @@ def _has_bad_residue(text: str) -> bool:
 
 
 def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
-    places = _extract_landmarks(source, limit=7)
+    places = _extract_landmarks(source, limit=8)
     focus = _focus_from_title(title)
     region = canonicalize_place_name(row.get("city", "")) or city or "the region"
+    full = f"{title} {source}".lower()
+
+    if "whale" in full and "hauganes" in full:
+        return polish_client_text(
+            "Today your guided group tour travels to Hauganes for the included Whale Watching experience. "
+            "After time on the water looking for marine life, the route continues back to Reykjavík for the end of the guided programme."
+        )
+
     if places:
         place_sentence = f"The route highlights {_join(places, max_items=6)}, giving the day a clear sense of place without rushing the experience."
     else:

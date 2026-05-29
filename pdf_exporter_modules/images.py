@@ -92,10 +92,22 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
                 box = (0, top, source_width, min(source_height, top + crop_height))
 
             image = image.crop(box)
+
+            # ReportLab embeds the actual source pixels. Crop-only temp files can
+            # keep multi-megapixel originals and inflate client PDFs massively.
+            # Resize to roughly 2x the displayed point size, which is sharp for
+            # A4 output while keeping file sizes emailable.
+            target_px = (
+                max(1, int(float(target_width) * 2.0)),
+                max(1, int(float(target_height) * 2.0)),
+            )
+            if image.size != target_px:
+                image = image.resize(target_px, PILImage.LANCZOS)
+
             temp_path = Path(temp_dir) / (
                 f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalize_crop_focus(crop_focus)))) % 10_000_000}.jpg"
             )
-            image.save(temp_path, format="JPEG", quality=88, optimize=True)
+            image.save(temp_path, format="JPEG", quality=76, optimize=True)
             return temp_path
     except Exception:
         return None
