@@ -64,7 +64,7 @@ def slugify_filename(value):
 
 def infer_country_for_city(city):
     city_key = clean_space(city).lower()
-    for candidate in scan_image_bank(get_image_bank_path()):
+    for candidate in scan_image_bank(get_image_bank_scan_paths()):
         if clean_space(candidate.city).lower() == city_key and candidate.country:
             return candidate.country
     return "Custom"
@@ -212,7 +212,7 @@ def select_day_images_with_overrides(grouped_days, output_edits=None):
             else:
                 selected[day] = None
 
-    base_matches = select_day_images(grouped_days, get_image_bank_path(), used_paths=used_paths.copy())
+    base_matches = select_day_images(grouped_days, get_image_bank_scan_paths(), used_paths=used_paths.copy())
 
     for day, rows in (grouped_days or {}).items():
         if day in selected:
@@ -235,7 +235,7 @@ def list_replacement_image_options(city):
     city_options = []
     default_options = []
     seen = set()
-    for candidate in scan_image_bank(get_image_bank_path()):
+    for candidate in scan_image_bank(get_image_bank_scan_paths()):
         path = Path(candidate.path)
         key = normalize_path_key(path)
         if key in seen:
@@ -257,7 +257,7 @@ def list_replacement_image_options_for_rows(day, rows, limit=30):
     editor receives labels and paths only, preventing replacement lists from
     sending the full image bank to the browser.
     """
-    candidates = scan_image_bank(get_image_bank_path())
+    candidates = scan_image_bank(get_image_bank_scan_paths())
     if not candidates:
         return []
     context = build_day_context(day, rows or [])
@@ -341,7 +341,7 @@ def save_data_uri_day_image(data_uri, filename, city, season='Summer', label='')
 def render_day_image_slot(day, rows, match=None, output_edits=None):
     """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
-        match = select_day_image(day, rows, get_image_bank_path())
+        match = select_day_image(day, rows, get_image_bank_scan_paths())
     if not match:
         return ""
 
