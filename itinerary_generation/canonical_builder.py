@@ -129,6 +129,10 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     )
 
 
+def _source_text(row: dict) -> str:
+    return " ".join(str(row.get(key) or "") for key in ("title", "hotel_name", "details", "original_title"))
+
+
 def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
     nights = plural_nights(row.get("hotel_nights", ""))
@@ -138,7 +142,10 @@ def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     meal = meal_phrase(row.get("meal_plan", ""))
     city = polish_title(row.get("city", ""))
 
-    accommodation_line = polish_client_text(hotel_name if row.get("is_group_tour_accommodation") else f"{hotel_name} or similar")
+    accommodation_line = polish_client_text(hotel_name)
+    if re.search(r"\bor\s+similar\b", _source_text(row), flags=re.IGNORECASE):
+        if not re.search(r"\bor\s+similar\b", accommodation_line, flags=re.IGNORECASE):
+            accommodation_line += " or similar"
     if city and city.lower() not in accommodation_line.lower():
         accommodation_line += f" in {city}"
     if nights:
