@@ -61,7 +61,7 @@ def render_sidebar_controls():
         )
         previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
         st.session_state.day_page_layout = selected_day_layout
-        st.caption("Premium visual layout: one itinerary day per A4 page.")
+        st.caption("Print-ready layout: one itinerary day per A4 page.")
 
         if st.session_state.get("output_edits"):
             st.session_state.output_edits["color_preset"] = selected_preset

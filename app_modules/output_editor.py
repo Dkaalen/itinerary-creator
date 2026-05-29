@@ -78,7 +78,7 @@ def render_output_editor(parsed_rows, grouped_days, output_edits):
             output_edits["cover_season"] = selected_cover_season
         output_edits["cover_kicker"] = st.text_input(
             "Cover label",
-            value=output_edits.get("cover_kicker", "Curated Travel Itinerary"),
+            value=output_edits.get("cover_kicker", "Travel Itinerary"),
             key="edit_cover_kicker",
         )
         output_edits["trip_title"] = st.text_input(

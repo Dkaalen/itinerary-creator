@@ -96,7 +96,7 @@ def apply_rich_writing_to_all_days(parsed_rows, output_edits):
 
 def make_output_edit_state(parsed_rows, grouped_days):
     edits = {
-        "cover_kicker": "Curated Travel Itinerary",
+        "cover_kicker": "Travel Itinerary",
         "cover_season": "automatic",
         "detected_cover_season": get_cover_season(parsed_rows, {"cover_season": "automatic"}),
         "trip_title": create_trip_title(parsed_rows, grouped_days),

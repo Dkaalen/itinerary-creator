@@ -126,7 +126,7 @@ def create_whats_not_included(parsed_rows=None):
         "Porterage unless specified",
         "Self transfers and self-arranged travel costs unless specifically stated",
         "Travel insurance",
-        "Optional upgrades and personal expenses",
+        "Optional extras and personal expenses",
         "City taxes or local fees, where applicable",
     ]
     text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in (parsed_rows or [])).lower()

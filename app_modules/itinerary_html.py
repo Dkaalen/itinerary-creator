@@ -72,7 +72,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     colors_json = esc(json.dumps(colors))
 
     cover_theme = get_cover_theme(parsed_rows, output_edits)
-    cover_kicker = output_edits.get("cover_kicker") or "Curated Travel Itinerary"
+    cover_kicker = output_edits.get("cover_kicker") or "Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     cover_title_class = "cover-title"
     if len(str(trip_title)) <= 24:

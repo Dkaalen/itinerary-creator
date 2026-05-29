@@ -138,6 +138,20 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
     text = re.sub(r"\bReykajvik\b|\bReykavik\b", "Reykjavík", text, flags=re.IGNORECASE)
 
+    # Keep client-facing wording grounded. Supplier labels sometimes use
+    # expensive-sounding adjectives for standard room categories, coaches or
+    # tickets; the itinerary should describe the concrete item instead.
+    text = re.sub(r"\bPremium\s+coach\b", "Coach", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+bus\b", "Bus", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+vehicle\b", "Vehicle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+transfer\b", "Transfer", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+(?=(?:Glass\s+)?Igloo\b)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+(?=(?:waterfront|sea|fjord|mountain|view|standard|double|twin|single|suite|room)\b)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+(?=(?:entry|admission|ticket|tickets)\b)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+coach\b", "Coach", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+bus\b", "Bus", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+(?=(?:vehicle|transfer|room|stay|experience|tour|ticket|tickets|entry|admission)\b)", "", text, flags=re.IGNORECASE)
+
     # Normalize compact supplier time text such as "between 8am and 8.30"
     # before punctuation spacing runs. This keeps group-tour descriptions
     # readable without changing non-time decimal values elsewhere.

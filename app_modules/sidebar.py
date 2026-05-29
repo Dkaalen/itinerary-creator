@@ -72,7 +72,7 @@ def make_title_suggestions(parsed_rows, grouped_days):
         suggestions.append(f"{cities[0]} & {cities[1]} Journey")
 
     if not suggestions:
-        suggestions.extend(["Nordic Discovery Journey", "Curated Nordic Escape", "Scandinavian City & Nature Journey"])
+        suggestions.extend(["Nordic Discovery Journey", "Nordic City & Nature Journey", "Scandinavian City & Nature Journey"])
 
     clean = []
     for suggestion in suggestions:

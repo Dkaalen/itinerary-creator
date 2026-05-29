@@ -104,3 +104,48 @@ def test_multiline_transport_inclusions_render_as_bullets():
     assert_contains(html, "Coach Transfer to Kakslauttanen", "Coach transfer title should be visible in the bullet item.")
     assert_contains(html, "Coach ticket included.", "Coach transfer detail should be visible in the bullet item.")
 
+
+
+def test_hotel_dinner_stays_in_accommodation_not_meals_section():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+
+    raw = """
+	Day 5	Transfer 		31/10/2026							Kakslauttenen	Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Kakslauttenen Arctic Resort - 11:45 am - 3:02 pm - Tickets Included
+	Day 5	Hotel	1	31/10/2026	01/11/2026				Kakslauttenen	4Star, Kakslauttenen Arctic Resort  , 1xNight , 1xSmall Glass Igloo , Incl Brekafast + Dinner
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    sections = create_categorized_inclusions(rows, grouped)
+    section_titles = "\n".join(section.get("title", "") for section in sections)
+    accommodation_text = "\n".join(
+        item
+        for section in sections
+        if section.get("title") == "Accommodation"
+        for item in section.get("items", [])
+    )
+
+    assert_not_contains(section_titles, "Meals included", "Hotel dinner should not create a separate meals section that repeats the accommodation name.")
+    assert_contains(accommodation_text, "Kakslauttanen Arctic Resort, Kakslauttanen", "Unique stay should remain listed under accommodation.")
+    assert_contains(accommodation_text, "Breakfast and dinner included.", "Hotel meal plan should stay attached to the accommodation item.")
+
+
+def test_supplier_expensive_adjectives_are_grounded_in_visible_output():
+    from itinerary_generation.inclusions import create_whats_not_included
+    from text_polish import polish_client_text
+    from ui.day_blocks import build_day_blocks
+
+    raw = """
+	Day 1	Hotel	1	01/11/2026	02/11/2026				Tromso	Premium Glass Igloo with Sauna, 1xNight, Incl Breakfast
+	Day 1	Activity		01/11/2026					Tromso	Northern Lights Chase | What's included?\nPremium coach with toilet facilities\nProfessional photos from your trip
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+    day_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 1"]) if block)
+    not_included = "\n".join(create_whats_not_included(rows))
+
+    assert_contains(day_html, "Coach with toilet facilities", "Supplier 'premium coach' wording should be grounded to the concrete coach facility.")
+    assert_not_contains(day_html, "Premium coach", "Expensive-sounding supplier adjectives should not leak into client-facing day inclusions.")
+    assert_not_contains(polish_client_text("Premium Glass Igloo with Sauna"), "Premium", "Room/category wording should avoid expensive-sounding adjectives where the concrete stay type is enough.")
+    assert_contains(not_included, "Optional extras and personal expenses", "Exclusions should use down-to-earth wording.")
+    assert_not_contains(not_included, "Optional upgrades", "Exclusions should avoid upgrade-led sales wording.")

@@ -35,5 +35,5 @@ DEFAULT_IMPORTANT_TRAVEL_NOTES = [
     "Hotel check-in and check-out times vary by property. As a general guideline, check-in in the Nordic region is usually between 3:00 PM and 4:30 PM, while check-out is usually between 10:00 AM and 12:00 noon.",
     "Additional nights can be added on request where the itinerary allows. Some itineraries may be designed without extra nights in certain destinations to help balance the overall route, timing and budget.",
     "Additional private transfers for city exploration days, railway stations, bus terminals, airports or cruise ports can be arranged as optional add-ons if needed.",
-    "If you would like to enhance the itinerary further, additional activities, excursions or upgraded longer-duration experiences can be suggested and arranged on request at an additional cost.",
+    "If you would like to add more to the itinerary, additional activities, excursions or longer-duration experiences can be suggested and arranged on request at an additional cost.",
 ]

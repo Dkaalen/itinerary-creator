@@ -88,7 +88,7 @@ def test_pdf_export_places_day_image_from_current_page_story():
         html_content = (
             '<html><body>'
             '<div class="a4-page cover-page">'
-            '<div class="cover-kicker">Curated Travel Itinerary</div>'
+            '<div class="cover-kicker">Travel Itinerary</div>'
             '<div class="cover-title">Image Test</div>'
             '</div>'
             '<div class="a4-page day-page single-day-page" data-day="Day 1">'

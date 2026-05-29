@@ -9,12 +9,9 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-from place_aliases import canonicalize_place_name
-from text_polish import polish_hotel_name
-
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged, main_rows_only, has_self_drive_markers
 from .inclusion_activities import activity_line, group_tour_overview_activity_lines
-from .inclusion_hotels import format_meal_plan, has_non_breakfast_meal, hotel_line
+from .inclusion_hotels import hotel_line
 from .inclusion_rentals import extract_rental_summary
 from .inclusion_transport import (
     is_cruise_arrival_row,
@@ -35,8 +32,6 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     hotel_items: list[str] = []
     activity_items: list[str] = []
     transport_buckets: OrderedDict[str, list[str]] = OrderedDict()
-    meal_items: list[str] = []
-
     if grouped_days:
         # Accommodation must read in itinerary order. Pull rows from the grouped
         # day structure because it contains synthetic group-tour overnights, and
@@ -64,14 +59,11 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     activity_rows = [row for row in rows if get_row_type(row) == "Activity"]
 
     for row in hotel_rows:
+        # Hotel meal plans belong with the accommodation item itself. Keeping
+        # them out of a separate meal section avoids repeating unique stays such
+        # as glass igloos, cabins, apartments, resorts or Northern Lights
+        # villages as standalone meal inclusions.
         add_unique(hotel_items, hotel_line(row))
-        meal = format_meal_plan(row.get("meal_plan", ""))
-        city = canonicalize_place_name(row.get("city", ""))
-        name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "accommodation")
-        # Breakfast already appears inside the Accommodation section. Only
-        # keep a separate meals section for non-breakfast / board meals.
-        if meal and has_non_breakfast_meal(meal):
-            add_unique(meal_items, f"{meal.capitalize()} at {name}{', ' + city if city else ''}")
 
     for row in activity_rows:
         add_unique(activity_items, activity_line(row))
@@ -107,9 +99,6 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
     for bucket, items in transport_buckets.items():
         if items:
             sections.append({"title": bucket, "items": items})
-    if meal_items:
-        sections.append({"title": "Meals included", "items": meal_items})
-
     # Guide/local-support details are already shown within each relevant day.
     # Keeping them off the commercial inclusions summary avoids repetition and
     # prevents self-guided experiences from being misrepresented as guided.
