@@ -1,2 +1,0 @@
-# Streamlit Community Cloud system packages.
-# Intentionally empty: this app currently has no apt-level dependencies.
