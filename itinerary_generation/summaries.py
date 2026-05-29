@@ -48,7 +48,7 @@ def create_trip_glance(parsed_rows, grouped_days):
         for row in transfer_rows
     )
 
-    # Self transfers are day logistics, not a premium trip-style feature.
+    # Self transfers are day logistics, not a trip-style feature.
     has_self_transfer = False
     has_group_tour = any(is_group_tour_overview(row) for row in parsed_rows)
 
@@ -62,11 +62,11 @@ def create_trip_glance(parsed_rows, grouped_days):
             travel_style = "Guided group tour"
     elif has_self_drive_markers(parsed_rows):
         if hotel_rows:
-            travel_style_parts.append("curated stays")
+            travel_style_parts.append("planned stays")
         travel_style_parts.append("scenic self-drive routes")
         if activity_rows:
             travel_style_parts.append("selected experiences")
-        travel_style = "Premium self-drive journey with " + ", ".join(travel_style_parts)
+        travel_style = "Self-drive journey with " + ", ".join(travel_style_parts)
     else:
         if has_private_transfer:
             travel_style_parts.append("private transfers")
@@ -81,7 +81,7 @@ def create_trip_glance(parsed_rows, grouped_days):
             travel_style_parts.append("arranged accommodation")
 
         if travel_style_parts:
-            travel_style = "Premium independent journey with " + ", ".join(travel_style_parts)
+            travel_style = "Independent journey with " + ", ".join(travel_style_parts)
         else:
             travel_style = "Independent journey with arranged services"
 

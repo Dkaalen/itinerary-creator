@@ -145,7 +145,7 @@ def _supplier_activity_description(row, max_sentences=4):
             candidates.append(match.group(1))
     if not candidates:
         # Supplier rows that contain only title/time/meeting/includes metadata
-        # are not narrative descriptions. Let the curated fallback handle those.
+        # are not narrative descriptions. Let the planned fallback handle those.
         if not re.search(r"\b(overview|what to expect|description)\b", source, flags=re.IGNORECASE):
             if "|" in source or re.search(r"\btime\s*:", source, flags=re.IGNORECASE) or re.search(r"\bincludes?\s*:", source, flags=re.IGNORECASE):
                 return ""

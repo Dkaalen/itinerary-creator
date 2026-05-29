@@ -1,7 +1,7 @@
 """
 layout_policy.py
 
-Central layout policy for the premium visual itinerary path.
+Central layout policy for the visual itinerary path.
 
 The current v36 layout standard is one itinerary day per A4 page. Older layout
 names are accepted and normalized so saved project/session state cannot bring

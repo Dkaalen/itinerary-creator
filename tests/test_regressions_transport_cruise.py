@@ -53,11 +53,11 @@ def test_v36c54_transport_cruise_inclusion_quality_gate():
 
     assert_equal(create_day_title(grouped["Day 3"]), "Train to Bergen", "Point-to-point train rows pasted as activities should become transport day titles.")
     day3_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 3"]) if block)
-    assert_contains(day3_html, "Scenic Train Transfer from Oslo to Bergen", "Train rows should render as premium travel arrangements, not activities.")
+    assert_contains(day3_html, "Scenic Train Transfer from Oslo to Bergen", "Train rows should render as clear travel arrangements, not activities.")
     assert_not_contains(day3_html, "Afternoon Experience", "Train transfers should not render as experience blocks.")
 
     day5_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 5"]) if block)
-    assert_contains(day5_html, "Overnight Coastal Cruise from Bergen to Ålesund", "Overnight cruise routes should preserve origin and destination with premium cruise wording.")
+    assert_contains(day5_html, "Overnight Coastal Cruise from Bergen to Ålesund", "Overnight cruise routes should preserve origin and destination with clear cruise wording.")
     assert_contains(day5_html, "Polar Outside cabin", "Overnight cruise cabin details should be preserved where provided.")
     assert_not_contains(day5_html, "Overngiht", "Common cruise typos should be cleaned before rendering.")
 

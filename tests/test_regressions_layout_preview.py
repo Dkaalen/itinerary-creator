@@ -36,7 +36,7 @@ def test_layout_policy_one_day_per_page():
     assert_equal(
         DEFAULT_DAY_PAGE_LAYOUT,
         "One day per page",
-        "Premium visual layout should default to one day per A4 page.",
+        "Visual layout should default to one day per A4 page.",
     )
     assert_equal(
         DAY_PAGE_LAYOUTS,
@@ -77,7 +77,7 @@ def test_day_page_editorial_parity_markup():
     }]
     html = render_day_page("Day 3", rows, image_match=None)
     assert_contains(html, "DAY 3", "Day pages should render the editorial day kicker.")
-    assert_contains(html, "day-kicker", "Day pages should keep the premium editorial day header structure.")
+    assert_contains(html, "day-kicker", "Day pages should keep the editorial day header structure.")
     assert_contains(html, "ROVANIEMI", "The day kicker city should render in uppercase for preview/PDF parity.")
     assert_not_contains(html, "Today’s setting", "The rejected setting label must not render on day pages.")
 
@@ -106,7 +106,7 @@ def test_seasonal_cover_title_and_subtitle_from_dates():
     grouped = group_rows_by_day(rows)
     assert_equal(detect_cover_season(rows), "summer", "July itineraries should use the summer cover season.")
     assert_equal(create_trip_title(rows, grouped), "Finland Summer Escape", "Single-country multi-destination trips should use the country in the cover title.")
-    assert_equal(create_trip_subtitle(rows, grouped), "A premium Finland summer journey with scenic travel and curated experiences", "Single-country cover subtitle should be seasonal and country-aware.")
+    assert_equal(create_trip_subtitle(rows, grouped), "A Finland summer journey with scenic travel and planned experiences", "Single-country cover subtitle should be seasonal and country-aware.")
 
     theme = get_cover_theme(rows, {"cover_season": "winter"})
     assert_equal(theme.get("season"), "winter", "Manual cover season override should beat date detection.")
@@ -174,7 +174,7 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
     day2_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 2"]) if block)
     assert_not_contains(day2_html, "Included Today", "Group-tour overview bullets should not dump onto the day page when a real activity row exists.")
     assert_contains(day2_html, "Pick-up:</span> Between 8:00 AM and 8:30 AM", "Group-tour overview start time should flow into a clear pick-up range.")
-    assert_contains(day2_html, "Breakfast included", "Group-tour accommodation should use the premium breakfast wording.")
+    assert_contains(day2_html, "Breakfast included", "Group-tour accommodation should use the clear breakfast wording.")
     assert_not_contains(day2_html, "With breakfast", "Group-tour accommodation should not use 'With breakfast'.")
 
     day4_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 4"]) if block)

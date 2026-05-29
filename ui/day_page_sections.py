@@ -46,7 +46,7 @@ def render_day_section(day, rows, output_edits=None):
 
 
 def render_day_visual_block(day, rows, output_edits=None, image_match=None):
-    """Render the matched day image with the premium edge divider handled by CSS/PDF."""
+    """Render the matched day image with the edge divider handled by CSS/PDF."""
     if not image_match:
         return ""
 

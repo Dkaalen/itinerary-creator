@@ -33,7 +33,7 @@ from parser_modules.common import extract_route_points
 
 
 def create_day_intro(day_rows, detail_level="Standard client itinerary"):
-    """Create a premium, client-facing day intro.
+    """Create a clear, client-facing day intro.
 
     This function is intentionally deterministic and pattern-based. It avoids
     the repeated "Today, you will enjoy..." wording that made longer itineraries

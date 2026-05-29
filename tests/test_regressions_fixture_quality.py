@@ -145,7 +145,7 @@ Traditional Finnish lunch buffet
     all_inclusions = "\n".join(item for section in sections for item in section.get("items", []))
     assert_contains(all_inclusions, "Arctic City Hotel, Rovaniemi", "Accommodation section should include hotel entries.")
     assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
-    assert_contains(all_inclusions, "Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen", "Coach transfer section should include the arranged coach transfer with premium route wording.")
+    assert_contains(all_inclusions, "Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen", "Coach transfer section should include the arranged coach transfer with clear route wording.")
     assert_contains(all_inclusions, "Northern Lights Hunt by Reindeer", "Separate reindeer Northern Lights activity should not be deduplicated away.")
 
 
@@ -224,7 +224,7 @@ Please check-in 30 minutes before departure. Pick-up service is 75–45 minutes 
     glance = create_trip_glance(rows, grouped)
     assert_contains(glance["Travel Style"], "self-drive", "Rental vehicle rows should create a self-drive travel style.")
     blue = next(row for row in rows if row.get("city") == "Blue Lagoon")
-    assert_equal(create_client_activity_title(blue), "Blue Lagoon Premium Admission", "Admission products should not become guided experiences.")
+    assert_equal(create_client_activity_title(blue), "Blue Lagoon Admission", "Admission products should not become guided experiences.")
     whale = next(row for row in rows if "Whale" in row.get("title", ""))
     assert_equal(whale.get("duration"), "2.5–3.5 hours", "Activity duration should beat pick-up-window timing.")
     assert_not_contains(get_activity_description(whale), "Ranua", "Fallback descriptions must not leak unrelated itinerary content.")
@@ -283,7 +283,7 @@ def test_real_input_fixture_bank_core_expectations():
 
     iceland_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "iceland_self_drive_summer.txt").read_text(encoding="utf-8")))
     blue = next(row for row in iceland_rows if row.get("city") == "Blue Lagoon")
-    assert_equal(create_client_activity_title(blue), "Blue Lagoon Premium Admission", "Blue Lagoon should render as admission, not generic guided experience.")
+    assert_equal(create_client_activity_title(blue), "Blue Lagoon Admission", "Blue Lagoon should render as admission, not generic guided experience.")
     blue_includes = "\n".join(blue.get("includes", []))
     assert_contains(blue_includes, "Unlimited use of steam bath, sauna, and cold lagoon", "Spa comma inclusions should stay together.")
     whale = next(row for row in iceland_rows if "Whale" in row.get("title", ""))
@@ -335,7 +335,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     day8_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 8"]) if block)
     assert_contains(day8_html, "Self transfer from your hotel to the bus station", "Self transfers to bus station should be labeled as self transfers, not self-guided transfers.")
     assert_not_contains(day8_html, "Self-guided transfer", "Self transfer wording should not use the confusing self-guided label.")
-    assert_contains(day8_html, "Panoramic Coach Transfer from Tromsø to Alta", "Coach transfer should preserve the actual route to Alta with premium wording.")
+    assert_contains(day8_html, "Panoramic Coach Transfer from Tromsø to Alta", "Coach transfer should preserve the actual route to Alta with clear wording.")
     assert_not_contains(day8_html, "Coach Transfer to Tromsø", "Coach transfer should not point back to the origin city.")
 
     optional_rows = [row for row in rows if row.get("is_optional")]
@@ -376,7 +376,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     assert_contains(day13_cruise_title, "Cruise arrival to Bergen", "Cruise arrival days should mention the arrival city instead of a generic Cruise title.")
 
 
-def test_v36c55_premium_transport_wording_system():
+def test_v36c55_clear_transport_wording_system():
     from ui.day_blocks import build_day_blocks
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
@@ -390,17 +390,17 @@ def test_v36c55_premium_transport_wording_system():
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
     html = "\n".join("\n".join(block["html"] for block in build_day_blocks(day_rows) if block) for day_rows in grouped.values())
-    assert_contains(html, "Scenic Train Transfer from Oslo to Bergen", "Point-to-point rail should use premium scenic transfer wording.")
+    assert_contains(html, "Scenic Train Transfer from Oslo to Bergen", "Point-to-point rail should use clear scenic transfer wording.")
     assert_contains(html, "Scenic Train Transfer from Copenhagen to Stockholm, via Malmö", "Multi-leg rail should keep the final destination and via stop.")
-    assert_contains(html, "Panoramic Coach Transfer from Tromsø to Alta", "Panoramic/long-distance coach rows should use premium coach wording.")
+    assert_contains(html, "Panoramic Coach Transfer from Tromsø to Alta", "Panoramic/long-distance coach rows should use clear coach wording.")
     assert_contains(html, "Flight from Stockholm to Kirkenes, via Oslo", "Flights should preserve via-city wording.")
-    assert_contains(html, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise rows should use premium cruise wording with ship name when present.")
+    assert_contains(html, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise rows should use clear cruise wording with ship name when present.")
 
     sections = create_categorized_inclusions(rows, grouped)
     inclusion_text = "\n".join(item for section in sections for item in section.get("items", []))
-    assert_contains(inclusion_text, "Scenic Train Transfer from Oslo to Bergen", "Rail inclusions should use the same premium wording as day pages.")
-    assert_contains(inclusion_text, "Flight from Stockholm to Kirkenes, via Oslo", "Flight inclusions should use premium route wording.")
-    assert_contains(inclusion_text, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise inclusions should use premium route wording.")
+    assert_contains(inclusion_text, "Scenic Train Transfer from Oslo to Bergen", "Rail inclusions should use the same clear wording as day pages.")
+    assert_contains(inclusion_text, "Flight from Stockholm to Kirkenes, via Oslo", "Flight inclusions should use clear route wording.")
+    assert_contains(inclusion_text, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise inclusions should use clear route wording.")
 
 
 def test_v36c57_real_uploaded_inputs_quality_gate():
@@ -455,7 +455,7 @@ def test_v36c57_real_uploaded_inputs_quality_gate():
 
     # Synthetic stress case for the inclusion pagination rule: if a category is
     # too large for one page, it is split with a repeated category heading.
-    huge_section = {"title": "Activities & experiences", "items": [f"Premium included experience number {index} with guide, tickets and transfers" for index in range(1, 32)]}
+    huge_section = {"title": "Activities & experiences", "items": [f"Included experience number {index} with guide, tickets and transfers" for index in range(1, 32)]}
     huge_html = render_categorized_inclusions_pages("What’s included", [huge_section])
     assert_contains(huge_html, "What’s included continued", "Oversized inclusion sections should create continued pages.")
     assert_contains(huge_html, "Activities &amp; experiences continued", "Oversized categories should repeat their category heading when split.")

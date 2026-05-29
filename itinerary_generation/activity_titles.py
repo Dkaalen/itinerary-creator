@@ -113,8 +113,6 @@ def create_client_activity_title(row):
     if "blue lagoon" in full_text or "bluelagoon" in full_text:
         if any(marker in title_text for marker in ["volcano", "eruption", "fagradalsfjall"]):
             return polish_title(title)
-        if "premium" in full_text:
-            return "Blue Lagoon Premium Admission"
         return "Blue Lagoon Admission"
 
     if "sky lagoon" in full_text or "skylagoon" in full_text:

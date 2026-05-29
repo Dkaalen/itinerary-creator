@@ -87,7 +87,7 @@ def safe_generic_description(row: dict) -> str:
 
 
 def client_activity_description(row: dict, fallback: str = "") -> str:
-    """Compose final premium activity text from facts, not supplier paragraphs."""
+    """Compose final client-facing activity text from facts, not supplier paragraphs."""
 
     draft = compose_activity_description(row, fallback=fallback)
     return draft.text

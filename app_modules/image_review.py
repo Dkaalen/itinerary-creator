@@ -136,7 +136,7 @@ def render_picture_studio(grouped_days, output_edits):
     with st.expander("Picture review & controls", expanded=True):
         st.caption(
             "Review the pictures before PDF export. Select a day, then remove, replace, upload, or adjust the crop focus. "
-            "The final PDF uses the premium full-width, bottom-edge layout."
+            "The final PDF uses the full-width, bottom-edge image layout."
         )
 
         card_columns = st.columns(min(3, max(1, len(days))))

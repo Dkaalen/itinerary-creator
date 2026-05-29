@@ -1,4 +1,4 @@
-"""Compose premium client-facing activity descriptions from supplier facts."""
+"""Compose client-facing activity descriptions from supplier facts."""
 
 from __future__ import annotations
 
@@ -49,6 +49,6 @@ def compose_activity_description(row: dict, fallback: str = "") -> DescriptionDr
         warnings.append("generic_composed_fallback")
 
     if _has_bad_residue(text):
-        warnings.append("non_premium_residue_removed")
+        warnings.append("supplier_residue_removed")
         text = _fallback_description(row, title, city)
     return DescriptionDraft(text=polish_client_text(text), source="composed_activity", warnings=warnings)

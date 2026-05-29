@@ -17,10 +17,10 @@ SEASON_LABELS = {
 SEASON_ORDER = ["automatic", "winter", "spring", "summer", "autumn"]
 
 SEASON_SUBTITLES = {
-    "winter": "A premium Nordic winter journey with scenic travel and Arctic experiences",
-    "spring": "A premium spring journey with scenic travel and curated experiences",
-    "summer": "A premium summer journey with scenic travel and curated experiences",
-    "autumn": "A premium autumn journey with scenic travel and curated experiences",
+    "winter": "A Nordic winter journey with scenic travel and Arctic experiences",
+    "spring": "A spring journey with scenic travel and planned experiences",
+    "summer": "A summer journey with scenic travel and planned experiences",
+    "autumn": "An autumn journey with scenic travel and planned experiences",
 }
 
 SEASON_TITLES = {

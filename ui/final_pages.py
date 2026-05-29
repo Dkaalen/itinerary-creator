@@ -101,7 +101,7 @@ def get_fallback_activity_inclusions(row):
 
 
 def prioritize_inline_inclusions(items, max_items=6):
-    """Keep inline inclusions premium and compact.
+    """Keep inline inclusions clear and compact.
 
     Day pages should show the most useful inclusions without turning into an
     appendix. Prefer logistics, guide, transport, tickets/entrance, meals and

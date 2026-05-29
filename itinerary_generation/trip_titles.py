@@ -98,14 +98,14 @@ def create_trip_subtitle(parsed_rows, grouped_days):
     countries = get_destination_countries(parsed_rows)
     scope = countries[0] if len(countries) == 1 else "Nordic"
     if has_self_drive_markers(parsed_rows):
-        return f"A premium {scope} {season_label} self-drive journey with scenic routes and curated experiences"
+        return f"A {scope} {season_label} self-drive journey with scenic routes and planned experiences"
     if season in SEASON_SUBTITLES:
         if len(countries) == 1:
-            return f"A premium {scope} {season_label} journey with scenic travel and curated experiences"
+            return f"A {scope} {season_label} journey with scenic travel and planned experiences"
         return SEASON_SUBTITLES[season]
     if has_winter_focus(parsed_rows):
         return SEASON_SUBTITLES["winter"]
-    return "A carefully arranged Nordic journey with seamless travel and curated experiences"
+    return "A carefully planned Nordic journey with smooth travel and included experiences"
 
 def create_destinations_line(parsed_rows):
     cities = get_unique_cities(parsed_rows)

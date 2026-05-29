@@ -99,7 +99,7 @@ def _real_supplier_description(row: dict, max_words: int = 90) -> str:
             if candidate:
                 return candidate
         # Rows that only contain title/time/meeting/includes metadata do not
-        # have narrative prose. Let the curated fallback write the description.
+        # have narrative prose. Let the planned fallback write the description.
         if not re.match(r"^\s*Day\s*\d+\s*[:\-–]", text, flags=re.IGNORECASE):
             lower_text = text.lower()
             has_metadata = any(marker in lower_text for marker in [" time:", " meeting point", " includes:", " what's included", " what’s included"])

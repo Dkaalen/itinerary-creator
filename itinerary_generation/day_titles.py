@@ -41,7 +41,7 @@ def create_day_title(day_rows):
 
     # Real day/activity headings should beat supplier overview snippets such as
     # "Day 1: Arrival Reykjavík, pick-up minibus". Those snippets are useful
-    # logistics, but they are not premium client-facing day titles.
+    # logistics, but they are not clear client-facing day titles.
     if activity_rows:
         title = create_client_activity_title(activity_rows[0])
         if title and not is_bad_raw_day_title(title):

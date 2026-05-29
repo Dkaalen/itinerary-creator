@@ -236,8 +236,8 @@ def test_trip_subtitle_uses_generic_winter_wording():
     subtitle = create_trip_subtitle(rows, grouped)
     assert_equal(
         subtitle,
-        "A premium Finland winter journey with scenic travel and curated experiences",
-        "Single-country cover subtitle should use country-specific premium wording instead of repeating the route.",
+        "A Finland winter journey with scenic travel and planned experiences",
+        "Single-country cover subtitle should use country-specific down-to-earth wording instead of repeating the route.",
     )
     assert_not_contains(subtitle, "Helsinki", "Cover subtitle should not repeat destinations already shown in the Route line.")
     assert_not_contains(subtitle, "Rovaniemi", "Cover subtitle should not repeat destinations already shown in the Route line.")
@@ -259,3 +259,27 @@ def test_semantic_casing_normalizes_group_tour_phrases():
         assert polish_client_text(raw) == expected
         assert polish_title(raw) == expected
 
+
+
+def test_generated_client_language_avoids_expensive_sounding_terms():
+    from itinerary_generation.summaries import create_trip_glance
+    from itinerary_generation.titles import create_client_activity_title
+
+    raw = """
+	Day 1	Hotel	2	10/07/2026	12/07/2026						Helsinki 	Hotel Haven, breakfast included
+	Day 1	Activity		10/07/2026							Bluelagoon	Blue Lagoon Premium Entry tickets
+	Day 2	Activity		11/07/2026							Turku 	Archipelago cruise | 10:00 AM | 3 Hrs
+"""
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    generated = "\n".join(
+        [
+            create_trip_subtitle(rows, grouped),
+            create_trip_glance(rows, grouped)["Travel Style"],
+            create_client_activity_title(next(row for row in rows if "blue lagoon" in f'{row.get("title", "")} {row.get("details", "")}'.lower())),
+        ]
+    ).lower()
+
+    for forbidden in ["premium", "luxury", "luxurious", "high-end", "hi-end", "upscale", "curated", "bespoke", "vip"]:
+        assert forbidden not in generated
