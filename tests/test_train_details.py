@@ -9,7 +9,7 @@ def test_train_cabin_detail_uses_specific_cabin_from_input():
         "details": "Cabin (private double) included on the night train",
     }
 
-    assert get_train_cabin_detail(row).lower() == "private double sleeper cabin"
+    assert get_train_cabin_detail(row) == "Private Double sleeper cabin"
 
 
 def test_train_cabin_detail_detects_sleeper_cabin_from_input():
