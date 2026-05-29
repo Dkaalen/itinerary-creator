@@ -10,6 +10,7 @@ from itinerary_generation.common import (
     is_self_arranged,
     is_valid_destination_city,
 )
+from itinerary_generation.train_details import get_train_cabin_detail
 
 
 def has_airport_arrival_transfer(day_rows):
@@ -166,6 +167,13 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     return "Norway in a Nutshell"
 
 
+def _with_train_cabin_detail(label, row):
+    cabin_detail = get_train_cabin_detail(row)
+    if cabin_detail and cabin_detail.lower() not in label.lower():
+        return f"{label} with {cabin_detail}"
+    return label
+
+
 def get_premium_transport_phrase(row):
     """Client-facing transport label for day arrangements and inclusions."""
     row_type = get_row_type(row)
@@ -179,21 +187,21 @@ def get_premium_transport_phrase(row):
 
     if row_type == "Train" or "train" in lower:
         if _is_norway_in_a_nutshell_text(text):
-            return _norway_nutshell_route_label(text, origin, destination)
+            return _with_train_cabin_detail(_norway_nutshell_route_label(text, origin, destination), row)
         label = "Overnight Train Transfer" if "overnight" in lower else "Scenic Train Transfer"
         if origin and destination:
-            return f"{label} from {origin} to {destination}{_via_suffix(via)}"
+            return _with_train_cabin_detail(f"{label} from {origin} to {destination}{_via_suffix(via)}", row)
         if destination:
-            return f"{label} to {destination}"
+            return _with_train_cabin_detail(f"{label} to {destination}", row)
         title_destination_match = re.search(r"\btrain\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+)", str(row.get("title", "") or ""), flags=re.IGNORECASE)
         if title_destination_match:
             title_dest = _clean_route_place(title_destination_match.group(1))
             if title_dest:
-                return f"{label} to {title_dest}"
+                return _with_train_cabin_detail(f"{label} to {title_dest}", row)
         city_destination = _clean_route_place(row.get("city", ""))
         if city_destination and city_destination.lower() not in {"station", "airport", "accommodation"}:
-            return f"{label} to {city_destination}"
-        return label
+            return _with_train_cabin_detail(f"{label} to {city_destination}", row)
+        return _with_train_cabin_detail(label, row)
 
     if row_type == "Flight" or "flight" in lower:
         if origin and destination:
