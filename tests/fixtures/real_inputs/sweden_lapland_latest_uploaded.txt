@@ -1,0 +1,111 @@
+	Day 1	Transfer 		22/09/2026					Stockholm	Private Airport to Hotel
+	Day 1	Hotel	4	22/09/2026	26/09/2026				Stockholm	3 Star ,Thon Hotel Kungsbron , 4xNight , 1xStandard Double room full double bed, Incl Brekafast  , At walkign distance of 250 m from station 
+	Day 2	Leisure		23/09/2026					Stockholm	Leisure as requested 
+	Day 3	Leisure		24/09/2026					Stockholm	Leisure as requested 
+	Day 4	Leisure		25/09/2026					Stockholm	Leisure as requested 
+	Day 5	Transfer 	1	26/09/2026	27/09/2026				Kiruna	"Overnight Train to Kiruna | Stockholm Central–Kiruna station
+from Stockholm Central to Kiruna station
+Sat, 26 Sep, 18:12–Sun, 27 Sep, 09:34 | bed in sleeping compartment 
+
+1–3 travellers per compartment
+Benefits:
+Made bed
+Access to shower
+Sink in the compartment
+WC in carriage
+Women's or men's compartment
+
+
+Travel time 15:22 h, 1 change
+Travel time 15 hours and 22 minutes, 1 change
+"
+	Day 6	Hotel	1	27/09/2026	28/09/2026				Kiruna	"Ice Hotel , 1x Night Cold Accomodation , 1x ART SUITE 365 ( 27-28 Sept ) , Incl breakfast 
+
+
+Individual, unique design  |  Room for 2 people  |  Available year-round
+
+All suites in Icehotel 365 hold a temperature of -5 to -8 degrees Celsius and are available year-round thanks to a new specially designed building run on solar power. Each suite is hand sculpted and individually designed.
+
+
+
+The suites are furnished with exclusive beds, for ultimate comfort. The bed is covered with reindeer hides and on top of this, you sleep in a thermal sleeping bag. The room has doors with locks for your privacy. There are warm communal toilets for overnight guests inside Icehotel 365.
+
+
+
+In Riverside, the warm lobby by the river, you will find communal changing rooms, toilets and saunas for women and men. In the morning hot lingonberry juice will be served for all guests staying in ice rooms and suites. A complimentary private changing booth is included for guests staying in an art suite."
+	Day 7	Transfer 		28/09/2026					Kiruna	Self Transfer Ice hotel to hotel in kiruna 
+	Day 7	Hotel	2	28/09/2026	30/09/2026				Kiruna	3 Star , Best Western Hotel Arctic Eden , 1xDouble Family Suite full double bed , incl breakfast 
+	Day 7	Activity		28/09/2026					Kiruna	"Kiruna: Northern Lights Chase | Overview
+Will the powers of the Northern Lights dance for us this evening?
+
+What's included?
+Transfer to/from your accommodation
+Professional, English-speaking guide
+What to expect?
+Carried out: September-March (see calendar)
+
+Start time: 18:00-23:00 ca 5h. Max 400km. Pickup start 17:30
+
+Pick-up/drop-off: from your hotel Jukkasjärvi/Kiruna
+
+Participanter: Min 4 participants/ max 8 participants. Min age 7 years. In case of snowstorm/harsh weather or too low number of participants we will cancel the tour. Stay updated with the guide on the same day.
+
+By minibus accompanied by the dark polarnight outside light pollution in the city we hunt for the Northern Lights within 200 km radius of Kiruna. There is never a guarantee, but with the latest digital weather and solar storm updates, your guide will do everything to maximize your chances of experiencing the magical natural phenomenon of aurora borealis."
+	Day 8	Activity		29/09/2026					Kiruna	"MOUNTAIN HIKE IN ABISKO | 8 AM | 6-7 hrs | Meet at Icehotel / Kiruna City centre 
+Duration:
+7 hours
+Suitable for:
+Everyone in a basic physical shape, including kids who enjoy to move around
+Age limit:
+3 years and above
+Gather at:
+Meeting Point
+Included:
+Lunch, coffee and something sweet. Transfer witj chair lift to Nuolja Mountain.
+
+Join us on a mountain hiking tour in Abisko, close to Abisko National Park, learning about the nature in the area. We take the chair lift up to Aurora sky station and Mount Nuolja and hike with an amazing view down to the Abisko valley.
+
+Abisko National Park is located 1,5 hours from Jukkasjärvi and offers magnificent views. We start the tour at ICEHOTEL where a guide from Scandinavian Sami Photoadventures meets the group. Together we go by minibus to Abisko where we take the chair lift up to Aurora sky station.
+
+We hike at Mount Nuolja enjoying the stunning landscape while our local Sami guide tells about nature, Sami culture and stories from the area. At a beautiful location we stop to have a cake and a cup of tea before we go down to the Abisko valley, where we eat lunch in the restaurant. After lunch, it's time to drive back to ICEHOTEL.
+
+Booking Information
+For all our tours that include food we need to know your diet restrictions or food allergies. Please fill in this information in the booking flow.
+
+At the activity day, we gather at Meeting point 15 minutes before start time, equipped and ready. Please note that you as a guest are personally responsible to wear clothes accordingly to weather."
+	Day 8	Activity		29/09/2026					Kiruna	"Kiruna: Northern Lights Hunt with Pro Photographer | 7 PM \ 5 hrs 
+
+Overview
+Our Northern Lights Tour will take you through Swedish Lapland, the best place in the world to see the Aurora Borealis. We can drive to Abisko, Kiruna’s boreal forest or wherever we can find clear sky to see the Northern Lights.
+
+What's included?
+Pick-up/drop-off in central Kiruna
+Knowledgeable guide & photographer
+Coffee and/or tea with snacks
+
+Not inlcuded :Dinner is not included
+
+What to expect?
+After we pick you up from your hotel in Kiruna, we will start to chase the northern lights that depends on each night according to the weather conditions. We can drive to Abisko, Kiruna’s boreal forest or wherever we can find clear sky to see Aurora Borealis.
+
+Lights of Vikings have a really high success rate in finding clear sky which is one of the most important criteria to see the Northern Lights. Our concept is famous for driving long distances if necessary! Wherever we go during the tour, we will tell you many stories about the northern lights and Vikings.
+
+After finding clear sky, we’ll admire the northern lights and we will take pictures which we’ll send to you within 3 days after the tour. If you bring your own camera, we will help you set it up to get the best shots.
+
+As the northern lights dance in the sky we will serve hot drinks and make a camp fire for you to keep warm. After the Northern Lights tour, we will drive you back to Kiruna."
+	Day 9	Transfer 	1	30/09/2026	01/10/2026				Stockholm	"Overnight Train Kriuna to Stockholm 
+Kiruna station–Stockholm Central
+from Kiruna station to Stockholm Central
+Wed, 30 Sep, 17:58–Thu, 1 Oct, 10:13
+
+Travel time 16:15 h, 1 change
+
+1–3 travellers per compartment
+Benefits:
+Made bed
+Access to shower
+Sink in the compartment
+WC in carriage
+Women's or men's compartment"
+	Day 10	Hotel	1	01/10/2026	02/10/2026				Stockholm	Stockholm
+	Day 11	Transfer 		02/10/2026					Stockholm	Private Hotel to Airport 

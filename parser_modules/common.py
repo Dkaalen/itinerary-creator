@@ -222,7 +222,7 @@ def extract_route_points(text):
 
     # Trim supplier schedule/details so they do not become part of the city.
     route_source = re.split(
-        r"\s+-\s+(?:departure|arrival|time|includes|included|excludes|luggage|cabin)\b|\s+\|\s+(?:departure|arrival|time|includes|included|excludes)\b",
+        r"\s+-\s+(?:departure|arrival|time|includes|included|excludes|luggage|cabin)\b|\s+\|\s+(?:departure|arrival|time|includes|included|excludes|final\s+timing|voucher)\b",
         source,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -254,7 +254,7 @@ def extract_route_points(text):
                 origin = prefix_origin
             destination_raw = re.split(r"\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}", destination_raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
             destination = normalize_place_name(destination_raw)
-            if destination.lower() not in {"hotel", "station", "airport", "accommodation"}:
+            if destination.lower() not in {"hotel", "station", "airport", "accommodation"} and not re.search(r"shared in voucher|final timing|voucher", destination, flags=re.IGNORECASE):
                 return origin, destination
 
     patterns = [
@@ -275,7 +275,7 @@ def extract_route_points(text):
             origin = prefix_origin
         destination = normalize_place_name(destination_raw)
 
-        if destination.lower() in {"hotel", "station", "airport", "accommodation"}:
+        if destination.lower() in {"hotel", "station", "airport", "accommodation"} or re.search(r"shared in voucher|final timing|voucher", destination, flags=re.IGNORECASE):
             continue
 
         return origin, destination

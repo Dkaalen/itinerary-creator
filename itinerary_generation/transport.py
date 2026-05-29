@@ -59,7 +59,7 @@ def _clean_route_place(value):
     lower = place.lower()
     if lower in _ROUTE_PREFIX_ORIGINS | {"", "hotel", "station", "airport", "accommodation", "your accommodation"}:
         return ""
-    if any(marker in lower for marker in ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "shower", "sink", "wc in carriage", "women's", "men's", "benefits", "made bed"]):
+    if any(marker in lower for marker in ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "shower", "sink", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]):
         return ""
     return place
 
@@ -185,6 +185,14 @@ def get_premium_transport_phrase(row):
             return f"{label} from {origin} to {destination}{_via_suffix(via)}"
         if destination:
             return f"{label} to {destination}"
+        title_destination_match = re.search(r"\btrain\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+)", str(row.get("title", "") or ""), flags=re.IGNORECASE)
+        if title_destination_match:
+            title_dest = _clean_route_place(title_destination_match.group(1))
+            if title_dest:
+                return f"{label} to {title_dest}"
+        city_destination = _clean_route_place(row.get("city", ""))
+        if city_destination and city_destination.lower() not in {"station", "airport", "accommodation"}:
+            return f"{label} to {city_destination}"
         return label
 
     if row_type == "Flight" or "flight" in lower:

@@ -1,4 +1,14 @@
-import streamlit as st
+try:
+    import streamlit as st
+except ModuleNotFoundError:  # Allows renderer/tests to run without the Streamlit runtime.
+    class _SessionState(dict):
+        def get(self, key, default=None):
+            return super().get(key, default)
+
+    class _StreamlitFallback:
+        session_state = _SessionState()
+
+    st = _StreamlitFallback()
 
 from ui.app_constants import COLOR_PRESETS
 

@@ -101,7 +101,8 @@ LANDMARKS: list[tuple[str, str]] = [
     ("Reykjavík street art", r"street art"),
     ("Lava Show Reykjavík", r"Lava Show"),
     ("Nuuksio National Park", r"Nuuksio"),
-    ("Tallinn Old Town", r"Tallinn|Old Town"),
+    ("Tallinn Old Town", r"Tallinn"),
+    ("Stockholm Old Town", r"Stockholm.*Old Town|Old Town.*Stockholm|Gamla Stan"),
     ("Senate Square", r"Senate Square"),
     ("Santa Claus Village", r"Santa Claus Village"),
     ("Arktikum Museum", r"Arktikum"),
@@ -258,8 +259,19 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 
+    if "food" in full and "culture" in full and "bergen" in full:
+        return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
+    if "whale watching" in full or "whale watching from downtown" in full:
+        return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
+
     if "food tour" in full or "secret food" in full or "smørrebrød" in full or "smorrebrod" in full:
-        return polish_client_text(f"Enjoy a guided food tour{city_phrase}, tasting local favourites such as smørrebrød, Danish meatballs and sweet bakery specialities while getting a flavour of the city’s food culture.")
+        if "copenhagen" in full or "smørrebrød" in full or "smorrebrod" in full or "danish meatballs" in full:
+            return polish_client_text(f"Enjoy a guided food tour{city_phrase}, tasting local favourites such as smørrebrød, Danish meatballs and sweet bakery specialities while getting a flavour of the city’s food culture.")
+        if "oslo" in full or city.lower() == "oslo":
+            return "Explore Oslo through its food culture, with a guided route linking local flavours, hidden neighbourhood gems and stories from the city along the way."
+        if "bergen" in full or city.lower() == "bergen":
+            return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
+        return polish_client_text(f"Enjoy a guided food tour{city_phrase}, with tasting stops and local context arranged as part of the experience.")
     if "grand day trip" in full and "copenhagen" in full:
         return "Spend the day outside central Copenhagen with a guided route to Kronborg Castle, Frederiksborg Palace, Roskilde Cathedral and the Viking Ship Museum. The experience combines royal history, cultural landmarks and comfortable arranged transport."
     if "silfra" in full and ("snork" in full or "drysuit" in full):
@@ -270,14 +282,32 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Visit the Munch Museum at your own pace, with pre-arranged admission giving you time to explore the galleries and exhibitions independently."
     if "fløibanen" in full or "floibanen" in full:
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
+    if "fjellheisen" in full or ("round trip ticket" in full and "trom" in full):
+        return "Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains."
     if "blue lagoon" in full and "volcano" in full:
         return "Begin with a guided visit to the Fagradalsfjall volcano area before ending the day in the warm geothermal waters of the Blue Lagoon. The experience balances dramatic volcanic scenery with time to relax."
     if "lava show" in full:
         return "Experience Icelandic volcanism up close during the Lava Show, where real molten lava is presented in a safe indoor setting with expert commentary."
-    if "walking tour" in full or "citywalk" in full:
-        if places:
-            return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with the route introducing {_join(places, max_items=4)} alongside local stories and practical tips.")
+    if "walking tour" in full or "citywalk" in full or "on foot" in full:
+        safe_places = [place for place in places if not (place == "Tallinn Old Town" and "tallinn" not in full)]
+        if "stockholm" in full and "old town" in full and "Stockholm Old Town" not in safe_places:
+            safe_places.insert(0, "Stockholm Old Town")
+        if safe_places:
+            return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with the route introducing {_join(safe_places, max_items=4)} alongside local stories and practical tips.")
         return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with local stories, landmarks and practical tips introduced at an easy pace.")
+    if "abisko" in full or "mountain hike" in full:
+        return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
+    if "korouoma" in full:
+        return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
+
+    if "santa claus" in full and "friends" in full:
+        return "Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included."
+    if "husky" in full and "reindeer" in full:
+        return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
+    if "husky" in full:
+        return polish_client_text(f"Meet the huskies{city_phrase} and enjoy an active Arctic experience arranged around the season and local conditions.")
+    if "reindeer" in full:
+        return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn more about this classic Lapland experience at an easy pace.")
     if "northern lights" in full or "aurora" in full:
         return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
     if "tallinn" in full:
@@ -290,6 +320,10 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
     if "abisko" in full or "mountain hike" in full:
         return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
+    if "hike" in full or "hiking" in full or "nordmarka" in full:
+        if "oslofjord" in full or "oslo fjord" in full or "nordmarka" in full:
+            return "Follow a guided nature hike through the Nordmarka forest area, with local insight and viewpoints towards the Oslofjord forming the focus of the experience."
+        return polish_client_text(f"Enjoy a guided hike{city_phrase}, with the route focused on local nature, scenery and a comfortable outdoor pace.")
     if "fjord" in full or "mostraumen" in full or "cruise" in full:
         if places:
             return polish_client_text(f"Enjoy a scenic water-based experience{city_phrase}, with the route focused on {_join(places, max_items=4)} and the surrounding landscapes.")
@@ -297,7 +331,7 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if places:
         return polish_client_text(f"Enjoy {title}{city_phrase}, with the experience centred around {_join(places, max_items=5)}. The arrangements are prepared in advance so the day stays clear and easy to follow.")
     if inclusions:
-        return polish_client_text(f"Enjoy {title}{city_phrase}, with the experience focused on {_join(inclusions, max_items=4)}. The arrangements are prepared in advance so the day stays clear and easy to follow.")
+        return polish_client_text(f"Enjoy {title}{city_phrase}, with the practical arrangements handled in advance and the included elements supporting a smooth experience.")
     return ""
 
 
@@ -308,7 +342,7 @@ def _fallback_description(row: dict, title: str, city: str) -> str:
         return polish_client_text(f"Continue by rail towards {city or 'your next destination'}, with the route and timing arranged as part of the day.")
     if "transfer" in lower or "self" in lower:
         return polish_client_text(f"Today’s travel arrangements{city_phrase} are kept clear and easy to follow, giving you a smooth transition to the next part of the journey.")
-    return polish_client_text(f"Enjoy {title}{city_phrase}, with the key arrangements prepared in advance and the wider day kept easy to follow.")
+    return polish_client_text(f"Enjoy {title}{city_phrase}, with the schedule arranged to keep the experience clear, comfortable and easy to follow.")
 
 
 def compose_activity_description(row: dict, fallback: str = "") -> DescriptionDraft:

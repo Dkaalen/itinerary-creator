@@ -316,6 +316,10 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     full = f"{text} {row.get('title','')} {row.get('original_title','')} {row.get('details','')}".lower()
     city = canonicalize_place_name(row.get("city", ""))
 
+    if "tallinn" in full and ("day trip" in full or "excursion" in full or "ferry" in full):
+        return "Day Trip to Tallinn"
+    if ("fløibanen" in text.lower() or "floibanen" in text.lower()) and ("&" in text or " and " in text.lower()):
+        return polish_title(text)
     if "munch museum" in full:
         return "Munch Museum Visit"
     if "fløibanen" in full or "floibanen" in full:
@@ -337,9 +341,12 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
         if "reykjav" in dest:
             return "Return drive to Reykjavík"
     if "overnight train" in full and "stockholm" in full and "kiruna" in full:
-        if "kiruna to stockholm" in full or "kiruna station" in full and "stockholm central" in full:
+        title_lower = str(value or row.get("title", "") or "").lower()
+        if "to kiruna" in title_lower or "stockholm to kiruna" in full or "stockholm central to kiruna" in full:
+            return "Overnight train to Kiruna"
+        if "kiruna to stockholm" in full or "to stockholm" in title_lower or ("kiruna station" in full and "stockholm central" in full):
             return "Overnight train to Stockholm"
-        return "Overnight train to Kiruna"
+        return "Overnight train between Stockholm and Kiruna"
     if "round trip ferry" in full and "tallinn" in full:
         return "Helsinki-Tallinn Ferry"
     if "tickets to the" in full or "ticket" in full and "museum" in full:

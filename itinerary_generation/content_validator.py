@@ -40,6 +40,14 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     ("generic_day_intro_shaped_around", r"\bThe day is shaped around\b"),
     ("generic_focus_phrase", r"\bgives the day a clear focus\b|\boffering a well-paced way\b"),
     ("raw_supplier_brand_in_description", r"Enjoy Secret Food Tours\b"),
+    ("voucher_as_destination", r"be shared in Voucher"),
+    ("wrong_stockholm_tallinn", r"Stockholm[\s\S]{0,900}Tallinn Old Town"),
+    ("wrong_oslo_danish_food", r"Oslo[\s\S]{0,900}(?:smørrebrød|Danish meatballs)"),
+    ("oslofjord_hike_water_based", r"Oslofjord Nature Hike[\s\S]{0,900}water-based"),
+    ("equipment_as_description_focus", r"experience focused on (?:Helmet|Duration|Warm blankets|Private vehicle|Aksla Viewpoint)"),
+    ("hop_on_main_title", r'<div class="day-title">Hop[- ]on hop[- ]off'),
+    ("empty_city_activity_title", r'<div class="day-title">Copenhagen</div>'),
+    ("group_title_today_artifact", r"(?:Ice Cave|Local Life) Today"),
 ]
 
 
@@ -63,33 +71,63 @@ class FixtureQualityReport:
         return not self.findings
 
 
+def _strip_heavy_assets(value: str) -> str:
+    """Remove embedded image/style payloads before text validation.
+
+    Fixture checks validate itinerary wording, not binary image data.  The app
+    preview embeds cover/day imagery as long data URIs, which can make repeated
+    regex scans extremely slow and, worse, hide real content issues behind test
+    timeouts.  Keep the semantic HTML and remove only payload-heavy attributes.
+    """
+    text = str(value or "")
+    text = re.sub(r'url\("data:image/[^"\)]*"\)', 'url("")', text, flags=re.IGNORECASE)
+    text = re.sub(r'src="data:image/[^"]*"', 'src=""', text, flags=re.IGNORECASE)
+    text = re.sub(r'--cover-bg-image:\s*url\("[^"]*"\);', '--cover-bg-image: url("");', text, flags=re.IGNORECASE)
+    return text
+
+
 def compact_html(value: str) -> str:
-    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    lean = _strip_heavy_assets(str(value or ""))
+    text = re.sub(r"<[^>]+>", " ", lean)
     text = text.replace("&amp;", "&").replace("&nbsp;", " ")
     return re.sub(r"\s+", " ", text).strip()
 
 
 def validate_html(html: str) -> list[QualityFinding]:
     findings: list[QualityFinding] = []
-    plain = compact_html(html)
+    lean_html = _strip_heavy_assets(html)
+    plain = compact_html(lean_html)
     for code, pattern in FORBIDDEN_PATTERNS:
-        target = html if "<" in pattern else plain
-        if re.search(pattern, target, flags=re.IGNORECASE):
-            match = re.search(pattern, target, flags=re.IGNORECASE)
-            start = max(0, (match.start() if match else 0) - 80)
-            end = min(len(target), (match.end() if match else 0) + 120)
+        target = lean_html if "<" in pattern else plain
+        match = re.search(pattern, target, flags=re.IGNORECASE)
+        if match:
+            start = max(0, match.start() - 80)
+            end = min(len(target), match.end() + 120)
             findings.append(QualityFinding(code, f"Forbidden pattern matched: {code}", target[start:end]))
     return findings
 
 
 def extract_day_summaries(html: str) -> list[str]:
     summaries: list[str] = []
-    for match in re.finditer(r'<section class="day-section" data-day="([^"]+)">([\s\S]*?)</section>', html):
+    lean_html = _strip_heavy_assets(html)
+    for match in re.finditer(r'<section class="day-section" data-day="([^"]+)">([\s\S]*?)</section>', lean_html):
         day = match.group(1)
         body = match.group(2)
         title_match = re.search(r'<div class="day-title">([\s\S]*?)</div>', body)
-        desc_match = re.search(r'<div class="section-title small-section">Description</div>\s*<div class="body-text muted-note">([\s\S]*?)</div>', body)
+        intro_match = re.search(r'<div class="intro">([\s\S]*?)</div>', body)
+        desc_matches = re.findall(r'<div class="section-title small-section">Description</div>\s*<div class="body-text muted-note">([\s\S]*?)</div>', body)
+        activity_titles = re.findall(r'<div class="content-block activity-block"[\s\S]*?<div class="body-text strong-line">([\s\S]*?)</div>', body)
+        transport_lines = re.findall(r'<div class="content-block travel-sequence-block">[\s\S]*?<li>([\s\S]*?)</li>', body)
+        route_lines = re.findall(r'<div class="content-block day-overview-block"[\s\S]*?<li>([\s\S]*?)</li>', body)
         title = compact_html(title_match.group(1) if title_match else "")
-        desc = compact_html(desc_match.group(1) if desc_match else "")
-        summaries.append(f"{day}: title={title!r}; description_preview={desc[:140]!r}")
+        intro = compact_html(intro_match.group(1) if intro_match else "")
+        desc = " | ".join(compact_html(item) for item in desc_matches[:2])
+        acts = ", ".join(compact_html(item) for item in activity_titles[:3])
+        transports = ", ".join(compact_html(item) for item in transport_lines[:3])
+        routes = ", ".join(compact_html(item) for item in route_lines[:3])
+        summaries.append(
+            f"{day}: title={title!r}; intro={intro[:100]!r}; "
+            f"activities={acts[:140]!r}; descriptions={desc[:140]!r}; "
+            f"transport={transports[:140]!r}; routes={routes[:140]!r}"
+        )
     return summaries

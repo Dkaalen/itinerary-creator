@@ -13,6 +13,8 @@ from itinerary_generation.titles import create_client_activity_title, normalize_
 from itinerary_generation.content_engine import client_activity_description, group_tour_pickup_window_from_overview, is_group_tour_overview, merge_compound_inclusions, sanitize_inclusion_item, clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
 from itinerary_generation.canonical_builder import canonical_activity_block, canonical_accommodation_block, should_hide_note_row
+from itinerary_generation.day_planner import plan_day
+from itinerary_generation.route_formatter import format_suggested_route_items
 from text_polish import (
     strip_price_fragments,
     format_duration_display,
@@ -525,19 +527,14 @@ def build_day_overview_block(row):
     if _is_rental_overview(text):
         return _build_rental_overview_block(row)
 
-    items, optional = _split_day_overview_items(text)
     lower = str(text or "").lower()
-    explore_like = bool(re.search(r"(^|[\n|])\s*explore\b", str(text or ""), flags=re.IGNORECASE))
-    route_like = any(marker in lower for marker in ["route", "drive", "waterfalls", "scenic", "return drive"])
-    if explore_like:
-        section = "Explore at your own pace"
-        items = [item for item in items if item.lower() != "explore"]
-    elif "return drive" in lower or "scenic drive" in lower:
-        section = "Today’s route"
-    elif route_like:
-        section = "Suggested Route"
+    route_like = any(marker in lower for marker in ["route", "drive", "waterfalls", "scenic", "return drive", "golden circle", "silfra", "kerið", "kerid"])
+    if route_like or "explore" in lower or "optional" in lower:
+        section, items, optional = format_suggested_route_items(text)
     else:
+        items, optional = _split_day_overview_items(text)
         section = "Included Today"
+
     html_text = f'<div class="content-block day-overview-block" data-row-id="{esc(row.get("row_id", ""))}">' 
     if items:
         html_text += f'<div class="section-title">{esc(section)}</div>'
@@ -709,6 +706,16 @@ def build_travel_arrangements_block(travel_rows):
     }
 
 
+
+def _is_blank_activity_row(row):
+    if get_row_type(row) != "Activity":
+        return False
+    raw = clean_space(" ".join(str(row.get(key, "") or "") for key in ["title", "details", "original_title"] if str(row.get(key, "") or "").strip()))
+    city = clean_space(row.get("city", ""))
+    if not raw:
+        return True
+    return bool(city and raw.lower().strip(" -:|") == city.lower())
+
 def build_day_blocks(rows):
     """Build day content in source order, grouping only consecutive travel rows.
 
@@ -719,8 +726,9 @@ def build_day_blocks(rows):
 
     blocks = []
     travel_group = []
+    day_plan = plan_day(rows)
     departure_day = any(get_row_type(row) == "Departure" for row in rows)
-    has_activity = any(get_row_type(row) == "Activity" for row in rows)
+    has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in rows)
     group_tour_start_time = _group_tour_start_time(rows)
 
     def flush_travel_group():
@@ -764,11 +772,15 @@ def build_day_blocks(rows):
             if not generic_arrival:
                 blocks.append(build_arrival_block(row))
         elif row_type == "Activity":
+            if _is_blank_activity_row(row):
+                continue
             if group_tour_start_time and not row.get("time"):
                 row = dict(row)
                 row["group_tour_pickup_range"] = group_tour_start_time
             blocks.append(build_activity_block(row))
         elif row_type == "Leisure":
+            if day_plan.suppress_free_time or (travel_group and len(rows) > 3):
+                continue
             blocks.append(build_leisure_block(row))
         elif row_type in {"Notes", "Note"}:
             # Internal / operational notes must not leak into client-facing PDFs.

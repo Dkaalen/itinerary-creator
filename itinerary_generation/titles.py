@@ -71,6 +71,7 @@ def _extract_supplier_day_heading(text: str) -> str:
         flags=re.IGNORECASE,
     )[0]
     heading = heading.strip(" -:|.,")
+    heading = re.sub(r"\bToday\b\s*$", "", heading, flags=re.IGNORECASE).strip(" -:|.,")
     if re.search(r"J[öo]kuls[áa]rl[óo]n", heading, flags=re.IGNORECASE) and "ice" in heading.lower():
         heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
     return polish_title(heading)
@@ -124,7 +125,7 @@ def normalize_client_day_title(title: str, row: dict | None = None) -> str:
             return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}"
         return route_label
 
-    return polish_title(text)
+    return polish_title(re.sub(r"\bToday\b\s*$", "", text, flags=re.IGNORECASE).strip(" -:|"))
 
 def create_client_activity_title(row):
     title = clean_client_title(strip_price_fragments(row.get("title", "")))
@@ -157,6 +158,25 @@ def create_client_activity_title(row):
     title = re.sub(r"^Watch\s+Whales\b", "Whale Watching", title, flags=re.IGNORECASE).strip()
     title_text = title.lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
+
+    if "munch" in full_text and "museum" in full_text:
+        return "Munch Museum Visit"
+
+    if "mostraumen" in full_text:
+        return "Mostraumen Fjord Cruise"
+
+    if "best view" in full_text and ("oslofjord" in full_text or "oslo fjord" in full_text or "nordmarka" in full_text):
+        return "Nordmarka Forest & Oslofjord View Hike"
+
+    if "norwegian food tour" in full_text or ("food tour" in full_text and "oslo" in full_text):
+        return "Oslo Food Tour"
+
+    if "food" in full_text and "culture" in full_text and "bergen" in full_text:
+        return "Bergen Food & Culture Walk"
+
+    if "hop-on" in title_text or "hop off" in title_text or "hop-off" in title_text or "hop on hop off" in full_text:
+        city = str(row.get("city", "") or "").strip()
+        return f"Flexible {polish_title(city)} Sightseeing Ticket" if city else "Flexible City Sightseeing Ticket"
 
     if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
         return _route_label_from_activity_text(f"{original_title} {title} {details}")
