@@ -133,6 +133,34 @@ def _source_text(row: dict) -> str:
     return " ".join(str(row.get(key) or "") for key in ("title", "hotel_name", "details", "original_title"))
 
 
+def _meal_already_listed(row: dict, meal: str) -> bool:
+    """Return true when the accommodation meal is already shown elsewhere."""
+
+    if not meal:
+        return False
+
+    include_text = " ".join(normalize_list(row.get("includes", [])))
+    source = f"{include_text} {row.get('details', '')} {row.get('original_title', '')}"
+    normalized = re.sub(r"[^a-z0-9]+", " ", source.lower())
+    normalized = f" {normalized} "
+    meal_lower = meal.lower()
+
+    if "breakfast and dinner" in meal_lower or "half board" in meal_lower:
+        return (
+            " breakfast and dinner " in normalized
+            or " half board " in normalized
+            or (" breakfast " in normalized and " dinner " in normalized)
+        )
+    if "full board" in meal_lower:
+        return " full board " in normalized
+    if "breakfast" in meal_lower:
+        return " breakfast " in normalized
+    if "dinner" in meal_lower:
+        return " dinner " in normalized
+
+    return meal_lower in normalized
+
+
 def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
     nights = plural_nights(row.get("hotel_nights", ""))
@@ -140,6 +168,8 @@ def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     if room_category.lower().strip() in {"self arranged", "self-arranged", "n/a", "na"}:
         room_category = ""
     meal = meal_phrase(row.get("meal_plan", ""))
+    if _meal_already_listed(row, meal):
+        meal = ""
     city = polish_title(row.get("city", ""))
 
     accommodation_line = polish_client_text(hotel_name)
