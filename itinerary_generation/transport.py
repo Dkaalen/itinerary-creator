@@ -166,6 +166,16 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     return "Norway in a Nutshell"
 
 
+def _clean_transport_display_title(value):
+    title = polish_title(str(value or "").strip())
+    if not title:
+        return ""
+    title = re.sub(r"\s*[–-]\s*\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?\b.*$", "", title).strip(" -–:|")
+    title = re.sub(r"\s*[–-]\s*Tickets Included\b.*$", "", title, flags=re.IGNORECASE).strip(" -–:|")
+    title = re.sub(r"\bTickets Included\b", "", title, flags=re.IGNORECASE).strip(" -–:|")
+    return title
+
+
 def get_premium_transport_phrase(row):
     """Client-facing transport label for day arrangements and inclusions."""
     row_type = get_row_type(row)
@@ -298,7 +308,7 @@ def get_primary_transport_title(day_rows):
                         # inclusions/travel lines keep the full from/to route.
                         dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", premium)
                         return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else premium
-                title = polish_title(str(row.get("title", "")).strip())
+                title = _clean_transport_display_title(str(row.get("title", "")).strip())
                 if title:
                     return title
 
