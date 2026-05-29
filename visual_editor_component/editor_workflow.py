@@ -104,7 +104,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     return {
         "cover": {
-            "cover_kicker": output_edits.get("cover_kicker", "Curated Travel Itinerary"),
+            "cover_kicker": output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
             "cover_background_data_uri": cover_theme.get("background_data_uri", ""),
             "cover_ink": cover_theme.get("ink", "#1f3446"),

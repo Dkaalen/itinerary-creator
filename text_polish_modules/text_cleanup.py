@@ -141,6 +141,11 @@ def _polish_text_fragment(text: str) -> str:
     # Keep client-facing wording grounded. Supplier labels sometimes use
     # expensive-sounding adjectives for standard room categories, coaches or
     # tickets; the itinerary should describe the concrete item instead.
+    original_leading_sales_adjective = re.match(
+        r"^\s*(?:premium|luxurious|luxury|hi[- ]?end|high[- ]end|upscale|bespoke|vip)\s+\w",
+        text,
+        flags=re.IGNORECASE,
+    )
     text = re.sub(r"\bPremium\s+coach\b", "Coach", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPremium\s+bus\b", "Bus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPremium\s+vehicle\b", "Vehicle", text, flags=re.IGNORECASE)
@@ -151,6 +156,19 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+coach\b", "Coach", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+bus\b", "Bus", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+(?=(?:vehicle|transfer|room|stay|experience|tour|ticket|tickets|entry|admission)\b)", "", text, flags=re.IGNORECASE)
+    # Remove standalone sales adjectives from visible client-facing supplier
+    # fragments as well. For example, food-tour inclusions like
+    # "Luxurious cardamom twist" should become the factual item
+    # "Cardamom twist" rather than repeating expensive-sounding marketing
+    # language.
+    leading_sales_adjective = re.match(
+        r"^\s*(?:premium|luxurious|luxury|hi[- ]?end|high[- ]end|upscale|bespoke|vip)\s+\w",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\b(?:premium|luxurious|luxury|hi[- ]?end|high[- ]end|upscale|bespoke|vip)\s+(?=\w)", "", text, flags=re.IGNORECASE)
+    if original_leading_sales_adjective or leading_sales_adjective:
+        text = re.sub(r"^(\s*)([a-zà-ÿ])", lambda m: m.group(1) + m.group(2).upper(), text, count=1)
 
     # Normalize compact supplier time text such as "between 8am and 8.30"
     # before punctuation spacing runs. This keeps group-tour descriptions

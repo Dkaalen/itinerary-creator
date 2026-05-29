@@ -147,5 +147,7 @@ def test_supplier_expensive_adjectives_are_grounded_in_visible_output():
     assert_contains(day_html, "Coach with toilet facilities", "Supplier 'premium coach' wording should be grounded to the concrete coach facility.")
     assert_not_contains(day_html, "Premium coach", "Expensive-sounding supplier adjectives should not leak into client-facing day inclusions.")
     assert_not_contains(polish_client_text("Premium Glass Igloo with Sauna"), "Premium", "Room/category wording should avoid expensive-sounding adjectives where the concrete stay type is enough.")
+    assert_equal(polish_client_text("Luxurious cardamom twist"), "Cardamom twist", "Food inclusions should keep the factual item and remove sales adjectives.")
+    assert_equal(polish_client_text("VIP entry ticket"), "Entry ticket", "Ticket inclusions should avoid VIP-style sales labels.")
     assert_contains(not_included, "Optional extras and personal expenses", "Exclusions should use down-to-earth wording.")
     assert_not_contains(not_included, "Optional upgrades", "Exclusions should avoid upgrade-led sales wording.")

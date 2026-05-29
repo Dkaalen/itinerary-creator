@@ -272,3 +272,39 @@ def run_all():
 
 if __name__ == "__main__":
     run_all()
+
+
+def test_pdf_cover_fallback_uses_down_to_earth_kicker():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        html_path = tmp_path / "preview.html"
+        pdf_path = tmp_path / "preview.pdf"
+        html_path.write_text(
+            (
+                '<html><body>'
+                '<div class="a4-page cover-page">'
+                '<div class="cover-title">Fallback Cover Test</div>'
+                '<div class="cover-subtitle">Simple journey wording</div>'
+                '</div>'
+                '</body></html>'
+            ),
+            encoding="utf-8",
+        )
+
+        export_html_to_pdf(html_path, pdf_path)
+
+        try:
+            import fitz
+        except Exception as exc:  # pragma: no cover - local dependency guard
+            raise AssertionError(f"PyMuPDF/fitz is required for rendered PDF text checks: {exc}")
+
+        document = fitz.open(pdf_path)
+        try:
+            visible_text = document.load_page(0).get_text()
+        finally:
+            document.close()
+
+        if "Travel Itinerary" not in visible_text:
+            raise AssertionError("PDF cover fallback should use down-to-earth wording.")
+        if "Curated Travel Itinerary" in visible_text:
+            raise AssertionError("PDF cover fallback should not use curated/premium-style wording.")

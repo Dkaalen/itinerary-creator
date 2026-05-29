@@ -6,7 +6,7 @@ TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(TESTS_DIR))
 
-from regression_test_helpers import assert_equal, assert_contains, assert_not_contains
+from regression_test_helpers import assert_equal, assert_contains, assert_not_contains, strip_embedded_image_data
 
 from text_polish import (
     expand_time_with_duration,
@@ -283,3 +283,12 @@ def test_generated_client_language_avoids_expensive_sounding_terms():
 
     for forbidden in ["premium", "luxury", "luxurious", "high-end", "hi-end", "upscale", "curated", "bespoke", "vip"]:
         assert forbidden not in generated
+
+
+def test_visible_text_quality_scan_ignores_embedded_image_data():
+    html = '<div>Travel Itinerary</div><img src="data:image/webp;base64,AAAApremiumVIPluxuryBBBB" />'
+    visible_text = strip_embedded_image_data(html).lower()
+
+    assert_contains(visible_text, "travel itinerary", "Visible page text should remain available after stripping image payloads.")
+    for forbidden in ["premium", "luxury", "vip"]:
+        assert_not_contains(visible_text, forbidden, "Image payload data should not create false positives in wording scans.")

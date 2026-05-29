@@ -32,7 +32,7 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     )
     story.append(emblem)
     story.append(Spacer(1, 6 * mm))
-    add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Curated Travel Itinerary", styles["cover_kicker"])
+    add_paragraph(story, page.select_one(".cover-kicker").get_text(" ") if page.select_one(".cover-kicker") else "Travel Itinerary", styles["cover_kicker"])
     add_cover_rule(story, width=50 * mm, space_after=4)
     add_paragraph(story, page.select_one(".cover-title").get_text(" ") if page.select_one(".cover-title") else "Itinerary", styles["cover_title"])
     add_cover_rule(story, width=42 * mm, space_after=3)
