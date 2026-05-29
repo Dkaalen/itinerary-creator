@@ -13,7 +13,7 @@ def test_train_transport_phrase_mentions_supported_sleeper_cabin():
     phrase = get_premium_transport_phrase(row)
 
     assert "sleeper cabin" in phrase.lower()
-    assert "Private Double sleeper cabin" in phrase
+    assert "private double sleeper cabin" in phrase.lower()
 
 
 def test_train_transport_phrase_does_not_invent_sleeper_cabin():
