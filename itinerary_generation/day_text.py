@@ -154,9 +154,10 @@ def create_travel_route_label(day_rows):
     return f"{cities[0]} to {cities[-1]}"
 
 
-def _natural_group_tour_focus(activity_title: str) -> str:
+def _natural_group_tour_focus(activity_title: str, source_text: str = "") -> str:
     title = str(activity_title or "the first included experience").strip()
-    lower = title.lower()
+    combined = f"{title} {source_text}"
+    lower = combined.lower()
     if "borgarfjör" in lower or "borgarfjord" in lower:
         return "the Borgarfjörður region and its waterfalls"
     if "snæfellsnes" in lower or "snaefellsnes" in lower:
@@ -167,7 +168,15 @@ def _natural_group_tour_focus(activity_title: str) -> str:
         return "the South Coast waterfalls and glacier landscape"
     if "jökulsárlón" in lower or "jokulsarlon" in lower:
         return "Jökulsárlón Glacier Lagoon, Diamond Beach and the ice cave landscape"
-    title = re.sub(r"^(Explore|Discover|Hike|Visit|Experience)\s+", "", title, flags=re.IGNORECASE).strip()
+    if "eastfjords" in lower:
+        return "the Eastfjords and local life"
+    if "north iceland" in lower or "mývatn" in lower or "myvatn" in lower:
+        return "North Iceland"
+    if "whale" in lower and "hauganes" in lower:
+        return "Whale Watching in Hauganes before the return to Reykjavík"
+    if "whale" in lower:
+        return "Whale Watching"
+    title = re.sub(r"^(Explore|Discover|Hike|Visit|Experience|Watch)\s+", "", title, flags=re.IGNORECASE).strip()
     if not title:
         return str(activity_title or "the first included experience")
     if re.search(r"[&]|Valley|Waterfalls|Circle|Coast|Lagoon|Peninsula|Fjord|Tour", title):
@@ -254,7 +263,13 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         activity_text = get_activity_text(activities[0])
 
         if is_supplier_day_row(activities[0]):
-            focus = _natural_group_tour_focus(activity_title)
+            source_text = get_activity_text(activities[0])
+            focus = _natural_group_tour_focus(activity_title, source_text)
+            if "whale" in source_text.lower() and "hauganes" in source_text.lower():
+                return (
+                    "Your guided group tour continues today to Hauganes for Whale Watching before returning to Reykjavík. "
+                    "The day is organised around the included boat experience and the final guided route back to the capital."
+                )
             return (
                 f"Your guided group tour continues today with {focus}. "
                 "The day is organised around the included route, guided stops and overnight arrangements, "

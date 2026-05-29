@@ -1352,3 +1352,17 @@ if __name__ == "__main__":
     run_all()
 
 
+
+
+def test_semantic_casing_normalizes_group_tour_phrases():
+    from text_polish import polish_client_text, polish_title
+
+    examples = {
+        "south Coast & Katla Ice Cave": "South Coast & Katla Ice Cave",
+        "eastfjords & Local Life": "Eastfjords & Local Life",
+        "north Iceland": "North Iceland",
+        "whale Watching": "Whale Watching",
+    }
+    for raw, expected in examples.items():
+        assert polish_client_text(raw) == expected
+        assert polish_title(raw) == expected

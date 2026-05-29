@@ -646,7 +646,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             </div>
         </div>
 
-        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" style="background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('{esc(cover_background_data_uri)}'); background-size: cover, cover; background-position: center center, center center; background-repeat: no-repeat, no-repeat;" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
+        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
             <div class="glance-card">
                 <div class="glance-title">Your Trip at a Glance</div>
     """

@@ -17,6 +17,37 @@ def clean_space(value: str) -> str:
     return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
 
 
+
+# One maintainable pass for itinerary proper nouns and activity phrases.
+# This prevents half-cased client-facing output such as "south Coast" or
+# "whale Watching" without adding one-off patches at each rendering site.
+PROPER_NOUN_REPLACEMENTS = [
+    (r"\bsouth\s+coast\b", "South Coast"),
+    (r"\bnorth\s+iceland\b", "North Iceland"),
+    (r"\beast\s+iceland\b", "East Iceland"),
+    (r"\beastfjords\b", "Eastfjords"),
+    (r"\bwestfjords\b", "Westfjords"),
+    (r"\bwest\s+iceland\b", "West Iceland"),
+    (r"\bsn[æa]fellsnes\b", "Snæfellsnes"),
+    (r"\bborgarfj[oö]r[dð]ur\b", "Borgarfjörður"),
+    (r"\bhallormssta[ðd]ask[oó]gar\b", "Hallormsstaðaskógar"),
+    (r"\blagaflj[oó]t\b", "Lagafljót"),
+    (r"\bm[yý]vatn\b", "Mývatn"),
+    (r"\bn[áa]mskar[ðd]\b", "Námskarð"),
+    (r"\bdettifoss\b", "Dettifoss"),
+    (r"\bgo[ðd]afoss\b", "Goðafoss"),
+    (r"\bhauganes\b", "Hauganes"),
+    (r"\bskaftafell\b", "Skaftafell"),
+    (r"\bkatla\b", "Katla"),
+    (r"\bvatnaj[oö]kull\b", "Vatnajökull"),
+    (r"\bj[oö]kuls[áa]rl[oó]n\b", "Jökulsárlón"),
+    (r"\bblue\s+ice\s+cave\b", "Blue Ice Cave"),
+    (r"\bdiamond\s+beach\b", "Diamond Beach"),
+    (r"\bwhale\s+watching\b", "Whale Watching"),
+    (r"\bice\s+cave\b", "Ice Cave"),
+    (r"\bglacier\s+lagoon\b", "Glacier Lagoon"),
+]
+
 CASE_REPLACEMENTS = [
     (r"\bHScandic\b", "Scandic"),
     (r"\bMArina\b", "Marina"),
@@ -36,7 +67,7 @@ CASE_REPLACEMENTS = [
 
 
 def _apply_case_replacements(text: str) -> str:
-    for pattern, replacement in CASE_REPLACEMENTS:
+    for pattern, replacement in CASE_REPLACEMENTS + PROPER_NOUN_REPLACEMENTS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     return text
 
@@ -294,7 +325,6 @@ def sentence_style_title(value: str) -> str:
     text = re.sub(r"\bMeet Santa Claus and His Friends\b", "Meet Santa Claus and his friends", text, flags=re.IGNORECASE)
     text = re.sub(r"\bSanta Claus and His Friends\b", "Santa Claus and his friends", text, flags=re.IGNORECASE)
     text = re.sub(r"\bwith\s+transfers\b", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bWatch\s+Whales\b", "Whale Watching", text, flags=re.IGNORECASE)
     text = re.sub(r"\s{2,}", " ", text)
     return clean_space(text).strip(" -:|")
 
