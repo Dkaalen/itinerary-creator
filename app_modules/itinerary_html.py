@@ -5,6 +5,7 @@ from itinerary_generation.inclusion_sections import create_categorized_inclusion
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 from itinerary_generation.cover_theme import get_cover_theme
+from itinerary_generation.date_resolver import get_trip_date_range_text
 from ui.day_pages import (
     render_day_pages,
     render_split_list_pages,
@@ -65,6 +66,18 @@ def _balanced_cover_subtitle_html(subtitle: str) -> str:
     return f"{escaped(left)}<br>{escaped(right)}"
 
 
+def _balanced_cover_destinations_html(destinations_line: str) -> str:
+    """Return route HTML that keeps the final two destinations together on wrap."""
+
+    parts = [part.strip() for part in str(destinations_line or "").split("·") if part.strip()]
+    if len(parts) < 2:
+        return esc(destinations_line)
+
+    head = [esc(part) for part in parts[:-2]]
+    tail = f'<span class="cover-destination-pair">{esc(parts[-2])}&nbsp;·&nbsp;{esc(parts[-1])}</span>'
+    return " · ".join(head + [tail])
+
+
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
     preset_name = get_color_preset_name(output_edits)
@@ -81,9 +94,11 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         cover_title_class += " cover-title-balanced"
     trip_subtitle = output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
     trip_subtitle_html = _balanced_cover_subtitle_html(trip_subtitle)
+    trip_dates = output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows)
     cover_background_data_uri = cover_theme.get("background_data_uri", "")
     cover_background_path = cover_theme.get("background_path", "")
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
+    destinations_line_html = _balanced_cover_destinations_html(destinations_line)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     saved_trip_glance = output_edits.get("trip_glance") or {}
     if isinstance(saved_trip_glance, dict):
@@ -243,7 +258,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         }}
 
         .day-kicker-symbol {{
-            color: var(--cover-accent);
+            color: var(--accent);
             letter-spacing: 0.10em;
             margin: 0 8px;
         }}
@@ -358,6 +373,10 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             margin: 0 auto;
             text-align: center;
             text-wrap: balance;
+        }}
+
+        .cover-destination-pair {{
+            white-space: nowrap;
         }}
 
         .glance-card,
@@ -638,10 +657,11 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
                 <div class="{esc(cover_title_class)}">{esc(trip_title)}</div>
                 <div class="cover-subtitle">{trip_subtitle_html}</div>
+                {f'<div class="cover-dates">{esc(trip_dates)}</div>' if trip_dates else ''}
                 <div class="cover-rule"></div>
                 <div class="cover-destination-card">
                     <div class="cover-destination-label">Route</div>
-                    <div class="cover-destinations">{esc(destinations_line)}</div>
+                    <div class="cover-destinations">{destinations_line_html}</div>
                 </div>
             </div>
         </div>

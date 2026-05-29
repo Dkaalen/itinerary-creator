@@ -72,3 +72,25 @@ def test_generic_cable_car_viewpoint_ticket_gets_flexible_ticket_wording():
     assert "flexible visit" in block.description
     assert "view" in block.description.lower()
     assert "Tickets only" not in block.description
+
+
+def test_anytime_activity_range_is_labelled_as_start_window():
+    row = {
+        "row_id": "santa-anytime",
+        "type": "Activity",
+        "effective_type": "Activity",
+        "city": "Rovaniemi",
+        "title": "City Highlights, Santa Village & Husky-Reindeer Safari",
+        "original_title": "City Highlights, Santa Village & Husky-Reindeer Safari | 8-10 AM (Anytime )| 7 Hrs",
+        "details": "City Highlights, Santa Village & Husky-Reindeer Safari | 8-10 AM (Anytime )| 7 Hrs",
+        "time": "8:00 AM - 10:00 AM",
+        "duration": "7 hours",
+        "display_time": "8:00 AM - 10:00 AM",
+        "display_duration": "7 hours",
+        "includes": ["Sightseeing at Santa Claus Village"],
+    }
+
+    block = canonical_activity_block(row)
+
+    assert any(line.label == "Start window" and line.value == "8:00 AM - 10:00 AM" for line in block.meta)
+    assert any(line.label == "Duration" and line.value == "7 hours" for line in block.meta)

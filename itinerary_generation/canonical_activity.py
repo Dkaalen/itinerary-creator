@@ -20,6 +20,15 @@ from ui.render_helpers import (
 )
 
 
+def _activity_time_label(row: dict, time_display: str) -> str:
+    """Return a client-facing label for activity timing details."""
+
+    source = f"{row.get('title', '')} {row.get('original_title', '')} {row.get('details', '')}".lower()
+    if time_display and " - " in time_display and ("anytime" in source or "flexible start" in source):
+        return "Start window"
+    return "Time"
+
+
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
     title = clean_client_title(title, row) or "Experience"
@@ -56,7 +65,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     else:
         time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
         if time_display:
-            meta.append(CanonicalMetaLine("Time", time_display))
+            meta.append(CanonicalMetaLine(_activity_time_label(row, time_display), time_display))
 
     if duration and not _is_fløibanen(title):
         meta.append(CanonicalMetaLine(get_activity_duration_label(row, duration), format_duration_display(duration)))

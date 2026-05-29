@@ -11,6 +11,7 @@ INK = colors.HexColor("#1f3446")
 BODY = colors.HexColor("#2f2f2f")
 MUTED = colors.HexColor("#7b746c")
 LINE = colors.HexColor("#d8cec2")
+ACCENT = colors.HexColor("#1f3446")
 CARD = colors.Color(1, 1, 1, alpha=0.35)
 SUMMARY_CARD = colors.Color(1, 1, 1, alpha=0.72)
 
@@ -20,6 +21,7 @@ DEFAULT_PDF_COLORS = {
     "body": "#2f2f2f",
     "muted": "#7b746c",
     "line": "#d8cec2",
+    "accent": "#1f3446",
 }
 
 
@@ -35,7 +37,7 @@ def hex_to_color(value, fallback):
 
 def apply_pdf_palette(color_data):
     """Apply the selected HTML color preset to the ReportLab PDF renderer."""
-    global PAGE_BACKGROUND, INK, BODY, MUTED, LINE
+    global PAGE_BACKGROUND, INK, BODY, MUTED, LINE, ACCENT
 
     color_data = color_data or {}
     PAGE_BACKGROUND = hex_to_color(color_data.get("page_bg"), PAGE_BACKGROUND)
@@ -43,6 +45,7 @@ def apply_pdf_palette(color_data):
     BODY = hex_to_color(color_data.get("body"), BODY)
     MUTED = hex_to_color(color_data.get("muted"), MUTED)
     LINE = hex_to_color(color_data.get("line"), LINE)
+    ACCENT = hex_to_color(color_data.get("accent"), ACCENT)
 
 
 def extract_pdf_palette(soup):
@@ -104,7 +107,17 @@ def make_styles():
             leading=20,
             textColor=INK,
             alignment=TA_CENTER,
-            spaceAfter=12,
+            spaceAfter=6,
+        ),
+        "cover_dates": ParagraphStyle(
+            "cover_dates",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8.5,
+            leading=11,
+            textColor=MUTED,
+            alignment=TA_CENTER,
+            spaceAfter=10,
         ),
         "cover_route_label": ParagraphStyle(
             "cover_route_label",
@@ -154,7 +167,7 @@ def make_styles():
             fontName="Helvetica-Bold",
             fontSize=8.5,
             leading=11,
-            textColor=MUTED,
+            textColor=ACCENT,
             splitLongWords=0,
             wordWrap="LTR",
             spaceAfter=8,

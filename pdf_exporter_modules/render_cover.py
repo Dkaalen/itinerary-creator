@@ -38,6 +38,9 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     add_cover_rule(story, width=42 * mm, space_after=3)
     subtitle = text_with_line_breaks(page.select_one(".cover-subtitle"))
     add_paragraph(story, subtitle, styles["cover_subtitle"])
+    dates = page.select_one(".cover-dates")
+    if dates:
+        add_paragraph(story, dates.get_text(" "), styles["cover_dates"])
     story.append(Spacer(1, 4 * mm))
     add_paragraph(story, "Route", styles["cover_route_label"])
     route_text = page.select_one(".cover-destinations").get_text(" ") if page.select_one(".cover-destinations") else ""
