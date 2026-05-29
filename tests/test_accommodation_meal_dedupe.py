@@ -18,7 +18,7 @@ def test_accommodation_meal_not_repeated_when_already_in_inclusions():
     block = canonical_accommodation_block(row)
 
     assert block.title == "Kakslauttanen Arctic Resort in Saariselkä for 2 nights"
-    assert block.lines == ["Room category: Glass igloo"]
+    assert block.lines == ["Room category: Glass Igloo"]
 
 
 def test_accommodation_meal_shown_when_not_already_listed():
