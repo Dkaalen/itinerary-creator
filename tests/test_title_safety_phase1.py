@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from itinerary_generation.canonical_builder import canonical_activity_block
+from itinerary_generation.canonical_builder import canonical_activity_block, canonical_included_items
 
 
 def test_canonical_activity_title_never_falls_back_to_raw_supplier_title():
@@ -59,3 +59,15 @@ def test_canonical_activity_includes_are_deduplicated_before_rendering():
 
     assert block.includes.count("Admission ticket") == 1
     assert block.includes.count("Local guide") == 1
+
+
+def test_canonical_included_items_are_deduplicated_case_insensitively():
+    items = canonical_included_items([
+        "Breakfast",
+        "breakfast",
+        "Local guide",
+        "Local guide",
+        "",
+    ])
+
+    assert items == ["Breakfast", "Local guide"]
