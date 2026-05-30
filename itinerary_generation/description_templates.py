@@ -29,17 +29,20 @@ def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
         )
 
     if places:
-        place_sentence = f"The route highlights {_join(places, max_items=6)}, giving the day a clear sense of place without rushing the experience."
-    else:
-        place_sentence = "The route, guided stops and overnight arrangements are handled as part of the programme, keeping the day easy to follow."
-    if places:
-        return polish_client_text(
-            f"Today your guided group tour continues through {region}, with the day focused on {focus}. "
-            f"{place_sentence}"
-        )
+        place_list = _join(places, max_items=6)
+        if "golden circle" in full:
+            return polish_client_text(f"Begin the guided route with the Golden Circle, including {place_list}, before continuing to the first overnight stop outside Reykjavík.")
+        if "south coast" in full or "katla" in full:
+            return polish_client_text(f"Follow the South Coast through {place_list}, combining waterfall scenery, black-sand coastline and the day’s included ice-cave experience where listed.")
+        if "jökuls" in full or "jokuls" in full or "diamond beach" in full or "skaftafell" in full:
+            return polish_client_text(f"Spend the day among Iceland’s glacier landscapes, with {place_list} included along the route towards the next overnight area.")
+        if "eastfjord" in full or "egils" in full:
+            return polish_client_text(f"Travel through the Eastfjords, where {place_list} give the day a quieter, more local feel before the overnight stop.")
+        if "north iceland" in full or "mývatn" in full or "myvatn" in full or "dettifoss" in full:
+            return polish_client_text(f"Cross into North Iceland with stops around {place_list}, linking waterfalls, geothermal areas and northern landscapes in one guided day.")
+        return polish_client_text(f"Travel through {region} with your guide, with {place_list} shaping the day’s main stops before the overnight arrangements.")
     return polish_client_text(
-        f"Today your guided group tour continues through {region}, with the day focused on {focus}. "
-        f"Travel with your guide through the key landscapes and cultural stops before continuing to your overnight stay."
+        f"Travel with your guide through {region}, with the day focused on {focus} before continuing to your overnight stay."
     )
 
 
@@ -53,6 +56,9 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
     if "whale watching" in full or "whale watching from downtown" in full:
         return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
+
+    if ("northern lights" in full or "aurora" in full) and ("cruise" in full or "silent electric ship" in full or "boat" in full):
+        return polish_client_text(f"Set out on an evening Northern Lights cruise{city_phrase}, with time on the water, simple refreshments where included and the Arctic night sky as the focus of the experience.")
 
     if "food tour" in full or "secret food" in full or "smørrebrød" in full or "smorrebrod" in full:
         if "copenhagen" in full or "smørrebrød" in full or "smorrebrod" in full or "danish meatballs" in full:

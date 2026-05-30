@@ -185,7 +185,11 @@ def create_client_activity_title(row):
     # Do not rename ordinary daytime/culture activities just because the long
     # supplier description mentions a chance of seeing northern lights.
     is_northern_lights = title_has_northern_lights or (
-        full_has_northern_lights and title_has_northern_lights_activity_word
+        full_has_northern_lights
+        and (
+            title_has_northern_lights_activity_word
+            or any(word in full_text for word in ["northern lights cruise", "aurora cruise", "aurora basecamp", "ice floating"])
+        )
     )
 
     if not is_northern_lights:

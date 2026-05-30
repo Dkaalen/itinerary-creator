@@ -6,7 +6,7 @@
     "Travel Style Guided small-group tour",
     "Explore the Golden Circle",
     "Discover South Coast & Katla Ice Cave",
-    "Hauganes for Whale Watching before returning to Reykjavík",
+    "time on the water for Whale Watching",
     "Skaftafell glacier hike (3 h)",
     "Jökulsárlón amphibian boat ride",
     "Katla Ice Cave tour"
@@ -24,14 +24,26 @@
     {
       "start": "Your Trip at a Glance",
       "end": "Your Journey Arc",
-      "must_contain": ["Travel Style Guided small-group tour"],
-      "must_not_contain": ["independent journey"]
+      "must_contain": [
+        "Travel Style Guided small-group tour"
+      ],
+      "must_not_contain": [
+        "independent journey"
+      ]
     },
     {
       "start": "DAY 7",
       "end": "DAY 8",
-      "must_contain": ["Hauganes", "Whale Watching", "returning to Reykjavík"],
-      "must_not_contain": ["continues through Reykjavík", "landscapes and cultural stops", "whale Watching"]
+      "must_contain": [
+        "Hauganes",
+        "Whale Watching",
+        "programme comes back to the capital"
+      ],
+      "must_not_contain": [
+        "continues through Reykjavík",
+        "landscapes and cultural stops",
+        "whale Watching"
+      ]
     },
     {
       "start": "What’s included",

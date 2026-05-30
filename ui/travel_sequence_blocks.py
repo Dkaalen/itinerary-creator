@@ -58,8 +58,8 @@ def get_travel_sequence_line(row):
 
 def _clean_self_arranged_travel_title(title):
     text = polish_title(strip_price_fragments(str(title or "")))
-    text = re.sub(r"\s*,?\s*(?:cost|price)\s+not\s+included\b", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"\s*,?\s*self[-\s]?arranged\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*,?\s*(?:cost|price)\s*not\s*included\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*,?\s*self[-\s]*(?:arranged|arrnaged|arrnage)\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s{2,}", " ", text).strip(" ,-:|")
     return polish_title(text)
 

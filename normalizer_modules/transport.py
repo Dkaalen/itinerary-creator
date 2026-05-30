@@ -28,7 +28,25 @@ def _is_rail_or_fjord_route_activity(row: dict) -> bool:
         or ("nærøyfjord" in text or "naeroyfjord" in text) and ("rail" in text or "train" in text or "luggage transfer" in text)
     )
 
+def _is_sightseeing_cruise_activity(text: str) -> bool:
+    """Return True for cruise wording that is an experience, not route transport."""
+
+    return any(
+        marker in text
+        for marker in [
+            "northern lights cruise",
+            "fjord cruise day trip",
+            "fjord tour",
+            "silent electric ship",
+            "cruise on the oslofjord",
+            "mostraumen fjord cruise",
+        ]
+    )
+
+
 def _is_route_transfer_activity(row: dict) -> bool:
     text = text_blob(row).lower()
+    if _is_sightseeing_cruise_activity(text):
+        return False
     return bool(re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text))
 

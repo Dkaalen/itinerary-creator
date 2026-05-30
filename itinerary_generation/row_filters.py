@@ -68,14 +68,25 @@ def is_self_arranged(row):
     if row_type == "Activity":
         return False
 
+    compact = " ".join(text.replace("-", " ").replace(",", " ").split())
+    squashed = compact.replace(" ", "")
     markers = [
         "self arranged",
-        "self-arranged",
         "self arrnaged",
+        "self arrnage",
         "cost not included",
         "cost not inclueded",
         "price not included",
         "flight cost not",
     ]
 
-    return any(marker in text for marker in markers)
+    return any(marker in compact for marker in markers) or any(
+        marker in squashed
+        for marker in [
+            "selfarranged",
+            "selfarrnaged",
+            "selfarrnage",
+            "costnotincluded",
+            "pricenotincluded",
+        ]
+    )

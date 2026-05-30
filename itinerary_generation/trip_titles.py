@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from itinerary_generation.cover_route import create_cover_route_line
 from itinerary_generation.common import (
     get_day_count,
     get_destination_countries,
@@ -91,27 +92,28 @@ def _join_destinations_naturally(cities):
     return ", ".join(clean_cities[:-1]) + f" and {clean_cities[-1]}"
 
 
+def _indefinite_article(scope: str) -> str:
+    return "An" if str(scope or "").strip().lower()[:1] in {"a", "e", "i", "o", "u"} else "A"
+
+
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
     season = detect_cover_season(parsed_rows)
     season_label = SEASON_LABELS.get(season, "summer").lower()
     countries = get_destination_countries(parsed_rows)
     scope = countries[0] if len(countries) == 1 else "Nordic"
+    article = _indefinite_article(scope)
     if has_self_drive_markers(parsed_rows):
-        return f"A {scope} {season_label} self-drive journey with scenic routes and planned experiences"
+        return f"{article} {scope} {season_label} self-drive journey with scenic routes and planned experiences"
     if season in SEASON_SUBTITLES:
         if len(countries) == 1:
-            return f"A {scope} {season_label} journey with scenic travel and planned experiences"
+            return f"{article} {scope} {season_label} journey with scenic travel and planned experiences"
         return SEASON_SUBTITLES[season]
     if has_winter_focus(parsed_rows):
         return SEASON_SUBTITLES["winter"]
     return "A carefully planned Nordic journey with smooth travel and included experiences"
 
+
 def create_destinations_line(parsed_rows):
-    cities = get_unique_cities(parsed_rows)
-
-    if not cities:
-        return "Destinations will be detected from the itinerary text"
-
-    return " · ".join(cities)
+    return create_cover_route_line(parsed_rows)
 

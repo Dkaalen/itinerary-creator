@@ -2,6 +2,7 @@ import json
 
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
+from itinerary_generation.cover_route import cover_route_html
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 from itinerary_generation.cover_theme import get_cover_theme
@@ -67,15 +68,8 @@ def _balanced_cover_subtitle_html(subtitle: str) -> str:
 
 
 def _balanced_cover_destinations_html(destinations_line: str) -> str:
-    """Return route HTML that keeps the final two destinations together on wrap."""
-
-    parts = [part.strip() for part in str(destinations_line or "").split("·") if part.strip()]
-    if len(parts) < 2:
-        return esc(destinations_line)
-
-    head = [esc(part) for part in parts[:-2]]
-    tail = f'<span class="cover-destination-pair">{esc(parts[-2])}&nbsp;·&nbsp;{esc(parts[-1])}</span>'
-    return " · ".join(head + [tail])
+    """Compatibility wrapper for tests/older imports."""
+    return cover_route_html(destinations_line)
 
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
@@ -98,7 +92,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     cover_background_data_uri = cover_theme.get("background_data_uri", "")
     cover_background_path = cover_theme.get("background_path", "")
     destinations_line = output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
-    destinations_line_html = _balanced_cover_destinations_html(destinations_line)
+    destinations_line_html = cover_route_html(destinations_line)
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     saved_trip_glance = output_edits.get("trip_glance") or {}
     if isinstance(saved_trip_glance, dict):

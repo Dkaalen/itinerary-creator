@@ -333,7 +333,7 @@ function draw() {
         <div class="cover-rule"></div>
         <div class="cover-destination-card">
           <div class="cover-destination-label">Route</div>
-          ${editableText(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
+          ${editableHtml(model.cover?.destinations_line_html || esc(model.cover?.destinations_line), 'cover.destinations_line', 'cover-destinations')}
         </div>
       </div>
     </div></div></div>`;

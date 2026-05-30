@@ -14,6 +14,7 @@ from itinerary_generation.titles import (
     create_trip_title,
 )
 from itinerary_generation.cover_theme import get_cover_theme
+from itinerary_generation.cover_route import cover_route_html
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
@@ -113,6 +114,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "trip_title": output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
             "trip_subtitle": output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
             "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+            "destinations_line_html": cover_route_html(output_edits.get("destinations_line", create_destinations_line(parsed_rows))),
         },
         "summary": {
             "trip_glance": _get_trip_glance(parsed_rows, grouped_days, output_edits),
