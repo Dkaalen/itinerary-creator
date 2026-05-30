@@ -7,7 +7,7 @@ import re
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.content_engine import clean_client_title
-from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_premium_transport_phrase
+from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
 from text_polish import (
     strip_price_fragments,
     format_duration_display,
@@ -21,7 +21,7 @@ from ui.transport_row_blocks import _is_cruise_leisure_row
 
 
 def _transport_route_phrase(row):
-    return get_premium_transport_phrase(row)
+    return get_transport_route_phrase(row)
 
 def is_travel_sequence_candidate(row):
     """Rows that form chronological travel arrangements within a day."""
@@ -51,7 +51,7 @@ def get_travel_sequence_line(row):
         return clean_client_title(row.get("title", ""), row)
 
     if row_type in TRANSPORT_TYPES:
-        phrase = get_premium_transport_phrase(row)
+        phrase = get_transport_route_phrase(row)
         return polish_title(phrase or row.get("title", ""))
 
     return polish_title(row.get("title", ""))

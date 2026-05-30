@@ -30,6 +30,7 @@ from itinerary_generation.transport_titles import (
     get_first_transfer_title,
     get_premium_transport_phrase,
     get_primary_transport_title,
+    get_transport_route_phrase,
     get_transfer_travel_title,
 )
 
@@ -44,6 +45,7 @@ __all__ = [
     "get_first_transfer_title",
     "get_premium_transport_phrase",
     "get_primary_transport_title",
+    "get_transport_route_phrase",
     "get_route_points_for_transport",
     "get_route_via_points",
     "get_transfer_travel_title",

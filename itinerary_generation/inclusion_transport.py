@@ -7,7 +7,7 @@ from text_polish import polish_inclusion_item, polish_title
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
-from itinerary_generation.transport import get_premium_transport_phrase, get_transfer_travel_title, is_route_transfer
+from itinerary_generation.transport import get_transport_route_phrase, get_transfer_travel_title, is_route_transfer
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
 
@@ -29,12 +29,12 @@ def is_cruise_arrival_row(row: dict) -> bool:
 def route_transport_line(row: dict) -> str:
     row_type = get_row_type(row)
     # Private/self/local transfers should keep their standardized transfer
-    # wording. Premium route wording is for route transport such as rail,
+    # wording. Route wording is for route transport such as rail,
     # flights, coaches and cruises.
     if row_type == "Transfer":
-        return get_premium_transport_phrase(row) if is_route_transfer(row) else ""
+        return get_transport_route_phrase(row) if is_route_transfer(row) else ""
     if row_type in TRANSPORT_TYPES:
-        return get_premium_transport_phrase(row)
+        return get_transport_route_phrase(row)
     return ""
 
 
@@ -85,7 +85,7 @@ def transport_bucket(row: dict) -> str:
 def transport_line(row: dict) -> str:
     if is_cruise_leisure_row(row):
         return ""
-    title = get_premium_transport_phrase(row) or route_transport_line(row) or clean_transport_title(row)
+    title = get_transport_route_phrase(row) or route_transport_line(row) or clean_transport_title(row)
     extras = []
     for item in row.get("includes", []) or []:
         item = sanitize_inclusion_item(item, title)

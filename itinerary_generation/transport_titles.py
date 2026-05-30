@@ -19,7 +19,7 @@ from itinerary_generation.transport_routes import (
 )
 
 
-def get_premium_transport_phrase(row):
+def get_transport_route_phrase(row):
     """Client-facing transport label for day arrangements and inclusions."""
     row_type = get_row_type(row)
     text = _transport_source_text(row)
@@ -102,6 +102,15 @@ def get_premium_transport_phrase(row):
     return polish_title(row.get("title", "") or "Travel")
 
 
+def get_premium_transport_phrase(row):
+    """Backward-compatible alias for older imports.
+
+    New code should use get_transport_route_phrase(), which better matches
+    the app's down-to-earth wording direction.
+    """
+
+    return get_transport_route_phrase(row)
+
 def get_transfer_travel_title(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'
     lower = text.lower()
@@ -129,7 +138,7 @@ def get_transfer_travel_title(row):
     return polish_title(row.get("title", "") or "Travel today")
 
 
-def _destination_focused_transport_title(row, premium: str) -> str:
+def _destination_focused_transport_title(row, route_phrase: str) -> str:
     """Return a concise day-heading version of a route transport phrase.
 
     Detailed route wording belongs in the travel-arrangements block and final
@@ -140,9 +149,9 @@ def _destination_focused_transport_title(row, premium: str) -> str:
 
     _, destination = get_route_points_for_transport(row)
     if not destination:
-        return polish_title(premium)
+        return polish_title(route_phrase)
 
-    lower = f"{premium} {_transport_source_text(row)}".lower()
+    lower = f"{route_phrase} {_transport_source_text(row)}".lower()
     destination = polish_title(destination)
     if "flight" in lower:
         return f"Flight to {destination}"
@@ -154,7 +163,7 @@ def _destination_focused_transport_title(row, premium: str) -> str:
         return f"Ferry to {destination}"
     if "cruise" in lower:
         return f"Cruise arrival to {destination}" if "arrival" in lower else f"Cruise to {destination}"
-    return polish_title(premium)
+    return polish_title(route_phrase)
 
 
 def get_primary_transport_title(day_rows):
@@ -163,15 +172,15 @@ def get_primary_transport_title(day_rows):
             if get_row_type(row) == preferred_type:
                 source_text = _transport_source_text(row)
                 if _is_norway_in_a_nutshell_text(source_text):
-                    premium = get_premium_transport_phrase(row)
-                    if premium:
+                    route_phrase = get_transport_route_phrase(row)
+                    if route_phrase:
                         # Day titles read cleaner with destination focus, while
                         # inclusions/travel lines keep the full from/to route.
-                        dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", premium)
-                        return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else premium
-                premium = get_premium_transport_phrase(row)
-                if premium:
-                    return _destination_focused_transport_title(row, premium)
+                        dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", route_phrase)
+                        return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else route_phrase
+                route_phrase = get_transport_route_phrase(row)
+                if route_phrase:
+                    return _destination_focused_transport_title(row, route_phrase)
                 title = polish_title(str(row.get("title", "")).strip())
                 if title:
                     return title

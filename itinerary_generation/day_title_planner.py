@@ -7,7 +7,7 @@ import re
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_row_selectors import _all_text, _text
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
-from itinerary_generation.transport import get_premium_transport_phrase, get_route_points_for_transport
+from itinerary_generation.transport import get_transport_route_phrase, get_route_points_for_transport
 from place_aliases import country_for_place
 from text_polish import polish_client_text, polish_title
 
@@ -34,7 +34,7 @@ def _transport_title(rows: list[dict]) -> str:
         row_type = get_row_type(row)
         row_text = _text(row)
         if row_type in {"Train", "Flight", "Cruise", "Ferry", "Transport"} or re.search(r"\b(?:train|flight|cruise|ferry|coach|bus)\b", row_text, flags=re.I):
-            phrase = get_premium_transport_phrase(row)
+            phrase = get_transport_route_phrase(row)
             if phrase:
                 if row_type == "Train" and "norway in a nutshell" not in row_text.lower():
                     _, destination = get_route_points_for_transport(row)
@@ -45,7 +45,7 @@ def _transport_title(rows: list[dict]) -> str:
                 return polish_title(phrase)
     for row in rows:
         if get_row_type(row) == "Transfer":
-            phrase = get_premium_transport_phrase(row)
+            phrase = get_transport_route_phrase(row)
             if phrase:
                 return polish_title(phrase)
     return ""
