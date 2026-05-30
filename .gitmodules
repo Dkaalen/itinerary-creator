@@ -1,0 +1,4 @@
+[submodule "itinerary-image-bank"]
+	path = itinerary-image-bank
+	url = https://github.com/Dkaalen/itinerary-image-bank.git
+	branch = main

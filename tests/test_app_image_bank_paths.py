@@ -38,6 +38,55 @@ def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
         app_images.APP_ROOT = original_root
 
 
+def test_app_image_bank_paths_prefer_submodule_full_bank_then_local_fallbacks():
+    import images.app_image_selection as app_images
+
+    original_root = app_images.APP_ROOT
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "itinerary-creator-git"
+            submodule_full = root / "itinerary-image-bank" / "image_bank_full"
+            local_full = root / "image_bank_full"
+            fallback = root / "image_bank"
+            submodule_full.mkdir(parents=True)
+            local_full.mkdir(parents=True)
+            fallback.mkdir(parents=True)
+            app_images.APP_ROOT = root
+
+            assert_equal(
+                app_images.get_image_bank_scan_paths(),
+                [submodule_full, local_full, fallback],
+                "In-repo image-bank submodule should be scanned before in-repo fallback banks.",
+            )
+    finally:
+        app_images.APP_ROOT = original_root
+
+
+def test_app_image_bank_paths_prefer_submodule_before_sibling_full_bank():
+    import images.app_image_selection as app_images
+
+    original_root = app_images.APP_ROOT
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            root = parent / "itinerary-creator-git"
+            submodule_full = root / "itinerary-image-bank" / "image_bank_full"
+            sibling_full = parent / "itinerary-image-bank" / "image_bank_full"
+            fallback = root / "image_bank"
+            submodule_full.mkdir(parents=True)
+            sibling_full.mkdir(parents=True)
+            fallback.mkdir(parents=True)
+            app_images.APP_ROOT = root
+
+            assert_equal(
+                app_images.get_image_bank_scan_paths(),
+                [submodule_full, sibling_full, fallback],
+                "GitHub/deployment submodule bank should be tried before local sibling bank.",
+            )
+    finally:
+        app_images.APP_ROOT = original_root
+
+
 def test_app_image_bank_paths_prefer_sibling_full_bank_then_local_fallbacks():
     import images.app_image_selection as app_images
 
@@ -81,4 +130,3 @@ def test_v36c72_app_image_bank_paths_fall_back_to_small_bank():
             )
     finally:
         app_images.APP_ROOT = original_root
-
