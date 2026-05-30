@@ -17,9 +17,14 @@ def esc(value):
 def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
     """Return optional external image-bank roots in priority order.
 
-    Production-sized destination imagery can live outside the app repository,
-    next to it, so the code repo stays lightweight. The default sibling layout
-    is::
+    Production-sized destination imagery can be installed either as a Git
+    submodule inside this repository or as a sibling repository next to it. The
+    in-repo submodule path is checked first because that is the layout GitHub
+    and most deployment systems can clone automatically::
+
+        itinerary-creator-git/itinerary-image-bank/image_bank_full/
+
+    Local development can also use the sibling layout::
 
         itinerary_app/
           itinerary-creator-git/
@@ -36,6 +41,9 @@ def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
     if env_value:
         paths.append(Path(env_value).expanduser())
 
+    # Git submodule layout: the image-bank repo is cloned inside the app repo.
+    paths.append(root / "itinerary-image-bank" / "image_bank_full")
+    # Local sibling layout: the image-bank repo sits beside the app repo.
     paths.append(root.parent / "itinerary-image-bank" / "image_bank_full")
     return paths
 
@@ -60,10 +68,10 @@ def _dedupe_existing_paths(paths: list[Path]) -> list[Path]:
 def get_image_bank_paths(root=None):
     """Return image-bank paths in priority order.
 
-    Destination-specific production imagery is scanned first when the sibling
-    ``itinerary-image-bank`` repository is present. The in-repo banks remain as
-    safe fallbacks for tests, clean zips and deployments that do not install
-    the external image-bank repository.
+    Destination-specific production imagery is scanned first when the
+    ``itinerary-image-bank`` repository is present as a submodule or sibling.
+    The in-repo banks remain as safe fallbacks for tests, clean zips and
+    deployments that do not install the external image-bank repository.
     """
     root = Path(root) if root is not None else APP_ROOT
     external_banks = _candidate_external_image_bank_paths(root)
@@ -98,4 +106,3 @@ def infer_country_for_city(city, root=None):
         if clean_space(candidate.city).lower() == city_key and candidate.country:
             return candidate.country
     return "Custom"
-
