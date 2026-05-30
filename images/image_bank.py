@@ -14,17 +14,62 @@ def clean_space(value):
 def esc(value):
     return html.escape(str(value or ""), quote=True)
 
+def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
+    """Return optional external image-bank roots in priority order.
+
+    Production-sized destination imagery can live outside the app repository,
+    next to it, so the code repo stays lightweight. The default sibling layout
+    is::
+
+        itinerary_app/
+          itinerary-creator-git/
+          itinerary-image-bank/image_bank_full/
+
+    An environment variable may override or add another bank location without
+    changing code.
+    """
+
+    import os
+
+    paths: list[Path] = []
+    env_value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_FULL", ""))
+    if env_value:
+        paths.append(Path(env_value).expanduser())
+
+    paths.append(root.parent / "itinerary-image-bank" / "image_bank_full")
+    return paths
+
+
+def _dedupe_existing_paths(paths: list[Path]) -> list[Path]:
+    selected: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        if not path.exists() or not path.is_dir():
+            continue
+        try:
+            key = str(path.resolve())
+        except Exception:
+            key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(path)
+    return selected
+
+
 def get_image_bank_paths(root=None):
     """Return image-bank paths in priority order.
 
-    ``image_bank_full`` is the production/main bank when present.
-    ``image_bank`` remains the small fallback bank for local clean zips and
-    deployments that do not include the full bank.
+    Destination-specific production imagery is scanned first when the sibling
+    ``itinerary-image-bank`` repository is present. The in-repo banks remain as
+    safe fallbacks for tests, clean zips and deployments that do not install
+    the external image-bank repository.
     """
     root = Path(root) if root is not None else APP_ROOT
+    external_banks = _candidate_external_image_bank_paths(root)
     full_bank = root / "image_bank_full"
     fallback_bank = root / "image_bank"
-    paths = [path for path in (full_bank, fallback_bank) if path.exists()]
+    paths = _dedupe_existing_paths([*external_banks, full_bank, fallback_bank])
     return paths or [fallback_bank]
 
 def get_image_bank_path(root=None):

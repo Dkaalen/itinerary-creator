@@ -16,7 +16,8 @@ def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
     original_root = app_images.APP_ROOT
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp) / "itinerary-creator-git"
+            root.mkdir()
             full = root / "image_bank_full"
             fallback = root / "image_bank"
             full.mkdir()
@@ -32,6 +33,31 @@ def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
                 app_images.get_image_bank_path(),
                 full,
                 "App image helper should use image_bank_full as the primary writable bank when present.",
+            )
+    finally:
+        app_images.APP_ROOT = original_root
+
+
+def test_app_image_bank_paths_prefer_sibling_full_bank_then_local_fallbacks():
+    import images.app_image_selection as app_images
+
+    original_root = app_images.APP_ROOT
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            root = parent / "itinerary-creator-git"
+            sibling_full = parent / "itinerary-image-bank" / "image_bank_full"
+            local_full = root / "image_bank_full"
+            fallback = root / "image_bank"
+            sibling_full.mkdir(parents=True)
+            local_full.mkdir(parents=True)
+            fallback.mkdir(parents=True)
+            app_images.APP_ROOT = root
+
+            assert_equal(
+                app_images.get_image_bank_scan_paths(),
+                [sibling_full, local_full, fallback],
+                "External sibling image bank should be scanned before in-repo fallback banks.",
             )
     finally:
         app_images.APP_ROOT = original_root

@@ -375,3 +375,74 @@ def test_image_bank_diagnostics_counts_root_default_images():
         assert_equal(diagnostics["default_images"], 1, "Diagnostics should count root Default images.")
         assert_equal(diagnostics["destination_images"], 1, "Diagnostics should count destination images separately.")
 
+
+
+def test_external_destination_bank_beats_local_default_fallback():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        parent = Path(tmp)
+        external_bank = parent / "itinerary-image-bank" / "image_bank_full"
+        local_bank = parent / "itinerary-creator-git" / "image_bank"
+        (external_bank / "Norway" / "Bergen").mkdir(parents=True)
+        (local_bank / "Default").mkdir(parents=True)
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(
+            external_bank / "Norway" / "Bergen" / "Bergen_Summer_Bryggen_Waterfront_01.webp", format="WEBP"
+        )
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(
+            local_bank / "Default" / "Default_Summer_City_Sunset_Skyline_01.webp", format="WEBP"
+        )
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "15.07.2027",
+                    "city": "Bergen",
+                    "title": "Bergen walking tour and harbour visit",
+                    "details": "Bryggen and city waterfront.",
+                }
+            ],
+            [external_bank, local_bank],
+        )
+        if not match:
+            raise AssertionError("Bergen day should receive an image from the external image bank.")
+        assert_contains(
+            str(match.get("path", "")).replace("\\", "/"),
+            "itinerary-image-bank/image_bank_full/Norway/Bergen",
+            "Destination-specific images from the external bank should beat local Default fallback images.",
+        )
+
+
+def test_image_bank_alias_handles_reykjavaik_folder_typo():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank_full"
+        typo_dir = bank / "Iceland" / "Reykjavaik"
+        typo_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (20, 40, 60)).save(
+            typo_dir / "Reykjavik_Summer_Church.webp", format="WEBP"
+        )
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "10.06.2027",
+                    "city": "Reykjavík",
+                    "title": "Welcome to Reykjavík",
+                    "details": "City centre and church views.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Reykjavík day should match the existing Reykjavaik image-bank folder typo.")
+        assert_contains(
+            str(match.get("path", "")).replace("\\", "/"),
+            "Iceland/Reykjavaik",
+            "Alias matching should tolerate the current Reykjavaik folder spelling.",
+        )
