@@ -44,4 +44,4 @@ def render_cover_page(page, story, styles, html_path=None, temp_dir=None):
     story.append(Spacer(1, 4 * mm))
     add_paragraph(story, "Route", styles["cover_route_label"])
     route_text = text_with_line_breaks(page.select_one(".cover-destinations"))
-    add_paragraph(story, clean_text(route_text).upper(), styles["cover_destinations"])
+    add_paragraph(story, route_text.upper(), styles["cover_destinations"])

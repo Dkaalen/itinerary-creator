@@ -239,6 +239,10 @@ def build_day_blocks(rows):
             block = build_day_overview_block(row)
             if block:
                 blocks.append(block)
+        elif row_type == "Car":
+            block = build_day_overview_block(row)
+            if block:
+                blocks.append(block)
         elif row_type == "Hotel":
             blocks.append(build_accommodation_block(row))
         elif row_type == "Arrival":

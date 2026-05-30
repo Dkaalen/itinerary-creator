@@ -24,15 +24,55 @@ def _transport_route_phrase(row):
     return get_transport_route_phrase(row)
 
 def is_travel_sequence_candidate(row):
-    """Rows that form chronological travel arrangements within a day."""
+    """Rows that form chronological travel arrangements within a day.
+
+    Self-drive ``Drive`` rows are route guidance, not inclusions. Treating them
+    as travel-sequence rows keeps them out of generic ``Included Today`` blocks
+    and lets preview/PDF render them consistently as driving routes.
+    """
 
     row_type = get_row_type(row)
     if _is_cruise_leisure_row(row):
         return False
-    return row_type == "Transfer" or row_type in TRANSPORT_TYPES
+    return row_type == "Transfer" or row_type == "Drive" or row_type in TRANSPORT_TYPES
+
+
+def _drive_route_line(row):
+    text = clean_space(" ".join(str(row.get(key, "") or "") for key in ["title", "details", "original_title"]))
+    origin = polish_title(clean_space(row.get("city", "")))
+    destination = ""
+    match = re.search(r"\bdrive\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-|\s+time\s*:|\s*\(|$)", text, flags=re.IGNORECASE)
+    if match:
+        destination = polish_title(clean_space(match.group(1)).strip(" .:-"))
+    if origin and destination and origin.lower() != destination.lower():
+        label = f"{origin} to {destination}"
+    elif destination:
+        label = f"Drive to {destination}"
+    else:
+        label = polish_title(re.sub(r"\s*-\s*\d.*$", "", text).strip(" -:|")) or "Self-drive route"
+
+    time = display_time(row.get("time", ""))
+    if not time:
+        time_match = re.search(r"(?:time\s*:\s*)?(\d{1,2}:\d{2}\s*(?:am|pm)\s*[-–—]+\s*\d{1,2}:\d{2}\s*(?:am|pm)?)", text, flags=re.IGNORECASE)
+        if time_match:
+            time = display_time(time_match.group(1))
+    duration = clean_space(row.get("duration", ""))
+    if not duration:
+        duration_match = re.search(r"\b(\d+\s*(?:minutes?|hours?|hrs?))\b", text, flags=re.IGNORECASE)
+        if duration_match:
+            duration = format_duration_display(duration_match.group(1))
+    details = []
+    if time:
+        details.append(time)
+    elif duration:
+        details.append(duration)
+    return f"{label} — {'; '.join(details)}" if details else label
 
 def get_travel_sequence_line(row):
     row_type = get_row_type(row)
+
+    if row_type == "Drive":
+        return _drive_route_line(row)
 
     if row_type == "Transfer" and is_self_arranged(row):
         title = _clean_self_arranged_travel_title(get_transfer_travel_title(row) or row.get("title", "Self-arranged travel"))
@@ -115,6 +155,9 @@ def _inline_arrival_time(row):
     return ""
 
 def get_travel_arrangement_line(row):
+    if get_row_type(row) == "Drive":
+        return _drive_route_line(row)
+
     title = get_travel_sequence_line(row)
     time = display_time(row.get("time", "")) or _inline_arrival_time(row)
     duration = polish_client_text(row.get("duration", ""))
@@ -153,8 +196,9 @@ def build_travel_arrangements_block(travel_rows):
     if not items:
         return None
 
+    section_title = "Self-drive route" if all(get_row_type(row) == "Drive" for row in travel_rows) else "Travel Arrangements"
     html_text = '<div class="content-block travel-sequence-block">'
-    html_text += '<div class="section-title">Travel Arrangements</div>'
+    html_text += f'<div class="section-title">{section_title}</div>'
     html_text += render_list_items(items)
     html_text += "</div>"
 

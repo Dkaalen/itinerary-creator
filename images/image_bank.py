@@ -73,6 +73,10 @@ def _looks_like_unpopulated_submodule(root: Path) -> bool:
 
 
 def _runtime_bootstrap_allowed() -> bool:
+    # Unit tests should never attempt a network clone. Real app runs keep the
+    # default enabled so zip/submodule deployments can fetch the image bank.
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
     value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "1")).lower()
     return value not in {"0", "false", "no", "off"}
 

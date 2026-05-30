@@ -28,6 +28,7 @@ def _polish_overview_item(value):
     if not item:
         return ""
     item = re.sub(r"\bPickupo\b", "Pick-up", item, flags=re.IGNORECASE)
+    item = re.sub(r"\baiport\b", "airport", item, flags=re.IGNORECASE)
     item = re.sub(r"\bPick\s+Up\b", "Pick-up", item, flags=re.IGNORECASE)
     item = re.sub(r"\bOtpions\b", "Options", item, flags=re.IGNORECASE)
     item = re.sub(r"\binlcuded\b", "included", item, flags=re.IGNORECASE)
@@ -86,7 +87,12 @@ def _split_day_overview_items(text):
 
 def _is_rental_overview(text):
     lower = str(text or "").lower()
-    return any(marker in lower for marker in ["rental vehicle", "rental car", "rental suv", "pick up rental", "pickup rental", "drop vehicle"])
+    return any(marker in lower for marker in [
+        "rental vehicle", "rental car", "rental suv", "car rental",
+        "pick up rental", "pick up your rental", "pickup rental",
+        "pick-up your rental", "airport car rental office",
+        "deliver your rental", "return your rental", "drop vehicle",
+    ])
 
 def _build_rental_overview_block(row):
     text = str(row.get("details") or row.get("title") or "")
@@ -103,6 +109,17 @@ def _build_rental_overview_block(row):
     mode = "pickup"
     for line in lines:
         lower = line.lower().strip(" :")
+        inline_include = re.search(r"\bincludes?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+        if inline_include:
+            before = clean_space(line[:inline_include.start()]).strip(" -:|.")
+            if before:
+                pickup_lines.append(before)
+            for part in re.split(r",|;", inline_include.group(1)):
+                item = _polish_overview_item(part)
+                if item and item.lower() != "cancellation fee":
+                    included.append(item)
+            mode = "included"
+            continue
         if lower in {"included", "includes"}:
             mode = "included"
             continue

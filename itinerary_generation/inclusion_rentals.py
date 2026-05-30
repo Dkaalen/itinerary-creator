@@ -59,6 +59,7 @@ def extract_rental_summary(rows: list[dict]) -> list[str]:
     has_suv = False
     has_pickup = False
     has_drop = False
+    examples_are_or_similar = False
 
     for row in source_rows:
         text = f'{row.get("title", "")}\n{row.get("original_title", "")}\n{row.get("details", "")}'.replace("|", "\n").replace("✅", "")
@@ -96,6 +97,7 @@ def extract_rental_summary(rows: list[dict]) -> list[str]:
                 mode = "not_included"
                 continue
             if "option" in lower and "similar category" in lower:
+                examples_are_or_similar = True
                 mode = "examples"
                 continue
             if mode == "examples" and not re.search(r"option|similar", lower):
@@ -110,7 +112,9 @@ def extract_rental_summary(rows: list[dict]) -> list[str]:
     vehicle_label = "Rental SUV" if has_suv else "Rental car"
     if has_pickup or examples or included:
         if examples:
-            add_unique(items, f"{vehicle_label}, such as {examples[0]}")
+            article = "" if examples[0].lower().startswith(("a ", "an ", "the ")) else "a "
+            suffix = " or similar" if examples_are_or_similar and "or similar" not in examples[0].lower() else ""
+            add_unique(items, f"{vehicle_label}, such as {article}{examples[0]}{suffix}")
         else:
             add_unique(items, f"{vehicle_label} or similar")
     if included:
