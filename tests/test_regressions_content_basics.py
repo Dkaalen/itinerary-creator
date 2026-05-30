@@ -236,8 +236,8 @@ def test_trip_subtitle_uses_generic_winter_wording():
     subtitle = create_trip_subtitle(rows, grouped)
     assert_equal(
         subtitle,
-        "A Finland winter journey with scenic travel and planned experiences",
-        "Single-country cover subtitle should use country-specific down-to-earth wording instead of repeating the route.",
+        "A Finland autumn journey with scenic travel and planned experiences",
+        "Single-country cover subtitle should follow the Nordic date-based autumn season while keeping country-specific down-to-earth wording.",
     )
     assert_not_contains(subtitle, "Helsinki", "Cover subtitle should not repeat destinations already shown in the Route line.")
     assert_not_contains(subtitle, "Rovaniemi", "Cover subtitle should not repeat destinations already shown in the Route line.")
