@@ -30,26 +30,67 @@ def _themes_for_rows(rows: list[dict]) -> set[str]:
         text_parts.append(row_text)
         if row_type in {"hotel", "accommodation", "arrival", "departure"}:
             hinted.add("city")
-        if row_type in {"transfer", "transport"}:
+        if row_type in {"transfer", "transport", "drive", "car"}:
             if row_tokens & {"train", "rail", "railway", "express", "overnight"}:
                 hinted.add("train")
-            if row_tokens & {"coach", "bus", "road", "route", "drive", "panorama"}:
+            if row_tokens & {"coach", "bus", "road", "route", "drive", "driving", "vehicle", "car"}:
                 hinted.add("road journey")
     tokens = tokenize(" ".join(text_parts))
     return infer_themes(tokens) | hinted
 
 
+def _select_primary_image_city(rows: list[dict]) -> str:
+    """Pick the destination that should drive day-image matching.
+
+    Do not blindly use the first city on the day. Self-drive itineraries often
+    start a day with arrival/car/drive rows in the origin city while the page
+    heading and main experience are in the destination city. Activity rows are
+    the best first signal, followed by accommodation, then travel/departure rows.
+    """
+
+    priority_groups = [
+        {"activity", "day overview"},
+        {"hotel", "accommodation"},
+        {"train", "flight", "cruise", "ferry", "transport", "transfer"},
+        {"arrival", "departure", "leisure", "drive", "car"},
+    ]
+    for group in priority_groups:
+        for row in rows or []:
+            row_type = _row_type(row)
+            city = str(row.get("city", "") or "").strip()
+            if city and row_type in group:
+                return city
+    for row in rows or []:
+        city = str(row.get("city", "") or "").strip()
+        if city:
+            return city
+    return ""
+
+
+def _all_city_variants(rows: list[dict], primary_city: str) -> set[str]:
+    variants = set(city_variants(primary_city))
+    for row in rows or []:
+        row_type = _row_type(row)
+        city = str(row.get("city", "") or "").strip()
+        if not city:
+            continue
+        # Keep activity/hotel cities as secondary matches. Avoid adding every
+        # origin city from drive/car rows because that can make generic origin
+        # images beat the day's actual destination.
+        if row_type in {"activity", "hotel", "accommodation", "day overview"}:
+            variants.update(city_variants(city))
+    return variants
+
+
 def build_day_context(day: str, rows: list[dict]) -> dict:
-    city = ""
+    city = _select_primary_image_city(rows or [])
     parts = [day]
     for row in rows or []:
-        if not city and str(row.get("city", "")).strip():
-            city = str(row.get("city", "")).strip()
         parts.append(_row_text(row))
 
     non_transport_rows = [
         row for row in (rows or [])
-        if _row_type(row) not in {"transfer", "transport"}
+        if _row_type(row) not in {"transfer", "transport", "drive", "car"}
     ]
     primary_rows = non_transport_rows or list(rows or [])
 
@@ -60,12 +101,10 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
     return {
         "day": day,
         "city": city,
-        "city_variants": city_variants(city),
+        "city_variants": _all_city_variants(rows or [], city),
         "tokens": tokens,
         "themes": themes,
         "primary_themes": primary_themes,
         "season": infer_season_from_rows(rows),
         "text": normalize_keyword(text),
     }
-
-

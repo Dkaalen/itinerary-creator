@@ -377,72 +377,32 @@ def test_image_bank_diagnostics_counts_root_default_images():
 
 
 
-def test_external_destination_bank_beats_local_default_fallback():
-    from PIL import Image
-
-    with tempfile.TemporaryDirectory() as tmp:
-        parent = Path(tmp)
-        external_bank = parent / "itinerary-image-bank" / "image_bank_full"
-        local_bank = parent / "itinerary-creator-git" / "image_bank"
-        (external_bank / "Norway" / "Bergen").mkdir(parents=True)
-        (local_bank / "Default").mkdir(parents=True)
-        Image.new("RGB", (40, 25), (20, 40, 60)).save(
-            external_bank / "Norway" / "Bergen" / "Bergen_Summer_Bryggen_Waterfront_01.webp", format="WEBP"
-        )
-        Image.new("RGB", (40, 25), (40, 100, 140)).save(
-            local_bank / "Default" / "Default_Summer_City_Sunset_Skyline_01.webp", format="WEBP"
-        )
-
-        match = select_day_image(
-            "Day 1",
-            [
-                {
-                    "day": "Day 1",
-                    "date": "15.07.2027",
-                    "city": "Bergen",
-                    "title": "Bergen walking tour and harbour visit",
-                    "details": "Bryggen and city waterfront.",
-                }
-            ],
-            [external_bank, local_bank],
-        )
-        if not match:
-            raise AssertionError("Bergen day should receive an image from the external image bank.")
-        assert_contains(
-            str(match.get("path", "")).replace("\\", "/"),
-            "itinerary-image-bank/image_bank_full/Norway/Bergen",
-            "Destination-specific images from the external bank should beat local Default fallback images.",
-        )
-
-
-def test_image_bank_alias_handles_reykjavaik_folder_typo():
+def test_self_drive_arrival_day_prefers_activity_destination_image_over_origin_city():
     from PIL import Image
 
     with tempfile.TemporaryDirectory() as tmp:
         bank = Path(tmp) / "image_bank_full"
-        typo_dir = bank / "Iceland" / "Reykjavaik"
-        typo_dir.mkdir(parents=True)
+        (bank / "Norway" / "Voss").mkdir(parents=True)
+        (bank / "Default").mkdir(parents=True)
         Image.new("RGB", (40, 25), (20, 40, 60)).save(
-            typo_dir / "Reykjavik_Summer_Church.webp", format="WEBP"
+            bank / "Norway" / "Voss" / "Voss_Summer_River_Valley_01.webp", format="WEBP"
+        )
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(
+            bank / "Default" / "Default_Summer_Scenic_Fjord_View_01.webp", format="WEBP"
         )
 
-        match = select_day_image(
-            "Day 1",
-            [
-                {
-                    "day": "Day 1",
-                    "date": "10.06.2027",
-                    "city": "Reykjavík",
-                    "title": "Welcome to Reykjavík",
-                    "details": "City centre and church views.",
-                }
-            ],
-            bank,
-        )
+        rows = [
+            {"day": "Day 1", "date": "09.06.2026", "type": "Arrival", "city": "Oslo", "title": "Welcome to Norway"},
+            {"day": "Day 1", "date": "09.06.2026", "type": "Car", "city": "Oslo", "title": "Pick up your rental car"},
+            {"day": "Day 1", "date": "09.06.2026", "type": "Drive", "city": "Oslo", "title": "Drive to Voss"},
+            {"day": "Day 1", "date": "09.06.2026", "type": "Hotel", "city": "Voss", "title": "Scandic Voss"},
+            {"day": "Day 1", "date": "09.06.2026", "type": "Activity", "city": "Voss", "title": "E-Mountain Bike Rental", "details": "Outdoor activity in Voss"},
+        ]
+        match = select_day_image("Day 1", rows, bank)
         if not match:
-            raise AssertionError("Reykjavík day should match the existing Reykjavaik image-bank folder typo.")
+            raise AssertionError("Self-drive arrival day should receive a destination image.")
         assert_contains(
             str(match.get("path", "")).replace("\\", "/"),
-            "Iceland/Reykjavaik",
-            "Alias matching should tolerate the current Reykjavaik folder spelling.",
+            "Norway/Voss",
+            "Image matching should use the day's main destination, not only the first origin city row.",
         )

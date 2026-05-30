@@ -87,6 +87,29 @@ TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
 
 
+
+
+def _looks_like_rental_vehicle_row(row: dict) -> bool:
+    text = text_blob(row).lower()
+    row_type = get_row_type(row).lower()
+    if row_type == "car":
+        return True
+    return bool(re.search(r"\b(?:pick\s*up|pickup|deliver|return|drop(?:\s*off)?)\b.*\b(?:rental\s+car|car\s+rental|rental\s+vehicle)", text))
+
+
+def _normalize_rental_vehicle_row(row: dict) -> dict:
+    text = text_blob(row).lower()
+    row["effective_type"] = "Car"
+    row["type"] = "Car"
+    if re.search(r"\b(?:deliver|return|drop(?:\s*off)?)\b", text):
+        row["title"] = "Return your rental car"
+    elif re.search(r"\b(?:pick\s*up|pickup)\b", text):
+        row["title"] = "Pick up your rental car"
+    else:
+        row["title"] = "Rental car"
+    row["original_title"] = row.get("original_title") or row.get("title")
+    return row
+
 def warn_suspicious_city(row: dict) -> None:
     city = clean_space(row.get("city", ""))
     if not city:
@@ -137,6 +160,9 @@ def normalize_row(row: dict) -> dict:
         city = canonicalize_place_name(row.get("city", ""))
         row["title"] = f"Departure from {city}" if city else "Departure"
         return row
+
+    if _looks_like_rental_vehicle_row(row):
+        return _normalize_rental_vehicle_row(row)
 
     if row_type == "Hotel":
         return normalize_hotel_row(row)

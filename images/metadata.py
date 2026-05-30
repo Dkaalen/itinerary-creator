@@ -15,6 +15,8 @@ CITY_ALIASES = {
     "tromsø": {"tromso", "tromsø"},
     "oslo": {"oslo"},
     "bergen": {"bergen"},
+    "voss": {"voss"},
+    "stavanger": {"stavanger", "preikestolen", "lysefjord"},
     "helsinki": {"helsinki"},
     "rovaniemi": {"rovaniemi"},
     "kakslauttanen": {"kakslauttanen", "kakslauttenen"},
