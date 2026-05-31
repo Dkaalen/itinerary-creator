@@ -8,6 +8,7 @@ from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS
 from ui.app_constants import PRESET_ORDER
 from ui.diagnostics_panel import render_parser_diagnostics_panel
 from ui.export_files import save_html_file, save_pdf_file
+from ui.render_cache import make_render_signature
 from ui.output_edits import (
     apply_output_edits,
     apply_rich_writing_to_all_days,
@@ -69,6 +70,7 @@ def render_sidebar_controls():
             st.session_state.output_edits["detail_level"] = "Rich descriptive"
             if previous_day_layout != selected_day_layout:
                 st.session_state.pdf_bytes = None
+                st.session_state.pdf_signature = None
                 st.session_state.pdf_status = "Needs refresh"
 
         show_debug = st.checkbox("Show parser/debug panels", value=False)
@@ -134,6 +136,7 @@ def render_input_step():
                 st.session_state.output_edits = apply_rich_writing_to_all_days(parsed_rows, st.session_state.output_edits)
                 st.session_state.last_generated_raw_text = raw_text
                 st.session_state.pdf_bytes = None
+                st.session_state.pdf_signature = None
                 st.session_state.pdf_status = "Not created"
                 st.session_state.parser_diagnostics = diagnostics.get_warnings()
 
@@ -144,6 +147,7 @@ def render_input_step():
                     edited_grouped_days,
                     st.session_state.output_edits,
                 )
+                st.session_state.preview_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
                 st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
                 st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days. Rich day-to-day wording applied automatically.")
@@ -189,7 +193,29 @@ def render_visual_editor_step():
                 '<div class="workflow-note">Click directly into the A4 pages and type. Edits stay local while you work; they are applied when you click Save edits or Create PDF.</div>',
                 unsafe_allow_html=True,
             )
-            render_visual_editor(edited_rows, edited_grouped_days, st.session_state.output_edits, rebuild_preview=rebuild_current_preview, mark_dirty=mark_output_dirty)
+            editor_applied = render_visual_editor(
+                edited_rows,
+                edited_grouped_days,
+                st.session_state.output_edits,
+                rebuild_preview=rebuild_current_preview,
+                mark_dirty=mark_output_dirty,
+            )
+
+        # Saving from the visual editor already rebuilt from the updated edit
+        # state. Do not immediately rebuild again from the stale pre-save rows.
+        if editor_applied:
+            return
+
+        render_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
+        preview_is_current = (
+            bool(st.session_state.get("itinerary_html", ""))
+            and st.session_state.get("preview_signature") == render_signature
+        )
+
+        if preview_is_current:
+            if not st.session_state.get("html_path"):
+                st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+            return
 
         rebuilt_html = build_itinerary_html(
             edited_rows,
@@ -199,12 +225,15 @@ def render_visual_editor_step():
 
         if rebuilt_html != st.session_state.itinerary_html:
             st.session_state.pdf_bytes = None
+            st.session_state.pdf_signature = None
             if st.session_state.itinerary_html:
                 st.session_state.pdf_status = "Needs refresh"
             st.session_state.itinerary_html = rebuilt_html
-            st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-        elif st.session_state.itinerary_html and not st.session_state.html_path:
-            st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        else:
+            st.session_state.itinerary_html = rebuilt_html
+
+        st.session_state.preview_signature = render_signature
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 
 def render_final_preview_step():
@@ -282,33 +311,43 @@ def render_export_step(app_version):
             if commit_ready:
                 try:
                     with st.spinner("Creating PDF..."):
-                        # Rebuild once more after applying browser-side edits so the
-                        # PDF is generated from the same state as the final preview.
-                        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-                        edited_grouped_days = group_rows_by_day(edited_rows)
-                        st.session_state.itinerary_html = build_itinerary_html(
-                            edited_rows,
-                            edited_grouped_days,
-                            st.session_state.output_edits,
-                        )
-                        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+                        # The visual editor has now committed browser-side edits.
+                        # Rebuild only when the content signature changed, then
+                        # reuse an up-to-date PDF instead of exporting again.
+                        rebuild_current_preview(mark_pdf_dirty=False, save_html=True)
                         html_path = Path(st.session_state.html_path) if st.session_state.html_path else html_path
-                        pdf_path = save_pdf_file(html_path)
-                        if pdf_path is None:
-                            st.session_state.pdf_bytes = None
-                            st.session_state.pdf_status = "PDF failed"
-                        else:
-                            st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
+                        current_pdf_signature = st.session_state.get("preview_signature")
+
+                        pdf_is_current = (
+                            bool(st.session_state.get("pdf_bytes"))
+                            and st.session_state.get("pdf_signature") == current_pdf_signature
+                        )
+
+                        if pdf_is_current:
                             st.session_state.pdf_status = "Ready"
+                        else:
+                            pdf_path = save_pdf_file(html_path)
+                            if pdf_path is None:
+                                st.session_state.pdf_bytes = None
+                                st.session_state.pdf_signature = None
+                                st.session_state.pdf_status = "PDF failed"
+                            else:
+                                st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
+                                st.session_state.pdf_signature = current_pdf_signature
+                                st.session_state.pdf_status = "Ready"
 
                     st.session_state["_pdf_after_visual_edit_commit_nonce"] = None
                     st.session_state["_visual_editor_export_commit_ready"] = False
                     st.session_state["_visual_editor_commit_nonce"] = None
 
                     if st.session_state.pdf_bytes:
-                        st.success("PDF created with the latest preview edits. Use the download button.")
+                        if pdf_is_current:
+                            st.success("PDF already up to date. Use the download button.")
+                        else:
+                            st.success("PDF created with the latest preview edits. Use the download button.")
 
                 except Exception as error:
+                    st.session_state.pdf_signature = None
                     st.session_state.pdf_status = "PDF failed"
                     st.error(
                         "PDF export failed in this environment. The itinerary preview and HTML download still work."

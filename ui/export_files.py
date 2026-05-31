@@ -29,6 +29,12 @@ def save_html_file(itinerary_html):
 
         output_path = outputs_folder / "itinerary_preview.html"
         full_html = build_full_html_document(itinerary_html)
+        if output_path.exists():
+            try:
+                if output_path.read_text(encoding="utf-8") == full_html:
+                    return output_path
+            except OSError:
+                pass
         output_path.write_text(full_html, encoding="utf-8")
 
         return output_path

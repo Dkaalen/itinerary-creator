@@ -238,7 +238,11 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
 
 
 def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_preview=None, mark_dirty=None):
-    """Render and process the direct editable A4-page editor."""
+    """Render and process the direct editable A4-page editor.
+
+    Returns True only when a saved editor payload was applied. The app can then
+    skip any additional rebuild based on the pre-save rows from the same rerun.
+    """
     payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
     commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
     result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
@@ -252,3 +256,5 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
                 st.session_state["_visual_editor_export_commit_ready"] = True
             else:
                 st.success("Edits saved to preview and PDF export.")
+            return True
+    return False

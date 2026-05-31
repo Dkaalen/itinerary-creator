@@ -4,6 +4,7 @@ import streamlit as st
 
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
+from ui.render_cache import make_render_signature
 from ui.output_edits import (
     apply_output_edits,
     make_output_edit_state,
@@ -24,6 +25,8 @@ def initialise_state():
         "last_generated_raw_text": "",
         "parser_diagnostics": [],
         "pdf_status": "Not created",
+        "preview_signature": None,
+        "pdf_signature": None,
         "detail_level": "Rich descriptive",
         "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
     }
@@ -60,7 +63,9 @@ def load_project_json(uploaded_file):
         edited_rows = apply_output_edits(parsed_rows, st.session_state.output_edits)
         edited_grouped_days = group_rows_by_day(edited_rows)
         st.session_state.itinerary_html = build_itinerary_html(edited_rows, edited_grouped_days, st.session_state.output_edits)
+        st.session_state.preview_signature = make_render_signature(parsed_rows, st.session_state.output_edits)
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        st.session_state.pdf_signature = None
         st.session_state.raw_text_input = raw_text
 
         st.success("Editable project loaded.")
@@ -79,6 +84,8 @@ def reset_project_state(clear_raw_text=True):
         "output_edits",
         "last_generated_raw_text",
         "parser_diagnostics",
+        "preview_signature",
+        "pdf_signature",
         "_last_visual_editor_result",
     ]:
         if key in st.session_state:
@@ -92,30 +99,48 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.last_generated_raw_text = ""
     st.session_state.parser_diagnostics = []
     st.session_state.pdf_status = "Not created"
+    st.session_state.preview_signature = None
+    st.session_state.pdf_signature = None
 
     if clear_raw_text:
         st.session_state.raw_text_input = ""
 
 
-def rebuild_current_preview(mark_pdf_dirty=True):
-    """Rebuild the preview/HTML from the current editable project state."""
+def rebuild_current_preview(mark_pdf_dirty=True, force=False, save_html=True):
+    """Ensure the preview/HTML matches the current editable project state.
+
+    Streamlit reruns frequently while the user scrolls or clicks buttons. The
+    render signature lets us skip the expensive HTML rebuild unless the actual
+    itinerary content changed.
+    """
     parsed_rows = st.session_state.get("parsed_rows", [])
     output_edits = st.session_state.get("output_edits", {})
 
     if not parsed_rows or not output_edits:
         return False
 
+    render_signature = make_render_signature(parsed_rows, output_edits)
+    cached_signature = st.session_state.get("preview_signature")
+    has_html = bool(st.session_state.get("itinerary_html", ""))
+
+    if not force and has_html and cached_signature == render_signature:
+        if save_html and not st.session_state.get("html_path"):
+            st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+        return True
+
     edited_rows = apply_output_edits(parsed_rows, output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
     rebuilt_html = build_itinerary_html(edited_rows, edited_grouped_days, output_edits)
 
-    if rebuilt_html != st.session_state.get("itinerary_html", ""):
-        if mark_pdf_dirty:
-            st.session_state.pdf_bytes = None
-            st.session_state.pdf_status = "Needs refresh"
-        st.session_state.itinerary_html = rebuilt_html
-    else:
-        st.session_state.itinerary_html = rebuilt_html
+    html_changed = rebuilt_html != st.session_state.get("itinerary_html", "")
+    st.session_state.itinerary_html = rebuilt_html
+    st.session_state.preview_signature = render_signature
 
-    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+    if mark_pdf_dirty and html_changed:
+        st.session_state.pdf_bytes = None
+        st.session_state.pdf_signature = None
+        st.session_state.pdf_status = "Needs refresh"
+
+    if save_html:
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
     return True

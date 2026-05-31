@@ -256,3 +256,6 @@ def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
     assert_contains(editor_html, "Do not redraw", "The commit path should document why it returns before draw().")
     assert_contains(bridge_py, "requests a commit before PDF export", "Python bridge docs should describe the PDF-export commit flow.")
     assert_contains(main_view_py, "Create PDF applies pending page edits first", "Export copy should explain the pending-edit workflow.")
+    assert_contains(main_view_py, "preview_signature", "Preview should use a signature to avoid expensive rebuilds on ordinary reruns.")
+    assert_contains(main_view_py, "PDF already up to date", "PDF export should reuse an unchanged PDF instead of rebuilding it every time.")
+    assert_contains(main_view_py, "editor_applied", "Editor saves should not be followed by a stale extra preview rebuild.")
