@@ -78,3 +78,28 @@ def test_visual_editor_accepts_pdf_export_commit_envelope():
 
     assert output_edits["trip_title"] == "Edited before PDF"
     assert editor_workflow.st.session_state["_visual_editor_last_applied_commit_nonce"] == "7"
+
+
+def test_pdf_export_commit_applies_route_and_day_title_edits():
+    editor_workflow.st.session_state = {}
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "commit_nonce": "12",
+        "payload": {
+            "cover": {
+                "destinations_line": "Helsinki · Rovaniemi\nBergen · Oslo",
+            },
+            "summary": {},
+            "days": [
+                {"day": "Day 2", "title": "Edited Tallinn Adventure"},
+            ],
+            "final_pages": {},
+        },
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["destinations_line"] == "Helsinki · Rovaniemi · Bergen · Oslo"
+    assert output_edits["days"]["Day 2"]["title"] == "Edited Tallinn Adventure"
+    assert editor_workflow.st.session_state["_visual_editor_last_applied_commit_nonce"] == "12"
+

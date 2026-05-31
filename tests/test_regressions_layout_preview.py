@@ -252,5 +252,7 @@ def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
     assert_not_contains(editor_html, "el.addEventListener('blur', saveChanges", "Clicking away should not force a Streamlit rerun.")
     assert_contains(editor_html, "Unsaved edits", "The editor should show that browser-local changes are pending.")
     assert_contains(editor_html, "commit_nonce", "Create PDF should be able to request one explicit save from the editor.")
+    assert_contains(editor_html, "shouldCommitPendingEdits", "PDF export should commit browser edits before any redraw can wipe them.")
+    assert_contains(editor_html, "Do not redraw", "The commit path should document why it returns before draw().")
     assert_contains(bridge_py, "requests a commit before PDF export", "Python bridge docs should describe the PDF-export commit flow.")
     assert_contains(main_view_py, "Create PDF applies pending page edits first", "Export copy should explain the pending-edit workflow.")

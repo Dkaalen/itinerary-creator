@@ -336,6 +336,15 @@ function finalHtmlPage(label, title, key, html) {
   </div></div></div>`;
 }
 function render(payload, commitNonce = null) {
+  const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
+  if (shouldCommitPendingEdits) {
+    lastCommitNonce = commitNonce;
+    // Streamlit asks for this when the user clicks Create PDF. Do not redraw
+    // from the server payload first, because that would overwrite unsaved
+    // browser-side text edits before collect() can read them.
+    setTimeout(() => saveChanges(commitNonce), 0);
+    return;
+  }
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
   if (!model || !touchedKeys.size) {
     model = JSON.parse(JSON.stringify(initialPayload));
@@ -344,10 +353,6 @@ function render(payload, commitNonce = null) {
   }
   lastSavedPayload = '';
   draw();
-  if (commitNonce && commitNonce !== lastCommitNonce) {
-    lastCommitNonce = commitNonce;
-    setTimeout(() => saveChanges(commitNonce), 0);
-  }
 }
 function draw() {
   const root = document.getElementById('root');
