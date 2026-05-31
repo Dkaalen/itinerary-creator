@@ -60,7 +60,13 @@ def balanced_cover_route_lines(route_line: str) -> list[str]:
 
 
 def cover_route_html(route_line: str) -> str:
-    """Return escaped HTML for the cover route using shared line balancing."""
+    """Return escaped HTML for the cover route using shared line balancing.
+
+    The Streamlit visual preview and the PDF engine do not always wrap inline
+    text the same way. Render explicit route lines as block spans so the final
+    destination is not left alone in the browser preview while the PDF looks
+    correct.
+    """
 
     parts = split_route_line(route_line)
     if not parts:
@@ -68,11 +74,15 @@ def cover_route_html(route_line: str) -> str:
     if len(parts) < 2:
         return escape(parts[0])
 
-    if len(parts) >= 5:
-        head = SEPARATOR.join(escape(part) for part in parts[:-2])
-        tail = f'<span class="cover-destination-pair">{escape(parts[-2])}&nbsp;·&nbsp;{escape(parts[-1])}</span>'
-        return f"{head}<br>{tail}"
-
-    tail = f'<span class="cover-destination-pair">{escape(parts[-2])}&nbsp;·&nbsp;{escape(parts[-1])}</span>'
-    head = [escape(part) for part in parts[:-2]]
-    return SEPARATOR.join(head + [tail])
+    lines = balanced_cover_route_lines(SEPARATOR.join(parts))
+    html_lines = []
+    for line in lines:
+        line_parts = split_route_line(line)
+        if len(line_parts) >= 2:
+            escaped = SEPARATOR.join(escape(part) for part in line_parts[:-2])
+            pair = f'<span class="cover-destination-pair">{escape(line_parts[-2])}&nbsp;·&nbsp;{escape(line_parts[-1])}</span>'
+            body = SEPARATOR.join([part for part in [escaped, pair] if part])
+        else:
+            body = escape(line_parts[0]) if line_parts else ""
+        html_lines.append(f'<span class="cover-route-line">{body}</span>')
+    return "<br>".join(html_lines)

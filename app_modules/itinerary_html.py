@@ -358,18 +358,24 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
         .cover-destinations {{
             font-family: Arial, sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.45;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.075em;
             text-transform: uppercase;
             color: var(--cover-ink);
-            max-width: 720px;
+            max-width: 640px;
             margin: 0 auto;
             text-align: center;
-            text-wrap: balance;
+            text-wrap: normal;
+        }}
+
+        .cover-route-line {{
+            display: block;
+            white-space: normal;
         }}
 
         .cover-destination-pair {{
+            display: inline-block;
             white-space: nowrap;
         }}
 

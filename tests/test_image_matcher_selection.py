@@ -406,3 +406,127 @@ def test_self_drive_arrival_day_prefers_activity_destination_image_over_origin_c
             "Norway/Voss",
             "Image matching should use the day's main destination, not only the first origin city row.",
         )
+
+
+def test_autumn_dates_do_not_force_summer_default_images():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_Train_Window_Waterfall_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 1",
+            [
+                {
+                    "day": "Day 1",
+                    "date": "27.10.2026",
+                    "type": "Hotel",
+                    "city": "Helsinki",
+                    "title": "Hotel Arthur",
+                    "details": "Arrival day and accommodation in the city centre.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Arrival/hotel day should still get a safe Default fallback when destination bank is missing.")
+        assert_contains(
+            Path(match["path"]).name,
+            "City_Sunset_Skyline",
+            "October should not be treated as summer and a hotel/arrival day should avoid train imagery.",
+        )
+
+
+def test_day_trip_to_known_destination_can_drive_image_city():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank_full"
+        (bank / "Finland" / "Helsinki").mkdir(parents=True)
+        (bank / "Estonia" / "Tallinn").mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(bank / "Finland" / "Helsinki" / "Helsinki_Summer_Harbour_01.webp", format="WEBP")
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(bank / "Estonia" / "Tallinn" / "Tallinn_Old_Town_01.webp", format="WEBP")
+
+        match = select_day_image(
+            "Day 2",
+            [
+                {
+                    "day": "Day 2",
+                    "date": "28.10.2026",
+                    "type": "Activity",
+                    "effective_type": "Activity",
+                    "city": "Helsinki",
+                    "title": "Excursion to Tallinn",
+                    "details": "Self guided tour of Old Town Tallinn and Helsinki port transfers.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Tallinn day trip should receive an image.")
+        assert_contains(
+            str(match.get("path", "")).replace("\\", "/"),
+            "Estonia/Tallinn",
+            "Day-trip image matching should prefer the explicit destination over the base city.",
+        )
+
+
+def test_arctic_resort_fallback_beats_generic_city_default():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_Colorful_Nordic_Buildings_01.jpg", format="JPEG")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(default_dir / "Default_Winter_Northern_Lights_Landscape_01.jpg", format="JPEG")
+
+        match = select_day_image(
+            "Day 5",
+            [
+                {
+                    "day": "Day 5",
+                    "date": "31.10.2026",
+                    "type": "Hotel",
+                    "city": "Kakslauttanen",
+                    "title": "Kakslauttanen Arctic Resort",
+                    "details": "Small Glass Igloo, breakfast and dinner included.",
+                }
+            ],
+            bank,
+        )
+        if not match:
+            raise AssertionError("Arctic resort day should receive a contextual fallback image.")
+        assert_contains(
+            Path(match["path"]).name,
+            "Northern_Lights",
+            "Glass igloo/arctic resort days should avoid generic city-building Default imagery.",
+        )
+
+
+def test_strong_default_can_be_reused_in_app_preview_instead_of_showing_blank():
+    from PIL import Image
+    from images.day_image_selection import select_day_images_with_overrides
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(default_dir / "Default_Summer_City_Sunset_Skyline_01.jpg", format="JPEG")
+
+        grouped = {
+            "Day 1": [{"day": "Day 1", "date": "01.10.2027", "type": "Activity", "city": "Oslo", "title": "Oslo Walking Tour", "details": "City landmarks and skyline."}],
+            "Day 2": [{"day": "Day 2", "date": "02.10.2027", "type": "Transfer", "city": "Oslo", "title": "Private Hotel to Airport", "details": "Private transfer from hotel to airport."}],
+        }
+        matches = select_day_images_with_overrides(grouped, {}, app_root=Path(tmp), image_bank_scan_paths=[bank])
+        if not matches.get("Day 1") or not matches.get("Day 2"):
+            raise AssertionError("A strong contextual Default image may be reused rather than leaving later preview pages blank.")
+        assert_equal(
+            Path(matches["Day 1"]["path"]).name,
+            Path(matches["Day 2"]["path"]).name,
+            "The app preview wrapper should honor strong Default reuse selected by the matcher.",
+        )

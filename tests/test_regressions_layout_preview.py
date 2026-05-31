@@ -231,3 +231,12 @@ def test_v36c71_title_admin_safety_blocks_supplier_titles():
     assert_not_contains(arrival_html, "Arrival Reykjavík, pick-up minibus", "Arrival block titles must not expose raw pick-up logistics.")
     assert_contains(arrival_html, "Arrival in Reykjavík", "Arrival block should fall back to a clean client-facing title.")
 
+
+
+def test_cover_route_html_keeps_final_pair_together_for_preview():
+    from itinerary_generation.cover_route import cover_route_html
+
+    html = cover_route_html("HELSINKI · ROVANIEMI · KAKSLAUTTANEN · IVALO · TROMSØ · BERGEN · OSLO")
+    assert 'cover-route-line' in html
+    assert 'BERGEN&nbsp;·&nbsp;OSLO' in html
+    assert html.count('cover-route-line') == 2

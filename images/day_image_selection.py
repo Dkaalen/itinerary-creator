@@ -62,7 +62,8 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
         match = base_matches.get(day)
         if match:
             key = normalize_path_key(match.get("path", ""))
-            if key in used_paths:
+            allows_reuse = "reused strong default" in str(match.get("reason", "")).lower()
+            if key in used_paths and not allows_reuse:
                 match = None
             else:
                 used_paths.add(key)

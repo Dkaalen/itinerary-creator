@@ -15,6 +15,20 @@ from .matcher_scoring import (
 from .scanner import scan_image_bank
 
 
+def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandidate], minimum_score: int = 38) -> dict | None:
+    reusable_best = None
+    for candidate in candidates:
+        if not is_global_default_candidate(candidate):
+            continue
+        score, reasons = score_default_candidate(candidate, context)
+        if score < minimum_score:
+            continue
+        payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["reused strong default to avoid weak fallback"])
+        if reusable_best is None or (payload["score"], payload["filename"]) > (reusable_best["score"], reusable_best["filename"]):
+            reusable_best = payload
+    return reusable_best
+
+
 def select_best_candidate_for_context(
     day: str,
     context: dict,
@@ -24,7 +38,8 @@ def select_best_candidate_for_context(
     allow_default_repair: bool = True,
 ) -> dict | None:
     used_paths = used_paths or set()
-    best = None
+    best_destination = None
+    best_default = None
     require_matching_season = season_available_for_context(candidates, context)
     day_season = normalize_keyword(context.get("season", ""))
 
@@ -32,23 +47,37 @@ def select_best_candidate_for_context(
         normalized_path = str(Path(candidate.path).resolve())
         if normalized_path in used_paths:
             continue
+        is_default = is_global_default_candidate(candidate)
         if require_matching_season and day_season not in set(candidate.seasons):
             # Destination-specific images should stay season-aware when possible.
             # Default fallback images are different: if the Default bank has no
-            # winter city/road/train image, a semantically relevant non-seasonal
-            # image is better than a random winter image. Let Default candidates
-            # compete by score instead of hard-filtering them by season.
-            if not is_global_default_candidate(candidate):
+            # matching-season city/road/train image, a semantically relevant
+            # non-seasonal image is better than a random seasonal image.
+            if not is_default:
                 continue
 
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
             continue
         payload = candidate_to_payload(day, candidate, score, reasons)
-        if best is None or (payload["score"], payload["filename"]) > (best["score"], best["filename"]):
-            best = payload
+        if is_default:
+            if best_default is None or (payload["score"], payload["filename"]) > (best_default["score"], best_default["filename"]):
+                best_default = payload
+        else:
+            if best_destination is None or (payload["score"], payload["filename"]) > (best_destination["score"], best_destination["filename"]):
+                best_destination = payload
 
-    if best or not allow_default_repair:
+    if best_destination:
+        return best_destination
+
+    best = best_default
+    if best:
+        if allow_default_repair:
+            reusable = _best_reusable_default(day, context, candidates)
+            if reusable and reusable.get("score", 0) >= best.get("score", 0) + 12:
+                return reusable
+        return best
+    if not allow_default_repair:
         return best
 
     default_candidates = [
@@ -57,7 +86,7 @@ def select_best_candidate_for_context(
         and str(Path(candidate.path).resolve()) not in used_paths
     ]
     if not default_candidates:
-        return None
+        return _best_reusable_default(day, context, candidates)
 
     default_best = None
     for candidate in default_candidates:
@@ -72,14 +101,9 @@ def select_best_candidate_for_context(
     # safer default image rather than forcing a reindeer/aurora/winter image
     # onto a summer city or culture day. This preserves uniqueness in normal
     # cases while avoiding the most visible bad matches.
-    if default_best and default_best.get("score", 0) <= 5:
-        for candidate in [c for c in candidates if is_global_default_candidate(c)]:
-            score, reasons = score_default_candidate(candidate, context)
-            if score <= default_best.get("score", 0):
-                continue
-            payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["safe default reuse to avoid conflict"])
-            if default_best is None or (payload["score"], payload["filename"]) > (default_best["score"], default_best["filename"]):
-                default_best = payload
+    reusable = _best_reusable_default(day, context, candidates)
+    if reusable and (not default_best or reusable.get("score", 0) >= default_best.get("score", 0) + 12):
+        default_best = reusable
     return default_best
 
 

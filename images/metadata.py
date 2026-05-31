@@ -79,16 +79,20 @@ THEME_ALIASES = {
     "igloo": {"glass", "igloo", "kakslauttanen", "arctic", "resort"},
     "train": {"train", "rail", "railway", "station", "overnight", "santa", "express", "nutshell", "flam", "flåm"},
     "road journey": {"road", "route", "coach", "bus", "panorama", "drive", "driving", "vehicle"},
-    "funicular": {"funicular", "floibanen", "fløibanen", "mountain", "view"},
+    "funicular": {"funicular", "floibanen", "fløibanen", "fjellheisen", "cable", "car", "mountain", "view"},
 }
 
 SEASON_ALIASES = {
+    "spring": {"spring"},
     "summer": {"summer"},
+    "autumn": {"autumn", "fall"},
     "winter": {"winter"},
 }
 
-SUMMER_MONTHS = {4, 5, 6, 7, 8, 9, 10}
-WINTER_MONTHS = {1, 2, 3, 11, 12}
+SPRING_MONTHS = {4, 5}
+SUMMER_MONTHS = {6, 7, 8}
+AUTUMN_MONTHS = {9, 10, 11}
+WINTER_MONTHS = {12, 1, 2, 3}
 
 
 @dataclass(frozen=True)
@@ -175,10 +179,14 @@ def infer_season_from_rows(rows: list[dict]) -> str:
                     month = int(match.group(1))
                 except Exception:
                     continue
-                if month in SUMMER_MONTHS:
-                    return "summer"
                 if month in WINTER_MONTHS:
                     return "winter"
+                if month in SPRING_MONTHS:
+                    return "spring"
+                if month in SUMMER_MONTHS:
+                    return "summer"
+                if month in AUTUMN_MONTHS:
+                    return "autumn"
     return ""
 
 

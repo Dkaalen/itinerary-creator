@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .metadata import city_variants, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
+from .metadata import CITY_ALIASES, city_variants, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
 
 
 def _row_type(row: dict) -> str:
@@ -31,6 +31,8 @@ def _themes_for_rows(rows: list[dict]) -> set[str]:
         if row_type in {"hotel", "accommodation", "arrival", "departure"}:
             hinted.add("city")
         if row_type in {"transfer", "transport", "drive", "car"}:
+            if row_tokens & {"private", "airport", "hotel", "station"}:
+                hinted.add("city")
             if row_tokens & {"train", "rail", "railway", "express", "overnight"}:
                 hinted.add("train")
             if row_tokens & {"coach", "bus", "road", "route", "drive", "driving", "vehicle", "car"}:
@@ -38,6 +40,42 @@ def _themes_for_rows(rows: list[dict]) -> set[str]:
     tokens = tokenize(" ".join(text_parts))
     return infer_themes(tokens) | hinted
 
+
+
+def _known_destination_from_text(text: str, current_city: str = "") -> str:
+    """Infer a meaningful image destination mentioned in activity text.
+
+    Some rows keep the overnight/base city in the City column even when the
+    actual experience is a cross-border or day-trip destination, for example
+    Helsinki rows titled "Day Trip to Tallinn". Prefer that explicit
+    destination for image matching so the day image reflects the experience.
+    """
+
+    normalized_text = normalize_keyword(text)
+    current_variants = city_variants(current_city)
+    if not normalized_text:
+        return ""
+
+    ordered_aliases = sorted(CITY_ALIASES.items(), key=lambda item: -max(len(str(alias)) for alias in item[1]))
+    for canonical, aliases in ordered_aliases:
+        normalized_aliases = {normalize_keyword(alias) for alias in aliases}
+        if current_variants & normalized_aliases:
+            continue
+        for alias in normalized_aliases:
+            if not alias:
+                continue
+            patterns = [
+                f"to {alias}",
+                f"in {alias}",
+                f"old town {alias}",
+                f"{alias} old town",
+                f"{alias} day trip",
+                f"day trip to {alias}",
+                f"excursion to {alias}",
+            ]
+            if any(pattern in normalized_text for pattern in patterns):
+                return canonical.title() if canonical.isascii() else canonical
+    return ""
 
 def _select_primary_image_city(rows: list[dict]) -> str:
     """Pick the destination that should drive day-image matching.
@@ -58,8 +96,13 @@ def _select_primary_image_city(rows: list[dict]) -> str:
         for row in rows or []:
             row_type = _row_type(row)
             city = str(row.get("city", "") or "").strip()
-            if city and row_type in group:
-                return city
+            if not city or row_type not in group:
+                continue
+            if row_type in {"activity", "day overview"}:
+                text_destination = _known_destination_from_text(_row_text(row), city)
+                if text_destination:
+                    return text_destination
+            return city
     for row in rows or []:
         city = str(row.get("city", "") or "").strip()
         if city:

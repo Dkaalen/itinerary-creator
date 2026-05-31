@@ -127,3 +127,18 @@ def test_rental_car_rows_render_as_rental_vehicle_inclusions_not_accommodation()
     assert_contains(rental_text, "collision damage waiver", "Rental vehicle included services should be summarized.")
     assert_not_contains(accommodation_text, "Deliver your rental car", "Rental return rows must not appear as Accommodation.")
     assert_not_contains(all_text, "Cancellation fee", "Operational rental terms should not be listed as client-facing inclusions.")
+
+
+def test_hotel_dinner_does_not_create_separate_meals_section():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from itinerary_parser import parse_itinerary
+    from normalizer import normalize_itinerary_rows
+    from generator import group_rows_by_day
+
+    source = """Day 1\tHotel\t31/10/2026\t01/11/2026\t\t\t\t\t\t\tKakslauttanen\t4Star, Kakslauttanen Arctic Resort, 1xNight, 1xSmall Glass Igloo, Incl Breakfast + Dinner\n"""
+    rows = normalize_itinerary_rows(parse_itinerary(source))
+    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    titles = [section.get("title") for section in sections]
+    assert_not_contains("\n".join(titles), "Meals included", "Hotel dinner belongs in Accommodation details, not a separate Meals section.")
+    accommodation = next(section for section in sections if section.get("title") == "Accommodation")
+    assert_contains("\n".join(accommodation.get("items", [])), "Breakfast and dinner included", "Accommodation should still preserve the hotel meal plan.")
