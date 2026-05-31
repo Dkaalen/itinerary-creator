@@ -180,3 +180,84 @@ def test_sleeper_compartment_detail_is_preserved_for_night_train():
     assert "Overnight Train Transfer from Stockholm to Narvik" in rail_items
     assert "2 x private sleeper compartment" in rail_items
     assert "2 x private sleeper compartment" in day_line
+
+
+def test_decimal_time_parentheses_are_removed_from_activity_titles_but_time_survives():
+    rows = _rows_from_text(
+        "Day 1\tActivity\t19/06/2026\t\t\t\t\t\t\t\tOslo\t"
+        "Oslo: 3h Guided Tour of Oslo (afternoon timing) incl. pick-up from hotel, visit to the Royal Palace\n"
+        "Day 2\tActivity\t20/06/2026\t\t\t\t\t\t\t\tOslo\t"
+        "Oslo: Electric Fjord Cruise (11.00 - 13.00) incl. archipelago island sightings. Free time in Oslo\n"
+        "Day 3\tActivity\t23/06/2026\t\t\t\t\t\t\t\tBergen\t"
+        "Bergen: Private Day Tour to Hardanger Fjords & Waterfalls: (1.00 - 17.00) incl. visit to Voss\n"
+        "Day 4\tActivity\t25/06/2026\t\t\t\t\t\t\t\tSvolvær\t"
+        "Svolvær: TrollFjord Cruise by Silent Electric Ship (10.30 - 14.30) incl. Atlantic Ocean sailing from Svolvær to the majestic Trollfjord"
+    )
+
+    assert rows[0]["title"] == "Oslo Guided City Tour"
+    assert rows[0]["duration"] == "3 hours"
+    assert rows[1]["title"] == "Electric Fjord Cruise"
+    assert rows[1]["time"] == "11:00 AM - 1:00 PM"
+    assert rows[2]["title"] == "Private Day Tour to Hardanger Fjords & Waterfalls"
+    assert rows[2]["time"] == "1:00 PM - 5:00 PM"
+    assert rows[3]["title"] == "TrollFjord Cruise by Silent Electric Ship"
+    assert rows[3]["time"] == "10:30 AM - 2:30 PM"
+
+
+def test_multi_room_hotel_quantities_from_plural_and_std_fragments_are_preserved():
+    rows = _rows_from_text(
+        "Day 1\tHotel\t2\t19/06/2026\t21/06/2026\t\t\t\t\t\tOslo\t"
+        "Oslo: 4-star Clarion Hotel The Hub, 2x Family rooms, 4x std. double rooms, incl. breakfast\n"
+        "Day 2\tHotel\t2\t24/06/2026\t26/06/2026\t\t\t\t\t\tSvolvær\t"
+        "Svolvær: 4-star Thon Hotel Lofoten, 2x Family rooms, 4x std. twin rooms (or accessible rooms), incl. breakfast"
+    )
+
+    assert rows[0]["hotel_name"] == "Clarion Hotel The Hub"
+    assert rows[0]["room_category"] == "2 x Family Room, 4 x Standard Double Room"
+    assert rows[1]["hotel_name"] == "Thon Hotel Lofoten"
+    assert rows[1]["room_category"] == "2 x Family Room, 4 x Standard Twin Room"
+
+
+def test_complex_lavvo_activity_is_not_downgraded_to_arctic_route_transfer():
+    rows = _rows_from_text(
+        "Day 1\tActivity\t15/10/2026\t\t\t\t\t\t\t\tTromso\t"
+        "Tromsø/Lyngen Alps: Crystal Lavvo Stay with Northern Lights, Snowshoeing, Meals & Transfers | "
+        "Transfers Please meet at the red Arctic Route bus. Overnight stay in private crystal lavvo."
+    )
+
+    assert rows[0]["effective_type"] == "Activity"
+    assert rows[0]["title"] == "Lyngen Alps Crystal Lavvo Stay"
+    assert create_client_activity_title(rows[0]) == "Lyngen Alps Crystal Lavvo Stay"
+
+
+def test_optional_recommended_rows_are_excluded_from_main_day_grouping():
+    rows = _rows_from_text(
+        "Day 1\tActivity\t25/06/2026\t\t\t\t\t\t\t\tSvolvaer\t"
+        "OPTIONAL/RECOMMENDED Private sightseeing drive in the Lofoten Islands archipelago (14.00 - 19.00) incl. pick-up/drop-off from the hotel"
+    )
+
+    assert rows[0]["is_optional"] is True
+    assert group_rows_by_day(rows) == {}
+
+
+def test_cruise_leisure_days_use_clean_client_title():
+    rows = _rows_from_text(
+        "Day 1\tCruise\t09.10.2026\t\t\t\t\t\t\t\tCruise\tCruise: Spend time at leisure"
+    )
+
+    plan = next(iter(group_rows_by_day(rows).values()))
+    from itinerary_generation.day_planner import plan_day
+
+    assert plan_day(plan).title == "At Leisure Onboard the Coastal Cruise"
+
+
+def test_arrival_city_hotel_to_airport_typo_is_corrected_after_inbound_flight():
+    rows = _rows_from_text(
+        "Day 1\tTransfer\t26/06/2026\t\t\t\t\t\t\t\tSvolvær\tPrivate Hotel to Airport\n"
+        "Day 1\tFlight\t26/06/2026\t\t\t\t\t\t\t\tCopenhagen\tFlight Svolvaer to Copenhagen | Self arranged | cost not included\n"
+        "Day 1\tTransfer\t26/06/2026\t\t\t\t\t\t\t\tCopenhagen\tCopenhagen: Private transfer from hotel to airport by Mercedes Benz Sprinter vehicle\n"
+        "Day 1\tHotel\t3\t26/06/2026\t29/06/2026\t\t\t\t\t\tCopenhagen\t4Star ,Hotel Mayfair, 3xNight , Standard Doubel Room, Incl Brekafast"
+    )
+
+    copenhagen_transfer = [row for row in rows if row.get("city") == "Copenhagen" and row.get("type") == "Transfer"][0]
+    assert copenhagen_transfer["title"] == "Private transfer from Copenhagen Airport to your accommodation"

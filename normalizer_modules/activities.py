@@ -4,6 +4,7 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
+from itinerary_generation.title_cleanup import clean_client_title
 from normalizer_modules.text_utils import text_blob, _lower_key
 
 def _is_group_tour_overview(row: dict) -> bool:
@@ -97,8 +98,13 @@ def normalize_activity_title(row: dict) -> str:
         return "Helsinki Guided Walking Tour"
     if "lofoten" in lower and "trollfjord" in lower:
         return "Lofoten Day Tour & Trollfjord Cruise"
+    if "crystal lavvo" in lower or ("lyngen" in lower and "lavvo" in lower):
+        return "Lyngen Alps Crystal Lavvo Stay"
     if "arctic route" in lower or ("senja" in lower and "coach" in lower):
-        return "Arctic Route Coach Transfer"
+        # Arctic Route bus wording can appear inside complex overnight activities.
+        # Only classify the whole row as a coach transfer when the row is truly transport-like.
+        if not any(marker in lower for marker in ["crystal lavvo", "overnight stay", "private crystal", "snowshoe", "basecamp"]):
+            return "Arctic Route Coach Transfer"
     if "wildlife photography" in lower and "longyearbyen" in lower:
         return "Wildlife Photography Around Longyearbyen"
     if "wildlife and glacier" in lower:
@@ -127,8 +133,9 @@ def normalize_activity_title(row: dict) -> str:
             return f"Private Sightseeing{' in ' + city if city else ''}"
         return f"Guided Experience{' in ' + city if city else ''}"
 
-    title = polish_title(row.get("title", ""))
+    title = clean_client_title(row.get("title", "") or row.get("details", ""), row)
     if len(title) > 90 or title.count(".") >= 2:
+        # Split only after metadata cleanup; decimal time ranges have already been removed.
         first = re.split(r"[.|]", title, maxsplit=1)[0].strip(" ,-:")
         if len(first) <= 70 and first:
             title = first

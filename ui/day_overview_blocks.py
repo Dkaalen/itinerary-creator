@@ -141,7 +141,7 @@ def _build_rental_overview_block(row):
         else:
             pickup_lines.append(line)
 
-    is_dropoff = any("drop vehicle" in line.lower() or "return vehicle" in line.lower() for line in pickup_lines)
+    is_dropoff = any(re.search(r"\b(?:drop\s*(?:off)?|return|deliver)\b.*\b(?:rental|vehicle|car)\b", line.lower()) or re.search(r"\b(?:rental|vehicle|car)\b.*\b(?:drop\s*(?:off)?|return|deliver)\b", line.lower()) for line in pickup_lines)
     vehicle_type = "rental SUV" if any("suv" in line.lower() for line in pickup_lines + examples) else "rental vehicle"
     first_example = examples[0] if examples else ""
 

@@ -59,5 +59,6 @@ def is_optional_addon_header(value):
     # Supplier sheets contain many typo variants: optional addon, optinal addon,
     # optional add-on, addon on request. Treat all as optional commercial items.
     has_optional = "optional" in text or "optinal" in text or "on request" in text
+    has_recommended_optional = text.startswith("optional recommended") or text.startswith("optional recommeded")
     has_addon = any(marker in text for marker in ["addon", "add on", "addons", "add ons", "add on request", "addon on request"])
-    return has_optional and (has_addon or "on request" in text)
+    return has_optional and (has_addon or "on request" in text or has_recommended_optional)

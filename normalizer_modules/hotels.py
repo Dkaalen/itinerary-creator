@@ -12,27 +12,33 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
     quantity = f"{quantity_match.group(1)} x" if quantity_match else ""
     room = re.sub(r"^\s*\d+\s*x\s*", "", room, flags=re.IGNORECASE)
     room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bStandard\s+room\b", "Standard Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bStandard\s+Double\s+room\b", "Standard Double Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bStandard\s+Double\s+Room\b", "Standard Double Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bSingle\s+room\b", "Single Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bTwin\s+room\b", "Twin Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bTriple\s+room\b", "Triple Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bFamily\s+room\b", "Family Room", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bJunior\s+suite\b", "Junior Suite", room, flags=re.IGNORECASE)
-    room = re.sub(r"\bPanorama\s+suite\b", "Panorama Suite", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bStd\.?\b", "Standard", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bStandard\.\s+", "Standard ", room, flags=re.IGNORECASE)
+    room = re.sub(r"\s*\((?:or\s+)?accessible rooms?\)\s*", "", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bStandard\s+rooms?\b", "Standard Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bStandard\s+Double\s+rooms?\b", "Standard Double Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bStandard\s+Double\s+Rooms?\b", "Standard Double Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bSingle\s+rooms?\b", "Single Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bTwin\s+rooms?\b", "Twin Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bTriple\s+rooms?\b", "Triple Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bFamily\s+rooms?\b", "Family Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bJunior\s+suites?\b", "Junior Suite", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bPanorama\s+suites?\b", "Panorama Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall\s+Glass\s+Igloo\b", "Small Glass Igloo", room, flags=re.IGNORECASE)
     room = re.sub(r"\bWest\s+or\s+east\s+Village\b", "West or East Village", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall Glass Igloo\s+(West or East Village)\b", r"Small Glass Igloo, \1", room, flags=re.IGNORECASE)
     room = clean_space(room.strip(" ,-"))
+    room = re.sub(r"\bRooms\b", "Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bSuites\b", "Suite", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bCabins\b", "Cabin", room, flags=re.IGNORECASE)
     if preserve_quantity and quantity:
         return f"{quantity} {room}"
     return room
 
-ROOM_UNIT_PATTERN = r"(?:room|igloo|suite|cabin)"
+ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|suites?|cabins?)"
 ROOM_DESCRIPTOR_PATTERN = (
-    r"(?:standard|superior|deluxe|small glass|glass|panorama|triple|tirple|"
-    r"double|single|twin|family|premium|junior|classic|atrium view|large|art)"
+    r"(?:standard|std\.?|superior|deluxe|small glass|glass|panorama|triple|tirple|"
+    r"double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view)"
 )
 
 
@@ -150,6 +156,24 @@ def is_placeholder_hotel_name(name: str, city: str = "") -> bool:
         return True
     return False
 
+
+def _strip_city_and_star_prefix(value: str, city: str = "") -> str:
+    text = clean_space(value)
+    if city:
+        text = re.sub(rf"^\s*{re.escape(city)}\s*:\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^\s*[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,40}\s*:\s*", "", text)
+    text = re.sub(r"^\s*[2-5]\s*[- ]?star\s*", "", text, flags=re.IGNORECASE).strip(" ,-:")
+    return clean_space(text)
+
+
+def _looks_like_room_fragment(value: str) -> bool:
+    lower = clean_space(value).lower()
+    return bool(
+        re.search(r"\d+\s*x\s*", lower)
+        or re.search(rf"\b{ROOM_UNIT_PATTERN}\b", lower, flags=re.IGNORECASE)
+        or re.search(r"\b(?:standard|std\.?|superior|double|single|twin|family|junior|suite|room|rooms|breakfast|brekafast|dinner)\b", lower)
+    )
+
 def clean_hotel_name_from_source(row: dict) -> str:
     source = clean_space(row.get("details", ""))
     city = clean_space(row.get("city", ""))
@@ -160,13 +184,13 @@ def clean_hotel_name_from_source(row: dict) -> str:
     hotel_brand_prefixes = ("scandic", "radisson", "comfort", "quality", "clarion", "thon", "moxy", "grand", "hotel", "santa", "kakslauttanen")
 
     for part in parts:
-        part_clean = polish_hotel_name(part)
+        part_clean = polish_hotel_name(_strip_city_and_star_prefix(part, city))
         lower = part_clean.lower()
         if city and lower == city.lower():
             continue
         if any(marker in lower for marker in ["check in", "check-in", "accommodation", "night stay"]):
             continue
-        if re.search(r"\b\d\s*[- ]?star\b", lower):
+        if re.fullmatch(r"\s*\d\s*[- ]?star\s*", lower):
             continue
         if re.search(r"\b\d+\s*x?\s*night", lower):
             # Some weak inputs use either "2 Night's Hotel Scandic Kemi" or
@@ -178,7 +202,7 @@ def clean_hotel_name_from_source(row: dict) -> str:
                 lower = part_clean.lower()
             else:
                 continue
-        if any(marker in lower for marker in ["standard", "double room", "breakfast", "brekafast", "dinner"]):
+        if _looks_like_room_fragment(part_clean):
             continue
         if lower.startswith("hotel ") and any(lower.startswith(f"hotel {brand}") for brand in ["scandic", "radisson", "comfort", "quality", "clarion", "thon", "moxy", "grand"]):
             part_clean = part_clean[6:].strip()
@@ -192,7 +216,7 @@ def normalize_hotel_row(row: dict) -> dict:
     city = clean_space(row.get("city", ""))
     star = extract_star_level(source)
 
-    name = polish_hotel_name(row.get("hotel_name", ""))
+    name = polish_hotel_name(_strip_city_and_star_prefix(row.get("hotel_name", ""), city))
     if is_placeholder_hotel_name(name, city):
         detected = clean_hotel_name_from_source(row)
         if detected and not is_placeholder_hotel_name(detected, city):

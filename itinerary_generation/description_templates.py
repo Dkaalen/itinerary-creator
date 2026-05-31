@@ -57,6 +57,12 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "whale watching" in full or "whale watching from downtown" in full:
         return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
 
+    if "crystal lavvo" in full or ("lyngen" in full and "lavvo" in full):
+        return polish_client_text(
+            "Travel from Tromsø towards the Lyngen Alps for an overnight Crystal Lavvo experience, "
+            "with meals, snowshoeing, Northern Lights guidance and return transfers arranged as part of the programme."
+        )
+
     if ("northern lights" in full or "aurora" in full) and ("cruise" in full or "silent electric ship" in full or "boat" in full):
         return polish_client_text(f"Set out on an evening Northern Lights cruise{city_phrase}, with time on the water, simple refreshments where included and the Arctic night sky as the focus of the experience.")
 

@@ -139,11 +139,15 @@ def create_client_activity_title(row):
     if "lofoten" in full_text and "trollfjord" in full_text:
         return "Lofoten Day Tour & Trollfjord Cruise"
 
+    if "crystal lavvo" in full_text or ("lyngen" in full_text and "lavvo" in full_text):
+        return "Lyngen Alps Crystal Lavvo Stay"
+
     if "fløibanen" in full_text or "floibanen" in full_text:
         return "Fløibanen Funicular"
 
     if "arctic route" in full_text or "senja" in full_text and "coach" in full_text:
-        return "Arctic Route Coach Transfer"
+        if not any(marker in full_text for marker in ["crystal lavvo", "overnight stay", "private crystal", "snowshoe", "basecamp"]):
+            return "Arctic Route Coach Transfer"
 
     if "hop-on" in title_text or "hop off" in title_text or "hop-off" in title_text or "hop on hop off" in full_text:
         if "copenhagen" in full_text:

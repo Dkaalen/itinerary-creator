@@ -80,7 +80,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("norway_in_a_nutshell_day", title, _intro_for_title(title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
 
     if travel_rows and all(get_row_type(row) == "Cruise" for row in rows) and _has_text(rows, "spend time at leisure"):
-        title = "Spend time at leisure onboard the cruise"
+        title = "At Leisure Onboard the Coastal Cruise"
         return DayPlan("cruise_leisure_day", title, "Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, use the ship facilities and settle into the rhythm of the voyage.", suppress_free_time=True)
 
     if not activity_rows and not travel_rows and any(rt == "Leisure" for rt in row_types):

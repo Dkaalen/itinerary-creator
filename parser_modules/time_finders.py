@@ -9,6 +9,7 @@ from parser_modules.common import clean_space
 
 def find_clock_range(value):
     text = clean_space(value).replace("–", "-").replace("—", "-")
+    text = re.sub(r"\b(\d{1,2})\.\s*(\d{2})\b", r"\1:\2", text)
     text = re.sub(r"\s*-{2,}\s*", " - ", text)
     # Require either a colon or an AM/PM suffix, so ranges like "5-8 minutes"
     # are not interpreted as 5:00 AM - 8:00 AM.

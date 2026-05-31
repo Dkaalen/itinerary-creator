@@ -52,6 +52,53 @@ def repair_common_supplier_typos(value: str) -> str:
     return text
 
 
+
+
+_CITY_PREFIX_RE = re.compile(r"^\s*([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,40})\s*:\s*(.+)$")
+_TIME_RANGE_RE = re.compile(
+    r"\(?\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\s*[-–—]\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\s*\)?",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_leading_city_prefix(text: str, row: dict | None = None) -> str:
+    """Remove a leading supplier city label without touching normal titles."""
+
+    value = clean_inline(text)
+    match = _CITY_PREFIX_RE.match(value)
+    if not match:
+        return value
+    prefix, rest = clean_inline(match.group(1)), clean_inline(match.group(2))
+    city = canonicalize_place_name((row or {}).get("city", ""))
+    known_prefixes = {
+        "oslo", "bergen", "helsinki", "stockholm", "copenhagen", "tromsø", "tromso",
+        "svolvær", "svolvaer", "reykjavík", "reykjavik", "voss", "stavanger", "kirkenes",
+    }
+    if (city and canonicalize_place_name(prefix).lower() == city.lower()) or prefix.lower() in known_prefixes:
+        return rest
+    return value
+
+
+def _strip_inline_time_and_admin_suffixes(text: str) -> str:
+    """Keep the client title while removing supplier timing/detail suffixes.
+
+    This intentionally handles decimal-style times such as ``(11.00 - 13.00)``
+    before sentence splitting, so titles do not collapse to fragments like
+    ``Electric Fjord Cruise (11``.
+    """
+
+    value = clean_inline(text)
+    value = re.sub(r"\b(\d{1,2})\.\s+(\d{2})\b", r"\1.\2", value)
+    value = re.sub(r"^\s*\d+\s*h\s+(?=guided\b|private\b|city\b|walking\b|fjord\b|cruise\b)", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s*:\s*" + _TIME_RANGE_RE.pattern + r".*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(_TIME_RANGE_RE, "", value).strip(" -:|.,")
+    value = re.sub(r"\s*\((?:morning|afternoon|evening|anytime|flexible timing|flexible start)[^)]*\)", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+(?:incl\.?|including|includes?)\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+-\s*(?:time|opening hours|includes?|includese|meeting point|pick[- ]?up|duration)\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+free time\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+\d+\s*(?:hours?|hrs?)\b$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    return clean_inline(value).strip(" -:|.,")
+
 def has_raw_supplier_residue(value: str) -> bool:
     lower = str(value or "").lower()
     return any(marker in lower for marker in RAW_SUPPLIER_MARKERS) or "|" in str(value or "")
@@ -62,8 +109,10 @@ def looks_like_generated_fallback(value: str) -> bool:
     return any(marker in lower for marker in _GENERIC_FALLBACK_MARKERS)
 
 
-def strip_supplier_title_metadata(value: str) -> str:
+def strip_supplier_title_metadata(value: str, row: dict | None = None) -> str:
     text = repair_common_supplier_typos(strip_price_fragments(clean_inline(value)))
+    text = _strip_leading_city_prefix(text, row)
+    text = _strip_inline_time_and_admin_suffixes(text)
     text = strip_supplier_title_cta(text)
     text = re.sub(r"\s*\|\s*.*$", "", text).strip()
     text = re.sub(r"\s+-\s*(?:Opening Hours|Time|Includes?|Includese|Meeting point)\s*:.*$", "", text, flags=re.IGNORECASE).strip()
@@ -79,7 +128,7 @@ def strip_supplier_title_metadata(value: str) -> str:
 
 def clean_client_title(value: str, row: dict | None = None) -> str:
     row = row or {}
-    text = strip_supplier_title_metadata(value or row.get("title", "") or row.get("original_title", ""))
+    text = strip_supplier_title_metadata(value or row.get("title", "") or row.get("original_title", ""), row)
     full = f"{text} {row.get('title','')} {row.get('original_title','')} {row.get('details','')}".lower()
     city = canonicalize_place_name(row.get("city", ""))
 
@@ -94,6 +143,8 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
         return "Munch Museum Visit"
     if "fløibanen" in full or "floibanen" in full:
         return "Fløibanen Funicular"
+    if "cruise" in full and "spend time at leisure" in full:
+        return "At Leisure Onboard the Coastal Cruise"
     if "norway in a nutshell" in full:
         # Preserve route-aware day titles already produced by titles.py.
         if re.search(r"norway in a nutshell\s+(?:from|to)\s+", text, flags=re.IGNORECASE):
@@ -124,6 +175,10 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
             return "Munch Museum Visit"
     if re.fullmatch(r"city walking tour", text, flags=re.IGNORECASE) and city:
         return f"{city} Walking Tour"
+    guided_match = re.fullmatch(r"guided tour of ([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+)", text, flags=re.IGNORECASE)
+    if guided_match:
+        place = polish_title(guided_match.group(1))
+        return f"{place} Guided City Tour"
     return polish_title(text)
 
 

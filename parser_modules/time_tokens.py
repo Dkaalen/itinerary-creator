@@ -70,9 +70,17 @@ def infer_range_suffixes(start, end):
     start_suffix = start["suffix"]
     end_suffix = end["suffix"]
 
+    if not start_suffix and not end_suffix and end["hour"] > 12 and start["hour"] < 8 and end["hour"] - start["hour"] > 10:
+        # Some supplier inputs write afternoon 24-hour ranges as ``1.00 - 17.00``
+        # instead of ``13.00 - 17.00``. Keep these client-facing as afternoon
+        # ranges rather than rendering an impossible 1:00 AM start.
+        start_suffix = "PM"
+
     if start_suffix and not end_suffix:
         if start_suffix == "AM" and end["hour"] <= start["hour"]:
             end_suffix = "PM"
+        elif start_suffix == "PM" and end["hour"] > 12:
+            end_suffix = ""
         else:
             end_suffix = start_suffix
 

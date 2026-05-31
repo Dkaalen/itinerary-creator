@@ -295,6 +295,21 @@ def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
                 row["title"] = "Private transfer from the station to your hotel"
                 row["original_title"] = row.get("original_title") or "Private Hotel to Station"
 
+            same_day_arrival_flight = any(
+                other is not row
+                and other.get("day") == day
+                and get_row_type(other) == "Flight"
+                and city
+                and (
+                    canonicalize_place_name(other.get("city", "")) == city
+                    or re.search(rf"\bto\s+{re.escape(city)}\b", text_blob(other), flags=re.IGNORECASE)
+                )
+                for other in updated
+            )
+            if same_day_has_hotel and same_day_arrival_flight and re.search(r"\bhotel\s+to\s+airport\b|\bfrom\s+hotel\s+to\s+airport\b", title_lower):
+                row["title"] = f"Private transfer from {city} Airport to your accommodation" if city else "Private transfer from the airport to your accommodation"
+                row["original_title"] = row.get("original_title") or "Private Hotel to Airport"
+
     return updated
 
 def _fill_missing_context_cities(rows: list[dict]) -> list[dict]:
