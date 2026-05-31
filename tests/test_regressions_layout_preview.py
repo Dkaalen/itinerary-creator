@@ -240,3 +240,17 @@ def test_cover_route_html_keeps_final_pair_together_for_preview():
     assert 'cover-route-line' in html
     assert 'BERGEN&nbsp;·&nbsp;OSLO' in html
     assert html.count('cover-route-line') == 2
+
+
+def test_visual_editor_auto_saves_live_edits_to_streamlit():
+    editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    bridge_py = (ROOT / "visual_editor_component" / "editor_bridge.py").read_text(encoding="utf-8")
+    main_view_py = (ROOT / "app_modules" / "main_view.py").read_text(encoding="utf-8")
+
+    assert_contains(editor_html, "function scheduleAutosave()", "Visual editor should have an automatic save scheduler.")
+    assert_contains(editor_html, "setTimeout(sendCurrentEditsToStreamlit, 900)", "Visual editor should debounce live autosave instead of requiring manual save.")
+    assert_contains(editor_html, "el.addEventListener('input'", "Text edits should trigger autosave from live input events.")
+    assert_contains(editor_html, "el.addEventListener('blur'", "Leaving an editable field should immediately save the latest edit.")
+    assert_contains(editor_html, "Save now", "The manual button should remain as an explicit fallback, not the primary workflow.")
+    assert_contains(bridge_py, "whenever edits are auto-saved", "Python bridge docs should describe auto-save behavior.")
+    assert_contains(main_view_py, "Changes auto-save into the preview/PDF state", "User-facing copy should explain that edits auto-save.")

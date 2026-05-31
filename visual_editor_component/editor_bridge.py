@@ -14,7 +14,7 @@ _visual_page_editor = components.declare_component(
 def render_visual_page_editor(payload, key="visual_page_editor"):
     """Render the custom editable-page component and return saved edits.
 
-    The frontend returns a JSON string only when the user clicks
-    "Save edits to preview/PDF". Until then Streamlit receives None.
+    The frontend returns a JSON string whenever edits are auto-saved
+    or when the user clicks "Save now". Until then Streamlit receives None.
     """
     return _visual_page_editor(payload=payload, key=key, default=None)

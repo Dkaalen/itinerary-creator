@@ -29,14 +29,6 @@ def render_content_blocks(container, story, styles):
         if "content-block" in classes or "activity-inclusion-block" in classes:
             block_story = []
 
-            duration_meta_text = ""
-            if "activity-block" in classes:
-                for possible_meta in child.find_all(recursive=False):
-                    meta_text = clean_text(possible_meta.get_text(" "))
-                    if re.match(r"^(?:duration|ferry duration|cruise duration)\s*:", meta_text, flags=re.IGNORECASE):
-                        duration_meta_text = meta_text
-                        break
-
             for element in child.find_all(recursive=False):
                 element_classes = element.get("class") or []
 
@@ -48,8 +40,6 @@ def render_content_blocks(container, story, styles):
                     add_bullets(block_story, [li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles)
                 elif "body-text" in element_classes:
                     text = clean_text(element.get_text(" "))
-                    if "activity-block" in classes and re.match(r"^time\s*:", text, flags=re.IGNORECASE):
-                        text = _activity_time_range_text(text, duration_meta_text)
                     if "strong-line" in element_classes:
                         add_paragraph(block_story, text, styles["body_bold"])
                     else:

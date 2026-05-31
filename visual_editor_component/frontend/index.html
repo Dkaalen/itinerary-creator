@@ -217,6 +217,7 @@
     }
     .final-html-box { white-space: normal; }
     .saved-note { color: #bfe7d9; font-weight: 700; font-size: 12px; display: none; }
+    .saved-note.pending { color: #f5d38a; }
     .saved-note.show { display: inline; }
     .help-strip { margin-top: 10px; color: #a9b6c2; font-size: 12px; line-height: 1.4; text-align: center; }
     @media (max-width: 860px) {
@@ -319,8 +320,8 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Hover a day image for picture tools. Save before reviewing/exporting.</span></div>
-      <div class="toolbar-actions"><span id="savedNote" class="saved-note">Saved to app</span><button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button><button class="primary" id="saveBtn" type="button">Save edits to preview/PDF</button></div>
+      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Changes auto-save to preview and PDF export when you pause typing.</span></div>
+      <div class="toolbar-actions"><span id="savedNote" class="saved-note">Changes saved automatically</span><button class="ghost" id="resetBtn" type="button">Reset current page edits</button><button class="primary" id="saveBtn" type="button">Save now</button></div>
     </div>
     <div class="page-stack">`;
   const coverStyle = `background-image: url('${escAttr(model.cover?.cover_background_data_uri || '')}'); --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
@@ -351,7 +352,7 @@ function draw() {
   h += finalHtmlPage('Included', "What's included", 'whats_included_html', model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || '');
   h += finalTextPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
   h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
-  h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
+  h += `</div><div class="help-strip">Text and image edits auto-save into the same project state used by the final preview and PDF export.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
   requestAnimationFrame(() => { adjustDayImages(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });
@@ -414,13 +415,33 @@ function pruneForSave(value) {
   return copy;
 }
 
-function attachHandlers() {
-  document.getElementById('saveBtn').addEventListener('click', () => {
-    const data = collect();
-    Streamlit.setComponentValue(JSON.stringify(pruneForSave(data)));
-    const note = document.getElementById('savedNote');
+function sendCurrentEditsToStreamlit() {
+  const data = collect();
+  Streamlit.setComponentValue(JSON.stringify(pruneForSave(data)));
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = 'Changes saved automatically';
+    note.classList.remove('pending');
     note.classList.add('show');
     setTimeout(() => note.classList.remove('show'), 1500);
+  }
+}
+
+let autosaveTimer = null;
+function scheduleAutosave() {
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = 'Saving changes…';
+    note.classList.add('pending', 'show');
+  }
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(sendCurrentEditsToStreamlit, 900);
+}
+
+function attachHandlers() {
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    clearTimeout(autosaveTimer);
+    sendCurrentEditsToStreamlit();
   });
   document.getElementById('resetBtn').addEventListener('click', () => {
     model = JSON.parse(JSON.stringify(initialPayload));
@@ -428,7 +449,14 @@ function attachHandlers() {
     draw();
   });
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
-    el.addEventListener('input', () => requestAnimationFrame(adjustDayImages));
+    el.addEventListener('input', () => {
+      requestAnimationFrame(adjustDayImages);
+      scheduleAutosave();
+    });
+    el.addEventListener('blur', () => {
+      clearTimeout(autosaveTimer);
+      sendCurrentEditsToStreamlit();
+    });
   });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -461,6 +489,7 @@ function attachHandlers() {
         }
       }
       draw();
+      scheduleAutosave();
     });
   });
   document.querySelectorAll('[data-img-focus]').forEach(sel => {
@@ -469,6 +498,7 @@ function attachHandlers() {
       if (model.days[idx] && model.days[idx].image) model.days[idx].image.crop_focus = sel.value;
       const img = sel.closest('.image-stage')?.querySelector('img');
       if (img) img.style.objectPosition = focusPos(sel.value);
+      scheduleAutosave();
     });
   });
   document.querySelectorAll('[data-img-upload]').forEach(input => {
@@ -491,6 +521,7 @@ function attachHandlers() {
           if (existing) existing.src = reader.result;
           else stage.insertAdjacentHTML('afterbegin', `<img src="${reader.result}" style="object-position:${focusPos(model.days[idx].image.crop_focus)}" alt="Uploaded picture">`);
           requestAnimationFrame(adjustDayImages);
+          scheduleAutosave();
         }
       };
       reader.readAsDataURL(file);

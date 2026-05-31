@@ -186,7 +186,7 @@ def render_visual_editor_step():
 
         with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
             st.markdown(
-                '<div class="workflow-note">Click directly into the A4 pages and type. Use the save button inside the editor before reviewing/exporting.</div>',
+                '<div class="workflow-note">Click directly into the A4 pages and type. Changes auto-save into the preview/PDF state when you pause typing.</div>',
                 unsafe_allow_html=True,
             )
             render_visual_editor(edited_rows, edited_grouped_days, st.session_state.output_edits, rebuild_preview=rebuild_current_preview, mark_dirty=mark_output_dirty)
@@ -227,7 +227,7 @@ def render_fallback_editor(show_debug):
 def render_export_step(app_version):
     if st.session_state.itinerary_html:
         st.subheader("Step 4 — Export")
-        st.markdown('<div class="workflow-note">Save your editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="workflow-note">Download your auto-saved editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
 
         html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
         project_data = {
