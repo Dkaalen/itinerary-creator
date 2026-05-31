@@ -63,6 +63,14 @@ def _build_generated_inclusions_html(parsed_rows, grouped_days):
     return render_inclusion_sections_inner_html(create_categorized_inclusions(parsed_rows, grouped_days))
 
 
+def _normalize_route_edit(value):
+    """Normalize editable cover-route text back to a single separator-delimited line."""
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("\n", " · ")
+    parts = [part.strip() for part in text.split("·") if part.strip()]
+    return " · ".join(parts)
+
+
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
     image_matches = select_day_images_with_overrides(grouped_days, output_edits)
@@ -144,7 +152,8 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     cover = data.get("cover", {}) or {}
     for key in ["cover_kicker", "trip_title", "trip_subtitle", "destinations_line"]:
         if key in cover:
-            output_edits[key] = str(cover.get(key, "")).strip()
+            value = str(cover.get(key, "")).strip()
+            output_edits[key] = _normalize_route_edit(value) if key == "destinations_line" else value
 
     summary = data.get("summary", {}) or {}
     if isinstance(summary.get("trip_glance"), dict):
@@ -225,4 +234,3 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             if rebuild_preview:
                 rebuild_preview(mark_pdf_dirty=True)
             st.success("Edits saved to preview and PDF export.")
-            st.rerun()

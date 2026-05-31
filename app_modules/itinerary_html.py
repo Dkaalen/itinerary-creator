@@ -346,6 +346,16 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
             transform: translateX(-50%) rotate(45deg);
         }}
 
+
+        .cover-dates {{
+            font-family: Georgia, serif;
+            color: var(--cover-muted);
+            font-size: 14px;
+            line-height: 1.35;
+            margin-top: 8px;
+            text-align: center;
+        }}
+
         .cover-destination-label {{
             font-family: Arial, sans-serif;
             font-size: 10px;
