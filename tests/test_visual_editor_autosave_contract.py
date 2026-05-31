@@ -14,6 +14,7 @@ sys.modules.setdefault("streamlit", streamlit_stub)
 sys.modules.setdefault("streamlit.components", streamlit_stub.components)
 sys.modules.setdefault("streamlit.components.v1", streamlit_stub.components.v1)
 
+import visual_editor_component.editor_workflow as editor_workflow
 from visual_editor_component.editor_workflow import apply_visual_editor_result
 
 
@@ -58,3 +59,22 @@ def test_visual_editor_normalizes_route_line_breaks_from_editable_preview():
     assert apply_visual_editor_result(result, output_edits)
 
     assert output_edits["destinations_line"] == "Helsinki · Rovaniemi · Bergen · Oslo"
+
+
+def test_visual_editor_accepts_pdf_export_commit_envelope():
+    editor_workflow.st.session_state = {}
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "commit_nonce": "7",
+        "payload": {
+            "cover": {"trip_title": "Edited before PDF"},
+            "summary": {},
+            "days": [],
+            "final_pages": {},
+        },
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["trip_title"] == "Edited before PDF"
+    assert editor_workflow.st.session_state["_visual_editor_last_applied_commit_nonce"] == "7"

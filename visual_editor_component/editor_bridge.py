@@ -11,10 +11,11 @@ _visual_page_editor = components.declare_component(
 )
 
 
-def render_visual_page_editor(payload, key="visual_page_editor"):
+def render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=None):
     """Render the custom editable-page component and return saved edits.
 
-    The frontend returns a JSON string whenever edits are auto-saved
-    or when the user clicks "Save now". Until then Streamlit receives None.
+    The frontend returns a JSON string when the user clicks "Save now"
+    or when Streamlit requests a commit before PDF export. Until then
+    editing stays local in the browser and does not trigger reruns.
     """
-    return _visual_page_editor(payload=payload, key=key, default=None)
+    return _visual_page_editor(payload=payload, commit_nonce=commit_nonce, key=key, default=None)

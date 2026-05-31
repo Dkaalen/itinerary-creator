@@ -186,7 +186,7 @@ def render_visual_editor_step():
 
         with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
             st.markdown(
-                '<div class="workflow-note">Click directly into the A4 pages and type. Changes auto-save into the preview/PDF state when you pause typing.</div>',
+                '<div class="workflow-note">Click directly into the A4 pages and type. Edits stay local while you work; they are applied when you click Save edits or Create PDF.</div>',
                 unsafe_allow_html=True,
             )
             render_visual_editor(edited_rows, edited_grouped_days, st.session_state.output_edits, rebuild_preview=rebuild_current_preview, mark_dirty=mark_output_dirty)
@@ -227,7 +227,7 @@ def render_fallback_editor(show_debug):
 def render_export_step(app_version):
     if st.session_state.itinerary_html:
         st.subheader("Step 4 — Export")
-        st.markdown('<div class="workflow-note">Download your auto-saved editable project, download the HTML preview, or create a PDF.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="workflow-note">Download your editable project, download the HTML preview, or create a PDF. Create PDF applies pending page edits first.</div>', unsafe_allow_html=True)
 
         html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
         project_data = {
@@ -262,9 +262,37 @@ def render_export_step(app_version):
                 st.caption("HTML file not available.")
 
         with export_col_3:
-            if st.button("Create PDF", use_container_width=True):
+            requested_commit_nonce = st.session_state.get("_pdf_after_visual_edit_commit_nonce")
+            commit_ready = (
+                requested_commit_nonce
+                and st.session_state.get("_visual_editor_export_commit_ready")
+                and str(st.session_state.get("_visual_editor_last_applied_commit_nonce", "")) == str(requested_commit_nonce)
+            )
+
+            create_clicked = st.button("Create PDF", use_container_width=True)
+            if create_clicked and not commit_ready:
+                next_nonce = str(int(st.session_state.get("_visual_editor_commit_counter", 0)) + 1)
+                st.session_state["_visual_editor_commit_counter"] = int(next_nonce)
+                st.session_state["_visual_editor_commit_nonce"] = next_nonce
+                st.session_state["_pdf_after_visual_edit_commit_nonce"] = next_nonce
+                st.session_state["_visual_editor_export_commit_ready"] = False
+                st.info("Applying pending preview edits before creating the PDF…")
+                st.rerun()
+
+            if commit_ready:
                 try:
                     with st.spinner("Creating PDF..."):
+                        # Rebuild once more after applying browser-side edits so the
+                        # PDF is generated from the same state as the final preview.
+                        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+                        edited_grouped_days = group_rows_by_day(edited_rows)
+                        st.session_state.itinerary_html = build_itinerary_html(
+                            edited_rows,
+                            edited_grouped_days,
+                            st.session_state.output_edits,
+                        )
+                        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
+                        html_path = Path(st.session_state.html_path) if st.session_state.html_path else html_path
                         pdf_path = save_pdf_file(html_path)
                         if pdf_path is None:
                             st.session_state.pdf_bytes = None
@@ -273,8 +301,12 @@ def render_export_step(app_version):
                             st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
                             st.session_state.pdf_status = "Ready"
 
+                    st.session_state["_pdf_after_visual_edit_commit_nonce"] = None
+                    st.session_state["_visual_editor_export_commit_ready"] = False
+                    st.session_state["_visual_editor_commit_nonce"] = None
+
                     if st.session_state.pdf_bytes:
-                        st.success("PDF created. Use the download button.")
+                        st.success("PDF created with the latest preview edits. Use the download button.")
 
                 except Exception as error:
                     st.session_state.pdf_status = "PDF failed"
@@ -283,6 +315,8 @@ def render_export_step(app_version):
                     )
                     with st.expander("PDF export error details"):
                         st.exception(error)
+            elif st.session_state.get("_pdf_after_visual_edit_commit_nonce"):
+                st.info("Applying pending preview edits before creating the PDF…")
 
         with export_col_4:
             if st.session_state.pdf_bytes:

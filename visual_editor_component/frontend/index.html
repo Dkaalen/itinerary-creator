@@ -254,7 +254,7 @@ let initialPayload = null;
 let model = null;
 let uploadedImages = {};
 let touchedKeys = new Set();
-let autosaveTimer = null;
+let lastCommitNonce = null;
 let lastSavedPayload = '';
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
@@ -335,20 +335,25 @@ function finalHtmlPage(label, title, key, html) {
     ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
   </div></div></div>`;
 }
-function render(payload) {
+function render(payload, commitNonce = null) {
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
-  model = JSON.parse(JSON.stringify(initialPayload));
-  uploadedImages = {};
-  touchedKeys = new Set();
-  autosaveTimer = null;
+  if (!model || !touchedKeys.size) {
+    model = JSON.parse(JSON.stringify(initialPayload));
+    uploadedImages = {};
+    touchedKeys = new Set();
+  }
   lastSavedPayload = '';
   draw();
+  if (commitNonce && commitNonce !== lastCommitNonce) {
+    lastCommitNonce = commitNonce;
+    setTimeout(() => saveChanges(commitNonce), 0);
+  }
 }
 function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Hover a day image for picture tools. Save before reviewing/exporting.</span></div>
+      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Edits stay local until you save or create the PDF.</span></div>
       <div class="toolbar-actions"><span id="savedNote" class="saved-note">Saved to app</span><button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button><button class="primary" id="saveBtn" type="button">Save edits to preview/PDF</button></div>
     </div>
     <div class="page-stack">`;
@@ -485,36 +490,39 @@ function markTouched(key) {
   if (key) touchedKeys.add(key);
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = 'Autosave pending…';
+    note.textContent = 'Unsaved edits';
     note.classList.add('show');
   }
 }
-function saveChanges() {
+function buildSaveEnvelope(commitNonce = null) {
   collect();
-  if (!touchedKeys.size) return;
-  const serialized = JSON.stringify(pruneForSave(model));
-  if (serialized === lastSavedPayload) return;
+  const payload = pruneForSave(model);
+  if (commitNonce !== null && commitNonce !== undefined && commitNonce !== '') {
+    return JSON.stringify({commit_nonce: String(commitNonce), payload});
+  }
+  return JSON.stringify(payload);
+}
+function saveChanges(commitNonce = null) {
+  if (!touchedKeys.size && !commitNonce) return;
+  const serialized = buildSaveEnvelope(commitNonce);
+  if (!commitNonce && serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
   Streamlit.setComponentValue(serialized);
+  touchedKeys = new Set();
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = 'Saved to app';
+    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved to app';
     note.classList.add('show');
-    setTimeout(() => note.classList.remove('show'), 1500);
+    if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
   }
-}
-function scheduleAutosave() {
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(saveChanges, 2200);
 }
 
 function attachHandlers() {
-  document.getElementById('saveBtn').addEventListener('click', saveChanges);
+  document.getElementById('saveBtn').addEventListener('click', () => saveChanges());
   document.getElementById('resetBtn').addEventListener('click', () => {
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
     touchedKeys = new Set();
-    clearTimeout(autosaveTimer);
     draw();
   });
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
@@ -522,9 +530,7 @@ function attachHandlers() {
     el.addEventListener('input', () => {
       markTouched(key);
       requestAnimationFrame(adjustDayImages);
-      scheduleAutosave();
     });
-    el.addEventListener('blur', saveChanges);
   });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -558,7 +564,7 @@ function attachHandlers() {
         }
       }
       draw();
-      scheduleAutosave();
+      
     });
   });
   document.querySelectorAll('[data-img-focus]').forEach(sel => {
@@ -566,7 +572,7 @@ function attachHandlers() {
       const idx = Number(sel.getAttribute('data-img-focus'));
       if (model.days[idx] && model.days[idx].image) model.days[idx].image.crop_focus = sel.value;
       markTouched(`days.${idx}.image`);
-      scheduleAutosave();
+      
       const img = sel.closest('.image-stage')?.querySelector('img');
       if (img) img.style.objectPosition = focusPos(sel.value);
     });
@@ -593,7 +599,7 @@ function attachHandlers() {
           else stage.insertAdjacentHTML('afterbegin', `<img src="${reader.result}" style="object-position:${focusPos(model.days[idx].image.crop_focus)}" alt="Uploaded picture">`);
           requestAnimationFrame(adjustDayImages);
         }
-        scheduleAutosave();
+        
       };
       reader.readAsDataURL(file);
     });
@@ -601,7 +607,8 @@ function attachHandlers() {
 }
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'streamlit:render') {
-    render(event.data.args.payload);
+    const args = event.data.args || {};
+    render(args.payload, args.commit_nonce);
   }
 });
 Streamlit.setComponentReady();

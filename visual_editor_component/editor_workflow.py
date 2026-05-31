@@ -139,14 +139,24 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     }
 
 
+def _decode_visual_editor_result(result):
+    """Decode visual editor payloads, including export-commit wrappers."""
+    data = json.loads(result) if isinstance(result, str) else result
+    if isinstance(data, dict) and "payload" in data and "commit_nonce" in data:
+        return data.get("payload") or {}, str(data.get("commit_nonce") or "")
+    return data, ""
+
+
 def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     """Persist visual editor edits into the normal output_edits structure."""
     if not result:
         return False
     try:
-        data = json.loads(result) if isinstance(result, str) else result
+        data, commit_nonce = _decode_visual_editor_result(result)
     except Exception:
         st.warning("Visual editor edits could not be read. Please try saving again.")
+        return False
+    if not isinstance(data, dict):
         return False
 
     cover = data.get("cover", {}) or {}
@@ -219,6 +229,9 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         if key in final_pages and key != "whats_included_text":
             output_edits[key] = str(final_pages.get(key, "")).strip()
 
+    if commit_nonce:
+        st.session_state["_visual_editor_last_applied_commit_nonce"] = commit_nonce
+
     if mark_dirty:
         mark_dirty()
     return True
@@ -227,10 +240,15 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
 def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_preview=None, mark_dirty=None):
     """Render and process the direct editable A4-page editor."""
     payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
-    result = render_visual_page_editor(payload, key="visual_page_editor")
+    commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
+    result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
     if result and result != st.session_state.get("_last_visual_editor_result"):
         st.session_state["_last_visual_editor_result"] = result
         if apply_visual_editor_result(result, output_edits, mark_dirty=mark_dirty):
             if rebuild_preview:
                 rebuild_preview(mark_pdf_dirty=True)
-            st.success("Edits saved to preview and PDF export.")
+            applied_nonce = st.session_state.get("_visual_editor_last_applied_commit_nonce")
+            if applied_nonce and str(applied_nonce) == str(st.session_state.get("_pdf_after_visual_edit_commit_nonce", "")):
+                st.session_state["_visual_editor_export_commit_ready"] = True
+            else:
+                st.success("Edits saved to preview and PDF export.")

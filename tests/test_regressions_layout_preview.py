@@ -242,15 +242,15 @@ def test_cover_route_html_keeps_final_pair_together_for_preview():
     assert html.count('cover-route-line') == 2
 
 
-def test_visual_editor_auto_saves_live_edits_to_streamlit():
+def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
     editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
     bridge_py = (ROOT / "visual_editor_component" / "editor_bridge.py").read_text(encoding="utf-8")
     main_view_py = (ROOT / "app_modules" / "main_view.py").read_text(encoding="utf-8")
 
-    assert_contains(editor_html, "function scheduleAutosave()", "Visual editor should have an automatic save scheduler.")
-    assert_contains(editor_html, "setTimeout(sendCurrentEditsToStreamlit, 900)", "Visual editor should debounce live autosave instead of requiring manual save.")
-    assert_contains(editor_html, "el.addEventListener('input'", "Text edits should trigger autosave from live input events.")
-    assert_contains(editor_html, "el.addEventListener('blur'", "Leaving an editable field should immediately save the latest edit.")
-    assert_contains(editor_html, "Save now", "The manual button should remain as an explicit fallback, not the primary workflow.")
-    assert_contains(bridge_py, "whenever edits are auto-saved", "Python bridge docs should describe auto-save behavior.")
-    assert_contains(main_view_py, "Changes auto-save into the preview/PDF state", "User-facing copy should explain that edits auto-save.")
+    assert_not_contains(editor_html, "function scheduleAutosave()", "Visual editor should not trigger expensive Streamlit autosaves while typing.")
+    assert_not_contains(editor_html, "setTimeout(saveChanges, 2200)", "Text edits should stay local instead of using a delayed autosave rerun.")
+    assert_not_contains(editor_html, "el.addEventListener('blur', saveChanges", "Clicking away should not force a Streamlit rerun.")
+    assert_contains(editor_html, "Unsaved edits", "The editor should show that browser-local changes are pending.")
+    assert_contains(editor_html, "commit_nonce", "Create PDF should be able to request one explicit save from the editor.")
+    assert_contains(bridge_py, "requests a commit before PDF export", "Python bridge docs should describe the PDF-export commit flow.")
+    assert_contains(main_view_py, "Create PDF applies pending page edits first", "Export copy should explain the pending-edit workflow.")
