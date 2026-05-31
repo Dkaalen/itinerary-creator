@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(TESTS_DIR))
 
 from image_test_helpers import assert_equal, assert_contains
-from image_matcher import get_image_bank_diagnostics, scan_image_bank, select_day_image, select_day_images
+from image_matcher import get_image_bank_diagnostics, scan_image_bank, score_image_for_day, select_day_image, select_day_images
 
 def test_image_bank_matching_is_destination_specific():
     with tempfile.TemporaryDirectory() as tmp:
@@ -122,6 +122,33 @@ def test_day_image_selection_does_not_reuse_images_and_prefers_available_season(
         )
         if not winter_match or "Winter" not in Path(winter_match["path"]).name:
             raise AssertionError("Winter-dated itineraries should prefer available Winter images.")
+
+
+def test_destination_image_scoring_weights_season_above_single_activity_theme():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        oslo_dir = bank / "Norway" / "Oslo"
+        oslo_dir.mkdir(parents=True)
+        (oslo_dir / "Oslo_Autumn_Street.jpg").write_bytes(b"fake autumn image")
+        (oslo_dir / "Oslo_Walking_Tour.jpg").write_bytes(b"fake activity image")
+
+        candidates = {Path(candidate.path).stem: candidate for candidate in scan_image_bank(bank)}
+        context = {
+            "season": "autumn",
+            "city_variants": {"oslo"},
+            "themes": {"city"},
+            "tokens": {"guided", "walking", "tour", "streets"},
+        }
+
+        season_score, season_reasons = score_image_for_day(candidates["Oslo_Autumn_Street"], context)
+        activity_score, activity_reasons = score_image_for_day(candidates["Oslo_Walking_Tour"], context)
+
+        if not season_score > activity_score:
+            raise AssertionError(
+                "Season matching should carry more weight than a single activity/theme match "
+                f"for same-destination images. Season score={season_score} ({season_reasons}); "
+                f"activity score={activity_score} ({activity_reasons})."
+            )
 
 
 def test_root_default_fallback_is_used_when_destination_missing_and_is_relevant():

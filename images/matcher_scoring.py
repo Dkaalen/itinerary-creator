@@ -5,6 +5,13 @@ from __future__ import annotations
 from .fallback import is_global_default_candidate, score_default_candidate, _conflict_penalty
 from .metadata import ImageCandidate, SEASON_ALIASES, city_variants, normalize_keyword
 
+DESTINATION_FOLDER_MATCH_SCORE = 60
+DESTINATION_FILENAME_MATCH_SCORE = 20
+SEASON_MATCH_SCORE = 24
+THEME_MATCH_SCORE = 12
+KEYWORD_MATCH_SCORE_PER_TOKEN = 4
+KEYWORD_MATCH_SCORE_CAP = 20
+
 
 def candidate_destination_matches(candidate: ImageCandidate, day_context: dict) -> bool:
     day_city_variants = set(day_context.get("city_variants", set()))
@@ -35,27 +42,27 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     if not day_city_variants or not (candidate_city_variants & day_city_variants):
         return 0, ["no destination match"]
 
-    score += 60
+    score += DESTINATION_FOLDER_MATCH_SCORE
     reasons.append("city folder match")
 
     if filename_city_variants & day_city_variants:
-        score += 20
+        score += DESTINATION_FILENAME_MATCH_SCORE
         reasons.append("city filename match")
 
     theme_matches = candidate_themes & day_themes
     if theme_matches:
-        score += 18 * len(theme_matches)
+        score += THEME_MATCH_SCORE * len(theme_matches)
         reasons.append("theme match: " + ", ".join(sorted(theme_matches)))
 
     day_season = normalize_keyword(day_context.get("season", ""))
     candidate_seasons = set(candidate.seasons)
     if day_season and day_season in candidate_seasons:
-        score += 12
+        score += SEASON_MATCH_SCORE
         reasons.append(f"season match: {day_season}")
 
     token_matches = (candidate_tokens & day_tokens) - day_city_variants - set(SEASON_ALIASES)
     if token_matches:
-        score += min(20, 4 * len(token_matches))
+        score += min(KEYWORD_MATCH_SCORE_CAP, KEYWORD_MATCH_SCORE_PER_TOKEN * len(token_matches))
         reasons.append("keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
 
     penalty, penalty_reasons = _conflict_penalty(candidate_themes, day_themes, day_tokens)
