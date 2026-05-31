@@ -89,25 +89,37 @@ TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
 
 
+_RENTAL_ROW_RE = re.compile(
+    r"\b(?:pick\s*up\s+(?:your\s+)?rental|pickup\s+rental|rental\s+(?:vehicle|car|suv)|car\s+rental|hire\s+car|deliver\s+(?:your\s+)?rental|return\s+(?:your\s+)?rental|drop\s*(?:off)?\s+(?:your\s+)?rental)\b",
+    flags=re.IGNORECASE,
+)
+
+
 def _looks_like_rental_vehicle_row(row: dict) -> bool:
-    text = text_blob(row).lower()
-    row_type = get_row_type(row).lower()
-    if row_type == "car":
+    row_type = get_row_type(row)
+    text = text_blob(row)
+    if row_type == "Car":
         return True
-    return bool(re.search(r"\b(?:pick\s*up|pickup|deliver|return|drop(?:\s*off)?)\b.*\b(?:rental\s+car|car\s+rental|rental\s+vehicle)", text))
+    # Some supplier sheets incorrectly put rental-car return rows in the Hotel
+    # column. Correct those rows before accommodation normalization, but leave
+    # Day Overview rental blocks alone because the overview renderer already
+    # has specific client-facing rental wording.
+    if row_type == "Hotel" and _RENTAL_ROW_RE.search(text):
+        return True
+    return False
 
 
 def _normalize_rental_vehicle_row(row: dict) -> dict:
-    text = text_blob(row).lower()
-    row["effective_type"] = "Car"
+    text = text_blob(row)
+    lower = text.lower()
     row["type"] = "Car"
-    if re.search(r"\b(?:deliver|return|drop(?:\s*off)?)\b", text):
-        row["title"] = "Return your rental car"
-    elif re.search(r"\b(?:pick\s*up|pickup)\b", text):
-        row["title"] = "Pick up your rental car"
-    else:
-        row["title"] = "Rental car"
-    row["original_title"] = row.get("original_title") or row.get("title")
+    row["effective_type"] = "Car"
+    if re.search(r"\b(?:deliver|return|drop\s*(?:off)?)\b", lower):
+        row["title"] = "Rental car return"
+    elif re.search(r"\b(?:pick\s*up|pickup)\b", lower):
+        row["title"] = "Rental car pick-up"
+    elif not clean_space(row.get("title", "")):
+        row["title"] = "Rental vehicle"
     return row
 
 def warn_suspicious_city(row: dict) -> None:
@@ -162,7 +174,11 @@ def normalize_row(row: dict) -> dict:
         return row
 
     if _looks_like_rental_vehicle_row(row):
-        return _normalize_rental_vehicle_row(row)
+        row = _normalize_rental_vehicle_row(row)
+        if isinstance(row.get("includes"), list):
+            row["includes"] = split_and_merge_inclusions(row.get("includes", []))
+        row = normalize_time_range_fields(row)
+        return row
 
     if row_type == "Hotel":
         return normalize_hotel_row(row)

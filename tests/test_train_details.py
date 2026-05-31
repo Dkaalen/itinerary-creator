@@ -43,3 +43,14 @@ def test_train_cabin_detail_ignores_non_train_rows():
     }
 
     assert get_train_cabin_detail(row) == ""
+
+
+def test_train_cabin_detail_preserves_supplier_quantity_and_category():
+    row = {
+        "type": "Transfer",
+        "effective_type": "Train",
+        "title": "Overnight Train to Helsinki",
+        "details": "Overnight Train Transfer with the Santa Claus Express to Helsinki - 21:00 pm - 09:00 am - 4 x downstairs cabin for two people",
+    }
+
+    assert get_train_cabin_detail(row) == "4 x downstairs cabin for two people"

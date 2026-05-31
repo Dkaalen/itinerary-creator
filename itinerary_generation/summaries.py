@@ -171,7 +171,10 @@ def describe_city_experience(rows):
     has_adventure = _has(text, "atv", "quad", "glacier", "hike", "hiking", "crampon")
     has_whale = _has(text, "whale", "wildlife", "rib boat")
     has_fjord = _has(text, "fjord", "trollfjord", "cruise", "catamaran", "silent electric ship") or ("boat" in text and not _has(text, "stockholm", "vasa", "old town"))
-    has_food = _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner", "meal")
+    # Meal-plan words from hotel rows (for example "Breakfast + Dinner") should
+    # not turn a destination chapter into "local food culture". Only use food
+    # culture when there is an actual experience/prose signal for it.
+    has_food = bool(primary_experience_rows) and _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner", "meal")
     has_tallinn = _has(text, "tallinn")
     has_city = _has(text, "vasa", "old town", "museum", "walking tour", "city walk", "must-see", "guided visit", "helsinki guide", "senate square", "senate squate")
     has_nature = _has(text, "forest tower", "forgotten giants", "nature hike", "haukland", "henningsvær", "photo tour", "arctic landscape")
@@ -180,6 +183,10 @@ def describe_city_experience(rows):
     has_reindeer_sami = _has(text, "reindeer", "sámi", "sami", "husky", "santa claus village")
     has_cable = _has(text, "fjellheisen", "cable car", "funicular", "fløibanen", "floibanen")
     has_flight = _has(text, "flight")
+
+    if not primary_experience_rows and (has_hotel_only or travel_only_with_hotel):
+        if _has(text, "northern light village", "panorama suite"):
+            return "Northern Lights village stay"
 
     candidates = []
 

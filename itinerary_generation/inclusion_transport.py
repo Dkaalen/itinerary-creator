@@ -8,6 +8,7 @@ from text_polish import polish_inclusion_item, polish_title
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.transport import get_transport_route_phrase, get_transfer_travel_title, is_route_transfer
+from itinerary_generation.transport_details import get_transport_detail_items
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
 
@@ -65,7 +66,7 @@ def clean_transport_title(row: dict) -> str:
 def transport_bucket(row: dict) -> str:
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
     row_type = get_row_type(row)
-    if "private" in text:
+    if "private" in text and get_row_type(row) == "Transfer" and not is_route_transfer(row):
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
         return ""
@@ -101,13 +102,22 @@ def transport_line(row: dict) -> str:
                 item = "ticket included"
         if item and item.lower() not in title.lower():
             add_unique(extras, item)
-    cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
+    cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
     if get_row_type(row) == "Cruise" and cabin_match:
         add_unique(extras, f"{polish_title(cabin_match.group(1))} cabin")
-    luggage = polish_inclusion_item(row.get("luggage_included", ""), title)
-    if luggage:
-        add_unique(extras, luggage)
+    for detail_item in get_transport_detail_items(row, title):
+        detail_item = polish_inclusion_item(detail_item, title)
+        if detail_item:
+            add_unique(extras, detail_item)
     if extras:
+        if any("car ticket" in item.lower() for item in extras):
+            extras = [item for item in extras if item.lower() not in {"ticket included", "tickets included", "ferry ticket included"}]
+        if any("coach ticket" in item.lower() for item in extras):
+            extras = [item for item in extras if item.lower() not in {"ticket included", "tickets included"}]
+        if any("train ticket" in item.lower() for item in extras):
+            extras = [item for item in extras if item.lower() not in {"ticket included", "tickets included"}]
+        extras = [item for item in extras if item]
+        extras = [item for item in extras if "ticket included" not in item.lower()] + [item for item in extras if "ticket included" in item.lower()]
         extras = merge_compound_inclusions(extras)
         detail = join_detail_parts(extras).strip(" .")
         if detail:

@@ -52,13 +52,13 @@ Professional driver & guide (English)
     room_values = {row.get("title"): row.get("room_category") for row in rows if row.get("effective_type") == "Hotel"}
     assert_equal(
         room_values.get("Hotel Arthur"),
-        "Standard Room and Standard Triple Room",
+        "2 x Standard Room, 1 x Standard Triple Room",
         "Multiple room categories should be separated cleanly.",
     )
     assert_equal(
         room_values.get("Hotel Aakenus"),
-        "Triple Room",
-        "Common room typo should be corrected.",
+        "3 x Triple Room",
+        "Common room typo and quantity should be corrected.",
     )
 
     activity_rows = [row for row in rows if row.get("effective_type") == "Activity"]
@@ -85,7 +85,7 @@ Professional driver & guide (English)
     assert_contains("\n".join(section_titles), "Accommodation", "Categorized inclusions should include accommodation.")
     assert_contains("\n".join(section_titles), "Activities & experiences", "Categorized inclusions should include activities.")
     accommodation_text = "\n".join(section["items"][0] for section in sections if section["title"] == "Accommodation")
-    assert_contains(accommodation_text, "Standard Room and Standard Triple Room", "Accommodation inclusions should include rooming details.")
+    assert_contains(accommodation_text, "2 x Standard Room, 1 x Standard Triple Room", "Accommodation inclusions should include room quantities and categories.")
     assert_not_contains(accommodation_text, "—", "Accommodation inclusions should avoid em-dash-heavy formatting.")
 
 
@@ -289,7 +289,7 @@ def test_real_input_fixture_bank_core_expectations():
     whale = next(row for row in iceland_rows if "Whale" in row.get("title", ""))
     assert_equal(whale.get("duration"), "2.5–3.5 hours", "Whale watching duration range should be preserved.")
     fosshotel = next(row for row in iceland_rows if "Fosshotel" in row.get("hotel_name", ""))
-    assert_equal(fosshotel.get("room_category"), "Standard Room - Triple", "Hotel parser should split hotel names before room markers.")
+    assert_equal(fosshotel.get("room_category"), "1 x Standard Room - Triple", "Hotel parser should preserve room quantity while splitting hotel names before room markers.")
 
     rental_row = next(row for row in iceland_rows if row.get("effective_type") == "Day Overview" and "Rental" in row.get("details", ""))
     rental_html = build_day_overview_block(rental_row)["html"]

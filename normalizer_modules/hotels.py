@@ -8,8 +8,8 @@ from normalizer_modules.text_utils import clean_space
 
 def _normalize_single_room_category(value: str, *, preserve_quantity: bool = False) -> str:
     room = polish_client_text(value)
-    quantity_match = re.match(r"^\s*(\d+\s*x)\s*", room, flags=re.IGNORECASE)
-    quantity = clean_space(quantity_match.group(1)).lower().replace(" x", " x") if quantity_match else ""
+    quantity_match = re.match(r"^\s*(\d+)\s*x\s*", room, flags=re.IGNORECASE)
+    quantity = f"{quantity_match.group(1)} x" if quantity_match else ""
     room = re.sub(r"^\s*\d+\s*x\s*", "", room, flags=re.IGNORECASE)
     room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
     room = re.sub(r"\bStandard\s+room\b", "Standard Room", room, flags=re.IGNORECASE)
@@ -24,13 +24,14 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
     room = re.sub(r"\bSmall Glass Igloo\s+(West or East Village)\b", r"Small Glass Igloo, \1", room, flags=re.IGNORECASE)
     room = clean_space(room.strip(" ,-"))
     if preserve_quantity and quantity:
-        return f"{quantity} {room}".replace("x ", "x ")
+        return f"{quantity} {room}"
     return room
 
 def normalize_room_category(value: str) -> str:
     room = polish_client_text(value)
     room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
     room = re.sub(r"(?<=\D)(\d+\s*x\s*)", r" \1", room, flags=re.IGNORECASE)
+    room = re.sub(r"(?i)(room|suite|cabin|igloo)\s+(?=\d+\s*x)", r"\1, ", room)
     if re.search(r"\bnight'?s?\b", room, flags=re.IGNORECASE):
         return ""
 
@@ -42,7 +43,7 @@ def normalize_room_category(value: str) -> str:
     for fragment in fragments or [room]:
         if not re.search(r"\b(?:room|suite|cabin|igloo)\b", fragment, flags=re.IGNORECASE):
             continue
-        room_match = re.search(r"^(\d+\s*x\s*)?(.+?(?:Room|Suite|Cabin|Igloo))\b", fragment, flags=re.IGNORECASE)
+        room_match = re.search(r"^(\d+\s*x\s*)?(.+?(?:Room|Suite|Cabin|Igloo)(?:\s*-\s*(?:Triple|Double|Single|Twin))?(?:\s+(?:west\s+or\s+east|east\s+or\s+west)\s+Village)?)\b", fragment, flags=re.IGNORECASE)
         if not room_match:
             continue
         quantity = clean_space(room_match.group(1) or "")
@@ -64,14 +65,15 @@ def normalize_room_category(value: str) -> str:
 def extract_room_category_from_source(source: str) -> str:
     """Extract room text from raw hotel details, preserving quantities."""
     text = clean_space(source)
-    match = re.search(
-        r"(?:\d+\s*x\s*)?(?:standard|superior|deluxe|small glass|glass|double|single|twin)[^|;-]*(?:room|igloo|suite|cabin)?(?:\s*,\s*\d+\s*x\s*(?:standard|superior|deluxe|double|single|twin)[^|;-]*room)?",
-        text,
+    text = re.sub(r"(?i)(room|suite|cabin|igloo)\s+(?=\d+\s*x)", r"\1, ", text)
+    room_pattern = re.compile(
+        r"(?:\d+\s*x\s*)?(?:standard|superior|deluxe|small glass|glass|panorama|triple|tirple|double|single|twin)[^,|;-]*?(?:room|igloo|suite|cabin)(?:\s*-\s*(?:triple|double|single|twin))?(?:\s+(?:west\s+or\s+east|east\s+or\s+west)\s+Village)?",
         flags=re.IGNORECASE,
     )
-    if not match:
-        return ""
-    return normalize_room_category(match.group(0))
+    matches = [clean_space(match.group(0)) for match in room_pattern.finditer(text)]
+    if matches:
+        return normalize_room_category(", ".join(matches))
+    return ""
 
 def normalize_meal_plan(value: str, source_text: str = "") -> str:
     text = f"{value} {source_text}".lower()

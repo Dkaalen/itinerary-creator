@@ -81,7 +81,9 @@ def create_whats_included(parsed_rows, grouped_days):
     transport_rows = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES]
     activity_rows = [row for row in parsed_rows if get_row_type(row) == "Activity"]
 
-    nights = max(get_day_count(grouped_days) - 1, 0)
+    nights = sum(int(str(row.get("hotel_nights", "") or "0")) for row in hotel_rows if str(row.get("hotel_nights", "") or "").strip().isdigit())
+    if nights <= 0:
+        nights = max(get_day_count(grouped_days) - 1, 0)
 
     if hotel_rows:
         night_word = "night" if nights == 1 else "nights"

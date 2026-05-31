@@ -28,16 +28,28 @@ def _transport_source_text(row):
 def _clean_route_place(value):
     raw = str(value or "").strip(" -:|.,")
     raw = re.sub(r"^(?:from|to)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
-    raw = re.split(r"\s+-\s+|\s+\|\s+|\s+at\s+\d{1,2}:\d{2}|\s+\d{1,2}:\d{2}", raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
+    # Common supplier typo: "Saariselka t to Rovaniemi" leaves a stray
+    # trailing "t" on the origin after route splitting. Do not let that
+    # become a client-facing place name.
+    raw = re.sub(r"\s+\bt\b$", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
+    raw = re.split(r"\s+-\s+|\s+\|\s+|\s+via\s+|\s+at\s+\d{1,2}:\d{2}|\s+\d{1,2}:\d{2}", raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
+    if re.search(r"\s+to\s+", raw, flags=re.IGNORECASE):
+        raw = re.split(r"\s+to\s+", raw, flags=re.IGNORECASE)[-1].strip(" -:|.,")
+    raw = re.sub(r"\bKakslaut+?enen\s+Arctic\s+Resort\b", "Kakslauttanen", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bKakslauttanen\s+Arctic\s+Resort\b", "Kakslauttanen", raw, flags=re.IGNORECASE)
     if re.search(r"fl[åa]msbanen", raw, flags=re.IGNORECASE):
         raw = "Flåm"
     if re.search(r"one[- ]?way geiranger fjord cruise", raw, flags=re.IGNORECASE):
         raw = "Ålesund"
     place = canonicalize_place_name(raw)
+    place = re.sub(r"\bbus\s+Station\b", "Bus Station", place, flags=re.IGNORECASE)
     lower = place.lower()
     if lower in _ROUTE_PREFIX_ORIGINS | {"", "hotel", "station", "airport", "accommodation", "your accommodation"}:
         return ""
-    if any(marker in lower for marker in ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "shower", "sink", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]):
+    blocked_phrases = ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]
+    if any(marker in lower for marker in blocked_phrases):
+        return ""
+    if re.search(r"\b(?:shower|sink)\b", lower):
         return ""
     return place
 
@@ -50,6 +62,31 @@ def get_route_points_for_transport(row):
     any of those locations.
     """
     source_text = _transport_source_text(row)
+
+    explicit_from_to_match = re.search(
+        r"\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+-\s+|\s+\|\s+|$)",
+        source_text,
+        flags=re.IGNORECASE,
+    )
+    if explicit_from_to_match:
+        origin = _clean_route_place(explicit_from_to_match.group(1))
+        destination = _clean_route_place(explicit_from_to_match.group(2))
+        if destination:
+            return origin, destination
+
+
+    dash_route_pattern = re.compile(
+        r"\b(?:train|night\s+train|overnight\s+train|scenic\s+train|flight|coach|bus|ferry|cruise)(?:\s+transfer)?\s*:?\s*([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+-\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+-\s+(?:\d{1,2}:\d{2}|tickets?|car\s+ticket|train\s+ticket|coach\s+ticket|luggage|meal|included|$)",
+        flags=re.IGNORECASE,
+    )
+    for key in ["details", "original_title", "title"]:
+        dash_route_match = dash_route_pattern.search(str(row.get(key, "") or ""))
+        if dash_route_match:
+            origin = _clean_route_place(dash_route_match.group(1))
+            destination = _clean_route_place(dash_route_match.group(2))
+            if destination:
+                return origin, destination
+
     station_match = re.search(r"\b([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+(?:Central|station)\s*[–-]\s*([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)\s+station\b", source_text, flags=re.IGNORECASE)
     if station_match:
         return _clean_route_place(station_match.group(1)), _clean_route_place(station_match.group(2))
@@ -93,10 +130,9 @@ def get_route_via_points(row, origin="", destination=""):
     text = polish_client_text(_transport_source_text(row))
     points = []
 
-    via_match = re.search(r"\bvia\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\||,|$)", text, flags=re.IGNORECASE)
-    if via_match:
+    for via_match in re.finditer(r"\bvia\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\||,|$)", text, flags=re.IGNORECASE):
         candidate = _clean_route_place(via_match.group(1))
-        if candidate and candidate.lower() not in {origin.lower(), destination.lower()}:
+        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
             points.append(candidate)
 
     # Multi-leg phrasing such as Copenhagen to Malmö to Stockholm.

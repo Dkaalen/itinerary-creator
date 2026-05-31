@@ -87,8 +87,8 @@ def add_premium_rule(story, width=32 * mm, space_after=9):
     story.append(Spacer(1, space_after))
 
 
-def add_cover_rule(story, width=44 * mm, space_after=9):
-    table = Table([[CenterDiamondRule(width=width, color=pdf_styles.MUTED)]], colWidths=[width], hAlign="CENTER")
+def add_cover_rule(story, width=44 * mm, space_after=9, color=None):
+    table = Table([[CenterDiamondRule(width=width, color=color or pdf_styles.MUTED)]], colWidths=[width], hAlign="CENTER")
     table.setStyle(
         TableStyle(
             [

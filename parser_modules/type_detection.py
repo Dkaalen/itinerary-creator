@@ -31,6 +31,8 @@ KNOWN_TYPES = {
     "flight",
     "cruise",
     "ferry",
+    "car",
+    "drive",
 }
 
 

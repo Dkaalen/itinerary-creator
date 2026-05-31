@@ -33,7 +33,7 @@ def get_transport_route_phrase(row):
     if row_type == "Train" or "train" in lower:
         if _is_norway_in_a_nutshell_text(text):
             return _norway_nutshell_route_label(text, origin, destination)
-        label = "Overnight Train Transfer" if "overnight" in lower else "Scenic Train Transfer"
+        label = "Overnight Train Transfer" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else "Scenic Train Transfer"
         if origin and destination:
             return f"{label} from {origin} to {destination}{_via_suffix(via)}"
         if destination:
@@ -156,7 +156,7 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
     if "flight" in lower:
         return f"Flight to {destination}"
     if "train" in lower:
-        return f"Overnight train to {destination}" if "overnight" in lower else f"Train to {destination}"
+        return f"Overnight train to {destination}" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else f"Train to {destination}"
     if "coach" in lower or "bus" in lower:
         return f"Coach Transfer to {destination}"
     if "ferry" in lower:
@@ -187,6 +187,9 @@ def get_primary_transport_title(day_rows):
 
     for row in day_rows:
         if is_route_transfer(row):
+            route_phrase = get_transport_route_phrase(row)
+            if route_phrase:
+                return _destination_focused_transport_title(row, route_phrase)
             return get_transfer_travel_title(row)
 
     return ""

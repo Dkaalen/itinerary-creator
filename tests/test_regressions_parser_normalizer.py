@@ -198,7 +198,7 @@ def test_hotel_name_before_room_marker_is_parsed_generally():
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     row = rows[0]
     assert_equal(row.get("hotel_name"), "Fosshotel Glacier Lagoon", "Hotel parser should split hotel name before room count markers.")
-    assert_equal(row.get("room_category"), "Standard Room - Triple", "Room parser should remove the room-count prefix.")
+    assert_equal(row.get("room_category"), "1 x Standard Room - Triple", "Room parser should preserve room-count prefix.")
 
 
 def test_place_alias_normalization_does_not_duplicate_suffixes_or_common_words():

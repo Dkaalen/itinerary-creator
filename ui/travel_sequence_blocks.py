@@ -8,6 +8,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_a
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
+from itinerary_generation.transport_details import get_transport_detail_items
 from text_polish import (
     strip_price_fragments,
     format_duration_display,
@@ -85,14 +86,17 @@ def get_travel_sequence_line(row):
         return f"{title} (self-arranged, not included)"
 
     if row_type == "Transfer" and is_route_transfer(row):
-        return polish_title(get_transfer_travel_title(row) or row.get("title", ""))
+        text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+        if any(marker in text for marker in ["train", "ferry", "cruise", "flight"]):
+            return get_transport_route_phrase(row) or get_transfer_travel_title(row) or polish_title(row.get("title", ""))
+        return get_transfer_travel_title(row) or polish_title(row.get("title", ""))
 
     if row_type == "Transfer":
         return clean_client_title(row.get("title", ""), row)
 
     if row_type in TRANSPORT_TYPES:
         phrase = get_transport_route_phrase(row)
-        return polish_title(phrase or row.get("title", ""))
+        return phrase or polish_title(row.get("title", ""))
 
     return polish_title(row.get("title", ""))
 
@@ -169,9 +173,19 @@ def get_travel_arrangement_line(row):
     if arrival_time and arrival_time != time:
         details.append(f"arrives {arrival_time}")
     if get_row_type(row) == "Cruise":
-        cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
+        cabin_match = re.search(r"\b(?:\d+\s*x\s*)?Cabin\s*\(([^)]+)\)", f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}', flags=re.IGNORECASE)
         if cabin_match:
             details.append(f"{polish_title(cabin_match.group(1))} cabin")
+    for detail_item in get_transport_detail_items(row, title):
+        detail_lower = detail_item.lower()
+        # Day travel lines should not repeat ordinary coach/train ticket notes;
+        # commercial ticket detail belongs on the final inclusions page. Keep
+        # meaningful operational details such as sleeper cabins, rail seats and
+        # ferry car tickets.
+        if detail_lower in {"coach ticket included", "train ticket included", "ticket included"}:
+            continue
+        if detail_item and detail_lower not in title.lower() and detail_item not in details:
+            details.append(detail_item)
     if duration and " - " not in time:
         clean_duration = format_duration_display(duration)
         if clean_duration:

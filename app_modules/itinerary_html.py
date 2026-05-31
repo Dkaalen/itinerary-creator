@@ -645,7 +645,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
-        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
+        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}">
             <div class="cover-main">
                 <div class="cover-emblem" aria-hidden="true"></div>
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
