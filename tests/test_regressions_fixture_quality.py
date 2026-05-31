@@ -19,6 +19,7 @@ from generator import (
     create_journey_arc,
     group_rows_by_day,
     create_day_intro,
+    create_day_title,
     create_trip_glance,
 )
 from itinerary_generation.titles import create_trip_subtitle
@@ -415,6 +416,15 @@ def test_v36c57_real_uploaded_inputs_quality_gate():
 
     family_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "norway_finland_family_autumn.txt").read_text(encoding="utf-8")))
     family_grouped = group_rows_by_day(family_rows)
+
+    winter_family_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "finland_norway_winter_family.txt").read_text(encoding="utf-8")))
+    winter_family_grouped = group_rows_by_day(winter_family_rows)
+    winter_room_text = "\n".join(row.get("room_category", "") for row in winter_family_rows if row.get("effective_type") == "Hotel")
+    assert_contains(winter_room_text, "2 x Family Room (for 2 adults and 2 kids)", "Family-room quantities and occupancy notes should survive hotel normalization.")
+    assert_contains(winter_room_text, "1 x Junior Suite (for 3 adults)", "Junior-suite quantities should not be lost from multi-room hotel rows.")
+    assert_contains(winter_room_text, "2 x Igloo with alcove (for 2 adults and 2 kids)", "Igloo-with-alcove quantities should survive hotel normalization.")
+    assert_equal(create_day_title(winter_family_grouped["Day 5"]), "Glass Igloo Stay in Rovaniemi", "Hotel-only relocation days should not use raw private-transfer copy as the day heading.")
+
     santa_row = next(row for row in family_rows if "SANTA CLAUS" in row.get("original_title", "") or "Santa Claus" in row.get("title", ""))
     assert_equal(create_client_activity_title(santa_row), "Meet Santa Claus and his friends", "Santa activity titles should use grammatical sentence-style capitalization.")
     day9_html = "\n".join(block["html"] for block in build_day_blocks(family_grouped["Day 9"]) if block)

@@ -81,8 +81,13 @@ def create_day_title(day_rows):
         return transport_title
 
     priority_order = [
-        "Transfer",
+        # On hotel-only relocation/check-in days, the accommodation is the
+        # client-facing point of the day. A raw private-transfer sentence such
+        # as "Enjoy a private transfer from your accommodation to your new
+        # accommodation" should stay in Travel Arrangements, not become the
+        # day heading.
         "Hotel",
+        "Transfer",
         "Leisure",
     ]
 
@@ -92,7 +97,7 @@ def create_day_title(day_rows):
                 title = row.get("title", "").strip()
                 if item_type == "Hotel":
                     hotel_text = f'{row.get("hotel_name", "")} {row.get("room_category", "")} {row.get("details", "")}'
-                    if re.search(r"glass\s+igloo|santa's\s+igloos", hotel_text, flags=re.IGNORECASE):
+                    if re.search(r"glass\s+igloo|santa'?s\s+igloos|igloo\s+with\s+alcove", hotel_text, flags=re.IGNORECASE):
                         return "Glass Igloo Stay in Rovaniemi"
                     if city:
                         return f"Stay in {city}"
