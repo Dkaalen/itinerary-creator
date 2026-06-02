@@ -33,6 +33,8 @@ KNOWN_TYPES = {
     "ferry",
     "car",
     "drive",
+    "optional",
+    "day overview",
 }
 
 
@@ -52,13 +54,48 @@ def looks_like_known_type(value):
     return clean_space(value).lower() in KNOWN_TYPES
 
 
-def is_optional_addon_header(value):
+def _normalized_optional_text(value):
     text = clean_space(value).lower()
-    text = re.sub(r"[^a-z0-9 ]+", " ", text)
-    text = clean_space(text)
-    # Supplier sheets contain many typo variants: optional addon, optinal addon,
-    # optional add-on, addon on request. Treat all as optional commercial items.
-    has_optional = "optional" in text or "optinal" in text or "on request" in text
-    has_recommended_optional = text.startswith("optional recommended") or text.startswith("optional recommeded")
-    has_addon = any(marker in text for marker in ["addon", "add on", "addons", "add ons", "add on request", "addon on request"])
-    return has_optional and (has_addon or "on request" in text or has_recommended_optional)
+    text = re.sub(r"[^a-z0-9/ ]+", " ", text)
+    return clean_space(text)
+
+
+def is_optional_addon_header(value):
+    """Return True only for explicit optional-section/add-on headers.
+
+    This intentionally does *not* treat generic supplier prose such as
+    "other languages available on request" as optional. Optional status is a
+    commercial row state and must not leak from descriptive text into the main
+    itinerary structure.
+    """
+    text = _normalized_optional_text(value)
+    if not text:
+        return False
+
+    # Standalone section headings pasted above rows. Do not match generic
+    # "Optional:" bullet labels inside day-overview prose or supplier
+    # descriptions; those belong to the current row, not to later rows.
+    section_headings = {
+        "optional add ons",
+        "optional addons",
+        "optional add on",
+        "optional addon",
+        "optional experiences",
+        "optional extras",
+        "add ons",
+        "addons",
+    }
+    return text in section_headings
+
+
+def is_explicit_optional_text(value):
+    """Return True when a row itself clearly declares optional status."""
+    text = _normalized_optional_text(value)
+    return text.startswith((
+        "optional",
+        "optinal",
+        "optional/recommended",
+        "optional recommended",
+        "optional recommeded",
+        "available as optional",
+    ))

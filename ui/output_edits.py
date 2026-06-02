@@ -6,7 +6,7 @@ import streamlit as st
 
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro, create_travel_route_label
-from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
+from itinerary_generation.inclusions import create_whats_included
 from itinerary_generation.titles import (
     create_client_activity_title,
     create_day_title,
@@ -110,7 +110,10 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "rows": {},
         "whats_included_text": "",
         "whats_included_mode": "auto_categorized",
-        "whats_not_included_text": list_to_text(create_whats_not_included()),
+        # Keep exclusions dynamic unless the user manually edits them.
+        # Initializing this from a generic default list freezes out itinerary-
+        # specific self-arranged flights/transfers and optional items.
+        "whats_not_included_text": "",
         "important_travel_notes_text": list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES),
     }
 

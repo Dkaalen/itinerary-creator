@@ -16,6 +16,7 @@ from ui.output_edits import (
     mark_output_dirty,
 )
 from itinerary_generation.common import group_rows_by_day
+from itinerary_generation.validation import validate_itinerary_integrity
 from visual_editor_component.editor_workflow import render_visual_editor
 
 from app_modules.itinerary_html import build_itinerary_html
@@ -128,6 +129,21 @@ def render_input_step():
             if raw_text.strip():
                 diagnostics.reset()
                 parsed_rows = parse_and_normalize_itinerary(raw_text)
+                validation_issues = validate_itinerary_integrity(parsed_rows)
+                blocking_issues = [issue for issue in validation_issues if issue.severity == "error"]
+                if blocking_issues:
+                    st.session_state.parsed_rows = []
+                    st.session_state.output_edits = {}
+                    st.session_state.itinerary_html = ""
+                    st.session_state.pdf_bytes = None
+                    st.session_state.pdf_signature = None
+                    st.session_state.pdf_status = "Blocked by validation"
+                    st.session_state.parser_diagnostics = diagnostics.get_warnings()
+                    for issue in blocking_issues:
+                        st.error(issue.message)
+                    st.warning("The itinerary was not generated because the parsed structure appears unsafe. Check optional/add-on rows and try again.")
+                    return
+
                 grouped_days = group_rows_by_day(parsed_rows)
                 duplicate_count = get_duplicate_count(raw_text, parsed_rows)
 
@@ -158,6 +174,10 @@ def render_input_step():
                 overflow_warnings = get_overflow_warnings(edited_grouped_days)
                 for warning in overflow_warnings:
                     st.warning(warning)
+
+                for issue in validation_issues:
+                    if issue.severity == "warning":
+                        st.warning(issue.message)
 
                 if st.session_state.html_path:
                     st.success("HTML preview prepared.")

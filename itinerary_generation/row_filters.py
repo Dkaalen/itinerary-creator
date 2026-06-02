@@ -14,8 +14,22 @@ def add_unique(items, item):
         items.append(clean_item)
 
 
+def get_commercial_status(row):
+    if row.get("commercial_status"):
+        return str(row.get("commercial_status"))
+    if row.get("is_optional"):
+        return "optional"
+    if is_self_arranged(row):
+        return "self_arranged"
+    return "included"
+
+
 def is_optional_row(row):
-    return bool(row.get("is_optional"))
+    return get_commercial_status(row) == "optional" or bool(row.get("is_optional"))
+
+
+def is_commercially_included(row):
+    return get_commercial_status(row) == "included" and not is_optional_row(row)
 
 
 def main_rows_only(rows):

@@ -106,16 +106,16 @@ def get_travel_sequence_line(row):
 
 def _destination_focused_coach_day_line(row, phrase):
     text = f'{phrase} {row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
-    if "norway in a nutshell" in text.lower():
-        return phrase
-    if not re.search(r"\b(?:coach|bus)\b", text, flags=re.IGNORECASE):
-        return phrase
-    match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,?\s*via\b|\s*[-—;|,]\s*|$)", phrase, flags=re.IGNORECASE)
-    if match:
-        destination = polish_title(clean_space(match.group(1)).strip(" .:-"))
-        destination = re.sub(r"\bbus\s+Station\b", "Bus Station", destination, flags=re.IGNORECASE)
-        if destination:
-            return f"Coach Transfer to {destination}"
+    # When the only useful extra detail is ticket noise, keep the day line
+    # destination-focused. Otherwise preserve route/service quality such as
+    # "Panoramic Coach Transfer from Tromsø to Alta".
+    if re.search(r"\b(?:coach|bus)\b", text, flags=re.IGNORECASE) and re.search(r"\btickets?\s+included\b", text, flags=re.IGNORECASE):
+        match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,?\s*via\b|\s*[-—;|,]\s*|$)", phrase, flags=re.IGNORECASE)
+        if match:
+            destination = polish_title(clean_space(match.group(1)).strip(" .:-"))
+            destination = re.sub(r"\bbus\s+Station\b", "Bus Station", destination, flags=re.IGNORECASE)
+            if destination:
+                return f"Coach Transfer to {destination}"
     return phrase
 
 def _clean_self_arranged_travel_title(title):
