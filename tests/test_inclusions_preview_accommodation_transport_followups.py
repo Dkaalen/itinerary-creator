@@ -99,7 +99,7 @@ def test_transport_schedule_fallback_appears_for_overnight_train_and_coach_inclu
     grouped = group_rows_by_day(rows)
     html = build_itinerary_html(rows, grouped, {})
 
-    assert "Overnight Train Transfer" in html
+    assert "Santa Claus Express to Rovaniemi" in html
     assert "11:13 PM - 10:59 AM" in html
     assert "1 x downstairs cabin for two people" in html
     assert "Panoramic Coach Transfer" in html

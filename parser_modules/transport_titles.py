@@ -118,7 +118,11 @@ def create_clean_transport_title(row):
         return "Flight"
 
     if row_type == "Train" or "train" in lower:
-        prefix = "Overnight Train" if "overnight" in lower else "Train"
+        prefix = "Santa Claus Express" if "santa claus express" in lower else ("Overnight Train" if "overnight" in lower else "Train")
+        if prefix == "Santa Claus Express":
+            santa_destination = re.search(r"\bsanta\s+claus\s+express\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-\s+\d{1,2}:\d{2}|\s+-\s+Arrival|\s+\|\s+|\s+-\s+|$)", text, flags=re.IGNORECASE)
+            if santa_destination:
+                destination = normalize_place_name(santa_destination.group(1).strip(" -:|.,"))
         if destination:
             return f"{prefix} to {destination}"
         if city:

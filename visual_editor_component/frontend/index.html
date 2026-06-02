@@ -428,7 +428,8 @@ function setByPath(obj, path, value) {
 function collect() {
   document.querySelectorAll('[data-edit-key]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
-    const value = key.endsWith('.blocks_html') || key.endsWith('.whats_included_html')
+    const isHtmlField = key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.includes('.whats_included_pages_html.');
+    const value = isHtmlField
       ? el.innerHTML.trim()
       : el.innerText.replace(/\u00a0/g, ' ').replace(/\s*\n+\s*/g, key === 'cover.destinations_line' ? ' · ' : ' ').trim();
     setByPath(model, key, value);

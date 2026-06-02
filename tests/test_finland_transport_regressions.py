@@ -25,11 +25,11 @@ def test_finland_overnight_trains_keep_direction_and_cabins_in_days_and_inclusio
     assert [row["title"] for row in trains] == ["Overnight Train to Rovaniemi", "Overnight Train to Helsinki"]
     assert "4 x downstairs cabin for two people" in get_travel_arrangement_line(trains[0])
     assert "4 x downstairs cabin for two people" in get_travel_arrangement_line(trains[1])
-    assert get_primary_transport_title([trains[1]]) == "Overnight train to Helsinki"
+    assert get_primary_transport_title([trains[1]]) == "Santa Claus Express to Helsinki"
 
     inclusions = _sections_text(rows)
-    assert "Overnight Train Transfer to Rovaniemi" in inclusions
-    assert "Overnight Train Transfer to Helsinki" in inclusions
+    assert "Santa Claus Express to Rovaniemi" in inclusions
+    assert "Santa Claus Express to Helsinki" in inclusions
     assert inclusions.count("4 x downstairs cabin for two people") == 2
 
 

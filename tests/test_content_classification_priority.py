@@ -54,7 +54,7 @@ def test_norway_in_a_nutshell_travel_line_preserves_timing():
 
     lines = _norway_nutshell_lines(row)
 
-    assert lines[0] == 'Norway in a Nutshell to Oslo — 8:30 AM - 10:30 PM'
+    assert lines[0] == 'Norway in a Nutshell from Bergen to Oslo — 8:30 AM - 10:30 PM'
 
 
 def test_generic_cable_car_viewpoint_ticket_gets_flexible_ticket_wording():

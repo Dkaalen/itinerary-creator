@@ -14,6 +14,7 @@ from text_polish import polish_title
 from itinerary_generation.common import get_row_type
 from itinerary_generation.train_details import get_train_cabin_detail
 from itinerary_generation.transport_model import get_transport_source_text
+from itinerary_generation.transport_times import get_overnight_train_schedule
 from .inclusion_utils import add_unique, clean
 
 
@@ -143,6 +144,12 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     source = get_transport_source_text(row)
     title = title or str(row.get("title", "") or "")
     details: list[str] = []
+
+    schedule = get_overnight_train_schedule(row)
+    if schedule.get("departure_time") and schedule.get("departure_place"):
+        add_unique(details, f'Departure: {schedule["departure_time"]} from {polish_title(schedule["departure_place"])}')
+    if schedule.get("arrival_time") and schedule.get("arrival_place"):
+        add_unique(details, f'Arrival: {schedule["arrival_time"]} in {polish_title(schedule["arrival_place"])}')
 
     train_cabin = get_train_cabin_detail(row)
     if train_cabin:

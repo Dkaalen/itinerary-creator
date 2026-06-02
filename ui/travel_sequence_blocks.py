@@ -157,9 +157,6 @@ def _norway_nutshell_lines(row):
         lines.append(_line_with_time(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}", row))
         lines.append("Route: " + " → ".join(places))
     elif base:
-        destination_match = re.search(r"\bNorway in a Nutshell from [^—]+ to ([A-Za-zÀ-ÿøØåÅäÄöÖ ]+)\b", base)
-        if destination_match:
-            base = f"Norway in a Nutshell to {polish_title(destination_match.group(1).strip())}"
         lines.append(_line_with_time(base, row))
     includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
     if includes:

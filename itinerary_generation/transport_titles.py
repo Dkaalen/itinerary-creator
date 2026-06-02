@@ -27,13 +27,20 @@ def get_transport_route_phrase(row):
     origin, destination = get_route_points_for_transport(row)
     via = get_route_via_points(row, origin, destination)
 
+    if _is_norway_in_a_nutshell_text(text):
+        return _norway_nutshell_route_label(text, origin, destination)
+
     if row_type == "Transfer" and has_local_transfer_marker(lower):
         return polish_title(row.get("title", "") or "Transfer")
 
     if row_type == "Train" or "train" in lower:
-        if _is_norway_in_a_nutshell_text(text):
-            return _norway_nutshell_route_label(text, origin, destination)
-        label = "Overnight Train Transfer" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else "Scenic Train Transfer"
+        label = "Santa Claus Express" if "santa claus express" in lower else ("Overnight Train Transfer" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else "Scenic Train Transfer")
+        if label == "Santa Claus Express":
+            santa_destination = re.search(r"\bsanta\s+claus\s+express\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-\s+\d{1,2}:\d{2}|\s+-\s+Arrival|\s+\|\s+|\s+-\s+|$)", text, flags=re.IGNORECASE)
+            if santa_destination:
+                destination = _clean_route_place(santa_destination.group(1))
+                origin = ""
+                via = []
         if origin and destination:
             return f"{label} from {origin} to {destination}{_via_suffix(via)}"
         if destination:
@@ -156,6 +163,8 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
     if "flight" in lower:
         return f"Flight to {destination}"
     if "train" in lower:
+        if "santa claus express" in lower:
+            return f"Santa Claus Express to {destination}"
         return f"Overnight train to {destination}" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else f"Train to {destination}"
     if "coach" in lower or "bus" in lower:
         return f"Coach Transfer to {destination}"
