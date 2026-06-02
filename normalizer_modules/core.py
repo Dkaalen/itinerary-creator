@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import copy
 import re
-from collections import Counter
 
 import diagnostics
 from place_aliases import canonicalize_place_name, is_likely_service_text, is_known_place
@@ -42,85 +41,27 @@ from normalizer_modules.transport import (
     _is_route_transfer_activity,
     normalize_transport_title,
 )
+from normalizer_modules.context import (
+    _day_number_value,
+    _next_main_city,
+    add_repeated_activity_context,
+    apply_contextual_travel_corrections,
+    fill_missing_context_cities,
+)
+from normalizer_modules.rental import (
+    looks_like_rental_vehicle_row,
+    normalize_rental_vehicle_row,
+)
 
 
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
+# Compatibility aliases for older private imports. New code should import from
+# normalizer_modules.context or normalizer_modules.rental directly.
+_fill_missing_context_cities = fill_missing_context_cities
+_looks_like_rental_vehicle_row = looks_like_rental_vehicle_row
+_normalize_rental_vehicle_row = normalize_rental_vehicle_row
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-_RENTAL_ROW_RE = re.compile(
-    r"\b(?:pick\s*up\s+(?:your\s+)?rental|pickup\s+rental|rental\s+(?:vehicle|car|suv)|car\s+rental|hire\s+car|deliver\s+(?:your\s+)?rental|return\s+(?:your\s+)?rental|drop\s*(?:off)?\s+(?:your\s+)?rental)\b",
-    flags=re.IGNORECASE,
-)
-
-
-def _looks_like_rental_vehicle_row(row: dict) -> bool:
-    row_type = get_row_type(row)
-    text = text_blob(row)
-    if row_type == "Car":
-        return True
-    # Some supplier sheets incorrectly put rental-car return rows in the Hotel
-    # column. Correct those rows before accommodation normalization, but leave
-    # Day Overview rental blocks alone because the overview renderer already
-    # has specific client-facing rental wording.
-    if row_type == "Hotel" and _RENTAL_ROW_RE.search(text):
-        return True
-    return False
-
-
-def _normalize_rental_vehicle_row(row: dict) -> dict:
-    text = text_blob(row)
-    lower = text.lower()
-    row["type"] = "Car"
-    row["effective_type"] = "Car"
-    if re.search(r"\b(?:deliver|return|drop\s*(?:off)?)\b", lower):
-        row["title"] = "Rental car return"
-    elif re.search(r"\b(?:pick\s*up|pickup)\b", lower):
-        row["title"] = "Rental car pick-up"
-    elif not clean_space(row.get("title", "")):
-        row["title"] = "Rental vehicle"
-    return row
 
 def warn_suspicious_city(row: dict) -> None:
     city = clean_space(row.get("city", ""))
@@ -141,9 +82,6 @@ def warn_suspicious_city(row: dict) -> None:
             f"City '{city}' on {row.get('day', 'Unknown day')} is not in the known place list — verify it is correct.",
             raw_value=row.get("raw", city),
         )
-
-
-
 
 
 def normalize_row(row: dict) -> dict:
@@ -173,8 +111,8 @@ def normalize_row(row: dict) -> dict:
         row["title"] = f"Departure from {city}" if city else "Departure"
         return row
 
-    if _looks_like_rental_vehicle_row(row):
-        row = _normalize_rental_vehicle_row(row)
+    if looks_like_rental_vehicle_row(row):
+        row = normalize_rental_vehicle_row(row)
         if isinstance(row.get("includes"), list):
             row["includes"] = split_and_merge_inclusions(row.get("includes", []))
         row = normalize_time_range_fields(row)
@@ -226,131 +164,9 @@ def normalize_row(row: dict) -> dict:
     return row
 
 
-def add_repeated_activity_context(rows: list[dict]) -> list[dict]:
-    titles = [row.get("title", "") for row in rows if get_row_type(row) == "Activity" and row.get("title")]
-    counts = Counter(titles)
-    updated = []
-    for row in rows:
-        row = copy.deepcopy(row)
-        if get_row_type(row) == "Activity" and counts.get(row.get("title", ""), 0) > 1:
-            city = canonicalize_place_name(row.get("city", ""))
-            title = row.get("title", "")
-            if city and f" in {city}" not in title and title.lower().startswith("northern lights"):
-                row["inclusion_title"] = f"{title} in {city}"
-        updated.append(row)
-    return updated
-
-
-
-
-def _day_number_value(value: str) -> int:
-    match = re.search(r"\d+", str(value or ""))
-    return int(match.group(0)) if match else 0
-
-
-def _next_main_city(rows: list[dict], current_index: int) -> str:
-    current_day = _day_number_value(rows[current_index].get("day", ""))
-    for later in rows[current_index + 1:]:
-        later_day = _day_number_value(later.get("day", ""))
-        if later_day and current_day and later_day <= current_day:
-            continue
-        city = canonicalize_place_name(later.get("city", ""))
-        if city and get_row_type(later) in {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Departure"}:
-            return city
-    return ""
-
-
-def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
-    updated = [copy.deepcopy(row) for row in rows or []]
-    previous_overnight_destination = ""
-
-    for index, row in enumerate(updated):
-        row_type = get_row_type(row)
-        full = text_blob(row).lower()
-
-        if row_type == "Train" and "overnight" in full and "train" in full:
-            next_city = _next_main_city(updated, index)
-            row_city = canonicalize_place_name(row.get("city", ""))
-            if next_city and next_city != row_city:
-                row["title"] = f"Overnight Train to {next_city}"
-                previous_overnight_destination = next_city
-            else:
-                previous_overnight_destination = row_city or next_city
-            continue
-
-        if row_type == "Transfer":
-            title_lower = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
-            city = canonicalize_place_name(row.get("city", ""))
-            day = row.get("day", "")
-            same_day_has_hotel = any(
-                other is not row and other.get("day") == day and get_row_type(other) == "Hotel"
-                for other in updated
-            )
-            if (
-                "hotel to station" in title_lower
-                and previous_overnight_destination
-                and city == previous_overnight_destination
-                and same_day_has_hotel
-            ):
-                row["title"] = "Private transfer from the station to your hotel"
-                row["original_title"] = row.get("original_title") or "Private Hotel to Station"
-
-            same_day_arrival_flight = any(
-                other is not row
-                and other.get("day") == day
-                and get_row_type(other) == "Flight"
-                and city
-                and (
-                    canonicalize_place_name(other.get("city", "")) == city
-                    or re.search(rf"\bto\s+{re.escape(city)}\b", text_blob(other), flags=re.IGNORECASE)
-                )
-                for other in updated
-            )
-            if same_day_has_hotel and same_day_arrival_flight and re.search(r"\bhotel\s+to\s+airport\b|\bfrom\s+hotel\s+to\s+airport\b", title_lower):
-                row["title"] = f"Private transfer from {city} Airport to your accommodation" if city else "Private transfer from the airport to your accommodation"
-                row["original_title"] = row.get("original_title") or "Private Hotel to Airport"
-
-    return updated
-
-def _fill_missing_context_cities(rows: list[dict]) -> list[dict]:
-    """Fill safe missing city values from nearby itinerary context.
-
-    Some supplier sheets leave the city column empty on activity/hotel rows
-    because the city is implied by the previous or same-day row. Filling these
-    rows prevents summary chapters such as "Journey" and day headers with no
-    city, while avoiding transport rows where multiple route cities may appear.
-    """
-    updated = [copy.deepcopy(row) for row in rows or []]
-    city_by_day: dict[str, str] = {}
-
-    preferred_types = {"Hotel", "Activity", "Arrival", "Departure", "Leisure"}
-    for row in updated:
-        city = canonicalize_place_name(row.get("city", ""))
-        if city and get_row_type(row) in preferred_types and not is_likely_service_text(city) and city.lower() not in {"accommodation", "journey"}:
-            city_by_day.setdefault(row.get("day", ""), city)
-
-    previous_city = ""
-    fillable_types = {"Hotel", "Activity", "Arrival", "Departure", "Leisure"}
-    for row in updated:
-        row_type = get_row_type(row)
-        city = canonicalize_place_name(row.get("city", ""))
-        if city and not is_likely_service_text(city) and city.lower() not in {"accommodation", "journey"}:
-            previous_city = city
-            continue
-        if city.lower() in {"accommodation", "journey"}:
-            row["city"] = ""
-        if row_type in fillable_types:
-            inferred = city_by_day.get(row.get("day", "")) or previous_city
-            if inferred:
-                row["city"] = inferred
-                city_by_day.setdefault(row.get("day", ""), inferred)
-                previous_city = inferred
-    return updated
-
-
 def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
     normalized = [normalize_row(row) for row in rows or []]
-    normalized = _fill_missing_context_cities(normalized)
+    normalized = fill_missing_context_cities(normalized)
     normalized = apply_contextual_travel_corrections(normalized)
     normalized = add_repeated_activity_context(normalized)
     return normalized
