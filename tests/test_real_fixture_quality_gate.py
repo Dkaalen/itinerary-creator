@@ -44,8 +44,11 @@ def render_fixture_html_text(fixture_name: str) -> str:
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
     import ui.day_pages as day_pages
+    import ui.day_page_sections as day_page_sections
     day_pages.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
     day_pages.render_day_image_slot = lambda *args, **kwargs: ""
+    day_page_sections.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
+    day_page_sections.render_day_image_slot = lambda *args, **kwargs: ""
     return build_itinerary_html(rows, grouped, output_edits={})
 
 

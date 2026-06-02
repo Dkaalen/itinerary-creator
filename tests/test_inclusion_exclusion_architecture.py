@@ -146,3 +146,26 @@ def test_structured_exclusion_sections_group_specific_commercial_rows():
     assert "Optional hotels/add-ons\nOptional Igloo Upgrade - 29th of December" in text
     assert "Costs not included\nCoach Transfer - 30th of December" in text
 
+
+def test_rental_safety_deposit_is_specific_cost_not_raw_rental_pickup():
+    from itinerary_generation.exclusion_sections import create_specific_exclusion_sections
+
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Day Overview",
+            "effective_type": "Day Overview",
+            "title": "Pick-up Rental vehicle from Office or Airport",
+            "details": "Pick-up Rental SUV included automatic full insurance. Not included: Safety deposit",
+            "start_date": "2026-07-09",
+            "commercial_status": "included",
+            "commercial_reason": "default_included",
+        }
+    ]
+
+    sections = create_specific_exclusion_sections(rows)
+    assert sections["costs_not_included"] == ["Rental vehicle safety deposit"]
+    text = "\n".join(create_exclusions(rows))
+    assert "Rental vehicle safety deposit" in text
+    assert "Pick-up Rental vehicle from Office or Airport" not in text
+

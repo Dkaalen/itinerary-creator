@@ -1,0 +1,61 @@
+Day 1	Arrival	15.09.2026		Helsinki: Welcome to Finland
+Day 1	Transfer	15.09.2026		Helsinki: Private transfer to your accommodation
+Day 1	Hotel	15.09.2026	17.09.2026	Helsinki: Check in to your accommodation for a 2 night stay - Scandic Helsinki Hub - 8 x Superior rooms - King bed - breakfast included
+Day 1	Leisure	15.09.2026		Helsinki: Spend time at leisure
+				
+Day 2	Activity	16.09.2026		Helsinki: Excurssion to Tallinn - Guided Experience - Meeting point: Hotel Pick up - Departure from Helsinki: 10:30 am - Departure from Tallinn: 7:30 pm - Includes: Helsinki port transfers, Star Class Cruise Ticket, Guided tour of Old town Tallinn
+Day 2	Activity	16.09.2026		Tallinn: Old Town Guided tour - Time: 1:00 pm - 3:30 pm - Meeting point: under the Town Hall clock - Notable sights: St Nickolas Church, Freedom Square, Alexander Nevsky Cathedral, St Mary's Cathedral, Danish King's Garden and more - Includes: Tour, english guide, Recommendations
+Day 2	Leisure	16.09.2026		Helsinki: Spend time at leisure
+				
+Day 3	Optional	17.09.2026		Helsinki: Private | Guided All-Star Walking Tour of the City - Time: 11:00 am - 2:00 pm - Meeting point: Hotel pick up - Includes: Pick-up/ drop off in central Helsinki, Professional, English-speaking guide, Walk to the main sights in the city - Description: Complete Helsinki! Visit all most popular sights Helsinki City Center and see the city off the beaten path
+Day 3	Transfer	17.09.2026		Helsinki: Private transfer to Helsinki Cruise Harbor
+Day 3	Cruise	17.09.2026	18.09.2026	Helsinki: Overnight Cruise to Stockholm - Time: 5:15 pm - 10:00 am - Meeting point: Helsinki Cruise Harbor - Includes: 8 × Seaside Premium Promenade, Complimentary minibar with drinks, premium breakfast 
+				
+Day 4	Transfer	18.09.2026		Stockholm: Private transfer to your accommodation
+Day 4	Hotel	18.09.2026	20.09.2026	Stockholm: Check in to your accommodation for a 2 night stay - Clarion Hotel Sign - 8 x Superior double room - King bed - breakfast included
+Day 4	Leisure	18.09.2026		Stockholm: Spend time at leisure
+				
+Day 5	Activity	19.09.2026		Stockholm: Private Guided tour of Vasa Museum - Time: Morning - Meeting point: Hotel pick up - Includes: Transfers to and from the museum, guide, tickets
+Day 5	Leisure	19.09.2026		Stockholm: Spend time at leisure
+				
+Day 6	Transfer	20.09.2026		Stockholm: Private transfer to Stockholm Airport
+Day 6	Train	20.09.2026		Stockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, Luggage (1 x 23 kg check in luggage and 1 x 8 kg carry on luggage per person)
+Day 6	Transfer	20.09.2026		Copenhagen: Private transfer to your accommodation 
+Day 6	Hotel	20.09.2026	22.09.2026	Copenhagen: Check in to your accommodation for a 2 night stay - The Square - 8 x Double superior room - King bed - breakfast included
+Day 6	Leisure	20.09.2026		Copenhagen: Spend time at leisure
+				
+Day 7	Activity	21.09.2026		Copenhagen: Private Castles, Cathedrals & Vikings Tour - Time: 08:45 am - 5:45 pm - Meeting point: Hotel Pick up - Includes: English speaking guide, tour of Krongborg castle, tour of Rosklide Cathedral, pick up from central copenhagen
+Day 7	Leisure	21.09.2026		Copenhagen: Spend time at leisure
+				
+Day 8	Activity	22.09.2026		Copenhagen: Spend time at leisure
+Day 8	Transfer	22.09.2026		Copenhagen: Private transfer to Copenhagen Cruise Harbor
+Day 8	Cruise	22.09.2026	23.09.2026	Copenhagen: Overnight Cruise to Oslo - Time: 4:30 pm - 10:00 am - Meeting point: Oslo Cruise Harbor - Includes: 8 x Commodore Class cabins, breakfast, wifi
+				
+Day 9	Transfer	23.09.2026		Oslo: Private transfere to your accommodation
+Day 9	Hotel	23.09.2026	24.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Thon Opera - 8 x Superior room - Double bed - breakfast included
+Day 9	Leisure	23.09.2026		Oslo: Spend time at leisure
+				
+Day 10	Transfer	24.09.2026		Oslo: Self transfer to Oslo Central Station
+Day 10	Activity	24.09.2026		Oslo: Norway in a Nutshell to Bergen - Time: 08:25 am - 8:38 pm - Meeting point: Oslo Central Station - Route: Oslo to Myrdal by train, Myrdal to Flåm by Flåmsbanen, Flåm to Gudvangen by fjord crusie, Gudvangen to Voss by coach, Voss to Bergen by train - Includes: All needed tickets, luggage transfer
+Day 10	Transfer	24.09.2026		Bergen: Private transfer to your accommodation 
+Day 10	Hotel	24.09.2026	26.09.2026	Bergen: Check in to your accommodation for a 2 night stay - Radisson Blu Royal Bergen - 8 x Room superior room - Double bed - breakfast included
+Day 10	Leisure	24.09.2026		Bergen: Spend time at leisure
+				
+Day 11	Activity	25.09.2026		Bergen: Private Bergen City Drive - Time: 09:00 am - 12:00 pm - Meeting point: Hotel pick up - Includes: All transport modes, including fuel and tolls, A bottle of water for each guest, Well-travelled, well-informed guide - Highlights: Bergen’s historical core, by the colorful medieval wharf, The charming peninsula that defines the city’s development, The marina where iconic boats share their adventures, The winding roads halfway to Mt Fløyen for a bird’s-eye view, Drive around one of the most affluent neighbourhoods in the city, A fairytale church with a Viking twist: Strictly no smoking!, A slice of royalty in the city’s most popular picnic spot, The earliest Bergen: A living prequel to the city story, A cascading waterfall and bird calls on the fringe of the city, The largest lake in the Bergen peninsula
+Day 11	Leisure	25.09.2026		Bergen: Spend time at leisure
+				
+Day 12	Transfer	26.09.2026		Bergen: Private transfer to Bergen Airport
+Day 12	Flight	26.09.2026		Bergen: Flight to Tromsø - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg check in luggage and 1 x 8 kg carry on luggage per person)
+Day 12	Transfer	26.09.2026		Tromsø: Private transfer to your accommodation
+Day 12	Hotel	26.09.2026	29.09.2026	Tromsø: Check in to your accommodation for a 3 night stay - Clarion Hotel The Edge - 8 × Superior Double room - double bed - breakfast included
+Day 12	Leisure	26.09.2026		Tromsø: Spend time at leisure
+				
+Day 13	Activity	27.09.2026		Tromsø: Arctic Fjord Explorer, Mountains, Coast & Hidden Beaches - Time: 10:15 am - 3:45 pm - Includes: Norwegian Chocholate - Kvikklunch, Norwegian tour soda, Solo. (orange), guide - Desctiption: Explore the stunning Arctic landscape just outside Tromsø on this scenic fjord adventure
+Day 13	Leisure	27.09.2026		Tromsø: Spend time at leisure
+Day 13	Activity	27.09.2026		Tromsø: Private | Northern Lights Chase by Minibus - Time: 8:00 pm - 2:00 pm - Meeting point: Hotel Pick up - Includes: Pick-up/drop-off in central Tromsø, Professional guide and photographer, Free professional photos after the tour, Thermal suits to keep your body warm, Cosy bonfire if the weather allows, Water, coffee, tea and hot chocolate, Small tasty snack for everyone
+				
+Day 14	Leisure	28.09.2026		Tromsø: Spend time at leisure
+Day 14	Activity	28.09.2026		Tromsø: Private | Northern Lights Chase by Big Bus - Time: 8:00 pm - 2:00 pm - Meeting point: Hotel Pick up - Includes: Pick-up/drop-off in central Tromsø, Driver, guide and photographer, Comfortable bus transport, Portrait and landscape pictures, Thermal suits to keep you warm, Small snack for everyone, Various hot beverages
+				
+Day 15	Transfer	29.09.2026		Tromsø: Private transfer to Tromsø Airport
+Day 15	Departure	29.09.2026		Tromsø: Departure home

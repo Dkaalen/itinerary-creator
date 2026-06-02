@@ -192,7 +192,25 @@ def _is_blank_activity_row(row):
     city = clean_space(row.get("city", ""))
     if not raw:
         return True
-    return bool(city and raw.lower().strip(" -:|") == city.lower())
+    lower = raw.lower().strip(" -:|")
+    if city and lower == city.lower():
+        return True
+    def _matches_leisure(value):
+        item = clean_space(value).lower().strip(" -:|")
+        if not item:
+            return False
+        pattern = r"spend time at leisure\.?"
+        if city:
+            pattern = rf"(?:{re.escape(city.lower())}:?\s*)?{pattern}"
+        return bool(re.fullmatch(pattern, item) or (city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", item)))
+    if any(_matches_leisure(row.get(key, "")) for key in ["title", "original_title", "details"]):
+        return True
+    leisure_pattern = r"spend time at leisure\.?"
+    if city:
+        leisure_pattern = rf"(?:{re.escape(city.lower())}:?\s*)?{leisure_pattern}"
+    if re.fullmatch(leisure_pattern, lower):
+        return True
+    return bool(city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", lower))
 
 def build_day_blocks(rows):
     """Build day content in source order, grouping only consecutive travel rows.

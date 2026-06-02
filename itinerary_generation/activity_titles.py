@@ -131,6 +131,10 @@ def create_client_activity_title(row):
         return "Whale Watching"
 
     if "tallinn" in full_text:
+        if ("old town" in title_text or "old town" in original_title_text) and ("guided tour" in full_text or "guide" in full_text):
+            return "Old Town Guided Tour"
+        if "excursion" in full_text:
+            return "Excursion to Tallinn - Guided Experience"
         return "Day Trip to Tallinn"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
@@ -142,7 +146,7 @@ def create_client_activity_title(row):
     if "crystal lavvo" in full_text or ("lyngen" in full_text and "lavvo" in full_text):
         return "Lyngen Alps Crystal Lavvo Stay"
 
-    if "fløibanen" in full_text or "floibanen" in full_text:
+    if "fløibanen" in title_text or "floibanen" in title_text or "fløibanen" in original_title_text or "floibanen" in original_title_text:
         return "Fløibanen Funicular"
 
     if "arctic route" in full_text or "senja" in full_text and "coach" in full_text:

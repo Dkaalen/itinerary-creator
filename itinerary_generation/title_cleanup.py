@@ -39,6 +39,13 @@ TYPO_FIXES = [
     (r"\bROvaniemi\b", "Rovaniemi"),
     (r"\bKriuna\b", "Kiruna"),
     (r"\bExcurssion\b", "Excursion"),
+    (r"\btransfere\b", "transfer"),
+    (r"\bcrusie\b", "cruise"),
+    (r"\bChocholate\b", "chocolate"),
+    (r"\bDesctiption\b", "Description"),
+    (r"\bKrongborg\b", "Kronborg"),
+    (r"\bRosklide\b", "Roskilde"),
+    (r"\bSt\s+Nickolas\b", "St Nicholas"),
     (r"\bSquate\b", "Square"),
 ]
 
@@ -135,15 +142,21 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     if is_forbidden_client_title(text):
         return ""
 
-    if "tallinn" in full and ("day trip" in full or "excursion" in full or "ferry" in full):
+    if "tallinn" in full and "excursion" in full:
+        if "day excursion" in text.lower():
+            return "Day Excursion to Tallinn"
+        if "guided experience" in full:
+            return "Excursion to Tallinn - Guided Experience"
+        return "Day Excursion to Tallinn"
+    if "tallinn" in full and ("day trip" in full or "ferry" in full):
         return "Day Trip to Tallinn"
     if ("fløibanen" in text.lower() or "floibanen" in text.lower()) and ("&" in text or " and " in text.lower()):
         return polish_title(text)
     if "munch museum" in full:
         return "Munch Museum Visit"
-    if "fløibanen" in full or "floibanen" in full:
+    if "fløibanen" in text.lower() or "floibanen" in text.lower():
         return "Fløibanen Funicular"
-    if "cruise" in full and "spend time at leisure" in full:
+    if "cruise" in text.lower() and "spend time at leisure" in text.lower():
         return "At Leisure Onboard the Coastal Cruise"
     if "norway in a nutshell" in full:
         # Preserve route-aware day titles already produced by titles.py.
@@ -212,7 +225,7 @@ def cleaned_generic_activity_title(title: str, row: dict | None = None) -> str:
         return "Runic Kingdom & Viking History Tour"
     if "secret food" in full and "copenhagen" in full:
         return "Copenhagen Food Tour"
-    if "fløibanen" in full or "floibanen" in full:
+    if "fløibanen" in text.lower() or "floibanen" in text.lower():
         return "Fløibanen Funicular"
     if "santa's igloos" in full or "glass igloo" in full:
         return "Glass Igloo Stay in Rovaniemi"

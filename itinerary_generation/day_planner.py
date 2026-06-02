@@ -84,6 +84,20 @@ def plan_day(rows: list[dict]) -> DayPlan:
         title = "At Leisure Onboard the Coastal Cruise"
         return DayPlan("cruise_leisure_day", title, "Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, use the ship facilities and settle into the rhythm of the voyage.", suppress_free_time=True)
 
+    if any(get_row_type(row) == "Cruise" and "overnight" in _text(row).lower() for row in travel_rows) and (
+        any(rt == "Leisure" for rt in row_types) or any(_is_empty_activity(row) for row in rows)
+    ):
+        cruise_title = _transport_title(rows)
+        destination_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+)$", cruise_title, flags=re.IGNORECASE)
+        destination = polish_title(destination_match.group(1)) if destination_match else ""
+        if city and destination:
+            return DayPlan(
+                "leisure_overnight_cruise_day",
+                f"{city} at Leisure and Overnight Cruise to {destination}",
+                f"Enjoy time at leisure in {city} before continuing to the cruise harbor for your overnight journey towards {destination}.",
+                skip_empty_activity_rows=True,
+            )
+
     if not activity_rows and not travel_rows and any(rt == "Leisure" for rt in row_types):
         title = _leisure_title(city)
         return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)
@@ -91,6 +105,11 @@ def plan_day(rows: list[dict]) -> DayPlan:
     if not activity_rows and any(_is_empty_activity(row) for row in rows):
         title = _leisure_title(city)
         return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)
+
+    if has_hotel(rows) and not activity_rows and travel_rows:
+        transfer_text = " ".join(_text(row).lower() for row in travel_rows)
+        if "to your accommodation" in transfer_text or "to your hotel" in transfer_text:
+            return DayPlan("arrival_day", f"Arrival in {city}" if city else "Arrival", "")
 
     if "hop on hop off" in lower or "hop-on hop-off" in lower or "hop on hop" in lower:
         title = _hop_on_title(city)

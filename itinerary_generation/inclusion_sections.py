@@ -21,6 +21,7 @@ from .inclusion_transport import (
     transport_line,
 )
 from .inclusion_utils import add_unique, clean
+from itinerary_generation.day_row_selectors import _is_empty_activity
 
 
 def _is_rental_vehicle_text(row: dict) -> bool:
@@ -66,7 +67,7 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
                 seen_hotel_keys.add(key)
     else:
         hotel_rows = [row for row in rows if get_row_type(row) == "Hotel" and not _is_rental_vehicle_text(row)]
-    activity_rows = [row for row in rows if get_row_type(row) == "Activity"]
+    activity_rows = [row for row in rows if get_row_type(row) == "Activity" and not _is_empty_activity(row)]
 
     for row in hotel_rows:
         add_unique(hotel_items, hotel_line(row))

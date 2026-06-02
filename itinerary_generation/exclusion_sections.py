@@ -92,6 +92,26 @@ def _is_cost_not_included_row(row):
     )
 
 
+def _rental_cost_not_included_label(row):
+    """Return a precise rental cost exclusion without excluding the rental row.
+
+    Supplier rows commonly describe the included rental package and then add a
+    small commercial caveat such as ``Not included: Safety deposit``. The final
+    exclusions should surface the caveat, not the whole rental pick-up title.
+    """
+
+    text = _row_search_text(row)
+    if "rental" not in text or "not included" not in text:
+        return ""
+    if "deposit" in text:
+        return "Rental vehicle safety deposit"
+    if "fuel" in text:
+        return "Rental vehicle fuel costs"
+    if "parking" in text:
+        return "Rental vehicle parking costs"
+    return "Rental vehicle costs marked as not included"
+
+
 def row_date_suffix(row):
     text = format_client_date(row.get("start_date"))
     return f" - {text}" if text else ""
@@ -151,6 +171,13 @@ def create_specific_exclusion_sections(parsed_rows):
         label = f"{title}{row_date_suffix(row)}"
         row_type = get_row_type(row)
         status = _commercial_status(row)
+
+        rental_exclusion = _rental_cost_not_included_label(row)
+        if rental_exclusion:
+            add_unique(sections["costs_not_included"], rental_exclusion)
+            # The included rental row can continue through normal inclusion
+            # handling, but it should not add a raw pick-up title to exclusions.
+            continue
 
         if is_optional_row(row):
             if row_type == "Activity":

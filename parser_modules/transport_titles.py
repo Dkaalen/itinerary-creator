@@ -99,6 +99,13 @@ def create_clean_transport_title(row):
     city = normalize_place_name(row.get("city", ""))
 
     if "norway in a nutshell" in lower:
+        explicit_destination_match = re.search(
+            r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if explicit_destination_match:
+            return f"Norway in a Nutshell to {normalize_place_name(explicit_destination_match.group(1).strip())}"
         if destination:
             return f"Norway in a Nutshell to {destination}"
         return "Norway in a Nutshell"

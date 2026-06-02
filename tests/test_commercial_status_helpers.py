@@ -47,6 +47,15 @@ def test_activity_not_included_prose_does_not_exclude_entire_activity():
     )
 
 
+def test_mixed_rental_deposit_note_does_not_exclude_rental_vehicle_row():
+    assert infer_commercial_status(
+        False,
+        "Day Overview",
+        "Pick-up Rental vehicle from Office or Airport",
+        "included automatic full insurance gravel protection not included: safety deposit",
+    ) == (INCLUDED, "default_included")
+
+
 def test_mark_optional_row_sets_consistent_fields_and_prefixes_row_id_once():
     row = {"row_id": "abc123", "is_optional": False}
     mark_optional_row(row)
@@ -60,7 +69,8 @@ def test_common_text_cleanup_conservatively_fixes_commercial_and_place_typos():
     from parser_modules.text_cleanup import fix_common_text
 
     cleaned = fix_common_text(
-        "Self Arrnaged pirce not inclueded from Tromso to Flam via "
+        "Self Arrnaged pirce not inclueded Excurssion transfere crusie Chocholate "
+        "Desctiption Krongborg Rosklide St Nickolas from Tromso to Flam via "
         "Svolvaer, Reykjavik, Malmo, Hofn and Kakslauttenen at Staion"
     )
 
@@ -73,4 +83,12 @@ def test_common_text_cleanup_conservatively_fixes_commercial_and_place_typos():
     assert "Höfn" in cleaned
     assert "Kakslauttanen" in cleaned
     assert "Station" in cleaned
+    assert "Excursion" in cleaned
+    assert "transfer" in cleaned
+    assert "cruise" in cleaned
+    assert "chocolate" in cleaned
+    assert "Description" in cleaned
+    assert "Kronborg" in cleaned
+    assert "Roskilde" in cleaned
+    assert "St Nicholas" in cleaned
 

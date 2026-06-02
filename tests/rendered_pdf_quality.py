@@ -77,6 +77,10 @@ def render_fixture_pdf_text(fixture_name: str) -> str:
     from itinerary_parser import parse_itinerary
     from normalizer import normalize_itinerary_rows
     from pdf_exporter import export_html_to_pdf
+    import ui.day_page_sections as day_page_sections
+
+    day_page_sections.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
+    day_page_sections.render_day_image_slot = lambda *args, **kwargs: ""
 
     fixture_path = FIXTURES_DIR / fixture_name
     if not fixture_path.exists():

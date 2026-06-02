@@ -34,7 +34,17 @@ def _transport_title(rows: list[dict]) -> str:
     for row in rows:
         row_type = get_row_type(row)
         row_text = _text(row)
-        if row_type in {"Train", "Flight", "Cruise", "Ferry", "Transport"} or re.search(r"\b(?:train|flight|cruise|ferry|coach|bus)\b", row_text, flags=re.I):
+        if row_type == "Transfer" and re.search(r"\bself\s+transfer\b|\b(?:hotel|accommodation)\s+to\s+(?:bus|coach|train|station)", row_text, flags=re.I):
+            # Local access transfers should not outrank the main intercity
+            # movement when a coach/train/flight row follows on the same day.
+            continue
+        if row_type in {"Train", "Flight", "Cruise", "Ferry", "Transport"} or (
+            row_type != "Transfer" and re.search(r"\b(?:train|flight|cruise|ferry|coach|bus)\b", row_text, flags=re.I)
+        ) or (
+            row_type == "Transfer"
+            and re.search(r"\b(?:coach|bus)\b", row_text, flags=re.I)
+            and not re.search(r"\bself\s+transfer\b|\b(?:hotel|accommodation)\s+to\s+(?:bus|coach|train|station)", row_text, flags=re.I)
+        ):
             phrase = get_transport_route_phrase(row)
             if phrase:
                 if row_type == "Train" and "norway in a nutshell" not in row_text.lower():
@@ -83,6 +93,8 @@ def _multi_activity_title(rows: list[dict], city: str) -> str:
         return "Husky & Reindeer Experiences"
     if "food tour" in text and city:
         return f"{city} Food Tour"
+    if "tallinn" in text and ("excursion" in text or "ferry" in text or "old town" in text):
+        return "Day Excursion to Tallinn"
 
     titles = [_single_activity_title(row) for row in rows[:2]]
     title = _join_two_titles(titles[0] if titles else "", titles[1] if len(titles) > 1 else "")

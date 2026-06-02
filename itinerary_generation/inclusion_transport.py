@@ -11,6 +11,7 @@ from itinerary_generation.transport import get_transport_route_phrase, get_trans
 from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
+from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
 
@@ -89,6 +90,12 @@ def transport_line(row: dict) -> str:
     if is_cruise_leisure_row(row):
         return ""
     title = get_transport_route_phrase(row) or route_transport_line(row) or clean_transport_title(row)
+    if transport_bucket(row) == "Private transfers":
+        city = canonicalize_place_name(row.get("city", ""))
+        date = format_client_date(row.get("start_date"))
+        heading = " - ".join(part for part in [city, date] if part)
+        clean_title = polish_title(title or "Private transfer").rstrip(" .")
+        return f"{heading}\n{clean_title}." if heading else f"{clean_title}."
     extras = []
     schedule = get_transport_time_text(row)
     if schedule and transport_bucket(row) not in {"Private transfers"}:

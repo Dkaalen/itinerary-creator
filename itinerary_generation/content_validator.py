@@ -52,6 +52,20 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
 ]
 
 
+# These checks are valid only inside a coherent day/activity section. Running
+# them against the whole document can falsely connect an Oslo hotel in final
+# inclusions with a Copenhagen food tour several sections later.
+SCOPED_FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
+    ("wrong_stockholm_tallinn", r"Stockholm[\s\S]{0,900}Tallinn Old Town"),
+    ("wrong_oslo_danish_food", r"Oslo[\s\S]{0,900}(?:smørrebrød|Danish meatballs)"),
+    ("oslofjord_hike_water_based", r"Oslofjord Nature Hike[\s\S]{0,900}water-based"),
+    ("fløibanen_bad_duration", r"Fløibanen[\s\S]{0,500}Duration:</span>\s*5[–-]8 minutes"),
+]
+
+
+_SCOPED_FORBIDDEN_CODES = {code for code, _ in SCOPED_FORBIDDEN_PATTERNS}
+
+
 @dataclass(slots=True)
 class QualityFinding:
     code: str
@@ -99,12 +113,25 @@ def validate_html(html: str) -> list[QualityFinding]:
     lean_html = _strip_heavy_assets(html)
     plain = compact_html(lean_html)
     for code, pattern in FORBIDDEN_PATTERNS:
+        if code in _SCOPED_FORBIDDEN_CODES:
+            continue
         target = lean_html if "<" in pattern else plain
         match = re.search(pattern, target, flags=re.IGNORECASE)
         if match:
             start = max(0, match.start() - 80)
             end = min(len(target), match.end() + 120)
             findings.append(QualityFinding(code, f"Forbidden pattern matched: {code}", target[start:end]))
+
+    for section_match in re.finditer(r'<section class="day-section"[^>]*>[\s\S]*?</section>', lean_html, flags=re.IGNORECASE):
+        section_html = section_match.group(0)
+        section_plain = compact_html(section_html)
+        for code, pattern in SCOPED_FORBIDDEN_PATTERNS:
+            target = section_html if "<" in pattern else section_plain
+            match = re.search(pattern, target, flags=re.IGNORECASE)
+            if match:
+                start = max(0, match.start() - 80)
+                end = min(len(target), match.end() + 120)
+                findings.append(QualityFinding(code, f"Forbidden pattern matched in day section: {code}", target[start:end]))
     return findings
 
 

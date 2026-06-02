@@ -17,6 +17,16 @@ def _is_norway_in_a_nutshell_text(text):
 
 
 def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
+    explicit_destination_match = re.search(
+        r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
+        str(text or ""),
+        flags=re.IGNORECASE,
+    )
+    if explicit_destination_match:
+        destination = polish_title(explicit_destination_match.group(1).strip())
+        if fallback_origin and fallback_origin.lower() != destination.lower():
+            return f"Norway in a Nutshell from {polish_title(fallback_origin)} to {destination}"
+        return f"Norway in a Nutshell to {destination}"
     route_match = re.search(r"\b(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\s+to\s+(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\b", str(text or ""), flags=re.IGNORECASE)
     if route_match:
         origin, destination = polish_title(route_match.group(1)), polish_title(route_match.group(2))

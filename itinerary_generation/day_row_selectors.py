@@ -23,7 +23,27 @@ def _is_empty_activity(row: dict) -> bool:
     if not raw:
         return True
     cleaned = re.sub(r"\s+", " ", raw).strip(" -:|")
-    return bool(city and cleaned.lower() == city.lower())
+    lower = cleaned.lower()
+    if city and lower == city.lower():
+        return True
+    def _matches_leisure(value: str) -> bool:
+        item = re.sub(r"\s+", " ", str(value or "")).strip(" -:|").lower()
+        if not item:
+            return False
+        pattern = r"spend time at leisure\.?"
+        if city:
+            pattern = rf"(?:{re.escape(city.lower())}:?\s*)?{pattern}"
+        return bool(re.fullmatch(pattern, item) or (city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", item)))
+
+    if any(_matches_leisure(row.get(key, "")) for key in ["title", "original_title", "details"]):
+        return True
+
+    leisure_pattern = r"spend time at leisure\.?"
+    if city:
+        leisure_pattern = rf"(?:{re.escape(city.lower())}:?\s*)?{leisure_pattern}"
+    if re.fullmatch(leisure_pattern, lower):
+        return True
+    return bool(city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", lower))
 
 
 def _activity_rows(rows: list[dict]) -> list[dict]:

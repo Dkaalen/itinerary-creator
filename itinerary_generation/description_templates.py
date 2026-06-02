@@ -54,6 +54,12 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
 
     if "food" in full and "culture" in full and "bergen" in full:
         return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
+    if ("whale watching" in full or "whale watching from downtown" in full) and (
+        "arctic wildlife" in full or "rib boat" in full or "wildlife safari" in full or "alta" in full
+    ):
+        return polish_client_text(
+            "Set out on Arctic waters for a whale watching and wildlife safari, with the RIB boat route shaped around fjord conditions, marine life and the surrounding northern landscapes."
+        )
     if "whale watching" in full or "whale watching from downtown" in full:
         return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
 

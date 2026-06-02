@@ -7,19 +7,22 @@
     "Self transfer from your hotel to the bus station",
     "Self transfer from the bus station to your accommodation",
     "Optional add-ons",
-    "Day 9 — Whale Watching & Arctic Wildlife Safari",
-    "Rental of warm thermal suits, boots, gloves, balaclava & goggles"
+    "Whale Watching & Arctic Wildlife Safari",
+    "Free rental of thermal suits, shoes",
+    "Set out on Arctic waters"
   ],
   "must_not_contain": [
     "Coach Transfer to Tromsø",
     "Self-guided transfer",
     "Northern Lights hunt by reindeer",
-    "Guided sightseeing"
+    "Guided sightseeing",
+    "Reykjavík’s harbour",
+    "Icelandic coast"
   ],
   "section_checks": [
     {
       "start": "What’s included",
-      "end": "Optional add-ons",
+      "end": "Optional Experiences",
       "must_contain": [
         "Northern Lights Experience",
         "Panoramic Coach Transfer from Tromsø to Alta"

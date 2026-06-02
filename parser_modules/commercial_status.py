@@ -51,6 +51,12 @@ def infer_commercial_status(is_optional, item_type, title, details):
         return SELF_ARRANGED, REASON_SELF_TRANSFER
     if any(marker in text for marker in SELF_ARRANGED_MARKERS):
         return SELF_ARRANGED, REASON_COST_NOT_INCLUDED
+    # Rental-car rows often include both the included rental package and a
+    # small excluded commercial note such as "Not included: safety deposit".
+    # The vehicle itself must stay included; exclusions can surface the deposit
+    # as a specific cost note without moving the whole row out of the itinerary.
+    if "not included" in text and "rental" in text and "deposit" in text:
+        return INCLUDED, REASON_DEFAULT_INCLUDED
     if "not included" in text and str(item_type or "").lower() not in {"activity", "hotel"}:
         return EXCLUDED, REASON_NOT_INCLUDED_MARKER
     return INCLUDED, REASON_DEFAULT_INCLUDED
