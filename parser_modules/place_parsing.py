@@ -43,6 +43,11 @@ def normalize_place_name(value):
     place = fix_common_text(clean_space(value))
     place = place.strip(" .,-|:")
 
+    # Remove commercial/admin wording that can trail route places in supplier cells.
+    place = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", place, flags=re.IGNORECASE)
+    place = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", place, flags=re.IGNORECASE)
+    place = re.sub(r"\bnot\s+included\b", "", place, flags=re.IGNORECASE)
+
     # Remove service/product wording that should not appear in clean day titles.
     place = re.sub(r"^(Flight|Bus|Coach|Train|Transfer|Shuttle Transfer)\s+", "", place, flags=re.IGNORECASE)
     place = re.sub(r"\bArctic Resort\b", "", place, flags=re.IGNORECASE)
@@ -77,6 +82,9 @@ def extract_route_points(text):
     if prefix_match and is_valid_city_value(prefix_match.group(1)):
         prefix_origin = normalize_place_name(prefix_match.group(1))
         route_source = prefix_match.group(2)
+
+    route_source = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", route_source, flags=re.IGNORECASE)
+    route_source = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", route_source, flags=re.IGNORECASE)
 
     # Explicit transport route with one or more "to" segments. Use the final
     # segment as destination, not an intermediate change point such as Malmö.

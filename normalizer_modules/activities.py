@@ -6,6 +6,7 @@ from place_aliases import canonicalize_place_name
 from text_polish import polish_title
 from itinerary_generation.title_cleanup import clean_client_title
 from normalizer_modules.text_utils import text_blob, _lower_key
+from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 
 def _is_group_tour_overview(row: dict) -> bool:
     text = text_blob(row).lower()
@@ -99,8 +100,10 @@ def normalize_activity_title(row: dict) -> str:
     if ("aurora" in lower or "northern light" in lower) and "reindeer" in lower and ("hunt" in lower or "hunting" in lower or "chase" in lower):
         return "Northern Lights Hunt by Reindeer"
     if "tallin" in lower or "tallinn" in lower:
-        if "old town" in lower and "guided" in lower and not any(marker in lower for marker in ["helsinki", "ferry", "cruise", "star class", "port"]):
-            return "Tallinn Old Town Guided Tour"
+        if is_tallinn_old_town_guided_tour(row):
+            return "Old Town Guided Tour"
+        if is_tallinn_ferry_framework(row):
+            return "Day Excursion to Tallinn"
         return "Day Trip to Tallinn"
     if "fjellheisen" in lower or ("round trip ticket" in lower and "trom" in lower) or "cable car" in lower:
         return "Fjellheisen Cable Car"

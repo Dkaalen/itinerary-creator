@@ -59,3 +59,59 @@ def test_validation_blocks_truncated_main_itinerary_when_late_rows_are_optional(
     ]
     issues = validate_itinerary_integrity(rows)
     assert any(issue.code == "main_itinerary_truncated_by_optional_rows" for issue in issues)
+
+
+def test_optional_commercial_stress_fixture_bank_is_available_for_future_patches():
+    import json
+    from pathlib import Path
+
+    path = Path("tests/fixtures/quality_stress_inputs/optional_commercial/optional_commercial_inputs.json")
+    records = json.loads(path.read_text(encoding="utf-8"))
+
+    assert len(records) == 50
+    assert {record["bank"] for record in records} == {"optional_commercial"}
+    assert {"optional_experience", "optional_transfer", "optional_hotel", "self_transfer", "included_on_request_text"}.issubset(
+        {record["category"] for record in records}
+    )
+
+
+def test_flights_self_arranged_stress_fixture_bank_is_available_for_future_patches():
+    import json
+    from pathlib import Path
+
+    path = Path("tests/fixtures/quality_stress_inputs/flights_self_arranged/flights_self_arranged_inputs.json")
+    records = json.loads(path.read_text(encoding="utf-8"))
+
+    assert len(records) == 50
+    assert {record["bank"] for record in records} == {"flights_self_arranged"}
+    assert {"included_domestic_flight", "self_arranged_transfer_type", "self_arranged_flight_type", "flight_cost_not_included_typo"}.issubset(
+        {record["category"] for record in records}
+    )
+
+
+def test_self_arranged_flight_titles_are_clean_and_excluded_from_inclusions():
+    from app_modules.itinerary_html import build_itinerary_html
+    from itinerary_generation.content_validator import compact_html
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+
+    raw = '''
+Day 1	Transfer	01.01.2027		Oslo: Flight Oslo to Tromsø self arrange cost not included
+Day 2	Flight	02.01.2027		Bergen: Self-arranged flight to Copenhagen - cost not included
+Day 3	Flight	03.01.2027		Tromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)
+'''
+    rows = _rows(raw)
+    grouped = group_rows_by_day(rows)
+    plain = compact_html(build_itinerary_html(rows, grouped, {}))
+    inclusions = create_categorized_inclusions(rows, grouped)
+    inclusion_text = "\n".join("\n".join(section["items"]) for section in inclusions)
+    not_included = "\n".join(create_whats_not_included(rows))
+
+    assert "Self-arranged flight from Oslo to Tromsø (not included)" in plain
+    assert "Self-arranged flight from Bergen to Copenhagen (not included)" in plain
+    assert "Flight from Tromsø to Bergen" in inclusion_text
+    assert "Flight from Oslo to Tromsø" not in inclusion_text
+    assert "Flight from Bergen to Copenhagen" not in inclusion_text
+    assert "Flight from Oslo to Tromsø - 1st of January" in not_included
+    assert "Flight from Bergen to Copenhagen - 2nd of January" in not_included
+    assert "Flight from arranged flight" not in plain
+    assert "cost not included today" not in plain

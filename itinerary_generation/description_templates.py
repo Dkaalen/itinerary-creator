@@ -14,6 +14,7 @@ from itinerary_generation.description_facts import (
     _join,
 )
 from itinerary_generation.description_sources import _row_source
+from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 
 
 def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
@@ -52,6 +53,10 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 
+    if is_tallinn_old_town_guided_tour(row):
+        return "Explore Tallinn’s Old Town with a guide during your time ashore, with key landmarks and local context introduced along the walking route."
+    if is_tallinn_ferry_framework(row):
+        return "Travel between Helsinki and Tallinn by ferry, with the crossings forming the logistics for your time in Tallinn."
     if "food" in full and "culture" in full and "bergen" in full:
         return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
     if ("whale watching" in full or "whale watching from downtown" in full) and (
@@ -154,7 +159,9 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "northern lights" in full or "aurora" in full:
         return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
     if "tallinn" in full:
-        return "Travel between Helsinki and Tallinn by ferry, with time arranged to experience the historic Old Town and its key viewpoints on foot."
+        if is_tallinn_old_town_guided_tour(row):
+            return "Explore Tallinn’s Old Town with a guide during your time ashore, with key landmarks and local context introduced along the walking route."
+        return "Travel between Helsinki and Tallinn by ferry, with time arranged for your visit to Tallinn before returning to Helsinki."
     if "icebreaker" in full:
         return "Experience the Polar Explorer Icebreaker in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
     if "husky" in full and "reindeer" in full:

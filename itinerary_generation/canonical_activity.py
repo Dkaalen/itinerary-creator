@@ -8,6 +8,12 @@ from itinerary_generation.canonical_helpers import _is_fløibanen, _row_id
 from itinerary_generation.canonical_model import CanonicalBlock, CanonicalMetaLine
 from itinerary_generation.content_engine import clean_client_title, client_activity_description, merge_compound_inclusions
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.tallinn import (
+    clean_tallinn_ferry_inclusions,
+    is_tallinn_ferry_framework,
+    tallinn_departure_meta,
+    tallinn_ferry_title,
+)
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, strip_price_fragments
 from ui.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
 from ui.render_helpers import (
@@ -30,8 +36,11 @@ def _activity_time_label(row: dict, time_display: str) -> str:
 
 
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
+    is_tallinn_ferry = is_tallinn_ferry_framework(row)
     title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
     title = clean_client_title(title, row) or "Experience"
+    if is_tallinn_ferry:
+        title = tallinn_ferry_title(row)
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
@@ -41,12 +50,18 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
 
     description_row = dict(row)
     description_row["display_title"] = title
-    description = client_activity_description(description_row, get_activity_description(row))
+    if is_tallinn_ferry:
+        description = "Travel between Helsinki and Tallinn by ferry, with the crossings forming the logistics for your time in Tallinn."
+    else:
+        description = client_activity_description(description_row, get_activity_description(row))
 
-    included_items = clean_activity_inclusion_items(
-        [strip_price_fragments(item) for item in row.get("includes", [])], title
-    )
-    fallback_items = get_fallback_activity_inclusions(row)
+    if is_tallinn_ferry:
+        included_items = clean_tallinn_ferry_inclusions(row)
+    else:
+        included_items = clean_activity_inclusion_items(
+            [strip_price_fragments(item) for item in row.get("includes", [])], title
+        )
+    fallback_items = [] if is_tallinn_ferry else get_fallback_activity_inclusions(row)
     if not included_items:
         included_items = fallback_items
     elif title == "Day Trip to Tallinn" and fallback_items:
@@ -59,10 +74,13 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=5)
 
     meta: list[CanonicalMetaLine] = []
+    if is_tallinn_ferry:
+        for label, value in tallinn_departure_meta(row):
+            meta.append(CanonicalMetaLine(label, value))
     pickup_range = row.get("group_tour_pickup_range", "") or group_tour_pickup_range
     if pickup_range:
         meta.append(CanonicalMetaLine("Pick-up", pickup_range))
-    else:
+    elif not is_tallinn_ferry:
         time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
         if time_display:
             meta.append(CanonicalMetaLine(_activity_time_label(row, time_display), time_display))
@@ -85,7 +103,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     return CanonicalBlock(
         kind="activity",
         row_id=_row_id(row),
-        section_title=get_time_period(time),
+        section_title="Ferry Journey" if is_tallinn_ferry else get_time_period(time),
         title=title,
         meta=meta,
         includes=included_items,

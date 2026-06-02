@@ -1,0 +1,352 @@
+[
+  {
+    "id": "opt_001",
+    "bank": "optional_commercial",
+    "category": "optional_experience",
+    "messiness": "clean",
+    "input": "Day 1\tOptional\t01.01.2027\t\tOslo: Optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide"
+  },
+  {
+    "id": "opt_002",
+    "bank": "optional_commercial",
+    "category": "optional_transfer",
+    "messiness": "messy",
+    "input": "Day 2\tOptional\t01.01.2027\t\tBergen: optional private airport transfer - Price on request"
+  },
+  {
+    "id": "opt_003",
+    "bank": "optional_commercial",
+    "category": "optional_hotel",
+    "messiness": "very_messy",
+    "input": "Day 3\tOptional\t01.01.2027\t\tRovaniemi: Optinal upgrade to glass igloo - 1 night - breakfast inclueded"
+  },
+  {
+    "id": "opt_004",
+    "bank": "optional_commercial",
+    "category": "optional_flight",
+    "messiness": "clean",
+    "input": "Day 4\tOptional\t01.01.2027\t\tTromsø: Optional flightseeing experience - Cost not included"
+  },
+  {
+    "id": "opt_005",
+    "bank": "optional_commercial",
+    "category": "optional_prefix_activity",
+    "messiness": "messy",
+    "input": "Day 5\tActivity\t01.01.2027\t\toptional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide"
+  },
+  {
+    "id": "opt_006",
+    "bank": "optional_commercial",
+    "category": "cost_not_included",
+    "messiness": "very_messy",
+    "input": "Day 6\tActivity\t01.01.2027\t\tCopenhagen: Museum ticket to be bought on site - not inclueded"
+  },
+  {
+    "id": "opt_007",
+    "bank": "optional_commercial",
+    "category": "self_transfer",
+    "messiness": "clean",
+    "input": "Day 7\tTransfer\t01.01.2027\t\tOslo: Self Transfer Hotel to Airport"
+  },
+  {
+    "id": "opt_008",
+    "bank": "optional_commercial",
+    "category": "included_on_request_text",
+    "messiness": "messy",
+    "input": "Day 8\tActivity\t01.01.2027\t\tHelsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry"
+  },
+  {
+    "id": "opt_009",
+    "bank": "optional_commercial",
+    "category": "optional_pipe",
+    "messiness": "very_messy",
+    "input": "Day 9\tActivity\t01.01.2027\t\tStockholm | Optinal archipelago cruise | 10:00 - 13:00 | Price on request"
+  },
+  {
+    "id": "opt_010",
+    "bank": "optional_commercial",
+    "category": "optional_messy_typo",
+    "messiness": "clean",
+    "input": "Day 10\tActivity\t01.01.2027\t\tBergen: Optinal addon Fløibanen visit - TIckets not included"
+  },
+  {
+    "id": "opt_011",
+    "bank": "optional_commercial",
+    "category": "optional_experience",
+    "messiness": "messy",
+    "input": "Day 11\tOptional\t01.01.2027\t\tOslo: optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide"
+  },
+  {
+    "id": "opt_012",
+    "bank": "optional_commercial",
+    "category": "optional_transfer",
+    "messiness": "very_messy",
+    "input": "Day 12\tOptional\t01.01.2027\t\tBergen: Optinal private airport transfere - Price on request"
+  },
+  {
+    "id": "opt_013",
+    "bank": "optional_commercial",
+    "category": "optional_hotel",
+    "messiness": "clean",
+    "input": "Day 13\tOptional\t01.01.2027\t\tRovaniemi: Optional upgrade to glass igloo - 1 night - breakfast included"
+  },
+  {
+    "id": "opt_014",
+    "bank": "optional_commercial",
+    "category": "optional_flight",
+    "messiness": "messy",
+    "input": "Day 14\tOptional\t01.01.2027\t\tTromsø: optional flightseeing experience - Cost not included"
+  },
+  {
+    "id": "opt_015",
+    "bank": "optional_commercial",
+    "category": "optional_prefix_activity",
+    "messiness": "very_messy",
+    "input": "Day 15\tActivity\t01.01.2027\t\tOptinal Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide"
+  },
+  {
+    "id": "opt_016",
+    "bank": "optional_commercial",
+    "category": "cost_not_included",
+    "messiness": "clean",
+    "input": "Day 16\tActivity\t01.01.2027\t\tCopenhagen: Museum ticket to be bought on site - not included"
+  },
+  {
+    "id": "opt_017",
+    "bank": "optional_commercial",
+    "category": "self_transfer",
+    "messiness": "messy",
+    "input": "Day 17\tTransfer\t01.01.2027\t\tOslo: Self transfer Hotel to Airport"
+  },
+  {
+    "id": "opt_018",
+    "bank": "optional_commercial",
+    "category": "included_on_request_text",
+    "messiness": "very_messy",
+    "input": "Day 18\tActivity\t01.01.2027\t\tHelsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry"
+  },
+  {
+    "id": "opt_019",
+    "bank": "optional_commercial",
+    "category": "optional_pipe",
+    "messiness": "clean",
+    "input": "Day 19\tActivity\t01.01.2027\t\tStockholm | Optional archipelago cruise | 10:00 - 13:00 | Price on request"
+  },
+  {
+    "id": "opt_020",
+    "bank": "optional_commercial",
+    "category": "optional_messy_typo",
+    "messiness": "messy",
+    "input": "Day 20\tActivity\t01.01.2027\t\tBergen: Optinal addon Fløibanen visit - TIckets not included"
+  },
+  {
+    "id": "opt_021",
+    "bank": "optional_commercial",
+    "category": "optional_experience",
+    "messiness": "very_messy",
+    "input": "Day 21\tOptional\t01.01.2027\t\tOslo: Optinal Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide"
+  },
+  {
+    "id": "opt_022",
+    "bank": "optional_commercial",
+    "category": "optional_transfer",
+    "messiness": "clean",
+    "input": "Day 22\tOptional\t01.01.2027\t\tBergen: Optional private airport transfer - Price on request"
+  },
+  {
+    "id": "opt_023",
+    "bank": "optional_commercial",
+    "category": "optional_hotel",
+    "messiness": "messy",
+    "input": "Day 23\tOptional\t01.01.2027\t\tRovaniemi: optional upgrade to glass igloo - 1 night - breakfast included"
+  },
+  {
+    "id": "opt_024",
+    "bank": "optional_commercial",
+    "category": "optional_flight",
+    "messiness": "very_messy",
+    "input": "Day 24\tOptional\t01.01.2027\t\tTromsø: Optinal flightseeing experience - Cost not inclueded"
+  },
+  {
+    "id": "opt_025",
+    "bank": "optional_commercial",
+    "category": "optional_prefix_activity",
+    "messiness": "clean",
+    "input": "Day 25\tActivity\t01.01.2027\t\tOptional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide"
+  },
+  {
+    "id": "opt_026",
+    "bank": "optional_commercial",
+    "category": "cost_not_included",
+    "messiness": "messy",
+    "input": "Day 26\tActivity\t01.01.2027\t\tCopenhagen: Museum ticket to be bought on site - not included"
+  },
+  {
+    "id": "opt_027",
+    "bank": "optional_commercial",
+    "category": "self_transfer",
+    "messiness": "very_messy",
+    "input": "Day 27\tTransfer\t01.01.2027\t\tOslo: Self Transfer Hotel to Airport"
+  },
+  {
+    "id": "opt_028",
+    "bank": "optional_commercial",
+    "category": "included_on_request_text",
+    "messiness": "clean",
+    "input": "Day 28\tActivity\t01.01.2027\t\tHelsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry"
+  },
+  {
+    "id": "opt_029",
+    "bank": "optional_commercial",
+    "category": "optional_pipe",
+    "messiness": "messy",
+    "input": "Day 29\tActivity\t01.01.2027\t\tStockholm | optional archipelago cruise | 10:00 - 13:00 | Price on request"
+  },
+  {
+    "id": "opt_030",
+    "bank": "optional_commercial",
+    "category": "optional_messy_typo",
+    "messiness": "very_messy",
+    "input": "Day 30\tActivity\t01.01.2027\t\tBergen: Optinal addon Fløibanen visit - TIckets not inclueded"
+  },
+  {
+    "id": "opt_031",
+    "bank": "optional_commercial",
+    "category": "optional_experience",
+    "messiness": "clean",
+    "input": "Day 31\tOptional\t01.01.2027\t\tOslo: Optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide"
+  },
+  {
+    "id": "opt_032",
+    "bank": "optional_commercial",
+    "category": "optional_transfer",
+    "messiness": "messy",
+    "input": "Day 32\tOptional\t01.01.2027\t\tBergen: optional private airport transfer - Price on request"
+  },
+  {
+    "id": "opt_033",
+    "bank": "optional_commercial",
+    "category": "optional_hotel",
+    "messiness": "very_messy",
+    "input": "Day 33\tOptional\t01.01.2027\t\tRovaniemi: Optinal upgrade to glass igloo - 1 night - breakfast inclueded"
+  },
+  {
+    "id": "opt_034",
+    "bank": "optional_commercial",
+    "category": "optional_flight",
+    "messiness": "clean",
+    "input": "Day 34\tOptional\t01.01.2027\t\tTromsø: Optional flightseeing experience - Cost not included"
+  },
+  {
+    "id": "opt_035",
+    "bank": "optional_commercial",
+    "category": "optional_prefix_activity",
+    "messiness": "messy",
+    "input": "Day 35\tActivity\t01.01.2027\t\toptional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide"
+  },
+  {
+    "id": "opt_036",
+    "bank": "optional_commercial",
+    "category": "cost_not_included",
+    "messiness": "very_messy",
+    "input": "Day 36\tActivity\t01.01.2027\t\tCopenhagen: Museum ticket to be bought on site - not inclueded"
+  },
+  {
+    "id": "opt_037",
+    "bank": "optional_commercial",
+    "category": "self_transfer",
+    "messiness": "clean",
+    "input": "Day 37\tTransfer\t01.01.2027\t\tOslo: Self Transfer Hotel to Airport"
+  },
+  {
+    "id": "opt_038",
+    "bank": "optional_commercial",
+    "category": "included_on_request_text",
+    "messiness": "messy",
+    "input": "Day 38\tActivity\t01.01.2027\t\tHelsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry"
+  },
+  {
+    "id": "opt_039",
+    "bank": "optional_commercial",
+    "category": "optional_pipe",
+    "messiness": "very_messy",
+    "input": "Day 39\tActivity\t01.01.2027\t\tStockholm | Optinal archipelago cruise | 10:00 - 13:00 | Price on request"
+  },
+  {
+    "id": "opt_040",
+    "bank": "optional_commercial",
+    "category": "optional_messy_typo",
+    "messiness": "clean",
+    "input": "Day 40\tActivity\t01.01.2027\t\tBergen: Optinal addon Fløibanen visit - TIckets not included"
+  },
+  {
+    "id": "opt_041",
+    "bank": "optional_commercial",
+    "category": "optional_experience",
+    "messiness": "messy",
+    "input": "Day 41\tOptional\t01.01.2027\t\tOslo: optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide"
+  },
+  {
+    "id": "opt_042",
+    "bank": "optional_commercial",
+    "category": "optional_transfer",
+    "messiness": "very_messy",
+    "input": "Day 42\tOptional\t01.01.2027\t\tBergen: Optinal private airport transfere - Price on request"
+  },
+  {
+    "id": "opt_043",
+    "bank": "optional_commercial",
+    "category": "optional_hotel",
+    "messiness": "clean",
+    "input": "Day 43\tOptional\t01.01.2027\t\tRovaniemi: Optional upgrade to glass igloo - 1 night - breakfast included"
+  },
+  {
+    "id": "opt_044",
+    "bank": "optional_commercial",
+    "category": "optional_flight",
+    "messiness": "messy",
+    "input": "Day 44\tOptional\t01.01.2027\t\tTromsø: optional flightseeing experience - Cost not included"
+  },
+  {
+    "id": "opt_045",
+    "bank": "optional_commercial",
+    "category": "optional_prefix_activity",
+    "messiness": "very_messy",
+    "input": "Day 45\tActivity\t01.01.2027\t\tOptinal Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide"
+  },
+  {
+    "id": "opt_046",
+    "bank": "optional_commercial",
+    "category": "cost_not_included",
+    "messiness": "clean",
+    "input": "Day 46\tActivity\t01.01.2027\t\tCopenhagen: Museum ticket to be bought on site - not included"
+  },
+  {
+    "id": "opt_047",
+    "bank": "optional_commercial",
+    "category": "self_transfer",
+    "messiness": "messy",
+    "input": "Day 47\tTransfer\t01.01.2027\t\tOslo: Self transfer Hotel to Airport"
+  },
+  {
+    "id": "opt_048",
+    "bank": "optional_commercial",
+    "category": "included_on_request_text",
+    "messiness": "very_messy",
+    "input": "Day 48\tActivity\t01.01.2027\t\tHelsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry"
+  },
+  {
+    "id": "opt_049",
+    "bank": "optional_commercial",
+    "category": "optional_pipe",
+    "messiness": "clean",
+    "input": "Day 49\tActivity\t01.01.2027\t\tStockholm | Optional archipelago cruise | 10:00 - 13:00 | Price on request"
+  },
+  {
+    "id": "opt_050",
+    "bank": "optional_commercial",
+    "category": "optional_messy_typo",
+    "messiness": "messy",
+    "input": "Day 50\tActivity\t01.01.2027\t\tBergen: Optinal addon Fløibanen visit - TIckets not included"
+  }
+]

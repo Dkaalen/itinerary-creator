@@ -41,13 +41,18 @@ Day 1	Activity	01.01.2027		Tallinn: Old Town Guided tour - Time: 1:00 pm - 3:30 
     grouped = group_rows_by_day(rows)
     plain = _plain_html(rows)
 
-    assert create_day_title(grouped["Day 1"]) == "Excursion to Tallinn - Guided Experience"
+    assert create_day_title(grouped["Day 1"]) == "Day Excursion to Tallinn"
     assert "Day Excursion to Tallinn" in plain
-    assert "Featured experience Excursion to Tallinn - Guided Experience" in plain
+    assert "Ferry Journey Helsinki to Tallinn return ferry" in plain
+    assert "Featured experience Excursion to Tallinn - Guided Experience" not in plain
+    assert "Guided Experience" not in plain
     assert "Afternoon Experience Old Town Guided Tour" in plain
+    assert "Departure from Helsinki: 10:30 AM" in plain
+    assert "Return from Tallinn: 7:30 PM" in plain
     assert "Meeting point: Town Hall clock" in plain
     assert "Meeting point: Town Hall clock - Notable sights" not in plain
     assert "Notable Sights St Nicholas Church Alexander Nevsky Cathedral" in plain
+    assert "Explore Tallinn’s Old Town with a guide" in plain
 
 
 def test_pipe_formatted_private_fjord_cruise_stays_activity_with_city_time_and_inclusions():

@@ -1,0 +1,50 @@
+opt_001	optional_experience	Day 1	Optional	01.01.2027		Oslo: Optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide
+opt_002	optional_transfer	Day 2	Optional	01.01.2027		Bergen: optional private airport transfer - Price on request
+opt_003	optional_hotel	Day 3	Optional	01.01.2027		Rovaniemi: Optinal upgrade to glass igloo - 1 night - breakfast inclueded
+opt_004	optional_flight	Day 4	Optional	01.01.2027		Tromsø: Optional flightseeing experience - Cost not included
+opt_005	optional_prefix_activity	Day 5	Activity	01.01.2027		optional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide
+opt_006	cost_not_included	Day 6	Activity	01.01.2027		Copenhagen: Museum ticket to be bought on site - not inclueded
+opt_007	self_transfer	Day 7	Transfer	01.01.2027		Oslo: Self Transfer Hotel to Airport
+opt_008	included_on_request_text	Day 8	Activity	01.01.2027		Helsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry
+opt_009	optional_pipe	Day 9	Activity	01.01.2027		Stockholm | Optinal archipelago cruise | 10:00 - 13:00 | Price on request
+opt_010	optional_messy_typo	Day 10	Activity	01.01.2027		Bergen: Optinal addon Fløibanen visit - TIckets not included
+opt_011	optional_experience	Day 11	Optional	01.01.2027		Oslo: optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide
+opt_012	optional_transfer	Day 12	Optional	01.01.2027		Bergen: Optinal private airport transfere - Price on request
+opt_013	optional_hotel	Day 13	Optional	01.01.2027		Rovaniemi: Optional upgrade to glass igloo - 1 night - breakfast included
+opt_014	optional_flight	Day 14	Optional	01.01.2027		Tromsø: optional flightseeing experience - Cost not included
+opt_015	optional_prefix_activity	Day 15	Activity	01.01.2027		Optinal Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide
+opt_016	cost_not_included	Day 16	Activity	01.01.2027		Copenhagen: Museum ticket to be bought on site - not included
+opt_017	self_transfer	Day 17	Transfer	01.01.2027		Oslo: Self transfer Hotel to Airport
+opt_018	included_on_request_text	Day 18	Activity	01.01.2027		Helsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry
+opt_019	optional_pipe	Day 19	Activity	01.01.2027		Stockholm | Optional archipelago cruise | 10:00 - 13:00 | Price on request
+opt_020	optional_messy_typo	Day 20	Activity	01.01.2027		Bergen: Optinal addon Fløibanen visit - TIckets not included
+opt_021	optional_experience	Day 21	Optional	01.01.2027		Oslo: Optinal Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide
+opt_022	optional_transfer	Day 22	Optional	01.01.2027		Bergen: Optional private airport transfer - Price on request
+opt_023	optional_hotel	Day 23	Optional	01.01.2027		Rovaniemi: optional upgrade to glass igloo - 1 night - breakfast included
+opt_024	optional_flight	Day 24	Optional	01.01.2027		Tromsø: Optinal flightseeing experience - Cost not inclueded
+opt_025	optional_prefix_activity	Day 25	Activity	01.01.2027		Optional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide
+opt_026	cost_not_included	Day 26	Activity	01.01.2027		Copenhagen: Museum ticket to be bought on site - not included
+opt_027	self_transfer	Day 27	Transfer	01.01.2027		Oslo: Self Transfer Hotel to Airport
+opt_028	included_on_request_text	Day 28	Activity	01.01.2027		Helsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry
+opt_029	optional_pipe	Day 29	Activity	01.01.2027		Stockholm | optional archipelago cruise | 10:00 - 13:00 | Price on request
+opt_030	optional_messy_typo	Day 30	Activity	01.01.2027		Bergen: Optinal addon Fløibanen visit - TIckets not inclueded
+opt_031	optional_experience	Day 31	Optional	01.01.2027		Oslo: Optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide
+opt_032	optional_transfer	Day 32	Optional	01.01.2027		Bergen: optional private airport transfer - Price on request
+opt_033	optional_hotel	Day 33	Optional	01.01.2027		Rovaniemi: Optinal upgrade to glass igloo - 1 night - breakfast inclueded
+opt_034	optional_flight	Day 34	Optional	01.01.2027		Tromsø: Optional flightseeing experience - Cost not included
+opt_035	optional_prefix_activity	Day 35	Activity	01.01.2027		optional Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide
+opt_036	cost_not_included	Day 36	Activity	01.01.2027		Copenhagen: Museum ticket to be bought on site - not inclueded
+opt_037	self_transfer	Day 37	Transfer	01.01.2027		Oslo: Self Transfer Hotel to Airport
+opt_038	included_on_request_text	Day 38	Activity	01.01.2027		Helsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry
+opt_039	optional_pipe	Day 39	Activity	01.01.2027		Stockholm | Optinal archipelago cruise | 10:00 - 13:00 | Price on request
+opt_040	optional_messy_typo	Day 40	Activity	01.01.2027		Bergen: Optinal addon Fløibanen visit - TIckets not included
+opt_041	optional_experience	Day 41	Optional	01.01.2027		Oslo: optional Fjord Sightseeing Cruise - Time: 11:00 am - 1:00 pm - Includes: boat ticket, guide
+opt_042	optional_transfer	Day 42	Optional	01.01.2027		Bergen: Optinal private airport transfere - Price on request
+opt_043	optional_hotel	Day 43	Optional	01.01.2027		Rovaniemi: Optional upgrade to glass igloo - 1 night - breakfast included
+opt_044	optional_flight	Day 44	Optional	01.01.2027		Tromsø: optional flightseeing experience - Cost not included
+opt_045	optional_prefix_activity	Day 45	Activity	01.01.2027		Optinal Addon: Helsinki Food Walk - Time: 2:00 pm - Includes: tastings, guide
+opt_046	cost_not_included	Day 46	Activity	01.01.2027		Copenhagen: Museum ticket to be bought on site - not included
+opt_047	self_transfer	Day 47	Transfer	01.01.2027		Oslo: Self transfer Hotel to Airport
+opt_048	included_on_request_text	Day 48	Activity	01.01.2027		Helsinki: City Highlights Tour - Other languages available on request - Includes: guide, ferry
+opt_049	optional_pipe	Day 49	Activity	01.01.2027		Stockholm | Optional archipelago cruise | 10:00 - 13:00 | Price on request
+opt_050	optional_messy_typo	Day 50	Activity	01.01.2027		Bergen: Optinal addon Fløibanen visit - TIckets not included

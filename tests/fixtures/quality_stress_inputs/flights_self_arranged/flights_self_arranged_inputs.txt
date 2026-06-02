@@ -1,0 +1,50 @@
+flight_001	included_domestic_flight	Day 1	Flight	01.01.2027		Tromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)
+flight_002	self_arranged_transfer_type	Day 2	Transfer	01.01.2027		Oslo: flight Oslo to Tromsø self arrange cost not included
+flight_003	self_arranged_flight_type	Day 3	Flight	01.01.2027		Bergen: Self-arrnaged flight to Copenhagen - cost not inclueded
+flight_004	flight_cost_not_included_typo	Day 4	Flight	01.01.2027		Alta: Flight Alta to Oslo self arrnaged cost not inclueded
+flight_005	international_not_listed	Day 5	Notes	01.01.2027		International flights are not included
+flight_006	included_luggage	Day 6	Flight	01.01.2027		Stockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag
+flight_007	optional_flight	Day 7	Optional	01.01.2027		Tromsø: Optional helicopter flightseeing - price not included
+flight_008	flight_pipe	Day 8	Flight	01.01.2027		Bergen | flight to Oslo | 09:00 - 10:00 | Incl. ticket and luggage
+flight_009	self_arranged_route_from_to	Day 9	Flight	01.01.2027		Flight from Helsinki to Stockholm self arrnaged price not inclueded
+flight_010	messy_domestic	Day 10	Transfer	01.01.2027		Flight tromso to Bergen self arrange cost not included
+flight_011	included_domestic_flight	Day 11	Flight	01.01.2027		Tromsø: flight to Bergen - Time: 11:15 am - 1:20 pm - Incl.: Tickets, Luggage (1 x 23 kg)
+flight_012	self_arranged_transfer_type	Day 12	Transfer	01.01.2027		Oslo: Flight Oslo to Tromso self arrange cost not inclueded
+flight_013	self_arranged_flight_type	Day 13	Flight	01.01.2027		Bergen: Self-arranged flight to Copenhagen - cost not included
+flight_014	flight_cost_not_included_typo	Day 14	Flight	01.01.2027		Alta: flight Alta to Oslo self arrnaged cost not inclueded
+flight_015	international_not_listed	Day 15	Notes	01.01.2027		International flights are not inclueded
+flight_016	included_luggage	Day 16	Flight	01.01.2027		Stockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag
+flight_017	optional_flight	Day 17	Optional	01.01.2027		Tromsø: Optional helicopter flightseeing - price not included
+flight_018	flight_pipe	Day 18	Flight	01.01.2027		Bergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage
+flight_019	self_arranged_route_from_to	Day 19	Flight	01.01.2027		Flight from Helsinki to Stockholm self arranged price not included
+flight_020	messy_domestic	Day 20	Transfer	01.01.2027		flight tromso to Bergen self arrange cost not included
+flight_021	included_domestic_flight	Day 21	Flight	01.01.2027		Tromso: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)
+flight_022	self_arranged_transfer_type	Day 22	Transfer	01.01.2027		Oslo: Flight Oslo to Tromsø self arrange cost not included
+flight_023	self_arranged_flight_type	Day 23	Flight	01.01.2027		Bergen: Self-arranged flight to Copenhagen - cost not included
+flight_024	flight_cost_not_included_typo	Day 24	Flight	01.01.2027		Alta: Flight Alta to Oslo self arrnaged cost not inclueded
+flight_025	international_not_listed	Day 25	Notes	01.01.2027		International flights are not included
+flight_026	included_luggage	Day 26	Flight	01.01.2027		Stockholm: flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Incl.: Tickets, 1 x checked bag
+flight_027	optional_flight	Day 27	Optional	01.01.2027		Tromso: Optional helicopter flightseeing - price not inclueded
+flight_028	flight_pipe	Day 28	Flight	01.01.2027		Bergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage
+flight_029	self_arranged_route_from_to	Day 29	Flight	01.01.2027		flight from Helsinki to Stockholm self arranged price not included
+flight_030	messy_domestic	Day 30	Transfer	01.01.2027		Flight tromso to Bergen self arrange cost not inclueded
+flight_031	included_domestic_flight	Day 31	Flight	01.01.2027		Tromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)
+flight_032	self_arranged_transfer_type	Day 32	Transfer	01.01.2027		Oslo: flight Oslo to Tromsø self arrange cost not included
+flight_033	self_arranged_flight_type	Day 33	Flight	01.01.2027		Bergen: Self-arrnaged flight to Copenhagen - cost not inclueded
+flight_034	flight_cost_not_included_typo	Day 34	Flight	01.01.2027		Alta: Flight Alta to Oslo self arrnaged cost not inclueded
+flight_035	international_not_listed	Day 35	Notes	01.01.2027		International flights are not included
+flight_036	included_luggage	Day 36	Flight	01.01.2027		Stockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag
+flight_037	optional_flight	Day 37	Optional	01.01.2027		Tromsø: Optional helicopter flightseeing - price not included
+flight_038	flight_pipe	Day 38	Flight	01.01.2027		Bergen | flight to Oslo | 09:00 - 10:00 | Incl. ticket and luggage
+flight_039	self_arranged_route_from_to	Day 39	Flight	01.01.2027		Flight from Helsinki to Stockholm self arrnaged price not inclueded
+flight_040	messy_domestic	Day 40	Transfer	01.01.2027		Flight tromso to Bergen self arrange cost not included
+flight_041	included_domestic_flight	Day 41	Flight	01.01.2027		Tromsø: flight to Bergen - Time: 11:15 am - 1:20 pm - Incl.: Tickets, Luggage (1 x 23 kg)
+flight_042	self_arranged_transfer_type	Day 42	Transfer	01.01.2027		Oslo: Flight Oslo to Tromso self arrange cost not inclueded
+flight_043	self_arranged_flight_type	Day 43	Flight	01.01.2027		Bergen: Self-arranged flight to Copenhagen - cost not included
+flight_044	flight_cost_not_included_typo	Day 44	Flight	01.01.2027		Alta: flight Alta to Oslo self arrnaged cost not inclueded
+flight_045	international_not_listed	Day 45	Notes	01.01.2027		International flights are not inclueded
+flight_046	included_luggage	Day 46	Flight	01.01.2027		Stockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag
+flight_047	optional_flight	Day 47	Optional	01.01.2027		Tromsø: Optional helicopter flightseeing - price not included
+flight_048	flight_pipe	Day 48	Flight	01.01.2027		Bergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage
+flight_049	self_arranged_route_from_to	Day 49	Flight	01.01.2027		Flight from Helsinki to Stockholm self arranged price not included
+flight_050	messy_domestic	Day 50	Transfer	01.01.2027		flight tromso to Bergen self arrange cost not included

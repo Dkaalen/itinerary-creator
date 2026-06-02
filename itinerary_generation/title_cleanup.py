@@ -8,6 +8,7 @@ from place_aliases import canonicalize_place_name
 from text_polish import polish_title, strip_price_fragments
 from itinerary_generation.content_text import clean_inline
 from itinerary_generation.title_safety import is_forbidden_client_title, strip_supplier_title_cta
+from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 
 
 RAW_SUPPLIER_MARKERS = [
@@ -142,14 +143,13 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     if is_forbidden_client_title(text):
         return ""
 
-    if "tallinn" in full and "excursion" in full:
-        if "day excursion" in text.lower():
+    if "tallinn" in full:
+        if is_tallinn_old_town_guided_tour(row):
+            return "Old Town Guided Tour"
+        if is_tallinn_ferry_framework(row):
             return "Day Excursion to Tallinn"
-        if "guided experience" in full:
-            return "Excursion to Tallinn - Guided Experience"
-        return "Day Excursion to Tallinn"
-    if "tallinn" in full and ("day trip" in full or "ferry" in full):
-        return "Day Trip to Tallinn"
+        if "day trip" in full or "ferry" in full:
+            return "Day Trip to Tallinn"
     if ("fløibanen" in text.lower() or "floibanen" in text.lower()) and ("&" in text or " and " in text.lower()):
         return polish_title(text)
     if "munch museum" in full:

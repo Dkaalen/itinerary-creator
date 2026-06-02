@@ -28,6 +28,9 @@ def _transport_source_text(row):
 def _clean_route_place(value):
     raw = str(value or "").strip(" -:|.,")
     raw = re.sub(r"^(?:from|to)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
+    raw = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bnot\s+included\b", "", raw, flags=re.IGNORECASE)
     # Common supplier typo: "Saariselka t to Rovaniemi" leaves a stray
     # trailing "t" on the origin after route splitting. Do not let that
     # become a client-facing place name.

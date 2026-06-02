@@ -13,6 +13,7 @@ from itinerary_generation.title_routes import (
     _route_label_from_activity_text,
 )
 from itinerary_generation.title_safety import BAD_TITLE_PATTERNS, is_forbidden_client_title
+from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 from text_polish import polish_title, strip_price_fragments
 
 def is_bad_raw_day_title(title: str) -> bool:
@@ -131,10 +132,10 @@ def create_client_activity_title(row):
         return "Whale Watching"
 
     if "tallinn" in full_text:
-        if ("old town" in title_text or "old town" in original_title_text) and ("guided tour" in full_text or "guide" in full_text):
+        if is_tallinn_old_town_guided_tour(row):
             return "Old Town Guided Tour"
-        if "excursion" in full_text:
-            return "Excursion to Tallinn - Guided Experience"
+        if is_tallinn_ferry_framework(row):
+            return "Day Excursion to Tallinn"
         return "Day Trip to Tallinn"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):

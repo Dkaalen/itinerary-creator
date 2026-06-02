@@ -1,0 +1,352 @@
+[
+  {
+    "id": "flight_001",
+    "bank": "flights_self_arranged",
+    "category": "included_domestic_flight",
+    "messiness": "clean",
+    "input": "Day 1\tFlight\t01.01.2027\t\tTromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)"
+  },
+  {
+    "id": "flight_002",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_transfer_type",
+    "messiness": "messy",
+    "input": "Day 2\tTransfer\t01.01.2027\t\tOslo: flight Oslo to Tromsø self arrange cost not included"
+  },
+  {
+    "id": "flight_003",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_flight_type",
+    "messiness": "very_messy",
+    "input": "Day 3\tFlight\t01.01.2027\t\tBergen: Self-arrnaged flight to Copenhagen - cost not inclueded"
+  },
+  {
+    "id": "flight_004",
+    "bank": "flights_self_arranged",
+    "category": "flight_cost_not_included_typo",
+    "messiness": "clean",
+    "input": "Day 4\tFlight\t01.01.2027\t\tAlta: Flight Alta to Oslo self arrnaged cost not inclueded"
+  },
+  {
+    "id": "flight_005",
+    "bank": "flights_self_arranged",
+    "category": "international_not_listed",
+    "messiness": "messy",
+    "input": "Day 5\tNotes\t01.01.2027\t\tInternational flights are not included"
+  },
+  {
+    "id": "flight_006",
+    "bank": "flights_self_arranged",
+    "category": "included_luggage",
+    "messiness": "very_messy",
+    "input": "Day 6\tFlight\t01.01.2027\t\tStockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag"
+  },
+  {
+    "id": "flight_007",
+    "bank": "flights_self_arranged",
+    "category": "optional_flight",
+    "messiness": "clean",
+    "input": "Day 7\tOptional\t01.01.2027\t\tTromsø: Optional helicopter flightseeing - price not included"
+  },
+  {
+    "id": "flight_008",
+    "bank": "flights_self_arranged",
+    "category": "flight_pipe",
+    "messiness": "messy",
+    "input": "Day 8\tFlight\t01.01.2027\t\tBergen | flight to Oslo | 09:00 - 10:00 | Incl. ticket and luggage"
+  },
+  {
+    "id": "flight_009",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_route_from_to",
+    "messiness": "very_messy",
+    "input": "Day 9\tFlight\t01.01.2027\t\tFlight from Helsinki to Stockholm self arrnaged price not inclueded"
+  },
+  {
+    "id": "flight_010",
+    "bank": "flights_self_arranged",
+    "category": "messy_domestic",
+    "messiness": "clean",
+    "input": "Day 10\tTransfer\t01.01.2027\t\tFlight tromso to Bergen self arrange cost not included"
+  },
+  {
+    "id": "flight_011",
+    "bank": "flights_self_arranged",
+    "category": "included_domestic_flight",
+    "messiness": "messy",
+    "input": "Day 11\tFlight\t01.01.2027\t\tTromsø: flight to Bergen - Time: 11:15 am - 1:20 pm - Incl.: Tickets, Luggage (1 x 23 kg)"
+  },
+  {
+    "id": "flight_012",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_transfer_type",
+    "messiness": "very_messy",
+    "input": "Day 12\tTransfer\t01.01.2027\t\tOslo: Flight Oslo to Tromso self arrange cost not inclueded"
+  },
+  {
+    "id": "flight_013",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_flight_type",
+    "messiness": "clean",
+    "input": "Day 13\tFlight\t01.01.2027\t\tBergen: Self-arranged flight to Copenhagen - cost not included"
+  },
+  {
+    "id": "flight_014",
+    "bank": "flights_self_arranged",
+    "category": "flight_cost_not_included_typo",
+    "messiness": "messy",
+    "input": "Day 14\tFlight\t01.01.2027\t\tAlta: flight Alta to Oslo self arrnaged cost not inclueded"
+  },
+  {
+    "id": "flight_015",
+    "bank": "flights_self_arranged",
+    "category": "international_not_listed",
+    "messiness": "very_messy",
+    "input": "Day 15\tNotes\t01.01.2027\t\tInternational flights are not inclueded"
+  },
+  {
+    "id": "flight_016",
+    "bank": "flights_self_arranged",
+    "category": "included_luggage",
+    "messiness": "clean",
+    "input": "Day 16\tFlight\t01.01.2027\t\tStockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag"
+  },
+  {
+    "id": "flight_017",
+    "bank": "flights_self_arranged",
+    "category": "optional_flight",
+    "messiness": "messy",
+    "input": "Day 17\tOptional\t01.01.2027\t\tTromsø: Optional helicopter flightseeing - price not included"
+  },
+  {
+    "id": "flight_018",
+    "bank": "flights_self_arranged",
+    "category": "flight_pipe",
+    "messiness": "very_messy",
+    "input": "Day 18\tFlight\t01.01.2027\t\tBergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage"
+  },
+  {
+    "id": "flight_019",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_route_from_to",
+    "messiness": "clean",
+    "input": "Day 19\tFlight\t01.01.2027\t\tFlight from Helsinki to Stockholm self arranged price not included"
+  },
+  {
+    "id": "flight_020",
+    "bank": "flights_self_arranged",
+    "category": "messy_domestic",
+    "messiness": "messy",
+    "input": "Day 20\tTransfer\t01.01.2027\t\tflight tromso to Bergen self arrange cost not included"
+  },
+  {
+    "id": "flight_021",
+    "bank": "flights_self_arranged",
+    "category": "included_domestic_flight",
+    "messiness": "very_messy",
+    "input": "Day 21\tFlight\t01.01.2027\t\tTromso: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)"
+  },
+  {
+    "id": "flight_022",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_transfer_type",
+    "messiness": "clean",
+    "input": "Day 22\tTransfer\t01.01.2027\t\tOslo: Flight Oslo to Tromsø self arrange cost not included"
+  },
+  {
+    "id": "flight_023",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_flight_type",
+    "messiness": "messy",
+    "input": "Day 23\tFlight\t01.01.2027\t\tBergen: Self-arranged flight to Copenhagen - cost not included"
+  },
+  {
+    "id": "flight_024",
+    "bank": "flights_self_arranged",
+    "category": "flight_cost_not_included_typo",
+    "messiness": "very_messy",
+    "input": "Day 24\tFlight\t01.01.2027\t\tAlta: Flight Alta to Oslo self arrnaged cost not inclueded"
+  },
+  {
+    "id": "flight_025",
+    "bank": "flights_self_arranged",
+    "category": "international_not_listed",
+    "messiness": "clean",
+    "input": "Day 25\tNotes\t01.01.2027\t\tInternational flights are not included"
+  },
+  {
+    "id": "flight_026",
+    "bank": "flights_self_arranged",
+    "category": "included_luggage",
+    "messiness": "messy",
+    "input": "Day 26\tFlight\t01.01.2027\t\tStockholm: flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Incl.: Tickets, 1 x checked bag"
+  },
+  {
+    "id": "flight_027",
+    "bank": "flights_self_arranged",
+    "category": "optional_flight",
+    "messiness": "very_messy",
+    "input": "Day 27\tOptional\t01.01.2027\t\tTromso: Optional helicopter flightseeing - price not inclueded"
+  },
+  {
+    "id": "flight_028",
+    "bank": "flights_self_arranged",
+    "category": "flight_pipe",
+    "messiness": "clean",
+    "input": "Day 28\tFlight\t01.01.2027\t\tBergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage"
+  },
+  {
+    "id": "flight_029",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_route_from_to",
+    "messiness": "messy",
+    "input": "Day 29\tFlight\t01.01.2027\t\tflight from Helsinki to Stockholm self arranged price not included"
+  },
+  {
+    "id": "flight_030",
+    "bank": "flights_self_arranged",
+    "category": "messy_domestic",
+    "messiness": "very_messy",
+    "input": "Day 30\tTransfer\t01.01.2027\t\tFlight tromso to Bergen self arrange cost not inclueded"
+  },
+  {
+    "id": "flight_031",
+    "bank": "flights_self_arranged",
+    "category": "included_domestic_flight",
+    "messiness": "clean",
+    "input": "Day 31\tFlight\t01.01.2027\t\tTromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - Includes: Tickets, Luggage (1 x 23 kg)"
+  },
+  {
+    "id": "flight_032",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_transfer_type",
+    "messiness": "messy",
+    "input": "Day 32\tTransfer\t01.01.2027\t\tOslo: flight Oslo to Tromsø self arrange cost not included"
+  },
+  {
+    "id": "flight_033",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_flight_type",
+    "messiness": "very_messy",
+    "input": "Day 33\tFlight\t01.01.2027\t\tBergen: Self-arrnaged flight to Copenhagen - cost not inclueded"
+  },
+  {
+    "id": "flight_034",
+    "bank": "flights_self_arranged",
+    "category": "flight_cost_not_included_typo",
+    "messiness": "clean",
+    "input": "Day 34\tFlight\t01.01.2027\t\tAlta: Flight Alta to Oslo self arrnaged cost not inclueded"
+  },
+  {
+    "id": "flight_035",
+    "bank": "flights_self_arranged",
+    "category": "international_not_listed",
+    "messiness": "messy",
+    "input": "Day 35\tNotes\t01.01.2027\t\tInternational flights are not included"
+  },
+  {
+    "id": "flight_036",
+    "bank": "flights_self_arranged",
+    "category": "included_luggage",
+    "messiness": "very_messy",
+    "input": "Day 36\tFlight\t01.01.2027\t\tStockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag"
+  },
+  {
+    "id": "flight_037",
+    "bank": "flights_self_arranged",
+    "category": "optional_flight",
+    "messiness": "clean",
+    "input": "Day 37\tOptional\t01.01.2027\t\tTromsø: Optional helicopter flightseeing - price not included"
+  },
+  {
+    "id": "flight_038",
+    "bank": "flights_self_arranged",
+    "category": "flight_pipe",
+    "messiness": "messy",
+    "input": "Day 38\tFlight\t01.01.2027\t\tBergen | flight to Oslo | 09:00 - 10:00 | Incl. ticket and luggage"
+  },
+  {
+    "id": "flight_039",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_route_from_to",
+    "messiness": "very_messy",
+    "input": "Day 39\tFlight\t01.01.2027\t\tFlight from Helsinki to Stockholm self arrnaged price not inclueded"
+  },
+  {
+    "id": "flight_040",
+    "bank": "flights_self_arranged",
+    "category": "messy_domestic",
+    "messiness": "clean",
+    "input": "Day 40\tTransfer\t01.01.2027\t\tFlight tromso to Bergen self arrange cost not included"
+  },
+  {
+    "id": "flight_041",
+    "bank": "flights_self_arranged",
+    "category": "included_domestic_flight",
+    "messiness": "messy",
+    "input": "Day 41\tFlight\t01.01.2027\t\tTromsø: flight to Bergen - Time: 11:15 am - 1:20 pm - Incl.: Tickets, Luggage (1 x 23 kg)"
+  },
+  {
+    "id": "flight_042",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_transfer_type",
+    "messiness": "very_messy",
+    "input": "Day 42\tTransfer\t01.01.2027\t\tOslo: Flight Oslo to Tromso self arrange cost not inclueded"
+  },
+  {
+    "id": "flight_043",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_flight_type",
+    "messiness": "clean",
+    "input": "Day 43\tFlight\t01.01.2027\t\tBergen: Self-arranged flight to Copenhagen - cost not included"
+  },
+  {
+    "id": "flight_044",
+    "bank": "flights_self_arranged",
+    "category": "flight_cost_not_included_typo",
+    "messiness": "messy",
+    "input": "Day 44\tFlight\t01.01.2027\t\tAlta: flight Alta to Oslo self arrnaged cost not inclueded"
+  },
+  {
+    "id": "flight_045",
+    "bank": "flights_self_arranged",
+    "category": "international_not_listed",
+    "messiness": "very_messy",
+    "input": "Day 45\tNotes\t01.01.2027\t\tInternational flights are not inclueded"
+  },
+  {
+    "id": "flight_046",
+    "bank": "flights_self_arranged",
+    "category": "included_luggage",
+    "messiness": "clean",
+    "input": "Day 46\tFlight\t01.01.2027\t\tStockholm: Flight to Copenhagen - Time: 3:00 pm - 4:10 pm - Includes: Tickets, 1 x checked bag"
+  },
+  {
+    "id": "flight_047",
+    "bank": "flights_self_arranged",
+    "category": "optional_flight",
+    "messiness": "messy",
+    "input": "Day 47\tOptional\t01.01.2027\t\tTromsø: Optional helicopter flightseeing - price not included"
+  },
+  {
+    "id": "flight_048",
+    "bank": "flights_self_arranged",
+    "category": "flight_pipe",
+    "messiness": "very_messy",
+    "input": "Day 48\tFlight\t01.01.2027\t\tBergen | Flight to Oslo | 09:00 - 10:00 | Includes ticket and luggage"
+  },
+  {
+    "id": "flight_049",
+    "bank": "flights_self_arranged",
+    "category": "self_arranged_route_from_to",
+    "messiness": "clean",
+    "input": "Day 49\tFlight\t01.01.2027\t\tFlight from Helsinki to Stockholm self arranged price not included"
+  },
+  {
+    "id": "flight_050",
+    "bank": "flights_self_arranged",
+    "category": "messy_domestic",
+    "messiness": "messy",
+    "input": "Day 50\tTransfer\t01.01.2027\t\tflight tromso to Bergen self arrange cost not included"
+  }
+]

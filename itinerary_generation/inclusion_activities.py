@@ -7,6 +7,7 @@ from text_polish import polish_title, polish_inclusion_items, polish_inclusion_i
 from itinerary_generation.content_engine import clean_client_title, merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.inclusion_flat import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.tallinn import clean_tallinn_ferry_inclusions, is_tallinn_ferry_framework, tallinn_ferry_title
 from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean
 
@@ -63,8 +64,11 @@ def _activity_inclusion_items(row: dict, title: str) -> list[str]:
 
 
 def activity_line(row: dict) -> str:
-    title = create_client_activity_title(row) or row.get("title", "")
-    title = clean_client_title(title, row) or title
+    if is_tallinn_ferry_framework(row):
+        title = tallinn_ferry_title(row)
+    else:
+        title = create_client_activity_title(row) or row.get("title", "")
+        title = clean_client_title(title, row) or title
     if "norway in a nutshell" in str(title).lower():
         title = polish_title(title)
     else:
@@ -72,7 +76,7 @@ def activity_line(row: dict) -> str:
 
     date = format_client_date(row.get("start_date"))
     heading = f"{title} - {date}" if date else title
-    inclusions = _activity_inclusion_items(row, heading)
+    inclusions = clean_tallinn_ferry_inclusions(row) if is_tallinn_ferry_framework(row) else _activity_inclusion_items(row, heading)
     if inclusions:
         return f"{heading}\n{', '.join(inclusions)}"
     return heading
