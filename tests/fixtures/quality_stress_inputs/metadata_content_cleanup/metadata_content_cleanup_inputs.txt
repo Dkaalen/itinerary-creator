@@ -1,0 +1,50 @@
+Day 1	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 2	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 3	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 4	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 5	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 6	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 7	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 8	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 9	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 10	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 11	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 12	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 13	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 14	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 15	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 16	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 17	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 18	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 19	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 20	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 21	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 22	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 23	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 24	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 25	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 26	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 27	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 28	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 29	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 30	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 31	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 32	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 33	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 34	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 35	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 36	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 37	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 38	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 39	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 40	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 41	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 42	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 43	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 44	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 45	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 46	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle
+Day 47	Activity	01.06.2027		Bergen | Food Walk | 13:00 - 16:00 | Includes guide, tastings | Meeting point: Fish Market
+Day 48	Activity	01.06.2027		Tromsø: Northern Lights Chase - Description: Head out in search of the aurora with local guidance. Book now and check availability before departure. - Includes: Guide, transport
+Day 49	Activity	01.06.2027		Oslo: Private City Walk - Includes: Guide, Coffee - Description: Explore central Oslo with your local guide. Includes: Internal note. Excludes: Lunch
+Day 50	Activity	01.06.2027		Reykjavík: South Coast Adventure - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara - Includes: Guide, vehicle

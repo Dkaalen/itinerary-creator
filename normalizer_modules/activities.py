@@ -70,20 +70,33 @@ def looks_like_leisure_activity(row: dict) -> bool:
     leisure_markers = [
         "spend time at leisure",
         "day at leisure",
+        "morning at leisure",
+        "afternoon at leisure",
         "evening at leisure",
         "time at leisure",
+        "at leisure",
         "free time",
         "at your own pace",
     ]
     if not any(marker in lower for marker in leisure_markers):
         return False
-    activity_markers = [
-        "guided", "tour", "museum", "safari", "cruise", "ferry", "train",
-        "flight", "coach", "northern lights", "whale", "snowmobile", "husky",
-        "reindeer", "food", "walking", "tickets", "includes",
+    arranged_payload = bool(row.get("time") or row.get("duration") or row.get("meeting_point") or row.get("includes"))
+    arranged_payload = arranged_payload or any(marker in lower for marker in ["ticket", "tickets", "admission", "includes:", "what's included", "what’s included"])
+
+    independent_markers = [
+        "self-guided", "self guided", "explore independently", "independent walk",
+        "independent stroll", "at your own pace", "own pace",
     ]
-    # Rows that include one of these terms may be an actual activity with some
-    # leisure wording in the description. Keep those as activities.
+    if any(marker in lower for marker in independent_markers) and not arranged_payload:
+        return True
+
+    activity_markers = [
+        "guided tour", "guided walking", "museum", "safari", "cruise", "ferry", "train",
+        "flight", "coach", "northern lights", "whale", "snowmobile", "husky",
+        "reindeer", "food tour", "walking tour", "tickets", "admission",
+    ]
+    # Rows that include one of these terms may be an actual arranged activity
+    # with some leisure wording in the description. Keep those as activities.
     return not any(marker in lower for marker in activity_markers)
 
 def normalize_activity_title(row: dict) -> str:

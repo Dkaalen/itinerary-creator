@@ -9,10 +9,16 @@ DETAIL_LABELS = [
     "Meeting point",
     "End point",
     "Includes",
+    "Included",
+    "Excludes",
+    "Not included",
     "Notable Sights",
+    "Highlights",
+    "Stops",
     "Schedule",
     "Description",
     "Overview",
+    "What to expect",
     "Luggage included",
 ]
 

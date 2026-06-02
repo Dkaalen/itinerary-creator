@@ -232,7 +232,12 @@ def parse_itinerary(raw_text):
         row["duration"] = extract_duration_from_description(main_text)
         row["meeting_point"] = extract_meeting_point_from_description(main_text)
         row["end_point"] = extract_detail(main_text, "End point")
-        row["notable_sights"] = split_comma_list(extract_detail(main_text, "Notable Sights"))
+        notable_source = (
+            extract_detail(main_text, "Notable Sights")
+            or extract_detail(main_text, "Highlights")
+            or extract_detail(main_text, "Stops")
+        )
+        row["notable_sights"] = split_comma_list(notable_source)
         row["includes"] = extract_includes_from_description(main_text)
         row["luggage_included"] = extract_luggage_included(main_text)
 

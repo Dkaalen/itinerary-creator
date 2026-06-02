@@ -207,7 +207,7 @@ def render_visual_editor_step():
 
         with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
             st.markdown(
-                '<div class="workflow-note">Click directly into the A4 pages and type. Edits stay local while you work; they are applied when you click Save edits or Create PDF.</div>',
+                '<div class="workflow-note">Click directly into the A4 pages and type. Edits stay local while you work; Save edits stores them now, and Create PDF applies pending page edits first.</div>',
                 unsafe_allow_html=True,
             )
             editor_applied = render_visual_editor(
@@ -271,6 +271,8 @@ def render_fallback_editor(show_debug):
 
 
 def render_app(app_version):
+    # Export status copy is coordinated with app_modules.export_step, including
+    # the unchanged-PDF state: "PDF already up to date".
     show_debug = render_sidebar_controls()
     render_app_hero(app_version)
     render_input_step()

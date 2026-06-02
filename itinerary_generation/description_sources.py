@@ -37,6 +37,24 @@ def _is_group_day(row: dict) -> bool:
     return bool(re.match(r"^\s*Day\s+\d+\s*[:\-–]", src, flags=re.I))
 
 
+def _trim_inline_metadata_sections(text: str) -> str:
+    """Remove labelled supplier sections that continue on the same line.
+
+    Rows often arrive as ``Description: prose. Includes: ...`` or
+    ``Highlights: ... - Includes: ...``. Keep the narrative/prose portion and
+    stop before the next metadata label so raw labels do not leak into previews
+    or PDFs.
+    """
+
+    value = str(text or "")
+    return re.split(
+        r"(?:\s+-\s+|\n\s*|(?<=[.!?])\s+)(?:Time|Meeting point|Pick[- ]?up|Includes?|Included|Excludes?|Not included|Highlights?|Stops|What(?:'|’)s included|Overview|Schedule|Luggage included)\s*:",
+        value,
+        maxsplit=1,
+        flags=re.I,
+    )[0]
+
+
 def explicit_description_source(row: dict, *, max_sentences: int = 3) -> str:
     """Return clean prose after an explicit ``Description:`` label when present.
 
@@ -51,7 +69,7 @@ def explicit_description_source(row: dict, *, max_sentences: int = 3) -> str:
     if not match:
         return ""
     text = STOP_SOURCE_SECTION_RE.split(match.group(1), maxsplit=1)[0]
-    text = re.split(r"\n\s*(?:Time|Meeting point|Pick up|Pick-up|Includes?|What(?:'|’)s included|Overview)\b", text, maxsplit=1, flags=re.I)[0]
+    text = _trim_inline_metadata_sections(text)
     text = _clean_inline(text).strip(" -:|•")
     if not text:
         return ""
@@ -73,12 +91,13 @@ def _narrative_source(row: dict) -> str:
     source = _row_source(row)
     # Prefer narrative sections when present, then strip heading/metadata.
     for marker in [r"Description", r"What to expect\??", r"Overview", r"Highlights"]:
-        match = re.search(marker + r"\s*(.+)", source, flags=re.I | re.S)
+        match = re.search(marker + r"\s*:?\s*(.+)", source, flags=re.I | re.S)
         if match:
             source = match.group(1)
             break
     source = re.sub(r"^\s*Day\s+\d+\s*[:\-–]\s*[^\n]+", "", source, count=1, flags=re.I).strip()
     source = STOP_SOURCE_SECTION_RE.split(source, maxsplit=1)[0]
+    source = _trim_inline_metadata_sections(source)
     # Remove leading pipe metadata lines.
     if "|" in source.split("\n", 1)[0]:
         parts = [p.strip() for p in re.split(r"\s*\|\s*", source) if p.strip()]

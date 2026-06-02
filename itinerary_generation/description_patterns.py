@@ -116,7 +116,7 @@ LANDMARKS: list[tuple[str, str]] = [
 ]
 
 STOP_SOURCE_SECTION_RE = re.compile(
-    r"\n\s*(?:What's included|What’s included|Included With|Please note|Booking Information|Not included|Not Included|Meeting Point|Pick up / meeting point|Pick-up / meeting point|Departure:|Duration:|Suitable for:|Age limit:|Gather at:|Carried out:|Participanter:)\b",
+    r"(?:\n\s*|\s+-\s+)(?:What's included|What’s included|Included With|Includes?|Included|Highlights?|Stops|Please note|Booking Information|Not included|Not Included|Excludes?|Meeting Point|Pick up / meeting point|Pick-up / meeting point|Departure|Duration|Suitable for|Age limit|Gather at|Carried out|Participanter)\s*:?\b",
     re.I,
 )
 

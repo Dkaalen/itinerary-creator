@@ -13,6 +13,8 @@ BAD_TITLE_PATTERNS: tuple[str, ...] = (
     r"\barrival\s+[^,|]+,\s*pick[-\s]?up\b",
     r"\bpick[-\s]?up\s+minibus\b",
     r"\bpick[-\s]?up\s*/\s*drop[-\s]?off\b",
+    r"\bcheck\s*out\b.*\b(?:airport|return flight|home)\b",
+    r"\btransfer\s+to\s+the\s+airport\b.*\breturn flight\b",
     r"\bprivate\s+(?:airport|hotel|station)\s+to\b",
     r"\bshuttle\s*/?\s*flybus\b",
     r"\bwith\s+transfers?\b",

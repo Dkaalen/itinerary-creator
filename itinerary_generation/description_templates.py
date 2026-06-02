@@ -48,8 +48,13 @@ def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
 
 
 def _compose_known_activity(row: dict, source: str, title: str, city: str) -> str:
-    full = f"{title} {source} {' '.join(row.get('includes', []) or [])}".lower()
-    places = _extract_landmarks(source + " " + " ".join(row.get("includes", []) or []), limit=6)
+    landmark_source = " ".join([
+        source,
+        " ".join(row.get("includes", []) or []),
+        " ".join(row.get("notable_sights", []) or []),
+    ])
+    full = f"{title} {landmark_source}".lower()
+    places = _extract_landmarks(landmark_source, limit=6)
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 

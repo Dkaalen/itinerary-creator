@@ -20,4 +20,5 @@ python -m pytest -q `
   tests/test_nordic_quality_sample.py `
   tests/test_compound_experience_transport_timing.py `
   tests/test_accommodation_stress_fixtures.py `
-  tests/test_activity_compound_stress_fixtures.py
+  tests/test_activity_compound_stress_fixtures.py `
+  tests/test_leisure_arrival_metadata_cleanup.py

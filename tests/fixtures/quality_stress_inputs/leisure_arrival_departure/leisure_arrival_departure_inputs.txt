@@ -1,0 +1,62 @@
+Day 1	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 2	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 3	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 4	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 4	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 5	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 6	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 7	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 8	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 8	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 9	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 10	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 11	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 12	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 12	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 13	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 14	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 15	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 16	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 16	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 17	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 18	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 19	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 20	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 20	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 21	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 22	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 23	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 24	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 24	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 25	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 26	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 27	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 28	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 28	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 29	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 30	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 31	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 32	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 32	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 33	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 34	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 35	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 36	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 36	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 37	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 38	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 39	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 40	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 40	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 41	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 42	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 43	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 44	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 44	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 45	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 46	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
+Day 47	Departure	01.05.2027		Oslo: Check out and transfer to the airport for your return flight home
+Day 48	Transfer	01.05.2027		Stockholm: Private transfer to hotel
+Day 48	Leisure	01.05.2027		Stockholm: Spend time at leisure
+Day 49	Activity	01.05.2027		Bergen: Morning at leisure and optional self-guided walk around Bryggen
+Day 50	Arrival	01.05.2027		Reykjavík: Arrival Reykjavík, pick-up minibus
