@@ -36,6 +36,8 @@ def _is_sightseeing_cruise_activity(text: str) -> bool:
         for marker in [
             "northern lights cruise",
             "fjord cruise day trip",
+            "private fjord cruise",
+            "fjord cruise |",
             "fjord tour",
             "silent electric ship",
             "cruise on the oslofjord",

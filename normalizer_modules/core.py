@@ -32,6 +32,7 @@ from normalizer_modules.activities import (
     _extract_supplier_day_heading,
     _is_group_tour_overview,
     looks_like_departure_text,
+    looks_like_leisure_activity,
     normalize_activity_title,
 )
 from normalizer_modules.inclusions import normalize_inclusion_value, split_and_merge_inclusions
@@ -122,6 +123,12 @@ def normalize_row(row: dict) -> dict:
         return normalize_hotel_row(row)
 
     if row_type == "Activity":
+        if looks_like_leisure_activity(row):
+            row["effective_type"] = "Leisure"
+            row["type"] = row.get("type") or "Leisure"
+            row["title"] = "Spend time at leisure"
+            row["original_title"] = row.get("original_title") or row["title"]
+            return row
         if _is_rail_or_fjord_route_activity(row):
             row["effective_type"] = "Train"
             if "norway in a nutshell" in full.lower():

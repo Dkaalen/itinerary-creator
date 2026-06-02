@@ -55,6 +55,36 @@ def _extract_supplier_day_heading(source: str) -> str:
         heading = "Explore Jökulsárlón Glacier Lagoon & Ice Caves"
     return polish_title(heading)
 
+
+
+def looks_like_leisure_activity(row: dict) -> bool:
+    """Return True when an Activity-typed row is really free time/leisure.
+
+    Real spreadsheets sometimes put ``Spend time at leisure`` in the Activity
+    column. Those rows should shape the day flow, not become fake featured
+    experiences or activity inclusions.
+    """
+
+    lower = text_blob(row).lower()
+    leisure_markers = [
+        "spend time at leisure",
+        "day at leisure",
+        "evening at leisure",
+        "time at leisure",
+        "free time",
+        "at your own pace",
+    ]
+    if not any(marker in lower for marker in leisure_markers):
+        return False
+    activity_markers = [
+        "guided", "tour", "museum", "safari", "cruise", "ferry", "train",
+        "flight", "coach", "northern lights", "whale", "snowmobile", "husky",
+        "reindeer", "food", "walking", "tickets", "includes",
+    ]
+    # Rows that include one of these terms may be an actual activity with some
+    # leisure wording in the description. Keep those as activities.
+    return not any(marker in lower for marker in activity_markers)
+
 def normalize_activity_title(row: dict) -> str:
     source = text_blob(row)
     lower = source.lower()

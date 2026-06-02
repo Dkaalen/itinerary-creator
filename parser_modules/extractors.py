@@ -195,13 +195,14 @@ def extract_includes_from_description(main_text):
     # Treat the post-duration pipe section as inclusions when it looks like a
     # short inclusion list, but stop before any formal meeting-point section.
     pipe_parts = [clean_space(part) for part in main_text.split("|")]
-    if len(pipe_parts) >= 4:
+    if len(pipe_parts) >= 3:
         pipe_candidates = []
-        for part in pipe_parts[3:]:
+        for part in pipe_parts[2:]:
             lower_part = part.lower()
             if any(marker in lower_part for marker in ["overview", "what to expect", "not included"]):
                 continue
             part = re.split(r"pick[-\s]*up\s*/\s*meeting\s*point|pickup\s*/\s*meeting\s*point|meeting\s*point\s*:", part, flags=re.IGNORECASE)[0].strip(" :|-")
+            part = re.sub(r"^(?:includes?|included)\s*[:,-]?\s*", "", part, flags=re.IGNORECASE).strip(" :|-")
             if not part:
                 continue
             if len(part) > 450:
@@ -213,6 +214,7 @@ def extract_includes_from_description(main_text):
                 "photograph", "camera", "tax", "overalls", "tripod", "ferry",
                 "equipment", "berry juice", "hot berry", "winter", "admission",
                 "entry", "access", "ritual", "mask", "towel", "bathrobe", "locker",
+                "boat", "snacks",
             ]
             prose_markers = [
                 "tour gives", "take a stroll", "listen to", "make sense",
@@ -220,7 +222,7 @@ def extract_includes_from_description(main_text):
             ]
             marker_hits = sum(1 for marker in inclusion_markers if marker in lower_part)
             looks_like_prose = any(marker in lower_part for marker in prose_markers)
-            looks_like_list = marker_hits >= 1 and (part.count(",") >= 1 or marker_hits >= 2) and not looks_like_prose
+            looks_like_list = (part.count(",") >= 1 or marker_hits >= 2) and not looks_like_prose
             if looks_like_list:
                 pipe_candidates.extend(split_comma_list(part, protect_compound_phrases=True))
         if pipe_candidates:

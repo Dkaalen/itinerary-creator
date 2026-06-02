@@ -171,6 +171,23 @@ def parse_itinerary(raw_text):
 
         main_text = description.strip().strip('"')
 
+        # Some exported rows duplicate the row type inside the description,
+        # for example ``Activity: Copenhagen: Spend time at leisure``.  Strip
+        # that administrative prefix before city/title extraction so the real
+        # city can still be detected.
+        type_prefix = re.match(r"^\s*(Activity|Transfer|Hotel|Train|Flight|Cruise|Ferry|Transport|Leisure|Arrival|Departure)\s*:\s*(.+)$", main_text, flags=re.IGNORECASE)
+        if type_prefix and type_prefix.group(1).lower() == normalize_type(item_type).lower():
+            main_text = type_prefix.group(2).strip()
+
+        # Pipe-format activity rows often arrive as ``City | Product | Time |
+        # Includes ...``.  Pull the first part into the city before generic
+        # title cleanup trims the supplier-style pipe sections.
+        if not separate_city and "|" in main_text:
+            first_pipe_part, rest_pipe_text = main_text.split("|", 1)
+            if is_valid_city_value(first_pipe_part) and not re.search(r"\bnorway\s+in\s+a\s+nutshell\b", first_pipe_part, flags=re.IGNORECASE):
+                row["city"] = clean_space(first_pipe_part)
+                main_text = rest_pipe_text.strip()
+
         # Optional add-ons often arrive as normal activity rows where the first
         # phrase says "Optional Addon (...)" rather than as a separate optional
         # section. Mark them here so they stay out of the included day plan and
@@ -189,7 +206,10 @@ def parse_itinerary(raw_text):
 
         elif ":" in main_text:
             possible_city, rest = main_text.split(":", 1)
-            if is_valid_city_value(possible_city):
+            # Do not treat the text before a clock-time colon as a city.
+            # Example: ``Bergen | Private Fjord Cruise | 10:00 - 14:00``.
+            city_prefix_is_safe = "|" not in possible_city and not re.search(r"\d\s*$", possible_city)
+            if city_prefix_is_safe and is_valid_city_value(possible_city):
                 row["city"] = clean_space(possible_city)
                 main_text = rest.strip()
 

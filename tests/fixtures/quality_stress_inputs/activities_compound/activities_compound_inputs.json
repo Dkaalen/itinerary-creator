@@ -1,0 +1,602 @@
+[
+  {
+    "id": "act_001",
+    "bank": "activities_compound",
+    "category": "city_tour",
+    "input": "Helsinki: Private Guided All-Star Walking Tour of the City - Time: 11:00 am - 2:00 pm - Meeting point: Hotel pick up - Includes: guide, city highlights",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_002",
+    "bank": "activities_compound",
+    "category": "umbrella_plus_detail",
+    "input": "Helsinki: Excursion to Tallinn - Guided Experience - Departure from Helsinki: 10:30 am - Departure from Tallinn: 7:30 pm - Includes: ferry tickets, guided tour",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_003",
+    "bank": "activities_compound",
+    "category": "detail_inside_umbrella",
+    "input": "Tallinn: Old Town Guided tour - Time: 1:00 pm - 3:30 pm - Meeting point: Town Hall clock - Notable sights: St Nicholas Church, Alexander Nevsky Cathedral",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_004",
+    "bank": "activities_compound",
+    "category": "nutshell",
+    "input": "Oslo: Norway in a Nutshell to Bergen - Time: 08:25 am - 8:38 pm - Route: Oslo to Myrdal by train, Myrdal to Flåm by Flåmsbanen, Flåm to Gudvangen by fjord cruise, Gudvangen to Voss by coach, Voss to Bergen by train",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_005",
+    "bank": "activities_compound",
+    "category": "nutshell_pipe",
+    "input": "Norway in a NUtshell | Oslo to Bergen | 08:35 --- 20:38 | Including luggage porter service",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_006",
+    "bank": "activities_compound",
+    "category": "golden_circle",
+    "input": "Reykjavík: Golden Circle Super Jeep Tour - Time: 09:00 am - 5:00 pm - Stops: Thingvellir, Geysir, Gullfoss - Includes: guide, vehicle",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_007",
+    "bank": "activities_compound",
+    "category": "south_coast",
+    "input": "Reykjavík: South Coast Adventure - Time: 08:00 am - 7:00 pm - Highlights: Seljalandsfoss, Skógafoss, Reynisfjara, Vík",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_008",
+    "bank": "activities_compound",
+    "category": "food_tour",
+    "input": "Copenhagen: Private Food Tour - Time: 11:00 am - 2:00 pm - Includes: smørrebrød, Danish meatballs, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_009",
+    "bank": "activities_compound",
+    "category": "oslo_food",
+    "input": "Oslo: Oslo Food Tour - Time: 1:00 pm - 4:00 pm - Includes: tastings, local guide, hidden neighbourhood stops",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_010",
+    "bank": "activities_compound",
+    "category": "northern_lights",
+    "input": "Tromsø: Private | Northern Lights Chase by Minibus - Time: 8:00 pm - 2:00 am - Meeting point: Hotel Pick up",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_011",
+    "bank": "activities_compound",
+    "category": "night_time_typo",
+    "input": "Tromsø: Private Northern Lights Chase - Time: 8:00 pm - 2:00 pm - Includes: guide, photographer, thermal suits",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_012",
+    "bank": "activities_compound",
+    "category": "fjord_safari",
+    "input": "Flåm: Fjord Safari by RIB - Time: 12:00 pm - 2:00 pm - Includes: flotation suit, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_013",
+    "bank": "activities_compound",
+    "category": "whale_alta",
+    "input": "Alta: Whale Watching & Arctic Wildlife Safari by RIB Boat - Time: 10:00 am - 1:00 pm - Includes: guide, flotation suit",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_014",
+    "bank": "activities_compound",
+    "category": "whale_reykjavik",
+    "input": "Reykjavík: Whale Watching from the Old Harbour - Time: 09:00 am - 12:00 pm - Includes: boat ticket, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_015",
+    "bank": "activities_compound",
+    "category": "snowmobile",
+    "input": "Rovaniemi: Snowmobile Safari to Reindeer Farm - Time: 10:00 am - 2:00 pm - Includes: thermal clothing, guide, lunch",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_016",
+    "bank": "activities_compound",
+    "category": "husky",
+    "input": "Tromsø: Husky Sledding Adventure - Time: 9:30 am - 1:30 pm - Includes: transfers, thermal suits, lunch",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_017",
+    "bank": "activities_compound",
+    "category": "reindeer",
+    "input": "Saariselkä: Reindeer Farm Visit and Sleigh Ride - Time: Evening - Includes: transfers, guide, hot drinks",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_018",
+    "bank": "activities_compound",
+    "category": "museum",
+    "input": "Stockholm: Private Guided tour of Vasa Museum - Time: Morning - Meeting point: Hotel pick up - Includes: transfers, guide, tickets",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_019",
+    "bank": "activities_compound",
+    "category": "castles",
+    "input": "Copenhagen: Private Castles, Cathedrals & Vikings Tour - Time: 08:45 am - 5:45 pm - Includes: Kronborg Castle, Roskilde Cathedral, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_020",
+    "bank": "activities_compound",
+    "category": "bergen_drive",
+    "input": "Bergen: Private Bergen City Drive - Time: 09:00 am - 12:00 pm - Highlights: Bryggen, Mt Fløyen roads, fairytale church, waterfall",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_021",
+    "bank": "activities_compound",
+    "category": "messy_description",
+    "input": "Tromso: Arctic Fjord Explorer - Time 10.15-15.45 - Desctiption: Explore the stunning Arctic landscape - Includes: Chocholate, Solo, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_022",
+    "bank": "activities_compound",
+    "category": "available_on_request",
+    "input": "Bergen: Private fjord day tour - Time: 09:00 am - 5:00 pm - Includes: guide, vehicle - Other languages available on request",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_023",
+    "bank": "activities_compound",
+    "category": "optional_phrase_normal",
+    "input": "Helsinki: City tour with guide - Time: 10:00 am - 1:00 pm - Optional coffee stop can be added on request",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_024",
+    "bank": "activities_compound",
+    "category": "activity_with_transfer",
+    "input": "Tromsø: Northern Lights Hunt - Includes: Pick-up/drop-off, guide, photos, thermal suits",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_025",
+    "bank": "activities_compound",
+    "category": "activity_mislabeled_transfer",
+    "input": "Transfer: Crystal Lavvo Overnight Experience with transport from Tromsø - Includes: dinner, overnight lavvo, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_026",
+    "bank": "activities_compound",
+    "category": "activity_with_route",
+    "input": "Lofoten: Scenic photography tour from Svolvær to Henningsvær and Nusfjord - Time: 09:00 am - 4:00 pm",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_027",
+    "bank": "activities_compound",
+    "category": "messy_tallinn",
+    "input": "Helsinki Tallinn day excurssion dep 10:30 return 19:30 incl ferry + old town guided experiance",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_028",
+    "bank": "activities_compound",
+    "category": "messy_oldtown",
+    "input": "Tallinn old town guided walking tour 13.00-15.30 meet under townhall clock includes english guide recomendations",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_029",
+    "bank": "activities_compound",
+    "category": "messy_nutshell",
+    "input": "Norway in a Nutshel Oslo-Bergen 08,35----20,38 incl lugage porter service + all tickets",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_030",
+    "bank": "activities_compound",
+    "category": "multi_stop",
+    "input": "Bergen: Hardangerfjord & Waterfalls Private Day Tour - Stops: Steinsdalsfossen, Norheimsund, Eidfjord - Time: 08:30 am - 6:00 pm",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_031",
+    "bank": "activities_compound",
+    "category": "long_highlights",
+    "input": "Bergen: City Drive - Highlights: historical core, marina, affluent neighbourhood, waterfall, largest lake, royal picnic spot",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_032",
+    "bank": "activities_compound",
+    "category": "raw_metadata",
+    "input": "Oslo: Private tour - Duration: 3 hours - Difficulty: Easy - Min pax: 2 - Includes: guide, tickets",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_033",
+    "bank": "activities_compound",
+    "category": "guide_language",
+    "input": "Stockholm: Private Old Town Walk - Includes: English guide - German guide available on request",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_034",
+    "bank": "activities_compound",
+    "category": "morning_word",
+    "input": "Helsinki: Design District Walk - Time: Morning - Includes: local guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_035",
+    "bank": "activities_compound",
+    "category": "evening_word",
+    "input": "Copenhagen: Tivoli Gardens Evening Visit - Time: Evening - Includes: entrance ticket",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_036",
+    "bank": "activities_compound",
+    "category": "midnight_sun",
+    "input": "Lofoten: Midnight Sun Photography Tour - Time: 9:00 pm - 1:00 am - Includes: guide, transport",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_037",
+    "bank": "activities_compound",
+    "category": "aurora_big_bus",
+    "input": "Tromsø: Private | Northern Lights Chase by Big Bus - Time: 8:00 pm - 2:00 am - Includes: driver, guide, photographer",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_038",
+    "bank": "activities_compound",
+    "category": "local_tasting",
+    "input": "Helsinki: Private Finnish Food Walk - Time: 12:00 pm - 3:00 pm - Includes: tastings, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_039",
+    "bank": "activities_compound",
+    "category": "sauna",
+    "input": "Helsinki: Private Sauna and Sea Swim Experience - Time: 5:00 pm - 7:00 pm - Includes: sauna entry, towels",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_040",
+    "bank": "activities_compound",
+    "category": "boat_activity",
+    "input": "Longyearbyen: Walrus Safari Boat Tour - Time: 09:00 am - 1:00 pm - Meeting point: harbor",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_041",
+    "bank": "activities_compound",
+    "category": "brewery",
+    "input": "Longyearbyen: Svalbard Brewery Visit - Time: 6:00 pm - 7:30 pm - Includes: tasting, guide",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_042",
+    "bank": "activities_compound",
+    "category": "compound_two_highlights",
+    "input": "Longyearbyen: Walrus Safari Boat Tour and Svalbard Brewery Visit - Time: Full day",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_043",
+    "bank": "activities_compound",
+    "category": "wrong_city_risk",
+    "input": "Oslo: Food tour with local Norwegian tastings - do not use Danish food wording",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_044",
+    "bank": "activities_compound",
+    "category": "cruise_leisure",
+    "input": "Coastal Cruise onboard Havila - Spend time at leisure while sailing through the fjords",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_045",
+    "bank": "activities_compound",
+    "category": "leisure_mislabeled",
+    "input": "Activity: Copenhagen: Spend time at leisure",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_046",
+    "bank": "activities_compound",
+    "category": "private_bar",
+    "input": "Private | Guided All-Star Walking Tour of Reykjavík - Time: 10:00 am - 1:00 pm",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_047",
+    "bank": "activities_compound",
+    "category": "pipe_separators",
+    "input": "Bergen | Private Fjord Cruise | 10:00 - 14:00 | Includes guide, boat, snacks",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_048",
+    "bank": "activities_compound",
+    "category": "slashes",
+    "input": "Tromsø / Aurora Camp Visit / 19:00-23:00 / includes transport, guide, hot drinks",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_049",
+    "bank": "activities_compound",
+    "category": "colon_heavy",
+    "input": "Alta: Activity: Northern Lights Hunt: Time: 8pm - 1am: Includes: guide, transport, photos",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  },
+  {
+    "id": "act_050",
+    "bank": "activities_compound",
+    "category": "missing_time",
+    "input": "Stockholm: Private guided city walk - Includes: guide and city highlights",
+    "future_test_intent": [
+      "parse important structure without overfitting to one itinerary",
+      "preserve client-facing details needed for preview and PDF",
+      "avoid raw metadata leakage in premium output",
+      "keep preview and PDF behavior aligned"
+    ]
+  }
+]

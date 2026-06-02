@@ -43,16 +43,27 @@ def standardize_row_text(row):
 
 
 def extract_detail(text, label):
-    marker = f"{label}:"
+    """Extract a labelled detail section, matching labels case-insensitively.
 
-    if marker not in text:
+    Supplier rows are not consistent about label casing, for example
+    ``Notable sights:`` vs ``Notable Sights:``.  The previous exact-string
+    extraction missed those sections and let later metadata leak into fields
+    such as the meeting point.
+    """
+
+    source = str(text or "")
+    label_pattern = re.compile(rf"\b{re.escape(label)}\s*:", flags=re.IGNORECASE)
+    match = label_pattern.search(source)
+    if not match:
         return ""
 
-    after_marker = text.split(marker, 1)[1]
-
-    for next_marker in DETAIL_MARKERS:
-        if next_marker in after_marker:
-            after_marker = after_marker.split(next_marker, 1)[0]
+    after_marker = source[match.end():]
+    stop_labels = [re.escape(item) for item in DETAIL_LABELS if item.lower() != str(label).lower()]
+    if stop_labels:
+        stop_pattern = re.compile(rf"\s+-\s+(?:{'|'.join(stop_labels)})\s*:", flags=re.IGNORECASE)
+        stop_match = stop_pattern.search(after_marker)
+        if stop_match:
+            after_marker = after_marker[:stop_match.start()]
 
     return after_marker.strip(" -")
 
