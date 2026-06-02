@@ -5,7 +5,7 @@ keeps optional-add-on collection/rendering separate from the general final-page
 helpers so optional-specific rules do not leak into inclusion-page assembly.
 """
 
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
+from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_optional_row, is_self_arranged
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import format_duration_display, polish_title, strip_price_fragments
@@ -21,7 +21,7 @@ from ui.render_helpers import (
 
 
 def create_optional_addons(parsed_rows):
-    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    optional_rows = [row for row in parsed_rows if is_optional_row(row)]
     addons = []
 
     for row in optional_rows:

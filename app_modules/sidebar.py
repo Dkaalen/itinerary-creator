@@ -4,6 +4,7 @@ from itinerary_generation.common import (
     TRANSPORT_TYPES,
     get_row_type,
     group_rows_by_day,
+    is_optional_row,
     is_self_arranged,
 )
 from itinerary_generation.titles import create_client_activity_title
@@ -33,8 +34,8 @@ def get_itinerary_stats(parsed_rows=None, grouped_days=None):
         if city and city not in destinations:
             destinations.append(city)
 
-    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not row.get("is_optional")]
-    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
+    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not is_optional_row(row)]
+    optional_rows = [row for row in parsed_rows if is_optional_row(row)]
     hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel"]
     self_arranged = [row for row in parsed_rows if is_self_arranged_transport(row)]
 
@@ -98,10 +99,10 @@ def build_review_items(parsed_rows=None, grouped_days=None):
         if entry not in items:
             items.append(entry)
 
-    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not row.get("is_optional")]
-    hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel" and not row.get("is_optional")]
-    optional_rows = [row for row in parsed_rows if row.get("is_optional")]
-    self_arranged = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row) and not row.get("is_optional")]
+    activities = [row for row in parsed_rows if get_row_type(row) == "Activity" and not is_optional_row(row)]
+    hotels = [row for row in parsed_rows if get_row_type(row) == "Hotel" and not is_optional_row(row)]
+    optional_rows = [row for row in parsed_rows if is_optional_row(row)]
+    self_arranged = [row for row in parsed_rows if get_row_type(row) in TRANSPORT_TYPES and is_self_arranged(row) and not is_optional_row(row)]
 
     for row in activities:
         title = create_client_activity_title(row) or row.get("title", "Activity")

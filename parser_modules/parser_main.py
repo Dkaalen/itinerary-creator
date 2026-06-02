@@ -17,6 +17,13 @@ from parser_modules.extractors import (
     extract_time_from_description,
 )
 from parser_modules.hotels import parse_hotel_details
+from parser_modules.commercial_status import (
+    infer_commercial_status,
+    infer_optional_row_type,
+    initial_commercial_state,
+    mark_optional_row,
+    REASON_OPTIONAL_TEXT_PREFIX,
+)
 from parser_modules.rows import (
     find_city_cell,
     find_day_index,
@@ -25,53 +32,6 @@ from parser_modules.rows import (
     make_row_id,
     preprocess_raw_rows,
 )
-
-
-def _commercial_status(is_optional, item_type, title, details):
-    text = f"{item_type} {title} {details}".lower().replace("-", " ")
-    text = " ".join(text.replace(",", " ").split())
-    if is_optional:
-        return "optional", "explicit_optional"
-    if "self transfer" in text:
-        return "self_arranged", "self_transfer"
-    if any(marker in text for marker in [
-        "self arranged",
-        "self arrnaged",
-        "self arrange",
-        "cost not included",
-        "cost not inclueded",
-        "price not included",
-        "flight cost not",
-    ]):
-        return "self_arranged", "cost_not_included"
-    if "not included" in text and item_type.lower() not in {"activity", "hotel"}:
-        return "excluded", "not_included_marker"
-    return "included", "default_included"
-
-
-def _optional_row_type(item_type, description):
-    """Infer the operational type for rows pasted with row type Optional.
-
-    Explicit Optional rows are usually optional experiences. Do not let included
-    phrases such as "transfer to/from the harbour" inside an activity's
-    inclusion list turn the row into transport. Only the leading title segment
-    may change the underlying type.
-    """
-    text = str(description or "").lower()
-    leading = text.split(" - ", 1)[0].split(" | ", 1)[0]
-    if any(marker in leading for marker in ["hotel", "accommodation", "check in"]):
-        return "Hotel"
-    if "flight" in leading:
-        return "Flight"
-    if "train" in leading:
-        return "Train"
-    if "cruise" in leading:
-        return "Cruise"
-    if "ferry" in leading:
-        return "Ferry"
-    if any(marker in leading for marker in ["transfer", "coach", "bus", "airport"]):
-        return "Transfer"
-    return "Activity"
 
 
 def parse_itinerary(raw_text):
@@ -121,7 +81,7 @@ def parse_itinerary(raw_text):
 
         if item_type.lower() == "optional":
             is_optional = True
-            item_type = _optional_row_type(item_type, description)
+            item_type = infer_optional_row_type(description)
 
         if item_type.lower() not in KNOWN_TYPES:
             diagnostics.warn(
@@ -178,6 +138,8 @@ def parse_itinerary(raw_text):
 
         seen_row_ids.add(row_id)
 
+        commercial_status, commercial_reason = initial_commercial_state(is_optional)
+
         row = {
             "raw": clean_space(raw_line),
             "line_number": line_number,
@@ -187,8 +149,8 @@ def parse_itinerary(raw_text):
             "type": item_type,
             "source_type": original_item_type,
             "effective_type": "",
-            "commercial_status": "optional" if is_optional else "included",
-            "commercial_reason": "explicit_optional" if is_optional else "default_included",
+            "commercial_status": commercial_status,
+            "commercial_reason": commercial_reason,
             "start_date": start_date,
             "end_date": end_date,
             "city": "",
@@ -215,10 +177,7 @@ def parse_itinerary(raw_text):
         # commercial inclusions while still being available for optional pages.
         if not is_optional and is_explicit_optional_text(main_text):
             is_optional = True
-            row["is_optional"] = True
-            row["commercial_status"] = "optional"
-            row["commercial_reason"] = "optional_text_prefix"
-            row["row_id"] = f"opt_{row['row_id']}"
+            mark_optional_row(row, REASON_OPTIONAL_TEXT_PREFIX)
 
         if separate_city:
             row["city"] = separate_city
@@ -271,7 +230,7 @@ def parse_itinerary(raw_text):
 
         row = standardize_row_text(row)
 
-        status, reason = _commercial_status(row.get("is_optional"), item_type, row.get("title", ""), row.get("details", ""))
+        status, reason = infer_commercial_status(row.get("is_optional"), item_type, row.get("title", ""), row.get("details", ""))
         row["commercial_status"] = status
         row["commercial_reason"] = row.get("commercial_reason") if status == "optional" else reason
 
