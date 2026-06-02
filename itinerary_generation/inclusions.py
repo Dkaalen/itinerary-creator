@@ -18,6 +18,8 @@ from itinerary_generation.exclusion_sections import (
     row_date_suffix as _row_date_suffix,
     specific_optional_items as _specific_optional_items,
     specific_self_arranged_items as _specific_self_arranged_items,
+    create_specific_exclusion_sections,
+    flatten_specific_exclusion_sections,
     create_whats_not_included,
 )
 
@@ -33,4 +35,6 @@ __all__ = [
     "_row_date_suffix",
     "_specific_optional_items",
     "_specific_self_arranged_items",
+    "create_specific_exclusion_sections",
+    "flatten_specific_exclusion_sections",
 ]

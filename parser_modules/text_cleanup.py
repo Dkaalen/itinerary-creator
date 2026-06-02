@@ -12,6 +12,13 @@ def clean_space(value):
 
 
 COMMON_TEXT_REPLACEMENTS = [
+    # Multi-word commercial markers first, before individual typo cleanup.
+    (r"\bself\s+arrnaged\b", "self-arranged"),
+    (r"\bself\s+arranged\b", "self-arranged"),
+    (r"\bcost\s+not\s+inclueded\b", "cost not included"),
+    (r"\bcost\s+not\s+inclued\b", "cost not included"),
+    (r"\bprice\s+not\s+inclueded\b", "price not included"),
+    (r"\bprice\s+not\s+inclued\b", "price not included"),
     (r"\bNUtshell\b", "Nutshell"),
     (r"\bFLybus\b", "Flybus"),
     (r"\bFlyBus\b", "Flybus"),
@@ -19,6 +26,7 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bReykavik\b", "Reykjavík"),
     (r"\bCity Centre\b", "city centre"),
     (r"\bStaion\b", "Station"),
+    (r"\bPirce\b", "price"),
     (r"\bNutsheel\b", "Nutshell"),
     (r"\bNorway\s+in\s+a\s+Nutshell\b", "Norway in a Nutshell"),
     (r"\bBrekafast\b", "Breakfast"),
@@ -68,6 +76,8 @@ SUSPICIOUS_FRAGMENTS = [
     "inclueded",
     "inclued",
     "doubel",
+    "pirce",
+    "staion",
     "bergent",
     "svolaver",
     "svoalvaer",

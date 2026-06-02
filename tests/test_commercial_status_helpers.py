@@ -55,3 +55,22 @@ def test_mark_optional_row_sets_consistent_fields_and_prefixes_row_id_once():
     assert row["commercial_status"] == OPTIONAL
     assert row["commercial_reason"] == "optional_text_prefix"
     assert row["row_id"] == "opt_abc123"
+
+def test_common_text_cleanup_conservatively_fixes_commercial_and_place_typos():
+    from parser_modules.text_cleanup import fix_common_text
+
+    cleaned = fix_common_text(
+        "Self Arrnaged pirce not inclueded from Tromso to Flam via "
+        "Svolvaer, Reykjavik, Malmo, Hofn and Kakslauttenen at Staion"
+    )
+
+    assert "self-arranged price not included" in cleaned
+    assert "Tromsø" in cleaned
+    assert "Flåm" in cleaned
+    assert "Svolvær" in cleaned
+    assert "Reykjavík" in cleaned
+    assert "Malmö" in cleaned
+    assert "Höfn" in cleaned
+    assert "Kakslauttanen" in cleaned
+    assert "Station" in cleaned
+
