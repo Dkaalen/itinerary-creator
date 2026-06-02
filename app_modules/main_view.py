@@ -3,7 +3,7 @@ import diagnostics
 
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS
 from ui.app_constants import PRESET_ORDER
-from ui.diagnostics_panel import render_parser_diagnostics_panel
+from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
 from ui.export_files import save_html_file
 from ui.render_cache import make_render_signature
 from ui.output_edits import (
@@ -182,6 +182,10 @@ def render_input_step():
 def render_debug_panels(show_debug):
     if show_debug:
         render_parser_diagnostics_panel()
+        render_itinerary_health_report_panel(
+            st.session_state.get("parsed_rows", []),
+            st.session_state.get("itinerary_validation_report"),
+        )
 
     if show_debug and st.session_state.parsed_rows:
         with st.expander("Debug tools", expanded=False):

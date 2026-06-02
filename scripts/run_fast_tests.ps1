@@ -13,4 +13,5 @@ python -m pytest -q `
   tests/test_normalizer_context_architecture.py `
   tests/test_transport_model_architecture.py `
   tests/test_regressions_parser_normalizer.py `
-  tests/test_stress_logic_followups.py
+  tests/test_stress_logic_followups.py `
+  tests/test_itinerary_health_report.py
