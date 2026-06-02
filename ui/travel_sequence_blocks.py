@@ -9,6 +9,7 @@ from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
 from itinerary_generation.transport_details import get_transport_detail_items
+from itinerary_generation.transport_times import get_transport_time_text
 from text_polish import (
     strip_price_fragments,
     format_duration_display,
@@ -96,9 +97,26 @@ def get_travel_sequence_line(row):
 
     if row_type in TRANSPORT_TYPES:
         phrase = get_transport_route_phrase(row)
-        return phrase or polish_title(row.get("title", ""))
+        if phrase:
+            return _destination_focused_coach_day_line(row, phrase)
+        return polish_title(row.get("title", ""))
 
     return polish_title(row.get("title", ""))
+
+
+def _destination_focused_coach_day_line(row, phrase):
+    text = f'{phrase} {row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+    if "norway in a nutshell" in text.lower():
+        return phrase
+    if not re.search(r"\b(?:coach|bus)\b", text, flags=re.IGNORECASE):
+        return phrase
+    match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,?\s*via\b|\s*[-—;|,]\s*|$)", phrase, flags=re.IGNORECASE)
+    if match:
+        destination = polish_title(clean_space(match.group(1)).strip(" .:-"))
+        destination = re.sub(r"\bbus\s+Station\b", "Bus Station", destination, flags=re.IGNORECASE)
+        if destination:
+            return f"Coach Transfer to {destination}"
+    return phrase
 
 def _clean_self_arranged_travel_title(title):
     text = polish_title(strip_price_fragments(str(title or "")))
@@ -123,7 +141,7 @@ def _extract_timed_route_places(row):
     return places
 
 def _line_with_time(label, row):
-    time = display_time(row.get("time", "")) or _inline_arrival_time(row)
+    time = display_time(get_transport_time_text(row)) or _inline_arrival_time(row)
     return f"{label} — {time}" if time else label
 
 
@@ -163,7 +181,7 @@ def get_travel_arrangement_line(row):
         return _drive_route_line(row)
 
     title = get_travel_sequence_line(row)
-    time = display_time(row.get("time", "")) or _inline_arrival_time(row)
+    time = display_time(get_transport_time_text(row)) or _inline_arrival_time(row)
     duration = polish_client_text(row.get("duration", ""))
     details = []
 

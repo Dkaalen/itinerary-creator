@@ -50,7 +50,8 @@ def render_inclusion_sections_inner_html(sections):
 
         plain_items = []
         multiline_count = 0
-        bullet_multiline = section["title"].strip().lower() != "accommodation"
+        section_key = section["title"].strip().lower()
+        bullet_multiline = section_key not in {"accommodation", "activities & experiences"}
         for item in section["items"]:
             if "\n" in item:
                 if plain_items:
@@ -118,7 +119,9 @@ def _split_oversized_inclusion_section(section, page_body_units):
     return chunks or [section]
 
 
-def render_categorized_inclusions_pages(title, sections):
+def paginate_categorized_inclusions(sections):
+    """Return inclusion page sections using the PDF category-splitting rules."""
+
     clean_sections = []
     for section in sections or []:
         section_title = str(section.get("title", "")).strip()
@@ -127,7 +130,7 @@ def render_categorized_inclusions_pages(title, sections):
             clean_sections.append({"title": section_title, "items": items})
 
     if not clean_sections:
-        return ""
+        return []
 
     pages = []
     current = []
@@ -151,6 +154,19 @@ def render_categorized_inclusions_pages(title, sections):
 
     if current:
         pages.append(current)
+    return pages
+
+
+def render_inclusion_page_inner_htmls(sections):
+    """Return one inner HTML fragment per categorized inclusion page."""
+
+    return [render_inclusion_sections_inner_html(page_sections) for page_sections in paginate_categorized_inclusions(sections)]
+
+
+def render_categorized_inclusions_pages(title, sections):
+    pages = paginate_categorized_inclusions(sections)
+    if not pages:
+        return ""
 
     html_text = ""
     for index, page_sections in enumerate(pages):
@@ -158,5 +174,3 @@ def render_categorized_inclusions_pages(title, sections):
         inner_html = render_inclusion_sections_inner_html(page_sections)
         html_text += f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
     return html_text
-
-

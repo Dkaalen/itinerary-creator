@@ -14,6 +14,21 @@ def render_custom_html_final_page(title, inner_html, page_class="final-list-page
     return f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
 
 
+def render_custom_html_final_pages(title, page_htmls, page_class="final-list-page"):
+    """Render saved visual-editor final pages without flattening them."""
+
+    if not isinstance(page_htmls, list):
+        page_htmls = [page_htmls]
+    html_text = ""
+    for index, inner_html in enumerate(page_htmls):
+        inner_html = clean_visual_editor_html(inner_html or "")
+        if not inner_html:
+            continue
+        continued = "" if index == 0 else " continued"
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
+    return html_text
+
+
 def render_text_paragraph_page(title, paragraphs):
     clean_paragraphs = [polish_client_text(item) for item in normalize_list(paragraphs) if polish_client_text(item)]
     if not clean_paragraphs:

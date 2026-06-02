@@ -9,6 +9,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.transport import get_transport_route_phrase, get_transfer_travel_title, is_route_transfer
 from itinerary_generation.transport_details import get_transport_detail_items
+from itinerary_generation.transport_times import get_transport_time_text
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
 
@@ -88,6 +89,9 @@ def transport_line(row: dict) -> str:
         return ""
     title = get_transport_route_phrase(row) or route_transport_line(row) or clean_transport_title(row)
     extras = []
+    schedule = get_transport_time_text(row)
+    if schedule and transport_bucket(row) not in {"Private transfers"}:
+        add_unique(extras, schedule)
     for item in row.get("includes", []) or []:
         item = sanitize_inclusion_item(item, title)
         if not item:
@@ -110,6 +114,8 @@ def transport_line(row: dict) -> str:
         if detail_item:
             add_unique(extras, detail_item)
     if extras:
+        schedule_lines = [item for item in extras if schedule and item == schedule]
+        extras = [item for item in extras if not (schedule and item == schedule)]
         if any("car ticket" in item.lower() for item in extras):
             extras = [item for item in extras if item.lower() not in {"ticket included", "tickets included", "ferry ticket included"}]
         if any("coach ticket" in item.lower() for item in extras):
@@ -119,9 +125,12 @@ def transport_line(row: dict) -> str:
         extras = [item for item in extras if item]
         extras = [item for item in extras if "ticket included" not in item.lower()] + [item for item in extras if "ticket included" in item.lower()]
         extras = merge_compound_inclusions(extras)
+        detail_lines = list(schedule_lines)
         detail = join_detail_parts(extras).strip(" .")
         if detail:
             detail = re.sub(r"\bFull pension Meal plan\b", "full pension meal plan", detail, flags=re.IGNORECASE)
             detail = detail[:1].upper() + detail[1:]
-            return f"{title}\n{detail}."
+            detail_lines.append(f"{detail}.")
+        if detail_lines:
+            return f"{title}\n" + "\n".join(detail_lines)
     return title

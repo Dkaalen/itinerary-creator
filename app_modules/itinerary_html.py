@@ -12,6 +12,7 @@ from ui.day_pages import (
     render_split_list_pages,
     render_categorized_inclusions_pages,
     render_custom_html_final_page,
+    render_custom_html_final_pages,
     render_text_paragraph_page,
 )
 from ui.final_pages import (
@@ -723,7 +724,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     html_text += render_day_pages(grouped_days, output_edits)
 
-    if output_edits.get("whats_included_html"):
+    if output_edits.get("whats_included_pages_html"):
+        html_text += render_custom_html_final_pages("What’s included", output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
+    elif output_edits.get("whats_included_html"):
         html_text += render_custom_html_final_page("What’s included", output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
     elif manual_whats_included:
         html_text += render_split_list_pages("What’s included", whats_included)

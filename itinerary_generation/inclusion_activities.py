@@ -2,19 +2,80 @@
 
 import re
 
-from text_polish import polish_title
+from text_polish import polish_title, polish_inclusion_items, polish_inclusion_item, strip_price_fragments
 
-from itinerary_generation.content_engine import clean_client_title
+from itinerary_generation.content_engine import clean_client_title, merge_compound_inclusions, sanitize_inclusion_item
+from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean
+
+
+def _looks_like_descriptive_prose(text: str) -> bool:
+    lower = str(text or "").lower()
+    prose_markers = [
+        "tour gives",
+        "take a stroll",
+        "listen to",
+        "make sense",
+        "to top it all",
+        "waterworld",
+        "best way to understand",
+        "explore bergen from",
+        "historic city streets",
+        "what to expect",
+        "overview",
+    ]
+    return len(str(text or "")) > 95 and any(marker in lower for marker in prose_markers)
+
+
+def _polish_activity_inclusion(value: str, title: str = "") -> str:
+    text = polish_inclusion_item(strip_price_fragments(str(value or "").strip()), title)
+    text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
+    lower = text.lower().strip(":? ")
+    if not text:
+        return ""
+    if lower in {"what's included", "what’s included", "includes", "included", "description", "overview"}:
+        return ""
+    if re.search(r"^not\s+in(?:cl|lc)uded\b|^excluded\b", lower, flags=re.IGNORECASE):
+        return ""
+    if re.search(r"\b(price|cost|supplement)\b", lower, flags=re.IGNORECASE) and re.search(r"\b(per person|per passenger|eur|nok|usd|gbp|dkk|sek|isk|kr|€|\$|£|\d)\b", lower, flags=re.IGNORECASE):
+        return ""
+    if "included excluded" in lower or "food and drinks are excluded" in lower:
+        return ""
+    if _looks_like_descriptive_prose(text):
+        return ""
+    if len(text) > 150 and "included" not in lower:
+        return ""
+    text = polish_inclusion_item(clean_include_item(text, title), title)
+    return sanitize_inclusion_item(text, title)
+
+
+def _activity_inclusion_items(row: dict, title: str) -> list[str]:
+    raw_items = row.get("includes", []) or []
+    cleaned = []
+    for item in raw_items:
+        item = _polish_activity_inclusion(item, title)
+        if item and item not in cleaned:
+            cleaned.append(item)
+    merged = merge_compound_inclusions(polish_inclusion_items(cleaned, title))
+    return [item for item in merged if item]
 
 
 def activity_line(row: dict) -> str:
     title = create_client_activity_title(row) or row.get("title", "")
     title = clean_client_title(title, row) or title
     if "norway in a nutshell" in str(title).lower():
-        return polish_title(title)
-    return normalize_client_day_title(title, row)
+        title = polish_title(title)
+    else:
+        title = normalize_client_day_title(title, row)
+
+    date = format_client_date(row.get("start_date"))
+    heading = f"{title} - {date}" if date else title
+    inclusions = _activity_inclusion_items(row, heading)
+    if inclusions:
+        return f"{heading}\n{', '.join(inclusions)}"
+    return heading
 
 
 _GROUP_TOUR_ACTIVITY_SKIP_RE = re.compile(

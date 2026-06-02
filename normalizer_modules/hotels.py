@@ -29,8 +29,11 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
     room = re.sub(r"\bSmall Glass Igloo\s+(West or East Village)\b", r"Small Glass Igloo, \1", room, flags=re.IGNORECASE)
     room = clean_space(room.strip(" ,-"))
     room = re.sub(r"\bRooms\b", "Room", room, flags=re.IGNORECASE)
+    room = re.sub(r"\broom\b", "Room", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSuites\b", "Suite", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bsuite\b", "Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bCabins\b", "Cabin", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bcabin\b", "Cabin", room, flags=re.IGNORECASE)
     if preserve_quantity and quantity:
         return f"{quantity} {room}"
     return room
@@ -117,6 +120,33 @@ def extract_room_category_from_source(source: str) -> str:
             if match not in deduped:
                 deduped.append(match)
         return ", ".join(deduped)
+    return ""
+
+
+
+def extract_bed_type_from_source(source: str) -> str:
+    """Extract client-facing bed type details from hotel source text."""
+
+    text = clean_space(source)
+    if not text:
+        return ""
+    # Avoid treating commercial exclusions as selected bed types.
+    safe_text = re.sub(r"\bextra\s+bed\s+not\s+included\b", "", text, flags=re.IGNORECASE)
+    patterns = [
+        r"\b(full\s+double\s+bed)\b",
+        r"\b(double\s+bed)\b",
+        r"\b(twin\s+beds?)\b",
+        r"\b(queen\s+bed)\b",
+        r"\b(king\s+bed)\b",
+        r"\b(single\s+bed)\b",
+        r"\b(sofa\s+bed)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, safe_text, flags=re.IGNORECASE)
+        if match:
+            bed = clean_space(match.group(1)).lower()
+            bed = re.sub(r"\bbeds$", "beds", bed)
+            return bed
     return ""
 
 def normalize_meal_plan(value: str, source_text: str = "") -> str:
@@ -232,6 +262,10 @@ def normalize_hotel_row(row: dict) -> dict:
         room = source_room
     if not room:
         room = "Standard Double Room"
+
+    bed_type = extract_bed_type_from_source(source)
+    if bed_type and bed_type.lower() not in room.lower():
+        room = f"{room} - {bed_type}"
 
     nights = clean_space(row.get("hotel_nights", ""))
     if not nights:

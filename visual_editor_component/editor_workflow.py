@@ -26,7 +26,7 @@ from images.app_image_selection import (
     save_data_uri_day_image,
     select_day_images_with_overrides,
 )
-from ui.day_pages import render_inclusion_sections_inner_html
+from ui.day_pages import render_inclusion_sections_inner_html, render_inclusion_page_inner_htmls
 from ui.day_blocks import build_day_blocks
 from ui.render_helpers import get_detail_level_name
 from ui.editor_sanitizer import clean_visual_editor_html
@@ -59,8 +59,21 @@ def _get_journey_arc(grouped_days, output_edits):
     return create_journey_arc(grouped_days)
 
 
+def _build_generated_inclusion_sections(parsed_rows, grouped_days):
+    return create_categorized_inclusions(parsed_rows, grouped_days)
+
+
 def _build_generated_inclusions_html(parsed_rows, grouped_days):
-    return render_inclusion_sections_inner_html(create_categorized_inclusions(parsed_rows, grouped_days))
+    return render_inclusion_sections_inner_html(_build_generated_inclusion_sections(parsed_rows, grouped_days))
+
+
+def _build_generated_inclusion_page_htmls(parsed_rows, grouped_days):
+    return render_inclusion_page_inner_htmls(_build_generated_inclusion_sections(parsed_rows, grouped_days))
+
+
+def _page_html_payload(page_htmls):
+    pages = page_htmls if isinstance(page_htmls, list) else [page_htmls]
+    return [{"html": str(page.get("html", "") if isinstance(page, dict) else page or "")} for page in pages if str(page.get("html", "") if isinstance(page, dict) else page or "").strip()]
 
 
 def _normalize_route_edit(value):
@@ -110,6 +123,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         })
 
     generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
+    generated_inclusion_page_htmls = _build_generated_inclusion_page_htmls(parsed_rows, grouped_days)
     cover_theme = get_cover_theme(parsed_rows, output_edits)
 
     return {
@@ -132,6 +146,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         "days": payload_days,
         "final_pages": {
             "whats_included_html": output_edits.get("whats_included_html") or generated_inclusions_html,
+            "whats_included_pages_html": _page_html_payload(output_edits.get("whats_included_pages_html") or generated_inclusion_page_htmls),
             "whats_included_text": output_edits.get("whats_included_text", ""),
             "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
@@ -222,8 +237,25 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
                 choice["path"] = ""
 
     final_pages = data.get("final_pages", {}) or {}
-    if "whats_included_html" in final_pages:
+    if "whats_included_pages_html" in final_pages:
+        page_values = final_pages.get("whats_included_pages_html") or []
+        cleaned_pages = []
+        if isinstance(page_values, list):
+            for page_value in page_values:
+                if isinstance(page_value, dict):
+                    page_html = page_value.get("html", "")
+                else:
+                    page_html = page_value
+                cleaned = clean_visual_editor_html(page_html or "")
+                if cleaned:
+                    cleaned_pages.append(cleaned)
+        if cleaned_pages:
+            output_edits["whats_included_pages_html"] = cleaned_pages
+            output_edits["whats_included_html"] = ""
+            output_edits["whats_included_text"] = ""
+    elif "whats_included_html" in final_pages:
         output_edits["whats_included_html"] = clean_visual_editor_html(final_pages.get("whats_included_html", ""))
+        output_edits.pop("whats_included_pages_html", None)
         output_edits["whats_included_text"] = ""
     for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
         if key in final_pages and key != "whats_included_text":

@@ -277,6 +277,17 @@ def detect_effective_type(item_type, title, details):
     if normalized_item_type == "Activity":
         return "Activity"
 
+    # Long-distance coach/bus rows should remain arranged transport even when
+    # the description also mentions a bus station or resort/accommodation.
+    if normalized_item_type == "Transfer" and (
+        re.search(r"\b(?:bus|coach)\s*[:|]", combined)
+        or "coach transfer" in combined
+        or "panorama coach" in combined
+        or "panoramic coach" in combined
+        or "long distance" in combined and ("coach" in combined or "bus" in combined)
+    ) and "private" not in combined:
+        return "Transport"
+
     # Plain private/self-guided/local transfers remain transfers even when the
     # destination text contains "bus station". Long-distance coach/bus rows can
     # still become Transport below.

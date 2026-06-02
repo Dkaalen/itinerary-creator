@@ -335,6 +335,23 @@ function finalHtmlPage(label, title, key, html) {
     ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
   </div></div></div>`;
 }
+
+function finalHtmlPages(label, title, key, pages) {
+  const cleanPages = (Array.isArray(pages) && pages.length ? pages : [{html: ''}]).map(page => {
+    return typeof page === 'string' ? {html: page} : (page || {html: ''});
+  });
+  if (!model.final_pages) model.final_pages = {};
+  model.final_pages[key] = cleanPages;
+  return cleanPages.map((page, idx) => {
+    const html = typeof page === 'string' ? page : (page?.html || '');
+    const suffix = idx === 0 ? '' : ' continued';
+    const pageLabel = idx === 0 ? label : `${label} continued`;
+    return `<div class="page-wrap"><div class="page-label">${esc(pageLabel)}</div><div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
+      <div class="final-title">${esc(title)}${suffix}</div>
+      ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
+    </div></div></div>`;
+  }).join('');
+}
 function render(payload, commitNonce = null) {
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {
@@ -387,7 +404,7 @@ function draw() {
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
     </div>${imageHtml(day, i)}</div></div>`;
   });
-  h += finalHtmlPage('Included', "What's included", 'whats_included_html', model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || '');
+  h += finalHtmlPages('Included', "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}]);
   h += finalTextPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
   h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
   h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
@@ -483,6 +500,8 @@ function pruneForSave(value) {
       const day = dayPayload(index);
       if (field === 'image') day.image = compactImage(full.days?.[index]?.image || {});
       else day[field] = getByPath(full, key) ?? '';
+    } else if (key.startsWith('final_pages.whats_included_pages_html.')) {
+      payload.final_pages.whats_included_pages_html = full.final_pages?.whats_included_pages_html || [];
     } else if (key.startsWith('final_pages.')) {
       const name = key.slice('final_pages.'.length);
       payload.final_pages[name] = full.final_pages?.[name] ?? '';
