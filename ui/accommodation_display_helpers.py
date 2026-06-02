@@ -32,5 +32,9 @@ def meal_phrase(value):
         return "breakfast and dinner included"
     if lower in ["dinner", "half board", "full board"]:
         return f"{lower} included"
+    if lower == "room only":
+        return "room only"
+    if lower == "self catering":
+        return "self-catering"
 
     return f"with {value}"

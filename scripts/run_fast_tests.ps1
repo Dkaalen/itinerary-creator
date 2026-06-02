@@ -18,4 +18,5 @@ python -m pytest -q `
   tests/test_content_validator_scoping.py `
   tests/test_fixture_quality_polish.py `
   tests/test_nordic_quality_sample.py `
-  tests/test_compound_experience_transport_timing.py
+  tests/test_compound_experience_transport_timing.py `
+  tests/test_accommodation_stress_fixtures.py

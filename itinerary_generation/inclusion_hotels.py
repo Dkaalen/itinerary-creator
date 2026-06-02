@@ -18,6 +18,12 @@ def format_meal_plan(meal_plan: str) -> str:
         return "breakfast included"
     if meal == "dinner":
         return "dinner included"
+    if meal in {"half board", "full board"}:
+        return f"{meal} included"
+    if meal == "room only":
+        return "room only"
+    if meal == "self catering":
+        return "self-catering"
     if meal == "without breakfast":
         return "without breakfast"
     if "included" in meal:

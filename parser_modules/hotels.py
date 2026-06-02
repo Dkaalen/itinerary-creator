@@ -21,11 +21,17 @@ def parse_meal_plan(value):
             return "breakfast and dinner"
         return "breakfast"
 
-    if "half board" in lower:
+    if "half board" in lower or "half-board" in lower:
         return "half board"
 
-    if "full board" in lower:
+    if "full board" in lower or "full-board" in lower:
         return "full board"
+
+    if "room only" in lower:
+        return "room only"
+
+    if "self catering" in lower or "self-catering" in lower:
+        return "self catering"
 
     if "dinner" in lower:
         return "dinner"
@@ -70,11 +76,11 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     if night_count_hint and str(night_count_hint).strip().isdigit():
         nights = str(night_count_hint).strip()
 
-    match = re.search(r"for\s+a\s+(\d+)\s+night", lower)
+    match = re.search(r"for\s+a\s+(\d+)\s+(?:night|nite|nt)", lower)
     if match:
         nights = match.group(1)
 
-    match = re.search(r"(\d+)\s*x\s*night", lower)
+    match = re.search(r"(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", lower)
     if match and not nights:
         nights = match.group(1)
 
@@ -88,8 +94,22 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
             if "check in" in part_lower or "night stay" in part_lower:
                 continue
 
-            if "breakfast" in part_lower or "meal" in part_lower or "dinner" in part_lower:
+            if any(marker in part_lower for marker in ["breakfast", "brekafast", "meal", "dinner", "half board", "full board", "room only", "self catering", "self-catering"]):
                 meal_plan = parse_meal_plan(part)
+                continue
+
+            room_like = (
+                "room" in part_lower or "suite" in part_lower or "cabin" in part_lower
+                or ("igloo" in part_lower and re.search(r"\b(premium|standard|aurora|glass|\d+\s*x)", part_lower))
+                or (("apartment" in part_lower or "villa" in part_lower or "cottage" in part_lower) and re.search(r"\b(\d+\s*x|one|two|three|four|five|bedroom)", part_lower))
+            )
+            if room_like:
+                quantity_match = re.search(r"\b\d+\s*x\s+", part, flags=re.IGNORECASE)
+                if quantity_match and quantity_match.start() > 0 and not hotel_name:
+                    hotel_name = clean_space(part[:quantity_match.start()])
+                    room_category = room_category or clean_room_category(part[quantity_match.start():])
+                else:
+                    room_category = room_category or clean_room_category(part)
                 continue
 
             if not hotel_name:
@@ -104,7 +124,7 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
         for part in comma_parts:
             part_lower = part.lower()
 
-            if re.search(r"\d+\s*x\s*night", part_lower):
+            if re.search(r"\d+\s*(?:x\s*)?(?:night|nite|nt)s?", part_lower):
                 continue
 
             if re.search(r"\d+\s*[- ]?star", part_lower):
@@ -115,16 +135,22 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
                     hotel_name = cleaned_part
                 continue
 
-            if "incl" in part_lower or "breakfast" in part_lower or "brekafast" in part_lower or "dinner" in part_lower:
+            if any(marker in part_lower for marker in ["incl", "breakfast", "brekafast", "dinner", "half board", "full board", "room only", "self catering", "self-catering"]):
                 meal_plan = meal_plan or parse_meal_plan(part)
                 continue
 
             room_like = (
                 "room" in part_lower or "suite" in part_lower or "cabin" in part_lower
                 or ("igloo" in part_lower and re.search(r"\b(premium|standard|aurora|glass|\d+\s*x)", part_lower))
+                or (("apartment" in part_lower or "villa" in part_lower or "cottage" in part_lower) and re.search(r"\b(\d+\s*x|one|two|three|four|five|bedroom)", part_lower))
             )
             if room_like:
-                room_category = room_category or clean_room_category(part)
+                quantity_match = re.search(r"\b\d+\s*x\s+", part, flags=re.IGNORECASE)
+                if quantity_match and quantity_match.start() > 0 and not hotel_name:
+                    hotel_name = clean_space(part[:quantity_match.start()])
+                    room_category = room_category or clean_room_category(part[quantity_match.start():])
+                else:
+                    room_category = room_category or clean_room_category(part)
                 continue
 
             if not hotel_name:

@@ -34,14 +34,26 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
     room = re.sub(r"\bsuite\b", "Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bCabins\b", "Cabin", room, flags=re.IGNORECASE)
     room = re.sub(r"\bcabin\b", "Cabin", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bApartments\b", "Apartment", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bapartment\b", "Apartment", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bVillas\b", "Villa", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bvilla\b", "Villa", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bCottages\b", "Cottage", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bcottage\b", "Cottage", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bLodges\b", "Lodge", room, flags=re.IGNORECASE)
+    room = re.sub(r"\blodge\b", "Lodge", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bOne\s+Bedroom\b", "One Bedroom", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bTwo\s+Bedroom\b", "Two Bedroom", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bThree\s+Bedroom\b", "Three Bedroom", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bFour\s+Bedroom\b", "Four Bedroom", room, flags=re.IGNORECASE)
     if preserve_quantity and quantity:
         return f"{quantity} {room}"
     return room
 
-ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|suites?|cabins?)"
+ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|suites?|cabins?|apartments?|villas?|cottages?|lodges?)"
 ROOM_DESCRIPTOR_PATTERN = (
     r"(?:standard|std\.?|superior|deluxe|small glass|glass|panorama|triple|tirple|"
-    r"double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view)"
+    r"double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view|one bedroom|two bedroom|three bedroom|four bedroom|aurora|log|arctic treehouse|fisherman[’']?s?)"
 )
 
 
@@ -153,6 +165,14 @@ def normalize_meal_plan(value: str, source_text: str = "") -> str:
     text = f"{value} {source_text}".lower()
     if any(marker in text for marker in ["without breakfast", "without brekafast", "no breakfast", "breakfast not"]):
         return "without breakfast"
+    if "room only" in text:
+        return "room only"
+    if "self catering" in text or "self-catering" in text:
+        return "self catering"
+    if "half board" in text or "half-board" in text:
+        return "half board"
+    if "full board" in text or "full-board" in text:
+        return "full board"
     if "breakfast" in text or "brekafast" in text or "breekfast" in text:
         if "dinner" in text:
             return "breakfast and dinner"
@@ -178,7 +198,7 @@ def is_placeholder_hotel_name(name: str, city: str = "") -> bool:
         return True
     if re.search(r"\b\d\s*[- ]?star\b", lower):
         return True
-    if re.search(r"\b\d+\s*x?\s*night", lower):
+    if re.search(r"\b\d+\s*(?:x\s*)?(?:night|nite|nt)s?", lower):
         return True
     if any(marker in lower for marker in ["standard room", "standard double room", "incl breakfast", "incl brekafast", "breakfast", "room category"]):
         return True
@@ -198,10 +218,12 @@ def _strip_city_and_star_prefix(value: str, city: str = "") -> str:
 
 def _looks_like_room_fragment(value: str) -> bool:
     lower = clean_space(value).lower()
+    if "hotel" in lower and not re.search(r"\d+\s*x", lower, flags=re.IGNORECASE):
+        return False
     return bool(
         re.search(r"\d+\s*x\s*", lower)
         or re.search(rf"\b{ROOM_UNIT_PATTERN}\b", lower, flags=re.IGNORECASE)
-        or re.search(r"\b(?:standard|std\.?|superior|double|single|twin|family|junior|suite|room|rooms|breakfast|brekafast|dinner)\b", lower)
+        or re.search(r"\b(?:standard|std\.?|superior|double|single|twin|family|junior|suite|room|rooms|apartment|villa|cottage|lodge|breakfast|brekafast|dinner)\b", lower)
     )
 
 def clean_hotel_name_from_source(row: dict) -> str:
@@ -220,13 +242,15 @@ def clean_hotel_name_from_source(row: dict) -> str:
             continue
         if any(marker in lower for marker in ["check in", "check-in", "accommodation", "night stay"]):
             continue
+        if any(marker in lower for marker in ["breakfast", "brekafast", "dinner", "half board", "full board", "room only", "self catering", "self-catering", "included"]):
+            continue
         if re.fullmatch(r"\s*\d\s*[- ]?star\s*", lower):
             continue
-        if re.search(r"\b\d+\s*x?\s*night", lower):
+        if re.search(r"\b\d+\s*(?:x\s*)?(?:night|nite|nt)s?", lower):
             # Some weak inputs use either "2 Night's Hotel Scandic Kemi" or
             # "Hotel Aakenus 2xNight" in the same comma fragment.
-            trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?night'?s?\s*", "", part_clean, flags=re.IGNORECASE).strip(" ,-:")
-            trailing = re.sub(r"\s*\d+\s*(?:x\s*)?night'?s?\s*$", "", trailing, flags=re.IGNORECASE).strip(" ,-:")
+            trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?(?:night|nite|nt)'?s?\s*", "", part_clean, flags=re.IGNORECASE).strip(" ,-:")
+            trailing = re.sub(r"\s*\d+\s*(?:x\s*)?(?:night|nite|nt)'?s?\s*$", "", trailing, flags=re.IGNORECASE).strip(" ,-:")
             if trailing:
                 part_clean = trailing
                 lower = part_clean.lower()
@@ -260,6 +284,9 @@ def normalize_hotel_row(row: dict) -> dict:
     source_room = extract_room_category_from_source(source)
     if source_room and (not room or " x " in source_room.lower() or "," in source_room):
         room = source_room
+    room_for_name = source_room or room
+    if name == "Centrally located hotel" and room_for_name and re.search(r"\b(?:igloo|villa|cabin|apartment|cottage|lodge)\b", room_for_name, flags=re.IGNORECASE):
+        name = "Accommodation"
     if not room:
         room = "Standard Double Room"
 
@@ -269,7 +296,7 @@ def normalize_hotel_row(row: dict) -> dict:
 
     nights = clean_space(row.get("hotel_nights", ""))
     if not nights:
-        night_match = re.search(r"\b(\d+)\s*(?:x\s*)?night", source, flags=re.IGNORECASE)
+        night_match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", source, flags=re.IGNORECASE)
         if night_match:
             nights = night_match.group(1)
 

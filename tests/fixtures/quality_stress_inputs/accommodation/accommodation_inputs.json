@@ -1,0 +1,602 @@
+[
+  {
+    "id": "accom_001",
+    "bank": "accommodation",
+    "category": "multi_room",
+    "input": "Helsinki: Check in to your accommodation for a 2 night stay - Scandic Helsinki Hub - 8 x Superior rooms - King bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_002",
+    "bank": "accommodation",
+    "category": "multi_room",
+    "input": "Bergen: Check in for 3 nights - Hotel Norge - 2x Family rooms, 4x std. double rooms - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_003",
+    "bank": "accommodation",
+    "category": "bed_type",
+    "input": "Oslo: The Thief - 1 night - 1 x Standard Double Room - double bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_004",
+    "bank": "accommodation",
+    "category": "meal_plan",
+    "input": "Rovaniemi: Arctic TreeHouse Hotel - 2 nights - 1 x Arctic TreeHouse Suite - breakfast and dinner included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_005",
+    "bank": "accommodation",
+    "category": "glass_igloo",
+    "input": "Kakslauttanen: Check-in for 1 night - 1 x Small Glass Igloo - half board included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_006",
+    "bank": "accommodation",
+    "category": "cabin",
+    "input": "Saariselkä: Wilderness cabin stay - 2 nights - 1 x Log Cabin for two people - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_007",
+    "bank": "accommodation",
+    "category": "apartment",
+    "input": "Copenhagen: 3 night stay - Adina Apartment Hotel - 1 x One Bedroom Apartment - breakfast not included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_008",
+    "bank": "accommodation",
+    "category": "villa",
+    "input": "Lofoten: Check into seaside villa for 4 nights - 1 x Three Bedroom Villa - self catering",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_009",
+    "bank": "accommodation",
+    "category": "split_stay",
+    "input": "Tromsø: Check in to Clarion Hotel The Edge for a 1 night pre-tour stay - 1 x Superior Double room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_010",
+    "bank": "accommodation",
+    "category": "same_hotel_upgrade",
+    "input": "Tromsø: Continue at Clarion Hotel The Edge for 2 nights - upgrade to 1 x Deluxe Harbour View room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_011",
+    "bank": "accommodation",
+    "category": "messy_room",
+    "input": "Stockholm: Hotel Sign - 2 nites - 8 x Superior doubel room - King bed - brekafast inclueded",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_012",
+    "bank": "accommodation",
+    "category": "messy_quantity",
+    "input": "Flam: Fretheim Hotel - 1 night - 02 Family rooms + 04 standard twin rooms - breakfast",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_013",
+    "bank": "accommodation",
+    "category": "end_date",
+    "input": "Alta: Check in to your accommodation - 12.01.2027 to 15.01.2027 - 1 x Standard room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_014",
+    "bank": "accommodation",
+    "category": "cruise_cabin",
+    "input": "Overnight Cruise from Helsinki to Stockholm - 1 night - 8 x Seaside Premium Promenade cabins - premium breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_015",
+    "bank": "accommodation",
+    "category": "train_cabin",
+    "input": "Santa Claus Express sleeper cabin - 1 x downstairs cabin for two people - overnight Helsinki to Rovaniemi",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_016",
+    "bank": "accommodation",
+    "category": "hotel_name_with_dash",
+    "input": "Reykjavík: Check in - Hotel Reykjavík Saga - 2 nights - 1 x Deluxe Room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_017",
+    "bank": "accommodation",
+    "category": "no_city_repeated",
+    "input": "Check in to Hotel Union Geiranger for 2 nights - 1 x Fjord View Room - breakfast and dinner included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_018",
+    "bank": "accommodation",
+    "category": "local_fee",
+    "input": "Bergen: Hotel stay - 2 nights - Bergen Børs Hotel - 1 x Superior Room - breakfast included - city tax paid locally",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_019",
+    "bank": "accommodation",
+    "category": "optional_upgrade",
+    "input": "Optional: Upgrade to Panorama Suite at The Thief - supplement applies - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_020",
+    "bank": "accommodation",
+    "category": "not_included_meal",
+    "input": "Copenhagen: The Square - 2 nights - 8 x Double Superior rooms - King bed - breakfast not included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_021",
+    "bank": "accommodation",
+    "category": "half_board",
+    "input": "Lofoten: Nusfjord Arctic Resort - 3 nights - 1 x Fisherman's Cabin - breakfast and 3-course dinner included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_022",
+    "bank": "accommodation",
+    "category": "family_mix",
+    "input": "Rovaniemi: Santa Claus Holiday Village - 2 nights - 2 x Classic Cottage, 1 x Family Suite - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_023",
+    "bank": "accommodation",
+    "category": "bed_request",
+    "input": "Oslo: Amerikalinjen - 1 night - 1 x Superior Room - twin beds requested - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_024",
+    "bank": "accommodation",
+    "category": "room_upgrade_wording",
+    "input": "Helsinki: Hotel Kämp - 2 nights - upgraded to 1 x Executive Room - King bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_025",
+    "bank": "accommodation",
+    "category": "special_characters",
+    "input": "Malmö: MJ's Hotel - 1 night - 1 x Medium Room - Queen bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_026",
+    "bank": "accommodation",
+    "category": "messy_dates",
+    "input": "Bergen: check-in 24/09 check-out 26/09 Radisson Blu Royal Bergen 8x room superior double bed bf included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_027",
+    "bank": "accommodation",
+    "category": "room_only",
+    "input": "Stockholm: Downtown Camper - 2 nights - 1 x Classic Room - room only",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_028",
+    "bank": "accommodation",
+    "category": "breakfast_marker",
+    "input": "Oslo: Thon Hotel Opera - 1 night - 8 x Superior rooms - Double bed - incl. breakfast",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_029",
+    "bank": "accommodation",
+    "category": "multiple_meals",
+    "input": "Kirkenes: Snowhotel cabins - 1 night - breakfast, dinner and transfers included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_030",
+    "bank": "accommodation",
+    "category": "ambiguous_room",
+    "input": "Tromsø: Hotel stay - Clarion Collection Aurora - 3 nights - 1 room for two - breakfast and light evening meal",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_031",
+    "bank": "accommodation",
+    "category": "very_messy",
+    "input": "Helsinki hotel 2nts Scandic Hub 8 superior king bf incl checkin 15 sept checkout 17 sept",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_032",
+    "bank": "accommodation",
+    "category": "very_messy",
+    "input": "Bergen stay Radisson 24-26 Sep 8 rooms superior dbl bed brekfast",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_033",
+    "bank": "accommodation",
+    "category": "very_messy",
+    "input": "Kakslauttenen 1 small glass iglo 1 night halfboard",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_034",
+    "bank": "accommodation",
+    "category": "very_messy",
+    "input": "Tromso Clarion Edge 3 nites 8 × Superior Double room double bed bf",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_035",
+    "bank": "accommodation",
+    "category": "very_messy",
+    "input": "Oslo Thon Opera one night 8 x supr room Double bed breakfast inclued",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_036",
+    "bank": "accommodation",
+    "category": "hotel_city_reversed",
+    "input": "Clarion Hotel The Edge, Tromsø: 3 nights - 8 x Superior Double rooms - double bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_037",
+    "bank": "accommodation",
+    "category": "multi_line_like",
+    "input": "Flåm: Hotel stay - Fretheim Hotel - 1 night - Historic Double Room - Dinner included - Breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_038",
+    "bank": "accommodation",
+    "category": "airport_hotel",
+    "input": "Gardermoen: Overnight at Radisson Blu Airport Hotel - 1 night - 1 x Standard Room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_039",
+    "bank": "accommodation",
+    "category": "remote_lodge",
+    "input": "Inari: Wilderness Hotel Inari - 2 nights - 1 x Aurora Cabin - half board included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_040",
+    "bank": "accommodation",
+    "category": "city_tax",
+    "input": "Reykjavík: Hotel Borg - 2 nights - 1 x Superior Room - breakfast included - local city tax not included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_041",
+    "bank": "accommodation",
+    "category": "children",
+    "input": "Copenhagen: Tivoli Hotel - 2 nights - 2 x Family Room for 2 adults + 2 children - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_042",
+    "bank": "accommodation",
+    "category": "connecting_rooms",
+    "input": "Stockholm: At Six Hotel - 2 nights - 2 x connecting Standard Rooms - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_043",
+    "bank": "accommodation",
+    "category": "suite",
+    "input": "Bergen: Opus XVI - 2 nights - 1 x Junior Suite - King bed - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_044",
+    "bank": "accommodation",
+    "category": "boutique",
+    "input": "Ålesund: Hotel Brosundet - 1 night - 1 x Double Room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_045",
+    "bank": "accommodation",
+    "category": "seasonal_lodge",
+    "input": "Levi: Northern Lights Village - 2 nights - 1 x Aurora Cabin - half board and thermal clothing included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_046",
+    "bank": "accommodation",
+    "category": "wrong_typo",
+    "input": "Svolvaer: Thon Hotel Lofoten - 2 nights - 1 x Superior Room - brekafast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_047",
+    "bank": "accommodation",
+    "category": "complex_bed",
+    "input": "Oslo: Sommerro - 1 night - 1 x Loft Room - King or twin bed on request - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_048",
+    "bank": "accommodation",
+    "category": "cruise_meal",
+    "input": "Copenhagen to Oslo overnight cruise - 1 x Commodore Class cabin - breakfast and Wi-Fi included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_049",
+    "bank": "accommodation",
+    "category": "missing_nights",
+    "input": "Helsinki: Check in to Hotel Haven - 1 x Standard Double Room - breakfast included",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  },
+  {
+    "id": "accom_050",
+    "bank": "accommodation",
+    "category": "check_out",
+    "input": "Tromsø: Check out from Clarion Hotel The Edge after a 3 night stay",
+    "future_test_intent": [
+      "preserve hotel/accommodation name where present",
+      "preserve room quantities, room category, bed type, nights, and meal plan",
+      "avoid treating room or meal-plan fragments as hotel names",
+      "keep accommodation day-page and inclusion summary wording aligned"
+    ]
+  }
+]
