@@ -13,6 +13,12 @@ from ui.output_edits import (
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from app_modules.parse_workflow import parse_and_normalize_itinerary
 from app_modules.itinerary_html import build_itinerary_html
+from app_modules.validation_gate import (
+    block_generation,
+    render_blocking_issues,
+    render_warning_issues,
+    validate_for_generation,
+)
 
 
 def initialise_state():
@@ -29,6 +35,7 @@ def initialise_state():
         "pdf_signature": None,
         "detail_level": "Rich descriptive",
         "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
+        "itinerary_validation_report": None,
     }
 
     for key, value in defaults.items():
@@ -43,6 +50,12 @@ def load_project_json(uploaded_file):
         output_edits = data.get("output_edits", {})
 
         parsed_rows = parse_and_normalize_itinerary(raw_text)
+        validation_report = validate_for_generation(parsed_rows)
+        if validation_report.is_blocked:
+            block_generation(validation_report)
+            render_blocking_issues(validation_report)
+            return
+
         grouped_days = group_rows_by_day(parsed_rows)
 
         st.session_state.parsed_rows = parsed_rows
@@ -68,6 +81,7 @@ def load_project_json(uploaded_file):
         st.session_state.pdf_signature = None
         st.session_state.raw_text_input = raw_text
 
+        render_warning_issues(validation_report)
         st.success("Editable project loaded.")
     except Exception as error:
         st.error("The project JSON could not be loaded.")
@@ -87,6 +101,7 @@ def reset_project_state(clear_raw_text=True):
         "preview_signature",
         "pdf_signature",
         "_last_visual_editor_result",
+        "itinerary_validation_report",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -101,6 +116,7 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.pdf_status = "Not created"
     st.session_state.preview_signature = None
     st.session_state.pdf_signature = None
+    st.session_state.itinerary_validation_report = None
 
     if clear_raw_text:
         st.session_state.raw_text_input = ""

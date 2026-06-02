@@ -5,6 +5,7 @@ import streamlit as st
 
 from ui.export_files import save_pdf_file
 from app_modules.project_io import rebuild_current_preview
+from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 
 
 def render_export_step(app_version):
@@ -63,6 +64,11 @@ def render_export_step(app_version):
                 st.rerun()
 
             if commit_ready:
+                validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))
+                if validation_report.is_blocked:
+                    block_generation(validation_report)
+                    render_blocking_issues(validation_report)
+                    return
                 try:
                     with st.spinner("Creating PDF..."):
                         # The visual editor has now committed browser-side edits.

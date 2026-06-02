@@ -5,7 +5,7 @@ import re
 from text_polish import polish_title, polish_inclusion_items, polish_inclusion_item, strip_price_fragments
 
 from itinerary_generation.content_engine import clean_client_title, merge_compound_inclusions, sanitize_inclusion_item
-from itinerary_generation.inclusions import clean_include_item
+from itinerary_generation.inclusion_flat import clean_include_item
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
 from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean
