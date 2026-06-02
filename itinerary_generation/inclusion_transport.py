@@ -11,6 +11,7 @@ from itinerary_generation.transport import get_transport_route_phrase, get_trans
 from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
+from itinerary_generation.transport_norway import extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
@@ -69,7 +70,7 @@ def clean_transport_title(row: dict) -> str:
 def transport_bucket(row: dict) -> str:
     text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
     row_type = get_row_type(row)
-    if "private" in text and get_row_type(row) == "Transfer" and not is_route_transfer(row):
+    if "private" in text and row_type in {"Transfer", "Arrival", "Departure"} and not is_route_transfer(row):
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
         return ""
@@ -86,10 +87,60 @@ def transport_bucket(row: dict) -> str:
     return "Other arranged transport"
 
 
+def _santa_claus_express_inclusion_line(row: dict, title: str) -> str:
+    text = get_transport_source_text(row)
+    if "santa claus express" not in text.lower():
+        return ""
+    lines = [title]
+    schedule = get_transport_time_text(row)
+    if schedule:
+        lines.append(schedule)
+    for detail_item in get_transport_detail_items(row, title):
+        detail_item = polish_inclusion_item(detail_item, title)
+        if not detail_item:
+            continue
+        if re.search(r"\bcabin\b", detail_item, flags=re.IGNORECASE) and not detail_item.lower().startswith("cabin"):
+            detail_item = f"Cabin: {detail_item}"
+        if detail_item.lower().startswith("cabin:") and not detail_item.endswith("."):
+            detail_item = f"{detail_item}."
+        if detail_item not in lines:
+            lines.append(detail_item)
+    return "\n".join(lines)
+
+
+def _norway_nutshell_inclusion_line(row: dict, title: str) -> str:
+    text = get_transport_source_text(row)
+    if "norway in a nutshell" not in text.lower():
+        return ""
+    lines = [title]
+    schedule = get_transport_time_text(row)
+    if schedule:
+        lines.append(schedule)
+    route_text = format_norway_nutshell_route(extract_norway_nutshell_route_points(text))
+    if route_text:
+        lines.append(f"Route highlights: {route_text}")
+    includes = merge_compound_inclusions([
+        polish_inclusion_item(sanitize_inclusion_item(item, title), title)
+        for item in (row.get("includes", []) or [])
+        if sanitize_inclusion_item(item, title)
+    ])
+    if includes:
+        detail = join_detail_parts(includes).strip(" .")
+        if detail:
+            lines.append(f"Included journey: {detail}.")
+    return "\n".join(line for line in lines if line)
+
+
 def transport_line(row: dict) -> str:
     if is_cruise_leisure_row(row):
         return ""
     title = get_transport_route_phrase(row) or route_transport_line(row) or clean_transport_title(row)
+    santa_line = _santa_claus_express_inclusion_line(row, title)
+    if santa_line:
+        return santa_line
+    nutshell_line = _norway_nutshell_inclusion_line(row, title)
+    if nutshell_line:
+        return nutshell_line
     if transport_bucket(row) == "Private transfers":
         city = canonicalize_place_name(row.get("city", ""))
         date = format_client_date(row.get("start_date"))

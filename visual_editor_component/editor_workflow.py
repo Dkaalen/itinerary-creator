@@ -16,6 +16,7 @@ from itinerary_generation.titles import (
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
+from itinerary_generation.exclusion_sections import create_whats_not_included
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
     get_day_image_choice,
@@ -28,7 +29,7 @@ from images.app_image_selection import (
 )
 from ui.day_pages import render_inclusion_sections_inner_html, render_inclusion_page_inner_htmls
 from ui.day_blocks import build_day_blocks
-from ui.render_helpers import get_detail_level_name
+from ui.render_helpers import get_detail_level_name, list_to_text
 from ui.editor_sanitizer import clean_visual_editor_html
 from visual_editor_component.editor_bridge import render_visual_page_editor
 
@@ -124,6 +125,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
     generated_inclusion_page_htmls = _build_generated_inclusion_page_htmls(parsed_rows, grouped_days)
+    generated_whats_not_included_text = list_to_text(create_whats_not_included(parsed_rows))
     cover_theme = get_cover_theme(parsed_rows, output_edits)
 
     return {
@@ -148,7 +150,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "whats_included_html": output_edits.get("whats_included_html") or generated_inclusions_html,
             "whats_included_pages_html": _page_html_payload(output_edits.get("whats_included_pages_html") or generated_inclusion_page_htmls),
             "whats_included_text": output_edits.get("whats_included_text", ""),
-            "whats_not_included_text": output_edits.get("whats_not_included_text", ""),
+            "whats_not_included_text": output_edits.get("whats_not_included_text") or generated_whats_not_included_text,
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
         },
     }

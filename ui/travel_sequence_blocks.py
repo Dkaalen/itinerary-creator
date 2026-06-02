@@ -8,6 +8,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_a
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
+from itinerary_generation.transport_norway import extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
@@ -128,18 +129,7 @@ def _clean_self_arranged_travel_title(title):
 
 def _extract_timed_route_places(row):
     text = str(row.get("details") or row.get("original_title") or row.get("title") or "")
-    places = []
-    for raw in text.replace("|", "\n").splitlines():
-        line = clean_space(raw)
-        if not re.match(r"^\d{1,2}:\d{2}\s+", line):
-            continue
-        # 09:18 Oslo / 14:20 Myrdal via Train
-        place = re.sub(r"^\d{1,2}:\d{2}\s+", "", line)
-        place = re.split(r"\s+via\s+|\s+Via\s+", place, maxsplit=1)[0].strip(" -:|,")
-        place = _polish_overview_item(place)
-        if place and place not in places:
-            places.append(place)
-    return places
+    return extract_norway_nutshell_route_points(text)
 
 def _line_with_time(label, row):
     time = display_time(get_transport_time_text(row)) or _inline_arrival_time(row)
@@ -153,14 +143,33 @@ def _norway_nutshell_lines(row):
     places = _extract_timed_route_places(row)
     lines = []
     base = get_travel_sequence_line(row)
-    if places and len(places) >= 2:
+    if places and len(places) >= 3:
         lines.append(_line_with_time(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}", row))
-        lines.append("Route: " + " → ".join(places))
+        route_text = format_norway_nutshell_route(places)
+        if route_text:
+            lines.append(f"Route highlights: {route_text}")
     elif base:
         lines.append(_line_with_time(base, row))
     includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
     if includes:
         lines.append("Included journey: " + ", ".join(includes))
+    return lines
+
+def _santa_claus_express_lines(row):
+    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+    if "santa claus express" not in text:
+        return []
+    title = get_travel_sequence_line(row)
+    details = get_transport_detail_items(row, title)
+    lines = [title] if title else []
+    for detail in details:
+        clean_detail = clean_space(detail)
+        if not clean_detail:
+            continue
+        if re.search(r"\bcabin\b", clean_detail, flags=re.IGNORECASE) and not clean_detail.lower().startswith("cabin"):
+            clean_detail = f"Cabin: {clean_detail}"
+        if clean_detail not in lines:
+            lines.append(clean_detail)
     return lines
 
 def _inline_arrival_time(row):
@@ -212,7 +221,7 @@ def get_travel_arrangement_line(row):
 def build_travel_arrangements_block(travel_rows):
     items = []
     for row in travel_rows:
-        special_lines = _norway_nutshell_lines(row)
+        special_lines = _norway_nutshell_lines(row) or _santa_claus_express_lines(row)
         if special_lines:
             for line in special_lines:
                 if line and line not in items:

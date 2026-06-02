@@ -1,10 +1,37 @@
 """Hotel and accommodation row normalization helpers."""
 
 import re
+from datetime import datetime
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text, polish_hotel_name
 from normalizer_modules.text_utils import clean_space
+
+
+def _hotel_nights_from_date_range(start_value: object, end_value: object) -> str:
+    """Return nights implied by hotel check-in/check-out dates, when clear."""
+
+    formats = ("%d/%m/%Y", "%d.%m.%Y", "%Y-%m-%d", "%d/%m/%y", "%d.%m.%y")
+
+    def parse(value):
+        text = str(value or "").strip()
+        if not text:
+            return None
+        for fmt in formats:
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    start = parse(start_value)
+    end = parse(end_value)
+    if not start or not end:
+        return ""
+    delta = (end - start).days
+    if 0 < delta <= 60:
+        return str(delta)
+    return ""
 
 def _normalize_single_room_category(value: str, *, preserve_quantity: bool = False) -> str:
     room = polish_client_text(value)
@@ -295,7 +322,10 @@ def normalize_hotel_row(row: dict) -> dict:
         room = f"{room} - {bed_type}"
 
     nights = clean_space(row.get("hotel_nights", ""))
-    if not nights:
+    date_range_nights = _hotel_nights_from_date_range(row.get("start_date", ""), row.get("end_date", ""))
+    if date_range_nights and (not nights or (nights == "1" and int(date_range_nights) > 1)):
+        nights = date_range_nights
+    elif not nights:
         night_match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", source, flags=re.IGNORECASE)
         if night_match:
             nights = night_match.group(1)

@@ -50,6 +50,7 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bSVolaver\b", "Svolvær"),
     (r"\bSvolvaer\b", "Svolvær"),
     (r"\bSvoalvaer\b", "Svolvær"),
+    (r"\bRovaneimi\b", "Rovaniemi"),
     (r"\bTrosmø\b", "Tromsø"),
     (r"\bTrosmo\b", "Tromsø"),
     (r"\bGothernburg\b", "Gothenburg"),

@@ -80,9 +80,10 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
 
     for row in rows:
         row_type = get_row_type(row)
-        if row_type not in set(TRANSPORT_TYPES) | {"Transfer"}:
-            continue
         text_for_skip = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+        is_private_arrival_departure = row_type in {"Arrival", "Departure"} and "private" in text_for_skip and any(marker in text_for_skip for marker in ["airport", "station", "hotel", "accommodation"])
+        if row_type not in set(TRANSPORT_TYPES) | {"Transfer"} and not is_private_arrival_departure:
+            continue
         if is_self_arranged(row) or is_self_transfer_row(row) or is_cruise_leisure_row(row) or is_cruise_arrival_row(row):
             continue
         if row_type == "Transfer" and text_for_skip.strip().startswith("arrival in") and "private" not in text_for_skip and "shuttle" not in text_for_skip:

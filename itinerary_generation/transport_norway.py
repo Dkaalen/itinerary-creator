@@ -81,6 +81,82 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     return "Norway in a Nutshell"
 
 
+def extract_norway_nutshell_route_points(text: str) -> list[str]:
+    """Return a clean stop list from Nutshell timetable or route text.
+
+    The itinerary should present the route as premium prose/list text, not with
+    visual arrow glyphs. Timetable lines such as ``08:30 - 22:30`` are skipped
+    so the end time cannot be misread as a route stop.
+    """
+
+    source = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    points: list[str] = []
+
+    def add_point(value: str) -> None:
+        place = _clean_nutshell_place(value)
+        if not place or not re.search(r"[A-Za-zÀ-ÿøØåÅäÄöÖ]", place):
+            return
+        if place.lower() in {"norway in a nutshell", "including luggage porter service", "luggage porter service"}:
+            return
+        if not points or points[-1].lower() != place.lower():
+            points.append(place)
+
+    # Explicit pipe product route, e.g. "Norway in a Nutshell | Bergen to Oslo |".
+    origin, destination = _direct_nutshell_pipe_route(source)
+
+    # Timetable rows, e.g. "08:29 Bergen" / "22:27 Oslo".
+    for raw in source.replace("|", "\n").splitlines():
+        line = raw.strip()
+        match = re.match(r"^\s*\d{1,2}:\d{2}\s*(?:am|pm)?\s+(.+)$", line, flags=re.IGNORECASE)
+        if not match:
+            continue
+        place = match.group(1).strip(" -:|,.")
+        # Skip pure time-range cells such as "08:30 - 22:30".
+        if re.match(r"^[-–—]?\s*\d{1,2}:\d{2}\s*(?:am|pm)?\s*$", place, flags=re.IGNORECASE):
+            continue
+        place = re.split(r"\s+via\s+|\s+Via\s+", place, maxsplit=1)[0].strip(" -:|,.")
+        place = re.sub(r"\s+Norway\s+in\s+a\s+Nutshell.*$", "", place, flags=re.IGNORECASE).strip(" -:|,.")
+        add_point(place)
+
+    if len(points) >= 2:
+        return points
+
+    # Narrative route text, e.g. "Route: Oslo to Myrdal by train, Myrdal to Flåm...".
+    route_match = re.search(r"\broute\s*:\s*(.+?)(?:\bIncludes?\s*:|\bIncluded\s+journey\s*:|$)", source, flags=re.IGNORECASE | re.DOTALL)
+    if route_match:
+        route_text = route_match.group(1)
+        for origin_match, dest_match in re.findall(
+            r"([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+by\b|,|$)",
+            route_text,
+            flags=re.IGNORECASE,
+        ):
+            add_point(origin_match)
+            add_point(dest_match)
+        if len(points) >= 2:
+            return points
+
+    if origin and destination:
+        return [origin, destination]
+    return points
+
+
+def format_norway_nutshell_route(points: list[str]) -> str:
+    """Return a premium no-arrow route phrase."""
+
+    clean_points: list[str] = []
+    for point in points or []:
+        place = _clean_nutshell_place(point)
+        if place and (not clean_points or clean_points[-1].lower() != place.lower()):
+            clean_points.append(place)
+    if not clean_points:
+        return ""
+    if len(clean_points) == 1:
+        return clean_points[0]
+    if len(clean_points) == 2:
+        return f"{clean_points[0]} to {clean_points[1]}"
+    return f"{', '.join(clean_points[:-1])} and {clean_points[-1]}"
+
+
 def has_norway_in_a_nutshell(rows):
     text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in rows).lower()
     return "norway in a nutshell" in text

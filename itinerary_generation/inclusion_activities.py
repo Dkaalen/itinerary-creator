@@ -52,6 +52,16 @@ def _polish_activity_inclusion(value: str, title: str = "") -> str:
     return sanitize_inclusion_item(text, title)
 
 
+def _fallback_activity_inclusions(row: dict, title: str) -> list[str]:
+    source = " ".join(str(row.get(key, "") or "") for key in ["title", "original_title", "details"]).lower()
+    if "fløibanen" in source or "floibanen" in source:
+        items = ["Round-trip Fløibanen ticket"] if re.search(r"\bround[-\s]?trip\b|\broundtrip\b", source, flags=re.IGNORECASE) else ["Fløibanen ticket"]
+        if "fløyen" in source or "floyen" in source or "mount" in source or "viewpoint" in source:
+            items.append("Flexible visit to Mount Fløyen")
+        return items
+    return []
+
+
 def _activity_inclusion_items(row: dict, title: str) -> list[str]:
     raw_items = row.get("includes", []) or []
     cleaned = []
@@ -59,6 +69,8 @@ def _activity_inclusion_items(row: dict, title: str) -> list[str]:
         item = _polish_activity_inclusion(item, title)
         if item and item not in cleaned:
             cleaned.append(item)
+    if not cleaned:
+        cleaned = _fallback_activity_inclusions(row, title)
     merged = merge_compound_inclusions(polish_inclusion_items(cleaned, title))
     return [item for item in merged if item]
 
