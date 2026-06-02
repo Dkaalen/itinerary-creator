@@ -13,10 +13,20 @@ streamlit run app.py
 
 ## Test
 
+Fast patch checks:
+
 ```powershell
-python -m pytest tests/
+.\scripts\run_fast_tests.ps1
+```
+
+Full suite before important pushes:
+
+```powershell
+.\scripts\run_full_tests.ps1
 python -m compileall -q .
 ```
+
+See `docs/testing-workflow.md` for the full tiered workflow.
 
 ## Quality principles
 
