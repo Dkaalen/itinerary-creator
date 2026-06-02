@@ -9,7 +9,7 @@ from itinerary_generation.canonical_model import CanonicalBlock, CanonicalMetaLi
 from itinerary_generation.content_engine import clean_client_title, client_activity_description, merge_compound_inclusions
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, strip_price_fragments
-from ui.final_pages import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
+from ui.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
 from ui.render_helpers import (
     display_time_with_duration,
     get_activity_description,

@@ -44,7 +44,7 @@ from text_polish import (
     polish_title,
 )
 from parser_modules.common import extract_route_points
-from ui.final_pages import (
+from ui.activity_inclusions import (
     clean_activity_inclusion_items,
     get_fallback_activity_inclusions,
     prioritize_inline_inclusions,
