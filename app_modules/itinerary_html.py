@@ -22,51 +22,17 @@ from ui.final_pages import (
 )
 from ui.render_helpers import esc, text_to_list
 from app_modules.display_settings import get_color_preset, get_color_preset_name
+from app_modules.itinerary_html_sections import (
+    balanced_cover_subtitle_html,
+    render_cover_page,
+    render_summary_page,
+)
 from app_modules.itinerary_html_styles import build_preview_style
 
 
 def _balanced_cover_subtitle_html(subtitle: str) -> str:
-    """Return escaped cover subtitle HTML with a gentle line break to avoid orphan words."""
-    text = str(subtitle or "").strip()
-    if not text:
-        return ""
-
-    def escaped(value: str) -> str:
-        return esc(" ".join(value.split()))
-
-    if len(text) < 62 or " " not in text:
-        return escaped(text)
-
-    candidates = []
-    for marker in [", ", " and "]:
-        start = 0
-        while True:
-            idx = text.find(marker, start)
-            if idx == -1:
-                break
-            split_at = idx + (1 if marker == ", " else 0)
-            left = text[:split_at].strip()
-            right = text[split_at:].strip(" ,")
-            if len(left) >= 28 and len(right) >= 18:
-                candidates.append((abs(len(left) - 58), left, right))
-            start = idx + 1
-
-    if not candidates:
-        words = text.split()
-        best = None
-        for i in range(4, len(words) - 2):
-            left = " ".join(words[:i])
-            right = " ".join(words[i:])
-            if len(right) >= 18:
-                candidate = (abs(len(left) - 58), left, right)
-                best = candidate if best is None or candidate[0] < best[0] else best
-        if best:
-            _, left, right = best
-            return f"{escaped(left)}<br>{escaped(right)}"
-        return escaped(text)
-
-    _, left, right = sorted(candidates)[0]
-    return f"{escaped(left)}<br>{escaped(right)}"
+    """Compatibility wrapper for tests/older imports."""
+    return balanced_cover_subtitle_html(subtitle)
 
 
 def _balanced_cover_destinations_html(destinations_line: str) -> str:
@@ -129,68 +95,24 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     important_travel_notes = get_important_travel_notes(output_edits)
 
     html_text = build_preview_style(colors, cover_theme, cover_background_data_uri)
-
     html_text += f"""    <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
 
-        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}">
-            <div class="cover-main">
-                <div class="cover-emblem" aria-hidden="true"></div>
-                <div class="cover-kicker">{esc(cover_kicker)}</div>
-                <div class="{esc(cover_title_class)}">{esc(trip_title)}</div>
-                <div class="cover-subtitle">{trip_subtitle_html}</div>
-                {f'<div class="cover-dates">{esc(trip_dates)}</div>' if trip_dates else ''}
-                <div class="cover-rule"></div>
-                <div class="cover-destination-card">
-                    <div class="cover-destination-label">Route</div>
-                    <div class="cover-destinations">{destinations_line_html}</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}">
-            <div class="glance-card">
-                <div class="glance-title">Your Trip at a Glance</div>
-    """
-
-    for label, value in trip_glance.items():
-        html_text += f"""
-                <div class="glance-row">
-                    <div class="glance-label">{esc(label)}</div>
-                    <div class="glance-value">{esc(value)}</div>
-                </div>
-        """
-
-    html_text += """
-            </div>
-
-            <div class="journey-arc">
-                <div class="journey-title">Your Journey Arc</div>
-                <table class="journey-table">
-                    <thead>
-                        <tr>
-                            <th>Chapter</th>
-                            <th>Days</th>
-                            <th>What You’ll Experience</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    """
-
-    for chapter in journey_arc:
-        html_text += f"""
-                        <tr>
-                            <td>{esc(chapter["chapter"])}</td>
-                            <td class="journey-days">{esc(chapter["days"])}</td>
-                            <td>{esc(chapter["experience"])}</td>
-                        </tr>
-        """
-
-    html_text += """
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    """
+"""
+    html_text += render_cover_page(
+        cover_theme=cover_theme,
+        cover_background_path=cover_background_path,
+        cover_kicker=cover_kicker,
+        cover_title_class=cover_title_class,
+        trip_title=trip_title,
+        trip_subtitle_html=trip_subtitle_html,
+        trip_dates=trip_dates,
+        destinations_line_html=destinations_line_html,
+    )
+    html_text += render_summary_page(
+        cover_theme=cover_theme,
+        trip_glance=trip_glance,
+        journey_arc=journey_arc,
+    )
 
     html_text += render_day_pages(grouped_days, output_edits)
 
