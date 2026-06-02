@@ -8,6 +8,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_a
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
+from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
 from text_polish import (
@@ -36,11 +37,11 @@ def is_travel_sequence_candidate(row):
     row_type = get_row_type(row)
     if _is_cruise_leisure_row(row):
         return False
-    return row_type == "Transfer" or row_type == "Drive" or row_type in TRANSPORT_TYPES
+    return is_transport_like_row(row, include_drive=True)
 
 
 def _drive_route_line(row):
-    text = clean_space(" ".join(str(row.get(key, "") or "") for key in ["title", "details", "original_title"]))
+    text = clean_space(get_transport_source_text(row))
     origin = polish_title(clean_space(row.get("city", "")))
     destination = ""
     match = re.search(r"\bdrive\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-|\s+time\s*:|\s*\(|$)", text, flags=re.IGNORECASE)
@@ -87,7 +88,7 @@ def get_travel_sequence_line(row):
         return f"{title} (self-arranged, not included)"
 
     if row_type == "Transfer" and is_route_transfer(row):
-        text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+        text = get_transport_source_text(row).lower()
         if any(marker in text for marker in ["train", "ferry", "cruise", "flight"]):
             return get_transport_route_phrase(row) or get_transfer_travel_title(row) or polish_title(row.get("title", ""))
         return get_transfer_travel_title(row) or polish_title(row.get("title", ""))
@@ -105,7 +106,7 @@ def get_travel_sequence_line(row):
 
 
 def _destination_focused_coach_day_line(row, phrase):
-    text = f'{phrase} {row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+    text = f"{phrase} {get_transport_source_text(row)}"
     # When the only useful extra detail is ticket noise, keep the day line
     # destination-focused. Otherwise preserve route/service quality such as
     # "Panoramic Coach Transfer from Tromsø to Alta".
@@ -166,7 +167,7 @@ def _norway_nutshell_lines(row):
     return lines
 
 def _inline_arrival_time(row):
-    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+    text = get_transport_source_text(row)
     match = re.search(r"\barrival\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ\s]+\s+at\s+(\d{1,2}:\d{2}\s*(?:am|pm))", text, flags=re.IGNORECASE)
     if match:
         return display_time(match.group(1))

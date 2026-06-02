@@ -7,6 +7,7 @@ import re
 from parser_modules.common import extract_route_points
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text
+from itinerary_generation.transport_model import get_transport_source_text
 
 
 _ROUTE_PREFIX_ORIGINS = {
@@ -18,11 +19,9 @@ _ROUTE_PREFIX_ORIGINS = {
 
 
 def _transport_source_text(row):
-    return " ".join(
-        str(row.get(key, "") or "")
-        for key in ["title", "details", "original_title"]
-        if str(row.get(key, "") or "").strip()
-    )
+    """Backward-compatible wrapper for shared transport source text."""
+
+    return get_transport_source_text(row)
 
 
 def _clean_route_place(value):

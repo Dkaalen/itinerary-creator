@@ -8,10 +8,10 @@ from place_aliases import canonicalize_place_name
 from text_polish import polish_title
 from itinerary_generation.common import get_row_type
 from itinerary_generation.transport_detection import is_route_transfer
+from itinerary_generation.transport_model import get_transport_source_text, has_local_transfer_marker
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, _norway_nutshell_route_label
 from itinerary_generation.transport_routes import (
     _clean_route_place,
-    _transport_source_text,
     _via_suffix,
     get_route_points_for_transport,
     get_route_via_points,
@@ -22,12 +22,12 @@ from itinerary_generation.transport_routes import (
 def get_transport_route_phrase(row):
     """Client-facing transport label for day arrangements and inclusions."""
     row_type = get_row_type(row)
-    text = _transport_source_text(row)
+    text = get_transport_source_text(row)
     lower = text.lower()
     origin, destination = get_route_points_for_transport(row)
     via = get_route_via_points(row, origin, destination)
 
-    if row_type == "Transfer" and any(marker in lower for marker in ["private", "self transfer", "shuttle", "hotel to", "airport to", "to hotel", "to airport", "to station", "to your accommodation"]):
+    if row_type == "Transfer" and has_local_transfer_marker(lower):
         return polish_title(row.get("title", "") or "Transfer")
 
     if row_type == "Train" or "train" in lower:
@@ -151,7 +151,7 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
     if not destination:
         return polish_title(route_phrase)
 
-    lower = f"{route_phrase} {_transport_source_text(row)}".lower()
+    lower = f"{route_phrase} {get_transport_source_text(row)}".lower()
     destination = polish_title(destination)
     if "flight" in lower:
         return f"Flight to {destination}"
@@ -170,7 +170,7 @@ def get_primary_transport_title(day_rows):
     for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
-                source_text = _transport_source_text(row)
+                source_text = get_transport_source_text(row)
                 if _is_norway_in_a_nutshell_text(source_text):
                     route_phrase = get_transport_route_phrase(row)
                     if route_phrase:

@@ -8,6 +8,7 @@ from itinerary_generation.common import (
     is_self_arranged,
     is_valid_destination_city,
 )
+from itinerary_generation.transport_model import has_local_transfer_marker
 from itinerary_generation.transport_routes import _route_destination_from_text
 
 
@@ -16,7 +17,7 @@ def is_route_transfer(row):
         return False
     text = f'{row.get("title", "")} {row.get("details", "")}'
     lower = text.lower()
-    if any(marker in lower for marker in ["private", "shuttle", "self transfer", "hotel to", "airport to", "to hotel", "to airport", "to station", "accommodation"]):
+    if has_local_transfer_marker(lower):
         return False
     destination = _route_destination_from_text(text)
     return bool(destination and is_valid_destination_city(destination))

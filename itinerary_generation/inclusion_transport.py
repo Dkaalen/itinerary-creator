@@ -8,23 +8,24 @@ from text_polish import polish_inclusion_item, polish_title
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.transport import get_transport_route_phrase, get_transfer_travel_title, is_route_transfer
+from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
 from .inclusion_utils import add_unique, clean, join_detail_parts
 
 
 def is_self_transfer_row(row: dict) -> bool:
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
     return get_row_type(row) == "Transfer" and "self transfer" in text
 
 
 def is_cruise_leisure_row(row: dict) -> bool:
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
     return get_row_type(row) == "Cruise" and "leisure" in text and "cruise" in text
 
 
 def is_cruise_arrival_row(row: dict) -> bool:
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
     return get_row_type(row) == "Cruise" and "arrival" in text
 
 
@@ -65,7 +66,7 @@ def clean_transport_title(row: dict) -> str:
 
 
 def transport_bucket(row: dict) -> str:
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
+    text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
     row_type = get_row_type(row)
     if "private" in text and get_row_type(row) == "Transfer" and not is_route_transfer(row):
         return "Private transfers"

@@ -13,7 +13,7 @@ from text_polish import polish_title
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.train_details import get_train_cabin_detail
-from itinerary_generation.transport_routes import _transport_source_text
+from itinerary_generation.transport_model import get_transport_source_text
 from .inclusion_utils import add_unique, clean
 
 
@@ -140,7 +140,7 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     """Return deduplicated details suitable below a transport route title."""
 
     row_type = get_row_type(row)
-    source = _transport_source_text(row)
+    source = get_transport_source_text(row)
     title = title or str(row.get("title", "") or "")
     details: list[str] = []
 

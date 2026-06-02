@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from parser_modules.time_finders import find_clock_range
 from parser_modules.time_normalize import normalize_time_text
-from itinerary_generation.transport_routes import _transport_source_text
+from itinerary_generation.transport_model import get_transport_source_text
 from .inclusion_utils import clean
 
 
@@ -18,7 +18,7 @@ def get_transport_time_text(row: dict) -> str:
     time = clean(row.get("time", ""))
     if time:
         return time
-    source = _transport_source_text(row)
+    source = get_transport_source_text(row)
     clock_range = find_clock_range(source)
     if clock_range:
         return normalize_time_text(clock_range)
