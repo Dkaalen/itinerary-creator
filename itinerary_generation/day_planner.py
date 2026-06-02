@@ -29,6 +29,7 @@ from itinerary_generation.day_title_planner import (
     _multi_activity_title,
     _single_activity_title,
     _transport_title,
+    _travel_activity_title,
 )
 from itinerary_generation.titles import create_day_title
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
@@ -101,6 +102,16 @@ def plan_day(rows: list[dict]) -> DayPlan:
             title = f"Scenic drive to {city}" if city else "Scenic self-drive route"
             return DayPlan("self_drive_route_day", title, _intro_for_title(title, city, "self_drive_route_day"), suppress_free_time=True)
 
+    if travel_rows and has_hotel(rows) and activity_rows:
+        title = _travel_activity_title(rows, activity_rows, city)
+        intro_destination = "Svalbard" if ("svalbard" in lower and city.lower() == "longyearbyen") else (_destination_from_transport(rows) or city)
+        intro = (
+            f"Travel continues towards {intro_destination} today, with the main connections and check-in arrangements kept clear before your included experience."
+            if intro_destination else
+            "Travel continues today, with the main connections and check-in arrangements kept clear before your included experience."
+        )
+        return DayPlan("travel_activity_day", title, intro, skip_empty_activity_rows=True)
+
     if len(activity_rows) >= 2:
         title = _multi_activity_title(activity_rows, city)
         if title:
@@ -150,5 +161,6 @@ __all__ = [
     "_single_activity_title",
     "_text",
     "_transport_title",
+    "_travel_activity_title",
     "plan_day",
 ]

@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
@@ -20,6 +21,7 @@ from ui.final_pages import (
     get_important_travel_notes,
     render_optional_addons_pages,
 )
+from itinerary_generation.common import is_optional_row
 from ui.render_helpers import esc, text_to_list
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 from app_modules.itinerary_html_sections import (
@@ -38,6 +40,25 @@ def _balanced_cover_subtitle_html(subtitle: str) -> str:
 def _balanced_cover_destinations_html(destinations_line: str) -> str:
     """Compatibility wrapper for tests/older imports."""
     return cover_route_html(destinations_line)
+
+
+def _grouped_days_with_day_optional_rows(grouped_days, parsed_rows):
+    """Return a render-only copy of grouped days with optional rows appended.
+
+    Core grouping intentionally excludes optional rows so duration, route, journey
+    arc and main inclusions stay based on confirmed itinerary content.  Day pages
+    still need to show explicit optional experiences in context, so this helper
+    adds them only to the render copy used by ``render_day_pages``.
+    """
+
+    rendered = OrderedDict((day, list(rows)) for day, rows in grouped_days.items())
+    for row in parsed_rows or []:
+        if not is_optional_row(row):
+            continue
+        day = row.get("day", "")
+        if day in rendered:
+            rendered[day].append(row)
+    return rendered
 
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
@@ -114,7 +135,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         journey_arc=journey_arc,
     )
 
-    html_text += render_day_pages(grouped_days, output_edits)
+    html_text += render_day_pages(_grouped_days_with_day_optional_rows(grouped_days, parsed_rows), output_edits)
 
     if output_edits.get("whats_included_pages_html"):
         html_text += render_custom_html_final_pages("What’s included", output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")

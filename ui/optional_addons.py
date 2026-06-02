@@ -7,6 +7,8 @@ helpers so optional-specific rules do not leak into inclusion-page assembly.
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_optional_row, is_self_arranged
 from itinerary_generation.inclusions import clean_include_item
+from itinerary_generation.content_engine import client_activity_description
+from itinerary_generation.date_resolver import get_day_date_text
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import format_duration_display, polish_title, strip_price_fragments
 from ui.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions
@@ -51,16 +53,22 @@ def create_optional_addons(parsed_rows):
         else:
             label = "Optional add-on"
 
+        description = ""
+        if row_type == "Activity":
+            description = client_activity_description(dict(row, display_title=title))
+
         addons.append({
             "day": row.get("day", ""),
             "label": label,
             "title": title,
             "city": city,
+            "date": get_day_date_text([row]) or row.get("start_date", ""),
             "time": time,
             "duration": duration,
             "meeting_label": meeting_label,
             "meeting_point": meeting_point,
             "includes": includes,
+            "description": description,
         })
 
     return addons
@@ -75,30 +83,30 @@ def render_optional_addons_pages(optional_addons, items_per_page=8):
     for start in range(0, len(optional_addons), items_per_page):
         chunk = optional_addons[start:start + items_per_page]
         continued = "" if start == 0 else " continued"
-        html_text += f'''
+        html_text += f"""
         <div class="a4-page final-list-page optional-addons-page">
-            <div class="final-page-title">Optional add-ons{continued}</div>
-        '''
+            <div class="final-page-title">Optional Experiences{continued}</div>
+        """
 
         for addon in chunk:
             html_text += '<div class="activity-inclusion-block optional-addon-block">'
-            heading_bits = [addon.get("day", ""), addon.get("title", "")]
-            heading = " — ".join([bit for bit in heading_bits if bit])
+            heading_bits = [addon.get("title", ""), addon.get("date", "")]
+            heading = " - ".join([bit for bit in heading_bits if bit])
             html_text += f'<div class="activity-inclusion-title">{esc(heading)}</div>'
-            html_text += f'<div class="body-text"><span class="meta-label">Type:</span> {esc(addon.get("label", "Optional add-on"))}</div>'
-
-            if addon.get("city"):
-                html_text += f'<div class="body-text"><span class="meta-label">Location:</span> {esc(addon["city"])}</div>'
+            details = []
             if addon.get("time"):
-                html_text += f'<div class="body-text"><span class="meta-label">Time:</span> {esc(addon["time"])}</div>'
+                details.append(f'Time: {addon["time"]}')
             if addon.get("duration"):
-                html_text += f'<div class="body-text"><span class="meta-label">Duration:</span> {esc(format_duration_display(addon["duration"]))}</div>'
+                details.append(f'Duration: {format_duration_display(addon["duration"])}')
             if addon.get("meeting_point"):
-                html_text += f'<div class="body-text"><span class="meta-label">{esc(addon.get("meeting_label") or "Meeting point")}:</span> {esc(addon["meeting_point"])}</div>'
-            if addon.get("includes"):
-                html_text += '<div class="section-title small-section">Includes</div>'
-                html_text += render_list_items(addon["includes"], class_name="final-list")
-
+                details.append(f'{addon.get("meeting_label") or "Meeting point"}: {addon["meeting_point"]}')
+            if addon.get("description"):
+                details.append(addon["description"])
+            elif addon.get("includes"):
+                details.append("Includes " + ", ".join(addon["includes"]))
+            else:
+                details.append("Available as an optional experience.")
+            html_text += f'<div class="body-text muted-note">{esc(" ".join(details))}</div>'
             html_text += "</div>"
 
         html_text += "</div>"

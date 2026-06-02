@@ -159,6 +159,12 @@ def create_client_activity_title(row):
     if "city walking" in full_text and "canal" in full_text and "copenhagen" in full_text:
         return "Copenhagen Walking & Canal Tour"
 
+    if "svalbard bryggeri" in full_text or ("brewery" in full_text and "svalbard" in full_text):
+        return "Svalbard Brewery Visit"
+
+    if "longyearbyen in a nutshell" in full_text:
+        return "Longyearbyen Guided Tour"
+
     if "wildlife photography" in full_text and "longyearbyen" in full_text:
         return "Wildlife Photography Around Longyearbyen"
     if "wildlife and glacier" in full_text:

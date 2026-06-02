@@ -10,7 +10,7 @@ from text_polish import polish_client_text, strip_price_fragments
 from itinerary_generation.description_facts import _has_bad_residue
 from itinerary_generation.description_patterns import GENERATED_INTRO_PATTERNS
 from itinerary_generation.description_schema import DescriptionDraft
-from itinerary_generation.description_sources import _clean_inline, _is_group_day, _narrative_source, _title
+from itinerary_generation.description_sources import _clean_inline, _is_group_day, _narrative_source, _title, explicit_description_source
 from itinerary_generation.description_templates import (
     _compose_group_day,
     _compose_known_activity,
@@ -30,6 +30,10 @@ def compose_activity_description(row: dict, fallback: str = "") -> DescriptionDr
     city = canonicalize_place_name(row.get("city", ""))
     source = _narrative_source(row)
     warnings: list[str] = []
+
+    explicit_description = explicit_description_source(row)
+    if explicit_description and not _has_bad_residue(explicit_description):
+        return DescriptionDraft(text=explicit_description, source="explicit_description", warnings=warnings)
 
     if _is_group_day(row):
         text = _compose_group_day(row, source, title, city)

@@ -17,6 +17,7 @@ def _clean_title(value: str) -> str:
     title = re.sub(r"\bToday\b\s*$", "", title, flags=re.I).strip(" -:|")
     title = re.sub(r"\b3-4\s*hours\b", "", title, flags=re.I).strip(" -:|")
     title = re.sub(r"\bFjord Cruise\s+Day Trip\b", "Fjord Cruise", title, flags=re.I).strip(" -:|")
+    title = re.sub(r"\bWalrus Safari Boat Tour\b", "Walrus Safari", title, flags=re.I).strip(" -:|")
     return title
 
 
@@ -56,6 +57,20 @@ def _single_activity_title(row: dict) -> str:
     return _clean_title(title)
 
 
+def _join_two_titles(first: str, second: str) -> str:
+    first = _clean_title(first)
+    second = _clean_title(second)
+    if not first:
+        return second
+    if not second or second.lower() == first.lower():
+        return first
+    second_lower = second.lower()
+    first_lower = first.lower()
+    if second_lower.startswith(first_lower) or first_lower.startswith(second_lower):
+        return first if len(first) >= len(second) else second
+    return f"{first} and {second}"
+
+
 def _multi_activity_title(rows: list[dict], city: str) -> str:
     text = _all_text(rows).lower()
     if "mostraumen" in text and ("fløibanen" in text or "floibanen" in text):
@@ -68,7 +83,29 @@ def _multi_activity_title(rows: list[dict], city: str) -> str:
         return "Husky & Reindeer Experiences"
     if "food tour" in text and city:
         return f"{city} Food Tour"
-    return ""
+
+    titles = [_single_activity_title(row) for row in rows[:2]]
+    title = _join_two_titles(titles[0] if titles else "", titles[1] if len(titles) > 1 else "")
+    return title if len(title) <= 82 else (titles[0] if titles else "")
+
+
+def _travel_activity_title(rows: list[dict], activity_rows: list[dict], city: str) -> str:
+    """Title a day that is both a travel/check-in day and an activity day."""
+
+    if not activity_rows:
+        return ""
+    activity_title = _single_activity_title(activity_rows[0])
+    transport_text = _all_text(rows)
+    destination = _destination_from_transport(rows) or city
+    if re.search(r"\bsvalbard\b", transport_text, flags=re.I) and city and "longyearbyen" in city.lower():
+        if activity_title.lower().startswith("longyearbyen"):
+            return f"Journey to Svalbard and {activity_title}"
+        return f"Journey to Svalbard and {activity_title}"
+    if destination and activity_title:
+        if activity_title.lower().startswith(destination.lower()):
+            return f"Journey to {destination} and {activity_title}"
+        return f"Journey to {destination} and {activity_title}"
+    return activity_title
 
 
 def _hop_on_title(city: str) -> str:

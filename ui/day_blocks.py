@@ -6,6 +6,7 @@ from itinerary_generation.common import (
     TRANSPORT_TYPES,
     get_primary_city,
     get_row_type,
+    is_optional_row,
     is_self_arranged,
 )
 from itinerary_generation.inclusions import clean_include_item
@@ -23,6 +24,7 @@ from ui.simple_day_blocks import (
     build_included_today_block,
     build_leisure_block,
 )
+from ui.optional_day_blocks import build_optional_day_block
 from ui.transport_blocks import (
     build_self_arranged_travel_block,
     build_self_transfer_block,
@@ -202,10 +204,11 @@ def build_day_blocks(rows):
 
     blocks = []
     travel_group = []
-    day_plan = plan_day(rows)
-    departure_day = any(get_row_type(row) == "Departure" for row in rows)
-    has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in rows)
-    group_tour_start_time = _group_tour_start_time(rows)
+    main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
+    day_plan = plan_day(main_rows)
+    departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
+    has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in main_rows)
+    group_tour_start_time = _group_tour_start_time(main_rows)
 
     def flush_travel_group():
         nonlocal travel_group
@@ -218,6 +221,11 @@ def build_day_blocks(rows):
     for row in rows:
         row_type = get_row_type(row)
         title = row.get("title", "")
+
+        if is_optional_row(row):
+            flush_travel_group()
+            blocks.append(build_optional_day_block(row))
+            continue
 
         if is_travel_sequence_candidate(row):
             if departure_day and row_type == "Transfer" and "to your accommodation" in str(row.get("title", "")).lower():
