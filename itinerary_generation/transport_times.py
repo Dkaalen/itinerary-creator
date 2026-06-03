@@ -49,6 +49,13 @@ def get_transport_time_text(row: dict) -> str:
     if schedule.get("departure_time") and schedule.get("arrival_time"):
         return f'{schedule["departure_time"]} - {schedule["arrival_time"]}'
     source = get_transport_source_text(row)
+    labelled = re.search(
+        r"\bdeparture\s*(?P<dep>\d{1,2}:\d{2}\s*(?:am|pm)?)\s*(?:[-–—,;|]\s*)?arrival\s*(?P<arr>\d{1,2}:\d{2}\s*(?:am|pm)?)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if labelled:
+        return normalize_time_text(f"{labelled.group('dep')} - {labelled.group('arr')}")
     clock_range = find_clock_range(source)
     if clock_range:
         return normalize_time_text(clock_range)

@@ -10,6 +10,12 @@ from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer, get_transport_route_phrase
 from itinerary_generation.transport_norway import extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
+from itinerary_generation.transport_safety import (
+    base_destination_from_terminal,
+    destination_is_terminal,
+    normalize_transport_place,
+    split_self_transfer_notes,
+)
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
 from text_polish import (
@@ -114,8 +120,10 @@ def _destination_focused_coach_day_line(row, phrase):
     if re.search(r"\b(?:coach|bus)\b", text, flags=re.IGNORECASE) and re.search(r"\btickets?\s+included\b", text, flags=re.IGNORECASE):
         match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,?\s*via\b|\s*[-—;|,]\s*|$)", phrase, flags=re.IGNORECASE)
         if match:
-            destination = polish_title(clean_space(match.group(1)).strip(" .:-"))
-            destination = re.sub(r"\bbus\s+Station\b", "Bus Station", destination, flags=re.IGNORECASE)
+            destination = normalize_transport_place(match.group(1))
+            if destination_is_terminal(destination):
+                return phrase
+            destination = polish_title(base_destination_from_terminal(destination) or destination)
             if destination:
                 return f"Coach Transfer to {destination}"
     return phrase
@@ -126,6 +134,52 @@ def _clean_self_arranged_travel_title(title):
     text = re.sub(r"\s*,?\s*self[-\s]*(?:arranged|arrnaged|arrnage)\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s{2,}", " ", text).strip(" ,-:|")
     return polish_title(text)
+
+
+def _split_time_range(value: str) -> tuple[str, str]:
+    text = clean_space(value)
+    match = re.match(r"^(?P<dep>.+?)\s+-\s+(?P<arr>.+)$", text)
+    if not match:
+        return "", ""
+    return clean_space(match.group("dep")), clean_space(match.group("arr"))
+
+
+def _coach_terminal_transfer_lines(row):
+    text = get_transport_source_text(row)
+    if not re.search(r"\b(?:coach|bus)\b", text, flags=re.IGNORECASE):
+        return []
+    phrase = get_transport_route_phrase(row)
+    if not phrase:
+        return []
+    # Use this expanded shape only when terminals/admin wording make a single
+    # long bullet likely to look messy. Simple resort coach transfers keep the
+    # existing compact line to avoid changing good output.
+    if not re.search(r"bus\s*station|bustation|bus\s*terminal|final voucher|relased|released", text, flags=re.IGNORECASE):
+        return []
+    lines = [phrase]
+    time_text = display_time(get_transport_time_text(row))
+    dep, arr = _split_time_range(time_text)
+    if dep and arr:
+        lines.append(f"Departure: {dep}")
+        lines.append(f"Arrival: {arr}")
+    elif time_text:
+        lines.append(f"Time: {time_text}")
+    duration = format_duration_display(row.get("duration", "")) if row.get("duration") else ""
+    duration_match = re.search(r"\b(\d+)\s*h(?:ours?)?\s*(\d+)\s*m(?:in(?:utes?)?)?\b", text, flags=re.IGNORECASE)
+    if duration_match:
+        duration = f"{int(duration_match.group(1))} hours {int(duration_match.group(2))} minutes"
+    if duration:
+        lines.append(f"Duration: {duration}")
+    if re.search(r"final\s+(?:timing|time)|voucher|relased|released", text, flags=re.IGNORECASE):
+        lines.append("Final timing will be confirmed in the travel documents.")
+    return lines
+
+
+def _self_transfer_lines(row):
+    if get_row_type(row) != "Transfer" or not is_self_arranged(row):
+        return []
+    text = get_transport_source_text(row)
+    return split_self_transfer_notes(text)
 
 def _extract_timed_route_places(row):
     text = str(row.get("details") or row.get("original_title") or row.get("title") or "")
@@ -221,7 +275,7 @@ def get_travel_arrangement_line(row):
 def build_travel_arrangements_block(travel_rows):
     items = []
     for row in travel_rows:
-        special_lines = _norway_nutshell_lines(row) or _santa_claus_express_lines(row)
+        special_lines = _self_transfer_lines(row) or _norway_nutshell_lines(row) or _santa_claus_express_lines(row) or _coach_terminal_transfer_lines(row)
         if special_lines:
             for line in special_lines:
                 if line and line not in items:

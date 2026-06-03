@@ -49,6 +49,7 @@ from normalizer_modules.context import (
     apply_contextual_travel_corrections,
     fill_missing_context_cities,
 )
+from itinerary_generation.transport_safety import repair_messy_client_text
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
     normalize_rental_vehicle_row,
@@ -90,7 +91,7 @@ def normalize_row(row: dict) -> dict:
 
     for key in ["city", "title", "original_title", "details", "meeting_point", "end_point", "luggage_included"]:
         if row.get(key):
-            row[key] = polish_client_text(row[key])
+            row[key] = repair_messy_client_text(polish_client_text(row[key]))
 
     if row.get("duration"):
         duration_text = row["duration"]

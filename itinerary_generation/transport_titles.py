@@ -10,6 +10,7 @@ from itinerary_generation.common import get_row_type
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_model import get_transport_source_text, has_local_transfer_marker
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, _norway_nutshell_route_label
+from itinerary_generation.transport_safety import base_destination_from_terminal
 from itinerary_generation.transport_routes import (
     _clean_route_place,
     _via_suffix,
@@ -136,7 +137,7 @@ def get_transfer_travel_title(row):
         if destination:
             return f"Ferry to {destination}" if "ferry" in lower else f"Cruise to {destination}"
     if "coach" in lower or "bus" in lower:
-        destination = route_destination or text_destination or city_destination
+        destination = base_destination_from_terminal(route_destination or text_destination or city_destination)
         return f"Coach Transfer to {destination}" if destination else polish_title(row.get("title", "") or "Coach Transfer")
 
     destination = text_destination or route_destination or city_destination
@@ -159,7 +160,7 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
         return polish_title(route_phrase)
 
     lower = f"{route_phrase} {get_transport_source_text(row)}".lower()
-    destination = polish_title(destination)
+    destination = polish_title(base_destination_from_terminal(destination) or destination)
     if "flight" in lower:
         return f"Flight to {destination}"
     if "train" in lower:

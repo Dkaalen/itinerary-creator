@@ -30,6 +30,34 @@ from itinerary_generation.day_group_tour_text import (
 )
 from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
 from parser_modules.common import extract_route_points
+from itinerary_generation.transport_model import get_transport_source_text
+from itinerary_generation.transport_safety import base_destination_from_terminal, normalize_transport_place
+
+
+
+def _explicit_transfer_airport(day_rows) -> str:
+    """Return an explicit airport mentioned in transfer rows, preserving input.
+
+    This prevents generic destination logic from inventing airports such as
+    "Levi Airport" when the actual row says Kittilä Airport.
+    """
+
+    for row in day_rows:
+        if get_row_type(row) != "Transfer":
+            continue
+        text = get_transport_source_text(row)
+        match = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", text, flags=re.IGNORECASE)
+        if not match:
+            all_airports = re.findall(r"\b([A-ZÅÄÖÆØ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,40}?\s+Airport)\b", text)
+            if all_airports:
+                airport = normalize_transport_place(all_airports[-1])
+                if airport:
+                    return airport
+            continue
+        airport = normalize_transport_place(match.group(1))
+        if airport:
+            return airport
+    return ""
 
 
 def _activity_day_intro(activity_title: str, city: str, source_text: str, detail_level: str = "") -> str:
@@ -184,8 +212,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         if "self-guided" in transfer_title or "self transfer" in transfer_title:
             return f"After check-out, please make your own way to {city} Airport for your onward journey."
         if detail_level == "Rich descriptive":
-            return f"Your journey comes to a close today. After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
-        return f"After check-out, your arranged transfer will take you from your hotel to {city} Airport for your onward journey."
+            airport = _explicit_transfer_airport(day_rows) or f"{city} Airport"
+            return f"Your journey comes to a close today. After check-out, your arranged transfer will take you from your hotel to {airport} for your onward journey."
+        airport = _explicit_transfer_airport(day_rows) or f"{city} Airport"
+        return f"After check-out, your arranged transfer will take you from your hotel to {airport} for your onward journey."
 
     if has_arrival and city:
         destination = _arrival_display_destination(city)
@@ -270,11 +300,11 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             candidate = str(route_destination or "").strip()
             lower_candidate = candidate.lower()
             if candidate and lower_candidate not in invalid_destination_words and not any(bad in lower_candidate for bad in ["shower", "sink", "wc", "benefits", "made bed"]):
-                destination_city = _canonical_route_city(candidate)
+                destination_city = _canonical_route_city(base_destination_from_terminal(candidate) or candidate)
                 continue
             title_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+(?:\s+[A-Za-zÀ-ÿøØåÅäÄöÖ]+)?)\s*$", str(row.get("title", "")), flags=re.IGNORECASE)
             if title_match and title_match.group(1).lower() not in invalid_destination_words:
-                destination_city = _canonical_route_city(title_match.group(1))
+                destination_city = _canonical_route_city(base_destination_from_terminal(title_match.group(1)) or title_match.group(1))
         display_city = destination_city or city
         if detail_level == "Elegant concise":
             return f"Continue your journey with arranged travel connected to {display_city}."
@@ -291,7 +321,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 return "Continue your self-drive journey back towards Reykjavík, with time to enjoy the route before checking in to your next stay."
             if "car rental" in transfer_text or "rental" in transfer_text:
                 return "Pick up your rental vehicle today and begin the self-drive portion of the journey, with the route planned clearly for the day ahead."
-            return f"Continue by self-drive or self transfer in {city}, with the day structured to keep the route clear and easy to follow."
+            return f"Continue your stay in {city}, with the transfer between accommodations kept clear in the arrangements below."
         if detail_level == "Elegant concise":
             return f"Today’s logistics in {city} are kept smooth and simple."
         if detail_level == "Rich descriptive":

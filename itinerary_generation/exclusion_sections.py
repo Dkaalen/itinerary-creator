@@ -24,6 +24,7 @@ from itinerary_generation.transport import (
 )
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.titles import create_client_activity_title
+from itinerary_generation.transport_safety import clean_self_transfer_text, split_self_transfer_notes
 
 
 DEFAULT_WHATS_NOT_INCLUDED_ITEMS = [
@@ -45,7 +46,7 @@ EXCLUSION_SECTION_ORDER = [
     ("optional_experiences", "Optional experiences"),
     ("optional_transfers", "Optional transfers"),
     ("optional_hotels", "Optional hotels/add-ons"),
-    ("costs_not_included", "Costs not included"),
+    ("costs_not_included", "Activity-specific exclusions"),
 ]
 
 
@@ -202,6 +203,12 @@ def row_date_suffix(row):
 def commercial_row_title(row):
     row_type = get_row_type(row)
     title = ""
+    if _is_self_transfer_row(row):
+        source = row.get("details") or row.get("title") or row.get("original_title")
+        notes = split_self_transfer_notes(source)
+        if notes:
+            return notes[0][:140].strip(" -:|")
+        return clean_self_transfer_text(source)[:140].strip(" -:|")
     if row_type == "Activity":
         title = create_client_activity_title(row)
     if not title and row_type in set(TRANSPORT_TYPES) | {"Transfer"}:
@@ -275,6 +282,9 @@ def create_specific_exclusion_sections(parsed_rows):
         if status == "self_arranged" or is_self_arranged(row) or _is_self_transfer_row(row):
             if _is_self_transfer_row(row):
                 add_unique(sections["self_transfers"], label)
+                notes = split_self_transfer_notes(_row_search_text(row))
+                if any("private transfer may" in note.lower() for note in notes):
+                    add_unique(sections["costs_not_included"], "Private transfer supplement, if requested locally")
             elif _is_flight_row(row):
                 add_unique(sections["self_arranged_flights"], label)
             else:

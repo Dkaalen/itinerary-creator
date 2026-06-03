@@ -4,12 +4,37 @@ import re
 
 from .place_parsing import city_airport, extract_route_points, normalize_place_name
 from .text_cleanup import fix_common_text
+from itinerary_generation.transport_safety import (
+    base_destination_from_terminal,
+    normalize_transport_place,
+    split_self_transfer_notes,
+)
+
+
+def _explicit_airport_from_text(text, fallback_city=""):
+    source = text or ""
+    directional = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", source, flags=re.IGNORECASE)
+    if directional:
+        airport = normalize_transport_place(directional.group(1))
+        if airport:
+            return airport
+    matches = re.findall(r"\b([A-ZÅÄÖÆØ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,40}?\s+Airport)\b", source)
+    if matches:
+        airport = normalize_transport_place(matches[-1])
+        if airport:
+            return airport
+    return city_airport(fallback_city)
 
 
 def standardize_private_transfer_title(title, details, city):
-    text = fix_common_text(f"{title} {details}")
+    text = fix_common_text(details or title)
     lower = text.lower()
-    airport = city_airport(city)
+    airport = _explicit_airport_from_text(text, city)
+
+    if re.search(r"\bhotel\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport\b", text, flags=re.IGNORECASE):
+        return f"Private transfer from your hotel to {airport}"
+    if re.search(r"\b[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport\s+to\s+hotel\b", text, flags=re.IGNORECASE):
+        return f"Private transfer from {airport} to your accommodation"
 
     if "hotel to airport" in lower or "accommodation to airport" in lower:
         return f"Private transfer from your hotel to {airport}"
@@ -19,15 +44,15 @@ def standardize_private_transfer_title(title, details, city):
 
     if "bus station" in lower or "bustation" in lower:
         if "hotel to" in lower or "to bus" in lower:
-            return "Private transfer from your hotel to the bus station"
+            return f"Private transfer from your hotel to {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'}"
         if "to hotel" in lower or "to accommodation" in lower or "station to" in lower:
-            return "Private transfer from the bus station to your accommodation"
+            return f"Private transfer from {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'} to your accommodation"
 
     if "hotel to station" in lower or "accommodation to station" in lower:
-        return "Private transfer from your hotel to the station"
+        return f"Private transfer from your hotel to {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'}"
 
     if "station to hotel" in lower or "station to accommodation" in lower:
-        return "Private transfer from the station to your accommodation"
+        return f"Private transfer from {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'} to your accommodation"
 
     if "airport" in lower and "hotel" not in lower and "accommodation" not in lower:
         if " to airport" in lower:
@@ -42,29 +67,30 @@ def standardize_private_transfer_title(title, details, city):
 
 
 def standardize_self_transfer_title(title, details, city):
-    text = fix_common_text(f"{title} {details}")
+    text = fix_common_text(details or title)
     lower = text.lower()
-    airport = city_airport(city)
+    airport = _explicit_airport_from_text(text, city)
 
     if "hotel to airport" in lower or "accommodation to airport" in lower or "to airport" in lower:
-        return f"Self transfer from your hotel to {airport}"
+        return f"Self-arranged transfer from your hotel to {airport}"
 
     if "airport to hotel" in lower or "airport to accommodation" in lower:
-        return f"Self transfer from {airport} to your accommodation"
+        return f"Self-arranged transfer from {airport} to your accommodation"
 
     if "bus station" in lower or "bustation" in lower:
         if "hotel to" in lower or "to bus" in lower:
-            return "Self transfer from your hotel to the bus station"
+            return f"Self-arranged transfer from your hotel to {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'}"
         if "to hotel" in lower or "to accommodation" in lower or "station to" in lower:
-            return "Self transfer from the bus station to your accommodation"
+            return f"Self-arranged transfer from {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'} to your accommodation"
 
     if "hotel to station" in lower or "to station" in lower:
-        return "Self transfer from your hotel to the station"
+        return f"Self-arranged transfer from your hotel to {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'}"
 
     if "station to hotel" in lower or "station to accommodation" in lower:
-        return "Self transfer from the station to your accommodation"
+        return f"Self-arranged transfer from {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'} to your accommodation"
 
-    return fix_common_text(title).replace("Self-guided transfer", "Self transfer")
+    notes = split_self_transfer_notes(text)
+    return notes[0] if notes else fix_common_text(title).replace("Self-guided transfer", "Self transfer")
 
 
 def standardize_shuttle_transfer_title(title, details, city):
@@ -130,6 +156,7 @@ def create_clean_transport_title(row):
         return prefix
 
     if "coach" in lower or "bus" in lower:
+        destination = base_destination_from_terminal(destination)
         if destination:
             return f"Coach Transfer to {destination}"
         if city:

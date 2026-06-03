@@ -36,6 +36,7 @@ FAST_TESTS = (
     "tests/test_activity_compound_stress_fixtures.py",
     "tests/test_leisure_arrival_metadata_cleanup.py",
     "tests/test_patch_k_transport_preview_quality.py",
+    "tests/test_messy_transport_safety_net.py",
 )
 
 QUALITY_TESTS = (

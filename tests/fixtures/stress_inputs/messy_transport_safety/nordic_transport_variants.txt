@@ -1,0 +1,6 @@
+Day 1	Transfer 		02/12/2026							Helsinki 	Private Airport to Hotel
+Day 2	Transfer 		03/12/2026							Helsinki 	Private Hotel to Station
+Day 2	Transfer 	1	03/12/2026	04/12/2026						Helsinki 	Overnight Train : Overnight Train Transfer with the Santa Claus Express to Rovaniemi - 11:13 pm - 10:59 am - 1  x  downstairs cabin for two people
+Day 3	Transfer 		04/12/2026							Rovaniemi	Private Station to Hotel
+Day 6	Transfer 		07/12/2026							Rovaniemi	Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Kakslauttenen Arctic Resort - 11:45 am - 3:02 pm - Tickets Included
+Day 7	Transfer 		08/12/2026							Rovaniemi	Shuttle Transfer  Kakslauttenen to Ivalo Airport

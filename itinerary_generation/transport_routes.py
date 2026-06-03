@@ -8,6 +8,7 @@ from parser_modules.common import extract_route_points
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text
 from itinerary_generation.transport_model import get_transport_source_text
+from itinerary_generation.transport_safety import normalize_transport_place
 
 
 _ROUTE_PREFIX_ORIGINS = {
@@ -40,12 +41,12 @@ def _clean_route_place(value):
         raw = re.split(r"\s+to\s+", raw, flags=re.IGNORECASE)[-1].strip(" -:|.,")
     raw = re.sub(r"\bKakslaut+?enen\s+Arctic\s+Resort\b", "Kakslauttanen", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\bKakslauttanen\s+Arctic\s+Resort\b", "Kakslauttanen", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\bRovaneimi\b", "Rovaniemi", raw, flags=re.IGNORECASE)
     if re.search(r"fl[åa]msbanen", raw, flags=re.IGNORECASE):
         raw = "Flåm"
     if re.search(r"one[- ]?way geiranger fjord cruise", raw, flags=re.IGNORECASE):
         raw = "Ålesund"
-    place = canonicalize_place_name(raw)
-    place = re.sub(r"\bbus\s+Station\b", "Bus Station", place, flags=re.IGNORECASE)
+    place = normalize_transport_place(canonicalize_place_name(raw) or raw)
     lower = place.lower()
     if lower in _ROUTE_PREFIX_ORIGINS | {"", "hotel", "station", "airport", "accommodation", "your accommodation"}:
         return ""
