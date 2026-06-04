@@ -36,9 +36,10 @@ def render_day_section(day, rows, output_edits=None):
                 <div class="intro">{esc(day_intro)}</div>
     '''
 
-    blocks_override = day_edits.get("blocks_html")
-    if blocks_override:
-        html_text += clean_visual_editor_html(blocks_override)
+    if "blocks_html" in day_edits:
+        # Presence matters here: an empty saved editor block means the user
+        # intentionally cleared the generated content for this day.
+        html_text += clean_visual_editor_html(day_edits.get("blocks_html", ""))
     else:
         for block in blocks:
             html_text += block["html"]

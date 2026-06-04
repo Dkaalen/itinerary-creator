@@ -162,3 +162,42 @@ def test_visual_editor_v2_contract_is_inline_not_separate_form():
     assert "Flag issue" in editor_html
     assert "warning-hit" in editor_html
     assert "function flagSelectedIssue" in editor_html
+
+
+def test_visual_editor_persists_intentionally_empty_day_blocks():
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "cover": {},
+        "summary": {},
+        "days": [
+            {"day": "Day 1", "blocks_html": ""},
+        ],
+        "final_pages": {},
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert "blocks_html" in output_edits["days"]["Day 1"]
+    assert output_edits["days"]["Day 1"]["blocks_html"] == ""
+
+
+def test_visual_editor_payload_keeps_empty_saved_day_blocks_empty():
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Rovaniemi",
+            "title": "Generated Snowmobile Safari",
+            "client_description": "Generated activity details",
+            "time": "10:00 AM",
+        }
+    ]
+
+    payload = editor_workflow.build_visual_editor_payload(
+        rows,
+        {"Day 1": rows},
+        {"days": {"Day 1": {"blocks_html": ""}}, "important_travel_notes_text": ""},
+    )
+
+    assert payload["days"][0]["blocks_html"] == ""

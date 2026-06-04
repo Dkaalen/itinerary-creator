@@ -22,6 +22,7 @@ from parser_modules.extractors import extract_meeting_point_from_description
 from parser_modules.transport_titles import standardize_private_transfer_title
 from ui.travel_sequence_blocks import build_travel_arrangements_block
 from visual_editor_component.editor_workflow import apply_visual_editor_result
+from ui.day_page_sections import render_day_section
 
 
 def test_pdf_export_commit_persists_full_visible_editor_model():
@@ -125,3 +126,23 @@ def test_santa_claus_express_day_block_keeps_schedule_and_cabin():
     assert "Santa Claus Express to Rovaniemi" in html
     assert "11:13 PM - 10:59 AM" in html
     assert "Cabin: 4 x downstairs cabin for two people" in html
+
+
+def test_pdf_bound_day_rendering_respects_intentionally_empty_editor_block():
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Rovaniemi",
+            "title": "Generated Snowmobile Safari",
+            "client_description": "Generated activity details",
+            "time": "10:00 AM",
+        }
+    ]
+    output_edits = {"days": {"Day 1": {"blocks_html": ""}}}
+
+    html = render_day_section("Day 1", rows, output_edits)
+
+    assert "activity-block" not in html
+    assert "Generated activity details" not in html

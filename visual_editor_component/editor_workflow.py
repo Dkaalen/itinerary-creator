@@ -136,8 +136,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "options": options,
         }
 
-        blocks_html = day_edits.get("blocks_html")
-        if not blocks_html:
+        # Presence matters here: an intentionally emptied visual-editor block
+        # must stay empty instead of falling back to regenerated content.
+        if "blocks_html" in day_edits:
+            blocks_html = day_edits.get("blocks_html", "")
+        else:
             blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
 
         payload_days.append({
@@ -241,9 +244,10 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
             if key in day_payload:
                 day_edits[key] = str(day_payload.get(key, "")).strip()
         if "blocks_html" in day_payload:
-            cleaned_blocks = clean_visual_editor_html(day_payload.get("blocks_html", ""))
-            if cleaned_blocks:
-                day_edits["blocks_html"] = cleaned_blocks
+            # A present blocks_html field is an explicit editor decision. Store
+            # even an empty string so clearing a day block does not regenerate
+            # the old generated travel/activity content during PDF export.
+            day_edits["blocks_html"] = clean_visual_editor_html(day_payload.get("blocks_html", ""))
 
         image_payload = day_payload.get("image") or {}
         if image_payload:
