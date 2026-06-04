@@ -9,6 +9,7 @@ from .metadata import ImageCandidate, normalize_keyword
 from .matcher_context import build_day_context
 from .matcher_scoring import (
     candidate_to_payload,
+    is_protected_specialty_image_allowed,
     score_image_for_day,
     season_available_for_context,
 )
@@ -19,6 +20,9 @@ def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandid
     reusable_best = None
     for candidate in candidates:
         if not is_global_default_candidate(candidate):
+            continue
+        allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
+        if not allowed:
             continue
         score, reasons = score_default_candidate(candidate, context)
         if score < minimum_score:
@@ -90,6 +94,9 @@ def select_best_candidate_for_context(
 
     default_best = None
     for candidate in default_candidates:
+        allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
+        if not allowed:
+            continue
         score, reasons = score_default_candidate(candidate, context)
         score = max(1, score)
         reasons = list(reasons or []) + ["defensive default repair"]

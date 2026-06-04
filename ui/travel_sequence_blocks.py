@@ -216,6 +216,9 @@ def _santa_claus_express_lines(row):
     title = get_travel_sequence_line(row)
     details = get_transport_detail_items(row, title)
     lines = [title] if title else []
+    schedule = display_time(get_transport_time_text(row))
+    if schedule and schedule not in lines:
+        lines.append(schedule)
     for detail in details:
         clean_detail = clean_space(detail)
         if not clean_detail:

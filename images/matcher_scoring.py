@@ -21,9 +21,35 @@ def candidate_destination_matches(candidate: ImageCandidate, day_context: dict) 
     return bool(candidate_city_variants & day_city_variants)
 
 
+
+def is_protected_specialty_image_allowed(candidate: ImageCandidate, day_context: dict) -> tuple[bool, str]:
+    """Reject narrow specialty images unless the itinerary day explicitly asks for them.
+
+    A picture of a polar icebreaker is visually very specific. It should not be
+    used as a generic Rovaniemi/winter fallback for an accommodation day; it is
+    appropriate only when the day text actually mentions a polar icebreaker or
+    icebreaker cruise.
+    """
+
+    candidate_tokens = set(candidate.tokens)
+    day_tokens = set(day_context.get("tokens", set()))
+    day_text = str(day_context.get("text", "") or "")
+
+    icebreaker_tokens = {"icebreaker", "icebreakercruise", "polaricebreaker"}
+    if candidate_tokens & icebreaker_tokens:
+        day_mentions_icebreaker = bool(day_tokens & icebreaker_tokens) or "ice breaker" in day_text
+        if not day_mentions_icebreaker:
+            return False, "protected specialty image requires polar icebreaker activity"
+
+    return True, ""
+
 def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
     score = 0
     reasons = []
+    allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, day_context)
+    if not allowed:
+        return 0, [blocked_reason]
+
     candidate_tokens = set(candidate.tokens)
     candidate_themes = set(candidate.themes)
     day_tokens = set(day_context.get("tokens", set()))

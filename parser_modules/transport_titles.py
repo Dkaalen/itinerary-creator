@@ -15,12 +15,16 @@ def _explicit_airport_from_text(text, fallback_city=""):
     source = text or ""
     directional = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", source, flags=re.IGNORECASE)
     if directional:
-        airport = normalize_transport_place(directional.group(1))
-        if airport:
-            return airport
+        raw_airport = directional.group(1).strip()
+        if raw_airport.lower() not in {"private airport", "airport"}:
+            airport = normalize_transport_place(raw_airport)
+            if airport:
+                return airport
     matches = re.findall(r"\b([A-ZÅÄÖÆØ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,40}?\s+Airport)\b", source)
-    if matches:
-        airport = normalize_transport_place(matches[-1])
+    for raw_airport in reversed(matches):
+        if raw_airport.strip().lower() in {"private airport", "airport"}:
+            continue
+        airport = normalize_transport_place(raw_airport)
         if airport:
             return airport
     return city_airport(fallback_city)

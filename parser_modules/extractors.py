@@ -102,11 +102,26 @@ def extract_time_from_description(main_text):
 
     return ""
 
+def _truncate_meeting_point_metadata(value):
+    text = clean_space(value)
+    if not text:
+        return ""
+    # Supplier rows often put "Meeting point: address What's included? ..."
+    # on one line. Keep only the address/logistics before later metadata.
+    text = re.split(
+        r"\s+(?=(?:what[’']?s\s+included|what\s+to\s+expect|overview|please\s+note|important\s+information)\b)",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    return clean_space(text).strip(" ,;:|-")
+
+
 def extract_meeting_point_from_description(main_text):
     standard_meeting = extract_detail(main_text, "Meeting point")
 
     if standard_meeting:
-        return standard_meeting
+        return _truncate_meeting_point_metadata(standard_meeting)
 
     section = extract_between_markers(
         main_text,
@@ -127,7 +142,7 @@ def extract_meeting_point_from_description(main_text):
     )
 
     if section:
-        return clean_space(section)
+        return _truncate_meeting_point_metadata(section)
 
     # Some long supplier descriptions use prose rather than a label, for example
     # "Meet our guide near the University of Oslo". Keep only the useful point.

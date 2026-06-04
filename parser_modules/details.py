@@ -67,8 +67,15 @@ def extract_detail(text, label):
 
     after_marker = source[match.end():]
     stop_labels = [re.escape(item) for item in DETAIL_LABELS if item.lower() != str(label).lower()]
+    stop_labels.extend([r"what[’']?s\ included", r"what\ is\ included", r"please\ note", r"important\ information"])
     if stop_labels:
-        stop_pattern = re.compile(rf"\s+-\s+(?:{'|'.join(stop_labels)})\s*:", flags=re.IGNORECASE)
+        # Stop on both dash-separated metadata (" - Includes:") and supplier
+        # block labels on their own line or after a pasted sentence.  Without
+        # this, labels such as "What's included?" can leak into meeting points.
+        stop_pattern = re.compile(
+            rf"(?:\s+-\s+|\n+\s*|\s{{2,}})(?:{'|'.join(stop_labels)})\s*(?::|\?)",
+            flags=re.IGNORECASE,
+        )
         stop_match = stop_pattern.search(after_marker)
         if stop_match:
             after_marker = after_marker[:stop_match.start()]

@@ -282,10 +282,12 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
                 cleaned = clean_visual_editor_html(page_html or "")
                 if cleaned:
                     cleaned_pages.append(cleaned)
-        if cleaned_pages:
-            output_edits["whats_included_pages_html"] = cleaned_pages
-            output_edits["whats_included_html"] = ""
-            output_edits["whats_included_text"] = ""
+        # A present page list is an explicit editor decision. Persist it even
+        # when the user deleted every page, using a blank sentinel so the
+        # generated inclusion pages do not silently reappear.
+        output_edits["whats_included_pages_html"] = cleaned_pages or [""]
+        output_edits["whats_included_html"] = ""
+        output_edits["whats_included_text"] = ""
     elif "whats_included_html" in final_pages:
         output_edits["whats_included_html"] = clean_visual_editor_html(final_pages.get("whats_included_html", ""))
         output_edits.pop("whats_included_pages_html", None)
