@@ -336,6 +336,13 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         return f"Enjoy time at leisure in {city}. This is a good opportunity to explore independently, relax, or add optional experiences."
 
     if city:
+        if has_hotel(day_rows):
+            destination = _arrival_display_destination(city)
+            if detail_level == "Elegant concise":
+                return f"Welcome to {destination}. Time is kept relaxed after arrival so you can settle into your accommodation."
+            if detail_level == "Rich descriptive":
+                return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination."
+            return f"Welcome to {destination}. After arrival, enjoy time to settle into your accommodation."
         if detail_level == "Elegant concise":
             return f"This is part of your stay in {city}, with arrangements listed below."
         if detail_level == "Rich descriptive":

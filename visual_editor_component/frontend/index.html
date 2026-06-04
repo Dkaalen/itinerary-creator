@@ -48,6 +48,10 @@
     .toolbar-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-top: 8px; }
     .toolbar-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
     .toolbar-tools input[type="text"] { width: 120px; font-weight: 600; }
+    .advanced-tools { width: 100%; text-align: right; }
+    .advanced-tools summary { display: inline-flex; min-height: 30px; align-items: center; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,0.04); color: #dbe8ef; font-size: 11px; font-weight: 800; cursor: pointer; user-select: none; }
+    .advanced-tools[open] summary { margin-bottom: 8px; }
+    .advanced-tools .toolbar-tools { max-width: 760px; }
     .stat-pill { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: #dbe8ef; background: rgba(255,255,255,0.04); font-size: 11px; font-weight: 800; }
     .stat-pill.warn { color: #ffe1a6; border-color: rgba(232,182,86,.45); background: rgba(232,182,86,.12); }
     button, select, input[type="text"] {
@@ -376,7 +380,7 @@ function finalHtmlPages(label, title, key, pages) {
     const html = typeof page === 'string' ? page : (page?.html || '');
     const suffix = idx === 0 ? '' : ' continued';
     const pageLabel = idx === 0 ? label : `${label} continued`;
-    const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Merge page up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Delete page</button></div>`;
+    const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Move content up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Remove empty page</button></div>`;
     return `<div class="page-wrap"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div><div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
       <div class="final-title">${esc(title)}${suffix}</div>
       ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
@@ -412,21 +416,26 @@ function draw() {
           <span id="editCount" class="stat-pill">0 manual edits pending</span>
           <span id="warningCount" class="stat-pill warn">0 warnings</span>
           <span id="savedNote" class="saved-note">Saved for now</span>
-          <button class="ghost" id="undoBtn" type="button">Undo last edit</button>
-          <button class="ghost" id="resetBlockBtn" type="button">Reset selected block</button>
-          <button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button>
           <button class="primary" id="saveBtn" type="button">Save for now</button>
         </div>
-        <div class="toolbar-tools">
-          <input id="findText" type="text" placeholder="Find text">
-          <input id="replaceText" type="text" placeholder="Replace with">
-          <button class="ghost" id="replaceBtn" type="button">Replace all</button>
-          <button class="ghost" id="addBulletBtn" type="button">Add bullet</button>
-          <button class="ghost" id="deleteBulletBtn" type="button">Delete bullet</button>
-          <button class="ghost" id="moveBulletUpBtn" type="button">Move bullet up</button>
-          <button class="ghost" id="moveBulletDownBtn" type="button">Move bullet down</button>
-          <button class="ghost" id="flagIssueBtn" type="button">Flag issue</button>
-        </div>
+        <details class="advanced-tools">
+          <summary>More edit tools</summary>
+          <div class="toolbar-tools">
+            <button class="ghost" id="undoBtn" type="button">Undo last edit</button>
+            <button class="ghost" id="resetBlockBtn" type="button">Reset selected block</button>
+            <button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button>
+            <input id="findText" type="text" placeholder="Find text">
+            <input id="replaceText" type="text" placeholder="Replace with">
+            <button class="ghost" id="replaceBtn" type="button">Replace all</button>
+            <button class="ghost" id="addBulletBtn" type="button">Add bullet</button>
+            <button class="ghost" id="deleteBulletBtn" type="button">Delete bullet</button>
+            <button class="ghost" id="moveBulletUpBtn" type="button">Move bullet up</button>
+            <button class="ghost" id="moveBulletDownBtn" type="button">Move bullet down</button>
+            <button class="ghost" id="makeHeadingBtn" type="button">Make heading</button>
+            <button class="ghost" id="makeNormalBtn" type="button">Normal text</button>
+            <button class="ghost" id="flagIssueBtn" type="button">Flag issue</button>
+          </div>
+        </details>
       </div>
     </div>
     <div class="page-stack">`;
@@ -635,6 +644,96 @@ function replaceAllText() {
   });
   requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
 }
+function notifyEditor(message) {
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = message;
+    note.classList.add('show');
+  }
+}
+function closestEditableBlock() {
+  const selection = window.getSelection();
+  let node = selection?.anchorNode || document.activeElement;
+  if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  const editable = node?.closest?.('[data-edit-key]') || selectedEditable();
+  if (!editable) return null;
+  const candidate = node?.closest?.('li,p,div,span') || editable;
+  if (!editable.contains(candidate) && candidate !== editable) return editable;
+  return candidate === editable ? editable : candidate;
+}
+function makeSelectedBlockClass(className) {
+  const editable = selectedEditable();
+  const block = closestEditableBlock();
+  if (!editable || !block) return;
+  pushUndo(editable, editableValue(editable));
+  ['section-title','row-type','strong-line','body-text','meta-line','inclusion-entry-title','inclusion-entry-detail'].forEach(cls => block.classList?.remove(cls));
+  if (className) block.classList?.add(className);
+  markTouched(editable.getAttribute('data-edit-key'));
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
+}
+function plainTextToCleanPasteHtml(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const chunks = [];
+  let list = [];
+  function flushList() {
+    if (list.length) {
+      chunks.push('<ul>' + list.map(item => `<li>${esc(item)}</li>`).join('') + '</ul>');
+      list = [];
+    }
+  }
+  lines.forEach(raw => {
+    const line = raw.trim();
+    if (!line) { flushList(); return; }
+    const bullet = line.match(/^(?:[•\-*]|\d+[.)])\s+(.*)$/);
+    if (bullet) {
+      list.push(bullet[1].trim());
+    } else {
+      flushList();
+      chunks.push(`<div>${esc(line)}</div>`);
+    }
+  });
+  flushList();
+  return chunks.join('') || esc(text || '');
+}
+function sanitizeClipboardHtml(html, fallbackText) {
+  if (!html || !String(html).trim()) return plainTextToCleanPasteHtml(fallbackText || '');
+  const box = document.createElement('div');
+  box.innerHTML = html;
+  const allowedTags = new Set(['DIV','P','BR','UL','OL','LI','STRONG','B','EM','I','SPAN']);
+  const allowedClasses = new Set(['section-title','row-type','strong-line','body-text','detail-list','final-list','inclusion-entry','inclusion-entry-title','inclusion-entry-detail','inclusion-entry-spacer','meta-line','meta-label','small-section','content-block']);
+  box.querySelectorAll('*').forEach(node => {
+    const tag = node.tagName;
+    if (!allowedTags.has(tag)) {
+      const parent = node.parentNode;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
+      return;
+    }
+    const classes = node.classList ? Array.from(node.classList).filter(cls => allowedClasses.has(cls)) : [];
+    Array.from(node.attributes).forEach(attr => node.removeAttribute(attr.name));
+    if (classes.length) node.setAttribute('class', classes.join(' '));
+  });
+  const cleaned = box.innerHTML.trim();
+  return cleaned || plainTextToCleanPasteHtml(fallbackText || '');
+}
+function insertCleanClipboardHtml(event) {
+  event.preventDefault();
+  const data = event.clipboardData || window.clipboardData;
+  const html = sanitizeClipboardHtml(data?.getData('text/html') || '', data?.getData('text/plain') || '');
+  document.execCommand('insertHTML', false, html);
+}
+function pageObjectAt(index) {
+  const pages = Array.isArray(model.final_pages?.whats_included_pages_html) ? model.final_pages.whats_included_pages_html : [];
+  if (index < 0 || index >= pages.length) return {pages, page: null};
+  const page = typeof pages[index] === 'string' ? {html: pages[index]} : (pages[index] || {html: ''});
+  pages[index] = page;
+  return {pages, page};
+}
+function htmlTextContent(html) {
+  const box = document.createElement('div');
+  box.innerHTML = html || '';
+  return (box.textContent || '').replace(/\s+/g, ' ').trim();
+}
 function currentListItem() {
   const selection = window.getSelection();
   let node = selection?.anchorNode || document.activeElement;
@@ -694,15 +793,22 @@ function stripEditorArtifactsFromHtml(html) {
   return box.innerHTML;
 }
 function deleteInclusionPage(index) {
+  collect();
   if (!model.final_pages) model.final_pages = {};
-  const pages = Array.isArray(model.final_pages.whats_included_pages_html) ? model.final_pages.whats_included_pages_html : [];
-  if (!pages.length || index < 0 || index >= pages.length) return;
+  const {pages, page} = pageObjectAt(index);
+  if (!pages.length || !page) return;
+  const pageText = htmlTextContent(page.html || '');
+  if (pageText) {
+    notifyEditor('Page still has content — move content up or clear it before removing the page.');
+    return;
+  }
   pages.splice(index, 1);
   model.final_pages.whats_included_pages_html = pages.length ? pages : [{html: ''}];
   markTouched('final_pages.whats_included_pages_html');
   draw();
 }
 function mergeInclusionPageUp(index) {
+  collect();
   if (!model.final_pages) model.final_pages = {};
   const pages = Array.isArray(model.final_pages.whats_included_pages_html) ? model.final_pages.whats_included_pages_html : [];
   if (index <= 0 || index >= pages.length) return;
@@ -710,7 +816,11 @@ function mergeInclusionPageUp(index) {
   const current = typeof pages[index] === 'string' ? {html: pages[index]} : (pages[index] || {html: ''});
   const previousHtml = stripEditorArtifactsFromHtml(previous.html || '');
   const currentHtml = stripEditorArtifactsFromHtml(current.html || '');
-  previous.html = `${previousHtml}${previousHtml && currentHtml ? '\n' : ''}${currentHtml}`;
+  if (!htmlTextContent(currentHtml)) {
+    notifyEditor('Nothing to move from this page.');
+    return;
+  }
+  previous.html = `${previousHtml}${previousHtml && currentHtml ? '<div class="inclusion-entry-spacer"></div>' : ''}${currentHtml}`;
   pages[index - 1] = previous;
   pages.splice(index, 1);
   model.final_pages.whats_included_pages_html = pages;
@@ -798,8 +908,10 @@ function attachHandlers() {
   document.getElementById('deleteBulletBtn')?.addEventListener('click', deleteBullet);
   document.getElementById('moveBulletUpBtn')?.addEventListener('click', () => moveBullet(-1));
   document.getElementById('moveBulletDownBtn')?.addEventListener('click', () => moveBullet(1));
+  document.getElementById('makeHeadingBtn')?.addEventListener('click', () => makeSelectedBlockClass('section-title'));
+  document.getElementById('makeNormalBtn')?.addEventListener('click', () => makeSelectedBlockClass(''));
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
-  document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('resetBtn')?.addEventListener('click', () => {
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
     touchedKeys = new Set();
@@ -820,11 +932,7 @@ function attachHandlers() {
       activeEditKey = key;
       el.dataset.lastValue = editableValue(el);
     });
-    el.addEventListener('paste', event => {
-      event.preventDefault();
-      const text = (event.clipboardData || window.clipboardData).getData('text/plain');
-      document.execCommand('insertText', false, text);
-    });
+    el.addEventListener('paste', insertCleanClipboardHtml);
     el.addEventListener('input', () => {
       const previous = el.dataset.lastValue || '';
       const current = editableValue(el);

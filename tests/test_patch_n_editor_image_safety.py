@@ -57,13 +57,13 @@ def test_pdf_export_commit_persists_full_visible_editor_model():
 def test_visual_editor_frontend_has_page_controls_and_full_commit_contract():
     editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
 
-    assert "Delete page" in editor_html
-    assert "Merge page up" in editor_html
+    assert "Remove empty page" in editor_html
+    assert "Move content up" in editor_html
     assert "deleteInclusionPage" in editor_html
     assert "mergeInclusionPageUp" in editor_html
     assert "compactFullPayloadForCommit" in editor_html
     assert "PDF export is the hard commit point" in editor_html
-    assert "insertText" in editor_html
+    assert "insertCleanClipboardHtml" in editor_html
 
 
 def test_polar_icebreaker_default_image_requires_icebreaker_activity():

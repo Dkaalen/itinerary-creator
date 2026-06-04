@@ -100,7 +100,7 @@ def create_day_title(day_rows):
                     if re.search(r"glass\s+igloo|santa'?s\s+igloos|igloo\s+with\s+alcove", hotel_text, flags=re.IGNORECASE):
                         return "Glass Igloo Stay in Rovaniemi"
                     if city:
-                        return f"Stay in {city}"
+                        return f"Welcome to {city}"
 
                 if title:
                     if item_type == "Leisure" and city:

@@ -155,8 +155,8 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("travel_day", title, _intro_for_title(title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
 
     if has_hotel(rows) and city:
-        title = f"Stay in {city}"
-        return DayPlan("stay_day", title, f"This is part of your stay in {city}, with the day’s arrangements laid out clearly so the experience feels relaxed and easy to follow.")
+        title = f"Welcome to {city}"
+        return DayPlan("stay_day", title, f"Welcome to {city}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination.")
 
     title = _leisure_title(city)
     return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)
