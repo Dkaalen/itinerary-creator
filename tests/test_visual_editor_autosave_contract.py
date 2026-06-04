@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import sys
 import types
 
@@ -103,3 +104,61 @@ def test_pdf_export_commit_applies_route_and_day_title_edits():
     assert output_edits["days"]["Day 2"]["title"] == "Edited Tallinn Adventure"
     assert editor_workflow.st.session_state["_visual_editor_last_applied_commit_nonce"] == "12"
 
+
+
+def test_visual_editor_applies_cover_date_edits_from_inline_preview():
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "cover": {"trip_dates": "10th of January - 16th of January"},
+        "summary": {},
+        "days": [],
+        "final_pages": {},
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["trip_dates"] == "10th of January - 16th of January"
+
+
+def test_visual_editor_persists_flagged_issue_notes_for_future_patches():
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "cover": {},
+        "summary": {},
+        "days": [],
+        "final_pages": {},
+        "issue_flags": [
+            {
+                "key": "days.0.blocks_html",
+                "label": "Day 1",
+                "original": "self Transfer from A to B, Pls request at reception",
+                "corrected": "Self-arranged transfer from A to B.",
+            }
+        ],
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["visual_editor_issue_flags"] == [
+        {
+            "key": "days.0.blocks_html",
+            "label": "Day 1",
+            "original": "self Transfer from A to B, Pls request at reception",
+            "corrected": "Self-arranged transfer from A to B.",
+        }
+    ]
+
+
+def test_visual_editor_v2_contract_is_inline_not_separate_form():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "Save for now" in editor_html
+    assert "Create PDF applies pending edits first" in editor_html
+    assert "cover.trip_dates" in editor_html
+    assert "Undo last edit" in editor_html
+    assert "Reset selected block" in editor_html
+    assert "Replace all" in editor_html
+    assert "Add bullet" in editor_html
+    assert "Flag issue" in editor_html
+    assert "warning-hit" in editor_html
+    assert "function flagSelectedIssue" in editor_html

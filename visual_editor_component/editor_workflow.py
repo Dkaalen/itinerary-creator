@@ -17,6 +17,7 @@ from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.exclusion_sections import create_whats_not_included
+from itinerary_generation.transport_safety import scan_client_output
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
     get_day_image_choice,
@@ -85,6 +86,33 @@ def _normalize_route_edit(value):
     return " · ".join(parts)
 
 
+def _client_output_warnings_for_payload(payload):
+    """Return compact warning data for the inline editor warning panel."""
+    pieces = []
+    cover = payload.get("cover") or {}
+    pieces.extend(str(cover.get(key, "")) for key in ("trip_title", "trip_subtitle", "trip_dates", "destinations_line"))
+    for day in payload.get("days") or []:
+        if isinstance(day, dict):
+            pieces.extend(str(day.get(key, "")) for key in ("city", "title", "intro", "blocks_html"))
+    final_pages = payload.get("final_pages") or {}
+    pieces.extend(str(final_pages.get(key, "")) for key in ("whats_included_html", "whats_not_included_text", "important_travel_notes_text"))
+    for page in final_pages.get("whats_included_pages_html") or []:
+        if isinstance(page, dict):
+            pieces.append(str(page.get("html", "")))
+        else:
+            pieces.append(str(page or ""))
+    findings = scan_client_output("\n".join(piece for piece in pieces if piece))
+    compact = []
+    seen = set()
+    for finding in findings:
+        key = (finding.code, finding.excerpt)
+        if key in seen:
+            continue
+        seen.add(key)
+        compact.append({"code": finding.code, "excerpt": finding.excerpt})
+    return compact[:20]
+
+
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
     image_matches = select_day_images_with_overrides(grouped_days, output_edits)
@@ -128,7 +156,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     generated_whats_not_included_text = list_to_text(create_whats_not_included(parsed_rows))
     cover_theme = get_cover_theme(parsed_rows, output_edits)
 
-    return {
+    payload = {
         "cover": {
             "cover_kicker": output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
@@ -153,7 +181,10 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "whats_not_included_text": output_edits.get("whats_not_included_text") or generated_whats_not_included_text,
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
         },
+        "issue_flags": output_edits.get("visual_editor_issue_flags", []),
     }
+    payload["client_output_warnings"] = _client_output_warnings_for_payload(payload)
+    return payload
 
 
 def _decode_visual_editor_result(result):
@@ -177,7 +208,7 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         return False
 
     cover = data.get("cover", {}) or {}
-    for key in ["cover_kicker", "trip_title", "trip_subtitle", "destinations_line"]:
+    for key in ["cover_kicker", "trip_title", "trip_subtitle", "trip_dates", "destinations_line"]:
         if key in cover:
             value = str(cover.get(key, "")).strip()
             output_edits[key] = _normalize_route_edit(value) if key == "destinations_line" else value
@@ -262,6 +293,31 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
         if key in final_pages and key != "whats_included_text":
             output_edits[key] = str(final_pages.get(key, "")).strip()
+
+    if isinstance(data.get("issue_flags"), list):
+        cleaned_flags = []
+        for flag in data.get("issue_flags") or []:
+            if not isinstance(flag, dict):
+                continue
+            key = str(flag.get("key", "")).strip()
+            corrected = str(flag.get("corrected", "")).strip()
+            if not key and not corrected:
+                continue
+            cleaned_flags.append({
+                "key": key,
+                "label": str(flag.get("label", "")).strip(),
+                "original": str(flag.get("original", "")).strip(),
+                "corrected": corrected,
+            })
+        if cleaned_flags:
+            existing = output_edits.get("visual_editor_issue_flags") if isinstance(output_edits.get("visual_editor_issue_flags"), list) else []
+            seen = {(str(item.get("key", "")), str(item.get("corrected", ""))) for item in existing if isinstance(item, dict)}
+            for flag in cleaned_flags:
+                dedupe_key = (flag["key"], flag["corrected"])
+                if dedupe_key not in seen:
+                    existing.append(flag)
+                    seen.add(dedupe_key)
+            output_edits["visual_editor_issue_flags"] = existing
 
     if commit_nonce:
         st.session_state["_visual_editor_last_applied_commit_nonce"] = commit_nonce

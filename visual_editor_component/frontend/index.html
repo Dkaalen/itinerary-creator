@@ -45,6 +45,11 @@
     .toolbar-copy strong { display: block; font-size: 15px; letter-spacing: -0.01em; }
     .toolbar-copy span { display: block; margin-top: 3px; color: #a9b6c2; font-size: 12px; }
     .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .toolbar-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-top: 8px; }
+    .toolbar-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .toolbar-tools input[type="text"] { width: 120px; font-weight: 600; }
+    .stat-pill { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: #dbe8ef; background: rgba(255,255,255,0.04); font-size: 11px; font-weight: 800; }
+    .stat-pill.warn { color: #ffe1a6; border-color: rgba(232,182,86,.45); background: rgba(232,182,86,.12); }
     button, select, input[type="text"] {
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -161,6 +166,17 @@
     [contenteditable="true"] { outline: 0; border-radius: 4px; min-height: 1em; transition: background .12s, box-shadow .12s; }
     [contenteditable="true"]:hover { background: rgba(232, 182, 86, 0.16); box-shadow: 0 0 0 1px rgba(232,182,86,0.24); }
     [contenteditable="true"]:focus { background: rgba(255, 246, 213, 0.94); box-shadow: 0 0 0 2px var(--focus); color: var(--body) !important; -webkit-text-fill-color: var(--body) !important; }
+    .cover-page [contenteditable="true"]:focus {
+      background: rgba(15, 20, 26, 0.70);
+      box-shadow: 0 0 0 2px var(--focus), 0 10px 24px rgba(0,0,0,.22);
+      color: #fff !important;
+      -webkit-text-fill-color: #fff !important;
+      text-shadow: 0 1px 5px rgba(0,0,0,.45);
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+    [contenteditable="true"].warning-hit { box-shadow: 0 0 0 2px rgba(173,52,52,.42); background: rgba(173,52,52,.08); }
+    [contenteditable="true"].warning-hit:focus { box-shadow: 0 0 0 2px var(--focus), 0 0 0 5px rgba(173,52,52,.18); }
     .editable-inline { padding: 1px 2px; margin-left: -2px; }
     .cover-main .editable-inline { margin-left: 0 !important; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; align-self: center !important; }
     .cover-main .cover-title, .cover-main .cover-subtitle, .cover-main .cover-destinations, .cover-main .cover-kicker, .cover-main .cover-dates { margin-left: auto !important; margin-right: auto !important; text-align: center !important; }
@@ -232,7 +248,8 @@
     @media (max-width: 860px) {
       .a4-page { transform: scale(calc((100vw - 34px) / 794)); margin-bottom: calc(-1123px + ((100vw - 34px) / 794 * 1123px)); }
       .editor-toolbar { align-items: flex-start; flex-direction: column; }
-      .toolbar-actions { justify-content: flex-start; }
+      .toolbar-actions, .toolbar-tools { justify-content: flex-start; }
+      .toolbar-stack { align-items: flex-start; }
     }
   </style>
 </head>
@@ -256,6 +273,14 @@ let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
 let lastSavedPayload = '';
+let activeEditKey = null;
+let undoStack = [];
+const WARNING_PATTERNS = [
+  /\bPls\b/i, /\bplz\b/i, /\baddon cost\b/i, /\bpaid on ground\b/i,
+  /\btranfers\b/i, /\bDate dependant\b/i, /\bFight\s*:/i,
+  /\bPrivate Hotel to\b/i, /\bPrivate Airport to\b/i, /\bPrivate Station to\b/i,
+  /\bself Transfer\b/, /\blevi Bus Station\b/, /\brovaniemi Bus Station\b/
+];
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 }
@@ -375,8 +400,28 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Edits stay local until you save or create the PDF.</span></div>
-      <div class="toolbar-actions"><span id="savedNote" class="saved-note">Saved to app</span><button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button><button class="primary" id="saveBtn" type="button">Save edits to preview/PDF</button></div>
+      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Create PDF applies pending edits first.</span></div>
+      <div class="toolbar-stack">
+        <div class="toolbar-actions">
+          <span id="editCount" class="stat-pill">0 manual edits pending</span>
+          <span id="warningCount" class="stat-pill warn">0 warnings</span>
+          <span id="savedNote" class="saved-note">Saved for now</span>
+          <button class="ghost" id="undoBtn" type="button">Undo last edit</button>
+          <button class="ghost" id="resetBlockBtn" type="button">Reset selected block</button>
+          <button class="ghost" id="resetBtn" type="button">Reset unsaved changes</button>
+          <button class="primary" id="saveBtn" type="button">Save for now</button>
+        </div>
+        <div class="toolbar-tools">
+          <input id="findText" type="text" placeholder="Find text">
+          <input id="replaceText" type="text" placeholder="Replace with">
+          <button class="ghost" id="replaceBtn" type="button">Replace all</button>
+          <button class="ghost" id="addBulletBtn" type="button">Add bullet</button>
+          <button class="ghost" id="deleteBulletBtn" type="button">Delete bullet</button>
+          <button class="ghost" id="moveBulletUpBtn" type="button">Move bullet up</button>
+          <button class="ghost" id="moveBulletDownBtn" type="button">Move bullet down</button>
+          <button class="ghost" id="flagIssueBtn" type="button">Flag issue</button>
+        </div>
+      </div>
     </div>
     <div class="page-stack">`;
   const coverStyle = `background-image: url('${escAttr(model.cover?.cover_background_data_uri || '')}'); --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
@@ -386,7 +431,7 @@ function draw() {
         ${editableText(model.cover?.cover_kicker || 'Travel Itinerary', 'cover.cover_kicker', 'cover-kicker')}
         ${editableText(model.cover?.trip_title, 'cover.trip_title', 'cover-title')}
         ${editableText(model.cover?.trip_subtitle, 'cover.trip_subtitle', 'cover-subtitle')}
-        ${model.cover?.trip_dates ? `<div class="cover-dates">${esc(model.cover.trip_dates)}</div>` : ''}
+        ${model.cover?.trip_dates ? editableText(model.cover.trip_dates, 'cover.trip_dates', 'cover-dates') : ''}
         <div class="cover-rule"></div>
         <div class="cover-destination-card">
           <div class="cover-destination-label">Route</div>
@@ -410,7 +455,7 @@ function draw() {
   h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
-  requestAnimationFrame(() => { adjustDayImages(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });
 }
 function setByPath(obj, path, value) {
   const parts = path.split('.');
@@ -428,10 +473,7 @@ function setByPath(obj, path, value) {
 function collect() {
   document.querySelectorAll('[data-edit-key]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
-    const isHtmlField = key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.includes('.whats_included_pages_html.');
-    const value = isHtmlField
-      ? el.innerHTML.trim()
-      : el.innerText.replace(/\u00a0/g, ' ').replace(/\s*\n+\s*/g, key === 'cover.destinations_line' ? ' · ' : ' ').trim();
+    const value = editableValue(el);
     setByPath(model, key, value);
   });
   Object.keys(uploadedImages).forEach(idx => {
@@ -503,6 +545,8 @@ function pruneForSave(value) {
       else day[field] = getByPath(full, key) ?? '';
     } else if (key.startsWith('final_pages.whats_included_pages_html.')) {
       payload.final_pages.whats_included_pages_html = full.final_pages?.whats_included_pages_html || [];
+    } else if (key === 'issue_flags') {
+      payload.issue_flags = full.issue_flags || [];
     } else if (key.startsWith('final_pages.')) {
       const name = key.slice('final_pages.'.length);
       payload.final_pages[name] = full.final_pages?.[name] ?? '';
@@ -518,7 +562,157 @@ function markTouched(key) {
     note.textContent = 'Unsaved edits';
     note.classList.add('show');
   }
+  updateEditorStats();
 }
+function isHtmlEditKey(key) {
+  return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.includes('.whats_included_pages_html.'));
+}
+function editableValue(el) {
+  if (!el) return '';
+  const key = el.getAttribute('data-edit-key') || '';
+  if (isHtmlEditKey(key)) return el.innerHTML.trim();
+  return el.innerText.replace(/\u00a0/g, ' ').replace(/\s*\n+\s*/g, key === 'cover.destinations_line' ? ' · ' : ' ').trim();
+}
+function writeEditableValue(el, value) {
+  if (!el) return;
+  const key = el.getAttribute('data-edit-key') || '';
+  if (isHtmlEditKey(key)) el.innerHTML = value || '';
+  else el.innerText = value || '';
+  setByPath(model, key, editableValue(el));
+  markTouched(key);
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
+}
+function findEditableByKey(key) {
+  if (!key) return null;
+  return document.querySelector(`[data-edit-key="${CSS.escape(key)}"]`);
+}
+function selectedEditable() {
+  const active = document.activeElement?.closest?.('[data-edit-key]');
+  if (active) return active;
+  if (activeEditKey) return findEditableByKey(activeEditKey);
+  return null;
+}
+function initialValueForKey(key) {
+  const value = getByPath(initialPayload, key);
+  if (value && typeof value === 'object' && 'html' in value) return value.html || '';
+  return value ?? '';
+}
+function pushUndo(el, previousValue) {
+  const key = el?.getAttribute('data-edit-key');
+  if (!key) return;
+  undoStack.push({key, value: previousValue});
+  if (undoStack.length > 80) undoStack.shift();
+}
+function undoLastEdit() {
+  const last = undoStack.pop();
+  if (!last) return;
+  const el = findEditableByKey(last.key);
+  if (el) writeEditableValue(el, last.value);
+}
+function resetSelectedBlock() {
+  const el = selectedEditable();
+  if (!el) return;
+  pushUndo(el, editableValue(el));
+  writeEditableValue(el, String(initialValueForKey(el.getAttribute('data-edit-key')) ?? ''));
+}
+function replaceAllText() {
+  const find = document.getElementById('findText')?.value || '';
+  const repl = document.getElementById('replaceText')?.value || '';
+  if (!find) return;
+  document.querySelectorAll('[data-edit-key]').forEach(el => {
+    const before = isHtmlEditKey(el.getAttribute('data-edit-key')) ? el.innerHTML : el.innerText;
+    if (!before || !before.includes(find)) return;
+    pushUndo(el, editableValue(el));
+    if (isHtmlEditKey(el.getAttribute('data-edit-key'))) el.innerHTML = before.split(find).join(repl);
+    else el.innerText = before.split(find).join(repl);
+    markTouched(el.getAttribute('data-edit-key'));
+  });
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
+}
+function currentListItem() {
+  const selection = window.getSelection();
+  let node = selection?.anchorNode || document.activeElement;
+  if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  return node?.closest?.('li') || null;
+}
+function editableForListAction() {
+  const li = currentListItem();
+  if (li) return li.closest('[data-edit-key]');
+  return selectedEditable();
+}
+function addBullet() {
+  const el = editableForListAction();
+  if (!el) return;
+  pushUndo(el, editableValue(el));
+  let list = currentListItem()?.parentElement || el.querySelector('ul,ol');
+  if (!list) {
+    el.insertAdjacentHTML('beforeend', '<ul><li>New item</li></ul>');
+  } else {
+    const li = currentListItem();
+    const newLi = document.createElement('li');
+    newLi.textContent = 'New item';
+    if (li && li.parentElement === list) li.insertAdjacentElement('afterend', newLi);
+    else list.appendChild(newLi);
+  }
+  markTouched(el.getAttribute('data-edit-key'));
+  requestAnimationFrame(adjustDayImages);
+}
+function deleteBullet() {
+  const li = currentListItem();
+  const el = li?.closest?.('[data-edit-key]');
+  if (!li || !el) return;
+  pushUndo(el, editableValue(el));
+  li.remove();
+  markTouched(el.getAttribute('data-edit-key'));
+  requestAnimationFrame(adjustDayImages);
+}
+function moveBullet(direction) {
+  const li = currentListItem();
+  const el = li?.closest?.('[data-edit-key]');
+  if (!li || !el) return;
+  pushUndo(el, editableValue(el));
+  if (direction < 0 && li.previousElementSibling) li.parentElement.insertBefore(li, li.previousElementSibling);
+  if (direction > 0 && li.nextElementSibling) li.parentElement.insertBefore(li.nextElementSibling, li);
+  markTouched(el.getAttribute('data-edit-key'));
+  requestAnimationFrame(adjustDayImages);
+}
+function flagSelectedIssue() {
+  const el = selectedEditable();
+  if (!el) return;
+  const key = el.getAttribute('data-edit-key');
+  const flag = {
+    key,
+    label: el.closest('.page-wrap')?.querySelector('.page-label')?.innerText || '',
+    original: String(initialValueForKey(key) ?? ''),
+    corrected: editableValue(el),
+  };
+  if (!Array.isArray(model.issue_flags)) model.issue_flags = [];
+  model.issue_flags.push(flag);
+  markTouched('issue_flags');
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = 'Issue flagged';
+    note.classList.add('show');
+  }
+}
+function highlightWarnings() {
+  let count = 0;
+  document.querySelectorAll('[data-edit-key]').forEach(el => {
+    const text = el.innerText || '';
+    const hit = WARNING_PATTERNS.some(pattern => pattern.test(text));
+    el.classList.toggle('warning-hit', hit);
+    if (hit) count += 1;
+  });
+  const serverWarnings = Array.isArray(model.client_output_warnings) ? model.client_output_warnings.length : 0;
+  const warningCount = document.getElementById('warningCount');
+  if (warningCount) warningCount.textContent = `${Math.max(count, serverWarnings)} warnings`;
+}
+function updateEditorStats() {
+  const editCount = document.getElementById('editCount');
+  if (editCount) editCount.textContent = `${touchedKeys.size} manual edits pending`;
+  highlightWarnings();
+}
+
 function buildSaveEnvelope(commitNonce = null) {
   collect();
   const payload = pruneForSave(model);
@@ -536,14 +730,23 @@ function saveChanges(commitNonce = null) {
   touchedKeys = new Set();
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved to app';
+    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved for now';
     note.classList.add('show');
     if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
   }
+  updateEditorStats();
 }
 
 function attachHandlers() {
   document.getElementById('saveBtn').addEventListener('click', () => saveChanges());
+  document.getElementById('undoBtn')?.addEventListener('click', undoLastEdit);
+  document.getElementById('resetBlockBtn')?.addEventListener('click', resetSelectedBlock);
+  document.getElementById('replaceBtn')?.addEventListener('click', replaceAllText);
+  document.getElementById('addBulletBtn')?.addEventListener('click', addBullet);
+  document.getElementById('deleteBulletBtn')?.addEventListener('click', deleteBullet);
+  document.getElementById('moveBulletUpBtn')?.addEventListener('click', () => moveBullet(-1));
+  document.getElementById('moveBulletDownBtn')?.addEventListener('click', () => moveBullet(1));
+  document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('resetBtn').addEventListener('click', () => {
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
@@ -552,11 +755,23 @@ function attachHandlers() {
   });
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
+    el.dataset.lastValue = editableValue(el);
+    el.addEventListener('focus', () => {
+      activeEditKey = key;
+      el.dataset.lastValue = editableValue(el);
+    });
     el.addEventListener('input', () => {
+      const previous = el.dataset.lastValue || '';
+      const current = editableValue(el);
+      if (previous !== current) {
+        pushUndo(el, previous);
+        el.dataset.lastValue = current;
+      }
       markTouched(key);
-      requestAnimationFrame(adjustDayImages);
+      requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
     });
   });
+  updateEditorStats();
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       collect();
