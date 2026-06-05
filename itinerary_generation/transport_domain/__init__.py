@@ -1,0 +1,1 @@
+"""Canonical transport domain package.\n\nSubmodules hold route extraction, transport titles, travel-arrangement rendering,\nparser title normalization, inclusion text and transport-specific exclusions.\nLegacy modules re-export from these submodules while callers migrate.\n"""

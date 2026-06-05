@@ -10,7 +10,6 @@ import re
 from text_polish import polish_client_text, polish_title
 
 from itinerary_generation.common import (
-    TRANSPORT_TYPES,
     add_unique,
     get_row_type,
     main_rows_only,
@@ -18,13 +17,18 @@ from itinerary_generation.common import (
     is_optional_row,
     is_self_arranged,
 )
-from itinerary_generation.transport import (
-    get_transfer_travel_title,
-    get_transport_route_phrase,
-)
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.titles import create_client_activity_title
-from itinerary_generation.transport_safety import clean_self_transfer_text, split_self_transfer_notes
+from itinerary_generation.transport_safety import split_self_transfer_notes
+from itinerary_generation.transport_domain.exclusions import (
+    is_flight_row as _transport_is_flight_row,
+    is_self_transfer_row as _transport_is_self_transfer_row,
+    is_transport_row as _transport_is_transport_row,
+    row_search_text as _transport_row_search_text,
+    self_arranged_flight_notice as _transport_self_arranged_flight_notice,
+    self_transfer_exclusion_title as _transport_self_transfer_exclusion_title,
+    transport_commercial_title as _transport_commercial_title,
+)
 
 
 DEFAULT_WHATS_NOT_INCLUDED_ITEMS = [
@@ -49,8 +53,6 @@ EXCLUSION_SECTION_ORDER = [
     ("costs_not_included", "Activity-specific exclusions"),
 ]
 
-
-TRANSPORT_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
 
 
 def _row_id(row, fallback_index=0):
@@ -160,26 +162,19 @@ def _commercial_reason(row):
 
 
 def _row_search_text(row):
-    return " ".join(
-        str(row.get(key, "") or "")
-        for key in ["source_type", "type", "effective_type", "title", "original_title", "details"]
-    ).lower().replace("-", " ")
+    return _transport_row_search_text(row)
 
 
 def _is_self_transfer_row(row):
-    return "self transfer" in _row_search_text(row)
+    return _transport_is_self_transfer_row(row)
 
 
 def _is_flight_row(row):
-    return get_row_type(row) == "Flight" or "flight" in _row_search_text(row)
+    return _transport_is_flight_row(row)
 
 
 def _is_transport_row(row):
-    text = _row_search_text(row)
-    return get_row_type(row) in TRANSPORT_ROW_TYPES or any(
-        marker in text
-        for marker in ["transfer", "flight", "train", "coach", "bus", "ferry", "cruise", "shuttle"]
-    )
+    return _transport_is_transport_row(row)
 
 
 def _is_cost_not_included_row(row):
@@ -221,34 +216,18 @@ def row_date_suffix(row):
 def self_arranged_flight_notice(row) -> str:
     """Return a clear commercial exclusion label for a self-arranged flight."""
 
-    destination = ""
-    title = str(row.get("title") or "")
-    match = re.search(r"\bflight\s+to\s+(.+)$", title, flags=re.IGNORECASE)
-    if match:
-        destination = polish_title(match.group(1).strip(" -:|.,"))
-    if not destination:
-        text = " ".join(str(row.get(key, "") or "") for key in ["details", "original_title", "title"])
-        match = re.search(r"\bflight\s+(?:from\s+)?[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,|\s+-|\s*\||$)", text, flags=re.IGNORECASE)
-        if match:
-            destination = polish_title(match.group(1).strip(" -:|.,"))
-    if destination:
-        return f"Self-arranged flight to {destination} (not included)"
-    return "Self-arranged flight (not included)"
+    return _transport_self_arranged_flight_notice(row)
 
 
 def commercial_row_title(row):
     row_type = get_row_type(row)
     title = ""
     if _is_self_transfer_row(row):
-        source = row.get("details") or row.get("title") or row.get("original_title")
-        notes = split_self_transfer_notes(source)
-        if notes:
-            return notes[0][:140].strip(" -:|")
-        return clean_self_transfer_text(source)[:140].strip(" -:|")
+        return _transport_self_transfer_exclusion_title(row)
     if row_type == "Activity":
         title = create_client_activity_title(row)
-    if not title and row_type in set(TRANSPORT_TYPES) | {"Transfer"}:
-        title = get_transport_route_phrase(row) or get_transfer_travel_title(row)
+    if not title:
+        title = _transport_commercial_title(row)
     title = title or row.get("title") or row.get("original_title") or row.get("details")
     title = polish_title(str(title or "").strip())
     return title[:120].strip(" -:|")
