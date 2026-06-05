@@ -12,11 +12,12 @@ from ui.render_helpers import esc, get_detail_level_name
 from ui.picture_workflow import pictures_are_added
 
 
-def render_day_section(day, rows, output_edits=None):
+def render_day_section(day, rows, output_edits=None, render_day=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
-    detail_level = get_detail_level_name(output_edits)
+    if render_day is None:
+        detail_level = get_detail_level_name(output_edits)
+        render_day = build_render_day(day, rows, output_edits=output_edits, detail_level=detail_level)
     main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
-    render_day = build_render_day(day, rows, output_edits=output_edits, detail_level=detail_level)
     day_title = render_day.title
     day_intro = render_day.intro
     city = render_day.city
@@ -64,16 +65,16 @@ def render_day_visual_block(day, rows, output_edits=None, image_match=None):
     """
 
 
-def render_day_page(day, rows, output_edits=None, image_match=None):
+def render_day_page(day, rows, output_edits=None, image_match=None, render_day=None):
     return f'''
         <div class="a4-page day-page single-day-page" data-day="{esc(day)}">
-            {render_day_section(day, rows, output_edits)}
+            {render_day_section(day, rows, output_edits, render_day=render_day)}
             {render_day_visual_block(day, rows, output_edits=output_edits, image_match=image_match)}
         </div>
     '''
 
 
-def render_day_pages(grouped_days, output_edits=None):
+def render_day_pages(grouped_days, output_edits=None, render_document=None):
     """Render exactly one itinerary day per A4 page.
 
     v36 image placement depends on predictable one-day pages so the PDF exporter
@@ -85,8 +86,15 @@ def render_day_pages(grouped_days, output_edits=None):
         image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
     else:
         image_matches = {}
+    render_days_by_day = {str(render_day.day): render_day for render_day in getattr(render_document, "days", []) or []}
     for day, rows in grouped_days.items():
-        html_text += render_day_page(day, rows, output_edits, image_match=image_matches.get(day))
+        html_text += render_day_page(
+            day,
+            rows,
+            output_edits,
+            image_match=image_matches.get(day),
+            render_day=render_days_by_day.get(str(day)),
+        )
     return html_text
 
 

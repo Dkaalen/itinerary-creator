@@ -51,6 +51,7 @@ QUALITY_TESTS = (
     "tests/test_content_classification_priority.py",
     "tests/test_canonical_block_renderers.py",
     "tests/test_canonical_boundary.py",
+    "tests/test_render_document_source_of_truth.py",
     "tests/test_inclusions_preview_accommodation_transport_followups.py",
     "tests/test_inclusion_exclusion_architecture.py",
     "tests/test_quality_gate_architecture.py",

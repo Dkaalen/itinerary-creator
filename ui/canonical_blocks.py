@@ -6,7 +6,8 @@ orchestration so ``ui.day_blocks`` can become a thinner coordinator over time.
 """
 
 from itinerary_generation.canonical_builder import canonical_accommodation_block, canonical_activity_block
-from itinerary_generation.render_model import RenderBlock, render_block_from_canonical
+from itinerary_generation.canonical_render_adapter import render_block_from_canonical
+from itinerary_generation.render_model import RenderBlock
 from ui.render_helpers import esc, render_list_items
 
 

@@ -42,7 +42,6 @@ class CanonicalBlock:
     description: str = ""
     notable_sights: list[str] = field(default_factory=list)
     lines: list[str] = field(default_factory=list)
-    html: str = ""  # temporary bridge for blocks not yet decomposed
     source_row_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 

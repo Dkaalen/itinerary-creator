@@ -12,7 +12,10 @@ from itinerary_generation.common import get_primary_city, get_row_type, is_optio
 from itinerary_generation.content_engine import clean_client_title, group_tour_pickup_window_from_overview, is_group_tour_overview
 from itinerary_generation.day_overview_blocks import build_day_overview_render_block
 from itinerary_generation.day_planner import plan_day
-from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine, render_block_from_canonical
+from itinerary_generation.canonical_render_adapter import render_block_from_canonical
+from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine
+from itinerary_generation.structured_builder import build_itinerary_document
+from itinerary_generation.structured_model import DayDocument, ItineraryDocument
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.title_safety import is_forbidden_client_title
@@ -254,16 +257,96 @@ def build_day_render_blocks(rows):
     return blocks
 
 
-def build_render_day(day: str, rows: list[dict], *, output_edits: dict | None = None, detail_level: str = "Rich descriptive") -> RenderDay:
-    main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
+def _row_id(row: dict, fallback_index: int = 0) -> str:
+    value = str(row.get("row_id") or "").strip()
+    return value or f"generated-row-{fallback_index}"
+
+
+def _day_document_for(document: ItineraryDocument, day: str) -> DayDocument | None:
+    for day_document in document.days:
+        if str(day_document.day) == str(day):
+            return day_document
+    return None
+
+
+def _rows_ordered_by_day_document(day_document: DayDocument | None, rows: list[dict]) -> list[dict]:
+    """Return day rows in the structured document's source order.
+
+    Optional rows may be appended only for day-page rendering and therefore may
+    not be present in the main DayDocument.  They are preserved at the end in
+    their incoming order so the render document can remain source-aware without
+    dropping explicit optional experiences.
+    """
+
+    if not day_document:
+        return list(rows)
+    row_lookup = {_row_id(row, index): row for index, row in enumerate(rows)}
+    ordered: list[dict] = []
+    used_ids: set[str] = set()
+    for source_id in day_document.source_row_ids:
+        row = row_lookup.get(str(source_id))
+        if row is not None:
+            ordered.append(row)
+            used_ids.add(str(source_id))
+    for index, row in enumerate(rows):
+        row_id = _row_id(row, index)
+        if row_id not in used_ids:
+            ordered.append(row)
+    return ordered
+
+
+def build_day_render_blocks_from_document(document: ItineraryDocument, day: str, rows: list[dict]) -> list[RenderBlock]:
+    """Build day render blocks using the structured document for source order."""
+
+    day_document = _day_document_for(document, day)
+    return build_day_render_blocks(_rows_ordered_by_day_document(day_document, rows))
+
+
+def build_render_day_from_document(
+    document: ItineraryDocument,
+    day: str,
+    rows: list[dict],
+    *,
+    output_edits: dict | None = None,
+    detail_level: str = "Rich descriptive",
+) -> RenderDay:
+    """Build one RenderDay from the structured itinerary source document."""
+
+    ordered_rows = _rows_ordered_by_day_document(_day_document_for(document, day), rows)
+    main_rows = [row for row in ordered_rows if not is_optional_row(row)] or list(ordered_rows)
     day_shell = canonical_day(day, main_rows, output_edits=output_edits, detail_level=detail_level)
+    day_document = _day_document_for(document, day)
+    source_ids = list(day_document.source_row_ids) if day_document else list(day_shell.source_row_ids)
+    warnings = list(day_shell.warnings)
+    if day_document:
+        warnings.extend(warning.message for warning in day_document.warnings)
     return RenderDay(
         day=day_shell.day,
-        number=day_shell.number,
+        number=day_document.number if day_document and day_document.number else day_shell.number,
         city=day_shell.city,
         title=day_shell.title,
         intro=day_shell.intro,
-        blocks=build_day_render_blocks(rows),
-        source_row_ids=list(day_shell.source_row_ids),
-        warnings=list(day_shell.warnings),
+        blocks=build_day_render_blocks(ordered_rows),
+        source_row_ids=source_ids,
+        warnings=list(dict.fromkeys(warnings)),
+    )
+
+
+def build_render_day(
+    day: str,
+    rows: list[dict],
+    *,
+    output_edits: dict | None = None,
+    detail_level: str = "Rich descriptive",
+    structured_document: ItineraryDocument | None = None,
+) -> RenderDay:
+    """Compatibility wrapper that now renders through ItineraryDocument."""
+
+    document = structured_document or build_itinerary_document(list(rows), {day: [row for row in rows if not is_optional_row(row)] or list(rows)})
+    return build_render_day_from_document(
+        document,
+        day,
+        list(rows),
+        output_edits=output_edits,
+        detail_level=detail_level,
     )
