@@ -100,8 +100,10 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Visit the Munch Museum at your own pace, with pre-arranged admission giving you time to explore the galleries and exhibitions independently."
     if "fløibanen" in full or "floibanen" in full:
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
-    if "fjellheisen" in full or ("round trip ticket" in full and "trom" in full):
+    if "fjellheisen" in full or ("trom" in full and any(marker in full for marker in ["cable car", "gondola", "mountain lift"])):
         return "Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains."
+    if "round trip ticket" in full and "trom" in full:
+        return "Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day."
     if (
         ("cable car" in full or "funicular" in full or "gondola" in full)
         and ("ticket" in full or "admission" in full)

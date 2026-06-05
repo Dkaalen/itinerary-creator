@@ -7,6 +7,7 @@ from itinerary_generation.day_grouping import get_day_count, group_rows_by_day
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.destination_helpers import (
     clean_client_title,
+    destination_cities_for_row,
     get_destination_countries,
     get_display_destination_city,
     get_primary_city,
@@ -42,6 +43,7 @@ __all__ = [
     "get_activity_text",
     "get_day_count",
     "get_day_number",
+    "destination_cities_for_row",
     "get_destination_countries",
     "get_display_destination_city",
     "get_primary_city",

@@ -177,7 +177,9 @@ def create_client_activity_title(row):
     if "mountain hike" in full_text and "abisko" in full_text:
         return "Mountain Hike in Abisko"
     if "round trip ticket" in full_text and "trom" in full_text:
-        return "Fjellheisen Cable Car"
+        if any(marker in full_text for marker in ["fjellheisen", "cable car", "gondola", "mountain lift"]):
+            return "Fjellheisen Cable Car"
+        return "Round-trip viewpoint ticket in Tromsø"
 
     if title_text.startswith("round trip ticket"):
         return "Round Trip Ticket"

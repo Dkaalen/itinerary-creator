@@ -8,7 +8,7 @@ from itinerary_generation.common import (
     has_self_drive_markers,
     is_valid_destination_city,
     main_rows_only,
-    get_display_destination_city,
+    destination_cities_for_row,
 )
 from place_aliases import canonicalize_place_name
 from itinerary_generation.transport import (
@@ -25,9 +25,10 @@ def create_trip_glance(parsed_rows, grouped_days):
     nights = max(day_count - 1, 0)
 
     row_cities = [
-        get_display_destination_city(row.get("city", ""))
+        city
         for row in parsed_rows
-        if is_valid_destination_city(get_display_destination_city(row.get("city", "")))
+        for city in destination_cities_for_row(row)
+        if is_valid_destination_city(city)
     ]
     start_city = row_cities[0] if row_cities else (cities[0] if cities else "TBA")
     end_city = row_cities[-1] if row_cities else (cities[-1] if cities else "TBA")

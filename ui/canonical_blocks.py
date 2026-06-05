@@ -5,14 +5,13 @@ canonical activity and accommodation HTML rendering separate from day-row
 orchestration so ``ui.day_blocks`` can become a thinner coordinator over time.
 """
 
-from itinerary_generation.canonical_builder import canonical_activity_block, canonical_accommodation_block
+from itinerary_generation.canonical_builder import canonical_accommodation_block, canonical_activity_block
+from itinerary_generation.render_model import RenderBlock, render_block_from_canonical
 from ui.render_helpers import esc, render_list_items
 
 
-def render_activity_block(row):
-    """Render a canonical activity block as the existing activity HTML shape."""
-
-    block = canonical_activity_block(row)
+def _render_activity_render_block(block: RenderBlock) -> dict:
+    """Render an activity RenderBlock as the existing activity HTML shape."""
 
     html_text = f'<div class="content-block activity-block" data-row-id="{esc(block.row_id)}">'
     html_text += f'<div class="section-title">{esc(block.section_title)}</div>'
@@ -40,9 +39,20 @@ def render_activity_block(row):
 
 
 def render_accommodation_block(row):
-    """Render a canonical accommodation block as the existing accommodation HTML shape."""
+    """Resolve a row through canonical content, then render the UI-neutral block."""
 
-    block = canonical_accommodation_block(row)
+    return _render_accommodation_render_block(render_block_from_canonical(canonical_accommodation_block(row)))
+
+
+def render_activity_block(row):
+    """Resolve a row through canonical content, then render the UI-neutral block."""
+
+    return _render_activity_render_block(render_block_from_canonical(canonical_activity_block(row)))
+
+
+def _render_accommodation_render_block(block: RenderBlock) -> dict:
+    """Render an accommodation RenderBlock as the existing accommodation HTML shape."""
+
     html_text = f'<div class="content-block accommodation-block" data-row-id="{esc(block.row_id)}">'
     html_text += f'<div class="section-title">{esc(block.section_title)}</div>'
     html_text += f'<div class="body-text strong-line">{esc(block.title)}</div>'

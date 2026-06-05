@@ -207,14 +207,14 @@ def _ambiguous_row_warnings(row: dict) -> tuple[ModelWarning, ...]:
     row_id = _row_id(row)
 
     warnings: list[ModelWarning] = []
-    if "round trip ticket" in source_lower and "fjellheisen" in title_lower:
-        explicit_markers = ("fjellheisen", "cable car", "funicular", "funicual")
+    if "round trip ticket" in source_lower and "trom" in source_lower:
+        explicit_markers = ("fjellheisen", "cable car", "funicular", "funicual", "gondola", "mountain lift")
         if not any(marker in source_lower for marker in explicit_markers):
             warnings.append(ModelWarning(
                 code="ambiguous_activity_title",
                 message=(
-                    "Activity title was inferred from a generic 'Round Trip Ticket' row; "
-                    "confirm the product name before final output."
+                    "Activity title came from a generic 'Round Trip Ticket' row in Tromsø; "
+                    "confirm the exact product name before final output."
                 ),
                 source_row_ids=(row_id,),
             ))

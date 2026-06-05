@@ -15,14 +15,14 @@ from itinerary_generation.tallinn import (
     tallinn_ferry_title,
 )
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, strip_price_fragments
-from ui.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
-from ui.render_helpers import (
+from itinerary_generation.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
+from itinerary_generation.activity_description_helpers import get_activity_description
+from itinerary_generation.activity_logistics import get_activity_logistics
+from itinerary_generation.render_text_helpers import normalize_list
+from itinerary_generation.time_display import (
     display_time_with_duration,
-    get_activity_description,
     get_activity_duration_label,
-    get_activity_logistics,
     get_time_period,
-    normalize_list,
 )
 
 
@@ -95,6 +95,9 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
         meta.append(CanonicalMetaLine("End point", end_point))
 
     warnings: list[str] = []
+    source_text = " ".join(str(row.get(key) or "") for key in ("raw", "original_title", "details", "title")).lower()
+    if "round trip ticket" in source_text and "trom" in source_text and not any(marker in source_text for marker in ["fjellheisen", "cable car", "gondola", "mountain lift"]):
+        warnings.append("ambiguous_activity_title")
     if "|" in description:
         warnings.append("description_contains_pipe")
     if re.search(r"\b(?:opening hours|includese|tickets only|carried out|participanter)\b", f"{title} {description}", re.I):

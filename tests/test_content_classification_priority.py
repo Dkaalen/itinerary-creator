@@ -94,3 +94,20 @@ def test_anytime_activity_range_is_labelled_as_start_window():
 
     assert any(line.label == "Start window" and line.value == "8:00 AM - 10:00 AM" for line in block.meta)
     assert any(line.label == "Duration" and line.value == "7 hours" for line in block.meta)
+
+
+def test_ambiguous_tromso_round_trip_ticket_stays_generic_and_warns():
+    from itinerary_parser import parse_itinerary
+    from normalizer import normalize_itinerary_rows
+    from itinerary_generation.canonical_activity import canonical_activity_block
+
+    raw = """
+    Day 1	Activity	02/11/2026		Tromso	Round Trip Ticket: Enjoy the spectacular view of Tromsø and its beautiful surroundings from above, daytime or evening.
+    """
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    block = canonical_activity_block(rows[0])
+
+    assert block.title == "Round-trip viewpoint ticket in Tromsø"
+    assert "Fjellheisen" not in block.title
+    assert "Fjellheisen" not in block.description
+    assert "ambiguous_activity_title" in block.warnings

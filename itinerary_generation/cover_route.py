@@ -5,8 +5,7 @@ from __future__ import annotations
 from html import escape
 
 from itinerary_generation.common import (
-    get_display_destination_city,
-    is_valid_destination_city,
+    destination_cities_for_row,
     main_rows_only,
 )
 
@@ -18,11 +17,9 @@ def route_cities_with_return(parsed_rows: list[dict]) -> list[str]:
 
     route: list[str] = []
     for row in main_rows_only(parsed_rows):
-        city = get_display_destination_city(str(row.get("city", "")).strip())
-        if not city or not is_valid_destination_city(city):
-            continue
-        if not route or city != route[-1]:
-            route.append(city)
+        for city in destination_cities_for_row(row):
+            if not route or city != route[-1]:
+                route.append(city)
 
     if len(route) >= 3 and route[-1] == route[0]:
         result: list[str] = []

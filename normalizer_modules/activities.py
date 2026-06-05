@@ -118,8 +118,10 @@ def normalize_activity_title(row: dict) -> str:
         if is_tallinn_ferry_framework(row):
             return "Day Excursion to Tallinn"
         return "Day Trip to Tallinn"
-    if "fjellheisen" in lower or ("round trip ticket" in lower and "trom" in lower) or "cable car" in lower:
+    if "fjellheisen" in lower or ("trom" in lower and any(marker in lower for marker in ["cable car", "gondola", "mountain lift"])):
         return "Fjellheisen Cable Car"
+    if "round trip ticket" in lower and "trom" in lower:
+        return "Round-trip viewpoint ticket in Tromsø"
     if "essential oslo" in lower or ("oslo" in lower and "city center guided walking tour" in lower):
         return "Oslo City Center Walking Tour"
     if "must-see bergen" in lower or ("bergen" in lower and "foot and boat" in lower):

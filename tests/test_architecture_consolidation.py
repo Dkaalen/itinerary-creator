@@ -39,3 +39,41 @@ def test_cover_route_line_and_html_share_orphan_prevention():
     html = cover_route_html(route)
     assert "<br>" in html
     assert "Bergen&nbsp;·&nbsp;Oslo" in html
+
+
+def test_itinerary_generation_layer_does_not_import_ui_modules():
+    import ast
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "itinerary_generation"
+    offenders = []
+    for py_file in root.rglob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("ui"):
+                offenders.append(f"{py_file.relative_to(root.parent)}:{node.lineno}")
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "ui" or alias.name.startswith("ui."):
+                        offenders.append(f"{py_file.relative_to(root.parent)}:{node.lineno}")
+
+    assert offenders == []
+
+
+def test_route_only_transport_rows_populate_cover_and_glance_metadata():
+    from itinerary_parser import parse_itinerary
+    from normalizer import normalize_itinerary_rows
+    from generator import group_rows_by_day
+    from itinerary_generation.summaries import create_trip_glance
+    from itinerary_generation.titles import create_destinations_line
+
+    raw = """
+    Day 1	Transport	01/01/2026								Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Tromsø Busterminal Prostneset
+    """
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    grouped = group_rows_by_day(rows)
+
+    assert create_destinations_line(rows) == "Rovaniemi · Tromsø"
+    assert create_trip_glance(rows, grouped)["Start"] == "Rovaniemi"
+    assert create_trip_glance(rows, grouped)["End"] == "Tromsø"
+    assert create_trip_glance(rows, grouped)["Destinations"] == "Rovaniemi · Tromsø"
