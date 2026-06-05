@@ -38,6 +38,7 @@ FAST_TESTS = (
     "tests/test_patch_k_transport_preview_quality.py",
     "tests/test_messy_transport_safety_net.py",
     "tests/test_visual_editor_autosave_contract.py",
+    "tests/test_visual_editor_typed_draft.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
     "tests/test_structured_core_model.py",

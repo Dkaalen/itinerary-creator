@@ -36,6 +36,13 @@ from ui.day_blocks import build_day_blocks
 from ui.render_helpers import get_detail_level_name, list_to_text
 from ui.picture_workflow import pictures_are_added
 from ui.editor_sanitizer import clean_visual_editor_html, normalize_final_list_html
+from itinerary_generation.editable_draft import (
+    day_by_id,
+    first_block_html,
+    mirror_draft_to_legacy_output_edits,
+    normalise_editable_draft,
+    section_by_id,
+)
 from visual_editor_component.editor_bridge import render_visual_page_editor
 
 
@@ -170,6 +177,7 @@ def _client_output_warnings_for_payload(payload):
 
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
+    output_edits = output_edits or {}
     pictures_added = pictures_are_added(output_edits)
     image_matches = select_day_images_with_overrides(grouped_days, output_edits) if pictures_added else {}
     image_warnings = audit_day_image_matches(grouped_days, image_matches, output_edits) if pictures_added else ()
@@ -182,10 +190,13 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "path": warning.path,
         })
     payload_days = []
+    stored_editor_draft = (output_edits or {}).get("editor_draft") if isinstance(output_edits, dict) else {}
+    stored_editor_draft = stored_editor_draft if isinstance(stored_editor_draft, dict) else {}
 
     for day, rows in grouped_days.items():
         day_edits = (output_edits or {}).get("days", {}).get(day, {})
-        city = day_edits.get("city") or create_travel_route_label(rows) or get_primary_city(rows)
+        typed_day = day_by_id(stored_editor_draft, day)
+        city = typed_day.get("city") or day_edits.get("city") or create_travel_route_label(rows) or get_primary_city(rows)
         if pictures_added:
             match = image_matches.get(day)
             image_path = match.get("path") if match else ""
@@ -220,27 +231,38 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
         # Presence matters here: an intentionally emptied visual-editor block
         # must stay empty instead of falling back to regenerated content.
-        if "blocks_html" in day_edits:
+        typed_blocks_html = first_block_html(typed_day)
+        if typed_blocks_html is not None:
+            blocks_html = typed_blocks_html
+        elif "blocks_html" in day_edits:
             blocks_html = day_edits.get("blocks_html", "")
         else:
             blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
 
         payload_days.append({
             "day": day,
-            "label": day,
-            "date": get_day_date_text(rows),
-            "title": day_edits.get("title") or create_day_title(rows),
+            "label": typed_day.get("label") or day,
+            "date": typed_day.get("date") or get_day_date_text(rows),
+            "title": typed_day.get("title") or day_edits.get("title") or create_day_title(rows),
             "city": city,
-            "intro": day_edits.get("intro") or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
+            "intro": typed_day.get("intro") or day_edits.get("intro") or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
             "blocks_html": blocks_html,
+            "blocks": typed_day.get("blocks") or [{"block_id": "main", "kind": "day_content", "content_html": blocks_html}],
             "image": image_obj,
         })
 
     structured_document = build_itinerary_document(parsed_rows, grouped_days)
     generated_inclusions_html = render_inclusion_sections_inner_html(structured_document.inclusions)
     generated_inclusion_page_htmls = render_inclusion_page_inner_htmls(structured_document.inclusions)
-    saved_inclusion_page_htmls = output_edits.get("whats_included_pages_html")
-    saved_exclusions_html = output_edits.get("whats_not_included_html")
+    typed_inclusions = section_by_id(stored_editor_draft, "whats_included")
+    typed_exclusions = section_by_id(stored_editor_draft, "whats_not_included")
+    typed_notes = section_by_id(stored_editor_draft, "important_travel_notes")
+    typed_inclusion_pages = [page.get("content_html", "") for page in typed_inclusions.get("pages", []) if isinstance(page, dict)] if typed_inclusions else []
+    saved_inclusion_page_htmls = typed_inclusion_pages or output_edits.get("whats_included_pages_html")
+    saved_exclusions_html = typed_exclusions.get("content_html") if typed_exclusions else output_edits.get("whats_not_included_html")
+    if typed_exclusions and not saved_exclusions_html and typed_exclusions.get("pages"):
+        first_page = typed_exclusions.get("pages", [{}])[0]
+        saved_exclusions_html = first_page.get("content_html", "") if isinstance(first_page, dict) else ""
     effective_inclusion_page_htmls = _page_html_payload(saved_inclusion_page_htmls or generated_inclusion_page_htmls)
     generated_whats_not_included_text = list_to_text(create_whats_not_included(parsed_rows))
     generated_whats_not_included_html = render_inclusion_sections_inner_html(structured_document.exclusions)
@@ -262,29 +284,31 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
     model_warnings = _compact_model_warnings(structured_document)
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
+    typed_cover = stored_editor_draft.get("cover", {}) if isinstance(stored_editor_draft.get("cover"), dict) else {}
+    typed_summary = stored_editor_draft.get("summary", {}) if isinstance(stored_editor_draft.get("summary"), dict) else {}
 
     payload = {
         "draft_id": output_edits.get("draft_id", ""),
         "meta": {
-            "draft_schema_version": 2,
+            "draft_schema_version": 3,
             "source_signature": _source_signature(parsed_rows, grouped_days),
             "day_count": len(payload_days),
         },
         "cover": {
-            "cover_kicker": output_edits.get("cover_kicker", "Travel Itinerary"),
+            "cover_kicker": typed_cover.get("cover_kicker") or output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
             "cover_background_data_uri": cover_theme.get("background_data_uri", ""),
             "cover_ink": cover_theme.get("ink", "#1f3446"),
             "cover_muted": cover_theme.get("muted", "#7b746c"),
             "cover_accent": cover_theme.get("accent", "#b89555"),
-            "trip_title": output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
-            "trip_subtitle": output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
-            "trip_dates": output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows),
-            "destinations_line": output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+            "trip_title": typed_cover.get("trip_title") or output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
+            "trip_subtitle": typed_cover.get("trip_subtitle") or output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
+            "trip_dates": typed_cover.get("trip_dates") or output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows),
+            "destinations_line": typed_cover.get("destinations_line") or output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
         },
         "summary": {
-            "trip_glance": _get_trip_glance(parsed_rows, grouped_days, output_edits),
-            "journey_arc": _get_journey_arc(grouped_days, output_edits),
+            "trip_glance": typed_summary.get("trip_glance") or _get_trip_glance(parsed_rows, grouped_days, output_edits),
+            "journey_arc": typed_summary.get("journey_arc") or _get_journey_arc(grouped_days, output_edits),
         },
         "days": payload_days,
         "final_pages": {
@@ -293,12 +317,13 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "whats_included_text": output_edits.get("whats_included_text", ""),
             "whats_not_included_html": effective_exclusions_html,
             "whats_not_included_text": output_edits.get("whats_not_included_text") or generated_whats_not_included_text,
-            "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
+            "important_travel_notes_text": typed_notes.get("text") if typed_notes else output_edits.get("important_travel_notes_text", ""),
         },
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
         "workflow": {"pictures_added": pictures_added},
         "model_warnings": model_warnings,
     }
+    payload["editor_draft"] = normalise_editable_draft(payload)
     output_warnings = _client_output_warnings_for_payload(payload)
     for warning in model_warnings:
         output_warnings.append({
@@ -320,6 +345,46 @@ def _decode_visual_editor_result(result):
     if isinstance(data, dict) and "payload" in data and "commit_nonce" in data:
         return data.get("payload") or {}, str(data.get("commit_nonce") or "")
     return data, ""
+
+
+
+
+def _sanitize_editor_draft(editor_draft):
+    """Clean typed editor draft values before storing/mirroring them."""
+    if not isinstance(editor_draft, dict):
+        return {}
+    cleaned = json.loads(json.dumps(editor_draft))
+    cover = cleaned.get("cover") if isinstance(cleaned.get("cover"), dict) else {}
+    for key, value in list(cover.items()):
+        text = str(value or "").strip()
+        cover[key] = _normalize_route_edit(text) if key == "destinations_line" else text
+    cleaned["cover"] = cover
+
+    for day in cleaned.get("days") or []:
+        if not isinstance(day, dict):
+            continue
+        for key in ("title", "city", "intro", "label", "date"):
+            if key in day:
+                day[key] = str(day.get(key, "")).strip()
+        for block in day.get("blocks") or []:
+            if isinstance(block, dict):
+                block["content_html"] = clean_visual_editor_html(block.get("content_html", block.get("html", "")) or "")
+
+    for section in cleaned.get("final_sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_id = str(section.get("section_id", ""))
+        for page in section.get("pages") or []:
+            if not isinstance(page, dict):
+                continue
+            html = page.get("content_html", page.get("html", "")) or ""
+            page["content_html"] = normalize_final_list_html(html) if section_id == "whats_not_included" else clean_visual_editor_html(html)
+        if "content_html" in section:
+            html = section.get("content_html", "") or ""
+            section["content_html"] = normalize_final_list_html(html) if section_id == "whats_not_included" else clean_visual_editor_html(html)
+        if "text" in section:
+            section["text"] = str(section.get("text", "")).strip()
+    return cleaned
 
 
 def apply_visual_editor_result(result, output_edits, mark_dirty=None):
@@ -438,6 +503,10 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
             if key == "whats_not_included_text" and output_edits.get("whats_not_included_html"):
                 continue
             output_edits[key] = str(final_pages.get(key, "")).strip()
+
+    if "editor_draft" in data:
+        editor_draft = _sanitize_editor_draft(normalise_editable_draft(data))
+        mirror_draft_to_legacy_output_edits(output_edits, editor_draft)
 
     if isinstance(data.get("issue_flags"), list):
         cleaned_flags = []

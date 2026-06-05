@@ -5,6 +5,7 @@ from __future__ import annotations
 from itinerary_generation.common import is_optional_row
 from itinerary_generation.day_render_blocks import build_render_day
 from itinerary_generation.date_resolver import get_day_date_text
+from itinerary_generation.editable_draft import day_by_id, first_block_html
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
 from ui.render_blocks import render_blocks_to_html
 from ui.editor_sanitizer import clean_visual_editor_html
@@ -14,6 +15,7 @@ from ui.picture_workflow import pictures_are_added
 
 def render_day_section(day, rows, output_edits=None, render_day=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
+    typed_day = day_by_id((output_edits or {}).get("editor_draft", {}) if isinstance(output_edits, dict) else {}, day)
     if render_day is None:
         detail_level = get_detail_level_name(output_edits)
         render_day = build_render_day(day, rows, output_edits=output_edits, detail_level=detail_level)
@@ -38,7 +40,10 @@ def render_day_section(day, rows, output_edits=None, render_day=None):
                 <div class="intro">{esc(day_intro)}</div>
     '''
 
-    if "blocks_html" in day_edits:
+    typed_blocks_html = first_block_html(typed_day)
+    if typed_blocks_html is not None:
+        html_text += clean_visual_editor_html(typed_blocks_html)
+    elif "blocks_html" in day_edits:
         # Presence matters here: an empty saved editor block means the user
         # intentionally cleared the generated content for this day.
         html_text += clean_visual_editor_html(day_edits.get("blocks_html", ""))

@@ -359,7 +359,7 @@ function draftStorageKey() {
 function persistLocalDraft() {
   if (!model || !initialPayload) return;
   try {
-    const snapshot = compactFullPayloadForCommit(model);
+    const snapshot = attachEditableDraft(compactFullPayloadForCommit(model));
     localStorage.setItem(draftStorageKey(), JSON.stringify({
       saved_at: Date.now(),
       source_signature: initialPayload?.meta?.source_signature || '',
@@ -392,7 +392,7 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
       targetDay = {day: localDay.day || `Day ${idx + 1}`};
       merged.days.push(targetDay);
     }
-    ['day','label','date','title','city','intro','blocks_html'].forEach(field => {
+    ['day','label','date','title','city','intro','blocks_html','blocks'].forEach(field => {
       if (field in localDay) targetDay[field] = localDay[field];
     });
     if (localPicturesAdded && localDay.image) {
@@ -400,6 +400,7 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
     }
   });
   if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
+  if (localDraft.editor_draft) merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
   merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
   if (localDraft.workflow && 'pictures_added' in localDraft.workflow) {
@@ -674,6 +675,63 @@ function compactImage(image) {
   if (copy.upload && !copy.upload.data_uri) delete copy.upload;
   return copy;
 }
+
+function buildEditableDraftFromPayload(value) {
+  const source = JSON.parse(JSON.stringify(value || {}));
+  const draft = {
+    schema_version: 3,
+    cover: source.cover || {},
+    summary: source.summary || {},
+    days: [],
+    final_sections: [],
+    workflow: source.workflow || {},
+    issue_flags: Array.isArray(source.issue_flags) ? source.issue_flags : []
+  };
+  (Array.isArray(source.days) ? source.days : []).forEach((day, index) => {
+    const dayId = String(day?.day || day?.day_id || day?.label || `Day ${index + 1}`);
+    const blocks = Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html')
+      ? [{block_id: 'main', kind: 'day_content', title: '', content_html: String(day?.blocks_html ?? '')}]
+      : (Array.isArray(day?.blocks) && day.blocks.length
+        ? day.blocks.map((block, blockIndex) => ({
+            block_id: String(block?.block_id || `main-${blockIndex + 1}`),
+            kind: String(block?.kind || 'day_content'),
+            title: String(block?.title || ''),
+            content_html: String(block?.content_html ?? block?.html ?? '')
+          }))
+        : [{block_id: 'main', kind: 'day_content', title: '', content_html: ''}]);
+    const draftDay = {
+      day_id: dayId,
+      label: String(day?.label || dayId),
+      date: String(day?.date || ''),
+      title: String(day?.title || ''),
+      city: String(day?.city || ''),
+      intro: String(day?.intro || ''),
+      blocks
+    };
+    if (day?.image) draftDay.image = compactImage(day.image);
+    draft.days.push(draftDay);
+  });
+  const finalPages = source.final_pages || {};
+  if ('whats_included_pages_html' in finalPages || 'whats_included_html' in finalPages || 'whats_included_text' in finalPages) {
+    const pages = Array.isArray(finalPages.whats_included_pages_html)
+      ? finalPages.whats_included_pages_html.map((page, index) => ({page_id: `page-${index + 1}`, content_html: String(typeof page === 'string' ? page : (page?.html ?? page?.content_html ?? ''))}))
+      : (finalPages.whats_included_html ? [{page_id: 'page-1', content_html: String(finalPages.whats_included_html || '')}] : []);
+    draft.final_sections.push({section_id: 'whats_included', title: "What's included", pages, text: String(finalPages.whats_included_text || ''), content_html: String(finalPages.whats_included_html || '')});
+  }
+  if ('whats_not_included_html' in finalPages || 'whats_not_included_text' in finalPages) {
+    const html = String(finalPages.whats_not_included_html || '');
+    draft.final_sections.push({section_id: 'whats_not_included', title: "What's not included", pages: html ? [{page_id: 'page-1', content_html: html}] : [], text: String(finalPages.whats_not_included_text || ''), content_html: html});
+  }
+  if ('important_travel_notes_text' in finalPages) {
+    draft.final_sections.push({section_id: 'important_travel_notes', title: 'Important travel notes', pages: [], text: String(finalPages.important_travel_notes_text || ''), content_html: ''});
+  }
+  return draft;
+}
+function attachEditableDraft(value) {
+  const copy = JSON.parse(JSON.stringify(value || {}));
+  copy.editor_draft = buildEditableDraftFromPayload(copy);
+  return copy;
+}
 function getByPath(obj, path) {
   return path.split('.').reduce((cur, part) => {
     if (cur == null) return undefined;
@@ -718,6 +776,7 @@ function pruneForSave(value) {
     }
   });
 
+  if (touchedKeys.size) payload.editor_draft = buildEditableDraftFromPayload(payload);
   return payload;
 }
 function markTouched(key) {
@@ -1020,6 +1079,7 @@ function compactFullPayloadForCommit(value) {
   (full.days || []).forEach(day => {
     if (day.image) day.image = compactImage(day.image);
   });
+  full.editor_draft = buildEditableDraftFromPayload(full);
   return full;
 }
 function buildSaveEnvelope(commitNonce = null) {

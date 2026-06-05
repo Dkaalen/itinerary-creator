@@ -322,7 +322,7 @@ def test_visual_editor_payload_includes_source_signature_for_draft_recovery():
         {"days": {}, "important_travel_notes_text": "", "pictures_added": False, "draft_id": "draft-1"},
     )
 
-    assert payload["meta"]["draft_schema_version"] == 2
+    assert payload["meta"]["draft_schema_version"] == 3
     assert payload["meta"]["day_count"] == 1
     assert payload["meta"]["source_signature"]
 
