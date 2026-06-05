@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from itinerary_generation.canonical_builder import canonical_day
 from itinerary_generation.common import is_optional_row
+from itinerary_generation.day_render_blocks import build_render_day
 from itinerary_generation.date_resolver import get_day_date_text
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
-from ui.day_blocks import build_day_blocks
+from ui.render_blocks import render_blocks_to_html
 from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import esc, get_detail_level_name
 from ui.picture_workflow import pictures_are_added
@@ -16,12 +16,12 @@ def render_day_section(day, rows, output_edits=None):
     day_edits = (output_edits or {}).get("days", {}).get(day, {})
     detail_level = get_detail_level_name(output_edits)
     main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
-    canonical = canonical_day(day, main_rows, output_edits=output_edits, detail_level=detail_level)
-    day_title = canonical.title
-    day_intro = canonical.intro
-    city = canonical.city
-    blocks = build_day_blocks(rows)
-    day_number = canonical.number
+    render_day = build_render_day(day, rows, output_edits=output_edits, detail_level=detail_level)
+    day_title = render_day.title
+    day_intro = render_day.intro
+    city = render_day.city
+    blocks = render_day.blocks
+    day_number = render_day.number
     day_date = get_day_date_text(main_rows)
     day_kicker_html = f"DAY {esc(day_number)}"
     if city:
@@ -42,8 +42,7 @@ def render_day_section(day, rows, output_edits=None):
         # intentionally cleared the generated content for this day.
         html_text += clean_visual_editor_html(day_edits.get("blocks_html", ""))
     else:
-        for block in blocks:
-            html_text += block["html"]
+        html_text += render_blocks_to_html(blocks)
 
     html_text += "</section>"
     return html_text

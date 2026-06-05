@@ -19,6 +19,12 @@ class RenderMetaLine:
 
 
 @dataclass(slots=True)
+class RenderSection:
+    title: str
+    items: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class RenderBlock:
     kind: str
     row_id: str = ""
@@ -29,6 +35,8 @@ class RenderBlock:
     description: str = ""
     notable_sights: list[str] = field(default_factory=list)
     lines: list[str] = field(default_factory=list)
+    extra_sections: list[RenderSection] = field(default_factory=list)
+    css_class: str = ""
     source_row_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -67,6 +75,7 @@ def render_block_from_canonical(block: CanonicalBlock) -> RenderBlock:
         description=block.description,
         notable_sights=list(block.notable_sights),
         lines=list(block.lines),
+        css_class=f"{block.kind}-block" if block.kind else "",
         source_row_ids=list(block.source_row_ids),
         warnings=list(block.warnings),
     )

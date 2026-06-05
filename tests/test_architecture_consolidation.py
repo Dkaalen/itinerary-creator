@@ -77,3 +77,36 @@ def test_route_only_transport_rows_populate_cover_and_glance_metadata():
     assert create_trip_glance(rows, grouped)["Start"] == "Rovaniemi"
     assert create_trip_glance(rows, grouped)["End"] == "Tromsø"
     assert create_trip_glance(rows, grouped)["Destinations"] == "Rovaniemi · Tromsø"
+
+
+def test_day_page_blocks_are_ui_neutral_before_html_rendering():
+    from itinerary_generation.day_render_blocks import build_day_render_blocks
+    from itinerary_generation.render_model import RenderBlock
+    from ui.day_blocks import build_day_blocks
+
+    raw = """
+    Day 1	Activity		01/01/2026		09:00 AM	2 hours			Tromsø	Northern Lights Photography Tour
+    Day 1	Hotel	1	01/01/2026	02/01/2026				Tromsø	Clarion Hotel The Edge, 1xNight, Incl Breakfast
+    """
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
+    day_rows = group_rows_by_day(rows)["Day 1"]
+
+    render_blocks = build_day_render_blocks(day_rows)
+    assert render_blocks
+    assert all(isinstance(block, RenderBlock) for block in render_blocks)
+    assert all(not hasattr(block, "html") for block in render_blocks)
+
+    html_blocks = build_day_blocks(day_rows)
+    assert html_blocks
+    assert all("html" in block for block in html_blocks)
+    assert "Northern Lights" in "\n".join(block["html"] for block in html_blocks)
+
+
+def test_render_day_section_uses_render_day_contract_not_legacy_day_blocks():
+    import inspect
+    import ui.day_page_sections as day_page_sections
+
+    source = inspect.getsource(day_page_sections.render_day_section)
+    assert "build_render_day" in source
+    assert "build_day_blocks" not in source
+    assert "render_blocks_to_html" in source
