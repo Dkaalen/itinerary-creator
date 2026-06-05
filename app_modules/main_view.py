@@ -211,7 +211,7 @@ def render_visual_editor_step():
         with st.expander(step_title, expanded=True):
             note = (
                 "Text-first mode keeps pictures out until the writing and layout are approved. "
-                "Edits autosave while you work and Create PDF applies pending edits first."
+                "Browser-local draft recovery protects unsaved edits. Create PDF applies pending page edits first."
                 if not pictures_added
                 else
                 "Pictures are now loaded. Review each page image, replace/remove it if needed, and continue editing text if necessary."

@@ -58,20 +58,35 @@ def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
 
 
 def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
-    direct_origin, direct_destination = _direct_nutshell_pipe_route(str(text or ""))
+    source = str(text or "")
+    direct_origin, direct_destination = _direct_nutshell_pipe_route(source)
     if direct_origin and direct_destination:
         return f"Norway in a Nutshell from {direct_origin} to {direct_destination}"
 
     explicit_destination_match = re.search(
         r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
-        str(text or ""),
+        source,
         flags=re.IGNORECASE,
     )
     if explicit_destination_match:
         destination = polish_title(explicit_destination_match.group(1).strip())
-        if fallback_origin and fallback_origin.lower() != destination.lower():
-            return f"Norway in a Nutshell from {polish_title(fallback_origin)} to {destination}"
         return f"Norway in a Nutshell to {destination}"
+
+    # Product titles may include supplier service words before the real route,
+    # e.g. "Nærøyfjord Cruise & Luggage Transfer Bergen to Oslo: Day Tour...".
+    # Prefer a clean main city pair over the generic from/to extractor, which
+    # can otherwise swallow the supplier prefix as part of the origin.
+    city_names = "Bergen|Oslo|Flåm|Flam|Voss|Myrdal|Gudvangen"
+    main_route_match = re.search(
+        rf"(?:luggage\s+transfer\s+)?\b(?P<origin>{city_names})\s+to\s+(?P<destination>{city_names})\b",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if main_route_match:
+        origin = _clean_nutshell_place(main_route_match.group("origin"))
+        destination = _clean_nutshell_place(main_route_match.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return f"Norway in a Nutshell from {origin} to {destination}"
 
     origin, destination = fallback_origin, fallback_destination
     if origin and destination and origin.lower() != destination.lower():
@@ -79,7 +94,6 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     if destination:
         return f"Norway in a Nutshell to {destination}"
     return "Norway in a Nutshell"
-
 
 def extract_norway_nutshell_route_points(text: str) -> list[str]:
     """Return a clean stop list from Nutshell timetable or route text.

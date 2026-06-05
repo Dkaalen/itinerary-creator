@@ -328,7 +328,7 @@ let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
 let lastSavedPayload = '';
-let autosaveTimer = null;
+// Autosaving is limited to browser-local draft persistence; Streamlit commits happen only on Save/Add pictures/PDF.
 let activeEditKey = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
@@ -556,7 +556,7 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review text and pictures' : 'Text-first editing mode'}</strong><span>${picturesAdded() ? 'Picture controls are available on each day page. Edits autosave while you work. Create PDF applies pending edits first.' : 'No pictures are loaded yet. Text edits autosave so browser refreshes do not wipe your work. Create PDF applies pending edits first.'}</span></div>
+      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review text and pictures' : 'Text-first editing mode'}</strong><span>${picturesAdded() ? 'Picture controls are available on each day page. Save when ready; Create PDF applies pending edits first.' : 'No pictures are loaded yet. Browser-local draft recovery protects unsaved text edits. Create PDF applies pending edits first.'}</span></div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
           <span id="editCount" class="stat-pill">0 manual edits pending</span>
@@ -727,18 +727,8 @@ function markTouched(key) {
     note.textContent = 'Unsaved edits';
     note.classList.add('show');
   }
-  scheduleAutosave();
-  updateEditorStats();
-}
-function scheduleAutosave() {
   persistLocalDraft();
-  if (autosaveTimer) clearTimeout(autosaveTimer);
-  const note = document.getElementById('savedNote');
-  if (note) {
-    note.textContent = 'Autosaving…';
-    note.classList.add('show');
-  }
-  autosaveTimer = setTimeout(() => saveChanges(null, {autosave: true}), 1600);
+  updateEditorStats();
 }
 function isHtmlEditKey(key) {
   return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.endsWith('.whats_not_included_html') || key.includes('.whats_included_pages_html.'));
@@ -1063,11 +1053,7 @@ function saveRestoredLocalDraftToServer() {
   updateEditorStats();
 }
 
-function saveChanges(commitNonce = null, options = {}) {
-  if (autosaveTimer) {
-    clearTimeout(autosaveTimer);
-    autosaveTimer = null;
-  }
+function saveChanges(commitNonce = null) {
   if (!touchedKeys.size && !commitNonce) return;
   const serialized = buildSaveEnvelope(commitNonce);
   if (!commitNonce && serialized === lastSavedPayload) return;
@@ -1077,7 +1063,7 @@ function saveChanges(commitNonce = null, options = {}) {
   touchedKeys = new Set();
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = commitNonce ? 'Applying edits before PDF…' : (options.autosave ? 'Autosaved' : 'Saved for now');
+    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved for now';
     note.classList.add('show');
     if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
   }

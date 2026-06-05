@@ -218,6 +218,24 @@ def row_date_suffix(row):
     return f" - {text}" if text else ""
 
 
+def self_arranged_flight_notice(row) -> str:
+    """Return a clear commercial exclusion label for a self-arranged flight."""
+
+    destination = ""
+    title = str(row.get("title") or "")
+    match = re.search(r"\bflight\s+to\s+(.+)$", title, flags=re.IGNORECASE)
+    if match:
+        destination = polish_title(match.group(1).strip(" -:|.,"))
+    if not destination:
+        text = " ".join(str(row.get(key, "") or "") for key in ["details", "original_title", "title"])
+        match = re.search(r"\bflight\s+(?:from\s+)?[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,|\s+-|\s*\||$)", text, flags=re.IGNORECASE)
+        if match:
+            destination = polish_title(match.group(1).strip(" -:|.,"))
+    if destination:
+        return f"Self-arranged flight to {destination} (not included)"
+    return "Self-arranged flight (not included)"
+
+
 def commercial_row_title(row):
     row_type = get_row_type(row)
     title = ""
@@ -446,6 +464,11 @@ def create_structured_whats_not_included(parsed_rows=None):
             "Self-arranged flights or transport unless specifically stated as included",
             {key: specific_sections.get(key) or [] for key in ["self_arranged_flights", "self_transfers", "costs_not_included"]},
         ))
+        for row_index, row in enumerate(rows):
+            if (_commercial_status(row) == "self_arranged" or is_self_arranged(row)) and _is_flight_row(row):
+                notice = _structured_item(self_arranged_flight_notice(row), row=row, row_index=row_index)
+                if notice and notice["label"] not in {item.get("label") for item in commercial_rules if isinstance(item, dict)}:
+                    commercial_rules.append(notice)
     if any(specific_sections.get(key) for key in ["optional_experiences", "optional_transfers", "optional_hotels"]):
         commercial_rules.append(_commercial_rule_item(
             "Optional add-ons and experiences unless specifically selected",

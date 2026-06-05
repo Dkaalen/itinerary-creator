@@ -33,6 +33,14 @@ from ui.transport_row_blocks import _is_cruise_leisure_row
 def _transport_route_phrase(row):
     return get_transport_route_phrase(row)
 
+
+def _repair_travel_arrangement_case(value: str) -> str:
+    text = str(value or "")
+    text = re.sub(r"\bbus Station\b", "Bus Station", text)
+    text = re.sub(r"\bthe Bus Station\b", "the bus station", text)
+    text = re.sub(r"\bthe Railway Station\b", "the railway station", text)
+    return text
+
 def is_travel_sequence_candidate(row):
     """Rows that form chronological travel arrangements within a day.
 
@@ -122,7 +130,7 @@ def _destination_focused_coach_day_line(row, phrase):
         if match:
             destination = normalize_transport_place(match.group(1))
             if destination_is_terminal(destination):
-                return phrase
+                return f"Coach Transfer to {destination}"
             destination = polish_title(base_destination_from_terminal(destination) or destination)
             if destination:
                 return f"Coach Transfer to {destination}"
@@ -288,7 +296,7 @@ def build_travel_arrangements_block(travel_rows):
         if line and line not in items:
             items.append(line)
 
-    items = polish_inclusion_items(items)
+    items = [_repair_travel_arrangement_case(item) for item in polish_inclusion_items(items)]
     if not items:
         return None
 

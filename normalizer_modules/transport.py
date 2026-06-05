@@ -50,5 +50,16 @@ def _is_route_transfer_activity(row: dict) -> bool:
     text = text_blob(row).lower()
     if _is_sightseeing_cruise_activity(text):
         return False
-    return bool(re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text))
+
+    # Supplier sheets sometimes paste real route transport into the Activity
+    # column without a leading "Bus:"/"Coach:" label. Keep only strongly
+    # route-shaped wording here so activity products that merely use a bus or
+    # coach (Northern Lights by coach, hop-on tickets, etc.) stay activities.
+    if re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text):
+        return True
+    if re.search(r"\b(?:long[-\s]*distance|panorama|panoramic)\b[^.]{0,80}\b(?:coach|bus)\b[^.]{0,80}\btransfer\b[^.]{0,120}\bfrom\b[^.]{1,120}\bto\b", text):
+        return True
+    if re.search(r"\b(?:coach|bus)\s+transfer\b[^.]{0,120}\bfrom\b[^.]{1,120}\bto\b", text) and "private" not in text:
+        return True
+    return False
 

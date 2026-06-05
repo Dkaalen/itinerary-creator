@@ -193,11 +193,38 @@ def clean_self_transfer_text(value: str) -> str:
 def split_self_transfer_notes(value: str) -> list[str]:
     """Return one or two polished bullets for mixed self-transfer rows."""
 
+    source = repair_messy_client_text(value)
+    lower_source = source.lower()
+    cleaned: list[str] = []
+
+    def add_note(note: str) -> None:
+        note = repair_messy_client_text(note).strip(" .")
+        note = re.sub(r"\bthe Bus Station\b", "the bus station", note)
+        note = re.sub(r"\bthe Railway Station\b", "the railway station", note)
+        if note and note not in cleaned:
+            cleaned.append(note)
+
+    # Compact supplier shorthands are often duplicated across title/details.
+    # Parse the intended local movement once and keep the wording generic so a
+    # terminal does not become an ugly destination headline.
+    if re.search(r"\b(?:hotel|accommodation|your\s+hotel)\s+to\s+(?:bus\s*station|bustation)\b", lower_source) or re.search(r"\bfrom\s+your\s+hotel\s+to\s+(?:the\s+)?bus\s+station\b", lower_source):
+        add_note("Self transfer from your hotel to the bus station")
+    if re.search(r"\b(?:bus\s*station|bustation)\s+to\s+(?:hotel|accommodation)\b", lower_source) or re.search(r"\bfrom\s+(?:the\s+)?bus\s+station\s+to\s+your\s+accommodation\b", lower_source):
+        add_note("Self transfer from the bus station to your accommodation")
+    if re.search(r"\b(?:hotel|accommodation|your\s+hotel)\s+to\s+(?:railway\s+station|train\s+station)\b", lower_source) or ("bus station" not in lower_source and re.search(r"\b(?:hotel|accommodation|your\s+hotel)\s+to\s+station\b", lower_source)):
+        add_note("Self transfer from your hotel to the railway station")
+    if re.search(r"\b(?:railway\s+station|train\s+station)\s+to\s+(?:hotel|accommodation)\b", lower_source) or ("bus station" not in lower_source and re.search(r"\bstation\s+to\s+(?:hotel|accommodation)\b", lower_source)):
+        add_note("Self transfer from the railway station to your accommodation")
+
+    if cleaned:
+        if "private transfer may" in lower_source or "additional cost" in lower_source:
+            add_note("Private transfer may be requested locally at additional cost")
+        return cleaned
+
     text = clean_self_transfer_text(value)
     if not text:
         return []
     pieces = [piece.strip(" .") for piece in re.split(r"\.\s+", text) if piece.strip(" .")]
-    cleaned: list[str] = []
     for piece in pieces:
         piece = repair_messy_client_text(piece).strip(" .")
         if not piece:
@@ -208,8 +235,7 @@ def split_self_transfer_notes(value: str) -> list[str]:
             piece = re.sub(r"\bLevi\s+Nordic\s+Star\b(?!\s+Igloos)", "Levi Nordic Star Igloos", piece, flags=re.IGNORECASE)
         if piece.lower().startswith("private transfer may"):
             piece = "Private transfer may be requested locally at additional cost"
-        if piece not in cleaned:
-            cleaned.append(piece)
+        add_note(piece)
     return cleaned or [text]
 
 
