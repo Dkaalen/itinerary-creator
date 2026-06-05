@@ -27,6 +27,7 @@ from itinerary_generation.structured_model import (
 )
 from itinerary_generation.structured_rendering import normalize_structured_list_sections
 from itinerary_generation.structured_validation import validate_itinerary_document
+from itinerary_generation.product_rules import product_warning
 
 _TRANSPORT_KIND_BY_TYPE = {
     "Transfer": "transfer",
@@ -207,17 +208,13 @@ def _ambiguous_row_warnings(row: dict) -> tuple[ModelWarning, ...]:
     row_id = _row_id(row)
 
     warnings: list[ModelWarning] = []
-    if "round trip ticket" in source_lower and "trom" in source_lower:
-        explicit_markers = ("fjellheisen", "cable car", "funicular", "funicual", "gondola", "mountain lift")
-        if not any(marker in source_lower for marker in explicit_markers):
-            warnings.append(ModelWarning(
-                code="ambiguous_activity_title",
-                message=(
-                    "Activity title came from a generic 'Round Trip Ticket' row in Tromsø; "
-                    "confirm the exact product name before final output."
-                ),
-                source_row_ids=(row_id,),
-            ))
+    warning_code, warning_message = product_warning(row, source)
+    if warning_code:
+        warnings.append(ModelWarning(
+            code=warning_code,
+            message=warning_message,
+            source_row_ids=(row_id,),
+        ))
 
     warnings.extend(_source_signal_warnings(title, source, row_id))
 

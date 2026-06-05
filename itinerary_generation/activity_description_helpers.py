@@ -7,6 +7,7 @@ import re
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import polish_client_text, polish_title
 from itinerary_generation.render_text_helpers import get_detail_level_name
+from itinerary_generation.product_rules import find_product_match
 
 
 _SUPPLIER_SECTION_LABEL_RE = re.compile(
@@ -131,6 +132,10 @@ def get_activity_description(row, detail_level=None):
     if real_description:
         return real_description
 
+    product_match = find_product_match(row)
+    if product_match and product_match.description:
+        return product_match.description
+
     if "wildlife photography" in title and "longyearbyen" in title:
         return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."
 
@@ -139,18 +144,6 @@ def get_activity_description(row, detail_level=None):
 
     if "fjord" in title and ("minivan" in title or "vip" in title or "kvaløya" in title or "sommarøy" in title):
         return "Explore the coastal scenery around Tromsø by road, with fjords, mountains, beaches and Arctic landscapes forming the focus of the day."
-
-    if "fjellheisen" in title:
-        if detail_level == "Elegant concise":
-            return "Ride Fjellheisen for panoramic views over Tromsø."
-        if detail_level == "Rich descriptive":
-            return "Ride the Fjellheisen cable car for sweeping views over Tromsø, the surrounding islands, fjords, and mountain scenery."
-        return "Enjoy panoramic views over Tromsø, the surrounding islands, fjords, and mountains."
-
-    if "round trip ticket" in title and "trom" in title:
-        if detail_level == "Elegant concise":
-            return "Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø."
-        return "Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day."
 
     if "lofoten" in title and "trollfjord" in title:
         if detail_level == "Elegant concise":
@@ -199,13 +192,6 @@ def get_activity_description(row, detail_level=None):
             return "Use your flexible ticket to explore the city at your own pace, choosing the stops and sights that suit your day best."
         return "Use your flexible ticket to explore the city at your own pace."
 
-    if "tallinn" in title:
-        if detail_level == "Elegant concise":
-            return "Travel from Helsinki to Tallinn and explore the Old Town."
-        if detail_level == "Rich descriptive":
-            return "Travel from Helsinki to Tallinn and enjoy time in the atmospheric Old Town before returning to Helsinki."
-        return "Travel from Helsinki to Tallinn and enjoy time to explore the historic Old Town before returning to Helsinki."
-
     clean_title = polish_title(create_client_activity_title(row) or row.get("title", "") or "Included experience")
     city_name = polish_title(row.get("city", ""))
     destination_phrase = f" in {city_name}" if city_name else ""
@@ -226,12 +212,6 @@ def get_activity_description(row, detail_level=None):
         return f"Join a guided glacier experience, with the required safety equipment provided before heading onto the ice."
     if "suomenlinna" in combined:
         return "A guided introduction to Helsinki’s city highlights combined with a visit to the historic sea fortress island of Suomenlinna."
-    if "korouoma" in combined or "frozen waterfall" in combined:
-        return "Explore Korouoma Canyon on a guided winter hike, with frozen waterfalls, snowy forest scenery and a warm barbecue break included along the way."
-    if "santa claus village" in combined and "snowmobile" in combined and "reindeer" in combined:
-        return "Travel by snowmobile towards Santa Claus Village, with time for the festive village atmosphere and a short reindeer sleigh experience in the Arctic setting."
-    if "santa claus village" in combined and "reindeer" in combined:
-        return "Visit Santa Claus Village and enjoy a classic Arctic reindeer experience, combining festive atmosphere with a memorable Lapland tradition."
     if ("reindeer feeding" in combined or "sámi" in combined or "sami" in combined) and not ("northern lights chase" in combined or "northern lights hunt" in combined or "aurora hunt" in combined):
         return "Meet the reindeer herd, learn about Sámi culture and enjoy a warm meal as part of the Arctic experience."
     if "northern lights basecamp" in combined:
@@ -252,10 +232,6 @@ def get_activity_description(row, detail_level=None):
         return f"Enjoy a wildlife-focused experience{destination_phrase}, with the details arranged as part of the day."
     if "fjord tour" in combined or "kvaløya" in combined or "sommarøy" in combined:
         return "Explore the coastal scenery around Tromsø, with fjords, islands and Arctic landscapes forming the focus of the day."
-    if "fjellheisen" in combined or ("trom" in combined and any(marker in combined for marker in ["cable car", "gondola", "mountain lift"])):
-        return "Ride the Fjellheisen cable car for sweeping views over Tromsø, the surrounding islands, fjords, and mountain scenery."
-    if "round trip ticket" in combined and "trom" in combined:
-        return "Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day."
     if "funicular" in combined or "fløibanen" in combined:
         return "Ride the Fløibanen funicular for an easy ascent above Bergen and views over the city, harbour and surrounding mountains."
 

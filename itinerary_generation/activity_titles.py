@@ -13,7 +13,7 @@ from itinerary_generation.title_routes import (
     _route_label_from_activity_text,
 )
 from itinerary_generation.title_safety import BAD_TITLE_PATTERNS, is_forbidden_client_title
-from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
+from itinerary_generation.product_rules import find_product_match
 from text_polish import polish_title, strip_price_fragments
 
 def is_bad_raw_day_title(title: str) -> bool:
@@ -81,13 +81,14 @@ def create_client_activity_title(row):
     original_title_text = str(original_title or "").lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
 
+    product_match = find_product_match(row, title, original_title, details)
+    if product_match and product_match.title:
+        return product_match.title
+
     title = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", str(title or ""), flags=re.IGNORECASE).strip(" -:|")
     title = re.sub(r"^Watch\s+Whales\b", "Whale Watching", title, flags=re.IGNORECASE).strip()
     title_text = title.lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
-
-    if "munch" in full_text and "museum" in full_text:
-        return "Munch Museum Visit"
 
     if "mostraumen" in full_text:
         return "Mostraumen Fjord Cruise"
@@ -104,12 +105,6 @@ def create_client_activity_title(row):
     if "hop-on" in title_text or "hop off" in title_text or "hop-off" in title_text or "hop on hop off" in full_text:
         city = str(row.get("city", "") or "").strip()
         return f"Flexible {polish_title(city)} Sightseeing Ticket" if city else "Flexible City Sightseeing Ticket"
-
-    if _looks_like_norway_in_a_nutshell(f"{original_title} {title} {details}"):
-        return _route_label_from_activity_text(f"{original_title} {title} {details}")
-
-    if "santa claus" in full_text and "friends" in full_text:
-        return "Meet Santa Claus and his friends"
 
     if "blue lagoon" in full_text or "bluelagoon" in full_text:
         if any(marker in title_text for marker in ["volcano", "eruption", "fagradalsfjall"]):
@@ -130,13 +125,6 @@ def create_client_activity_title(row):
         if "from downtown" in full_text:
             return "Whale Watching From Downtown"
         return "Whale Watching"
-
-    if "tallinn" in full_text:
-        if is_tallinn_old_town_guided_tour(row):
-            return "Old Town Guided Tour"
-        if is_tallinn_ferry_framework(row):
-            return "Day Excursion to Tallinn"
-        return "Day Trip to Tallinn"
 
     if "optional addon" in full_text and any(marker in full_text for marker in ["svolvær", "svolvaer", "svolaver", "svoalvaer"]):
         return "Optional experience in Svolvær"
@@ -176,11 +164,6 @@ def create_client_activity_title(row):
         return "Wildlife & Glacier Experience"
     if "mountain hike" in full_text and "abisko" in full_text:
         return "Mountain Hike in Abisko"
-    if "round trip ticket" in full_text and "trom" in full_text:
-        if any(marker in full_text for marker in ["fjellheisen", "cable car", "gondola", "mountain lift"]):
-            return "Fjellheisen Cable Car"
-        return "Round-trip viewpoint ticket in Tromsø"
-
     if title_text.startswith("round trip ticket"):
         return "Round Trip Ticket"
 

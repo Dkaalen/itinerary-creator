@@ -14,7 +14,7 @@ from itinerary_generation.description_facts import (
     _join,
 )
 from itinerary_generation.description_sources import _row_source
-from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
+from itinerary_generation.product_rules import find_product_match
 
 
 def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
@@ -58,10 +58,9 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 
-    if is_tallinn_old_town_guided_tour(row):
-        return "Explore Tallinn’s Old Town with a guide during your time ashore, with key landmarks and local context introduced along the walking route."
-    if is_tallinn_ferry_framework(row):
-        return "Travel between Helsinki and Tallinn by ferry, with the crossings forming the logistics for your time in Tallinn."
+    product_match = find_product_match(row, title, source)
+    if product_match and product_match.description:
+        return product_match.description
     if "food" in full and "culture" in full and "bergen" in full:
         return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
     if ("whale watching" in full or "whale watching from downtown" in full) and (
@@ -96,14 +95,8 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Experience the clear glacial water of Silfra on a guided drysuit snorkelling tour, with the required equipment and park arrangements included for the excursion."
     if "atv" in full or "quad" in full:
         return "Set out on a guided ATV adventure, with equipment provided and the route arranged around the surrounding black-sand and coastal landscapes."
-    if "munch" in full and "museum" in full:
-        return "Visit the Munch Museum at your own pace, with pre-arranged admission giving you time to explore the galleries and exhibitions independently."
     if "fløibanen" in full or "floibanen" in full:
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
-    if "fjellheisen" in full or ("trom" in full and any(marker in full for marker in ["cable car", "gondola", "mountain lift"])):
-        return "Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains."
-    if "round trip ticket" in full and "trom" in full:
-        return "Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day."
     if (
         ("cable car" in full or "funicular" in full or "gondola" in full)
         and ("ticket" in full or "admission" in full)
@@ -126,8 +119,6 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with local stories, landmarks and practical tips introduced at an easy pace.")
     if "abisko" in full or "mountain hike" in full:
         return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
-    if "korouoma" in full:
-        return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
 
     # High-confidence activity identities must beat incidental keywords.
     # For example, a fjord photo tour may mention that reindeer sometimes
@@ -155,8 +146,6 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
             "and the Arctic night sky forming the focus of the experience."
         )
 
-    if "santa claus" in full and "friends" in full:
-        return "Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included."
     if "husky" in full and "reindeer" in full:
         return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
     if "husky" in full:
@@ -166,15 +155,11 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "northern lights" in full or "aurora" in full:
         return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
     if "tallinn" in full:
-        if is_tallinn_old_town_guided_tour(row):
-            return "Explore Tallinn’s Old Town with a guide during your time ashore, with key landmarks and local context introduced along the walking route."
         return "Travel between Helsinki and Tallinn by ferry, with time arranged for your visit to Tallinn before returning to Helsinki."
     if "icebreaker" in full:
         return "Experience the Polar Explorer Icebreaker in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
     if "husky" in full and "reindeer" in full:
         return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
-    if "korouoma" in full:
-        return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
     if "abisko" in full or "mountain hike" in full:
         return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
     if "hike" in full or "hiking" in full or "nordmarka" in full:

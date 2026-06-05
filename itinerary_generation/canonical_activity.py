@@ -19,6 +19,7 @@ from itinerary_generation.activity_inclusions import clean_activity_inclusion_it
 from itinerary_generation.activity_description_helpers import get_activity_description
 from itinerary_generation.activity_logistics import get_activity_logistics
 from itinerary_generation.render_text_helpers import normalize_list
+from itinerary_generation.product_rules import product_warning
 from itinerary_generation.time_display import (
     display_time_with_duration,
     get_activity_duration_label,
@@ -96,8 +97,9 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
 
     warnings: list[str] = []
     source_text = " ".join(str(row.get(key) or "") for key in ("raw", "original_title", "details", "title")).lower()
-    if "round trip ticket" in source_text and "trom" in source_text and not any(marker in source_text for marker in ["fjellheisen", "cable car", "gondola", "mountain lift"]):
-        warnings.append("ambiguous_activity_title")
+    warning_code, _warning_message = product_warning(row, source_text)
+    if warning_code:
+        warnings.append(warning_code)
     if "|" in description:
         warnings.append("description_contains_pipe")
     if re.search(r"\b(?:opening hours|includese|tickets only|carried out|participanter)\b", f"{title} {description}", re.I):

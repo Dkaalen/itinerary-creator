@@ -239,8 +239,9 @@ def test_structured_activity_inclusion_titles_render_as_separate_bullets():
     labels = [item.label for item in activities_section.items]
     html = build_itinerary_html(rows, group_rows_by_day(rows), {"days": {}, "pictures_added": False})
 
-    assert labels == ["Fjellheisen Cable Car - 2nd of November", "Oslo Walking Tour - 5th of November"]
-    assert '<li>Fjellheisen Cable Car - 2nd of November</li>' in html
+    assert labels == ["Round-trip viewpoint ticket in Tromsø - 2nd of November", "Oslo Walking Tour - 5th of November"]
+    assert '<li>Round-trip viewpoint ticket in Tromsø - 2nd of November</li>' in html
+    assert 'Fjellheisen Cable Car - 2nd of November' not in html
     assert '<li>Oslo Walking Tour - 5th of November</li>' in html
 
 
@@ -433,7 +434,7 @@ def test_structured_validation_warns_when_included_activity_has_no_inclusion_cov
     assert any(warning.code == "included_item_missing_inclusion_coverage" for warning in warnings)
 
 
-def test_structured_validation_warns_when_inclusion_label_is_not_supported_by_source_row():
+def test_structured_validation_keeps_weak_viewpoint_label_generic_and_warns():
     rows = [
         {
             "row_id": "fjellheisen-row",
@@ -454,7 +455,10 @@ def test_structured_validation_warns_when_inclusion_label_is_not_supported_by_so
     codes = {warning.code for warning in document.warnings}
 
     assert "ambiguous_activity_title" in codes
-    assert "inclusion_label_inferred_from_weak_source" in codes
+    assert "inclusion_label_inferred_from_weak_source" not in codes
+    inclusion_labels = [item.label for section in document.inclusions for item in section.items]
+    assert any("Round-trip viewpoint ticket in Tromsø" in label for label in inclusion_labels)
+    assert all("Fjellheisen" not in label for label in inclusion_labels)
 
 
 def test_structured_validation_warns_when_activity_inclusion_loses_fjord_signal():

@@ -8,7 +8,7 @@ from place_aliases import canonicalize_place_name
 from text_polish import polish_title, strip_price_fragments
 from itinerary_generation.content_text import clean_inline
 from itinerary_generation.title_safety import is_forbidden_client_title, strip_supplier_title_cta
-from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
+from itinerary_generation.product_rules import find_product_match
 
 
 RAW_SUPPLIER_MARKERS = [
@@ -143,27 +143,16 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     if is_forbidden_client_title(text):
         return ""
 
-    if "tallinn" in full:
-        if is_tallinn_old_town_guided_tour(row):
-            return "Old Town Guided Tour"
-        if is_tallinn_ferry_framework(row):
-            return "Day Excursion to Tallinn"
-        if "day trip" in full or "ferry" in full:
-            return "Day Trip to Tallinn"
+    product_match = find_product_match(row, text)
+    if product_match and product_match.title:
+        return product_match.title
+
     if ("fløibanen" in text.lower() or "floibanen" in text.lower()) and ("&" in text or " and " in text.lower()):
         return polish_title(text)
-    if "munch museum" in full:
-        return "Munch Museum Visit"
     if "fløibanen" in text.lower() or "floibanen" in text.lower():
         return "Fløibanen Funicular"
     if "cruise" in text.lower() and "spend time at leisure" in text.lower():
         return "At Leisure Onboard the Coastal Cruise"
-    if "norway in a nutshell" in full:
-        # Preserve route-aware day titles already produced by titles.py.
-        if re.search(r"norway in a nutshell\s+(?:from|to)\s+", text, flags=re.IGNORECASE):
-            return polish_title(text)
-        # Route-aware title is otherwise handled in titles.py with fuller route detection.
-        return "Norway in a Nutshell"
     if "leisure as requested" in full or text.lower() in {"leisure", "spend time at leisure"}:
         return f"A day at leisure in {city}" if city else "A day at leisure"
     if re.search(r"self\s+transfer\s+to\s+(?:the\s+)?car rental", full):
@@ -183,9 +172,6 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
         return "Overnight train between Stockholm and Kiruna"
     if "round trip ferry" in full and "tallinn" in full:
         return "Helsinki-Tallinn Ferry"
-    if "tickets to the" in full or "ticket" in full and "museum" in full:
-        if "munch" in full:
-            return "Munch Museum Visit"
     if re.fullmatch(r"city walking tour", text, flags=re.IGNORECASE) and city:
         return f"{city} Walking Tour"
     guided_match = re.fullmatch(r"guided tour of ([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+)", text, flags=re.IGNORECASE)

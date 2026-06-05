@@ -50,6 +50,7 @@ FAST_TESTS = (
 QUALITY_TESTS = (
     "tests/test_accommodation_wording.py",
     "tests/test_content_classification_priority.py",
+    "tests/test_product_rule_registry.py",
     "tests/test_canonical_block_renderers.py",
     "tests/test_canonical_boundary.py",
     "tests/test_render_document_source_of_truth.py",
