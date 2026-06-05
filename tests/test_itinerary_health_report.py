@@ -74,3 +74,24 @@ def test_health_report_surfaces_validation_and_parser_diagnostics():
     assert report.status == "Needs review"
     assert any("Input reaches Day 8" in warning for warning in report.warnings)
     assert any("Parser diagnostics recorded: 1 notice" in warning for warning in report.warnings)
+
+
+def test_health_report_surfaces_structured_model_warnings():
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "start_date": "02/11/2026",
+            "city": "Tromso",
+            "title": "Fjellheisen Cable Car",
+            "original_title": "Round Trip Ticket: Enjoy the spectacular view of Tromsø from above",
+            "details": "Round Trip Ticket: Enjoy the spectacular view of Tromsø from above",
+            "commercial_status": "included",
+        }
+    ]
+
+    report = build_itinerary_health_report(rows)
+
+    assert any("Structured model" in warning for warning in report.warnings)
+    assert any("Round Trip Ticket" in warning for warning in report.warnings)

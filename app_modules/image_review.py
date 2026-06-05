@@ -11,6 +11,7 @@ from images.app_image_selection import (
     list_replacement_image_options,
     normalize_crop_focus,
     normalize_path_key,
+    audit_day_image_matches,
     save_uploaded_day_image,
     select_day_images_with_overrides,
 )
@@ -22,6 +23,23 @@ def get_current_day_image_matches(output_edits):
         return {}
     edited_rows = apply_output_edits(parsed_rows, output_edits)
     return select_day_images_with_overrides(group_rows_by_day(edited_rows), output_edits)
+
+
+def get_current_day_image_warnings(output_edits, image_matches=None):
+    parsed_rows = st.session_state.get("parsed_rows", [])
+    if not parsed_rows:
+        return ()
+    edited_rows = apply_output_edits(parsed_rows, output_edits)
+    grouped_days = group_rows_by_day(edited_rows)
+    matches = image_matches if image_matches is not None else select_day_images_with_overrides(grouped_days, output_edits)
+    return audit_day_image_matches(grouped_days, matches, output_edits)
+
+
+def _warnings_by_day(warnings):
+    grouped = {}
+    for warning in warnings or ():
+        grouped.setdefault(warning.day, []).append(warning)
+    return grouped
 
 
 def set_day_image_mode(output_edits, day, mode, path=""):
@@ -132,6 +150,7 @@ def render_picture_studio(grouped_days, output_edits):
         st.session_state.active_image_day = days[0]
 
     image_matches = get_current_day_image_matches(output_edits)
+    image_warnings_by_day = _warnings_by_day(get_current_day_image_warnings(output_edits, image_matches))
 
     with st.expander("Picture review & controls", expanded=True):
         st.caption(
@@ -150,11 +169,22 @@ def render_picture_studio(grouped_days, output_edits):
                     st.image(str(current_path), caption=current_path.name, use_container_width=True)
                 else:
                     st.info("No picture")
+                if image_warnings_by_day.get(day):
+                    st.caption("Needs image review")
                 if st.button("Edit picture", key=f"picture_studio_open_{day}", use_container_width=True):
                     st.session_state.active_image_day = day
                     st.rerun()
 
         active_day = st.session_state.get("active_image_day", days[0])
+        active_warnings = image_warnings_by_day.get(active_day, [])
+        if active_warnings:
+            for warning in active_warnings:
+                if warning.severity == "error":
+                    st.error(warning.message)
+                elif warning.severity == "info":
+                    st.info(warning.message)
+                else:
+                    st.warning(warning.message)
         st.divider()
         render_day_picture_action_panel(
             active_day,

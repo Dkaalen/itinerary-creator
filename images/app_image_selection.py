@@ -37,6 +37,7 @@ from images.image_uploads import (
     save_data_uri_day_image as _save_data_uri_day_image,
 )
 from images.day_image_ui import render_day_image_slot as _render_day_image_slot
+from images.image_match_audit import audit_day_image_matches as _audit_day_image_matches
 
 
 def get_image_bank_paths():
@@ -77,3 +78,12 @@ def save_data_uri_day_image(data_uri, filename, city, season="Summer", label="")
 
 def render_day_image_slot(day, rows, match=None, output_edits=None):
     return _render_day_image_slot(day, rows, match=match, output_edits=output_edits, image_bank_scan_paths=get_image_bank_scan_paths())
+
+
+def audit_day_image_matches(grouped_days, image_matches, output_edits=None):
+    return _audit_day_image_matches(
+        grouped_days,
+        image_matches,
+        output_edits=output_edits,
+        image_bank_scan_paths=get_image_bank_scan_paths(),
+    )

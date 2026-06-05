@@ -2,7 +2,7 @@ import json
 from collections import OrderedDict
 
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
+from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.cover_route import cover_route_html
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
@@ -64,6 +64,7 @@ def _grouped_days_with_day_optional_rows(grouped_days, parsed_rows):
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     output_edits = output_edits or {}
+    structured_document = build_itinerary_document(parsed_rows, grouped_days)
     preset_name = get_color_preset_name(output_edits)
     colors = get_color_preset(output_edits)
     colors_json = esc(json.dumps(colors))
@@ -105,7 +106,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         journey_arc = create_journey_arc(grouped_days)
 
     manual_whats_included = text_to_list(output_edits.get("whats_included_text", ""))
-    categorized_inclusions = create_categorized_inclusions(parsed_rows, grouped_days)
+    categorized_inclusions = structured_document.inclusions
     whats_included = manual_whats_included or create_whats_included(parsed_rows, grouped_days)
 
     optional_addons = create_optional_addons(parsed_rows)
@@ -113,6 +114,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
     else:
         whats_not_included = create_whats_not_included(parsed_rows)
+    structured_whats_not_included = structured_document.exclusions
 
     important_travel_notes = get_important_travel_notes(output_edits)
 
@@ -147,7 +149,12 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     else:
         html_text += render_categorized_inclusions_pages("What’s included", categorized_inclusions)
     html_text += render_optional_addons_pages(optional_addons)
-    html_text += render_split_list_pages("What’s not included", whats_not_included)
+    if output_edits.get("whats_not_included_html"):
+        html_text += render_custom_html_final_page("What’s not included", output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
+    elif output_edits.get("whats_not_included_text"):
+        html_text += render_split_list_pages("What’s not included", whats_not_included)
+    else:
+        html_text += render_categorized_inclusions_pages("What’s not included", structured_whats_not_included, "final-list-page categorized-exclusions-page")
     html_text += render_text_paragraph_page("Important travel notes", important_travel_notes)
 
     html_text += "</div>"

@@ -189,6 +189,36 @@
     .editable-inline { padding: 1px 2px; margin-left: -2px; }
     .cover-main .editable-inline { margin-left: 0 !important; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; align-self: center !important; }
     .cover-main .cover-title, .cover-main .cover-subtitle, .cover-main .cover-destinations, .cover-main .cover-kicker, .cover-main .cover-dates { margin-left: auto !important; margin-right: auto !important; text-align: center !important; }
+    .cover-page.editor-text-cover { background: var(--paper) !important; }
+    .cover-page.editor-text-cover .cover-title,
+    .cover-page.editor-text-cover .cover-subtitle,
+    .cover-page.editor-text-cover .cover-destinations {
+      color: #1f3446 !important;
+      -webkit-text-fill-color: #1f3446 !important;
+      opacity: 1 !important;
+      text-shadow: none !important;
+    }
+    .cover-page.editor-text-cover .cover-kicker,
+    .cover-page.editor-text-cover .cover-dates,
+    .cover-page.editor-text-cover .cover-destination-label {
+      color: #53606c !important;
+      -webkit-text-fill-color: #53606c !important;
+      opacity: 1 !important;
+      text-shadow: none !important;
+    }
+    .cover-page.editor-text-cover [contenteditable="true"] {
+      background: rgba(255,255,255,.68);
+      box-shadow: 0 0 0 1px rgba(31,52,70,.16);
+      padding: 4px 8px !important;
+      border-radius: 7px;
+    }
+    .cover-page.editor-text-cover [contenteditable="true"]:hover,
+    .cover-page.editor-text-cover [contenteditable="true"]:focus {
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 0 0 2px var(--focus), 0 8px 18px rgba(31,52,70,.12);
+      color: #1f3446 !important;
+      -webkit-text-fill-color: #1f3446 !important;
+    }
     .cover-route-line { display: block; }
     .cover-destination-pair { display: inline-block; white-space: nowrap; }
     .day-blocks[contenteditable="true"] { padding: 2px; margin: -2px; }
@@ -219,6 +249,21 @@
     .image-stage.empty { display: flex; align-items: center; justify-content: center; color: #6b625a; font-weight: 700; }
     .image-stage.text-mode { display: none; }
     .image-stage.skipped { display: none; }
+    .image-warning-badge {
+      position: absolute;
+      z-index: 4;
+      left: 16px;
+      right: 16px;
+      top: 14px;
+      background: rgba(86, 45, 20, .88);
+      color: #fff7ec;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
     .image-actions {
       position: absolute;
       z-index: 5;
@@ -286,6 +331,7 @@ let lastSavedPayload = '';
 let autosaveTimer = null;
 let activeEditKey = null;
 let undoStack = [];
+let restoredLocalDraftPendingSave = false;
 const WARNING_PATTERNS = [
   /\bPls\b/i, /\bplz\b/i, /\baddon cost\b/i, /\bpaid on ground\b/i,
   /\btranfers\b/i, /\bDate dependant\b/i, /\bFight\s*:/i,
@@ -314,27 +360,51 @@ function persistLocalDraft() {
   if (!model || !initialPayload) return;
   try {
     const snapshot = compactFullPayloadForCommit(model);
-    localStorage.setItem(draftStorageKey(), JSON.stringify({saved_at: Date.now(), model: snapshot}));
+    localStorage.setItem(draftStorageKey(), JSON.stringify({
+      saved_at: Date.now(),
+      source_signature: initialPayload?.meta?.source_signature || '',
+      draft_schema_version: initialPayload?.meta?.draft_schema_version || 1,
+      model: snapshot
+    }));
   } catch (err) {}
+}
+function sameDraftDay(a, b, fallbackIndex) {
+  const left = String(a?.day || a?.label || fallbackIndex || '').trim();
+  const right = String(b?.day || b?.label || fallbackIndex || '').trim();
+  return left && right && left === right;
+}
+function findServerDayForLocalDraft(mergedDays, localDay, fallbackIndex) {
+  if (!Array.isArray(mergedDays)) return null;
+  const byIdentity = mergedDays.find(day => sameDraftDay(day, localDay, fallbackIndex));
+  if (byIdentity) return byIdentity;
+  return mergedDays[fallbackIndex] || null;
 }
 function mergeLocalDraftOntoServerPayload(localDraft) {
   const merged = JSON.parse(JSON.stringify(initialPayload || {}));
+  const localPicturesAdded = !!localDraft.workflow?.pictures_added;
   if (localDraft.cover) merged.cover = Object.assign({}, merged.cover || {}, localDraft.cover);
   if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
   const localDays = Array.isArray(localDraft.days) ? localDraft.days : [];
   if (!Array.isArray(merged.days)) merged.days = [];
   localDays.forEach((localDay, idx) => {
-    if (!merged.days[idx]) merged.days[idx] = {day: localDay.day || `Day ${idx + 1}`};
+    let targetDay = findServerDayForLocalDraft(merged.days, localDay, idx);
+    if (!targetDay) {
+      targetDay = {day: localDay.day || `Day ${idx + 1}`};
+      merged.days.push(targetDay);
+    }
     ['day','label','date','title','city','intro','blocks_html'].forEach(field => {
-      if (field in localDay) merged.days[idx][field] = localDay[field];
+      if (field in localDay) targetDay[field] = localDay[field];
     });
-    if (picturesAdded() && localDraft.workflow?.pictures_added && localDay.image) {
-      merged.days[idx].image = Object.assign({}, merged.days[idx].image || {}, localDay.image);
+    if (localPicturesAdded && localDay.image) {
+      targetDay.image = Object.assign({}, targetDay.image || {}, localDay.image);
     }
   });
   if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
   merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
+  if (localDraft.workflow && 'pictures_added' in localDraft.workflow) {
+    merged.workflow.pictures_added = !!localDraft.workflow.pictures_added;
+  }
   return merged;
 }
 function restoreLocalDraftIfAvailable() {
@@ -344,7 +414,15 @@ function restoreLocalDraftIfAvailable() {
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.model) return false;
-    model = mergeLocalDraftOntoServerPayload(parsed.model);
+    const currentSourceSignature = initialPayload?.meta?.source_signature || '';
+    const savedSourceSignature = parsed.source_signature || parsed.model?.meta?.source_signature || '';
+    if (currentSourceSignature && savedSourceSignature && currentSourceSignature !== savedSourceSignature) return false;
+    const merged = mergeLocalDraftOntoServerPayload(parsed.model);
+    const serverSnapshot = JSON.stringify(compactFullPayloadForCommit(initialPayload));
+    const localSnapshot = JSON.stringify(compactFullPayloadForCommit(merged));
+    if (serverSnapshot === localSnapshot) return false;
+    model = merged;
+    restoredLocalDraftPendingSave = true;
     return true;
   } catch (err) {
     return false;
@@ -383,9 +461,11 @@ function imageHtml(day, dayIndex) {
   const options = img.options || [];
   const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
   const hasImage = !!img.data_uri;
+  const warnings = Array.isArray(img.warnings) ? img.warnings : [];
+  const warningHtml = warnings.length ? `<div class="image-warning-badge">Needs review: ${esc(warnings[0].message || warnings[0].code || 'picture warning')}</div>` : '';
   const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : `<span>${img.pending_preview ? 'Replacement selected — save to update preview' : 'No picture selected'}</span>`;
   return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}">
-      ${src}
+      ${src}${warningHtml}
       <div class="image-actions">
         <button type="button" data-img-action="auto" data-day-index="${dayIndex}">Automatic</button>
         <button type="button" class="danger" data-img-action="none" data-day-index="${dayIndex}">Remove</button>
@@ -417,6 +497,11 @@ function finalTextPage(label, title, key, text) {
     <div class="final-title">${esc(title)}</div>
     ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
   </div></div></div>`;
+}
+function listTextToHtml(text) {
+  const items = String(text || '').split(/\n+/).map(item => item.trim()).filter(Boolean);
+  if (!items.length) return '';
+  return `<ul class="final-list">${items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 }
 function finalHtmlPage(label, title, key, html) {
   return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
@@ -463,6 +548,9 @@ function render(payload, commitNonce = null) {
   }
   lastSavedPayload = '';
   draw();
+  if (restoredLocalDraftPendingSave) {
+    setTimeout(saveRestoredLocalDraftToServer, 0);
+  }
 }
 function draw() {
   const root = document.getElementById('root');
@@ -498,8 +586,11 @@ function draw() {
     </div>
     <div class="page-stack">`;
   const coverBg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';
-  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}');` : ''} --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
-  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page" style="${coverStyle}"><div class="page-content">
+  const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';
+  const coverMuted = picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c';
+  const coverAccent = picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555';
+  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}');` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
+  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
       <div class="cover-main">
         <div class="cover-emblem" aria-hidden="true"></div>
         ${editableText(model.cover?.cover_kicker || 'Travel Itinerary', 'cover.cover_kicker', 'cover-kicker')}
@@ -524,7 +615,7 @@ function draw() {
     </div>${imageHtml(day, i)}</div></div>`;
   });
   h += finalHtmlPages('Included', "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}]);
-  h += finalTextPage('Excluded', "What's not included", 'whats_not_included_text', model.final_pages?.whats_not_included_text || '');
+  h += finalHtmlPage('Excluded', "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''));
   h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
   h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
@@ -650,7 +741,7 @@ function scheduleAutosave() {
   autosaveTimer = setTimeout(() => saveChanges(null, {autosave: true}), 1600);
 }
 function isHtmlEditKey(key) {
-  return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.includes('.whats_included_pages_html.'));
+  return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.endsWith('.whats_not_included_html') || key.includes('.whats_included_pages_html.'));
 }
 function editableValue(el) {
   if (!el) return '';
@@ -953,6 +1044,25 @@ function buildSaveEnvelope(commitNonce = null) {
   }
   return JSON.stringify(payload);
 }
+
+function saveRestoredLocalDraftToServer() {
+  if (!restoredLocalDraftPendingSave) return;
+  restoredLocalDraftPendingSave = false;
+  collect();
+  const serialized = JSON.stringify(compactFullPayloadForCommit(model));
+  if (serialized === lastSavedPayload) return;
+  lastSavedPayload = serialized;
+  persistLocalDraft();
+  Streamlit.setComponentValue(serialized);
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = 'Recovered browser draft and saved it';
+    note.classList.add('show');
+    setTimeout(() => note.classList.remove('show'), 2200);
+  }
+  updateEditorStats();
+}
+
 function saveChanges(commitNonce = null, options = {}) {
   if (autosaveTimer) {
     clearTimeout(autosaveTimer);

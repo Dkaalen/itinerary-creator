@@ -53,6 +53,24 @@ EXCLUSION_SECTION_ORDER = [
 TRANSPORT_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
 
 
+def _row_id(row, fallback_index=0):
+    value = str((row or {}).get("row_id") or "").strip()
+    if value:
+        return value
+    return f"generated-row-{fallback_index}"
+
+
+def _structured_item(label, row=None, row_index=0):
+    text = str(label or "").strip()
+    if not text:
+        return None
+    source_ids = []
+    if row is not None:
+        row_id = _row_id(row, row_index)
+        if row_id:
+            source_ids.append(row_id)
+    return {"label": text, "source_row_ids": source_ids}
+
 
 def _split_exclusion_phrases(value: str) -> list[str]:
     text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
@@ -298,6 +316,77 @@ def create_specific_exclusion_sections(parsed_rows):
     return {key: value for key, value in sections.items() if value}
 
 
+
+def _add_unique_structured(items, label, row=None, row_index=0):
+    item = _structured_item(label, row=row, row_index=row_index)
+    if not item:
+        return
+    key = (item["label"].lower(), tuple(item.get("source_row_ids") or ()))
+    existing = {
+        (str(current.get("label", "")).lower(), tuple(current.get("source_row_ids") or ()))
+        for current in items
+        if isinstance(current, dict)
+    }
+    if key not in existing:
+        items.append(item)
+
+
+def create_source_aware_exclusion_sections(parsed_rows):
+    """Return itinerary-specific exclusions with source-row identity preserved.
+
+    ``create_specific_exclusion_sections`` stays as the legacy string API. This
+    source-aware companion is used by the structured model so self-arranged,
+    optional and activity-specific exclusion rows can be audited back to the row
+    that produced them. That prevents the renderer/editor from flattening the
+    page into anonymous paragraphs and makes missing exclusion coverage visible.
+    """
+
+    sections = {key: [] for key, _ in EXCLUSION_SECTION_ORDER}
+
+    for row_index, row in enumerate(parsed_rows or []):
+        title = commercial_row_title(row)
+        if not title:
+            continue
+
+        label = f"{title}{row_date_suffix(row)}"
+        row_type = get_row_type(row)
+        status = _commercial_status(row)
+
+        rental_exclusion = _rental_cost_not_included_label(row)
+        if rental_exclusion:
+            _add_unique_structured(sections["costs_not_included"], rental_exclusion, row, row_index)
+            continue
+
+        if is_optional_row(row):
+            if row_type == "Activity":
+                _add_unique_structured(sections["optional_experiences"], label, row, row_index)
+            elif row_type == "Hotel":
+                _add_unique_structured(sections["optional_hotels"], label, row, row_index)
+            elif _is_transport_row(row):
+                _add_unique_structured(sections["optional_transfers"], label, row, row_index)
+            else:
+                _add_unique_structured(sections["optional_hotels"], label, row, row_index)
+            continue
+
+        if status == "self_arranged" or is_self_arranged(row) or _is_self_transfer_row(row):
+            if _is_self_transfer_row(row):
+                _add_unique_structured(sections["self_transfers"], label, row, row_index)
+                notes = split_self_transfer_notes(_row_search_text(row))
+                if any("private transfer may" in note.lower() for note in notes):
+                    _add_unique_structured(sections["costs_not_included"], "Private transfer supplement, if requested locally", row, row_index)
+            elif _is_flight_row(row):
+                _add_unique_structured(sections["self_arranged_flights"], label, row, row_index)
+            else:
+                _add_unique_structured(sections["costs_not_included"], label, row, row_index)
+            continue
+
+        if status == "excluded" or _is_cost_not_included_row(row):
+            specific_label = _specific_cost_not_included_label(row)
+            _add_unique_structured(sections["costs_not_included"], specific_label or label, row, row_index)
+
+    return {key: value for key, value in sections.items() if value}
+
+
 def flatten_specific_exclusion_sections(sections, limit_per_section=8):
     """Flatten structured exclusion sections for the existing final-page renderer."""
 
@@ -312,6 +401,69 @@ def flatten_specific_exclusion_sections(sections, limit_per_section=8):
         if len(section_items) > limit_per_section:
             add_unique(items, f"and {len(section_items) - limit_per_section} more")
     return items
+
+
+
+def _commercial_rule_item(label, source_sections):
+    source_ids = []
+    for items in (source_sections or {}).values():
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            for row_id in item.get("source_row_ids") or []:
+                if row_id and row_id not in source_ids:
+                    source_ids.append(row_id)
+    return {"label": label, "source_row_ids": source_ids[:20]}
+
+
+def _default_exclusion_items():
+    return [{"label": item, "source_row_ids": []} for item in DEFAULT_WHATS_NOT_INCLUDED_ITEMS]
+
+
+def create_structured_whats_not_included(parsed_rows=None):
+    """Return exclusions as source-aware structured sections.
+
+    The legacy ``create_whats_not_included`` API still returns strings. This
+    structured API returns section dictionaries whose items keep labels separate
+    from detail/source metadata.  That lets preview, editor and PDF render a
+    stable list while validation can prove self-arranged/optional/excluded rows
+    still have a visible exclusion entry.
+    """
+
+    rows = parsed_rows or []
+    text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in rows).lower()
+    specific_sections = create_source_aware_exclusion_sections(rows)
+
+    sections = []
+    for key, heading in EXCLUSION_SECTION_ORDER:
+        items = list(specific_sections.get(key) or [])
+        if items:
+            sections.append({"section_id": key, "title": heading, "items": items})
+
+    commercial_rules = []
+    if any(specific_sections.get(key) for key in ["self_arranged_flights", "self_transfers", "costs_not_included"]):
+        commercial_rules.append(_commercial_rule_item(
+            "Self-arranged flights or transport unless specifically stated as included",
+            {key: specific_sections.get(key) or [] for key in ["self_arranged_flights", "self_transfers", "costs_not_included"]},
+        ))
+    if any(specific_sections.get(key) for key in ["optional_experiences", "optional_transfers", "optional_hotels"]):
+        commercial_rules.append(_commercial_rule_item(
+            "Optional add-ons and experiences unless specifically selected",
+            {key: specific_sections.get(key) or [] for key in ["optional_experiences", "optional_transfers", "optional_hotels"]},
+        ))
+    if "optional addon" in text or "optional add-on" in text or "optional add on" in text:
+        item = _commercial_rule_item("Optional add-ons and experiences unless specifically selected", specific_sections)
+        if item["label"] not in {existing["label"] for existing in commercial_rules}:
+            commercial_rules.append(item)
+    if "excludes" in text or "not included" in text or "to be bought on site" in text:
+        item = _commercial_rule_item("Tickets or services marked as excluded or to be bought on site", specific_sections)
+        if item["label"] not in {existing["label"] for existing in commercial_rules}:
+            commercial_rules.append(item)
+    if commercial_rules:
+        sections.append({"section_id": "commercial_rules", "title": "Commercial notes", "items": commercial_rules})
+
+    sections.append({"section_id": "general", "title": "General exclusions", "items": _default_exclusion_items()})
+    return sections
 
 
 def create_whats_not_included(parsed_rows=None):

@@ -40,6 +40,10 @@ FAST_TESTS = (
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
+    "tests/test_structured_core_model.py",
+    "tests/test_structured_html_source_identity.py",
+    "tests/test_output_layout_contract.py",
+    "tests/test_image_match_audit.py",
 )
 
 QUALITY_TESTS = (

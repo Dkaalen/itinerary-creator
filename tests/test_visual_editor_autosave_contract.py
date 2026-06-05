@@ -284,3 +284,79 @@ def test_visual_editor_frontend_has_autosave_and_text_first_contract():
     assert "localStorage.setItem" in editor_html
     assert "beforeunload" in editor_html
     assert "picturesAdded" in editor_html
+
+
+def test_visual_editor_text_mode_cover_uses_high_contrast_edit_skin():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "editor-text-cover" in editor_html
+    assert "cover-page.editor-text-cover .cover-title" in editor_html
+    assert "picturesAdded() ? '' : 'editor-text-cover'" in editor_html
+
+def test_visual_editor_recovered_browser_draft_is_saved_back_to_streamlit():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "restoredLocalDraftPendingSave" in editor_html
+    assert "saveRestoredLocalDraftToServer" in editor_html
+    assert "Recovered browser draft and saved it" in editor_html
+    assert "serverSnapshot === localSnapshot" in editor_html
+    assert "setTimeout(saveRestoredLocalDraftToServer, 0)" in editor_html
+
+
+def test_visual_editor_payload_includes_source_signature_for_draft_recovery():
+    rows = [
+        {
+            "row_id": "row-1",
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Tromsø",
+            "title": "Photo Tour to Arctic Landscapes and Fjords",
+            "raw_text": "Supplier fjord photo tour details",
+        }
+    ]
+
+    payload = editor_workflow.build_visual_editor_payload(
+        rows,
+        {"Day 1": rows},
+        {"days": {}, "important_travel_notes_text": "", "pictures_added": False, "draft_id": "draft-1"},
+    )
+
+    assert payload["meta"]["draft_schema_version"] == 2
+    assert payload["meta"]["day_count"] == 1
+    assert payload["meta"]["source_signature"]
+
+    changed_rows = [dict(rows[0], title="Munch Museum Admission")]
+    changed_payload = editor_workflow.build_visual_editor_payload(
+        changed_rows,
+        {"Day 1": changed_rows},
+        {"days": {}, "important_travel_notes_text": "", "pictures_added": False, "draft_id": "draft-1"},
+    )
+
+    assert changed_payload["meta"]["source_signature"] != payload["meta"]["source_signature"]
+
+
+def test_visual_editor_frontend_rejects_stale_local_draft_signatures():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "source_signature: initialPayload?.meta?.source_signature" in editor_html
+    assert "currentSourceSignature" in editor_html
+    assert "savedSourceSignature" in editor_html
+    assert "currentSourceSignature !== savedSourceSignature" in editor_html
+
+
+def test_visual_editor_frontend_recovers_picture_stage_and_images_after_refresh():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "const localPicturesAdded = !!localDraft.workflow?.pictures_added" in editor_html
+    assert "if (localPicturesAdded && localDay.image)" in editor_html
+    assert "merged.workflow.pictures_added = !!localDraft.workflow.pictures_added" in editor_html
+    assert "picturesAdded() && localDraft.workflow?.pictures_added" not in editor_html
+
+
+def test_visual_editor_frontend_merges_recovered_days_by_identity_not_only_index():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "function sameDraftDay" in editor_html
+    assert "function findServerDayForLocalDraft" in editor_html
+    assert "sameDraftDay(day, localDay, fallbackIndex)" in editor_html

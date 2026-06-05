@@ -20,6 +20,7 @@ from itinerary_generation.quality_gate import (
     evaluate_itinerary_quality,
 )
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.structured_builder import build_itinerary_document
 
 
 @dataclass(frozen=True)
@@ -132,6 +133,12 @@ def build_itinerary_health_report(
     parser_diagnostic_count = len(list(parser_diagnostics or []))
     if parser_diagnostic_count:
         warnings.append(f"Parser diagnostics recorded: {parser_diagnostic_count} notice(s).")
+
+    structured_document = build_itinerary_document(rows)
+    for model_warning in structured_document.warnings:
+        prefix = "Structured model"
+        severity = str(model_warning.severity or "warning").title()
+        warnings.append(f"{prefix} {severity}: {model_warning.message}")
 
     return ItineraryHealthReport(
         input_days=snapshot.input_max_day,

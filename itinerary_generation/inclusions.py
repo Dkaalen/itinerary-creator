@@ -21,6 +21,7 @@ from itinerary_generation.exclusion_sections import (
     create_specific_exclusion_sections,
     flatten_specific_exclusion_sections,
     create_whats_not_included,
+    create_structured_whats_not_included,
 )
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "format_transport_inclusion",
     "create_whats_included",
     "create_whats_not_included",
+    "create_structured_whats_not_included",
     "create_final_note",
     "_commercial_row_title",
     "_row_date_suffix",

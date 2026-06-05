@@ -16,6 +16,7 @@ from .matcher import (
     select_day_image,
     select_day_images,
 )
+from .image_match_audit import ImageAuditWarning, audit_day_image_match, audit_day_image_matches
 from .metadata import (
     CITY_ALIASES,
     IMAGE_EXTENSIONS,
@@ -41,6 +42,7 @@ __all__ = [
     "SUMMER_MONTHS",
     "THEME_ALIASES",
     "WINTER_MONTHS",
+    "ImageAuditWarning",
     "ImageCandidate",
     "_candidate_destination_matches",
     "_candidate_to_payload",
@@ -49,6 +51,8 @@ __all__ = [
     "_score_default_candidate",
     "_season_available_for_context",
     "_select_best_candidate_for_context",
+    "audit_day_image_match",
+    "audit_day_image_matches",
     "build_day_context",
     "candidate_destination_matches",
     "candidate_to_payload",

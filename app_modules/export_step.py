@@ -6,7 +6,10 @@ import streamlit as st
 from ui.export_files import save_pdf_file
 from app_modules.project_io import rebuild_current_preview
 from ui.picture_workflow import pictures_are_added
+from itinerary_generation.common import group_rows_by_day, is_optional_row
+from itinerary_generation.output_contract import validate_output_layout_contract
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
+from images.app_image_selection import audit_day_image_matches, select_day_images_with_overrides
 
 
 def render_export_step(app_version):
@@ -80,6 +83,57 @@ def render_export_step(app_version):
                         # reuse an up-to-date PDF instead of exporting again.
                         rebuild_current_preview(mark_pdf_dirty=False, save_html=True)
                         html_path = Path(st.session_state.html_path) if st.session_state.html_path else html_path
+
+                        expected_day_count = len(group_rows_by_day(st.session_state.get("parsed_rows", []) or []))
+                        contract_issues = validate_output_layout_contract(
+                            st.session_state.get("itinerary_html", ""),
+                            expected_day_count=expected_day_count,
+                        )
+                        blocking_contract_issues = [
+                            issue for issue in contract_issues if issue.severity == "error"
+                        ]
+                        if blocking_contract_issues:
+                            st.session_state.pdf_signature = None
+                            st.session_state.pdf_status = "Needs review"
+                            st.error("PDF export stopped because the preview structure needs review.")
+                            with st.expander("Preview structure issues"):
+                                for issue in blocking_contract_issues:
+                                    st.write(f"- {issue.message}")
+                            return
+
+                        grouped_days = group_rows_by_day(st.session_state.get("parsed_rows", []) or [])
+                        image_grouped_days = {
+                            day: [row for row in rows if not is_optional_row(row)] or list(rows)
+                            for day, rows in grouped_days.items()
+                        }
+                        image_matches = select_day_images_with_overrides(
+                            image_grouped_days,
+                            st.session_state.get("output_edits", {}),
+                        )
+                        image_issues = audit_day_image_matches(
+                            image_grouped_days,
+                            image_matches,
+                            st.session_state.get("output_edits", {}),
+                        )
+                        blocking_image_issues = [
+                            issue for issue in image_issues if issue.severity == "error"
+                        ]
+                        if blocking_image_issues:
+                            st.session_state.pdf_signature = None
+                            st.session_state.pdf_status = "Needs image review"
+                            st.error("PDF export stopped because one or more pictures need review.")
+                            with st.expander("Picture review issues"):
+                                for issue in blocking_image_issues:
+                                    st.write(f"- {issue.message}")
+                            return
+                        nonblocking_image_issues = [
+                            issue for issue in image_issues if issue.severity != "error"
+                        ]
+                        if nonblocking_image_issues:
+                            with st.expander("Picture review warnings"):
+                                for issue in nonblocking_image_issues[:10]:
+                                    st.write(f"- {issue.message}")
+
                         current_pdf_signature = st.session_state.get("preview_signature")
 
                         pdf_is_current = (

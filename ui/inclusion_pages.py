@@ -3,19 +3,28 @@
 from __future__ import annotations
 
 from ui.render_helpers import esc, render_list_items
+from itinerary_generation.structured_rendering import normalize_structured_list_item, normalize_structured_list_sections
+
+
+def _source_marker(item):
+    structured_item = normalize_structured_list_item(item)
+    if not structured_item or not structured_item.source_row_ids:
+        return ""
+    clean_ids = [str(row_id).strip() for row_id in structured_item.source_row_ids if str(row_id).strip()]
+    if not clean_ids:
+        return ""
+    return f'<span class="source-row-marker" data-source-row-ids="{esc(",".join(clean_ids))}"></span>'
 
 
 def _render_inclusion_item(item, *, bullet_multiline=False):
-    text = str(item or "").replace("\r\n", "\n").strip()
-    if not text:
+    structured_item = normalize_structured_list_item(item)
+    if not structured_item or not structured_item.label:
         return ""
 
-    if "\n" not in text:
-        return f"<li>{esc(text)}</li>"
-
-    lines = [line.strip() for line in text.split("\n") if line.strip()]
-    if not lines:
-        return ""
+    source_marker = _source_marker(structured_item)
+    lines = [structured_item.label, *structured_item.detail_lines]
+    if len(lines) == 1:
+        return f"<li>{esc(lines[0])}</li>{source_marker}"
 
     if bullet_multiline:
         detail_html = "".join(
@@ -24,38 +33,44 @@ def _render_inclusion_item(item, *, bullet_multiline=False):
         )
         return (
             '<ul class="detail-list inclusion-category-list inclusion-multiline-list">'
-            f'<li><div class="strong-line inclusion-entry-title">{esc(lines[0])}</div>{detail_html}</li>'
+            f'<li><div class="strong-line inclusion-entry-title">{esc(lines[0])}</div>{detail_html}</li>{source_marker}'
             '</ul>'
         )
 
-    html_text = f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>'
+    html_text = f'<div class="body-text strong-line inclusion-entry-title">{esc(lines[0])}</div>{source_marker}'
     for line in lines[1:]:
         html_text += f'<div class="body-text inclusion-entry-detail">{esc(line)}</div>'
     return html_text
 
 
+def _render_plain_inclusion_items(items):
+    normalized_items = [normalize_structured_list_item(item) for item in items]
+    normalized_items = [item for item in normalized_items if item and item.label]
+    if not normalized_items:
+        return ""
+    if any(item.source_row_ids for item in normalized_items):
+        list_items = "".join(_render_inclusion_item(item) for item in normalized_items)
+        return f'<ul class="detail-list inclusion-category-list">{list_items}</ul>'
+    return render_list_items([item.label for item in normalized_items], class_name="detail-list inclusion-category-list")
+
+
 def render_inclusion_sections_inner_html(sections):
-    clean_sections = []
-    for section in sections or []:
-        section_title = str(section.get("title", "")).strip()
-        raw_items = section.get("items", []) or []
-        items = [str(item or "").strip() for item in raw_items if str(item or "").strip()]
-        if section_title and items:
-            clean_sections.append({"title": section_title, "items": items})
+    clean_sections = normalize_structured_list_sections(sections)
 
     html_text = ""
     for section in clean_sections:
         html_text += '<div class="content-block inclusion-category-block">'
-        html_text += f'<div class="section-title">{esc(section["title"])}</div>'
+        html_text += f'<div class="section-title">{esc(section.title)}</div>'
 
         plain_items = []
         multiline_count = 0
-        section_key = section["title"].strip().lower()
+        section_key = section.title.strip().lower()
         bullet_multiline = section_key not in {"accommodation", "activities & experiences"}
-        for item in section["items"]:
-            if "\n" in item:
+        for item in section.items:
+            has_details = bool(item.detail_lines)
+            if has_details:
                 if plain_items:
-                    html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
+                    html_text += _render_plain_inclusion_items(plain_items)
                     plain_items = []
                 if multiline_count and not bullet_multiline:
                     html_text += '<div class="body-text inclusion-entry-spacer">&nbsp;</div>'
@@ -65,15 +80,18 @@ def render_inclusion_sections_inner_html(sections):
                 plain_items.append(item)
 
         if plain_items:
-            html_text += render_list_items(plain_items, class_name="detail-list inclusion-category-list")
+            html_text += _render_plain_inclusion_items(plain_items)
 
         html_text += '</div>'
     return html_text
 
 
 def _estimate_inclusion_item_units(item):
-    text = str(item or "")
-    lines = [line for line in text.split("\n") if line.strip()] or [text]
+    structured_item = normalize_structured_list_item(item)
+    if not structured_item:
+        return 0
+    lines = [structured_item.label, *structured_item.detail_lines]
+    text = "\n".join(lines)
     units = 2 + max(0, len(lines) - 1)
     if len(text) > 90:
         units += 1
@@ -93,18 +111,25 @@ def _estimate_inclusion_section_units(section):
     fit by themselves are split, with the heading repeated as ``continued``.
     """
     units = 4  # section title and spacing
-    for item in section.get("items", []) or []:
+    normalized = normalize_structured_list_sections([section])
+    if not normalized:
+        return 0
+    for item in normalized[0].items:
         units += _estimate_inclusion_item_units(item)
     return units
 
 
 def _split_oversized_inclusion_section(section, page_body_units):
-    section_title = str(section.get("title", "")).strip()
+    normalized = normalize_structured_list_sections([section])
+    if not normalized:
+        return []
+    section_obj = normalized[0]
+    section_title = section_obj.title
     chunks = []
     current_items = []
     current_units = 4
 
-    for item in section.get("items", []) or []:
+    for item in section_obj.items:
         item_units = _estimate_inclusion_item_units(item)
         if current_items and current_units + item_units > page_body_units:
             chunks.append({"title": section_title if not chunks else f"{section_title} continued", "items": current_items})
@@ -122,12 +147,10 @@ def _split_oversized_inclusion_section(section, page_body_units):
 def paginate_categorized_inclusions(sections):
     """Return inclusion page sections using the PDF category-splitting rules."""
 
-    clean_sections = []
-    for section in sections or []:
-        section_title = str(section.get("title", "")).strip()
-        items = [str(item or "").strip() for item in (section.get("items", []) or []) if str(item or "").strip()]
-        if section_title and items:
-            clean_sections.append({"title": section_title, "items": items})
+    clean_sections = [
+        {"title": section.title, "items": list(section.items)}
+        for section in normalize_structured_list_sections(sections)
+    ]
 
     if not clean_sections:
         return []
@@ -163,7 +186,7 @@ def render_inclusion_page_inner_htmls(sections):
     return [render_inclusion_sections_inner_html(page_sections) for page_sections in paginate_categorized_inclusions(sections)]
 
 
-def render_categorized_inclusions_pages(title, sections):
+def render_categorized_inclusions_pages(title, sections, page_class="final-list-page categorized-inclusions-page"):
     pages = paginate_categorized_inclusions(sections)
     if not pages:
         return ""
@@ -172,5 +195,5 @@ def render_categorized_inclusions_pages(title, sections):
     for index, page_sections in enumerate(pages):
         continued = "" if index == 0 else " continued"
         inner_html = render_inclusion_sections_inner_html(page_sections)
-        html_text += f'<div class="a4-page final-list-page categorized-inclusions-page"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
     return html_text

@@ -1,5 +1,6 @@
 """Visual editor payload and save workflow."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,8 +16,9 @@ from itinerary_generation.titles import (
 )
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
-from itinerary_generation.exclusion_sections import create_whats_not_included
+from itinerary_generation.inclusions import create_whats_not_included
+from itinerary_generation.structured_builder import build_itinerary_document
+from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 from itinerary_generation.transport_safety import scan_client_output
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance
 from images.app_image_selection import (
@@ -24,6 +26,7 @@ from images.app_image_selection import (
     get_day_image_crop_focus,
     get_image_preview_for_path,
     list_replacement_image_options_for_rows,
+    audit_day_image_matches,
     normalize_crop_focus,
     save_data_uri_day_image,
     select_day_images_with_overrides,
@@ -32,9 +35,39 @@ from ui.day_pages import render_inclusion_sections_inner_html, render_inclusion_
 from ui.day_blocks import build_day_blocks
 from ui.render_helpers import get_detail_level_name, list_to_text
 from ui.picture_workflow import pictures_are_added
-from ui.editor_sanitizer import clean_visual_editor_html
+from ui.editor_sanitizer import clean_visual_editor_html, normalize_final_list_html
 from visual_editor_component.editor_bridge import render_visual_page_editor
 
+
+
+def _source_signature(parsed_rows, grouped_days):
+    """Stable signature for the source itinerary behind the editor draft.
+
+    Browser-local draft recovery is useful, but only while the editor is still
+    looking at the same generated itinerary.  This signature prevents a stale
+    localStorage draft from being merged into a different itinerary/project.
+    """
+    pieces = []
+    rows = parsed_rows or []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            continue
+        pieces.append("|".join([
+            str(row.get("row_id") or row.get("line_number") or index),
+            str(row.get("day") or ""),
+            str(row.get("date") or row.get("start_date") or ""),
+            str(row.get("type") or row.get("effective_type") or ""),
+            str(row.get("city") or row.get("destination") or ""),
+            str(row.get("title") or row.get("original_title") or ""),
+            str(row.get("raw_text") or row.get("details") or ""),
+        ]))
+    if not pieces and grouped_days:
+        for day, day_rows in grouped_days.items():
+            pieces.append(str(day))
+            for row in day_rows or []:
+                pieces.append(str(row.get("row_id") or row.get("title") or row))
+    payload = "\n".join(pieces)
+    return hashlib.sha256(payload.encode("utf-8", errors="ignore")).hexdigest()[:20]
 
 def _get_trip_glance(parsed_rows, grouped_days, output_edits):
     generated = create_trip_glance(parsed_rows, grouped_days)
@@ -63,7 +96,7 @@ def _get_journey_arc(grouped_days, output_edits):
 
 
 def _build_generated_inclusion_sections(parsed_rows, grouped_days):
-    return create_categorized_inclusions(parsed_rows, grouped_days)
+    return build_itinerary_document(parsed_rows, grouped_days).inclusions
 
 
 def _build_generated_inclusions_html(parsed_rows, grouped_days):
@@ -72,6 +105,27 @@ def _build_generated_inclusions_html(parsed_rows, grouped_days):
 
 def _build_generated_inclusion_page_htmls(parsed_rows, grouped_days):
     return render_inclusion_page_inner_htmls(_build_generated_inclusion_sections(parsed_rows, grouped_days))
+
+
+def _build_generated_exclusions_html(parsed_rows, grouped_days=None):
+    return render_inclusion_sections_inner_html(build_itinerary_document(parsed_rows, grouped_days).exclusions)
+
+
+def _compact_model_warnings(structured_document):
+    warnings = []
+    seen = set()
+    for warning in getattr(structured_document, "warnings", ()) or ():
+        key = (warning.code, warning.message, tuple(warning.source_row_ids))
+        if key in seen:
+            continue
+        seen.add(key)
+        warnings.append({
+            "code": warning.code,
+            "severity": warning.severity,
+            "message": warning.message,
+            "source_row_ids": list(warning.source_row_ids),
+        })
+    return warnings[:30]
 
 
 def _page_html_payload(page_htmls):
@@ -96,7 +150,7 @@ def _client_output_warnings_for_payload(payload):
         if isinstance(day, dict):
             pieces.extend(str(day.get(key, "")) for key in ("city", "title", "intro", "blocks_html"))
     final_pages = payload.get("final_pages") or {}
-    pieces.extend(str(final_pages.get(key, "")) for key in ("whats_included_html", "whats_not_included_text", "important_travel_notes_text"))
+    pieces.extend(str(final_pages.get(key, "")) for key in ("whats_included_html", "whats_not_included_html", "whats_not_included_text", "important_travel_notes_text"))
     for page in final_pages.get("whats_included_pages_html") or []:
         if isinstance(page, dict):
             pieces.append(str(page.get("html", "")))
@@ -118,6 +172,15 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
     pictures_added = pictures_are_added(output_edits)
     image_matches = select_day_images_with_overrides(grouped_days, output_edits) if pictures_added else {}
+    image_warnings = audit_day_image_matches(grouped_days, image_matches, output_edits) if pictures_added else ()
+    image_warnings_by_day = {}
+    for warning in image_warnings:
+        image_warnings_by_day.setdefault(warning.day, []).append({
+            "code": warning.code,
+            "severity": warning.severity,
+            "message": warning.message,
+            "path": warning.path,
+        })
     payload_days = []
 
     for day, rows in grouped_days.items():
@@ -138,6 +201,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
                 "auto_data_uri": preview_data_uri,
                 "crop_focus": get_day_image_crop_focus(output_edits, day),
                 "options": options,
+                "warnings": image_warnings_by_day.get(day, []),
             }
         else:
             image_obj = {
@@ -151,6 +215,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
                 "crop_focus": "top",
                 "options": [],
                 "pictures_pending": True,
+                "warnings": [],
             }
 
         # Presence matters here: an intentionally emptied visual-editor block
@@ -171,13 +236,40 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "image": image_obj,
         })
 
-    generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
-    generated_inclusion_page_htmls = _build_generated_inclusion_page_htmls(parsed_rows, grouped_days)
+    structured_document = build_itinerary_document(parsed_rows, grouped_days)
+    generated_inclusions_html = render_inclusion_sections_inner_html(structured_document.inclusions)
+    generated_inclusion_page_htmls = render_inclusion_page_inner_htmls(structured_document.inclusions)
+    saved_inclusion_page_htmls = output_edits.get("whats_included_pages_html")
+    saved_exclusions_html = output_edits.get("whats_not_included_html")
+    effective_inclusion_page_htmls = _page_html_payload(saved_inclusion_page_htmls or generated_inclusion_page_htmls)
     generated_whats_not_included_text = list_to_text(create_whats_not_included(parsed_rows))
+    generated_whats_not_included_html = render_inclusion_sections_inner_html(structured_document.exclusions)
+    effective_exclusions_html = saved_exclusions_html or generated_whats_not_included_html
+    final_page_source_warnings = (
+        *validate_source_aware_html_coverage(
+            html_fragments=effective_inclusion_page_htmls,
+            sections=structured_document.inclusions,
+            page_name="What's included",
+            warning_code="edited_inclusions_missing_source_identity",
+        ),
+        *validate_source_aware_html_coverage(
+            html_fragments=effective_exclusions_html,
+            sections=structured_document.exclusions,
+            page_name="What's not included",
+            warning_code="edited_exclusions_missing_source_identity",
+        ),
+    )
+    structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
+    model_warnings = _compact_model_warnings(structured_document)
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
 
     payload = {
         "draft_id": output_edits.get("draft_id", ""),
+        "meta": {
+            "draft_schema_version": 2,
+            "source_signature": _source_signature(parsed_rows, grouped_days),
+            "day_count": len(payload_days),
+        },
         "cover": {
             "cover_kicker": output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
@@ -197,15 +289,28 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         "days": payload_days,
         "final_pages": {
             "whats_included_html": output_edits.get("whats_included_html") or generated_inclusions_html,
-            "whats_included_pages_html": _page_html_payload(output_edits.get("whats_included_pages_html") or generated_inclusion_page_htmls),
+            "whats_included_pages_html": effective_inclusion_page_htmls,
             "whats_included_text": output_edits.get("whats_included_text", ""),
+            "whats_not_included_html": effective_exclusions_html,
             "whats_not_included_text": output_edits.get("whats_not_included_text") or generated_whats_not_included_text,
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
         },
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
         "workflow": {"pictures_added": pictures_added},
+        "model_warnings": model_warnings,
     }
-    payload["client_output_warnings"] = _client_output_warnings_for_payload(payload)
+    output_warnings = _client_output_warnings_for_payload(payload)
+    for warning in model_warnings:
+        output_warnings.append({
+            "code": warning.get("code", "model_warning"),
+            "excerpt": warning.get("message", "Structured model warning"),
+        })
+    for warning in image_warnings:
+        output_warnings.append({
+            "code": warning.code,
+            "excerpt": warning.message,
+        })
+    payload["client_output_warnings"] = output_warnings[:30]
     return payload
 
 
@@ -319,8 +424,19 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         output_edits["whats_included_html"] = clean_visual_editor_html(final_pages.get("whats_included_html", ""))
         output_edits.pop("whats_included_pages_html", None)
         output_edits["whats_included_text"] = ""
+    if "whats_not_included_html" in final_pages:
+        output_edits["whats_not_included_html"] = normalize_final_list_html(final_pages.get("whats_not_included_html", ""))
+        # The structured HTML list is now the saved source for this page. Keep
+        # the old text key empty so preview/PDF do not flatten it back into a
+        # paragraph during a later rebuild.
+        output_edits["whats_not_included_text"] = ""
+
     for key in ["whats_included_text", "whats_not_included_text", "important_travel_notes_text"]:
         if key in final_pages and key != "whats_included_text":
+            # Do not let legacy text fallback overwrite an explicitly edited
+            # structured exclusion page in the same payload.
+            if key == "whats_not_included_text" and output_edits.get("whats_not_included_html"):
+                continue
             output_edits[key] = str(final_pages.get(key, "")).strip()
 
     if isinstance(data.get("issue_flags"), list):
