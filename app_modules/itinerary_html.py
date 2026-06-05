@@ -23,6 +23,7 @@ from ui.final_pages import (
 )
 from itinerary_generation.common import is_optional_row
 from ui.render_helpers import esc, text_to_list
+from ui.picture_workflow import pictures_are_added
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 from app_modules.itinerary_html_sections import (
     balanced_cover_subtitle_html,
@@ -67,7 +68,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     colors = get_color_preset(output_edits)
     colors_json = esc(json.dumps(colors))
 
-    cover_theme = get_cover_theme(parsed_rows, output_edits)
+    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_are_added(output_edits))
     cover_kicker = output_edits.get("cover_kicker") or "Travel Itinerary"
     trip_title = output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     cover_title_class = "cover-title"

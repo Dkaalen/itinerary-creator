@@ -12,6 +12,7 @@ from ui.output_edits import (
     make_output_edit_state,
     mark_output_dirty,
 )
+from ui.picture_workflow import pictures_are_added, set_pictures_added
 from itinerary_generation.common import group_rows_by_day
 from visual_editor_component.editor_workflow import render_visual_editor
 
@@ -205,11 +206,17 @@ def render_visual_editor_step():
         edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
         edited_grouped_days = group_rows_by_day(edited_rows)
 
-        with st.expander("Step 2 — Edit proposal directly on A4 pages", expanded=True):
-            st.markdown(
-                '<div class="workflow-note">Click directly into the A4 pages and type. Edits stay local while you work; Save edits stores them now, and Create PDF applies pending page edits first.</div>',
-                unsafe_allow_html=True,
+        pictures_added = pictures_are_added(st.session_state.output_edits)
+        step_title = "Step 2 — Edit text directly on A4 pages" if not pictures_added else "Step 2 — Review text and pictures on A4 pages"
+        with st.expander(step_title, expanded=True):
+            note = (
+                "Text-first mode keeps pictures out until the writing and layout are approved. "
+                "Edits autosave while you work and Create PDF applies pending edits first."
+                if not pictures_added
+                else
+                "Pictures are now loaded. Review each page image, replace/remove it if needed, and continue editing text if necessary."
             )
+            st.markdown(f'<div class="workflow-note">{note}</div>', unsafe_allow_html=True)
             editor_applied = render_visual_editor(
                 edited_rows,
                 edited_grouped_days,
@@ -253,9 +260,60 @@ def render_visual_editor_step():
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 
+
+
+def render_picture_review_step():
+    if not (st.session_state.parsed_rows and st.session_state.output_edits):
+        return
+
+    pictures_added = pictures_are_added(st.session_state.output_edits)
+    requested_commit_nonce = st.session_state.get("_add_pictures_after_visual_edit_commit_nonce")
+    commit_ready = (
+        requested_commit_nonce
+        and st.session_state.get("_visual_editor_add_pictures_commit_ready")
+        and str(st.session_state.get("_visual_editor_last_applied_commit_nonce", "")) == str(requested_commit_nonce)
+    )
+
+    if commit_ready and not pictures_added:
+        set_pictures_added(st.session_state.output_edits, True)
+        st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
+        st.session_state["_visual_editor_add_pictures_commit_ready"] = False
+        st.session_state["_visual_editor_commit_nonce"] = None
+        st.session_state.pdf_bytes = None
+        st.session_state.pdf_signature = None
+        st.session_state.pdf_status = "Needs refresh"
+        rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+        st.success("Pictures added. Review them in the editable pages above before creating the PDF.")
+        st.rerun()
+
+    with st.expander("Step 3 — Add and review pictures", expanded=pictures_added or bool(requested_commit_nonce)):
+        if pictures_added:
+            st.markdown(
+                '<div class="workflow-note">Pictures are active. Use the picture controls on each day page above to replace, remove, upload, or adjust crop focus. Create PDF will save the final visible state first.</div>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        st.markdown(
+            '<div class="workflow-note">Finish the text/layout first. Then add pictures for the final visual review. The app saves the current text edits before loading picture payloads.</div>',
+            unsafe_allow_html=True,
+        )
+        add_clicked = st.button("Add pictures", type="primary", use_container_width=True)
+        if add_clicked and not commit_ready:
+            next_nonce = str(int(st.session_state.get("_visual_editor_commit_counter", 0)) + 1)
+            st.session_state["_visual_editor_commit_counter"] = int(next_nonce)
+            st.session_state["_visual_editor_commit_nonce"] = next_nonce
+            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = next_nonce
+            st.session_state["_visual_editor_add_pictures_commit_ready"] = False
+            st.info("Saving current text edits before adding pictures…")
+            st.rerun()
+        elif requested_commit_nonce:
+            st.info("Saving current text edits before adding pictures…")
+
+
 def render_final_preview_step():
     if st.session_state.itinerary_html:
-        with st.expander("Step 3 — Review final PDF-style preview", expanded=False):
+        with st.expander("Step 4 — Review final PDF-style preview", expanded=False):
             st.caption("This preview is not editable. It is the final layout check before PDF export.")
             st.html(st.session_state.itinerary_html)
 
@@ -278,6 +336,7 @@ def render_app(app_version):
     render_input_step()
     render_debug_panels(show_debug)
     render_visual_editor_step()
+    render_picture_review_step()
     render_final_preview_step()
     render_fallback_editor(show_debug)
     render_export_step(app_version)

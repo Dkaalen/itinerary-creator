@@ -43,10 +43,10 @@ def image_to_data_uri(path: Path | None) -> str:
         return ""
 
 
-def get_cover_theme(parsed_rows, output_edits=None) -> dict:
+def get_cover_theme(parsed_rows, output_edits=None, *, include_image_data: bool = True) -> dict:
     season = get_cover_season(parsed_rows, output_edits)
     background_key = select_cover_background_key(season, parsed_rows)
-    path = get_cover_background_path(season, parsed_rows)
+    path = get_cover_background_path(season, parsed_rows) if include_image_data else None
     colors = dict(SEASON_TEXT_COLORS.get(season, SEASON_TEXT_COLORS["summer"]))
     if "northern_lights" in background_key:
         colors = {"ink": "#f5f1e8", "muted": "#d8cfbe", "accent": "#ead7a2"}
@@ -57,7 +57,7 @@ def get_cover_theme(parsed_rows, output_edits=None) -> dict:
         "title": SEASON_TITLES.get(season, SEASON_TITLES["summer"]),
         "subtitle": SEASON_SUBTITLES.get(season, SEASON_SUBTITLES["summer"]),
         "background_path": str(path) if path else "",
-        "background_data_uri": image_to_data_uri(path),
+        "background_data_uri": image_to_data_uri(path) if include_image_data else "",
         "ink": colors["ink"],
         "muted": colors["muted"],
         "accent": colors["accent"],

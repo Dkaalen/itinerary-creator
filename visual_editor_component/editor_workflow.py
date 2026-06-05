@@ -31,6 +31,7 @@ from images.app_image_selection import (
 from ui.day_pages import render_inclusion_sections_inner_html, render_inclusion_page_inner_htmls
 from ui.day_blocks import build_day_blocks
 from ui.render_helpers import get_detail_level_name, list_to_text
+from ui.picture_workflow import pictures_are_added
 from ui.editor_sanitizer import clean_visual_editor_html
 from visual_editor_component.editor_bridge import render_visual_page_editor
 
@@ -115,26 +116,42 @@ def _client_output_warnings_for_payload(payload):
 
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
-    image_matches = select_day_images_with_overrides(grouped_days, output_edits)
+    pictures_added = pictures_are_added(output_edits)
+    image_matches = select_day_images_with_overrides(grouped_days, output_edits) if pictures_added else {}
     payload_days = []
 
     for day, rows in grouped_days.items():
         day_edits = (output_edits or {}).get("days", {}).get(day, {})
         city = day_edits.get("city") or create_travel_route_label(rows) or get_primary_city(rows)
-        match = image_matches.get(day)
-        image_path = match.get("path") if match else ""
-        options = list_replacement_image_options_for_rows(day, rows)
-        image_obj = {
-            "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
-            "path": image_path or "",
-            "name": Path(image_path).name if image_path else "",
-            "data_uri": get_image_preview_for_path(image_path) if image_path else "",
-            "auto_path": image_path or "",
-            "auto_name": Path(image_path).name if image_path else "",
-            "auto_data_uri": get_image_preview_for_path(image_path) if image_path else "",
-            "crop_focus": get_day_image_crop_focus(output_edits, day),
-            "options": options,
-        }
+        if pictures_added:
+            match = image_matches.get(day)
+            image_path = match.get("path") if match else ""
+            preview_data_uri = get_image_preview_for_path(image_path) if image_path else ""
+            options = list_replacement_image_options_for_rows(day, rows)
+            image_obj = {
+                "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
+                "path": image_path or "",
+                "name": Path(image_path).name if image_path else "",
+                "data_uri": preview_data_uri,
+                "auto_path": image_path or "",
+                "auto_name": Path(image_path).name if image_path else "",
+                "auto_data_uri": preview_data_uri,
+                "crop_focus": get_day_image_crop_focus(output_edits, day),
+                "options": options,
+            }
+        else:
+            image_obj = {
+                "mode": "pending",
+                "path": "",
+                "name": "",
+                "data_uri": "",
+                "auto_path": "",
+                "auto_name": "",
+                "auto_data_uri": "",
+                "crop_focus": "top",
+                "options": [],
+                "pictures_pending": True,
+            }
 
         # Presence matters here: an intentionally emptied visual-editor block
         # must stay empty instead of falling back to regenerated content.
@@ -157,9 +174,10 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     generated_inclusions_html = _build_generated_inclusions_html(parsed_rows, grouped_days)
     generated_inclusion_page_htmls = _build_generated_inclusion_page_htmls(parsed_rows, grouped_days)
     generated_whats_not_included_text = list_to_text(create_whats_not_included(parsed_rows))
-    cover_theme = get_cover_theme(parsed_rows, output_edits)
+    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
 
     payload = {
+        "draft_id": output_edits.get("draft_id", ""),
         "cover": {
             "cover_kicker": output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
@@ -185,6 +203,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "important_travel_notes_text": output_edits.get("important_travel_notes_text", ""),
         },
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
+        "workflow": {"pictures_added": pictures_added},
     }
     payload["client_output_warnings"] = _client_output_warnings_for_payload(payload)
     return payload
@@ -215,6 +234,10 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         if key in cover:
             value = str(cover.get(key, "")).strip()
             output_edits[key] = _normalize_route_edit(value) if key == "destinations_line" else value
+
+    workflow = data.get("workflow", {}) or {}
+    if isinstance(workflow, dict) and "pictures_added" in workflow:
+        output_edits["pictures_added"] = bool(workflow.get("pictures_added"))
 
     summary = data.get("summary", {}) or {}
     if isinstance(summary.get("trip_glance"), dict):
@@ -350,6 +373,8 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             applied_nonce = st.session_state.get("_visual_editor_last_applied_commit_nonce")
             if applied_nonce and str(applied_nonce) == str(st.session_state.get("_pdf_after_visual_edit_commit_nonce", "")):
                 st.session_state["_visual_editor_export_commit_ready"] = True
+            elif applied_nonce and str(applied_nonce) == str(st.session_state.get("_add_pictures_after_visual_edit_commit_nonce", "")):
+                st.session_state["_visual_editor_add_pictures_commit_ready"] = True
             else:
                 st.success("Edits saved to preview and PDF export.")
             return True

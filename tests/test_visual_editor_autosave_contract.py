@@ -201,3 +201,86 @@ def test_visual_editor_payload_keeps_empty_saved_day_blocks_empty():
     )
 
     assert payload["days"][0]["blocks_html"] == ""
+
+
+def test_new_edit_state_starts_in_text_only_picture_workflow():
+    from ui.output_edits import make_output_edit_state
+    from ui.picture_workflow import pictures_are_added
+
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Rovaniemi",
+            "title": "Snowmobile Safari",
+        }
+    ]
+
+    edits = make_output_edit_state(rows, {"Day 1": rows})
+
+    assert edits["pictures_added"] is False
+    assert pictures_are_added(edits) is False
+    assert edits["draft_id"]
+
+
+def test_visual_editor_payload_is_text_only_before_add_pictures():
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Rovaniemi",
+            "title": "Generated Snowmobile Safari",
+            "client_description": "Generated activity details",
+            "time": "10:00 AM",
+        }
+    ]
+
+    payload = editor_workflow.build_visual_editor_payload(
+        rows,
+        {"Day 1": rows},
+        {"days": {}, "important_travel_notes_text": "", "pictures_added": False, "draft_id": "draft-1"},
+    )
+
+    assert payload["workflow"] == {"pictures_added": False}
+    assert payload["draft_id"] == "draft-1"
+    assert payload["cover"]["cover_background_data_uri"] == ""
+    assert payload["days"][0]["image"]["pictures_pending"] is True
+    assert payload["days"][0]["image"]["data_uri"] == ""
+    assert payload["days"][0]["image"]["options"] == []
+
+
+def test_preview_html_omits_day_images_until_pictures_are_added():
+    from app_modules.itinerary_html import build_itinerary_html
+
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Rovaniemi",
+            "title": "Snowmobile Safari",
+            "client_description": "Generated activity details",
+            "time": "10:00 AM",
+        }
+    ]
+
+    html = build_itinerary_html(
+        rows,
+        {"Day 1": rows},
+        {"days": {}, "important_travel_notes_text": "", "pictures_added": False},
+    )
+
+    assert '<div class="day-image-slot"' not in html
+    assert "data:image/" not in html
+
+
+def test_visual_editor_frontend_has_autosave_and_text_first_contract():
+    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "Text-first editing mode" in editor_html
+    assert "Autosaving" in editor_html
+    assert "localStorage.setItem" in editor_html
+    assert "beforeunload" in editor_html
+    assert "picturesAdded" in editor_html

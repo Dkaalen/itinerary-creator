@@ -5,13 +5,14 @@ import streamlit as st
 
 from ui.export_files import save_pdf_file
 from app_modules.project_io import rebuild_current_preview
+from ui.picture_workflow import pictures_are_added
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 
 
 def render_export_step(app_version):
     if st.session_state.itinerary_html:
-        st.subheader("Step 4 — Export")
-        st.markdown('<div class="workflow-note">Download your editable project, download the HTML preview, or create a PDF. Create PDF applies pending page edits first.</div>', unsafe_allow_html=True)
+        st.subheader("Step 5 — Export")
+        st.markdown('<div class="workflow-note">Download your editable project, download the HTML preview, or create a PDF. Create PDF applies pending page/image edits first.</div>', unsafe_allow_html=True)
 
         html_path = Path(st.session_state.html_path) if st.session_state.html_path else None
         project_data = {
@@ -53,7 +54,10 @@ def render_export_step(app_version):
                 and str(st.session_state.get("_visual_editor_last_applied_commit_nonce", "")) == str(requested_commit_nonce)
             )
 
-            create_clicked = st.button("Create PDF", use_container_width=True)
+            pictures_added = pictures_are_added(st.session_state.get("output_edits", {}))
+            create_clicked = st.button("Create PDF", use_container_width=True, disabled=not pictures_added)
+            if not pictures_added:
+                st.caption("Add pictures before creating the final PDF.")
             if create_clicked and not commit_ready:
                 next_nonce = str(int(st.session_state.get("_visual_editor_commit_counter", 0)) + 1)
                 st.session_state["_visual_editor_commit_counter"] = int(next_nonce)
@@ -63,7 +67,7 @@ def render_export_step(app_version):
                 st.info("Applying pending preview edits before creating the PDF…")
                 st.rerun()
 
-            if commit_ready:
+            if commit_ready and pictures_added:
                 validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))
                 if validation_report.is_blocked:
                     block_generation(validation_report)

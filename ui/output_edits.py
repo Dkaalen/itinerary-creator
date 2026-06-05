@@ -1,6 +1,7 @@
 """Editable output state helpers for the itinerary app."""
 
 import copy
+import uuid
 
 import streamlit as st
 
@@ -18,6 +19,7 @@ from itinerary_generation.cover_theme import get_cover_season
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES, DETAIL_LEVELS
 from ui.render_helpers import display_time_with_duration, get_activity_description, list_to_text, text_to_list
+from ui.picture_workflow import PICTURES_ADDED_KEY
 
 
 def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detail, new_detail):
@@ -97,6 +99,7 @@ def apply_rich_writing_to_all_days(parsed_rows, output_edits):
 
 def make_output_edit_state(parsed_rows, grouped_days):
     edits = {
+        "draft_id": uuid.uuid4().hex,
         "cover_kicker": "Travel Itinerary",
         "cover_season": "automatic",
         "detected_cover_season": get_cover_season(parsed_rows, {"cover_season": "automatic"}),
@@ -106,6 +109,9 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
         "detail_level": "Rich descriptive",
         "day_page_layout": st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT),
+        # New projects start in stable text-editing mode. Pictures are added
+        # only after the user explicitly enters picture-review mode.
+        PICTURES_ADDED_KEY: False,
         "days": {},
         "rows": {},
         "whats_included_text": "",

@@ -9,6 +9,7 @@ from images.app_image_selection import render_day_image_slot, select_day_images_
 from ui.day_blocks import build_day_blocks
 from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import esc, get_detail_level_name
+from ui.picture_workflow import pictures_are_added
 
 
 def render_day_section(day, rows, output_edits=None):
@@ -80,8 +81,11 @@ def render_day_pages(grouped_days, output_edits=None):
     can place a full-width image below the day text when enough space remains.
     """
     html_text = ""
-    image_grouped_days = {day: [row for row in rows if not is_optional_row(row)] or list(rows) for day, rows in grouped_days.items()}
-    image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
+    if pictures_are_added(output_edits):
+        image_grouped_days = {day: [row for row in rows if not is_optional_row(row)] or list(rows) for day, rows in grouped_days.items()}
+        image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
+    else:
+        image_matches = {}
     for day, rows in grouped_days.items():
         html_text += render_day_page(day, rows, output_edits, image_match=image_matches.get(day))
     return html_text

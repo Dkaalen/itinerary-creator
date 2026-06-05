@@ -101,6 +101,13 @@ def reset_project_state(clear_raw_text=True):
         "preview_signature",
         "pdf_signature",
         "_last_visual_editor_result",
+        "_visual_editor_commit_nonce",
+        "_visual_editor_commit_counter",
+        "_visual_editor_last_applied_commit_nonce",
+        "_visual_editor_export_commit_ready",
+        "_visual_editor_add_pictures_commit_ready",
+        "_pdf_after_visual_edit_commit_nonce",
+        "_add_pictures_after_visual_edit_commit_nonce",
         "itinerary_validation_report",
     ]:
         if key in st.session_state:

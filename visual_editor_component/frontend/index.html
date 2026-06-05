@@ -217,6 +217,7 @@
     }
     .image-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .image-stage.empty { display: flex; align-items: center; justify-content: center; color: #6b625a; font-weight: 700; }
+    .image-stage.text-mode { display: none; }
     .image-stage.skipped { display: none; }
     .image-actions {
       position: absolute;
@@ -282,6 +283,7 @@ let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
 let lastSavedPayload = '';
+let autosaveTimer = null;
 let activeEditKey = null;
 let undoStack = [];
 const WARNING_PATTERNS = [
@@ -300,6 +302,56 @@ function focusPos(focus) {
   if (focus === 'bottom') return 'center 78%';
   if (focus === 'center') return 'center center';
   return 'center 22%';
+}
+function picturesAdded() {
+  return !!model?.workflow?.pictures_added;
+}
+function draftStorageKey() {
+  const fallback = [initialPayload?.cover?.trip_title || '', initialPayload?.cover?.trip_dates || '', (initialPayload?.days || []).length].join('|');
+  return `itinerary-visual-editor-draft:${initialPayload?.draft_id || fallback}`;
+}
+function persistLocalDraft() {
+  if (!model || !initialPayload) return;
+  try {
+    const snapshot = compactFullPayloadForCommit(model);
+    localStorage.setItem(draftStorageKey(), JSON.stringify({saved_at: Date.now(), model: snapshot}));
+  } catch (err) {}
+}
+function mergeLocalDraftOntoServerPayload(localDraft) {
+  const merged = JSON.parse(JSON.stringify(initialPayload || {}));
+  if (localDraft.cover) merged.cover = Object.assign({}, merged.cover || {}, localDraft.cover);
+  if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
+  const localDays = Array.isArray(localDraft.days) ? localDraft.days : [];
+  if (!Array.isArray(merged.days)) merged.days = [];
+  localDays.forEach((localDay, idx) => {
+    if (!merged.days[idx]) merged.days[idx] = {day: localDay.day || `Day ${idx + 1}`};
+    ['day','label','date','title','city','intro','blocks_html'].forEach(field => {
+      if (field in localDay) merged.days[idx][field] = localDay[field];
+    });
+    if (picturesAdded() && localDraft.workflow?.pictures_added && localDay.image) {
+      merged.days[idx].image = Object.assign({}, merged.days[idx].image || {}, localDay.image);
+    }
+  });
+  if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
+  if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
+  merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
+  return merged;
+}
+function restoreLocalDraftIfAvailable() {
+  if (!initialPayload) return false;
+  try {
+    const raw = localStorage.getItem(draftStorageKey());
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.model) return false;
+    model = mergeLocalDraftOntoServerPayload(parsed.model);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+function clearLocalDraft() {
+  try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
 }
 function editableText(value, key, cls='') {
   return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
@@ -324,6 +376,9 @@ function editableRoute(value, key, cls='') {
   return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${routeHtml(value)}</div>`;
 }
 function imageHtml(day, dayIndex) {
+  if (!picturesAdded() || day.image?.pictures_pending) {
+    return '<div class="image-stage text-mode" aria-hidden="true"></div>';
+  }
   const img = day.image || {};
   const options = img.options || [];
   const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
@@ -350,7 +405,7 @@ function summaryPage(summary) {
   const arc = summary?.journey_arc || [];
   const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value')}</div>`).join('');
   const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
-  const bg = model.cover?.cover_background_data_uri || '';
+  const bg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';
   const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}');` : '';
   return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
     <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
@@ -400,6 +455,9 @@ function render(payload, commitNonce = null) {
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
   if (!model || !touchedKeys.size) {
     model = JSON.parse(JSON.stringify(initialPayload));
+    if (!model.workflow) model.workflow = {pictures_added: false};
+    restoreLocalDraftIfAvailable();
+    if (!model.workflow) model.workflow = {pictures_added: false};
     uploadedImages = {};
     touchedKeys = new Set();
   }
@@ -410,7 +468,7 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>Edit directly on the proposal pages</strong><span>Click text on the A4 pages and type. Create PDF applies pending edits first.</span></div>
+      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review text and pictures' : 'Text-first editing mode'}</strong><span>${picturesAdded() ? 'Picture controls are available on each day page. Edits autosave while you work. Create PDF applies pending edits first.' : 'No pictures are loaded yet. Text edits autosave so browser refreshes do not wipe your work. Create PDF applies pending edits first.'}</span></div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
           <span id="editCount" class="stat-pill">0 manual edits pending</span>
@@ -439,7 +497,8 @@ function draw() {
       </div>
     </div>
     <div class="page-stack">`;
-  const coverStyle = `background-image: url('${escAttr(model.cover?.cover_background_data_uri || '')}'); --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
+  const coverBg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';
+  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}');` : ''} --cover-ink: ${escAttr(model.cover?.cover_ink || '#1f3446')}; --cover-muted: ${escAttr(model.cover?.cover_muted || '#7b746c')}; --cover-accent: ${escAttr(model.cover?.cover_accent || '#b89555')};`;
   h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page" style="${coverStyle}"><div class="page-content">
       <div class="cover-main">
         <div class="cover-emblem" aria-hidden="true"></div>
@@ -577,7 +636,18 @@ function markTouched(key) {
     note.textContent = 'Unsaved edits';
     note.classList.add('show');
   }
+  scheduleAutosave();
   updateEditorStats();
+}
+function scheduleAutosave() {
+  persistLocalDraft();
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = 'Autosaving…';
+    note.classList.add('show');
+  }
+  autosaveTimer = setTimeout(() => saveChanges(null, {autosave: true}), 1600);
 }
 function isHtmlEditKey(key) {
   return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.includes('.whats_included_pages_html.'));
@@ -883,16 +953,21 @@ function buildSaveEnvelope(commitNonce = null) {
   }
   return JSON.stringify(payload);
 }
-function saveChanges(commitNonce = null) {
+function saveChanges(commitNonce = null, options = {}) {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
   if (!touchedKeys.size && !commitNonce) return;
   const serialized = buildSaveEnvelope(commitNonce);
   if (!commitNonce && serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
+  persistLocalDraft();
   Streamlit.setComponentValue(serialized);
   touchedKeys = new Set();
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved for now';
+    note.textContent = commitNonce ? 'Applying edits before PDF…' : (options.autosave ? 'Autosaved' : 'Saved for now');
     note.classList.add('show');
     if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
   }
@@ -912,6 +987,7 @@ function attachHandlers() {
   document.getElementById('makeNormalBtn')?.addEventListener('click', () => makeSelectedBlockClass(''));
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('resetBtn')?.addEventListener('click', () => {
+    clearLocalDraft();
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
     touchedKeys = new Set();
@@ -1018,6 +1094,12 @@ function attachHandlers() {
     });
   });
 }
+window.addEventListener('beforeunload', () => {
+  if (touchedKeys.size) {
+    collect();
+    persistLocalDraft();
+  }
+});
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'streamlit:render') {
     const args = event.data.args || {};
