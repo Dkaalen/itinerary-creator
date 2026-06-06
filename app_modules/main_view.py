@@ -299,16 +299,23 @@ def render_picture_review_step():
             unsafe_allow_html=True,
         )
         add_clicked = st.button("Add pictures", type="primary", use_container_width=True)
-        if add_clicked and not commit_ready:
-            next_nonce = str(int(st.session_state.get("_visual_editor_commit_counter", 0)) + 1)
-            st.session_state["_visual_editor_commit_counter"] = int(next_nonce)
-            st.session_state["_visual_editor_commit_nonce"] = next_nonce
-            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = next_nonce
+        if add_clicked:
+            # Pictures must not depend on a browser-side visual-editor commit.
+            # That handshake can stall in Streamlit and leave the page blank.
+            # The button now activates the picture workflow directly and keeps
+            # PDF/export state dirty so the next preview uses the image model.
+            set_pictures_added(st.session_state.output_edits, True)
+            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
             st.session_state["_visual_editor_add_pictures_commit_ready"] = False
-            st.info("Saving current text edits before adding pictures…")
+            st.session_state["_visual_editor_commit_nonce"] = None
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_signature = None
+            st.session_state.pdf_status = "Needs refresh"
+            rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+            st.success("Pictures added. Review them in the editable pages above before creating the PDF.")
             st.rerun()
         elif requested_commit_nonce:
-            st.info("Saving current text edits before adding pictures…")
+            st.info("Finishing the picture update…")
 
 
 def render_final_preview_step():

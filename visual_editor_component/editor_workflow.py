@@ -303,6 +303,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
     model_warnings = _compact_model_warnings(structured_document)
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
+    if pictures_added and cover_theme.get("background_path"):
+        # The editor needs only a screen preview. Keep the PDF/export path
+        # pointing at the original file, but avoid sending the full cover image
+        # through the Streamlit component payload.
+        cover_theme["background_data_uri"] = get_image_preview_for_path(cover_theme.get("background_path"))
     typed_cover = stored_editor_draft.get("cover", {}) if isinstance(stored_editor_draft.get("cover"), dict) else {}
     typed_summary = stored_editor_draft.get("summary", {}) if isinstance(stored_editor_draft.get("summary"), dict) else {}
 

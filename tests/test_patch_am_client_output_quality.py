@@ -157,5 +157,5 @@ def test_visual_editor_add_pictures_path_has_defensive_error_ui_and_bounded_imag
     assert "safeRender(args.payload" in frontend
     assert ".editor-error" in frontend
     assert "limit=12" in workflow
-    assert "max_size=(820, 560)" in previews
-    assert "quality=64" in previews
+    assert "max_size=(560, 380)" in previews
+    assert "quality=48" in previews
