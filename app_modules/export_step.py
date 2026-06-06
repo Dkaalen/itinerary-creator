@@ -32,6 +32,17 @@ def _request_visual_editor_commit(target_key: str) -> None:
     st.session_state["_visual_editor_export_commit_ready"] = False
 
 
+def request_pdf_creation_after_visual_editor_commit() -> None:
+    """Ask the visual editor to save before PDF creation starts.
+
+    The export screen needs a public action because the Create PDF button now
+    lives outside the export module. Keeping the commit request centralized
+    prevents the UI shell from mutating private visual-editor flags directly.
+    """
+
+    _request_visual_editor_commit("_pdf_after_visual_edit_commit_nonce")
+
+
 def _visual_editor_export_commit_ready() -> bool:
     requested_commit_nonce = st.session_state.get("_pdf_after_visual_edit_commit_nonce")
     return bool(
@@ -279,11 +290,11 @@ def render_export_step(app_version: str) -> None:
         render_pdf_download_station(location="bottom")
         st.caption("PDF is ready. Create PDF again only if you make more edits.")
         if st.button("Create PDF again", use_container_width=True):
-            _request_visual_editor_commit("_pdf_after_visual_edit_commit_nonce")
+            request_pdf_creation_after_visual_editor_commit()
             st.rerun()
     else:
         if st.button("Create PDF", type="primary", use_container_width=True):
-            _request_visual_editor_commit("_pdf_after_visual_edit_commit_nonce")
+            request_pdf_creation_after_visual_editor_commit()
             st.rerun()
 
     if commit_ready:

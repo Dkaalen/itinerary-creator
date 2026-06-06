@@ -535,7 +535,7 @@ def test_arctic_resort_fallback_beats_generic_city_default():
         )
 
 
-def test_strong_default_can_be_reused_in_app_preview_instead_of_showing_blank():
+def test_app_preview_locks_default_only_bank_unless_dev_fallback_is_allowed():
     from PIL import Image
     from images.day_image_selection import select_day_images_with_overrides
 
@@ -549,11 +549,24 @@ def test_strong_default_can_be_reused_in_app_preview_instead_of_showing_blank():
             "Day 1": [{"day": "Day 1", "date": "01.10.2027", "type": "Activity", "city": "Oslo", "title": "Oslo Walking Tour", "details": "City landmarks and skyline."}],
             "Day 2": [{"day": "Day 2", "date": "02.10.2027", "type": "Transfer", "city": "Oslo", "title": "Private Hotel to Airport", "details": "Private transfer from hotel to airport."}],
         }
-        matches = select_day_images_with_overrides(grouped, {}, app_root=Path(tmp), image_bank_scan_paths=[bank])
-        if not matches.get("Day 1") or not matches.get("Day 2"):
-            raise AssertionError("A strong contextual Default image may be reused rather than leaving later preview pages blank.")
+
+        locked_matches = select_day_images_with_overrides(grouped, {}, app_root=Path(tmp), image_bank_scan_paths=[bank])
         assert_equal(
-            Path(matches["Day 1"]["path"]).name,
-            Path(matches["Day 2"]["path"]).name,
-            "The app preview wrapper should honor strong Default reuse selected by the matcher.",
+            locked_matches,
+            {"Day 1": None, "Day 2": None},
+            "Default-only image banks should not dominate the normal app preview when the full bank is missing.",
+        )
+
+        fallback_matches = select_day_images_with_overrides(
+            grouped,
+            {"allow_default_final_images": True},
+            app_root=Path(tmp),
+            image_bank_scan_paths=[bank],
+        )
+        if not fallback_matches.get("Day 1") or not fallback_matches.get("Day 2"):
+            raise AssertionError("Explicit dev fallback mode should still be able to reuse a strong Default image.")
+        assert_equal(
+            Path(fallback_matches["Day 1"]["path"]).name,
+            Path(fallback_matches["Day 2"]["path"]).name,
+            "Explicit fallback mode should preserve strong Default reuse selected by the matcher.",
         )

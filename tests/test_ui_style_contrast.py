@@ -47,4 +47,6 @@ def test_new_document_flow_classes_replace_old_visible_step_grid(monkeypatch):
     assert ".flow-nav" in css
     assert ".luxury-hero" in css
     assert ".bottom-cta" in css
-    assert ".workflow-step-grid { display: none; }" in css
+    assert ".document-stage-panel" in css
+    assert ".workflow-step-grid { display: none; }" not in css
+    assert "data-testid=\"stSidebar\"" not in css

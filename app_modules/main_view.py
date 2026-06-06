@@ -20,7 +20,11 @@ from itinerary_generation.common import group_rows_by_day, is_optional_row
 from visual_editor_component.editor_workflow import render_visual_editor
 
 from app_modules.itinerary_html import build_itinerary_html
-from app_modules.export_step import render_export_step, render_pdf_download_station
+from app_modules.export_step import (
+    render_export_step,
+    render_pdf_download_station,
+    request_pdf_creation_after_visual_editor_commit,
+)
 from app_modules.parse_workflow import parse_and_normalize_itinerary, get_duplicate_count, get_overflow_warnings
 from app_modules.project_io import load_project_json, rebuild_current_preview, reset_project_state
 from app_modules.validation_gate import (
@@ -42,8 +46,31 @@ FLOW_STAGES = ("input", "edit", "pictures", "export")
 STAGE_LABELS = {
     "input": "Paste text",
     "edit": "Edit itinerary",
-    "pictures": "Review pictures",
+    "pictures": "Add pictures",
     "export": "Create PDF",
+}
+STAGE_COPY = {
+    "input": {
+        "headline": "Create a client-ready itinerary",
+        "subtitle": "Paste supplier text, generate the itinerary, edit the document, add real destination pictures, then export the final PDF.",
+        "panel_title": "Paste supplier text",
+        "panel_text": "Copy the full supplier table or messy itinerary rows and paste them below. The app will build the editable client itinerary on the next page.",
+    },
+    "edit": {
+        "subtitle": "Edit the generated client itinerary directly. Pictures stay off until the text is ready.",
+        "panel_title": "Edit the itinerary",
+        "panel_text": "Work directly in the generated document. When the text is ready, add destination pictures from the real image bank.",
+    },
+    "pictures": {
+        "subtitle": "Review the same editable itinerary with automatically selected destination pictures.",
+        "panel_title": "Review pictures",
+        "panel_text": "The itinerary now includes automatic image selections. Replace weak matches, remove unwanted pictures, then create the PDF.",
+    },
+    "export": {
+        "subtitle": "Run the final quality checks, create the PDF, then download the client-ready file.",
+        "panel_title": "Create the final PDF",
+        "panel_text": "The current document and picture choices are used for export. Create the PDF here, then download it from the ready panel.",
+    },
 }
 
 
@@ -53,9 +80,7 @@ def _session_stage() -> str:
         stage = "input"
     if not st.session_state.get("parsed_rows"):
         return "input"
-    if stage == "pictures" and not pictures_are_added(st.session_state.get("output_edits", {})):
-        return "edit"
-    if stage == "export" and not pictures_are_added(st.session_state.get("output_edits", {})):
+    if stage in {"pictures", "export"} and not pictures_are_added(st.session_state.get("output_edits", {})):
         return "edit"
     return stage
 
@@ -63,6 +88,15 @@ def _session_stage() -> str:
 def _set_stage(stage: str) -> None:
     if stage in FLOW_STAGES:
         st.session_state["app_stage"] = stage
+
+
+def _stage_panel(title: str, body: str) -> None:
+    st.html(
+        '<div class="document-stage-panel">'
+        f'<h2>{escape(title)}</h2>'
+        f'<p>{escape(body)}</p>'
+        '</div>'
+    )
 
 
 def _render_top_nav(stage: str) -> None:
@@ -75,7 +109,7 @@ def _render_top_nav(stage: str) -> None:
             f'<span>{index + 1}</span><strong>{escape(STAGE_LABELS[item])}</strong>'
             f'</div>'
         )
-    st.html(f'<div class="flow-nav">{"".join(items)}</div>')
+    st.html(f'<div class="flow-nav" aria-label="Itinerary workflow">{"".join(items)}</div>')
 
 
 def _render_app_header(app_version: str, *, stage: str) -> None:
@@ -84,18 +118,9 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
         st.session_state.get("output_edits", {}),
     )
     title = project_title(st.session_state.get("output_edits", {}), "Create itinerary")
-    if stage == "input":
-        headline = "Create a client-ready itinerary"
-        subtitle = "Paste supplier text, generate the itinerary, edit the document, add real destination pictures, then export the final PDF."
-    elif stage == "edit":
-        headline = title
-        subtitle = "Edit the generated client itinerary directly. Pictures stay off until the text is ready."
-    elif stage == "pictures":
-        headline = title
-        subtitle = "Review the same editable itinerary with automatically selected destination pictures."
-    else:
-        headline = title
-        subtitle = "Run the final quality checks, create the PDF, then download the client-ready file."
+    copy = STAGE_COPY[stage]
+    headline = copy.get("headline") or title
+    subtitle = copy["subtitle"]
 
     route = project_route_label(metrics)
     duration = f"{metrics['days']} days" if metrics["days"] else "Not generated yet"
@@ -175,13 +200,7 @@ def _render_generation_messages() -> None:
 
 def render_input_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
-
-    st.html(
-        '<div class="start-panel">'
-        '<div><div class="section-kicker">Step 1</div><h2>Paste supplier text</h2>'
-        '<p>Copy the full supplier table or messy itinerary rows and paste them below. The app will build the client itinerary on the next page.</p></div>'
-        '</div>'
-    )
+    _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
 
     raw_text = st.text_area(
         "Supplier text",
@@ -294,37 +313,13 @@ def render_edit_page(app_version: str) -> None:
     _render_app_header(app_version, stage="edit")
     _render_generation_messages()
     _render_stage_actions("edit")
-
-    st.html(
-        '<div class="editor-stage-intro">'
-        '<div><div class="section-kicker">Step 2</div><h2>Edit the itinerary</h2>'
-        '<p>Work directly in the generated document. Keep pictures off until the text and layout feel ready.</p></div>'
-        '</div>'
-    )
+    _stage_panel(STAGE_COPY["edit"]["panel_title"], STAGE_COPY["edit"]["panel_text"])
     _render_document_editor(pictures_active=False)
 
     st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Add destination pictures and return to the top for visual review.</span></div></div>')
     if st.button("Add pictures", type="primary", use_container_width=True):
         with st.spinner("Finding best images…"):
-            status = image_bank_status()
-            if status.get("missing_full_bank"):
-                status = connect_remote_image_bank_if_missing()
-            st.session_state["image_bank_status"] = status
-            st.session_state.output_edits["allow_default_final_images"] = False
-            set_pictures_added(st.session_state.output_edits, True)
-            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
-            st.session_state["_visual_editor_add_pictures_commit_ready"] = False
-            st.session_state["_visual_editor_commit_nonce"] = None
-            matches = select_day_images_with_overrides(_image_grouped_days(), st.session_state.output_edits)
-            warnings = audit_day_image_matches(_image_grouped_days(), matches, st.session_state.output_edits)
-            st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
-            st.session_state.pdf_bytes = None
-            st.session_state.export_pdf_bytes = None
-            st.session_state.pdf_signature = None
-            st.session_state.export_pdf_signature = None
-            st.session_state.pdf_status = "Needs refresh"
-            rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
-            _set_stage("pictures")
+            _activate_picture_stage()
         st.rerun()
 
 
@@ -338,16 +333,25 @@ def render_picture_page(app_version: str) -> None:
     _render_stage_actions("pictures")
     render_pdf_download_station(location="top")
     _image_status_notice()
-
-    st.html(
-        '<div class="editor-stage-intro">'
-        '<div><div class="section-kicker">Step 3</div><h2>Review pictures</h2>'
-        '<p>The itinerary now includes automatic image selections. Replace weak matches, remove unwanted pictures, then create the PDF at the bottom.</p></div>'
-        '</div>'
-    )
+    _stage_panel(STAGE_COPY["pictures"]["panel_title"], STAGE_COPY["pictures"]["panel_text"])
     _render_document_editor(pictures_active=True)
 
     st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final client PDF from the current document.</span></div></div>')
+    if st.button("Create PDF", type="primary", use_container_width=True):
+        request_pdf_creation_after_visual_editor_commit()
+        _set_stage("export")
+        st.rerun()
+
+
+def render_export_page(app_version: str) -> None:
+    _render_app_header(app_version, stage="export")
+    _render_stage_actions("export")
+    render_pdf_download_station(location="top")
+    _image_status_notice()
+    _stage_panel(STAGE_COPY["export"]["panel_title"], STAGE_COPY["export"]["panel_text"])
+    _render_document_editor(pictures_active=True)
+
+    st.html('<div class="bottom-cta"><div><strong>Ready to deliver?</strong><span>Create or download the final client PDF.</span></div></div>')
     render_export_step(app_version)
 
 
@@ -374,7 +378,9 @@ def render_app(app_version: str) -> None:
         render_edit_page(app_version)
     elif stage == "pictures":
         render_picture_page(app_version)
+    elif stage == "export":
+        render_export_page(app_version)
     else:
-        render_picture_page(app_version)
+        render_input_page(app_version)
 
     render_debug_tools()

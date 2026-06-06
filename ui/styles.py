@@ -125,27 +125,6 @@ def apply_global_styles():
                 opacity: 1 !important;
             }
 
-            div[data-testid="stSidebar"] {
-                background: #081527 !important;
-                border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
-            }
-
-            div[data-testid="stSidebar"] * {
-                color: #ffffff !important;
-            }
-
-            div[data-testid="stSidebar"] [data-testid="stCaptionContainer"] *,
-            div[data-testid="stSidebar"] small,
-            div[data-testid="stSidebar"] p {
-                color: #d8e3ee !important;
-            }
-
-            div[data-testid="stSidebar"] [data-baseweb="select"] > div,
-            div[data-testid="stSidebar"] input,
-            div[data-testid="stSidebar"] textarea {
-                background: #ffffff !important;
-                color: #101828 !important;
-            }
 
             .luxury-hero {
                 position: relative;
@@ -301,8 +280,7 @@ def apply_global_styles():
                 background: #f8fafc;
             }
 
-            .start-panel,
-            .editor-stage-intro,
+            .document-stage-panel,
             .bottom-cta {
                 background: rgba(255,255,255,.92);
                 border: 1px solid var(--line);
@@ -312,14 +290,12 @@ def apply_global_styles():
                 margin-bottom: 1rem;
             }
 
-            .start-panel h2,
-            .editor-stage-intro h2 {
+            .document-stage-panel h2 {
                 margin: 0;
                 font-size: clamp(1.45rem, 2.4vw, 2.15rem);
             }
 
-            .start-panel p,
-            .editor-stage-intro p {
+            .document-stage-panel p {
                 margin: .55rem 0 0;
                 color: var(--ink-soft) !important;
                 max-width: 820px;
@@ -386,7 +362,6 @@ def apply_global_styles():
                 color: var(--ink-soft) !important;
             }
 
-            .workflow-step-grid { display: none; }
             .panel-card-title { color: var(--ink) !important; font-weight: 900; }
 
             [data-testid="stExpander"] {
