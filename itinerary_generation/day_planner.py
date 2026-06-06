@@ -123,12 +123,12 @@ def plan_day(rows: list[dict]) -> DayPlan:
 
     if travel_rows and has_hotel(rows) and activity_rows:
         title = _travel_activity_title(rows, activity_rows, city)
-        intro_destination = "Svalbard" if ("svalbard" in lower and city.lower() == "longyearbyen") else (_destination_from_transport(rows) or city)
-        intro = (
-            f"Travel continues towards {intro_destination} today, with the main connections and check-in arrangements kept clear before your included experience."
-            if intro_destination else
-            "Travel continues today, with the main connections and check-in arrangements kept clear before your included experience."
-        )
+        if "svalbard" in lower and city.lower() == "longyearbyen":
+            intro = f"Welcome to Svalbard. After arrival, the day is organised around {title}."
+        elif city:
+            intro = f"Welcome to {city}. After arrival and check-in, the day is organised around {title}."
+        else:
+            intro = f"After the day’s travel arrangements, the main included experience is {title}."
         return DayPlan("travel_activity_day", title, intro, skip_empty_activity_rows=True)
 
     if len(activity_rows) >= 2:
@@ -137,6 +137,9 @@ def plan_day(rows: list[dict]) -> DayPlan:
             return DayPlan("multi_activity_day", title, _intro_for_title(title, city, "multi_activity_day"), skip_empty_activity_rows=True)
 
     if activity_rows:
+        if "tallinn" in lower and ("old town" in lower or "ferry" in lower or "excursion" in lower):
+            title = "Day Excursion to Tallinn"
+            return DayPlan("single_activity_day", title, _intro_for_title(title, city, "multi_activity_day"), skip_empty_activity_rows=True)
         title = _single_activity_title(activity_rows[0])
         if re.search(r"hop[- ]?on\s+hop[- ]?off", title, flags=re.I):
             title = _hop_on_title(city)

@@ -79,16 +79,22 @@ def _looks_like_unpopulated_submodule(root: Path) -> bool:
 def _runtime_bootstrap_allowed() -> bool:
     """Return whether the app may fetch the image-bank repo at runtime.
 
-    Runtime network clones are intentionally opt-in.  The normal app path should
-    use an environment override, a populated submodule, a sibling checkout, or a
-    local fallback bank.  This keeps preview/export startup deterministic and
-    avoids surprising writes into the app checkout.
+    The full destination image bank is a separate repository and is required for
+    good Add Pictures results.  Local/sibling checkouts remain preferred, but a
+    missing full bank should not silently degrade to the tiny bundled Default
+    folder.  Runtime bootstrap is therefore on by default for normal app runs and
+    can be disabled with ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.  Tests stay offline
+    unless they explicitly opt in.
     """
 
+    value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "")).lower()
+    if value in {"0", "false", "no", "off", "disabled"}:
+        return False
+    if value in {"1", "true", "yes", "on", "enabled"}:
+        return True
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return False
-    value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "")).lower()
-    return value in {"1", "true", "yes", "on"}
+    return True
 
 
 def _ensure_runtime_image_bank(root: Path) -> Path | None:
@@ -96,8 +102,8 @@ def _ensure_runtime_image_bank(root: Path) -> Path | None:
 
     Zip/deployment workflows should normally ship a populated image bank or set
     ``ITINERARY_IMAGE_BANK_FULL`` to a known local checkout.  Runtime cloning is
-    kept as an emergency escape hatch only when
-    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=1`` is set.
+    used as the last-resort production fallback and can be disabled with
+    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.
     """
 
     runtime_repo = root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank"
@@ -106,8 +112,6 @@ def _ensure_runtime_image_bank(root: Path) -> Path | None:
         return runtime_bank
 
     if not _runtime_bootstrap_allowed():
-        return None
-    if not _looks_like_unpopulated_submodule(root) and not (root / ".gitmodules").exists():
         return None
     if shutil.which("git") is None:
         return None
@@ -142,9 +146,10 @@ def get_image_bank_paths(root=None):
     """Return image-bank paths in priority order.
 
     Destination-specific imagery from the separate image-bank repo is scanned
-    before local fallback banks. Runtime network cloning is disabled by default;
-    set ``ITINERARY_IMAGE_BANK_BOOTSTRAP=1`` only for controlled deployments that
-    intentionally want a one-time image-bank bootstrap.
+    before local fallback banks. If no full bank is available, the app attempts a
+    one-time runtime bootstrap from the image-bank GitHub repo before falling
+    back to the tiny bundled Default bank. Set
+    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0`` to disable that bootstrap.
     """
     root = Path(root) if root is not None else APP_ROOT
     external_banks = _candidate_external_image_bank_paths(root)
@@ -180,6 +185,23 @@ def slugify_filename(value):
     text = re.sub(r"[^A-Za-z0-9_ -]+", "", text)
     text = re.sub(r"[\s-]+", "_", text).strip("_")
     return text or "Image"
+
+
+def image_bank_status(root=None) -> dict:
+    """Return operational image-bank status for diagnostics and quality gates."""
+
+    root = Path(root) if root is not None else APP_ROOT
+    paths = get_image_bank_paths(root)
+    candidates = scan_image_bank(paths)
+    destination_candidates = [candidate for candidate in candidates if clean_space(candidate.city).lower() not in {"default", "defoult"}]
+    return {
+        "paths": [str(path) for path in paths],
+        "using_full_destination_bank": bool(destination_candidates),
+        "destination_image_count": len(destination_candidates),
+        "total_image_count": len(candidates),
+        "runtime_bootstrap_allowed": _runtime_bootstrap_allowed(),
+        "repo_url": IMAGE_BANK_REPO_URL,
+    }
 
 
 def infer_country_for_city(city, root=None):

@@ -195,7 +195,7 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
             {
                 "chapter": str(row.get("chapter", "")).strip(),
                 "days": str(row.get("days", "")).strip(),
-                "experience": sanitize_journey_arc_experience(row.get("experience", "")),
+                "experience": sanitize_journey_arc_experience(row.get("experience", ""), chapter=row.get("chapter", "")),
             }
             for row in context.journey_arc
             if isinstance(row, dict)
@@ -268,7 +268,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
             {
                 "chapter": str(row.get("chapter", "")).strip(),
                 "days": str(row.get("days", "")).strip(),
-                "experience": sanitize_journey_arc_experience(row.get("experience", "")),
+                "experience": sanitize_journey_arc_experience(row.get("experience", ""), chapter=row.get("chapter", "")),
             }
             for row in saved_journey_arc
             if isinstance(row, dict)

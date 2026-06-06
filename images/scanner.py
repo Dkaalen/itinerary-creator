@@ -28,23 +28,35 @@ def coerce_image_bank_paths(image_bank_path: Path | str | list | tuple | set = "
     return paths
 
 
-def _scan_cache_key(image_bank_path: Path | str | list | tuple | set = "image_bank") -> tuple[tuple[str, float], ...]:
+def _scan_cache_key(image_bank_path: Path | str | list | tuple | set = "image_bank") -> tuple[tuple[str, float, int], ...]:
     key = []
     for base in coerce_image_bank_paths(image_bank_path):
         try:
             resolved = base.resolve()
-            mtime = base.stat().st_mtime if base.exists() else 0.0
-            key.append((str(resolved), mtime))
+            if not base.exists():
+                key.append((str(resolved), 0.0, 0))
+                continue
+            newest_mtime = base.stat().st_mtime
+            file_count = 0
+            for path in base.rglob("*"):
+                if not path.is_file() or path.suffix.lower() not in IMAGE_EXTENSIONS:
+                    continue
+                file_count += 1
+                try:
+                    newest_mtime = max(newest_mtime, path.stat().st_mtime)
+                except Exception:
+                    pass
+            key.append((str(resolved), newest_mtime, file_count))
         except Exception:
-            key.append((str(base), 0.0))
+            key.append((str(base), 0.0, 0))
     return tuple(key)
 
 
 @lru_cache(maxsize=16)
-def _scan_image_bank_cached(cache_key: tuple[tuple[str, float], ...]) -> tuple[ImageCandidate, ...]:
+def _scan_image_bank_cached(cache_key: tuple[tuple[str, float, int], ...]) -> tuple[ImageCandidate, ...]:
     candidates = []
     seen_files: set[str] = set()
-    for path_text, _mtime in cache_key:
+    for path_text, _mtime, _file_count in cache_key:
         base = Path(path_text)
         if not base.exists() or not base.is_dir():
             continue

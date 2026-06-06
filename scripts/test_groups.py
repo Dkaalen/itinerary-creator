@@ -64,6 +64,7 @@ QUALITY_TESTS = (
     "tests/test_finland_transport_regressions.py",
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_patch_ao_output_quality_engine.py",
+    "tests/test_patch_ap_output_quality_and_images.py",
 )
 
 PDF_TESTS = (

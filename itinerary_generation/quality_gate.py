@@ -234,8 +234,13 @@ def blocking_validation_messages(parsed_rows) -> list[str]:
 
 FORBIDDEN_CLIENT_PATTERNS: tuple[tuple[str, str, str], ...] = (
     ("forbidden_aurora_wording", r"\bAurora\b", "Use 'Northern Lights' in client-facing output."),
-    ("forbidden_onward_flight", r"\bOnward\s+flight\b", "Use context-aware flight wording."),
-    ("forbidden_onward_travel", r"\bOnward\s+travel\b", "Use context-aware travel wording."),
+    ("forbidden_onward_flight", r"\bOnward\s+flight\b", "Use grounded destination or route wording."),
+    ("forbidden_onward_travel", r"\bOnward\s+travel\b", "Use grounded destination or route wording."),
+    ("weak_journey_arc_flight_connection", r"\bFlight\s+connection\b", "Use destination welcome wording when only a flight/check-in happens."),
+    ("weak_journey_arc_travel_connection", r"\b(?:Scenic\s+)?Travel\s+connection\b", "Use the actual route or destination, not generic connection filler."),
+    ("weak_onward_train", r"\bonward\s+train\b", "Describe the real experience or route, not 'onward train'."),
+    ("weak_onward_connection", r"\bonward\s+connections?\b", "Describe the real destination or route instead of generic onward connections."),
+    ("weak_travel_continues", r"\bTravel\s+continues\b", "Use destination welcome wording or a grounded route description."),
     ("supplier_parenthetical_unlimited", r"\(\s*unlimited\s*\)", "Remove supplier parenthetical '(unlimited)'."),
     ("supplier_parenthetical_if_snow", r"\(\s*if\s+snow\s*\)", "Remove supplier parenthetical '(if snow)'."),
     ("rough_airport_wording", r"\bto\s+Airport\b", "Use 'to the airport' or a named airport."),
@@ -298,6 +303,38 @@ def render_document_text(render_document: Any) -> str:
 
     parts: list[str] = []
     _append_text(parts, render_document)
+    return "\n".join(parts)
+
+
+
+
+def raw_supplier_scan_text(render_document: Any) -> str:
+    """Flatten only client prose that should never contain raw supplier headings.
+
+    Legitimate app-owned final-section titles such as "What’s included" are not
+    leaks; supplier headings are leaks when they survive inside day blocks, meta
+    values, descriptions, bullets, or custom paragraph content.
+    """
+
+    parts: list[str] = []
+    for day in getattr(render_document, "days", []) or []:
+        _append_text(parts, getattr(day, "title", ""))
+        _append_text(parts, getattr(day, "intro", ""))
+        for block in getattr(day, "blocks", []) or []:
+            _append_text(parts, getattr(block, "title", ""))
+            _append_text(parts, getattr(block, "meta", []))
+            _append_text(parts, getattr(block, "includes", []))
+            _append_text(parts, getattr(block, "description", ""))
+            _append_text(parts, getattr(block, "notable_sights", []))
+            _append_text(parts, getattr(block, "lines", []))
+            _append_text(parts, getattr(block, "extra_sections", []))
+    for section in getattr(render_document, "final_sections", []) or []:
+        for page in getattr(section, "pages", []) or []:
+            _append_text(parts, getattr(page, "items", []))
+            _append_text(parts, getattr(page, "paragraphs", []))
+            _append_text(parts, getattr(page, "content_html", ""))
+            for page_section in getattr(page, "sections", []) or []:
+                _append_text(parts, getattr(page_section, "items", []))
     return "\n".join(parts)
 
 
@@ -373,7 +410,7 @@ def evaluate_client_output_quality(
         if re.search(pattern, text, flags=re.IGNORECASE):
             issues.append(ItineraryValidationIssue(BLOCKING, code, message))
 
-    if RAW_SUPPLIER_FIELD_RE.search(text):
+    if RAW_SUPPLIER_FIELD_RE.search(raw_supplier_scan_text(render_document)):
         issues.append(
             ItineraryValidationIssue(
                 BLOCKING,

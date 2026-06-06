@@ -113,10 +113,10 @@ def _travel_activity_title(rows: list[dict], activity_rows: list[dict], city: st
         if activity_title.lower().startswith("longyearbyen"):
             return f"Journey to Svalbard and {activity_title}"
         return f"Journey to Svalbard and {activity_title}"
-    if destination and activity_title:
-        if activity_title.lower().startswith(destination.lower()):
-            return f"Journey to {destination} and {activity_title}"
-        return f"Journey to {destination} and {activity_title}"
+    # When a day combines arrival/check-in logistics with a real included
+    # experience, the client title should be the experience. Route details are
+    # already shown under Travel Arrangements; turning them into the title creates
+    # weak labels such as "Journey to Airport and Northern Lights Chase".
     return activity_title
 
 

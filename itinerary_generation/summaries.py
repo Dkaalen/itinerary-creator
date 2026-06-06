@@ -118,18 +118,44 @@ def _add_theme(items, theme):
         items.append(theme)
 
 
-def sanitize_journey_arc_experience(text: str) -> str:
-    """Remove forbidden weak/fallback wording from Journey Arc copy."""
+WEAK_JOURNEY_ARC_RE = re.compile(
+    r"(?:"
+    r"\bflight\s+connection\b|"
+    r"\b(?:scenic\s+)?travel\s+connection\b|"
+    r"\bonward\s+(?:flight|train|travel|connection|connections)\b|"
+    r"\btravel\s+arrangements\b|"
+    r"\baccommodation\s+as\s+listed\b|"
+    r"\barrival\s+arrangements\b"
+    r")",
+    flags=re.IGNORECASE,
+)
+
+
+def _welcome_arc_phrase(chapter: str = "") -> str:
+    chapter = str(chapter or "").strip()
+    if chapter and chapter.lower() not in {"journey", "cruise", "route"}:
+        return f"Welcome to {chapter}"
+    return "Arrival and time to settle in"
+
+
+def sanitize_journey_arc_experience(text: str, *, chapter: str = "") -> str:
+    """Remove generic travel filler from Journey Arc copy.
+
+    The Journey Arc is a client summary, not a logistics ledger. If the source
+    only supports a travel/arrival day, prefer a destination welcome phrase over
+    fabricated filler such as ``Flight connection`` or ``onward train``.
+    """
 
     value = str(text or "").strip()
     if not value:
-        return "Time to explore at your own pace"
+        return _welcome_arc_phrase(chapter) if chapter else "Time to explore at your own pace"
     value = re.sub(r"\bAurora\b", "Northern Lights", value, flags=re.IGNORECASE)
-    value = re.sub(r"\bOnward\s+flight\b", "Flight connection", value, flags=re.IGNORECASE)
-    value = re.sub(r"\bOnward\s+scenic\s+travel\b", "Scenic travel connection", value, flags=re.IGNORECASE)
-    value = re.sub(r"\bOnward\s+travel\b", "Travel connection", value, flags=re.IGNORECASE)
     value = re.sub(r"\s+", " ", value).strip(" ,")
-    return value or "Time to explore at your own pace"
+    value = re.sub(r"\s+(?:and|&)\s+onward\s+(?:train|flight|travel|connections?)\b.*$", "", value, flags=re.IGNORECASE).strip(" ,")
+    value = re.sub(r"\bonward\s+(?:train|flight|travel|connections?)\b", "", value, flags=re.IGNORECASE).strip(" ,")
+    if not value or WEAK_JOURNEY_ARC_RE.search(value):
+        return _welcome_arc_phrase(chapter)
+    return value or _welcome_arc_phrase(chapter)
 
 
 def _title_case_arc(text: str) -> str:
@@ -201,6 +227,7 @@ def describe_city_experience(rows):
     has_reindeer_sami = _has(text, "reindeer", "sámi", "sami", "husky", "santa claus village")
     has_cable = _has(text, "fjellheisen", "cable car", "funicular", "fløibanen", "floibanen")
     has_flight = _has(text, "flight")
+    chapter_city = get_primary_city(rows) or ""
 
     if not primary_experience_rows and (has_hotel_only or travel_only_with_hotel):
         if _has(text, "northern light village", "panorama suite"):
@@ -235,7 +262,7 @@ def describe_city_experience(rows):
         candidates.append("Cruise arrival and Bergen stay")
 
     if has_tallinn:
-        candidates.append("Tallinn day trip and onward train")
+        candidates.append("Tallinn Old Town day trip")
     if has_nutshell:
         candidates.append("Norway in a Nutshell and scenic rail")
     if has_golden and has_silfra:
@@ -310,25 +337,25 @@ def describe_city_experience(rows):
     if not candidates and _has(text, "coach transfer", "bus 150", "long distance panorama coach") and has_aurora:
         candidates.append("Coach journey and Northern Lights")
     if has_departure and not candidates:
-        candidates.append("Departure arrangements")
+        candidates.append(f"Departure from {chapter_city}" if chapter_city else "Departure arrangements")
     if has_arrival and not candidates:
-        candidates.append("Arrival arrangements")
+        candidates.append(f"Welcome to {chapter_city}" if chapter_city else "Arrival and time to settle in")
     if has_hotel_only:
-        candidates.append("Accommodation as listed")
+        candidates.append(f"Welcome to {chapter_city}" if chapter_city else "Accommodation as listed")
     if travel_only_with_hotel and not candidates:
         if has_departure:
-            candidates.append("Departure arrangements")
-        elif has_flight:
-            candidates.append("Flight connection")
+            candidates.append(f"Departure from {chapter_city}" if chapter_city else "Departure arrangements")
+        elif chapter_city:
+            candidates.append(f"Welcome to {chapter_city}")
         elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
-            candidates.append("Scenic travel connection")
+            candidates.append("Scenic route day")
         else:
-            candidates.append("Travel arrangements")
+            candidates.append("Arrival and time to settle in")
     if not candidates:
-        if has_flight:
-            candidates.append("Flight connection")
+        if has_flight and chapter_city:
+            candidates.append(f"Welcome to {chapter_city}")
         elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
-            candidates.append("Scenic travel connection")
+            candidates.append("Scenic route day")
         else:
             candidates.append("Time to explore at your own pace")
 

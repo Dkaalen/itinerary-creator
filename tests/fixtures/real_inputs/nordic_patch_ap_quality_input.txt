@@ -1,0 +1,127 @@
+	Day 1	Transfer 		27/10/2026					Helsinki 	Private Airport to Hotel
+	Day 1	Hotel	2	27/10/2026	29/10/2026				Helsinki 	3 Star , Hotel Arthur, 2xNight , 1xStandard Doubel Room, Incl Brekafast 
+	Day 2	Activity		28/10/2026					Helsinki 	Excursion to Tallinn - Helsinki Port transfers included (hotel pick up and drop off) - Self guided tour of Old Town Tallinn - Time: 10:30 am - 07:30 pm Cruise Duration 2 Hr
+	Day 2	Transfer 		28/10/2026					Helsinki 	Private Hotel to Station
+	Day 2	Transfer 	1	28/10/2026	29/10/2026				Helsinki 	Overnight Train : Overnight Train Transfer with the Santa Claus Express to Rovaniemi - 11:13 pm - 10:59 am - 1  x  downstairs cabin for two people
+	Day 3	Transfer 		29/10/2026					Rovaniemi	Private Station to Hotel
+	Day 3	Hotel	2	29/10/2026	31/10/2026				Rovaniemi	4Star, Scandic Rovaniemi City , 2xNight , 1xStandard Doubel Room, Incl Brekafast 
+	Day 3	Activity		29/10/2026					Rovaniemi	"Rovaniemi: Northern Lights Unlimited Mileage Photo Tour with 97% Success Rate | 20:00 | 5 Hrs | What's included?
+
+Pick-up/drop-off in central Rovaniemi
+Knowledgeable, English-speaking guides
+Professional DSLR photography (unlimited)
+Meteorological observations
+Thermal winter clothing
+Hot drinks & snacks or cookies
+
+Pick up / meeting point
+Book Lapland Office, Koskikatu 22, Rovaniemi"
+	Day 4	Activity		30/10/2026					Rovaniemi	"City Highlights, Santa Village & Husky-Reindeer Safari | 8-10 AM (Anytime )| 7 Hrs | Adventure through the Arctic! Check out the view from the peak of the local fell. Ride on a sleigh in the local reindeer and husky farms. Meet Santa Claus in his village and get your Arctic adventurer certificate for crossing the Arctic Circle. What's included, Knowledgeable, English-speaking guide ,Visit to a Husky and Reindeer Farm , Husky & reindeer sleigh rides (if snow) , Sightseeing at Santa Claus Village ,Arctic Circle Crossing Certificate , Tour of the Arktikum museum , Delicious buffet lunch
+
+meeting point : Nordic Unique Travels Office, Maakuntakatu 29, Rovaniemi"""
+	Day 4	Activity		30/10/2026					Rovaniemi	"Rovaniemi: Ice Floating with Auroras | 7 PM | 3 Hrs 
+
+Overview
+
+Float under the Arctic stars—or even the Northern Lights—with warm drinks, cookies, and unmatched serenity on our cozy Ice Floating Tour.
+
+What's included?
+
+Pick-up/drop-off in central Rovaniemi
+Beautiful location on a frozen lake
+Survival thermal wetsuit is provided
+Warm drink and cookies are included
+
+What to expect?
+
+Immerse yourself in the magic of the Arctic with our Ice Floating Tour, where you’ll drift in a frozen lake, cozy in our thermal wetsuits, beneath the vast Lappish sky. With the chance to float under a starlit sky—or, if conditions allow, beneath the dazzling Northern Lights—you’ll also enjoy warm drinks and cookies, adding a touch of comfort to this unforgettable winter adventure.
+
+Our floating suits are universal sizes so please make sure you fit into this measurements:"
+	Day 5	Transfer 		31/10/2026					Kakslauttenen	Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station to Kakslauttenen Arctic Resort - 11:45 am - 3:02 pm - Tickets Included
+	Day 5	Hotel	1	31/10/2026	01/11/2026				Kakslauttenen	4Star, Kakslauttenen Arctic Resort  , 1xNight , 1xSmall Glass Igloo , Incl Brekafast + Dinner
+	Day 6	Transfer 		01/11/2026					Ivalo	Shuttle Transfer | Kakslauttenen  to Ivalo  Airport 
+	Day 6	Transfer 		01/11/2026					Tromso	Flight Ivalo to Tromso | self arranged , price not included 
+	Day 6	Transfer 		01/11/2026					Tromso	Private Airport to Hotel
+	Day 6	Hotel	2	01/11/2026	03/11/2026				Tromso	3 Star,Quality Grand Tromso Hotel  , 2xNight , 1xStandard Doubel Room, Incl Brekafast 
+	Day 6	Activity		01/11/2026					Tromso	"Tromsø: Northern Lights Chase by Coach with Pro Photos Included | 18:00 | 7 Hrs | Pick up / meeting point
+Tromsø Havn Prostneset Terminal, Samuel Arnesens gate 5
+
+Overview
+
+Prepare to embark on an extraordinary journey with us, chasing the magic in the Arctic skies from the heart of Tromsø. We will be chasing low light pollution and trying to dodge those pesky clouds that might try to steal the show of the aurora borealis from us.
+
+What's included?
+
+Pick-up/drop-off in central Tromsø
+Knowledgeable, English-speaking guide
+Premium coach with toilet facilities
+Professional photos from your trip
+Hot drink and biscuits are provided
+
+What to expect?
+
+Our mission is to take you on a thrilling ride searching the celestial canvas above. We will be heading to the prime spots with the highest odds of catching the mesmerising auroras.
+
+Once we have found the perfect spot, where the stage is set for nature's grand performance, we'll warm your soul with steaming hot drinks and biscuits. Our dedicated guides will be your Arctic companions throughout the evening, ensuring you're nice and cozy. Since Tromsø's weather likes to keep us guessing, we might just turn this adventure into a dance with the elements, taking you to various awe-inspiring locations under the Arctic night sky in search of our lady in the sky.
+
+If we’re blessed by the Northern Lights gracing us with their presence, our guides will capture those magical moments with some stunning portrait photos. Consider it your cosmic photo op, capturing memories that will last a lifetime.
+
+So, get ready to chase the auroras like never before, with us by your side every step of the way."
+	Day 7	Activity		02/11/2026					Tromso	"Tromsø: Photo Tour to Arctic Landscapes and Fjords | 11 AM | 5 Hrs | 
+
+Overview
+
+Join a photo excursion to some of the most scenic areas outside of Tromsø. Depending on the weather, we might for example choose to drive to Sommaroy, also known as 'Summer Island'. This is a scenic route through valleys and fjords, alonside the sea and past lakes. White sandy beaches and iconic bridges.
+
+What's included?
+
+Departure from Tromsø. Drop-off to your hotel
+Professional, English-speaking photo guides
+Scenic fjord safari by minivan vehicle
+Help with camera settings and nature photos
+Small-group experience with 4-8 guests
+Soup or expedition food
+Coffee and waffles/cookies
+
+What to expect?
+
+This is a road trip that you will forever remember. We might even encounter reindeers as they often wander around this area. Depending on the time of the year, this trip can become a true safari through Tromso`s Arctic pearls.
+
+IMPORTANT INFO:
+
+Meeting time: 15 min. before departure. Bring warm clothes, even in summer.
+
+This tour requires a minimum of 4 people. If we do not reach the minimum amount of people, we will team up with one of our partners that runs a similar tour.
+
+"
+	Day 7	Activity		02/11/2026					Tromso	Round Trip Ticket: Enjoy the spectacular view of Tromsø and its beautiful surroundings from above, daytime or evening.
+	Day 8	Transfer 		03/11/2026					Tromso	Private Hotel to Airport
+	Day 8	Transfer 		03/11/2026					Bergen	Flight | Tromso to Bergen | Self Arrnaged, price not included 
+	Day 8	Transfer 		03/11/2026					Bergen	Private Airport to Hotel
+	Day 8	Hotel	1	03/11/2026	04/11/2026				Bergen	4Star ,Scandic Ørnen , 1xNight , 1xStandard Doubel Room, Incl Brekafast 
+	Day 9	Transfer 		04/11/2026					Bergen	Norway in a NUtshell | Bergen to Oslo |08:30 - 22:30 | Including luggage porter service 
+	Day 9	Hotel	2	04/11/2026	06/11/2026				Oslo	3 Star ,Comfort Hotel Børsparken, 2xNight , 1xStandard Doubel Room, Incl Brekafast 
+	Day 10	Activity		05/11/2026					Oslo	" Oslo : Essential Oslo, City Center Guided Walking Tour | 10 AM | 2 Hrs | 
+
+Experience the beauty of the Norwegian capital on foot with this walking tour
+See all the major sights and attractions in a pedestrian part of Oslo
+Save money with this great value pass
+
+Meet our guide near the University of Oslo,
+
+Start your day with a guided walking tour of Oslo's most popular sights and landmarks.
+
+*From 17 November to 30 December, the Christmas Walk will replace the Essential Oslo Tour.
+
+Explore the major attractions of the vibrant Norwegian capital on our bestselling city tour. Meet our guide near the University of Oslo, in the city’s heart, and embark on a thrilling urban adventure! First, you will visit the modern Oslo Opera House, which quickly became the city’s icon after its construction in 2008. Our guide will tell you about this building and the radical transformation of the neighborhood, which occurred during the last two decades.
+
+Next, you will stroll down Karl Johans gate, the city’s emblematic two-lane central street. That’s where you can truly appreciate Oslo's stunning 19th-century architecture. We will make the first stop on this street near Domkirke, or as the locals gently call this cathedral—the “Dom.” The city’s main church was built in the late 17th century and substantially reconstructed during the 19th century.
+
+Follow our guide’s lead and see the other prominent buildings on Oslo’s main street. Stortinget, the Parliament building, was erected during the second part of the 19th century when Norway was in a forced union with Sweden. You will also notice the Grand Hotel building nearby—renowned playwright Henrik Ibsen used to frequent its café. A statue dedicated to Ibsen stands in front of the neighboring National Theater, not far from another one that depicts Bjørnstjerne Bjørnson.
+
+The majestic Royal Palace of Oslo stands on a hill at the end of the street. Even though it was built for the very person this street is named after, Karl Johan has never got a chance to reside in this magnificent palace. Our tour guide will delve deeper into the story of the French general-turned-Swedish king and how he became the ruler of Norway.
+
+Before the tour concludes, you will visit one more iconic building—the red-brick Oslo City Hall. Its construction took decades to finish, but today, this place embodies the spirit of Oslo (and Norway in general)—the walls of this building are painted with numerous frescoes depicting the history of this Scandinavian country.
+
+Join our walking tour today to explore Oslo in a fun and exciting way! "
+	Day 11	Transfer 		06/11/2026					Oslo	Private Hotel to Airport

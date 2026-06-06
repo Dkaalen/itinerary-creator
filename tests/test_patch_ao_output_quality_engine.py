@@ -53,8 +53,8 @@ def test_image_bank_paths_include_user_sibling_full_bank_before_local_fallback(t
 
 def test_journey_arc_forbidden_phrases_are_sanitized_and_not_generated():
     assert sanitize_journey_arc_experience("Aurora, Santa Village and Arctic experiences") == "Northern Lights, Santa Village and Arctic experiences"
-    assert sanitize_journey_arc_experience("Onward flight") == "Flight connection"
-    assert sanitize_journey_arc_experience("Onward travel") == "Travel connection"
+    assert sanitize_journey_arc_experience("Onward flight", chapter="Bergen") == "Welcome to Bergen"
+    assert sanitize_journey_arc_experience("Onward travel", chapter="Oslo") == "Welcome to Oslo"
 
     rows = _rows(
         """

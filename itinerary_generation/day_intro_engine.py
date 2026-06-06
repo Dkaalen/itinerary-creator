@@ -147,6 +147,26 @@ def _group_tour_intro_from_source(title: str, source: str) -> str:
     return ""
 
 
+
+
+def _welcome_arrival_intro(city: str, detail_level: str, *, with_activity: bool = False) -> str:
+    destination = _arrival_display_destination(city)
+    if with_activity:
+        return f"Welcome to {destination}."
+    if detail_level == "Elegant concise":
+        return f"Welcome to {destination}. Time is kept relaxed after arrival so you can settle in."
+    if detail_level == "Rich descriptive":
+        return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and get your first impression of the destination."
+    return f"Welcome to {destination}. After arrival, enjoy time to settle in."
+
+
+def _has_destination_hotel(day_rows: list[dict], city: str) -> bool:
+    city_key = str(city or "").strip().lower()
+    if not city_key:
+        return False
+    return any(get_row_type(row) == "Hotel" and str(row.get("city", "")).strip().lower() == city_key for row in day_rows)
+
+
 def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
         return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests." if city else "Enjoy a slower day, with time to explore independently or relax."
@@ -157,8 +177,8 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "travel_day":
         dest = re.sub(r"^(?:Train|Flight|Cruise|Coach Transfer|Scenic Train Transfer|Panoramic Coach Transfer)\s+(?:from\s+.+?\s+)?to\s+", "", title, flags=re.I)
         if "norway in a nutshell" in title.lower():
-            return f"Follow the Norway in a Nutshell route towards {dest}, with the rail, fjord and onward travel pieces kept together as one scenic travel day." if dest and dest != title else "Follow the Norway in a Nutshell route today, with the rail and fjord travel pieces kept together as one scenic travel day."
-        return f"Travel continues towards {dest} today, with transfers and onward connections arranged as part of the day." if dest and dest != title else "Today is mainly a travel day, with the listed arrangements keeping the route clear and easy to follow."
+            return f"Follow the Norway in a Nutshell route towards {dest}, with the rail, fjord and road segments kept together as one scenic travel day." if dest and dest != title else "Follow the Norway in a Nutshell route today, with the rail, fjord and road segments kept together as one scenic travel day."
+        return f"Travel to {dest} today, with the listed arrangements keeping the route clear and easy to follow." if dest and dest != title else "Today is mainly a travel day, with the listed arrangements keeping the route clear and easy to follow."
     if pattern == "self_drive_route_day":
         return "Today’s self-drive route is arranged to keep the journey clear and scenic, with suggested stops and overnight plans laid out in a simple way."
     if pattern == "hop_on_city_day":
@@ -262,19 +282,26 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                     return "Cross from Helsinki to Tallinn for a memorable day trip, with time to experience the atmosphere of the historic Old Town before returning to Helsinki for your overnight train north."
                 return "Enjoy a day trip from Helsinki to Tallinn, with time to explore the Old Town before returning to Helsinki for your overnight train north."
             if detail_level == "Elegant concise":
-                return "Enjoy a day trip from Helsinki to Tallinn before returning for your onward journey."
+                return "Enjoy a day trip from Helsinki to Tallinn before continuing with the next stage of the trip."
             if detail_level == "Rich descriptive":
-                return "Cross from Helsinki to Tallinn for a memorable day trip, with time to experience the historic Old Town before returning to Helsinki for your onward journey."
-            return "Enjoy a day trip from Helsinki to Tallinn, with time to explore the Old Town before returning to Helsinki for your onward journey."
+                return "Cross from Helsinki to Tallinn for a memorable day trip, with time to experience the historic Old Town before returning to Helsinki for the next stage of the trip."
+            return "Enjoy a day trip from Helsinki to Tallinn, with time to explore the Old Town before the next stage of the trip."
+
+        activity_city = str(activities[0].get("city", "") or "").strip()
+        city_for_activity = city_text
+        if activity_city and city_text and activity_city.lower() != city_text.lower():
+            city_for_activity = ""
+
+        if transports or route_transfers:
+            intro = _activity_day_intro(activity_title, city_for_activity or city_text, activity_text, detail_level)
+            if has_hotel(day_rows) and city:
+                return f"{_welcome_arrival_intro(city, detail_level, with_activity=True)} {intro}"
+            return intro
 
         if not has_hotel(day_rows) or (not transports and not route_transfers):
             if detail_level == "Elegant concise":
                 return f"{activity_title} is the main arranged experience in {city_text}, with the rest of the day kept flexible."
 
-            activity_city = str(activities[0].get("city", "") or "").strip()
-            city_for_activity = city_text
-            if activity_city and city_text and activity_city.lower() != city_text.lower():
-                city_for_activity = ""
             activity_with_city = _activity_phrase_with_city(activity_title, city_for_activity)
             return _activity_day_intro(activity_title, city_for_activity or city_text, activity_text, detail_level)
 
@@ -285,13 +312,20 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 return f"The journey continues towards {city}, with the Norway in a Nutshell route arranged as a clear and scenic travel day."
             return f"Continue your Norway in a Nutshell journey towards {city}."
 
+        has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
+        if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):
+            return _welcome_arrival_intro(city, detail_level)
+
         route_label = create_travel_route_label(day_rows)
         if route_label:
+            route_destination = route_label.split(" to ")[-1].strip() if " to " in route_label else ""
             if detail_level == "Elegant concise":
-                return f"Continue your journey from {route_label}."
+                return f"Travel from {route_label}."
             if detail_level == "Rich descriptive":
-                return f"Travel from {route_label} today, with the main connections and transfer details laid out in the itinerary."
-            return f"Continue your journey from {route_label}, with the day focused on the planned travel arrangements."
+                if route_destination:
+                    return f"Travel towards {route_destination} today, with the main transfer details laid out clearly in the itinerary."
+                return f"Travel from {route_label} today, with the main transfer details laid out clearly in the itinerary."
+            return f"Travel from {route_label}, with the day focused on the planned route."
 
         destination_city = ""
         invalid_destination_words = {"hotel", "station", "airport", "accommodation", "your accommodation", "self transfer", "private airport to hotel", "private hotel to airport"}
@@ -309,11 +343,14 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if title_match and title_match.group(1).lower() not in invalid_destination_words:
                 destination_city = _canonical_route_city(base_destination_from_terminal(title_match.group(1)) or title_match.group(1))
         display_city = destination_city or city
+        has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
+        if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):
+            return _welcome_arrival_intro(city, detail_level)
         if detail_level == "Elegant concise":
-            return f"Continue your journey with arranged travel connected to {display_city}."
+            return f"Travel to {display_city} with the listed arrangements."
         if detail_level == "Rich descriptive":
-            return f"Travel continues towards {display_city} today, with transfers and onward connections arranged as part of the day."
-        return f"Continue your journey with arranged travel connected to {display_city}."
+            return f"Travel towards {display_city} today, with the main transfer details laid out clearly in the itinerary."
+        return f"Travel to {display_city} with the listed arrangements."
 
     if transfers and city:
         transfer_text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in transfers).lower()
