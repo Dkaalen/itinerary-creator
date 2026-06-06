@@ -33,6 +33,8 @@ def render_day_image_slot(day, rows, match=None, output_edits=None, *, image_ban
     image_path = match.get("path", "")
     crop_focus = get_day_image_crop_focus(output_edits, day)
     object_position = CROP_FOCUS_OBJECT_POSITIONS.get(crop_focus, CROP_FOCUS_OBJECT_POSITIONS["top"])
+    image_status = match.get("image_bank_status") if isinstance(match.get("image_bank_status"), dict) else {}
+    source_type = match.get("source_type") or ("bundled_default" if match.get("is_default") else "full_bank" if image_status.get("full_bank_found") else "unknown")
     data_uri = image_to_preview_data_uri(image_path)
     preview_img = ""
     if data_uri:
@@ -50,6 +52,10 @@ def render_day_image_slot(day, rows, match=None, output_edits=None, *, image_ban
         f'data-image-reason="{esc(match.get("reason", ""))}" '
         f'data-image-city="{esc(match.get("city", ""))}" '
         f'data-image-themes="{esc(",".join(match.get("themes", []) or []))}" '
+        f'data-image-source-type="{esc(source_type)}" '
+        f'data-image-bank-source-path="{esc(image_status.get("source_path", ""))}" '
+        f'data-image-bank-full-found="{esc(str(bool(image_status.get("full_bank_found"))))}" '
+        f'data-image-is-default="{esc(str(bool(match.get("is_default") or match.get("is_generic"))))}" '
         f'data-source-row-ids="{esc(_source_row_ids_for_rows(rows))}">'
         f'{preview_img}'
         f'</div>'

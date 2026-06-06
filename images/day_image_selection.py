@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from image_matcher import select_day_images
-from images.image_bank import normalize_path_key
+from images.image_bank import image_bank_status_for_paths, normalize_path_key
 
 
-def day_image_match_from_path(day, path, reason="manual selection"):
+def day_image_match_from_path(day, path, reason="manual selection", image_bank_status=None):
     if not path:
         return None
     path_obj = Path(path)
@@ -25,6 +25,8 @@ def day_image_match_from_path(day, path, reason="manual selection"):
         "is_default": False,
         "is_generic": False,
         "fallback_reason": "",
+        "image_bank_status": dict(image_bank_status or {}),
+        "source_type": "manual",
         "score_breakdown": {
             "destination_score": 0,
             "activity_product_score": 0,
@@ -36,10 +38,31 @@ def day_image_match_from_path(day, path, reason="manual selection"):
     }
 
 
+
+def _attach_image_bank_contract(match, status):
+    if not match:
+        return match
+    payload = dict(match)
+    payload["image_bank_status"] = dict(status or {})
+    if payload.get("is_default") or payload.get("is_generic"):
+        payload.setdefault("source_type", "bundled_default")
+    elif status.get("full_bank_found"):
+        payload.setdefault("source_type", "full_bank")
+    else:
+        payload.setdefault("source_type", "unknown")
+    return payload
+
+
+def _default_images_allowed_for_final(output_edits=None) -> bool:
+    return bool((output_edits or {}).get("allow_default_final_images"))
+
+
 def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_root, image_bank_scan_paths):
     """Apply day image review choices while preserving no-reuse behavior."""
 
     overrides = (output_edits or {}).get("day_images", {}) or {}
+    bank_status = image_bank_status_for_paths(image_bank_scan_paths)
+    default_locked = bank_status.get("missing_full_bank") and not _default_images_allowed_for_final(output_edits)
     selected = {}
     used_paths = set()
 
@@ -60,12 +83,12 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
                 resolved = (app_root / resolved).resolve()
             key = normalize_path_key(resolved)
             if resolved.exists() and key not in used_paths:
-                selected[day] = day_image_match_from_path(day, resolved, reason="manual image selection")
+                selected[day] = day_image_match_from_path(day, resolved, reason="manual image selection", image_bank_status=bank_status)
                 used_paths.add(key)
             else:
                 selected[day] = None
 
-    base_matches = select_day_images(grouped_days, image_bank_scan_paths, used_paths=used_paths.copy())
+    base_matches = {day: None for day in (grouped_days or {})} if default_locked else select_day_images(grouped_days, image_bank_scan_paths, used_paths=used_paths.copy())
 
     for day, rows in (grouped_days or {}).items():
         if day in selected:
@@ -78,7 +101,7 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
                 match = None
             else:
                 used_paths.add(key)
-        selected[day] = match
+        selected[day] = _attach_image_bank_contract(match, bank_status)
 
     return selected
 

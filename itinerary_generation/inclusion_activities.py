@@ -3,6 +3,7 @@
 import re
 
 from text_polish import polish_title, polish_inclusion_items, polish_inclusion_item, strip_price_fragments
+from itinerary_generation.client_sanitizer import sanitize_client_text, sanitize_client_list
 
 from itinerary_generation.content_engine import clean_client_title, merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.inclusion_flat import clean_include_item
@@ -31,7 +32,7 @@ def _looks_like_descriptive_prose(text: str) -> bool:
 
 
 def _polish_activity_inclusion(value: str, title: str = "") -> str:
-    text = polish_inclusion_item(strip_price_fragments(str(value or "").strip()), title)
+    text = polish_inclusion_item(sanitize_client_text(strip_price_fragments(str(value or "").strip())), title)
     text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
     lower = text.lower().strip(":? ")
     if not text:
@@ -48,7 +49,7 @@ def _polish_activity_inclusion(value: str, title: str = "") -> str:
         return ""
     if len(text) > 150 and "included" not in lower:
         return ""
-    text = polish_inclusion_item(clean_include_item(text, title), title)
+    text = polish_inclusion_item(clean_include_item(sanitize_client_text(text), title), title)
     return sanitize_inclusion_item(text, title)
 
 
@@ -76,6 +77,8 @@ def _activity_inclusion_items(row: dict, title: str) -> list[str]:
 
 
 def activity_line(row: dict) -> str:
+    if row.get("group_tour_optional_extra"):
+        return ""
     if is_tallinn_ferry_framework(row):
         title = tallinn_ferry_title(row)
     else:
@@ -87,8 +90,10 @@ def activity_line(row: dict) -> str:
         title = normalize_client_day_title(title, row)
 
     date = format_client_date(row.get("start_date"))
-    heading = f"{title} - {date}" if date else title
+    title = sanitize_client_text(title)
+    heading = sanitize_client_text(f"{title} - {date}" if date else title)
     inclusions = clean_tallinn_ferry_inclusions(row) if is_tallinn_ferry_framework(row) else _activity_inclusion_items(row, heading)
+    inclusions = sanitize_client_list(inclusions)
     if inclusions:
         return f"{heading}\n{', '.join(inclusions)}"
     return heading
@@ -106,11 +111,53 @@ _GROUP_TOUR_ACTIVITY_KEEP_RE = re.compile(
 
 
 def group_tour_overview_activity_lines(rows: list[dict]) -> list[str]:
-    """Extract meaningful included group-tour activities from supplier overview rows."""
+    """Extract polished group-tour inclusions without leaking raw day headings.
+
+    Supplier overviews often list both broad itinerary stages ("Day 1: Golden
+    Circle") and true included activities ("Skaftafell glacier hike (3 h)").
+    Keep concrete included activities; turn broad programme coverage into one
+    polished summary instead of random heading fragments.
+    """
+    from itinerary_generation.group_tours import is_group_tour_overview
+
     items: list[str] = []
+    programme_summaries: list[str] = []
+    concrete_re = re.compile(r"\b(?:glacier\s+hike|boat\s+(?:ride|tour)|amphibian|ice\s+cave|katla|whale\s+watching|blue\s+lagoon\s+admission|entrance|admission)\b", flags=re.IGNORECASE)
+    broad_heading_re = re.compile(r"\b(?:golden circle|south coast|eastfjords|north iceland|west iceland|blue lagoon|j[öo]kuls[áa]rl[óo]n)\b", flags=re.IGNORECASE)
+
     for row in rows:
+        if not is_group_tour_overview(row):
+            continue
         text = f'{row.get("title", "")}\n{row.get("original_title", "")}\n{row.get("details", "")}'
+        lower_text = text.lower()
+        places = []
+        for label, patterns in [
+            ("Golden Circle", ["golden circle", "þingvellir", "thingvellir", "geysir", "gullfoss"]),
+            ("South Coast", ["south coast", "seljalandsfoss", "skógafoss", "skogafoss", "reynisfjara"]),
+            ("Jökulsárlón", ["jökulsárlón", "jokulsarlon", "diamond beach"]),
+            ("East Fjords", ["east fjords", "eastfjords", "egilsstaðir", "egilsstadir"]),
+            ("North Iceland", ["north iceland", "mývatn", "myvatn", "akureyri", "dettifoss", "goðafoss", "godafoss"]),
+            ("West Iceland", ["west iceland", "laugarbakki", "borgarnes", "hraunfossar"]),
+            ("Blue Lagoon", ["blue lagoon"]),
+        ]:
+            if any(pattern in lower_text for pattern in patterns) and label not in places:
+                places.append(label)
+        duration = ""
+        duration_match = re.search(r"\b(\d+)\s*[- ]?day\b", text, flags=re.IGNORECASE)
+        if duration_match:
+            duration = f"{duration_match.group(1)}-day "
+        if places:
+            coverage = places[0] if len(places) == 1 else ", ".join(places[:-1]) + f" and {places[-1]}"
+            programme_summaries.append(f"Guided {duration}Iceland programme covering {coverage}")
+
         in_included = False
+        prose = re.search(r"included activities such as (.+?)(?: are arranged|\.|$)", text, flags=re.IGNORECASE | re.DOTALL)
+        if prose:
+            for candidate in re.split(r",\s*|\s+and\s+", prose.group(1)):
+                item = clean(candidate).strip(" .")
+                if concrete_re.search(item):
+                    add_unique(items, polish_title(item))
+
         for raw in text.replace("–", "-").splitlines():
             line = clean(raw).strip(" •-*|:")
             if not line:
@@ -124,16 +171,6 @@ def group_tour_overview_activity_lines(rows: list[dict]) -> list[str]:
                     in_included = False
                 continue
             if not in_included:
-                # Also catch compact prose summaries such as "included activities such as...".
-                prose = re.search(r"included activities such as (.+?)(?: are arranged|\.|$)", line, flags=re.IGNORECASE)
-                if prose:
-                    candidates = re.split(r",\s*|\s+and\s+", prose.group(1))
-                    for candidate in candidates:
-                        candidate = clean(candidate).strip(" .")
-                        if candidate.lower().startswith("and "):
-                            candidate = candidate[4:].strip()
-                        if _GROUP_TOUR_ACTIVITY_KEEP_RE.search(candidate):
-                            add_unique(items, polish_title(candidate))
                 continue
             match = re.match(r"Day\s*\d+(?:\s*-\s*\d+)?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
             if not match:
@@ -141,7 +178,16 @@ def group_tour_overview_activity_lines(rows: list[dict]) -> list[str]:
             item = clean(match.group(1)).strip(" .")
             if not item or _GROUP_TOUR_ACTIVITY_SKIP_RE.search(item):
                 continue
-            if _GROUP_TOUR_ACTIVITY_KEEP_RE.search(item):
-                item = re.sub(r"\bvisit\b", "", item, flags=re.IGNORECASE).strip(" ,.-")
+            if concrete_re.search(item):
                 add_unique(items, polish_title(item))
+            elif broad_heading_re.search(item):
+                # Broad route heading: represented by the programme summary.
+                continue
+
+    if not items and programme_summaries:
+        add_unique(items, programme_summaries[0])
+    elif programme_summaries:
+        # Keep the programme summary after concrete inclusions as a compact route
+        # coverage note, without replacing high-value activity inclusions.
+        add_unique(items, programme_summaries[0])
     return items

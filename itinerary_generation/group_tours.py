@@ -209,3 +209,84 @@ def add_group_tour_accommodation_rows(rows: list[dict]) -> list[dict]:
     combined = updated + synthetic_rows
     combined.sort(key=lambda row: (_day_number(row.get("day", "")), 1 if row.get("is_group_tour_accommodation") else 0, int(row.get("line_number") or 0)))
     return combined
+
+
+_OPTIONAL_EXTRA_LINE_RE = re.compile(r"\boptional\b\s+(.+)$", flags=re.IGNORECASE)
+_OPTIONAL_TOKEN_RE = re.compile(r"[A-Za-zÁÉÍÓÚÝÞÆÖáðéíóúýþæöøåäöØÅÄÖ]+", flags=re.IGNORECASE)
+
+
+def _tokens_for_optional_match(value: str) -> set[str]:
+    tokens = {re.sub(r"s$", "", token.lower()) for token in _OPTIONAL_TOKEN_RE.findall(str(value or ""))}
+    stop = {"optional", "tour", "entrance", "admission", "activity", "experience", "person", "per", "fee", "the", "and", "or", "at", "to", "from"}
+    return {token for token in tokens if token not in stop and len(token) > 2}
+
+
+def extract_optional_group_tour_extra_titles(rows: Iterable[dict]) -> list[str]:
+    """Return optional extra names from group-tour overview NOT INCLUDED sections."""
+
+    extras: list[str] = []
+    for row in rows or []:
+        if not is_group_tour_overview(row):
+            continue
+        source = str(row.get("details") or row.get("original_title") or row.get("title") or "")
+        in_not_included = False
+        for raw in source.replace("–", "-").splitlines():
+            line = _clean(raw).strip(" •-*|:")
+            if not line:
+                continue
+            lower = line.lower()
+            if re.match(r"^not\s+included\b", lower):
+                in_not_included = True
+                continue
+            if in_not_included and re.match(r"^(what\s+to\s+expect|what'?s\s+included|what’s\s+included|overview|itinerary)\b", lower):
+                in_not_included = False
+                continue
+            if not in_not_included:
+                continue
+            match = _OPTIONAL_EXTRA_LINE_RE.search(line)
+            if not match:
+                continue
+            title = match.group(1)
+            title = re.sub(r"\([^)]*(?:€|\$|£|NOK|SEK|DKK|ISK|USD|EUR|GBP|kr|/person)[^)]*\)", "", title, flags=re.IGNORECASE)
+            title = re.sub(r"\b\d[\d.,]*\s*(?:€|\$|£|NOK|SEK|DKK|ISK|USD|EUR|GBP|kr)\b", "", title, flags=re.IGNORECASE)
+            title = re.sub(r"\b(?:tour|entrance|admission|activity|experience)\b\s*$", lambda m: m.group(0), title, flags=re.IGNORECASE)
+            title = polish_title(_clean(title).strip(" .:-"))
+            if title and title not in extras:
+                extras.append(title)
+    return extras
+
+
+def annotate_group_tour_optional_extras(rows: list[dict]) -> list[dict]:
+    """Mark main activity rows that are named as optional extras in the group overview.
+
+    This does not delete the row.  It prevents inclusion builders from stating
+    that the optional paid extra is included when the package overview says it is
+    excluded.
+    """
+
+    updated = [deepcopy(row) for row in rows or []]
+    optional_titles = extract_optional_group_tour_extra_titles(updated)
+    optional_token_sets = [_tokens_for_optional_match(title) for title in optional_titles]
+    optional_token_sets = [tokens for tokens in optional_token_sets if tokens]
+    if not optional_token_sets:
+        return updated
+    for row in updated:
+        if (row.get("effective_type") or row.get("type")) != "Activity":
+            continue
+        title_tokens = _tokens_for_optional_match(f'{row.get("title", "")} {row.get("original_title", "")}')
+        clean_title_tokens = _tokens_for_optional_match(row.get("title", ""))
+        for tokens in optional_token_sets:
+            # Only flag the activity when the title itself is essentially the
+            # optional extra.  Do not flag broad days such as "Discover Glaciers,
+            # Ice Caves & Diamond Beach" just because one optional cave is named
+            # in the prose.
+            whale_optional = "whale" in tokens and "whale" in clean_title_tokens
+            if tokens and (
+                tokens <= clean_title_tokens
+                or whale_optional
+                or (len(tokens & clean_title_tokens) >= max(1, min(len(tokens), 2)) and len(clean_title_tokens) <= len(tokens) + 2)
+            ):
+                row["group_tour_optional_extra"] = True
+                row["suppress_fallback_inclusions"] = True
+                break
+    return updated

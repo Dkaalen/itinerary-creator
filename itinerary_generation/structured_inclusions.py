@@ -180,7 +180,7 @@ def build_structured_inclusion_sections(
         )
 
     for row in rows:
-        if get_row_type(row) != "Activity" or _is_empty_activity(row):
+        if get_row_type(row) != "Activity" or _is_empty_activity(row) or row.get("group_tour_optional_extra"):
             continue
         _append_item_preserving_source(
             activity_items,

@@ -10,12 +10,16 @@ import re
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import polish_inclusion_item, polish_inclusion_items, strip_price_fragments
+from itinerary_generation.client_sanitizer import sanitize_client_text
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.render_text_helpers import normalize_list
 
 
 def get_fallback_activity_inclusions(row):
     """Create sensible client-facing inclusions when supplier text has no formal inclusion list."""
+
+    if row.get("suppress_fallback_inclusions") or row.get("group_tour_optional_extra"):
+        return []
 
     title = create_client_activity_title(row) or row.get("title", "")
     source_items = normalize_list(row.get("includes", []))
@@ -27,7 +31,8 @@ def get_fallback_activity_inclusions(row):
     if "blue lagoon" in full_text or "sky lagoon" in full_text or "lagoon admission" in full_text:
         inclusions = []
         if "access" in full_text or "admission" in full_text or "entry" in full_text or "ticket" in full_text:
-            inclusions.append(f"{title.replace(' & 7-Step Ritual', '')} admission" if title else "Lagoon admission")
+            clean_title = re.sub(r"\b(admission|entrance|entry)\b", "", title.replace(" & 7-Step Ritual", ""), flags=re.IGNORECASE).strip(" -:|,")
+            inclusions.append(f"{clean_title} admission" if clean_title else "Lagoon admission")
         if "7-step" in full_text or "7 step" in full_text or "ritual" in full_text:
             inclusions.append("Complete 7-step ritual")
         if "towel" in full_text:
@@ -78,6 +83,8 @@ def get_fallback_activity_inclusions(row):
         return ["Guided walking tour", "Canal experience"]
 
     if "whale watching" in full_text:
+        if row.get("group_tour_optional_extra"):
+            return []
         return ["Whale watching cruise", "Professional, English-speaking guide"]
 
     if "walking tour" in full_text or "guided" in full_text:
@@ -191,7 +198,7 @@ def _polish_activity_bullet_case(value: str) -> str:
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
-        text = polish_inclusion_item(strip_price_fragments(str(item).strip()), title)
+        text = polish_inclusion_item(sanitize_client_text(strip_price_fragments(str(item).strip())), title)
         lower = text.lower().strip(":? ")
 
         text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")

@@ -17,6 +17,7 @@ from typing import Any, Iterable, Mapping
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
 from itinerary_generation.client_text_decisions import is_weak_journey_arc_phrase
+from itinerary_generation.client_sanitizer import contains_price_or_currency
 
 
 IMPORTANT_ROW_TYPES = {
@@ -247,6 +248,9 @@ FORBIDDEN_CLIENT_PATTERNS: tuple[tuple[str, str, str], ...] = (
     ("rough_airport_wording", r"\bto\s+Airport\b", "Use 'to the airport' or a named airport."),
 )
 
+PRICE_CLIENT_PATTERN_MESSAGE = "Supplier prices, costs and currency values must not appear in client-facing output."
+
+
 SUPPLIER_TIME_WARNING_RE = re.compile(
     r"\b(?:before\s+departure|bring\s+warm\s+clothes|please\s+arrive|meeting\s+point|"
     r"voucher|subject\s+to|pick[-\s]?up\s+window|\d+\s*(?:min\.?|minutes?)\s+before)\b",
@@ -408,6 +412,15 @@ def _image_match_issues(day_images: Mapping[str, Mapping[str, Any] | None] | Non
     for day, match in (day_images or {}).items():
         if not isinstance(match, Mapping) or not _image_payload_is_default(match):
             continue
+        if not bool(match.get("allow_default_final_image")):
+            issues.append(
+                ItineraryValidationIssue(
+                    BLOCKING,
+                    "default_image_selected_for_final_output",
+                    "Default image selected for final output. Connect the full Dkaalen/itinerary-image-bank image bank or choose a real destination image.",
+                    context=str(day),
+                )
+            )
         audit = match.get("audit") if isinstance(match.get("audit"), Mapping) else {}
         stronger_available = bool(match.get("stronger_candidate_available") or audit.get("stronger_candidate_available"))
         if stronger_available:
@@ -461,6 +474,9 @@ def evaluate_client_output_quality(
     for code, pattern, message in FORBIDDEN_CLIENT_PATTERNS:
         if re.search(pattern, text, flags=re.IGNORECASE):
             issues.append(ItineraryValidationIssue(BLOCKING, code, message))
+
+    if contains_price_or_currency(text):
+        issues.append(ItineraryValidationIssue(BLOCKING, "client_price_or_currency_leak", PRICE_CLIENT_PATTERN_MESSAGE))
 
     if RAW_SUPPLIER_FIELD_RE.search(raw_supplier_scan_text(render_document)):
         issues.append(

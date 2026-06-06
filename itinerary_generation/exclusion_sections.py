@@ -8,6 +8,7 @@ less likely to leak into inclusion rendering.
 import re
 
 from text_polish import polish_client_text, polish_title
+from itinerary_generation.client_sanitizer import sanitize_client_text
 
 from itinerary_generation.common import (
     add_unique,
@@ -95,7 +96,7 @@ def _split_exclusion_phrases(value: str) -> list[str]:
         item = re.sub(r"\bdrop\s+to\s+hotel\b", "hotel drop-off", item, flags=re.IGNORECASE)
         item = re.sub(r"\btransportation\s+to\s+meeting\s+point\b", "transport to the meeting point", item, flags=re.IGNORECASE)
         item = re.sub(r"\bfood\s+and\s+drinks\s+are\s+excluded\b", "food and drinks", item, flags=re.IGNORECASE)
-        item = polish_client_text(item).strip(" .:")
+        item = sanitize_client_text(polish_client_text(item)).strip(" .:")
         if item and item not in cleaned:
             cleaned.append(item)
     return cleaned
@@ -138,12 +139,12 @@ def _specific_cost_not_included_label(row) -> str:
     items = _row_specific_not_included_items(row)
     if not items:
         return ""
-    title = commercial_row_title(row)
+    title = sanitize_client_text(commercial_row_title(row))
     if not title:
         return ""
     phrase_items = []
     for index, item in enumerate(items):
-        text = str(item or "").strip()
+        text = sanitize_client_text(str(item or "").strip())
         if index > 0 and text:
             text = text[:1].lower() + text[1:]
         phrase_items.append(text)
@@ -151,7 +152,7 @@ def _specific_cost_not_included_label(row) -> str:
         detail = phrase_items[0]
     else:
         detail = ", ".join(phrase_items[:-1]) + f" and {phrase_items[-1]}"
-    return f"{title}: {detail}"
+    return sanitize_client_text(f"{title}: {detail}")
 
 def _commercial_status(row):
     return str(row.get("commercial_status") or "").strip().lower()
@@ -229,7 +230,7 @@ def commercial_row_title(row):
     if not title:
         title = _transport_commercial_title(row)
     title = title or row.get("title") or row.get("original_title") or row.get("details")
-    title = polish_title(str(title or "").strip())
+    title = sanitize_client_text(polish_title(str(title or "").strip()))
     return title[:120].strip(" -:|")
 
 
@@ -239,10 +240,10 @@ def specific_self_arranged_items(parsed_rows):
         text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
         if not (is_self_arranged(row) or row.get("commercial_status") == "self_arranged" or "self transfer" in text):
             continue
-        title = commercial_row_title(row)
+        title = sanitize_client_text(commercial_row_title(row))
         if not title:
             continue
-        label = f"{title}{row_date_suffix(row)}"
+        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
         add_unique(items, label)
     return items
 
@@ -250,7 +251,7 @@ def specific_self_arranged_items(parsed_rows):
 def specific_optional_items(parsed_rows):
     items = []
     for row in optional_rows_only(parsed_rows or []):
-        title = commercial_row_title(row)
+        title = sanitize_client_text(commercial_row_title(row))
         if not title:
             continue
         add_unique(items, f"{title}{row_date_suffix(row)}")
@@ -268,11 +269,11 @@ def create_specific_exclusion_sections(parsed_rows):
     sections = {key: [] for key, _ in EXCLUSION_SECTION_ORDER}
 
     for row in parsed_rows or []:
-        title = commercial_row_title(row)
+        title = sanitize_client_text(commercial_row_title(row))
         if not title:
             continue
 
-        label = f"{title}{row_date_suffix(row)}"
+        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
         row_type = get_row_type(row)
         status = _commercial_status(row)
 
@@ -341,11 +342,11 @@ def create_source_aware_exclusion_sections(parsed_rows):
     sections = {key: [] for key, _ in EXCLUSION_SECTION_ORDER}
 
     for row_index, row in enumerate(parsed_rows or []):
-        title = commercial_row_title(row)
+        title = sanitize_client_text(commercial_row_title(row))
         if not title:
             continue
 
-        label = f"{title}{row_date_suffix(row)}"
+        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
         row_type = get_row_type(row)
         status = _commercial_status(row)
 

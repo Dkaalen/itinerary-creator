@@ -67,7 +67,7 @@ def create_categorized_inclusions(parsed_rows, grouped_days=None) -> list[dict]:
                 seen_hotel_keys.add(key)
     else:
         hotel_rows = [row for row in rows if get_row_type(row) == "Hotel" and not _is_rental_vehicle_text(row)]
-    activity_rows = [row for row in rows if get_row_type(row) == "Activity" and not _is_empty_activity(row)]
+    activity_rows = [row for row in rows if get_row_type(row) == "Activity" and not _is_empty_activity(row) and not row.get("group_tour_optional_extra")]
 
     for row in hotel_rows:
         add_unique(hotel_items, hotel_line(row))

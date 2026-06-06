@@ -52,6 +52,11 @@ def day_image_matches_from_preview_html(html: str | None) -> dict[str, dict]:
         if not path and not data_uri:
             continue
         filename = Path(path).stem if path else "preview_image"
+        bank_status = {
+            "full_bank_found": str(slot.get("data-image-bank-full-found", "")).lower() == "true",
+            "source_path": str(slot.get("data-image-bank-source-path", "") or ""),
+        }
+        is_default = str(slot.get("data-image-is-default", "")).lower() == "true" or "Default" in path.replace("\\", "/").split("/")
         matches[day] = {
             "day": day,
             "path": path,
@@ -63,8 +68,10 @@ def day_image_matches_from_preview_html(html: str | None) -> dict[str, dict]:
             "filename": filename,
             "themes": [item for item in str(slot.get("data-image-themes", "") or "").split(",") if item],
             "seasons": [],
-            "is_default": "Default" in path.replace("\\", "/").split("/"),
-            "is_generic": "Default" in path.replace("\\", "/").split("/"),
+            "is_default": is_default,
+            "is_generic": is_default,
+            "image_bank_status": bank_status,
+            "source_type": str(slot.get("data-image-source-type", "") or ("bundled_default" if is_default else "full_bank")),
             "fallback_reason": "",
             "score_breakdown": {
                 "destination_score": 0,

@@ -50,6 +50,7 @@ from normalizer_modules.context import (
     fill_missing_context_cities,
 )
 from itinerary_generation.transport_safety import repair_messy_client_text
+from itinerary_generation.group_tours import annotate_group_tour_optional_extras
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
     normalize_rental_vehicle_row,
@@ -177,4 +178,5 @@ def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
     normalized = fill_missing_context_cities(normalized)
     normalized = apply_contextual_travel_corrections(normalized)
     normalized = add_repeated_activity_context(normalized)
+    normalized = annotate_group_tour_optional_extras(normalized)
     return normalized

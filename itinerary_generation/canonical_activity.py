@@ -74,6 +74,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
                 included_items.append(item)
         if "Guided experience" in included_items and len(included_items) > 1:
             included_items = [item for item in included_items if item != "Guided experience"]
+    included_items = [re.sub(r"\b(Admission|Ticket|Tour|Transfer)\s+\1\b", r"\1", item, flags=re.IGNORECASE) for item in included_items]
     included_items = list(dict.fromkeys(included_items))
     included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=5)
 

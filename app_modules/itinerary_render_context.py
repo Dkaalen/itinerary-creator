@@ -35,6 +35,12 @@ from ui.final_pages import create_optional_addons, get_important_travel_notes
 from ui.inclusion_pages import paginate_categorized_inclusions
 from ui.picture_workflow import pictures_are_added
 from ui.render_helpers import text_to_list
+from itinerary_generation.client_sanitizer import (
+    normalize_important_note_paragraphs,
+    sanitize_client_list,
+    sanitize_client_text,
+    sanitize_render_document_client_output,
+)
 from app_modules.itinerary_html_sections import balanced_cover_subtitle_html
 
 
@@ -96,20 +102,14 @@ def _paginated_structured_final_pages(sections: Any) -> list[RenderFinalPage]:
 
 
 def _split_list_final_pages(items: list[str], *, items_per_page: int = 24) -> list[RenderFinalPage]:
-    clean_items = [str(item or "").strip() for item in items or [] if str(item or "").strip()]
+    clean_items = sanitize_client_list(items or [])
     return [RenderFinalPage(items=clean_items[index:index + items_per_page]) for index in range(0, len(clean_items), items_per_page)]
 
 
 def _paragraph_final_pages(text: Any) -> list[RenderFinalPage]:
-    """Build paragraph pages without stringifying lists as Python literals."""
+    """Build clean paragraph pages without stringifying lists or line fragments."""
 
-    values = text if isinstance(text, (list, tuple, set)) else [text]
-    paragraphs: list[str] = []
-    for value in values or []:
-        for item in str(value or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
-            item = item.strip()
-            if item:
-                paragraphs.append(item)
+    paragraphs = normalize_important_note_paragraphs(text)
     return [RenderFinalPage(paragraphs=paragraphs)] if paragraphs else []
 
 
@@ -154,7 +154,7 @@ def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[Rende
                     details.append("Includes " + ", ".join(str(item) for item in addon.get("includes") or [] if str(item).strip()))
                 else:
                     details.append("Available as an optional experience.")
-                page_items.append("\n".join([heading, *[detail for detail in details if detail]]))
+                page_items.append("\n".join(sanitize_client_list([heading, *[detail for detail in details if detail]])))
             if page_items:
                 optional_pages.append(RenderFinalPage(items=page_items))
         if optional_pages:
@@ -276,12 +276,12 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     else:
         journey_arc = create_journey_arc(grouped_days)
 
-    manual_whats_included = text_to_list(output_edits.get("whats_included_text", ""))
+    manual_whats_included = sanitize_client_list(text_to_list(output_edits.get("whats_included_text", "")))
     categorized_inclusions = structured_document.inclusions
     whats_included = manual_whats_included or create_whats_included(parsed_rows, grouped_days)
     optional_addons = create_optional_addons(parsed_rows)
     if output_edits.get("whats_not_included_text"):
-        whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
+        whats_not_included = sanitize_client_list(text_to_list(output_edits.get("whats_not_included_text")))
     else:
         whats_not_included = create_whats_not_included(parsed_rows)
     structured_whats_not_included = structured_document.exclusions
@@ -294,7 +294,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     if typed_exclusions and not typed_exclusion_html and typed_exclusions.get("pages"):
         first_page = typed_exclusions.get("pages", [{}])[0]
         typed_exclusion_html = first_page.get("content_html", "") if isinstance(first_page, dict) else ""
-    important_travel_notes = typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits)
+    important_travel_notes = normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits))
 
     context = ItineraryRenderContext(
         parsed_rows=list(parsed_rows or []),
@@ -331,4 +331,5 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         important_travel_notes=important_travel_notes,
     )
     _attach_pdf_contract(context)
+    sanitize_render_document_client_output(context.render_document)
     return context
