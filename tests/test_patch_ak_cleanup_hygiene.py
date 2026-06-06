@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from images import image_bank
+from scripts.artifact_hygiene import is_artifact_noise_path, iter_clean_artifact_files
+from scripts.test_groups import empty_legacy_test_modules
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_runtime_image_bank_bootstrap_is_opt_in_by_default(monkeypatch, tmp_path):
+    root = tmp_path / "itinerary-creator-git"
+    placeholder = root / "itinerary-image-bank"
+    fallback = root / "image_bank"
+    placeholder.mkdir(parents=True)
+    fallback.mkdir(parents=True)
+    (root / ".gitmodules").write_text('[submodule "itinerary-image-bank"]\n', encoding="utf-8")
+
+    monkeypatch.delenv("ITINERARY_IMAGE_BANK_BOOTSTRAP", raising=False)
+
+    def fail_if_called(*args, **kwargs):  # pragma: no cover - only runs on regression
+        raise AssertionError("runtime git clone/pull should be opt-in")
+
+    monkeypatch.setattr(subprocess, "run", fail_if_called)
+
+    assert image_bank.get_image_bank_paths(root) == [fallback]
+
+
+def test_runtime_image_bank_bootstrap_allows_explicit_opt_in(monkeypatch):
+    monkeypatch.setenv("ITINERARY_IMAGE_BANK_BOOTSTRAP", "1")
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+
+    assert image_bank._runtime_bootstrap_allowed() is True
+
+
+def test_gitignore_blocks_patch_artifact_noise():
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+
+    for pattern in (".pytest_cache/", ".runtime_image_bank/", "__pycache__/", "*.py[cod]", "*.zip"):
+        assert pattern in gitignore
+
+
+def test_artifact_hygiene_filters_generated_noise(tmp_path):
+    keep = tmp_path / "itinerary_generation" / "transport.py"
+    keep.parent.mkdir(parents=True)
+    keep.write_text("# source\n", encoding="utf-8")
+
+    noise_files = [
+        tmp_path / ".git" / "index",
+        tmp_path / ".pytest_cache" / "README.md",
+        tmp_path / "module" / "__pycache__" / "x.pyc",
+        tmp_path / ".runtime_image_bank" / "repo" / "image.webp",
+        tmp_path / "patch.zip",
+        tmp_path / ".chatgpt_write_test.txt",
+    ]
+    for path in noise_files:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("noise", encoding="utf-8")
+
+    assert is_artifact_noise_path(".git/index")
+    assert is_artifact_noise_path("module/__pycache__/x.pyc")
+    assert is_artifact_noise_path(".runtime_image_bank/repo/image.webp")
+    assert not is_artifact_noise_path("itinerary_generation/transport.py")
+
+    assert list(iter_clean_artifact_files(tmp_path)) == [keep]
+
+
+def test_empty_legacy_test_modules_remain_explicitly_documented_until_deletable_by_patch_tooling():
+    # ZIP-overwrite patch application cannot physically remove stale files from
+    # the user's checkout. Keep the placeholder allowlist explicit until a
+    # deletion-capable patch workflow is used.
+    assert empty_legacy_test_modules() == {
+        "test_images.py",
+        "test_regressions.py",
+        "test_regressions_rendering.py",
+    }
+    for module_name in empty_legacy_test_modules():
+        text = (ROOT / "tests" / module_name).read_text(encoding="utf-8")
+        assert "Legacy" in text
+
+
+def test_first_party_code_no_longer_imports_transport_compatibility_facades():
+    facade_modules = {
+        "itinerary_generation.transport_routes",
+        "itinerary_generation.transport_titles",
+        "itinerary_generation.inclusion_transport",
+        "parser_modules.transport_titles",
+    }
+    allowed_files = {
+        Path("itinerary_generation/transport_routes.py"),
+        Path("itinerary_generation/transport_titles.py"),
+        Path("itinerary_generation/inclusion_transport.py"),
+        Path("parser_modules/transport_titles.py"),
+        Path("tests/test_patch_ai_transport_domain.py"),
+        Path("tests/test_patch_ak_cleanup_hygiene.py"),
+        Path("tests/test_finland_transport_regressions.py"),
+        Path("tests/test_fixture_quality_polish.py"),
+        Path("tests/test_patch_n_editor_image_safety.py"),
+        Path("tests/test_stress_logic_followups.py"),
+        Path("tests/test_transport_model_architecture.py"),
+    }
+
+    offenders = []
+    for path in ROOT.rglob("*.py"):
+        relative = path.relative_to(ROOT)
+        if any(part in {".git", "__pycache__", ".pytest_cache"} for part in relative.parts):
+            continue
+        if relative in allowed_files:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for module in facade_modules:
+            if f"from {module} import" in text or f"import {module}" in text:
+                offenders.append(f"{relative}: {module}")
+
+    assert offenders == []

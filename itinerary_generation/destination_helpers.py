@@ -118,7 +118,7 @@ def destination_cities_for_row(row: dict) -> list[str]:
         # Import lazily: transport route extraction depends on the common facade,
         # which in turn re-exports this destination module. Lazy import keeps the
         # boundary acyclic at module-import time.
-        from itinerary_generation.transport_routes import get_route_points_for_transport
+        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 
         origin, destination = get_route_points_for_transport(row)
         add_city(origin)

@@ -73,21 +73,27 @@ def _looks_like_unpopulated_submodule(root: Path) -> bool:
 
 
 def _runtime_bootstrap_allowed() -> bool:
-    # Unit tests should never attempt a network clone. Real app runs keep the
-    # default enabled so zip/submodule deployments can fetch the image bank.
+    """Return whether the app may fetch the image-bank repo at runtime.
+
+    Runtime network clones are intentionally opt-in.  The normal app path should
+    use an environment override, a populated submodule, a sibling checkout, or a
+    local fallback bank.  This keeps preview/export startup deterministic and
+    avoids surprising writes into the app checkout.
+    """
+
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return False
-    value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "1")).lower()
-    return value not in {"0", "false", "no", "off"}
+    value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "")).lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _ensure_runtime_image_bank(root: Path) -> Path | None:
-    """Clone the separate image-bank repo when submodules are unavailable.
+    """Optionally clone the separate image-bank repo when explicitly enabled.
 
-    Some zip/deployment workflows include only a placeholder submodule folder.
-    In that case, the app would otherwise silently use generic Default images.
-    This bootstrap keeps destination images available while still failing safely
-    when git/network access is unavailable.
+    Zip/deployment workflows should normally ship a populated image bank or set
+    ``ITINERARY_IMAGE_BANK_FULL`` to a known local checkout.  Runtime cloning is
+    kept as an emergency escape hatch only when
+    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=1`` is set.
     """
 
     runtime_repo = root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank"
@@ -132,9 +138,9 @@ def get_image_bank_paths(root=None):
     """Return image-bank paths in priority order.
 
     Destination-specific imagery from the separate image-bank repo is scanned
-    before local fallback banks. If a submodule placeholder is present but the
-    actual files are missing, the app tries a one-time runtime clone before
-    falling back to generic images.
+    before local fallback banks. Runtime network cloning is disabled by default;
+    set ``ITINERARY_IMAGE_BANK_BOOTSTRAP=1`` only for controlled deployments that
+    intentionally want a one-time image-bank bootstrap.
     """
     root = Path(root) if root is not None else APP_ROOT
     external_banks = _candidate_external_image_bank_paths(root)

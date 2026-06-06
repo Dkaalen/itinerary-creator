@@ -9,7 +9,7 @@ from itinerary_generation.common import (
     is_valid_destination_city,
 )
 from itinerary_generation.transport_model import has_local_transfer_marker
-from itinerary_generation.transport_routes import _route_destination_from_text
+from itinerary_generation.transport_domain.routes import _route_destination_from_text
 
 
 def is_route_transfer(row):

@@ -11,4 +11,4 @@ from text_polish import polish_client_text, polish_hotel_name, polish_title, pol
 from .text_cleanup import *  # noqa: F401,F403
 from .type_detection import *  # noqa: F401,F403
 from .place_parsing import *  # noqa: F401,F403
-from .transport_titles import *  # noqa: F401,F403
+from itinerary_generation.transport_domain.parser import *  # noqa: F401,F403

@@ -28,7 +28,7 @@ from itinerary_generation.transport_norway import (
     _norway_nutshell_route_label,
     has_norway_in_a_nutshell,
 )
-from itinerary_generation.transport_routes import (
+from itinerary_generation.transport_domain.routes import (
     _ROUTE_PREFIX_ORIGINS,
     _clean_route_place,
     _route_destination_from_text,
@@ -37,7 +37,7 @@ from itinerary_generation.transport_routes import (
     get_route_points_for_transport,
     get_route_via_points,
 )
-from itinerary_generation.transport_titles import (
+from itinerary_generation.transport_domain.titles import (
     get_first_transfer_title,
     get_premium_transport_phrase,
     get_primary_transport_title,

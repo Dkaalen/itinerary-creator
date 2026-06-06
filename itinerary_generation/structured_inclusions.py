@@ -24,7 +24,7 @@ from itinerary_generation.day_row_selectors import _is_empty_activity
 from itinerary_generation.inclusion_activities import activity_line, group_tour_overview_activity_lines
 from itinerary_generation.inclusion_hotels import hotel_line
 from itinerary_generation.inclusion_rentals import extract_rental_summary
-from itinerary_generation.inclusion_transport import (
+from itinerary_generation.transport_domain.inclusions import (
     is_cruise_arrival_row,
     is_cruise_leisure_row,
     is_self_transfer_row,
