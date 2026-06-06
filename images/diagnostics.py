@@ -37,6 +37,8 @@ def get_image_bank_diagnostics(image_bank_path: Path | str | list | tuple | set 
         "countries_found": status.get("countries_found", []),
         "destinations_found": status.get("destinations_found", []),
         "blocking_message": status.get("blocking_message", ""),
+        "repo_url": status.get("repo_url", ""),
+        "zip_url": status.get("zip_url", ""),
     }
 
 
@@ -69,6 +71,8 @@ def image_bank_debug_payload(image_bank_path: Path | str | list | tuple | set = 
         "countries_found": diagnostics.get("countries_found", []),
         "destinations_found_sample": (diagnostics.get("destinations_found", []) or [])[:25],
         "blocking_message": diagnostics.get("blocking_message", ""),
+        "repo_url": diagnostics.get("repo_url", ""),
+        "zip_url": diagnostics.get("zip_url", ""),
     }
 
 

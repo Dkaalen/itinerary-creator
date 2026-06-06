@@ -1,6 +1,7 @@
 """Image helpers for the itinerary app."""
 
 from .diagnostics import format_match_for_debug, get_image_bank_diagnostics, image_bank_debug_payload, image_bank_status_summary
+from .image_bank import connect_remote_image_bank_if_missing, ensure_runtime_image_bank, ensure_runtime_image_bank_status, image_bank_status, image_bank_status_for_paths
 from .fallback import _is_global_default_candidate, _score_default_candidate, is_global_default_candidate, score_default_candidate
 from .matcher import (
     _candidate_destination_matches,
@@ -57,11 +58,16 @@ __all__ = [
     "candidate_destination_matches",
     "candidate_to_payload",
     "city_variants",
+    "connect_remote_image_bank_if_missing",
     "coerce_image_bank_paths",
     "extract_image_metadata",
+    "ensure_runtime_image_bank",
+    "ensure_runtime_image_bank_status",
     "format_match_for_debug",
     "get_image_bank_diagnostics",
     "image_bank_debug_payload",
+    "image_bank_status",
+    "image_bank_status_for_paths",
     "image_bank_status_summary",
     "infer_season_from_rows",
     "infer_seasons",

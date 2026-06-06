@@ -9,6 +9,7 @@ from ui.output_edits import apply_output_edits, mark_output_dirty
 from images.app_image_selection import (
     CROP_FOCUS_LABELS,
     CROP_FOCUS_OPTIONS,
+    connect_remote_image_bank_if_missing,
     ensure_runtime_image_bank,
     ensure_runtime_image_bank_status,
     get_day_image_choice,
@@ -42,26 +43,58 @@ def get_current_day_image_warnings(output_edits, image_matches=None):
 
 
 
+def _show_image_bank_setup_details(setup_status):
+    if not setup_status:
+        return
+    if setup_status.get("error") or setup_status.get("git_error"):
+        with st.expander("Image-bank setup error details"):
+            st.json({
+                "code": setup_status.get("code", ""),
+                "method": setup_status.get("method", ""),
+                "repo_url": setup_status.get("repo_url", ""),
+                "zip_url": setup_status.get("zip_url", ""),
+                "error": setup_status.get("error", ""),
+                "git_error": setup_status.get("git_error", ""),
+            })
+
+
+def _auto_connect_remote_image_bank(status):
+    if status.get("full_bank_found") or not status.get("runtime_bootstrap_allowed"):
+        return status
+    if st.session_state.get("_remote_image_bank_connect_attempted"):
+        return status
+
+    st.session_state["_remote_image_bank_connect_attempted"] = True
+    with st.spinner("Connecting the separate itinerary-image-bank repository from GitHub…"):
+        connected_status = connect_remote_image_bank_if_missing()
+    setup_status = connected_status.get("setup_status", {})
+    if connected_status.get("full_bank_found"):
+        st.success(f"Image bank connected from GitHub: {connected_status.get('source_path')}")
+        st.rerun()
+    elif setup_status:
+        st.warning(setup_status.get("message") or "Could not connect the image bank automatically.")
+        _show_image_bank_setup_details(setup_status)
+    return connected_status
+
+
 def render_image_bank_status_notice():
-    status = image_bank_status()
+    status = _auto_connect_remote_image_bank(image_bank_status())
     if status.get("full_bank_found"):
         st.success(image_bank_status_summary(status) + ".")
     else:
         st.error(status.get("blocking_message") or "Full destination image bank is missing.")
-        st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full")
+        st.caption("Expected remote source: Dkaalen/itinerary-image-bank/image_bank_full. The app repo stays separate from the image repo.")
         if status.get("runtime_bootstrap_allowed"):
-            if st.button("Fetch image bank from GitHub", key="fetch_runtime_image_bank", use_container_width=False):
+            if st.button("Connect image bank from GitHub", key="fetch_runtime_image_bank", use_container_width=False):
                 setup_status = ensure_runtime_image_bank_status()
                 if setup_status.get("ok"):
-                    st.success(f"Image bank fetched: {setup_status.get('path')}")
+                    st.success(f"Image bank connected: {setup_status.get('path')}")
                     st.rerun()
                 else:
-                    st.warning(setup_status.get("message") or "Could not fetch the image bank automatically.")
-                    if setup_status.get("error"):
-                        with st.expander("Image-bank setup error details"):
-                            st.code(str(setup_status.get("error")), language=None)
+                    st.warning(setup_status.get("message") or "Could not connect the image bank automatically.")
+                    _show_image_bank_setup_details(setup_status)
         else:
-            st.warning("Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL to the local image_bank_full folder.")
+            st.warning("Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL to a mounted image_bank_full folder or enable ITINERARY_IMAGE_BANK_BOOTSTRAP.")
 
     with st.expander("Image-bank diagnostics", expanded=False):
         st.json(image_bank_debug_payload(status.get("paths") or []))

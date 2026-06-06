@@ -46,8 +46,9 @@ def test_patch_at_runtime_image_bank_setup_returns_failure_diagnostics(monkeypat
     status = ensure_runtime_image_bank_status(root)
 
     assert status["ok"] is False
-    assert status["code"] == "git_command_failed"
-    assert "Could not fetch" in status["message"]
+    assert status["code"] == "zip_download_failed"
+    assert status["fallback_from"] == "git_command_failed"
+    assert "TimeoutExpired" in status["git_error"]
     assert any(entry["category"] == "image_bank_setup" for entry in diagnostics.get_warnings())
 
 

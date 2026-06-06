@@ -3,6 +3,7 @@
 from images.image_bank import (
     APP_ROOT,
     clean_space,
+    connect_remote_image_bank_if_missing as _connect_remote_image_bank_if_missing,
     esc,
     ensure_runtime_image_bank as _ensure_runtime_image_bank,
     ensure_runtime_image_bank_status as _ensure_runtime_image_bank_status,
@@ -51,6 +52,10 @@ def ensure_runtime_image_bank():
 
 def ensure_runtime_image_bank_status():
     return _ensure_runtime_image_bank_status(APP_ROOT)
+
+
+def connect_remote_image_bank_if_missing():
+    return _connect_remote_image_bank_if_missing(APP_ROOT)
 
 
 def image_bank_status():

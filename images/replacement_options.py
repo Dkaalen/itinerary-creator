@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from image_matcher import build_day_context, scan_image_bank, score_image_for_day
+from image_matcher import build_day_context, candidate_to_payload, scan_image_bank, score_image_for_day
 from images.image_bank import clean_space, normalize_path_key
 
 
@@ -50,11 +50,21 @@ def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_s
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
             continue
-        scored.append((score, candidate.filename.lower(), candidate, reasons))
+        payload = candidate_to_payload(day, candidate, score, reasons)
+        breakdown = payload.get("score_breakdown") if isinstance(payload.get("score_breakdown"), dict) else {}
+        priority = (
+            0 if payload.get("is_default") else 1,
+            int(breakdown.get("destination_score") or 0),
+            int(breakdown.get("season_score") or 0),
+            int(breakdown.get("activity_product_score") or 0),
+            int(score or 0),
+            candidate.filename.lower(),
+        )
+        scored.append((priority, score, candidate, reasons))
         seen.add(key)
-    scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    scored.sort(key=lambda item: item[0], reverse=True)
     options = []
-    for score, _filename, candidate, reasons in scored[:limit]:
+    for _priority, score, candidate, reasons in scored[:limit]:
         path = Path(candidate.path)
         options.append({
             "path": str(path),

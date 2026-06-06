@@ -16,6 +16,23 @@ from .matcher_scoring import (
 from .scanner import scan_image_bank
 
 
+def _payload_priority_key(payload: dict | None) -> tuple:
+    """Sort selected images by app priority: destination, season, activity, relevance."""
+
+    if not payload:
+        return (0, 0, 0, 0, 0, "")
+    breakdown = payload.get("score_breakdown") if isinstance(payload.get("score_breakdown"), dict) else {}
+    is_destination = 0 if payload.get("is_default") else 1
+    return (
+        is_destination,
+        int(breakdown.get("destination_score") or 0),
+        int(breakdown.get("season_score") or 0),
+        int(breakdown.get("activity_product_score") or 0),
+        int(payload.get("score") or 0),
+        str(payload.get("filename", "")).lower(),
+    )
+
+
 def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandidate], minimum_score: int = 38) -> dict | None:
     reusable_best = None
     for candidate in candidates:
@@ -28,7 +45,7 @@ def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandid
         if score < minimum_score:
             continue
         payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["reused strong default to avoid weak fallback"])
-        if reusable_best is None or (payload["score"], payload["filename"]) > (reusable_best["score"], reusable_best["filename"]):
+        if reusable_best is None or _payload_priority_key(payload) > _payload_priority_key(reusable_best):
             reusable_best = payload
     return reusable_best
 
@@ -60,16 +77,10 @@ def _attach_default_audit(
             continue
         candidate_payload = candidate_to_payload(str(payload.get("day", "")), candidate, score, reasons)
         if normalized_path in used_paths:
-            if best_reused_non_default is None or (
-                candidate_payload["score"],
-                candidate_payload["filename"],
-            ) > (best_reused_non_default["score"], best_reused_non_default["filename"]):
+            if best_reused_non_default is None or _payload_priority_key(candidate_payload) > _payload_priority_key(best_reused_non_default):
                 best_reused_non_default = candidate_payload
             continue
-        if best_non_default is None or (
-            candidate_payload["score"],
-            candidate_payload["filename"],
-        ) > (best_non_default["score"], best_non_default["filename"]):
+        if best_non_default is None or _payload_priority_key(candidate_payload) > _payload_priority_key(best_non_default):
             best_non_default = candidate_payload
 
     selected_score = int(payload.get("score") or 0)
@@ -123,10 +134,10 @@ def select_best_candidate_for_context(
             continue
         payload = candidate_to_payload(day, candidate, score, reasons)
         if is_default:
-            if best_default is None or (payload["score"], payload["filename"]) > (best_default["score"], best_default["filename"]):
+            if best_default is None or _payload_priority_key(payload) > _payload_priority_key(best_default):
                 best_default = payload
         else:
-            if best_destination is None or (payload["score"], payload["filename"]) > (best_destination["score"], best_destination["filename"]):
+            if best_destination is None or _payload_priority_key(payload) > _payload_priority_key(best_destination):
                 best_destination = payload
 
     if best_destination:
@@ -159,7 +170,7 @@ def select_best_candidate_for_context(
         score = max(1, score)
         reasons = list(reasons or []) + ["defensive default repair"]
         payload = candidate_to_payload(day, candidate, score, reasons)
-        if default_best is None or (payload["score"], payload["filename"]) > (default_best["score"], default_best["filename"]):
+        if default_best is None or _payload_priority_key(payload) > _payload_priority_key(default_best):
             default_best = payload
 
     # If the only unused default is an obvious semantic conflict, reuse a
