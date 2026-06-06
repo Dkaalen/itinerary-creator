@@ -59,6 +59,8 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
 def mark_output_dirty():
     st.session_state.pdf_bytes = None
     st.session_state.pdf_signature = None
+    st.session_state.export_pdf_bytes = None
+    st.session_state.export_pdf_signature = None
     st.session_state.pdf_status = "Needs refresh"
 
 

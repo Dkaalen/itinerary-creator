@@ -26,6 +26,7 @@ def initialise_state():
         "itinerary_html": "",
         "html_path": None,
         "pdf_bytes": None,
+        "export_pdf_bytes": None,
         "parsed_rows": [],
         "output_edits": {},
         "last_generated_raw_text": "",
@@ -33,6 +34,7 @@ def initialise_state():
         "pdf_status": "Not created",
         "preview_signature": None,
         "pdf_signature": None,
+        "export_pdf_signature": None,
         "detail_level": "Rich descriptive",
         "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
         "itinerary_validation_report": None,
@@ -73,6 +75,7 @@ def load_project_json(uploaded_file):
         st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT))
         st.session_state.last_generated_raw_text = raw_text
         st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
 
         edited_rows = apply_output_edits(parsed_rows, st.session_state.output_edits)
         edited_grouped_days = group_rows_by_day(edited_rows)
@@ -80,6 +83,7 @@ def load_project_json(uploaded_file):
         st.session_state.preview_signature = make_render_signature(parsed_rows, st.session_state.output_edits)
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
         st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.raw_text_input = raw_text
         st.session_state.app_stage = "pictures" if st.session_state.output_edits.get("pictures_added") else "edit"
 
@@ -96,12 +100,14 @@ def reset_project_state(clear_raw_text=True):
         "itinerary_html",
         "html_path",
         "pdf_bytes",
+        "export_pdf_bytes",
         "parsed_rows",
         "output_edits",
         "last_generated_raw_text",
         "parser_diagnostics",
         "preview_signature",
         "pdf_signature",
+        "export_pdf_signature",
         "_last_visual_editor_result",
         "_visual_editor_commit_nonce",
         "_visual_editor_commit_counter",
@@ -123,6 +129,7 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.itinerary_html = ""
     st.session_state.html_path = None
     st.session_state.pdf_bytes = None
+    st.session_state.export_pdf_bytes = None
     st.session_state.parsed_rows = []
     st.session_state.output_edits = {}
     st.session_state.last_generated_raw_text = ""
@@ -130,6 +137,7 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.pdf_status = "Not created"
     st.session_state.preview_signature = None
     st.session_state.pdf_signature = None
+    st.session_state.export_pdf_signature = None
     st.session_state.itinerary_validation_report = None
     st.session_state.app_stage = "input"
 
@@ -169,7 +177,9 @@ def rebuild_current_preview(mark_pdf_dirty=True, force=False, save_html=True):
 
     if mark_pdf_dirty and html_changed:
         st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
         st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.pdf_status = "Needs refresh"
 
     if save_html:

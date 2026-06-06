@@ -41,6 +41,66 @@ def _visual_editor_export_commit_ready() -> bool:
     )
 
 
+def _current_pdf_bytes() -> bytes | None:
+    """Return the current PDF bytes from durable export state.
+
+    Streamlit can rerun while the user scrolls or while the visual editor
+    component resizes. Keep the completed PDF available as long as its render
+    signature still matches the current preview.
+    """
+
+    current_signature = st.session_state.get("preview_signature")
+    pdf_bytes = st.session_state.get("pdf_bytes")
+    if pdf_bytes and st.session_state.get("pdf_signature") == current_signature:
+        return pdf_bytes
+
+    export_bytes = st.session_state.get("export_pdf_bytes")
+    if export_bytes and st.session_state.get("export_pdf_signature") == current_signature:
+        st.session_state.pdf_bytes = export_bytes
+        st.session_state.pdf_signature = current_signature
+        st.session_state.pdf_status = "Ready"
+        return export_bytes
+
+    return None
+
+
+def _store_current_pdf_bytes(pdf_bytes: bytes, signature: str | None) -> None:
+    st.session_state.pdf_bytes = pdf_bytes
+    st.session_state.pdf_signature = signature
+    st.session_state.export_pdf_bytes = pdf_bytes
+    st.session_state.export_pdf_signature = signature
+    st.session_state.pdf_status = "Ready"
+
+
+def render_pdf_download_station(*, location: str = "bottom") -> None:
+    """Render a durable PDF-ready download action.
+
+    The export control appears above and below the long editable document. The
+    button itself is also styled as sticky, so users do not lose the download
+    action while reviewing or scrolling after the PDF has been created.
+    """
+
+    pdf_bytes = _current_pdf_bytes()
+    if not pdf_bytes:
+        return
+
+    st.html(
+        '<div class="pdf-ready-panel">'
+        '<div><strong>PDF ready</strong><span>Your client-ready PDF has been created from the current itinerary.</span></div>'
+        f'<span class="pdf-ready-location">{location}</span>'
+        '</div>'
+    )
+    st.download_button(
+        label="Download PDF",
+        data=pdf_bytes,
+        file_name="itinerary_preview.pdf",
+        mime="application/pdf",
+        type="primary",
+        use_container_width=True,
+        key=f"download_pdf_{location}",
+    )
+
+
 def _image_grouped_days() -> dict:
     grouped_days = group_rows_by_day(st.session_state.get("parsed_rows", []) or [])
     return {
@@ -77,7 +137,10 @@ def _create_pdf_from_current_preview() -> bool:
     )
     blocking_contract_issues = [issue for issue in contract_issues if issue.severity == "error"]
     if blocking_contract_issues:
+        st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
         st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.pdf_status = "Needs review"
         _show_issue_list("PDF export stopped because the preview structure needs review.", blocking_contract_issues)
         return False
@@ -101,7 +164,10 @@ def _create_pdf_from_current_preview() -> bool:
     )
     blocking_image_issues = [issue for issue in image_issues if issue.severity == "error"]
     if blocking_image_issues:
+        st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
         st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.pdf_status = "Needs image review"
         _show_issue_list("PDF export stopped because one or more pictures need review.", blocking_image_issues)
         return False
@@ -135,6 +201,10 @@ def _create_pdf_from_current_preview() -> bool:
         image_bank_status=current_image_bank_status,
     )
     if client_quality_report.is_blocked:
+        st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
+        st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.pdf_status = "Blocked by output quality gate"
         for issue in client_quality_report.blocking_issues:
             st.error(issue.message)
@@ -150,13 +220,13 @@ def _create_pdf_from_current_preview() -> bool:
     )
     if pdf_path is None:
         st.session_state.pdf_bytes = None
+        st.session_state.export_pdf_bytes = None
         st.session_state.pdf_signature = None
+        st.session_state.export_pdf_signature = None
         st.session_state.pdf_status = "PDF failed"
         return False
 
-    st.session_state.pdf_bytes = Path(pdf_path).read_bytes()
-    st.session_state.pdf_signature = current_pdf_signature
-    st.session_state.pdf_status = "Ready"
+    _store_current_pdf_bytes(Path(pdf_path).read_bytes(), current_pdf_signature)
     return True
 
 
@@ -205,15 +275,8 @@ def render_export_step(app_version: str) -> None:
         st.info("Applying pending editor changes before creating the PDF…")
         return
 
-    if st.session_state.get("pdf_bytes"):
-        st.download_button(
-            label="Download PDF",
-            data=st.session_state.pdf_bytes,
-            file_name="itinerary_preview.pdf",
-            mime="application/pdf",
-            type="primary",
-            use_container_width=True,
-        )
+    if _current_pdf_bytes():
+        render_pdf_download_station(location="bottom")
         st.caption("PDF is ready. Create PDF again only if you make more edits.")
         if st.button("Create PDF again", use_container_width=True):
             _request_visual_editor_commit("_pdf_after_visual_edit_commit_nonce")
@@ -234,7 +297,10 @@ def render_export_step(app_version: str) -> None:
                 st.success("PDF created. Use the download button.")
                 st.rerun()
         except Exception as error:
+            st.session_state.pdf_bytes = None
+            st.session_state.export_pdf_bytes = None
             st.session_state.pdf_signature = None
+            st.session_state.export_pdf_signature = None
             st.session_state.pdf_status = "PDF failed"
             st.error("PDF export failed in this environment. The itinerary preview and HTML download still work.")
             with st.expander("PDF export error details"):

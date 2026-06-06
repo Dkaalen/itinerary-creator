@@ -20,7 +20,7 @@ from itinerary_generation.common import group_rows_by_day, is_optional_row
 from visual_editor_component.editor_workflow import render_visual_editor
 
 from app_modules.itinerary_html import build_itinerary_html
-from app_modules.export_step import render_export_step
+from app_modules.export_step import render_export_step, render_pdf_download_station
 from app_modules.parse_workflow import parse_and_normalize_itinerary, get_duplicate_count, get_overflow_warnings
 from app_modules.project_io import load_project_json, rebuild_current_preview, reset_project_state
 from app_modules.validation_gate import (
@@ -140,7 +140,9 @@ def _generate_itinerary(raw_text: str) -> bool:
     st.session_state.output_edits["allow_default_final_images"] = False
     st.session_state.last_generated_raw_text = raw_text
     st.session_state.pdf_bytes = None
+    st.session_state.export_pdf_bytes = None
     st.session_state.pdf_signature = None
+    st.session_state.export_pdf_signature = None
     st.session_state.pdf_status = "Not created"
     st.session_state.parser_diagnostics = diagnostics.get_warnings()
     st.session_state.itinerary_validation_report = validation_report
@@ -280,7 +282,9 @@ def _activate_picture_stage() -> None:
     st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
 
     st.session_state.pdf_bytes = None
+    st.session_state.export_pdf_bytes = None
     st.session_state.pdf_signature = None
+    st.session_state.export_pdf_signature = None
     st.session_state.pdf_status = "Needs refresh"
     rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
     _set_stage("pictures")
@@ -315,7 +319,9 @@ def render_edit_page(app_version: str) -> None:
             warnings = audit_day_image_matches(_image_grouped_days(), matches, st.session_state.output_edits)
             st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
             st.session_state.pdf_bytes = None
+            st.session_state.export_pdf_bytes = None
             st.session_state.pdf_signature = None
+            st.session_state.export_pdf_signature = None
             st.session_state.pdf_status = "Needs refresh"
             rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
             _set_stage("pictures")
@@ -330,6 +336,7 @@ def render_final_preview_step():
 def render_picture_page(app_version: str) -> None:
     _render_app_header(app_version, stage="pictures")
     _render_stage_actions("pictures")
+    render_pdf_download_station(location="top")
     _image_status_notice()
 
     st.html(

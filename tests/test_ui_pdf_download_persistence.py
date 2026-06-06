@@ -1,0 +1,40 @@
+from pathlib import Path
+
+
+def test_pdf_download_has_durable_top_and_bottom_stations():
+    export_source = Path("app_modules/export_step.py").read_text()
+    main_source = Path("app_modules/main_view.py").read_text()
+
+    assert "export_pdf_bytes" in export_source
+    assert "export_pdf_signature" in export_source
+    assert "def render_pdf_download_station" in export_source
+    assert "render_pdf_download_station(location=\"bottom\")" in export_source
+    assert "render_pdf_download_station(location=\"top\")" in main_source
+    assert "key=f\"download_pdf_{location}\"" in export_source
+
+
+def test_pdf_download_button_is_sticky_when_ready():
+    styles = Path("ui/styles.py").read_text()
+
+    assert ".pdf-ready-panel" in styles
+    assert "stDownloadButton" in styles
+    assert "position: sticky" in styles
+    assert "bottom: 1rem" in styles
+
+
+def test_dirty_state_clears_durable_pdf_artifact():
+    output_edits = Path("ui/output_edits.py").read_text()
+    project_io = Path("app_modules/project_io.py").read_text()
+
+    assert "st.session_state.export_pdf_bytes = None" in output_edits
+    assert "st.session_state.export_pdf_signature = None" in output_edits
+    assert "export_pdf_bytes" in project_io
+    assert "export_pdf_signature" in project_io
+
+
+def test_visual_editor_noop_saves_do_not_dirty_pdf():
+    source = Path("visual_editor_component/editor_workflow.py").read_text()
+
+    assert "before_snapshot = _stable_output_edits_snapshot(output_edits)" in source
+    assert "after_snapshot = _stable_output_edits_snapshot(output_edits)" in source
+    assert "if mark_dirty and before_snapshot != after_snapshot" in source

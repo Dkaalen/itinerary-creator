@@ -21,7 +21,9 @@ def block_generation(report: ItineraryQualityGateReport) -> None:
     st.session_state.output_edits = {}
     st.session_state.itinerary_html = ""
     st.session_state.pdf_bytes = None
+    st.session_state.export_pdf_bytes = None
     st.session_state.pdf_signature = None
+    st.session_state.export_pdf_signature = None
     st.session_state.preview_signature = None
     st.session_state.html_path = None
     st.session_state.pdf_status = BLOCKED_STATUS

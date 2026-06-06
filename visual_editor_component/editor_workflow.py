@@ -430,10 +430,15 @@ def _sanitize_editor_draft(editor_draft):
     return cleaned
 
 
+def _stable_output_edits_snapshot(output_edits):
+    return json.dumps(output_edits or {}, ensure_ascii=False, sort_keys=True, default=str)
+
+
 def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     """Persist visual editor edits into the normal output_edits structure."""
     if not result:
         return False
+    before_snapshot = _stable_output_edits_snapshot(output_edits)
     try:
         data, commit_nonce = _decode_visual_editor_result(result)
     except Exception:
@@ -581,7 +586,9 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     if commit_nonce:
         st.session_state["_visual_editor_last_applied_commit_nonce"] = commit_nonce
 
-    if mark_dirty:
+    after_snapshot = _stable_output_edits_snapshot(output_edits)
+    st.session_state["_visual_editor_last_result_changed"] = before_snapshot != after_snapshot
+    if mark_dirty and before_snapshot != after_snapshot:
         mark_dirty()
     return True
 
@@ -606,6 +613,7 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             elif applied_nonce and str(applied_nonce) == str(st.session_state.get("_add_pictures_after_visual_edit_commit_nonce", "")):
                 st.session_state["_visual_editor_add_pictures_commit_ready"] = True
             else:
-                st.success("Edits saved to preview and PDF export.")
+                if st.session_state.get("_visual_editor_last_result_changed"):
+                    st.success("Edits saved to preview and PDF export.")
             return True
     return False
