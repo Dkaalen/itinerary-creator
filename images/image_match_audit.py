@@ -115,6 +115,10 @@ def _format_name(path_text: str) -> str:
         return str(path_text or "selected image")
 
 
+def _default_images_allowed_for_final(output_edits: dict | None) -> bool:
+    return bool((output_edits or {}).get("allow_default_final_images"))
+
+
 def audit_day_image_match(
     day: str,
     rows: list[dict],
@@ -171,6 +175,18 @@ def audit_day_image_match(
             path=path_text,
         ))
         return tuple(warnings)
+
+    if is_global_default_candidate(candidate) and not _default_images_allowed_for_final(output_edits):
+        warnings.append(ImageAuditWarning(
+            code="default_image_selected_for_final_output",
+            message=(
+                f"{day} uses {display_name}, which is a bundled Default fallback. "
+                "Choose a real destination image before creating the client PDF."
+            ),
+            severity="error",
+            day=day,
+            path=path_text,
+        ))
 
     score, reasons = score_image_for_day(candidate, context)
     reason_text = "; ".join(reasons or [])

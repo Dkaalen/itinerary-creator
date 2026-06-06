@@ -29,6 +29,16 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     assert "request_pdf_creation_after_visual_editor_commit()" in source
 
 
+def test_edit_page_stops_duplicate_add_pictures_button_after_gateway_block():
+    source = Path("app_modules/main_view.py").read_text()
+    edit_start = source.index("def render_edit_page")
+    edit_end = source.index("def render_final_preview_step")
+    edit_source = source[edit_start:edit_end]
+
+    assert "def _image_bank_gateway_is_blocking" in source
+    assert "if _image_bank_gateway_is_blocking(gateway_result):" in edit_source
+    assert "return" in edit_source[edit_source.index("if _image_bank_gateway_is_blocking(gateway_result):"):edit_source.index('if st.button("Add pictures"')]
+
 def test_picture_page_hands_off_to_real_export_stage():
     source = Path("app_modules/main_view.py").read_text()
 

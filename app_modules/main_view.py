@@ -289,6 +289,10 @@ def _image_status_notice() -> None:
         st.caption("Default pictures are fallback placeholders only. They are not approved for final client output unless explicitly allowed.")
 
 
+def _image_bank_gateway_is_blocking(result: dict | None) -> bool:
+    return bool(isinstance(result, dict) and result and not result.get("ready"))
+
+
 def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
     result = result or st.session_state.get("image_bank_gateway") or {}
     status = result.get("status") if isinstance(result.get("status"), dict) else image_bank_status()
@@ -368,8 +372,10 @@ def render_edit_page(app_version: str) -> None:
     _render_document_editor(pictures_active=False)
 
     st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Add destination pictures and return to the top for visual review.</span></div></div>')
-    if st.session_state.get("image_bank_gateway") and not st.session_state["image_bank_gateway"].get("ready"):
-        _render_image_bank_gateway_repair(st.session_state.get("image_bank_gateway"))
+    gateway_result = st.session_state.get("image_bank_gateway")
+    if _image_bank_gateway_is_blocking(gateway_result):
+        _render_image_bank_gateway_repair(gateway_result)
+        return
 
     if st.button("Add pictures", type="primary", use_container_width=True):
         with st.spinner("Finding best images…"):

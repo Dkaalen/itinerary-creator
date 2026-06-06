@@ -16,6 +16,7 @@ class ExportReadiness:
     has_document: bool
     pictures_added: bool
     image_bank_ready: bool
+    picture_review_ready: bool
     pending_editor_commit: bool
     pdf_ready: bool
     can_create_pdf: bool
@@ -27,6 +28,7 @@ class ExportReadiness:
             "has_document": self.has_document,
             "pictures_added": self.pictures_added,
             "image_bank_ready": self.image_bank_ready,
+            "picture_review_ready": self.picture_review_ready,
             "pending_editor_commit": self.pending_editor_commit,
             "pdf_ready": self.pdf_ready,
             "can_create_pdf": self.can_create_pdf,
@@ -49,6 +51,11 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     output_edits = state.get("output_edits") or {}
     pictures = pictures_are_added(output_edits)
     image_ready = image_bank_is_ready_for_client_pictures(image_status)
+    try:
+        image_review_error_count = int(state.get("image_review_error_count") or state.get("image_review_warning_count") or 0)
+    except (TypeError, ValueError):
+        image_review_error_count = 0
+    picture_review_ready = image_review_error_count <= 0
     pending_commit = bool(state.get("_pdf_after_visual_edit_commit_nonce")) and not bool(
         state.get("_visual_editor_export_commit_ready")
     )
@@ -65,10 +72,12 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         blocking.append("Add and review destination pictures before creating the PDF.")
     if not image_ready:
         blocking.append("Connect the real destination image bank before creating the PDF.")
+    if pictures and not picture_review_ready:
+        blocking.append("Resolve blocked picture selections before creating the PDF.")
     if pending_commit:
         blocking.append("Applying pending editor changes before PDF creation.")
 
-    can_create = has_document and pictures and image_ready and not pending_commit
+    can_create = has_document and pictures and image_ready and picture_review_ready and not pending_commit
     if pdf_ready:
         status = "PDF ready"
     elif blocking:
@@ -80,6 +89,7 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         has_document=has_document,
         pictures_added=pictures,
         image_bank_ready=image_ready,
+        picture_review_ready=picture_review_ready,
         pending_editor_commit=pending_commit,
         pdf_ready=pdf_ready,
         can_create_pdf=can_create,

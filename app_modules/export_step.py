@@ -7,6 +7,7 @@ import streamlit as st
 
 from ui.export_files import save_pdf_file
 from ui.output_edits import apply_output_edits
+from ui.picture_workflow import pictures_are_added
 from app_modules.project_io import rebuild_current_preview
 from itinerary_generation.common import group_rows_by_day, is_optional_row
 from itinerary_generation.output_contract import validate_output_layout_contract
@@ -270,9 +271,12 @@ def _render_secondary_downloads(app_version: str) -> None:
 
 
 def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
+    picture_status = "Not added"
+    if readiness.pictures_added:
+        picture_status = "Ready" if readiness.picture_review_ready else "Needs review"
     states = [
         ("Document", "Ready" if readiness.has_document else "Missing", readiness.has_document),
-        ("Pictures", "Ready" if readiness.pictures_added else "Not added", readiness.pictures_added),
+        ("Pictures", picture_status, readiness.pictures_added and readiness.picture_review_ready),
         ("Image bank", "Connected" if readiness.image_bank_ready else "Missing", readiness.image_bank_ready),
         ("PDF", "Ready" if readiness.pdf_ready else "Not created", readiness.pdf_ready),
     ]
@@ -304,13 +308,26 @@ def _session_state_snapshot() -> dict:
     return {key: st.session_state.get(key) for key in st.session_state.keys()}
 
 
+def _current_image_review_errors() -> tuple:
+    output_edits = st.session_state.get("output_edits", {}) or {}
+    if not pictures_are_added(output_edits):
+        return ()
+    image_grouped_days = _image_grouped_days()
+    image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
+    image_issues = audit_day_image_matches(image_grouped_days, image_matches, output_edits)
+    return tuple(issue for issue in image_issues if getattr(issue, "severity", "") == "error")
+
+
 def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
         return
 
     current_image_status = image_bank_status()
     commit_ready = _visual_editor_export_commit_ready()
-    readiness = export_readiness_from_state(_session_state_snapshot(), current_image_status)
+    image_review_errors = _current_image_review_errors()
+    snapshot = _session_state_snapshot()
+    snapshot["image_review_error_count"] = len(image_review_errors)
+    readiness = export_readiness_from_state(snapshot, current_image_status)
     _render_export_readiness_panel(readiness)
 
     if not readiness.pictures_added:
@@ -319,6 +336,13 @@ def render_export_step(app_version: str) -> None:
 
     if not readiness.image_bank_ready:
         st.warning("Connect the real destination image bank before creating the final PDF.")
+        return
+
+    if not readiness.picture_review_ready:
+        st.warning("Resolve blocked picture selections before creating the final PDF.")
+        with st.expander("Picture issues blocking export", expanded=True):
+            for issue in image_review_errors:
+                st.write(f"- {getattr(issue, 'message', issue)}")
         return
 
     if st.session_state.get("_pdf_after_visual_edit_commit_nonce") and not commit_ready:

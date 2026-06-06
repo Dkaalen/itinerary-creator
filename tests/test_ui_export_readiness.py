@@ -77,6 +77,14 @@ def test_export_readiness_rejects_stale_pdf_artifact():
     assert readiness.status_label == "Ready to create"
 
 
+def test_export_readiness_blocks_picture_review_errors_before_pdf_creation():
+    readiness = export_readiness_from_state(_ready_state(image_review_error_count=2), READY_IMAGE_BANK)
+
+    assert readiness.can_create_pdf is False
+    assert readiness.picture_review_ready is False
+    assert readiness.status_label == "Not ready"
+    assert any("blocked picture selections" in message for message in readiness.blocking_messages)
+
 def test_export_readiness_waits_for_visual_editor_commit():
     readiness = export_readiness_from_state(
         _ready_state(_pdf_after_visual_edit_commit_nonce="2", _visual_editor_export_commit_ready=False),
@@ -97,6 +105,7 @@ def test_export_screen_has_readiness_panel_and_disabled_create_gate():
     assert "def export_readiness_from_state" in state_source
     assert "def _render_export_readiness_panel" in source
     assert "disabled=not readiness.can_create_pdf" in source
+    assert "picture_review_ready" in source
     assert "image_bank_is_ready_for_client_pictures" in source
     assert ".export-readiness-panel" in styles
     assert ".export-readiness-grid" in styles

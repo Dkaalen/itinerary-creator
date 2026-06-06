@@ -63,6 +63,63 @@ def test_manual_wrong_destination_image_is_review_warning_not_silent():
         assert not any(warning.severity == "error" for warning in warnings)
 
 
+def test_default_image_selection_is_export_blocker_even_when_full_bank_exists():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank_full"
+        default_dir = bank / "Default"
+        oslo_dir = bank / "Norway" / "Oslo"
+        default_dir.mkdir(parents=True)
+        oslo_dir.mkdir(parents=True)
+        default_path = default_dir / "Default_Summer_Fjord_01.webp"
+        default_path.write_bytes(b"fake image")
+        (oslo_dir / "Oslo_Summer_City_01.webp").write_bytes(b"fake image")
+
+        grouped = {
+            "Day 1": [
+                {
+                    "day": "Day 1",
+                    "type": "Activity",
+                    "effective_type": "Activity",
+                    "city": "Oslo",
+                    "title": "Oslo fjord cruise",
+                    "details": "Fjord views and city waterfront.",
+                }
+            ]
+        }
+        matches = {"Day 1": {"path": str(default_path), "city": "Default", "is_default": True, "reason": "fallback"}}
+
+        warnings = audit_day_image_matches(grouped, matches, output_edits={}, image_bank_scan_paths=[bank])
+
+        assert any(warning.code == "default_image_selected_for_final_output" for warning in warnings)
+        assert any(warning.severity == "error" for warning in warnings)
+
+
+def test_explicit_dev_default_image_fallback_is_not_an_export_blocker():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        default_path = default_dir / "Default_Summer_Fjord_01.webp"
+        default_path.write_bytes(b"fake image")
+
+        grouped = {
+            "Day 1": [
+                {
+                    "day": "Day 1",
+                    "type": "Activity",
+                    "effective_type": "Activity",
+                    "city": "Oslo",
+                    "title": "Oslo fjord cruise",
+                }
+            ]
+        }
+        matches = {"Day 1": {"path": str(default_path), "city": "Default", "is_default": True, "reason": "fallback"}}
+        output_edits = {"allow_default_final_images": True}
+
+        warnings = audit_day_image_matches(grouped, matches, output_edits=output_edits, image_bank_scan_paths=[bank])
+
+        assert not any(warning.code == "default_image_selected_for_final_output" for warning in warnings)
+
 def test_day_image_slot_carries_source_and_match_metadata_without_visible_text():
     html = render_day_image_slot(
         "Day 7",
