@@ -67,6 +67,7 @@ QUALITY_TESTS = (
 )
 
 PDF_TESTS = (
+    "tests/test_patch_aj_pdf_render_model.py",
     "tests/test_pdf.py",
     "tests/test_preview_pdf_parity.py",
     "tests/test_regressions_pdf_inclusions.py",

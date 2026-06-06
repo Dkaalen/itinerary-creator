@@ -1,16 +1,12 @@
 import json
-from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
-from itinerary_generation.structured_builder import build_itinerary_document
-from itinerary_generation.render_document_builder import (
-    build_render_document_from_document,
-    grouped_days_with_day_optional_rows,
+
+from app_modules.itinerary_render_context import build_itinerary_render_context
+from app_modules.itinerary_html_sections import (
+    balanced_cover_subtitle_html,
+    render_cover_page,
+    render_summary_page,
 )
-from itinerary_generation.cover_route import cover_route_html
-from itinerary_generation.editable_draft import section_by_id
-from itinerary_generation.summaries import create_journey_arc, create_trip_glance
-from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
-from itinerary_generation.cover_theme import get_cover_theme
-from itinerary_generation.date_resolver import get_trip_date_range_text
+from app_modules.itinerary_html_styles import build_preview_style
 from ui.day_pages import (
     render_day_pages,
     render_split_list_pages,
@@ -19,20 +15,8 @@ from ui.day_pages import (
     render_custom_html_final_pages,
     render_text_paragraph_page,
 )
-from ui.final_pages import (
-    create_optional_addons,
-    get_important_travel_notes,
-    render_optional_addons_pages,
-)
-from ui.render_helpers import esc, text_to_list
-from ui.picture_workflow import pictures_are_added
-from app_modules.display_settings import get_color_preset, get_color_preset_name
-from app_modules.itinerary_html_sections import (
-    balanced_cover_subtitle_html,
-    render_cover_page,
-    render_summary_page,
-)
-from app_modules.itinerary_html_styles import build_preview_style
+from ui.final_pages import render_optional_addons_pages
+from ui.render_helpers import esc
 
 
 def _balanced_cover_subtitle_html(subtitle: str) -> str:
@@ -42,126 +26,57 @@ def _balanced_cover_subtitle_html(subtitle: str) -> str:
 
 def _balanced_cover_destinations_html(destinations_line: str) -> str:
     """Compatibility wrapper for tests/older imports."""
+    from itinerary_generation.cover_route import cover_route_html
+
     return cover_route_html(destinations_line)
 
 
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
-    output_edits = output_edits or {}
-    editor_draft = output_edits.get("editor_draft") if isinstance(output_edits, dict) else {}
-    editor_draft = editor_draft if isinstance(editor_draft, dict) else {}
-    typed_cover = editor_draft.get("cover", {}) if isinstance(editor_draft.get("cover"), dict) else {}
-    typed_summary = editor_draft.get("summary", {}) if isinstance(editor_draft.get("summary"), dict) else {}
-    structured_document = build_itinerary_document(parsed_rows, grouped_days)
-    render_grouped_days = grouped_days_with_day_optional_rows(grouped_days, parsed_rows)
-    render_document = build_render_document_from_document(
-        structured_document,
-        parsed_rows,
-        grouped_days,
-        output_edits=output_edits,
-    )
-    preset_name = get_color_preset_name(output_edits)
-    colors = get_color_preset(output_edits)
-    colors_json = esc(json.dumps(colors))
+    context = build_itinerary_render_context(parsed_rows, grouped_days, output_edits or {})
+    colors_json = esc(json.dumps(context.colors))
 
-    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_are_added(output_edits))
-    cover_kicker = typed_cover.get("cover_kicker") or output_edits.get("cover_kicker") or "Travel Itinerary"
-    trip_title = typed_cover.get("trip_title") or output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
-    cover_title_class = "cover-title"
-    if len(str(trip_title)) <= 24:
-        cover_title_class += " cover-title-fit"
-    elif len(str(trip_title)) <= 32:
-        cover_title_class += " cover-title-balanced"
-    trip_subtitle = typed_cover.get("trip_subtitle") or output_edits.get("trip_subtitle") or create_trip_subtitle(parsed_rows, grouped_days)
-    trip_subtitle_html = _balanced_cover_subtitle_html(trip_subtitle)
-    trip_dates = typed_cover.get("trip_dates") or output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows)
-    cover_background_data_uri = cover_theme.get("background_data_uri", "")
-    cover_background_path = cover_theme.get("background_path", "")
-    destinations_line = typed_cover.get("destinations_line") or output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
-    destinations_line_html = cover_route_html(destinations_line)
-    trip_glance = create_trip_glance(parsed_rows, grouped_days)
-    saved_trip_glance = typed_summary.get("trip_glance") or output_edits.get("trip_glance") or {}
-    if isinstance(saved_trip_glance, dict):
-        for label, value in saved_trip_glance.items():
-            if label in trip_glance:
-                trip_glance[label] = value
+    html_text = build_preview_style(context.colors, context.cover_theme, context.cover_background_data_uri)
+    html_text += f'''    <div class="preview-background" data-preset="{esc(context.preset_name)}" data-colors="{colors_json}">
 
-    saved_journey_arc = typed_summary.get("journey_arc") or output_edits.get("journey_arc")
-    if isinstance(saved_journey_arc, list) and saved_journey_arc:
-        journey_arc = [
-            {
-                "chapter": str(row.get("chapter", "")).strip(),
-                "days": str(row.get("days", "")).strip(),
-                "experience": str(row.get("experience", "")).strip(),
-            }
-            for row in saved_journey_arc
-            if isinstance(row, dict)
-        ]
-    else:
-        journey_arc = create_journey_arc(grouped_days)
-
-    manual_whats_included = text_to_list(output_edits.get("whats_included_text", ""))
-    categorized_inclusions = structured_document.inclusions
-    whats_included = manual_whats_included or create_whats_included(parsed_rows, grouped_days)
-
-    optional_addons = create_optional_addons(parsed_rows)
-    if output_edits.get("whats_not_included_text"):
-        whats_not_included = text_to_list(output_edits.get("whats_not_included_text"))
-    else:
-        whats_not_included = create_whats_not_included(parsed_rows)
-    structured_whats_not_included = structured_document.exclusions
-
-    typed_inclusions = section_by_id(editor_draft, "whats_included")
-    typed_exclusions = section_by_id(editor_draft, "whats_not_included")
-    typed_notes = section_by_id(editor_draft, "important_travel_notes")
-    typed_inclusion_pages = [page.get("content_html", "") for page in typed_inclusions.get("pages", []) if isinstance(page, dict)] if typed_inclusions else []
-    typed_exclusion_html = typed_exclusions.get("content_html", "") if typed_exclusions else ""
-    if typed_exclusions and not typed_exclusion_html and typed_exclusions.get("pages"):
-        first_page = typed_exclusions.get("pages", [{}])[0]
-        typed_exclusion_html = first_page.get("content_html", "") if isinstance(first_page, dict) else ""
-    important_travel_notes = typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits)
-
-    html_text = build_preview_style(colors, cover_theme, cover_background_data_uri)
-    html_text += f"""    <div class="preview-background" data-preset="{esc(preset_name)}" data-colors="{colors_json}">
-
-"""
+'''
     html_text += render_cover_page(
-        cover_theme=cover_theme,
-        cover_background_path=cover_background_path,
-        cover_kicker=cover_kicker,
-        cover_title_class=cover_title_class,
-        trip_title=trip_title,
-        trip_subtitle_html=trip_subtitle_html,
-        trip_dates=trip_dates,
-        destinations_line_html=destinations_line_html,
+        cover_theme=context.cover_theme,
+        cover_background_path=context.cover_background_path,
+        cover_kicker=context.cover_kicker,
+        cover_title_class=context.cover_title_class,
+        trip_title=context.trip_title,
+        trip_subtitle_html=context.trip_subtitle_html,
+        trip_dates=context.trip_dates,
+        destinations_line_html=context.destinations_line_html,
     )
     html_text += render_summary_page(
-        cover_theme=cover_theme,
-        trip_glance=trip_glance,
-        journey_arc=journey_arc,
+        cover_theme=context.cover_theme,
+        trip_glance=context.trip_glance,
+        journey_arc=context.journey_arc,
     )
 
-    html_text += render_day_pages(render_grouped_days, output_edits, render_document=render_document)
+    html_text += render_day_pages(context.render_grouped_days, context.output_edits, render_document=context.render_document)
 
-    if typed_inclusion_pages:
-        html_text += render_custom_html_final_pages("What’s included", typed_inclusion_pages, "final-list-page categorized-inclusions-page")
-    elif output_edits.get("whats_included_pages_html"):
-        html_text += render_custom_html_final_pages("What’s included", output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
-    elif output_edits.get("whats_included_html"):
-        html_text += render_custom_html_final_page("What’s included", output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
-    elif manual_whats_included:
-        html_text += render_split_list_pages("What’s included", whats_included)
+    if context.typed_inclusion_pages:
+        html_text += render_custom_html_final_pages("What’s included", context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
+    elif context.output_edits.get("whats_included_pages_html"):
+        html_text += render_custom_html_final_pages("What’s included", context.output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
+    elif context.output_edits.get("whats_included_html"):
+        html_text += render_custom_html_final_page("What’s included", context.output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
+    elif context.manual_whats_included:
+        html_text += render_split_list_pages("What’s included", context.whats_included)
     else:
-        html_text += render_categorized_inclusions_pages("What’s included", categorized_inclusions)
-    html_text += render_optional_addons_pages(optional_addons)
-    if typed_exclusion_html:
-        html_text += render_custom_html_final_page("What’s not included", typed_exclusion_html, "final-list-page categorized-exclusions-page")
-    elif output_edits.get("whats_not_included_html"):
-        html_text += render_custom_html_final_page("What’s not included", output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
-    elif output_edits.get("whats_not_included_text"):
-        html_text += render_split_list_pages("What’s not included", whats_not_included)
+        html_text += render_categorized_inclusions_pages("What’s included", context.categorized_inclusions)
+    html_text += render_optional_addons_pages(context.optional_addons)
+    if context.typed_exclusion_html:
+        html_text += render_custom_html_final_page("What’s not included", context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
+    elif context.output_edits.get("whats_not_included_html"):
+        html_text += render_custom_html_final_page("What’s not included", context.output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
+    elif context.output_edits.get("whats_not_included_text"):
+        html_text += render_split_list_pages("What’s not included", context.whats_not_included)
     else:
-        html_text += render_categorized_inclusions_pages("What’s not included", structured_whats_not_included, "final-list-page categorized-exclusions-page")
-    html_text += render_text_paragraph_page("Important travel notes", important_travel_notes)
+        html_text += render_categorized_inclusions_pages("What’s not included", context.structured_whats_not_included, "final-list-page categorized-exclusions-page")
+    html_text += render_text_paragraph_page("Important travel notes", context.important_travel_notes)
 
     html_text += "</div>"
 

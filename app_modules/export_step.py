@@ -4,12 +4,14 @@ import json
 import streamlit as st
 
 from ui.export_files import save_pdf_file
+from ui.output_edits import apply_output_edits
 from app_modules.project_io import rebuild_current_preview
 from ui.picture_workflow import pictures_are_added
 from itinerary_generation.common import group_rows_by_day, is_optional_row
 from itinerary_generation.output_contract import validate_output_layout_contract
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
-from images.app_image_selection import audit_day_image_matches, select_day_images_with_overrides
+from app_modules.itinerary_render_context import build_itinerary_render_context
+from images.app_image_selection import audit_day_image_matches, get_day_image_crop_focus, select_day_images_with_overrides
 
 
 def render_export_step(app_version):
@@ -144,7 +146,28 @@ def render_export_step(app_version):
                         if pdf_is_current:
                             st.session_state.pdf_status = "Ready"
                         else:
-                            pdf_path = save_pdf_file(html_path)
+                            edited_rows_for_pdf = apply_output_edits(
+                                st.session_state.get("parsed_rows", []) or [],
+                                st.session_state.get("output_edits", {}) or {},
+                            )
+                            grouped_days_for_pdf = group_rows_by_day(edited_rows_for_pdf)
+                            pdf_render_context = build_itinerary_render_context(
+                                edited_rows_for_pdf,
+                                grouped_days_for_pdf,
+                                st.session_state.get("output_edits", {}) or {},
+                            )
+                            day_image_crop_focus = {
+                                day: get_day_image_crop_focus(st.session_state.get("output_edits", {}) or {}, day)
+                                for day in grouped_days_for_pdf
+                            }
+                            pdf_path = save_pdf_file(
+                                html_path,
+                                render_document=pdf_render_context.render_document,
+                                color_data=pdf_render_context.colors,
+                                day_images=image_matches,
+                                day_image_crop_focus=day_image_crop_focus,
+                                output_edits=st.session_state.get("output_edits", {}) or {},
+                            )
                             if pdf_path is None:
                                 st.session_state.pdf_bytes = None
                                 st.session_state.pdf_signature = None

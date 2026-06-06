@@ -35,7 +35,8 @@ def _looks_like_norway_in_a_nutshell(text: str) -> bool:
         return True
     has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
     has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
-    has_route = bool(re.search(r"\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b.+\bto\b.+\b(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)\b", lower))
+    route_place = r"(?:bergen|oslo|fl[åa]m|voss|gudvangen|myrdal)"
+    has_route = bool(re.search(rf"\b{route_place}\b[^.\n]{{0,160}}\bto\b[^.\n]{{0,160}}\b{route_place}\b", lower))
     return has_flam and has_fjord and has_route
 
 

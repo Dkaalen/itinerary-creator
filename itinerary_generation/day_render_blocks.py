@@ -326,6 +326,7 @@ def build_render_day_from_document(
         city=day_shell.city,
         title=day_shell.title,
         intro=day_shell.intro,
+        date=day_document.date if day_document and day_document.date else "",
         blocks=build_day_render_blocks(ordered_rows),
         source_row_ids=source_ids,
         warnings=list(dict.fromkeys(warnings)),

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from pdf_exporter import export_html_to_pdf
+from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
 
 
 def build_full_html_document(itinerary_html):
@@ -45,7 +45,7 @@ def save_html_file(itinerary_html):
         return None
 
 
-def save_pdf_file(html_path):
+def save_pdf_file(html_path, *, render_document=None, color_data=None, day_images=None, day_image_crop_focus=None, output_edits=None):
     try:
         if not html_path:
             raise ValueError("HTML path is missing. Regenerate the itinerary before creating the PDF.")
@@ -54,7 +54,16 @@ def save_pdf_file(html_path):
         outputs_folder.mkdir(exist_ok=True)
 
         pdf_path = outputs_folder / "itinerary_preview.pdf"
-        export_html_to_pdf(html_path, pdf_path)
+        if render_document is not None and not render_document_requires_html_fallback(render_document, output_edits):
+            export_render_document_to_pdf(
+                render_document,
+                pdf_path,
+                color_data=color_data,
+                day_images=day_images,
+                day_image_crop_focus=day_image_crop_focus,
+            )
+        else:
+            export_html_to_pdf(html_path, pdf_path)
 
         return pdf_path
     except Exception as error:

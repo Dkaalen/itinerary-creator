@@ -58,17 +58,26 @@ def test_render_day_pages_uses_supplied_render_document_without_rebuilding_days(
 
 
 def test_itinerary_html_builds_render_document_from_structured_document():
-    source = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    call_names = {
+    html_source = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
+    context_source = (ROOT / "app_modules" / "itinerary_render_context.py").read_text(encoding="utf-8")
+
+    html_tree = ast.parse(html_source)
+    context_tree = ast.parse(context_source)
+    html_call_names = {
         node.func.id
-        for node in ast.walk(tree)
+        for node in ast.walk(html_tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    context_call_names = {
+        node.func.id
+        for node in ast.walk(context_tree)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     }
 
-    assert "build_itinerary_document" in call_names
-    assert "build_render_document_from_document" in call_names
-    assert "render_day_pages" in call_names
+    assert "build_itinerary_render_context" in html_call_names
+    assert "render_day_pages" in html_call_names
+    assert "build_itinerary_document" in context_call_names
+    assert "build_render_document_from_document" in context_call_names
 
 
 def test_render_model_has_no_upstream_canonical_dependency():

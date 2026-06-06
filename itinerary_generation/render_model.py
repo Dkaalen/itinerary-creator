@@ -8,6 +8,7 @@ modules or storing generated HTML as the primary source of truth.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -20,6 +21,48 @@ class RenderMetaLine:
 class RenderSection:
     title: str
     items: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class RenderCover:
+    kicker: str = "Travel Itinerary"
+    title: str = ""
+    subtitle: str = ""
+    dates: str = ""
+    route: str = ""
+    background_path: str = ""
+    ink: str = ""
+    muted: str = ""
+    accent: str = ""
+    season: str = ""
+
+
+@dataclass(slots=True)
+class RenderSummary:
+    trip_glance: list[RenderMetaLine] = field(default_factory=list)
+    journey_arc: list[dict[str, str]] = field(default_factory=list)
+    background_path: str = ""
+
+
+@dataclass(slots=True)
+class RenderFinalPage:
+    sections: list[RenderSection] = field(default_factory=list)
+    items: list[str] = field(default_factory=list)
+    paragraphs: list[str] = field(default_factory=list)
+    content_html: str = ""
+
+
+@dataclass(slots=True)
+class RenderFinalSection:
+    section_id: str
+    title: str
+    pages: list[RenderFinalPage] = field(default_factory=list)
+    sections: list[RenderSection] = field(default_factory=list)
+    items: list[str] = field(default_factory=list)
+    paragraphs: list[str] = field(default_factory=list)
+    content_html: str = ""
+    css_class: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -46,6 +89,7 @@ class RenderDay:
     city: str
     title: str
     intro: str
+    date: str = ""
     blocks: list[RenderBlock] = field(default_factory=list)
     source_row_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -58,3 +102,6 @@ class RenderDocument:
     route: str = ""
     days: list[RenderDay] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    cover: RenderCover | None = None
+    summary: RenderSummary | None = None
+    final_sections: list[RenderFinalSection] = field(default_factory=list)

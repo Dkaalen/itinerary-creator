@@ -1,4 +1,5 @@
 from .exporter import export_html_to_pdf
+from .typed_exporter import export_render_document_to_pdf, render_document_requires_html_fallback
 from .html_utils import clean_text, has_class, para_text
 from .images import (
     PDF_CROP_FOCUS_FACTORS,
