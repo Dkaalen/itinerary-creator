@@ -10,11 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 TEST_ROOT = "tests"
-EMPTY_LEGACY_TEST_MODULES = frozenset({
-    "test_images.py",
-    "test_regressions.py",
-    "test_regressions_rendering.py",
-})
+EMPTY_LEGACY_TEST_MODULES = frozenset()
 REMAINING_STAGE_SIZE = 8
 
 FAST_TESTS = (
@@ -63,7 +59,6 @@ QUALITY_TESTS = (
     "tests/test_quality_gate_architecture.py",
     "tests/test_premium_optional_output.py",
     "tests/test_regressions_content_basics.py",
-    "tests/test_regressions_content_generation.py",
     "tests/test_regressions_transport_cruise.py",
     "tests/test_finland_transport_regressions.py",
     "tests/test_regressions_pdf_inclusions.py",

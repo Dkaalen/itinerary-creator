@@ -67,18 +67,16 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
     assert list(iter_clean_artifact_files(tmp_path)) == [keep]
 
 
-def test_empty_legacy_test_modules_remain_explicitly_documented_until_deletable_by_patch_tooling():
-    # ZIP-overwrite patch application cannot physically remove stale files from
-    # the user's checkout. Keep the placeholder allowlist explicit until a
-    # deletion-capable patch workflow is used.
-    assert empty_legacy_test_modules() == {
+def test_empty_legacy_test_modules_have_been_removed_from_source_tree():
+    assert empty_legacy_test_modules() == frozenset()
+    removed_modules = {
         "test_images.py",
         "test_regressions.py",
+        "test_regressions_content_generation.py",
         "test_regressions_rendering.py",
     }
-    for module_name in empty_legacy_test_modules():
-        text = (ROOT / "tests" / module_name).read_text(encoding="utf-8")
-        assert "Legacy" in text
+    for module_name in removed_modules:
+        assert not (ROOT / "tests" / module_name).exists()
 
 
 def test_first_party_code_no_longer_imports_transport_compatibility_facades():
