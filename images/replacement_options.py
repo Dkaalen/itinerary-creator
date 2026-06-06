@@ -8,7 +8,7 @@ from image_matcher import build_day_context, candidate_to_payload, scan_image_ba
 from images.image_bank import clean_space, image_bank_status_for_paths, normalize_path_key
 
 
-def list_replacement_image_options(city, *, image_bank_scan_paths):
+def list_replacement_image_options(city, *, image_bank_scan_paths, allow_default_options=False):
     """Return replacement pictures for a city.
 
     Bundled Default images are emergency placeholders.  When the full
@@ -31,13 +31,13 @@ def list_replacement_image_options(city, *, image_bank_scan_paths):
         if city_key and candidate_city == city_key:
             city_options.append(path)
             seen.add(key)
-        elif candidate_city == "default":
+        elif candidate_city == "default" and allow_default_options:
             default_options.append(path)
             seen.add(key)
     return sorted(city_options, key=lambda path: path.name.lower()) + sorted(default_options, key=lambda path: path.name.lower())
 
 
-def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_scan_paths):
+def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_scan_paths, allow_default_options=False):
     """Return lightweight, relevance-ranked replacement options for a day.
 
     The returned items intentionally contain no base64 image payload. The visual
@@ -62,6 +62,8 @@ def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_s
         if score <= 0:
             continue
         payload = candidate_to_payload(day, candidate, score, reasons)
+        if payload.get("is_default") and not allow_default_options:
+            continue
         breakdown = payload.get("score_breakdown") if isinstance(payload.get("score_breakdown"), dict) else {}
         priority = (
             0 if payload.get("is_default") else 1,
