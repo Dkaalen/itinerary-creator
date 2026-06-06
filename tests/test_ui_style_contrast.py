@@ -24,24 +24,11 @@ def _rendered_css(monkeypatch):
     return captured["body"]
 
 
-def test_workflow_cards_keep_readable_contrast(monkeypatch):
+def test_primary_buttons_are_explicitly_high_contrast(monkeypatch):
     css = _rendered_css(monkeypatch)
 
-    assert "--surface-glass: #ffffff;" in css
-    assert "--ink-soft: #344054;" in css
-    assert ".workflow-step-locked {" in css
-    assert "opacity: 1;" in css
-    assert "background: var(--locked-soft);" in css
-    assert "color: var(--ink-soft);" in css
-
-
-def test_sidebar_controls_have_explicit_light_inputs_and_dark_text(monkeypatch):
-    css = _rendered_css(monkeypatch)
-
-    assert 'div[data-testid="stSidebar"] [data-baseweb="select"] > div' in css
-    assert "background: #f8fafc !important;" in css
-    assert "color: #102033 !important;" in css
-    assert 'div[data-testid="stSidebar"] .stButton > button' in css
+    assert "[data-testid=\"stBaseButton-primary\"]" in css
+    assert "background: linear-gradient(135deg, var(--teal-dark), var(--teal)) !important;" in css
     assert "color: #ffffff !important;" in css
 
 
@@ -51,4 +38,13 @@ def test_text_inputs_and_placeholders_are_not_low_contrast(monkeypatch):
     assert 'div[data-testid="stTextArea"] textarea::placeholder' in css
     assert "color: #667085 !important;" in css
     assert "opacity: 1 !important;" in css
-    assert "box-shadow: 0 0 0 3px rgba(0, 127, 121, 0.18) !important;" in css
+    assert "box-shadow: 0 0 0 4px rgba(0, 127, 121, 0.16) !important;" in css
+
+
+def test_new_document_flow_classes_replace_old_visible_step_grid(monkeypatch):
+    css = _rendered_css(monkeypatch)
+
+    assert ".flow-nav" in css
+    assert ".luxury-hero" in css
+    assert ".bottom-cta" in css
+    assert ".workflow-step-grid { display: none; }" in css

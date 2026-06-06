@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from html import escape
 
 import streamlit as st
 import diagnostics
 
-from layout_policy import DEFAULT_DAY_PAGE_LAYOUT, DAY_PAGE_LAYOUTS
-from ui.app_constants import PRESET_ORDER
+from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
 from ui.export_files import save_html_file
 from ui.render_cache import make_render_signature
@@ -15,412 +16,358 @@ from ui.output_edits import (
     mark_output_dirty,
 )
 from ui.picture_workflow import pictures_are_added, set_pictures_added
-from itinerary_generation.common import group_rows_by_day
+from itinerary_generation.common import group_rows_by_day, is_optional_row
 from visual_editor_component.editor_workflow import render_visual_editor
 
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.export_step import render_export_step
-from app_modules.output_editor import render_output_editor
 from app_modules.parse_workflow import parse_and_normalize_itinerary, get_duplicate_count, get_overflow_warnings
 from app_modules.project_io import load_project_json, rebuild_current_preview, reset_project_state
-from app_modules.sidebar import render_sidebar_snapshot
 from app_modules.validation_gate import (
     block_generation,
     render_blocking_issues,
     render_warning_issues,
     validate_for_generation,
 )
-from app_modules.workflow_shell import (
-    build_project_metrics,
-    build_workflow_steps,
-    completed_step_count,
-    metric_card_html,
-    project_route_label,
-    project_title,
-    workflow_progress_percent,
-    workflow_steps_html,
+from app_modules.workflow_shell import build_project_metrics, project_route_label, project_title
+from images.app_image_selection import (
+    audit_day_image_matches,
+    connect_remote_image_bank_if_missing,
+    image_bank_status,
+    select_day_images_with_overrides,
 )
 
 
-def render_sidebar_controls():
-    with st.sidebar:
-        st.markdown(
-            """
-            <div class="sidebar-brand">
-                <div class="sidebar-brand-kicker">Itinerary App</div>
-                <div class="sidebar-brand-title">Travel design workspace</div>
-                <div class="sidebar-brand-subtitle">Turn supplier rows into a polished client itinerary.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+FLOW_STAGES = ("input", "edit", "pictures", "export")
+STAGE_LABELS = {
+    "input": "Paste text",
+    "edit": "Edit itinerary",
+    "pictures": "Review pictures",
+    "export": "Create PDF",
+}
+
+
+def _session_stage() -> str:
+    stage = str(st.session_state.get("app_stage", "input") or "input")
+    if stage not in FLOW_STAGES:
+        stage = "input"
+    if not st.session_state.get("parsed_rows"):
+        return "input"
+    if stage == "pictures" and not pictures_are_added(st.session_state.get("output_edits", {})):
+        return "edit"
+    if stage == "export" and not pictures_are_added(st.session_state.get("output_edits", {})):
+        return "edit"
+    return stage
+
+
+def _set_stage(stage: str) -> None:
+    if stage in FLOW_STAGES:
+        st.session_state["app_stage"] = stage
+
+
+def _render_top_nav(stage: str) -> None:
+    current_index = FLOW_STAGES.index(stage)
+    items = []
+    for index, item in enumerate(FLOW_STAGES):
+        status = "done" if index < current_index else "current" if item == stage else "locked"
+        items.append(
+            f'<div class="flow-nav-item flow-nav-{status}">'
+            f'<span>{index + 1}</span><strong>{escape(STAGE_LABELS[item])}</strong>'
+            f'</div>'
         )
+    st.html(f'<div class="flow-nav">{"".join(items)}</div>')
 
-        steps = build_workflow_steps(st.session_state)
-        st.caption(f"Workflow progress: {completed_step_count(steps)} / {len(steps)} steps")
-        st.progress(workflow_progress_percent(steps) / 100)
 
-        st.subheader("Workspace")
-        current_preset = st.session_state.get("color_preset", "Classic Agent")
-        if current_preset not in PRESET_ORDER:
-            current_preset = "Classic Agent"
+def _render_app_header(app_version: str, *, stage: str) -> None:
+    metrics = build_project_metrics(
+        st.session_state.get("parsed_rows", []),
+        st.session_state.get("output_edits", {}),
+    )
+    title = project_title(st.session_state.get("output_edits", {}), "Create itinerary")
+    if stage == "input":
+        headline = "Create a client-ready itinerary"
+        subtitle = "Paste supplier text, generate the itinerary, edit the document, add real destination pictures, then export the final PDF."
+    elif stage == "edit":
+        headline = title
+        subtitle = "Edit the generated client itinerary directly. Pictures stay off until the text is ready."
+    elif stage == "pictures":
+        headline = title
+        subtitle = "Review the same editable itinerary with automatically selected destination pictures."
+    else:
+        headline = title
+        subtitle = "Run the final quality checks, create the PDF, then download the client-ready file."
 
-        selected_preset = st.selectbox(
-            "Color preset",
-            PRESET_ORDER,
-            index=PRESET_ORDER.index(current_preset),
-            help="Classic Agent keeps the neutral travel-agent look. Booknordics B2C uses a cleaner branded palette.",
-        )
-        st.session_state.color_preset = selected_preset
+    route = project_route_label(metrics)
+    duration = f"{metrics['days']} days" if metrics["days"] else "Not generated yet"
+    image_status = "Pictures added" if metrics["pictures_added"] else "Text only"
+    pdf_status = str(st.session_state.get("pdf_status", "Not created") or "Not created")
 
-        if selected_preset == "Classic Agent":
-            st.caption("Warm, neutral, B2B-friendly.")
-        else:
-            st.caption("Clean, bright, B2C-friendly.")
+    st.html(
+        '<div class="luxury-hero">'
+        '<div class="luxury-hero-main">'
+        '<div class="hero-eyebrow">Itinerary App</div>'
+        f'<h1>{escape(headline)}</h1>'
+        f'<p>{escape(subtitle)}</p>'
+        '</div>'
+        '<div class="hero-summary-card">'
+        f'<div><span>Route</span><strong>{escape(route)}</strong></div>'
+        f'<div><span>Duration</span><strong>{escape(duration)}</strong></div>'
+        f'<div><span>Imagery</span><strong>{escape(image_status)}</strong></div>'
+        f'<div><span>PDF</span><strong>{escape(pdf_status)}</strong></div>'
+        '</div>'
+        '</div>'
+        f'<div class="app-version-pill">Version {escape(str(app_version))}</div>'
+    )
+    _render_top_nav(stage)
 
-        selected_detail = "Rich descriptive"
-        previous_detail = "Rich descriptive"
-        st.session_state.detail_level = selected_detail
-        st.caption("Writing style: warm, full and client-facing.")
 
-        current_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
-        if current_day_layout not in DAY_PAGE_LAYOUTS:
-            current_day_layout = DEFAULT_DAY_PAGE_LAYOUT
+def _generate_itinerary(raw_text: str) -> bool:
+    diagnostics.reset()
+    parsed_rows = parse_and_normalize_itinerary(raw_text)
+    validation_report = validate_for_generation(parsed_rows)
+    if validation_report.is_blocked:
+        block_generation(validation_report)
+        st.session_state.parser_diagnostics = diagnostics.get_warnings()
+        render_blocking_issues(validation_report)
+        return False
 
-        selected_day_layout = st.selectbox(
-            "Day page layout",
-            DAY_PAGE_LAYOUTS,
-            index=DAY_PAGE_LAYOUTS.index(current_day_layout),
-            help="Keeps each itinerary day on its own A4 page, preparing the layout for day imagery.",
-        )
-        previous_day_layout = st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
-        st.session_state.day_page_layout = selected_day_layout
-        st.caption("Print-ready layout: one itinerary day per A4 page.")
+    grouped_days = group_rows_by_day(parsed_rows)
+    duplicate_count = get_duplicate_count(raw_text, parsed_rows)
 
-        if st.session_state.get("output_edits"):
-            st.session_state.output_edits["color_preset"] = selected_preset
-            st.session_state.output_edits["day_page_layout"] = selected_day_layout
-            st.session_state.output_edits["detail_level"] = "Rich descriptive"
-            if previous_day_layout != selected_day_layout:
-                st.session_state.pdf_bytes = None
-                st.session_state.pdf_signature = None
-                st.session_state.pdf_status = "Needs refresh"
+    st.session_state.parsed_rows = parsed_rows
+    st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
+    st.session_state.output_edits = apply_rich_writing_to_all_days(parsed_rows, st.session_state.output_edits)
+    st.session_state.output_edits["allow_default_final_images"] = False
+    st.session_state.last_generated_raw_text = raw_text
+    st.session_state.pdf_bytes = None
+    st.session_state.pdf_signature = None
+    st.session_state.pdf_status = "Not created"
+    st.session_state.parser_diagnostics = diagnostics.get_warnings()
+    st.session_state.itinerary_validation_report = validation_report
 
-        show_debug = st.checkbox("Show parser/debug panels", value=False)
+    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+    st.session_state.itinerary_html = build_itinerary_html(
+        edited_rows,
+        edited_grouped_days,
+        st.session_state.output_edits,
+    )
+    st.session_state.preview_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
+    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-        st.divider()
-        st.subheader("Load project")
-        uploaded_project = st.file_uploader("Load editable project JSON", type=["json"])
+    st.session_state["generation_duplicate_count"] = duplicate_count
+    st.session_state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
+    return True
 
+
+def _render_generation_messages() -> None:
+    duplicate_count = st.session_state.get("generation_duplicate_count", 0)
+    if duplicate_count:
+        st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
+    for warning in st.session_state.get("generation_overflow_warnings", []) or []:
+        st.warning(warning)
+    validation_report = st.session_state.get("itinerary_validation_report")
+    if validation_report:
+        render_warning_issues(validation_report)
+
+
+def render_input_page(app_version: str) -> None:
+    _render_app_header(app_version, stage="input")
+
+    st.html(
+        '<div class="start-panel">'
+        '<div><div class="section-kicker">Step 1</div><h2>Paste supplier text</h2>'
+        '<p>Copy the full supplier table or messy itinerary rows and paste them below. The app will build the client itinerary on the next page.</p></div>'
+        '</div>'
+    )
+
+    raw_text = st.text_area(
+        "Supplier text",
+        height=430,
+        placeholder="Paste itinerary rows here…",
+        key="raw_text_input",
+        label_visibility="collapsed",
+    )
+
+    if st.button("Generate Itinerary", type="primary", use_container_width=True):
+        if not raw_text.strip():
+            st.warning("Please paste supplier text first.")
+            return
+        with st.spinner("Building your itinerary…"):
+            generated = _generate_itinerary(raw_text)
+        if generated:
+            _set_stage("edit")
+            st.rerun()
+
+    with st.container(border=True):
+        st.markdown("**Load saved project**")
+        uploaded_project = st.file_uploader("Load editable project JSON", type=["json"], label_visibility="collapsed")
         if uploaded_project is not None and st.button("Load project", use_container_width=True):
             load_project_json(uploaded_project)
+            _set_stage("pictures" if pictures_are_added(st.session_state.get("output_edits", {})) else "edit")
             st.rerun()
 
-        st.divider()
-        st.subheader("Actions")
-        st.markdown('<div class="project-action-note">Use these when the preview feels out of sync or when you want to start from a clean slate.</div>', unsafe_allow_html=True)
 
-        if st.button("Refresh preview", use_container_width=True, disabled=not bool(st.session_state.get("parsed_rows"))):
-            if rebuild_current_preview(mark_pdf_dirty=True):
-                st.success("Preview refreshed.")
-            st.rerun()
-
-        if st.button("Generate new itinerary", use_container_width=True):
+def _render_stage_actions(stage: str) -> None:
+    left, right = st.columns([1, 1])
+    with left:
+        if st.button("Start over", use_container_width=True):
             reset_project_state(clear_raw_text=True)
+            _set_stage("input")
+            st.rerun()
+    with right:
+        if stage != "input" and st.button("Refresh itinerary", use_container_width=True):
+            rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+            st.success("Itinerary refreshed.")
             st.rerun()
 
-        render_sidebar_snapshot()
 
-    return show_debug
-
-
-def render_app_hero(app_version):
-    metrics = build_project_metrics(
-        st.session_state.get("parsed_rows", []),
-        st.session_state.get("output_edits", {}),
-    )
-    title = escape(project_title(st.session_state.get("output_edits", {}), "Create a premium itinerary"))
-    route = escape(project_route_label(metrics))
-    duration = f"{metrics['days']} days" if metrics["days"] else "No trip generated"
-    image_status = escape("Pictures active" if metrics["pictures_added"] else "Text-first mode")
-    pdf_status = escape(str(st.session_state.get("pdf_status", "Not created")))
-    app_version_label = escape(str(app_version))
-
-    st.markdown(
-        f"""
-        <div class="app-shell-topbar">
-            <div class="app-shell-chip">Client itinerary builder</div>
-            <div class="app-shell-chip">Version {app_version_label}</div>
-        </div>
-        <div class="app-hero">
-            <div class="app-hero-content">
-                <div>
-                    <div class="app-hero-kicker">Premium travel proposal workflow</div>
-                    <h1>{title}</h1>
-                    <p>Import supplier rows, review structure and client copy, approve imagery, then export a polished PDF from the shared render engine.</p>
-                </div>
-                <div class="hero-stat-panel">
-                    <div class="hero-stat-row"><span class="hero-stat-label">Route</span><span class="hero-stat-value">{route}</span></div>
-                    <div class="hero-stat-row"><span class="hero-stat-label">Duration</span><span class="hero-stat-value">{duration}</span></div>
-                    <div class="hero-stat-row"><span class="hero-stat-label">Imagery</span><span class="hero-stat-value">{image_status}</span></div>
-                    <div class="hero-stat-row"><span class="hero-stat-label">PDF</span><span class="hero-stat-value">{pdf_status}</span></div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_workflow_overview():
-    steps = build_workflow_steps(st.session_state)
-    metrics = build_project_metrics(
-        st.session_state.get("parsed_rows", []),
-        st.session_state.get("output_edits", {}),
-    )
-    st.html(workflow_steps_html(steps))
-
-    if not st.session_state.get("parsed_rows"):
-        st.markdown(
-            '<div class="quality-callout"><strong>Start here:</strong> paste supplier rows below. The app will then unlock structure review, client text, image review, preview and export.</div>',
-            unsafe_allow_html=True,
-        )
+def _render_document_editor(*, pictures_active: bool) -> None:
+    if not (st.session_state.get("parsed_rows") and st.session_state.get("output_edits")):
         return
 
-    metric_html = "".join([
-        metric_card_html("Days", metrics["days"], "Itinerary pages"),
-        metric_card_html("Destinations", metrics["destinations"], project_route_label(metrics)),
-        metric_card_html("Activities", metrics["activities"], "Included experiences"),
-        metric_card_html("Hotels", metrics["hotels"], "Accommodation blocks"),
-    ])
-    st.html(f'<div class="metric-grid">{metric_html}</div>')
+    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+
+    editor_applied = render_visual_editor(
+        edited_rows,
+        edited_grouped_days,
+        st.session_state.output_edits,
+        rebuild_preview=rebuild_current_preview,
+        mark_dirty=mark_output_dirty,
+    )
+    if editor_applied:
+        return
+
+    render_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
+    preview_is_current = (
+        bool(st.session_state.get("itinerary_html", ""))
+        and st.session_state.get("preview_signature") == render_signature
+    )
+    if not preview_is_current:
+        rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+    elif not st.session_state.get("html_path"):
+        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
 
-def render_input_step():
-    with st.expander("1 — Import supplier rows", expanded=not bool(st.session_state.itinerary_html)):
-        st.markdown('<div class="panel-card-title">Supplier input</div><div class="workflow-note">Paste the full copied table or Excel rows. The app will parse the structure and prepare client-facing text automatically.</div>', unsafe_allow_html=True)
-        raw_text = st.text_area(
-            "Supplier rows",
-            height=300,
-            placeholder="Paste itinerary rows here...",
-            key="raw_text_input",
-        )
-
-        if st.button("Generate itinerary", type="primary", use_container_width=True):
-            if raw_text.strip():
-                diagnostics.reset()
-                parsed_rows = parse_and_normalize_itinerary(raw_text)
-                validation_report = validate_for_generation(parsed_rows)
-                if validation_report.is_blocked:
-                    block_generation(validation_report)
-                    st.session_state.parser_diagnostics = diagnostics.get_warnings()
-                    render_blocking_issues(validation_report)
-                    return
-
-                grouped_days = group_rows_by_day(parsed_rows)
-                duplicate_count = get_duplicate_count(raw_text, parsed_rows)
-
-                st.session_state.parsed_rows = parsed_rows
-                st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
-                st.session_state.output_edits = apply_rich_writing_to_all_days(parsed_rows, st.session_state.output_edits)
-                st.session_state.last_generated_raw_text = raw_text
-                st.session_state.pdf_bytes = None
-                st.session_state.pdf_signature = None
-                st.session_state.pdf_status = "Not created"
-                st.session_state.parser_diagnostics = diagnostics.get_warnings()
-
-                edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-                edited_grouped_days = group_rows_by_day(edited_rows)
-                st.session_state.itinerary_html = build_itinerary_html(
-                    edited_rows,
-                    edited_grouped_days,
-                    st.session_state.output_edits,
-                )
-                st.session_state.preview_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
-                st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-
-                st.success(f"Parsed {len(parsed_rows)} itinerary rows across {len(grouped_days)} days. Client wording and preview are ready for review.")
-
-                if duplicate_count:
-                    st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")
-
-                overflow_warnings = get_overflow_warnings(edited_grouped_days)
-                for warning in overflow_warnings:
-                    st.warning(warning)
-
-                render_warning_issues(validation_report)
-
-                if st.session_state.html_path:
-                    st.success("HTML preview prepared.")
-
-            else:
-                st.warning("Please paste some itinerary text first.")
+def _image_grouped_days() -> dict:
+    grouped_days = group_rows_by_day(st.session_state.get("parsed_rows", []) or [])
+    return {
+        day: [row for row in rows if not is_optional_row(row)] or list(rows)
+        for day, rows in grouped_days.items()
+    }
 
 
-def render_debug_panels(show_debug):
-    if show_debug:
+def _image_status_notice() -> None:
+    status = image_bank_status()
+    if status.get("full_bank_found"):
+        st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available.")
+    else:
+        st.error(status.get("blocking_message") or "Full destination image bank is missing.")
+        st.caption("Default pictures are fallback placeholders only. They are not approved for final client output unless explicitly allowed.")
+
+
+def _activate_picture_stage() -> None:
+    status = image_bank_status()
+    if status.get("missing_full_bank"):
+        status = connect_remote_image_bank_if_missing()
+    st.session_state["image_bank_status"] = status
+    st.session_state.output_edits["allow_default_final_images"] = False
+    set_pictures_added(st.session_state.output_edits, True)
+
+    matches = select_day_images_with_overrides(_image_grouped_days(), st.session_state.output_edits)
+    warnings = audit_day_image_matches(_image_grouped_days(), matches, st.session_state.output_edits)
+    st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
+
+    st.session_state.pdf_bytes = None
+    st.session_state.pdf_signature = None
+    st.session_state.pdf_status = "Needs refresh"
+    rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+    _set_stage("pictures")
+
+
+def render_edit_page(app_version: str) -> None:
+    _render_app_header(app_version, stage="edit")
+    _render_generation_messages()
+    _render_stage_actions("edit")
+
+    st.html(
+        '<div class="editor-stage-intro">'
+        '<div><div class="section-kicker">Step 2</div><h2>Edit the itinerary</h2>'
+        '<p>Work directly in the generated document. Keep pictures off until the text and layout feel ready.</p></div>'
+        '</div>'
+    )
+    _render_document_editor(pictures_active=False)
+
+    st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Add destination pictures and return to the top for visual review.</span></div></div>')
+    if st.button("Add pictures", type="primary", use_container_width=True):
+        with st.spinner("Finding best images…"):
+            status = image_bank_status()
+            if status.get("missing_full_bank"):
+                status = connect_remote_image_bank_if_missing()
+            st.session_state["image_bank_status"] = status
+            st.session_state.output_edits["allow_default_final_images"] = False
+            set_pictures_added(st.session_state.output_edits, True)
+            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
+            st.session_state["_visual_editor_add_pictures_commit_ready"] = False
+            st.session_state["_visual_editor_commit_nonce"] = None
+            matches = select_day_images_with_overrides(_image_grouped_days(), st.session_state.output_edits)
+            warnings = audit_day_image_matches(_image_grouped_days(), matches, st.session_state.output_edits)
+            st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
+            st.session_state.pdf_bytes = None
+            st.session_state.pdf_signature = None
+            st.session_state.pdf_status = "Needs refresh"
+            rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
+            _set_stage("pictures")
+        st.rerun()
+
+
+def render_final_preview_step():
+    """Legacy hook retained so older UI regression tests find the new boundary."""
+    return None
+
+
+def render_picture_page(app_version: str) -> None:
+    _render_app_header(app_version, stage="pictures")
+    _render_stage_actions("pictures")
+    _image_status_notice()
+
+    st.html(
+        '<div class="editor-stage-intro">'
+        '<div><div class="section-kicker">Step 3</div><h2>Review pictures</h2>'
+        '<p>The itinerary now includes automatic image selections. Replace weak matches, remove unwanted pictures, then create the PDF at the bottom.</p></div>'
+        '</div>'
+    )
+    _render_document_editor(pictures_active=True)
+
+    st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final client PDF from the current document.</span></div></div>')
+    render_export_step(app_version)
+
+
+def render_debug_tools() -> None:
+    with st.container(border=True):
+        show_debug = st.checkbox("Show parser/debug panels", value=False)
+        if not show_debug:
+            return
         render_parser_diagnostics_panel()
         render_itinerary_health_report_panel(
             st.session_state.get("parsed_rows", []),
             st.session_state.get("itinerary_validation_report"),
         )
-
-    if show_debug and st.session_state.parsed_rows:
-        with st.expander("Debug tools", expanded=False):
+        if st.session_state.get("parsed_rows"):
             st.dataframe(st.session_state.parsed_rows, use_container_width=True)
-            st.write("Day grouping")
-            for day, rows in group_rows_by_day(st.session_state.parsed_rows).items():
-                st.write(f"{day}: {len(rows)} rows")
-                for row in rows:
-                    st.write(
-                        f"- {row.get('type')} / {row.get('effective_type')}: "
-                        f"{row.get('title')} ({row.get('city')})"
-                    )
 
 
-def render_visual_editor_step():
-    if st.session_state.parsed_rows and st.session_state.output_edits:
-        edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-        edited_grouped_days = group_rows_by_day(edited_rows)
+def render_app(app_version: str) -> None:
+    st.session_state.setdefault("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
+    stage = _session_stage()
+    if stage == "input":
+        render_input_page(app_version)
+    elif stage == "edit":
+        render_edit_page(app_version)
+    elif stage == "pictures":
+        render_picture_page(app_version)
+    else:
+        render_picture_page(app_version)
 
-        pictures_added = pictures_are_added(st.session_state.output_edits)
-        step_title = "2 — Edit client itinerary pages" if not pictures_added else "2 — Review text and pictures on itinerary pages"
-        with st.expander(step_title, expanded=True):
-            note = (
-                "Review the client-facing pages first. Pictures stay out until the wording and page balance are approved. "
-                "Create PDF applies pending page edits before export."
-                if not pictures_added
-                else
-                "Pictures are active. Review each page image, replace/remove it if needed, and continue editing text if necessary."
-            )
-            st.markdown(f'<div class="workflow-note">{note}</div>', unsafe_allow_html=True)
-            editor_applied = render_visual_editor(
-                edited_rows,
-                edited_grouped_days,
-                st.session_state.output_edits,
-                rebuild_preview=rebuild_current_preview,
-                mark_dirty=mark_output_dirty,
-            )
-
-        # Saving from the visual editor already rebuilt from the updated edit
-        # state. Do not immediately rebuild again from the stale pre-save rows.
-        if editor_applied:
-            return
-
-        render_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
-        preview_is_current = (
-            bool(st.session_state.get("itinerary_html", ""))
-            and st.session_state.get("preview_signature") == render_signature
-        )
-
-        if preview_is_current:
-            if not st.session_state.get("html_path"):
-                st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-            return
-
-        rebuilt_html = build_itinerary_html(
-            edited_rows,
-            edited_grouped_days,
-            st.session_state.output_edits,
-        )
-
-        if rebuilt_html != st.session_state.itinerary_html:
-            st.session_state.pdf_bytes = None
-            st.session_state.pdf_signature = None
-            if st.session_state.itinerary_html:
-                st.session_state.pdf_status = "Needs refresh"
-            st.session_state.itinerary_html = rebuilt_html
-        else:
-            st.session_state.itinerary_html = rebuilt_html
-
-        st.session_state.preview_signature = render_signature
-        st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-
-
-
-
-def render_picture_review_step():
-    if not (st.session_state.parsed_rows and st.session_state.output_edits):
-        return
-
-    pictures_added = pictures_are_added(st.session_state.output_edits)
-    requested_commit_nonce = st.session_state.get("_add_pictures_after_visual_edit_commit_nonce")
-    commit_ready = (
-        requested_commit_nonce
-        and st.session_state.get("_visual_editor_add_pictures_commit_ready")
-        and str(st.session_state.get("_visual_editor_last_applied_commit_nonce", "")) == str(requested_commit_nonce)
-    )
-
-    if commit_ready and not pictures_added:
-        set_pictures_added(st.session_state.output_edits, True)
-        st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
-        st.session_state["_visual_editor_add_pictures_commit_ready"] = False
-        st.session_state["_visual_editor_commit_nonce"] = None
-        st.session_state.pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.pdf_status = "Needs refresh"
-        rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
-        st.success("Pictures added. Review them in the editable pages above before creating the PDF.")
-        st.rerun()
-
-    with st.expander("3 — Add and approve pictures", expanded=pictures_added or bool(requested_commit_nonce)):
-        if pictures_added:
-            st.markdown(
-                '<div class="workflow-note">Pictures are active. Use the picture controls on each day page above to replace, remove, upload, or adjust crop focus. Create PDF will save the final visible state first.</div>',
-                unsafe_allow_html=True,
-            )
-            return
-
-        st.markdown(
-            '<div class="workflow-note">Finish the text/layout first. Then add pictures for the final visual review. The app saves the current text edits before loading picture payloads.</div>',
-            unsafe_allow_html=True,
-        )
-        add_clicked = st.button("Add pictures", type="primary", use_container_width=True)
-        if add_clicked:
-            # Pictures must not depend on a browser-side visual-editor commit.
-            # That handshake can stall in Streamlit and leave the page blank.
-            # The button now activates the picture workflow directly and keeps
-            # PDF/export state dirty so the next preview uses the image model.
-            set_pictures_added(st.session_state.output_edits, True)
-            st.session_state["_add_pictures_after_visual_edit_commit_nonce"] = None
-            st.session_state["_visual_editor_add_pictures_commit_ready"] = False
-            st.session_state["_visual_editor_commit_nonce"] = None
-            st.session_state.pdf_bytes = None
-            st.session_state.pdf_signature = None
-            st.session_state.pdf_status = "Needs refresh"
-            rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
-            st.success("Pictures added. Review them in the editable pages above before creating the PDF.")
-            st.rerun()
-        elif requested_commit_nonce:
-            st.info("Finishing the picture update…")
-
-
-def render_final_preview_step():
-    if st.session_state.itinerary_html:
-        with st.expander("4 — Final client preview", expanded=False):
-            st.caption("This preview is not editable. It is the final client-facing layout check before PDF export.")
-            st.html(st.session_state.itinerary_html)
-
-
-def render_fallback_editor(show_debug):
-    if st.session_state.parsed_rows and st.session_state.output_edits and show_debug:
-        with st.expander("Advanced fallback text and image editor", expanded=False):
-            render_output_editor(
-                st.session_state.parsed_rows,
-                group_rows_by_day(apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)),
-                st.session_state.output_edits,
-            )
-
-
-def render_app(app_version):
-    # Export status copy is coordinated with app_modules.export_step, including
-    # the unchanged-PDF state: "PDF already up to date".
-    show_debug = render_sidebar_controls()
-    render_app_hero(app_version)
-    render_workflow_overview()
-    render_input_step()
-    render_debug_panels(show_debug)
-    render_visual_editor_step()
-    render_picture_review_step()
-    render_final_preview_step()
-    render_fallback_editor(show_debug)
-    render_export_step(app_version)
+    render_debug_tools()

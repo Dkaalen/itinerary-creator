@@ -5,11 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from image_matcher import build_day_context, candidate_to_payload, scan_image_bank, score_image_for_day
-from images.image_bank import clean_space, normalize_path_key
+from images.image_bank import clean_space, image_bank_status_for_paths, normalize_path_key
 
 
 def list_replacement_image_options(city, *, image_bank_scan_paths):
-    """Return replacement pictures for a city, with Default images available."""
+    """Return replacement pictures for a city.
+
+    Bundled Default images are emergency placeholders.  When the full
+    destination bank is missing, do not flood the editor with defaults; surface
+    the image-bank warning instead and return no replacement options.
+    """
+    status = image_bank_status_for_paths(image_bank_scan_paths)
+    if status.get("missing_full_bank"):
+        return []
     city_key = clean_space(city).lower()
     city_options = []
     default_options = []
@@ -36,6 +44,9 @@ def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_s
     editor receives labels and paths only, preventing replacement lists from
     sending the full image bank to the browser.
     """
+    status = image_bank_status_for_paths(image_bank_scan_paths)
+    if status.get("missing_full_bank"):
+        return []
     candidates = scan_image_bank(image_bank_scan_paths)
     if not candidates:
         return []

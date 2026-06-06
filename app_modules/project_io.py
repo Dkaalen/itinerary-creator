@@ -36,6 +36,7 @@ def initialise_state():
         "detail_level": "Rich descriptive",
         "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
         "itinerary_validation_report": None,
+        "app_stage": "input",
     }
 
     for key, value in defaults.items():
@@ -80,6 +81,7 @@ def load_project_json(uploaded_file):
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
         st.session_state.pdf_signature = None
         st.session_state.raw_text_input = raw_text
+        st.session_state.app_stage = "pictures" if st.session_state.output_edits.get("pictures_added") else "edit"
 
         render_warning_issues(validation_report)
         st.success("Editable project loaded.")
@@ -109,6 +111,11 @@ def reset_project_state(clear_raw_text=True):
         "_pdf_after_visual_edit_commit_nonce",
         "_add_pictures_after_visual_edit_commit_nonce",
         "itinerary_validation_report",
+        "app_stage",
+        "image_bank_status",
+        "image_review_warning_count",
+        "generation_duplicate_count",
+        "generation_overflow_warnings",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -124,6 +131,7 @@ def reset_project_state(clear_raw_text=True):
     st.session_state.preview_signature = None
     st.session_state.pdf_signature = None
     st.session_state.itinerary_validation_report = None
+    st.session_state.app_stage = "input"
 
     if clear_raw_text:
         st.session_state.raw_text_input = ""
