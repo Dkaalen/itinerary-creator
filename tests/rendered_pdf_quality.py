@@ -79,6 +79,8 @@ def render_fixture_pdf_text(fixture_name: str) -> str:
     from pdf_exporter import export_html_to_pdf
     import ui.day_page_sections as day_page_sections
 
+    original_sections_selector = day_page_sections.select_day_images_with_overrides
+    original_sections_slot = day_page_sections.render_day_image_slot
     day_page_sections.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
     day_page_sections.render_day_image_slot = lambda *args, **kwargs: ""
 
@@ -103,18 +105,22 @@ def render_fixture_pdf_text(fixture_name: str) -> str:
     except Exception as exc:  # pragma: no cover - dependency guard
         raise AssertionError(f"PyMuPDF/fitz is required for rendered PDF quality checks: {exc}")
 
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
-        html_path = tmp_path / "fixture.html"
-        pdf_path = tmp_path / "fixture.pdf"
-        html_path.write_text(full_html, encoding="utf-8")
-        export_html_to_pdf(html_path, pdf_path)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            html_path = tmp_path / "fixture.html"
+            pdf_path = tmp_path / "fixture.pdf"
+            html_path.write_text(full_html, encoding="utf-8")
+            export_html_to_pdf(html_path, pdf_path)
 
-        document = fitz.open(pdf_path)
-        try:
-            pages = [page.get_text("text") for page in document]
-        finally:
-            document.close()
+            document = fitz.open(pdf_path)
+            try:
+                pages = [page.get_text("text") for page in document]
+            finally:
+                document.close()
+    finally:
+        day_page_sections.select_day_images_with_overrides = original_sections_selector
+        day_page_sections.render_day_image_slot = original_sections_slot
 
     return normalize_text("\n".join(pages))
 

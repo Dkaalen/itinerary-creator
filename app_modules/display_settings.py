@@ -1,20 +1,43 @@
-try:
-    import streamlit as st
-except ModuleNotFoundError:  # Allows renderer/tests to run without the Streamlit runtime.
-    class _SessionState(dict):
-        def get(self, key, default=None):
-            return super().get(key, default)
+"""Safe accessors for rendering display settings.
 
-    class _StreamlitFallback:
-        session_state = _SessionState()
+The renderer is used both inside Streamlit and from command-line tests. Importing
+Streamlit or touching ``st.session_state`` in bare pytest mode can produce noisy
+warnings and, in long grouped runs, unstable capture behavior. Keep Streamlit
+access lazy and fall back to defaults when no Streamlit script context exists.
+"""
 
-    st = _StreamlitFallback()
+from __future__ import annotations
+
+import sys
+from typing import Any
 
 from ui.app_constants import COLOR_PRESETS
 
 
+def _streamlit_session_value(key: str, default: Any) -> Any:
+    st = sys.modules.get("streamlit")
+    if st is None:
+        return default
+
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+        if get_script_run_ctx() is None:
+            return default
+    except Exception:
+        return default
+
+    try:
+        return st.session_state.get(key, default)
+    except Exception:
+        return default
+
+
 def get_color_preset_name(output_edits=None):
-    name = (output_edits or {}).get("color_preset") or st.session_state.get("color_preset", "Classic Agent")
+    name = (output_edits or {}).get("color_preset") or _streamlit_session_value(
+        "color_preset",
+        "Classic Agent",
+    )
     if name not in COLOR_PRESETS:
         return "Classic Agent"
     return name

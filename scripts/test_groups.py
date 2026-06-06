@@ -101,9 +101,25 @@ GROUPS = {
     "slow": SLOW_TESTS,
 }
 
+SLOW_TEST_SPLITS = {
+    "tests/test_regressions_fixture_quality.py": (
+        "test_content_cleanup_for_helsinki_lapland_sample",
+        "test_bad_input_contextual_travel_and_activity_cleanup",
+        "test_korouoma_priority_keeps_thermal_and_barbecue",
+        "test_self_guided_tallinn_is_not_labeled_guided",
+        "test_generalized_iceland_self_drive_logic",
+        "test_real_input_fixture_bank_core_expectations",
+        "test_sweden_lapland_supplier_booking_information_not_in_client_inclusions",
+        "test_v36c53_optional_arc_transfer_quality_gate",
+        "test_v36c55_clear_transport_wording_system",
+        "test_v36c57_real_uploaded_inputs_quality_gate",
+    ),
+}
+
 
 def _module_name(path: str) -> str:
-    return Path(path).name
+    module_path = str(path).partition("::")[0]
+    return Path(module_path).name
 
 
 def existing_test_modules(repo_root: Path) -> tuple[str, ...]:
@@ -176,16 +192,47 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
             stages.append((f"remaining non-tiered {index}/{len(chunks)}", chunk))
             covered.update(_module_name(path) for path in chunk)
 
-    for name, paths in (
-        ("pdf/rendering", PDF_TESTS),
-        ("slow quality", SLOW_TESTS),
-    ):
-        stage_paths = tuple(path for path in paths if _module_name(path) not in covered)
-        if stage_paths:
-            stages.append((name, stage_paths))
-            covered.update(_module_name(path) for path in stage_paths)
+    stage_paths = tuple(path for path in PDF_TESTS if _module_name(path) not in covered)
+    if stage_paths:
+        stages.append(("pdf/rendering", stage_paths))
+        covered.update(_module_name(path) for path in stage_paths)
+
+    slow_paths = tuple(path for path in SLOW_TESTS if _module_name(path) not in covered)
+    for stage_name, stage_paths in build_slow_stages(slow_paths):
+        stages.append((stage_name, stage_paths))
+        covered.update(_module_name(path) for path in stage_paths)
 
     return tuple(stages)
+
+
+def _expand_slow_targets(paths: tuple[str, ...]) -> tuple[str, ...]:
+    targets: list[str] = []
+    for path in paths:
+        split_tests = SLOW_TEST_SPLITS.get(path)
+        if split_tests:
+            targets.extend(f"{path}::{test_name}" for test_name in split_tests)
+        else:
+            targets.append(path)
+    return tuple(targets)
+
+
+def _target_label(target: str) -> str:
+    module, _, test_name = target.partition("::")
+    if test_name:
+        return f"{_module_name(module)}::{test_name}"
+    return _module_name(module)
+
+
+def build_slow_stages(
+    paths: tuple[str, ...] | None = None,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Run slow targets in isolated pytest subprocesses to avoid global state leaks."""
+
+    selected_targets = _expand_slow_targets(tuple(paths or SLOW_TESTS))
+    return tuple(
+        (f"slow {index}/{len(selected_targets)}: {_target_label(target)}", (target,))
+        for index, target in enumerate(selected_targets, start=1)
+    )
 
 
 def pdf_module_names() -> set[str]:

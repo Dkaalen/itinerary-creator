@@ -24,8 +24,14 @@ from app_modules.workflow_state import (
 )
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
-from ui.output_edits import apply_output_edits, apply_rich_writing_to_all_days, make_output_edit_state
-from ui.picture_workflow import set_pictures_added
+from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
+from ui.output_edits import (
+    apply_output_edits,
+    apply_rich_writing_to_all_days,
+    make_output_edit_state,
+    refresh_generated_text_for_detail_level,
+)
+from ui.picture_workflow import pictures_are_added, set_pictures_added
 from ui.render_cache import make_render_signature
 
 
@@ -87,6 +93,64 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
         },
     )
 
+
+
+def load_project(
+    state: MutableMapping[str, Any],
+    raw_text: str,
+    output_edits: Mapping[str, Any] | None,
+) -> WorkflowActionResult:
+    """Load a saved project through the same workflow state rules as generation."""
+
+    diagnostics.reset()
+    parsed_rows = parse_and_normalize_itinerary(raw_text)
+    validation_report = validate_for_generation(parsed_rows)
+    state["parser_diagnostics"] = diagnostics.get_warnings()
+    state["itinerary_validation_report"] = validation_report
+
+    if validation_report.is_blocked:
+        return WorkflowActionResult(
+            ok=False,
+            stage=set_workflow_stage(state, "input"),
+            message="Project load blocked by validation issues.",
+            payload={"validation_report": validation_report},
+        )
+
+    grouped_days = group_rows_by_day(parsed_rows)
+    previous_detail = (output_edits or {}).get("detail_level", "Standard client itinerary")
+    loaded_edits = dict(output_edits or make_output_edit_state(parsed_rows, grouped_days))
+    loaded_edits = refresh_generated_text_for_detail_level(
+        parsed_rows,
+        loaded_edits,
+        previous_detail,
+        "Rich descriptive",
+    )
+    loaded_edits["detail_level"] = "Rich descriptive"
+
+    state["parsed_rows"] = parsed_rows
+    state["output_edits"] = loaded_edits
+    state["detail_level"] = "Rich descriptive"
+    state["day_page_layout"] = loaded_edits.get(
+        "day_page_layout",
+        state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT),
+    )
+    state["last_generated_raw_text"] = raw_text
+    state["raw_text_input"] = raw_text
+    clear_pdf_artifacts(state, status="Not created")
+
+    edited_rows = apply_output_edits(parsed_rows, loaded_edits)
+    edited_grouped_days = group_rows_by_day(edited_rows)
+    state["itinerary_html"] = build_itinerary_html(edited_rows, edited_grouped_days, loaded_edits)
+    state["preview_signature"] = make_render_signature(parsed_rows, loaded_edits)
+    state["html_path"] = save_html_file(state["itinerary_html"])
+    stage = set_workflow_stage(state, "pictures" if pictures_are_added(loaded_edits) else "edit")
+
+    return WorkflowActionResult(
+        ok=True,
+        stage=stage,
+        message="Editable project loaded.",
+        payload={"validation_report": validation_report},
+    )
 
 def retry_image_bank_connection(
     state: MutableMapping[str, Any],

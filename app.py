@@ -3,9 +3,7 @@ import streamlit as st
 from ui.styles import apply_global_styles
 from app_modules.main_view import render_app
 from app_modules.project_io import initialise_state
-
-
-APP_VERSION = "2026-05-29 v36c72-title-safety-ci-cleanup"
+from app_modules.app_version import APP_VERSION
 
 
 st.set_page_config(

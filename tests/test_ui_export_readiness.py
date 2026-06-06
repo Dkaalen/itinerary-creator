@@ -98,6 +98,7 @@ def test_export_readiness_waits_for_visual_editor_commit():
 
 def test_export_screen_has_readiness_panel_and_disabled_create_gate():
     source = Path("app_modules/export_step.py").read_text()
+    action_source = Path("app_modules/export_actions.py").read_text()
     state_source = Path("app_modules/export_state.py").read_text()
     styles = Path("ui/styles.py").read_text()
 
@@ -106,6 +107,7 @@ def test_export_screen_has_readiness_panel_and_disabled_create_gate():
     assert "def _render_export_readiness_panel" in source
     assert "disabled=not readiness.can_create_pdf" in source
     assert "picture_review_ready" in source
-    assert "image_bank_is_ready_for_client_pictures" in source
+    assert "image_bank_is_ready_for_client_pictures" in action_source
+    assert "create_pdf_from_current_preview" in action_source
     assert ".export-readiness-panel" in styles
     assert ".export-readiness-grid" in styles

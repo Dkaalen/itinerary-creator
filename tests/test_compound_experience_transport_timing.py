@@ -13,6 +13,8 @@ def _visual_editor_frontend_source() -> str:
         "js/state.js",
         "js/images.js",
         "js/render.js",
+        "js/serialization.js",
+        "js/commands.js",
         "js/editing.js",
         "js/streamlit_bridge.js",
     ):

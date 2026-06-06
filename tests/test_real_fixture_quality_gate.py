@@ -38,6 +38,16 @@ SPECIFIC_CHECKS = {
     },
 }
 
+_MISSING = object()
+
+
+def _restore_attr(module, name: str, value):
+    if value is _MISSING:
+        if hasattr(module, name):
+            delattr(module, name)
+    else:
+        setattr(module, name, value)
+
 
 def render_fixture_html_text(fixture_name: str) -> str:
     raw = (ROOT / "tests" / "fixtures" / "real_inputs" / fixture_name).read_text(encoding="utf-8")
@@ -45,11 +55,22 @@ def render_fixture_html_text(fixture_name: str) -> str:
     grouped = group_rows_by_day(rows)
     import ui.day_pages as day_pages
     import ui.day_page_sections as day_page_sections
-    day_pages.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
-    day_pages.render_day_image_slot = lambda *args, **kwargs: ""
-    day_page_sections.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
-    day_page_sections.render_day_image_slot = lambda *args, **kwargs: ""
-    return build_itinerary_html(rows, grouped, output_edits={})
+
+    original_day_pages_selector = getattr(day_pages, "select_day_images_with_overrides", _MISSING)
+    original_day_pages_slot = getattr(day_pages, "render_day_image_slot", _MISSING)
+    original_sections_selector = getattr(day_page_sections, "select_day_images_with_overrides", _MISSING)
+    original_sections_slot = getattr(day_page_sections, "render_day_image_slot", _MISSING)
+    try:
+        day_pages.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
+        day_pages.render_day_image_slot = lambda *args, **kwargs: ""
+        day_page_sections.select_day_images_with_overrides = lambda grouped_days, output_edits=None: {}
+        day_page_sections.render_day_image_slot = lambda *args, **kwargs: ""
+        return build_itinerary_html(rows, grouped, output_edits={})
+    finally:
+        _restore_attr(day_pages, "select_day_images_with_overrides", original_day_pages_selector)
+        _restore_attr(day_pages, "render_day_image_slot", original_day_pages_slot)
+        _restore_attr(day_page_sections, "select_day_images_with_overrides", original_sections_selector)
+        _restore_attr(day_page_sections, "render_day_image_slot", original_sections_slot)
 
 
 def test_real_fixture_global_quality_gate():

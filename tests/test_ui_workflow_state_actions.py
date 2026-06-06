@@ -155,3 +155,42 @@ def test_enter_export_stage_requests_commit_and_sets_export_stage():
     assert result.ok is True
     assert state["app_stage"] == "export"
     assert calls["commit"] == 1
+
+
+def test_load_project_uses_workflow_action_state_rules():
+    from app_modules.workflow_actions import load_project
+
+    raw_text = """
+Day 1	Hotel	01/01/2027	02/01/2027					Oslo	3 Star, Test Hotel, 1xNight, 1xStandard Room, Incl Breakfast
+"""
+    state = {
+        "app_stage": "input",
+        "pdf_bytes": b"old",
+        "export_pdf_bytes": b"old",
+        "day_page_layout": "single",
+    }
+
+    result = load_project(state, raw_text, {"pictures_added": True, "detail_level": "Standard client itinerary"})
+
+    assert result.ok is True
+    assert state["app_stage"] == "pictures"
+    assert state["detail_level"] == "Rich descriptive"
+    assert state["output_edits"]["detail_level"] == "Rich descriptive"
+    assert state["output_edits"]["pictures_added"] is True
+    assert state["raw_text_input"] == raw_text
+    assert state["itinerary_html"]
+    assert state["html_path"]
+    assert state["pdf_bytes"] is None
+    assert state["export_pdf_bytes"] is None
+
+
+def test_project_io_delegates_project_loading_to_workflow_actions():
+    from pathlib import Path
+
+    source = Path("app_modules/project_io.py").read_text(encoding="utf-8")
+    action_source = Path("app_modules/workflow_actions.py").read_text(encoding="utf-8")
+
+    assert "from app_modules.workflow_actions import load_project" in source
+    assert "result = load_project(st.session_state" in source
+    assert "def load_project(" in action_source
+    assert "set_workflow_stage(state, \"pictures\" if pictures_are_added" in action_source

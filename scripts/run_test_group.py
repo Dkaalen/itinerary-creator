@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.test_groups import GROUPS, build_full_stages, missing_group_paths
+from scripts.test_groups import GROUPS, build_full_stages, build_slow_stages, missing_group_paths
 
 DEFAULT_PYTEST_FLAGS = ("-q", "--durations=10")
 DEFAULT_STAGE_TIMEOUT_SECONDS = int(
@@ -27,8 +27,47 @@ def _split_extra_pytest_args(extra_args: list[str]) -> list[str]:
     return extra_args
 
 
+def _pytest_command(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> list[str]:
+    stage_flags = ("-s",) if stage_name.startswith("slow ") else ()
+    return [sys.executable, "-m", "pytest", *DEFAULT_PYTEST_FLAGS, *stage_flags, *pytest_args, *extra_args]
+
+
+def _pytest_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    return env
+
+
+def _run_slow_harness() -> int:
+    cmd = [sys.executable, "scripts/run_slow_tests.py"]
+    print("\n=== slow direct harness ===", flush=True)
+    print(" ".join(cmd), flush=True)
+    started = time.monotonic()
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=REPO_ROOT,
+            env=_pytest_env(),
+            stdin=subprocess.DEVNULL,
+            timeout=DEFAULT_STAGE_TIMEOUT_SECONDS or None,
+        )
+    except subprocess.TimeoutExpired:
+        elapsed = time.monotonic() - started
+        print(
+            f"=== slow direct harness: timed out after {elapsed:.1f}s "
+            f"(limit {DEFAULT_STAGE_TIMEOUT_SECONDS}s) ===",
+            flush=True,
+        )
+        return 124
+
+    elapsed = time.monotonic() - started
+    status = "passed" if result.returncode == 0 else f"failed ({result.returncode})"
+    print(f"=== slow direct harness: {status} in {elapsed:.1f}s ===", flush=True)
+    return result.returncode
+
+
 def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> int:
-    cmd = [sys.executable, "-m", "pytest", *DEFAULT_PYTEST_FLAGS, *pytest_args, *extra_args]
+    cmd = _pytest_command(stage_name, pytest_args, extra_args)
     print(f"\n=== {stage_name} ===", flush=True)
     print(" ".join(cmd), flush=True)
     started = time.monotonic()
@@ -36,6 +75,8 @@ def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[
         result = subprocess.run(
             cmd,
             cwd=REPO_ROOT,
+            env=_pytest_env(),
+            stdin=subprocess.DEVNULL,
             timeout=DEFAULT_STAGE_TIMEOUT_SECONDS or None,
         )
     except subprocess.TimeoutExpired:
@@ -66,8 +107,13 @@ def run_named_group(group_name: str, extra_args: list[str]) -> int:
             print(f"  - {path}", file=sys.stderr)
         return 2
 
+    if group_name == "slow" and not extra_args:
+        return _run_slow_harness()
+
     if group_name == "full":
         stages = build_full_stages(REPO_ROOT)
+    elif group_name == "slow":
+        stages = build_slow_stages()
     else:
         stages = ((group_name, GROUPS[group_name]),)
 

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts.run_test_group import _pytest_command, _pytest_env
+
 from scripts.test_groups import (
     GROUPS,
     build_full_stages,
+    build_slow_stages,
     empty_legacy_test_modules,
     missing_group_paths,
     pdf_module_names,
@@ -16,14 +19,15 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _module_name(path: str) -> str:
-    return Path(path).name
+    module_path = str(path).partition("::")[0]
+    return Path(module_path).name
 
 
 def test_named_test_group_paths_exist() -> None:
     assert missing_group_paths(REPO_ROOT) == ()
 
 
-def test_full_test_plan_covers_every_test_module_once() -> None:
+def test_full_test_plan_covers_every_test_module() -> None:
     discovered = {
         path.name
         for path in (REPO_ROOT / "tests").glob("test_*.py")
@@ -35,7 +39,10 @@ def test_full_test_plan_covers_every_test_module_once() -> None:
         planned.extend(_module_name(path) for path in paths)
 
     assert set(planned) == discovered
-    assert len(planned) == len(set(planned))
+
+    split_modules = {"test_regressions_fixture_quality.py"}
+    unsplit_modules = [module for module in planned if module not in split_modules]
+    assert len(unsplit_modules) == len(set(unsplit_modules))
 
 
 def test_empty_legacy_modules_are_documented_placeholders() -> None:
@@ -62,3 +69,47 @@ def test_powershell_runners_delegate_to_shared_python_runner() -> None:
     ):
         text = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8")
         assert "run_test_group.py" in text
+
+
+def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
+    stages = build_slow_stages()
+    flattened_targets = [paths[0] for _name, paths in stages]
+
+    assert len(stages) > len(GROUPS["slow"])
+    assert "tests/test_broad_logic_stress_regressions.py" in flattened_targets
+    assert "tests/test_regressions_fixture_quality.py::test_v36c57_real_uploaded_inputs_quality_gate" in flattened_targets
+    assert all(len(paths) == 1 for _name, paths in stages)
+    assert all(name.startswith("slow ") for name, _paths in stages)
+
+
+def test_slow_runner_disables_pytest_capture() -> None:
+    command = _pytest_command("slow 1/1: test_example.py", ("tests/test_example.py",), [])
+
+    assert "-s" in command
+    assert command.index("-s") < command.index("tests/test_example.py")
+
+
+def test_non_slow_runner_keeps_default_capture() -> None:
+    command = _pytest_command("quality", ("tests/test_example.py",), [])
+
+    assert "-s" not in command
+
+
+def test_runner_disables_external_pytest_plugin_autoload(monkeypatch) -> None:
+    monkeypatch.delenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", raising=False)
+
+    assert _pytest_env()["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
+
+
+def test_runner_respects_explicit_pytest_plugin_autoload_env(monkeypatch) -> None:
+    monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "0")
+
+    assert _pytest_env()["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "0"
+
+
+def test_slow_harness_uses_configured_slow_modules() -> None:
+    from scripts.run_slow_tests import _slow_targets
+
+    discovered_modules = {target[0] for target in _slow_targets()}
+
+    assert discovered_modules == set(GROUPS["slow"])

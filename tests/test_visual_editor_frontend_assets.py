@@ -10,6 +10,8 @@ def test_visual_editor_index_is_thin_asset_shell():
     assert '<script src="js/state.js"></script>' in index
     assert '<script src="js/images.js"></script>' in index
     assert '<script src="js/render.js"></script>' in index
+    assert '<script src="js/serialization.js"></script>' in index
+    assert '<script src="js/commands.js"></script>' in index
     assert '<script src="js/editing.js"></script>' in index
     assert '<script src="js/streamlit_bridge.js"></script>' in index
     assert "<style>" not in index
@@ -23,7 +25,9 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/state.js": ["let initialPayload", "function restoreLocalDraftIfAvailable"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/render.js": ["function render(", "function draw()"],
-        "js/editing.js": ["function collect()", "function saveChanges", "function attachHandlers"],
+        "js/serialization.js": ["function collect()", "function buildEditableDraftFromPayload", "function buildSaveEnvelope"],
+        "js/commands.js": ["function markTouched", "function insertCleanClipboardHtml", "function mergeInclusionPageUp"],
+        "js/editing.js": ["function saveChanges", "function attachHandlers"],
         "js/streamlit_bridge.js": ["const Streamlit", "streamlit:render"],
     }
 
