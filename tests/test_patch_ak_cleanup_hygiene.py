@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import zipfile
 from pathlib import Path
 
 from images import image_bank
@@ -65,6 +66,48 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
     assert not is_artifact_noise_path("itinerary_generation/transport.py")
 
     assert list(iter_clean_artifact_files(tmp_path)) == [keep]
+
+
+def test_clean_zip_builder_excludes_local_artifacts(tmp_path):
+    from scripts.build_clean_zip import build_clean_zip
+
+    root = tmp_path / "itinerary-creator-git"
+    source = root / "app_modules" / "main_view.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("# source\n", encoding="utf-8")
+
+    noise_files = [
+        root / ".git" / "index",
+        root / ".pytest_cache" / "README.md",
+        root / "app_modules" / "__pycache__" / "main_view.cpython-312.pyc",
+        root / "outputs" / "itinerary.pdf",
+        root / "old_patch.zip",
+    ]
+    for path in noise_files:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("noise", encoding="utf-8")
+
+    output, file_count = build_clean_zip(root, tmp_path / "clean.zip")
+
+    assert file_count == 1
+    with zipfile.ZipFile(output) as archive:
+        assert archive.namelist() == ["app_modules/main_view.py"]
+
+
+def test_bundled_default_images_are_right_sized_for_pdf_and_screen_use():
+    from PIL import Image
+
+    default_dir = ROOT / "image_bank" / "Default"
+    assert default_dir.exists()
+
+    oversized = []
+    for path in sorted(default_dir.glob("*.webp")):
+        with Image.open(path) as image:
+            width, height = image.size
+        if max(width, height) > 2400 or path.stat().st_size > 1_250_000:
+            oversized.append(f"{path.name}: {width}x{height}, {path.stat().st_size} bytes")
+
+    assert oversized == []
 
 
 def test_empty_legacy_test_modules_have_been_removed_from_source_tree():

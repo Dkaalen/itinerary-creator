@@ -28,6 +28,16 @@ python -m compileall -q .
 
 See `docs/testing-workflow.md` for the full tiered workflow.
 
+## Build a clean ZIP
+
+For ChatGPT handoff or lightweight backups, build a source-only ZIP without Git metadata, caches, generated outputs, or old patch archives:
+
+```powershell
+python scripts/build_clean_zip.py --output ..\itinerary-creator-git-clean.zip
+```
+
+This keeps uploads much smaller while preserving the project files needed for inspection and patching.
+
 ## Quality principles
 
 The app should not render raw supplier/admin text directly into client-facing PDFs. Titles, descriptions, inclusions, exclusions, and route labels should pass through the parser, normalizer, content rules, sanitizers, and quality gates before rendering.
