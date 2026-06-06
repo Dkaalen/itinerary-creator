@@ -102,6 +102,10 @@ def _polish_text_fragment(text: str) -> str:
     text = dedupe_or_similar(text)
     text = remove_duplicate_service_phrase(text)
 
+    # Remove low-value supplier metadata that should never be visible to clients.
+    text = re.sub(r"\s*\(\s*(?:unlimited|if\s+snow|weather\s+permitting|if\s+weather\s+permits)\s*\)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bto\s+Airport\b", "to the airport", text, flags=re.IGNORECASE)
+
     # Clean broken supplier inclusion fragments and recurring typo/casing issues.
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKnowledgeable\s*,?\s*multilingual guide\b", "Knowledgeable, multilingual guide", text, flags=re.IGNORECASE)

@@ -112,17 +112,59 @@ def season_available_for_context(candidates: list[ImageCandidate], context: dict
     return False
 
 
+def _score_breakdown_from_reasons(score: int, reasons: list[str], *, is_default: bool) -> dict:
+    """Return a stable explainability breakdown for selected image matches."""
+
+    breakdown = {
+        "destination_score": 0,
+        "activity_product_score": 0,
+        "season_score": 0,
+        "country_region_score": 0,
+        "fallback_score": 0,
+        "total_score": score,
+    }
+    if is_default:
+        breakdown["fallback_score"] = score
+        for reason in reasons or []:
+            if "fallback season match" in reason:
+                breakdown["season_score"] = max(breakdown["season_score"], 8)
+            if "fallback primary theme match" in reason or "fallback theme match" in reason or "fallback keyword match" in reason or "fallback context match" in reason:
+                breakdown["activity_product_score"] = max(breakdown["activity_product_score"], min(score, 40))
+        return breakdown
+
+    for reason in reasons or []:
+        if reason == "city folder match":
+            breakdown["destination_score"] += DESTINATION_FOLDER_MATCH_SCORE
+        elif reason == "city filename match":
+            breakdown["destination_score"] += DESTINATION_FILENAME_MATCH_SCORE
+        elif reason.startswith("season match"):
+            breakdown["season_score"] += SEASON_MATCH_SCORE
+        elif reason.startswith("theme match"):
+            matched = [part for part in reason.split(":", 1)[-1].split(",") if part.strip()]
+            breakdown["activity_product_score"] += THEME_MATCH_SCORE * max(1, len(matched))
+        elif reason.startswith("keyword match"):
+            matched = [part for part in reason.split(":", 1)[-1].split(",") if part.strip()]
+            breakdown["activity_product_score"] += min(KEYWORD_MATCH_SCORE_CAP, KEYWORD_MATCH_SCORE_PER_TOKEN * max(1, len(matched)))
+    return breakdown
+
+
 def candidate_to_payload(day: str, candidate: ImageCandidate, score: int, reasons: list[str]) -> dict:
+    is_default = is_global_default_candidate(candidate)
+    reason_text = "; ".join(reasons) if reasons else "destination match"
     return {
         "day": day,
         "path": candidate.path,
         "score": score,
-        "reason": "; ".join(reasons) if reasons else "destination match",
+        "reason": reason_text,
         "city": candidate.city,
         "country": candidate.country,
         "filename": candidate.filename,
         "themes": list(candidate.themes),
         "seasons": list(candidate.seasons),
+        "is_default": is_default,
+        "is_generic": is_default,
+        "fallback_reason": reason_text if is_default else "",
+        "score_breakdown": _score_breakdown_from_reasons(score, reasons, is_default=is_default),
     }
 
 

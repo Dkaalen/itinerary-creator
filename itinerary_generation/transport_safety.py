@@ -207,6 +207,10 @@ def split_self_transfer_notes(value: str) -> list[str]:
     # Compact supplier shorthands are often duplicated across title/details.
     # Parse the intended local movement once and keep the wording generic so a
     # terminal does not become an ugly destination headline.
+    if re.search(r"\b(?:hotel|accommodation|your\s+hotel)\s+to\s+(?:the\s+)?airport\b", lower_source) or re.search(r"\bfrom\s+your\s+hotel\s+to\s+(?:the\s+)?airport\b", lower_source):
+        add_note("Self-arranged transfer from your hotel to the airport")
+    if re.search(r"\b(?:the\s+)?airport\s+to\s+(?:hotel|accommodation|your\s+accommodation)\b", lower_source) or re.search(r"\bfrom\s+(?:the\s+)?airport\s+to\s+your\s+accommodation\b", lower_source):
+        add_note("Self-arranged transfer from the airport to your accommodation")
     if re.search(r"\b(?:hotel|accommodation|your\s+hotel)\s+to\s+(?:bus\s*station|bustation)\b", lower_source) or re.search(r"\bfrom\s+your\s+hotel\s+to\s+(?:the\s+)?bus\s+station\b", lower_source):
         add_note("Self transfer from your hotel to the bus station")
     if re.search(r"\b(?:bus\s*station|bustation)\s+to\s+(?:hotel|accommodation)\b", lower_source) or re.search(r"\bfrom\s+(?:the\s+)?bus\s+station\s+to\s+your\s+accommodation\b", lower_source):
@@ -265,7 +269,7 @@ def standardize_private_transfer_phrase(value: str, city: str = "") -> str:
 
     if re.search(r"\bprivate\s+(?:transfer\s+)?airport\s+to\s+hotel\b", lower):
         return f"Private transfer from {airport_name(city)} to your accommodation"
-    if re.search(r"\bprivate\s+(?:transfer\s+)?hotel\s+to\s+airport\b", lower):
+    if re.search(r"\bprivate\s+(?:transfer\s+)?hotel\s+to\s+(?:the\s+)?airport\b", lower):
         return f"Private transfer from your hotel to {airport_name(city)}"
     if re.search(r"\bprivate\s+(?:transfer\s+)?station\s+to\s+hotel\b", lower):
         station = f"{city} Railway Station" if city else "the railway station"

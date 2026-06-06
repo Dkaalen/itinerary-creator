@@ -151,6 +151,8 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
         return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests." if city else "Enjoy a slower day, with time to explore independently or relax."
     if pattern == "multi_activity_day":
+        if "tallinn" in str(title or "").lower():
+            return "Cross from Helsinki to Tallinn for a focused day trip, with the ferry crossings kept as logistics and the main experience centred on Tallinn’s historic Old Town."
         return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
     if pattern == "travel_day":
         dest = re.sub(r"^(?:Train|Flight|Cruise|Coach Transfer|Scenic Train Transfer|Panoramic Coach Transfer)\s+(?:from\s+.+?\s+)?to\s+", "", title, flags=re.I)
@@ -251,7 +253,8 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             focus = _natural_group_tour_focus(activity_title, source_text)
             return _group_tour_intro(activity_title, city_text, source_text)
 
-        if "tallinn" in activity_text:
+        combined_activity_text = " ".join(get_activity_text(row) for row in activities)
+        if "tallinn" in combined_activity_text.lower():
             if any(get_row_type(row) == "Train" and "overnight" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in day_rows):
                 if detail_level == "Elegant concise":
                     return "Enjoy a day trip from Helsinki to Tallinn before returning for your overnight train north."

@@ -8,6 +8,40 @@ from parser_modules.common import clean_space
 from parser_modules.time_tokens import format_time_token, infer_range_suffixes, parse_time_token
 
 
+def _strip_supplier_warning_time_text(text: str) -> str:
+    """Return a reliable clock value or blank from supplier warning text."""
+
+    lower = text.lower()
+    warning_markers = (
+        "before departure",
+        "bring warm clothes",
+        "please arrive",
+        "meeting point",
+        "subject to",
+        "voucher",
+        "pickup window",
+        "pick-up window",
+    )
+    if not any(marker in lower for marker in warning_markers) and not re.search(r"\b\d+\s*(?:min\.?|minutes?)\s+before\b", lower):
+        return text
+
+    candidate = text.replace("–", "-").replace("—", "-")
+    candidate = re.sub(r"\b(\d{1,2})\.\s*(\d{2})\b", r"\1:\2", candidate)
+    token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
+    range_match = re.search(rf"(?<!\d)({token})\s*-\s*({token})(?!\d)", candidate, flags=re.IGNORECASE)
+    if range_match and (":" in range_match.group(0) or re.search(r"[AaPp]\.?[Mm]\.?", range_match.group(0))):
+        return range_match.group(0)
+    single_match = re.search(r"(?<!\d)(\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?))(?!\d)", candidate, flags=re.IGNORECASE)
+    if single_match:
+        return single_match.group(1)
+    single_24 = re.search(r"(?<!\d)(\d{1,2}:\d{2})(?!\d)", candidate)
+    if single_24:
+        after = candidate[single_24.end():single_24.end() + 15].lower()
+        if "minute" not in after and "min" not in after:
+            return single_24.group(1)
+    return ""
+
+
 def normalize_time_text(value):
     """Standardize itinerary times to AM/PM display format.
 
@@ -19,6 +53,10 @@ def normalize_time_text(value):
     """
 
     text = clean_space(value)
+    if not text:
+        return ""
+
+    text = _strip_supplier_warning_time_text(text)
     if not text:
         return ""
 

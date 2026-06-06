@@ -115,7 +115,7 @@ def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
                 for other in updated
             )
             if same_day_has_hotel and same_day_arrival_flight and re.search(
-                r"\bhotel\s+to\s+airport\b|\bfrom\s+hotel\s+to\s+airport\b", title_lower
+                r"\bhotel\s+to\s+(?:the\s+)?airport\b|\bfrom\s+hotel\s+to\s+(?:the\s+)?airport\b", title_lower
             ):
                 row["title"] = (
                     f"Private transfer from {city} Airport to your accommodation"

@@ -29,7 +29,7 @@ from itinerary_generation.render_model import (
 )
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_rendering import normalize_structured_list_sections
-from itinerary_generation.summaries import create_journey_arc, create_trip_glance
+from itinerary_generation.summaries import create_journey_arc, create_trip_glance, sanitize_journey_arc_experience
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 from ui.final_pages import create_optional_addons, get_important_travel_notes
 from ui.inclusion_pages import paginate_categorized_inclusions
@@ -71,7 +71,7 @@ class ItineraryRenderContext:
     structured_whats_not_included: Any
     typed_inclusion_pages: list[str]
     typed_exclusion_html: str
-    important_travel_notes: str
+    important_travel_notes: list[str] | str
 
 
 def _structured_sections_to_render_sections(sections: Any) -> list[RenderSection]:
@@ -100,8 +100,16 @@ def _split_list_final_pages(items: list[str], *, items_per_page: int = 24) -> li
     return [RenderFinalPage(items=clean_items[index:index + items_per_page]) for index in range(0, len(clean_items), items_per_page)]
 
 
-def _paragraph_final_pages(text: str) -> list[RenderFinalPage]:
-    paragraphs = [item.strip() for item in str(text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n") if item.strip()]
+def _paragraph_final_pages(text: Any) -> list[RenderFinalPage]:
+    """Build paragraph pages without stringifying lists as Python literals."""
+
+    values = text if isinstance(text, (list, tuple, set)) else [text]
+    paragraphs: list[str] = []
+    for value in values or []:
+        for item in str(value or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+            item = item.strip()
+            if item:
+                paragraphs.append(item)
     return [RenderFinalPage(paragraphs=paragraphs)] if paragraphs else []
 
 
@@ -187,7 +195,7 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
             {
                 "chapter": str(row.get("chapter", "")).strip(),
                 "days": str(row.get("days", "")).strip(),
-                "experience": str(row.get("experience", "")).strip(),
+                "experience": sanitize_journey_arc_experience(row.get("experience", "")),
             }
             for row in context.journey_arc
             if isinstance(row, dict)
@@ -250,7 +258,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
             trip_glance[route_label] = generated_trip_glance[route_label]
 
     saved_journey_arc = typed_summary.get("journey_arc") or output_edits.get("journey_arc")
-    weak_arc_markers = ("onward flight and accommodation", "onward travel and accommodation", "onward travel")
+    weak_arc_markers = ("onward flight", "onward travel", "aurora")
     if isinstance(saved_journey_arc, list) and saved_journey_arc and not any(
         any(marker in str(row.get("experience", "")).lower() for marker in weak_arc_markers)
         for row in saved_journey_arc
@@ -260,7 +268,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
             {
                 "chapter": str(row.get("chapter", "")).strip(),
                 "days": str(row.get("days", "")).strip(),
-                "experience": str(row.get("experience", "")).strip(),
+                "experience": sanitize_journey_arc_experience(row.get("experience", "")),
             }
             for row in saved_journey_arc
             if isinstance(row, dict)

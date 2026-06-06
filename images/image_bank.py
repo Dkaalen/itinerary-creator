@@ -39,6 +39,10 @@ def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
     paths.append(root / "itinerary-image-bank" / "image_bank_full")
     # Local sibling-repo layout.
     paths.append(root.parent / "itinerary-image-bank" / "image_bank_full")
+    # User workstation layout: app repo and full bank folder are siblings under
+    # the same itinerary_app directory. Keep this before the local fallback so
+    # destination imagery wins over the bundled Default bank.
+    paths.append(root.parent / "image_bank_full")
     # Runtime bootstrap fallback for zip/deploy checkouts that do not populate
     # submodules. This path is populated lazily by _ensure_runtime_image_bank().
     paths.append(root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank" / "image_bank_full")

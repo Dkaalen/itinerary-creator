@@ -104,7 +104,7 @@ LANDMARKS: list[tuple[str, str]] = [
     ("Bothnian Bay", r"Bothnian Bay"),
     ("Abisko", r"Abisko"),
     ("Mount Nuolja", r"Nuolja"),
-    ("Aurora Sky Station", r"Aurora sky station"),
+    ("Northern Lights Sky Station", r"Aurora sky station"),
     ("Kiruna", r"Kiruna"),
     ("Munch Museum", r"Munch Museum"),
     ("Mostraumen", r"Mostraumen"),

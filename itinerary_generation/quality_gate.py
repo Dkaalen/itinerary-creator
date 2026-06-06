@@ -9,8 +9,10 @@ itinerary content.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Any, Iterable, Mapping
 
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
@@ -226,3 +228,183 @@ def validate_itinerary_integrity(parsed_rows) -> list[ItineraryValidationIssue]:
 
 def blocking_validation_messages(parsed_rows) -> list[str]:
     return [issue.message for issue in evaluate_itinerary_quality(parsed_rows).blocking_issues]
+
+
+# Client-output quality gate -------------------------------------------------
+
+FORBIDDEN_CLIENT_PATTERNS: tuple[tuple[str, str, str], ...] = (
+    ("forbidden_aurora_wording", r"\bAurora\b", "Use 'Northern Lights' in client-facing output."),
+    ("forbidden_onward_flight", r"\bOnward\s+flight\b", "Use context-aware flight wording."),
+    ("forbidden_onward_travel", r"\bOnward\s+travel\b", "Use context-aware travel wording."),
+    ("supplier_parenthetical_unlimited", r"\(\s*unlimited\s*\)", "Remove supplier parenthetical '(unlimited)'."),
+    ("supplier_parenthetical_if_snow", r"\(\s*if\s+snow\s*\)", "Remove supplier parenthetical '(if snow)'."),
+    ("rough_airport_wording", r"\bto\s+Airport\b", "Use 'to the airport' or a named airport."),
+)
+
+SUPPLIER_TIME_WARNING_RE = re.compile(
+    r"\b(?:before\s+departure|bring\s+warm\s+clothes|please\s+arrive|meeting\s+point|"
+    r"voucher|subject\s+to|pick[-\s]?up\s+window|\d+\s*(?:min\.?|minutes?)\s+before)\b",
+    flags=re.IGNORECASE,
+)
+
+RAW_SUPPLIER_FIELD_RE = re.compile(
+    r"\b(?:what[’']?s\s+included|what\s+to\s+expect|booking\s+information|"
+    r"please\s+note|important\s+information|supplier\s+note|operator\s+note)\b",
+    flags=re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class ClientOutputQualityGateReport:
+    """Validation report for generated client-facing render output."""
+
+    issues: tuple[ItineraryValidationIssue, ...] = field(default_factory=tuple)
+
+    @property
+    def blocking_issues(self) -> tuple[ItineraryValidationIssue, ...]:
+        return tuple(issue for issue in self.issues if issue.severity == BLOCKING)
+
+    @property
+    def warnings(self) -> tuple[ItineraryValidationIssue, ...]:
+        return tuple(issue for issue in self.issues if issue.severity == WARNING)
+
+    @property
+    def is_blocked(self) -> bool:
+        return bool(self.blocking_issues)
+
+
+def _append_text(parts: list[str], value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, str):
+        if value.strip():
+            parts.append(value)
+        return
+    if isinstance(value, Mapping):
+        for item in value.values():
+            _append_text(parts, item)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            _append_text(parts, item)
+        return
+    # Dataclasses/typed render objects expose useful public attributes.
+    for name in getattr(value, "__dataclass_fields__", {}) or {}:
+        _append_text(parts, getattr(value, name, None))
+
+
+def render_document_text(render_document: Any) -> str:
+    """Flatten generated render output for late client-quality validation."""
+
+    parts: list[str] = []
+    _append_text(parts, render_document)
+    return "\n".join(parts)
+
+
+def _meta_lines_with_time_warnings(render_document: Any) -> list[str]:
+    findings: list[str] = []
+    for day in getattr(render_document, "days", []) or []:
+        for block in getattr(day, "blocks", []) or []:
+            for meta in getattr(block, "meta", []) or []:
+                label = str(getattr(meta, "label", "") or "")
+                value = str(getattr(meta, "value", "") or "")
+                if "time" in label.lower() and SUPPLIER_TIME_WARNING_RE.search(value):
+                    findings.append(f"{getattr(day, 'day', '')} / {getattr(block, 'title', '')}: {value}")
+    return findings
+
+
+def _bare_activity_blocks(render_document: Any) -> list[str]:
+    findings: list[str] = []
+    for day in getattr(render_document, "days", []) or []:
+        for block in getattr(day, "blocks", []) or []:
+            if str(getattr(block, "kind", "") or "") != "activity":
+                continue
+            title = str(getattr(block, "title", "") or "").strip()
+            has_supporting_text = bool(
+                getattr(block, "includes", None)
+                or str(getattr(block, "description", "") or "").strip()
+                or getattr(block, "notable_sights", None)
+                or getattr(block, "extra_sections", None)
+            )
+            if title and not has_supporting_text:
+                findings.append(f"{getattr(day, 'day', '')}: {title}")
+    return findings
+
+
+def _image_payload_is_default(match: Mapping[str, Any]) -> bool:
+    if bool(match.get("is_default") or match.get("is_generic")):
+        return True
+    city = str(match.get("city", "") or "").strip().lower()
+    filename = str(match.get("filename", "") or "").strip().lower()
+    path = str(match.get("path", "") or "").replace("\\", "/").lower()
+    return city in {"default", "defoult"} or "/default/" in path or filename.startswith("default_")
+
+
+def _image_match_issues(day_images: Mapping[str, Mapping[str, Any] | None] | None) -> list[ItineraryValidationIssue]:
+    issues: list[ItineraryValidationIssue] = []
+    for day, match in (day_images or {}).items():
+        if not isinstance(match, Mapping) or not _image_payload_is_default(match):
+            continue
+        audit = match.get("audit") if isinstance(match.get("audit"), Mapping) else {}
+        stronger_available = bool(match.get("stronger_candidate_available") or audit.get("stronger_candidate_available"))
+        if stronger_available:
+            issues.append(
+                ItineraryValidationIssue(
+                    BLOCKING,
+                    "default_image_used_despite_stronger_match",
+                    "Default image was selected even though a stronger image-bank match was available.",
+                    context=str(day),
+                )
+            )
+    return issues
+
+
+def evaluate_client_output_quality(
+    render_document: Any,
+    *,
+    day_images: Mapping[str, Mapping[str, Any] | None] | None = None,
+) -> ClientOutputQualityGateReport:
+    """Validate final generated client output after parsing/normalization."""
+
+    issues: list[ItineraryValidationIssue] = []
+    text = render_document_text(render_document)
+
+    for code, pattern, message in FORBIDDEN_CLIENT_PATTERNS:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            issues.append(ItineraryValidationIssue(BLOCKING, code, message))
+
+    if RAW_SUPPLIER_FIELD_RE.search(text):
+        issues.append(
+            ItineraryValidationIssue(
+                BLOCKING,
+                "raw_supplier_field_leak",
+                "Raw supplier section labels leaked into generated client output.",
+            )
+        )
+
+    for context in _meta_lines_with_time_warnings(render_document):
+        issues.append(
+            ItineraryValidationIssue(
+                BLOCKING,
+                "supplier_warning_in_time_field",
+                "Supplier warning text leaked into a Time field.",
+                context=context,
+            )
+        )
+
+    for context in _bare_activity_blocks(render_document):
+        issues.append(
+            ItineraryValidationIssue(
+                BLOCKING,
+                "bare_activity_inclusion_heading",
+                "Activity block has a heading but no supporting client-facing text.",
+                context=context,
+            )
+        )
+
+    issues.extend(_image_match_issues(day_images))
+    return ClientOutputQualityGateReport(issues=tuple(issues))
+
+
+def blocking_client_output_messages(render_document: Any, **kwargs: Any) -> list[str]:
+    return [issue.message for issue in evaluate_client_output_quality(render_document, **kwargs).blocking_issues]

@@ -118,8 +118,22 @@ def _add_theme(items, theme):
         items.append(theme)
 
 
+def sanitize_journey_arc_experience(text: str) -> str:
+    """Remove forbidden weak/fallback wording from Journey Arc copy."""
+
+    value = str(text or "").strip()
+    if not value:
+        return "Time to explore at your own pace"
+    value = re.sub(r"\bAurora\b", "Northern Lights", value, flags=re.IGNORECASE)
+    value = re.sub(r"\bOnward\s+flight\b", "Flight connection", value, flags=re.IGNORECASE)
+    value = re.sub(r"\bOnward\s+scenic\s+travel\b", "Scenic travel connection", value, flags=re.IGNORECASE)
+    value = re.sub(r"\bOnward\s+travel\b", "Travel connection", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+", " ", value).strip(" ,")
+    return value or "Time to explore at your own pace"
+
+
 def _title_case_arc(text: str) -> str:
-    text = str(text or "").strip()
+    text = sanitize_journey_arc_experience(text)
     if not text:
         return "Time to explore at your own pace"
     return text[:1].upper() + text[1:]
@@ -250,15 +264,15 @@ def describe_city_experience(rows):
 
     if has_reindeer_sami and has_aurora:
         if "santa claus village" in text:
-            candidates.append("Aurora, Santa Village and Arctic experiences")
+            candidates.append("Northern Lights, Santa Village and Arctic experiences")
         elif has_fjord or has_nature:
             candidates.append("Sámi culture, fjords and northern lights")
         else:
-            candidates.append("Aurora, Sámi culture and Arctic experiences")
+            candidates.append("Northern Lights, Sámi culture and Arctic experiences")
     elif has_reindeer_sami:
         candidates.append("Sámi culture and Arctic experiences")
     elif has_aurora and has_whale:
-        candidates.append("Wildlife, aurora and Arctic coast")
+        candidates.append("Wildlife, Northern Lights and Arctic coast")
     elif has_aurora:
         candidates.append("Northern Lights experiences")
 
@@ -305,16 +319,16 @@ def describe_city_experience(rows):
         if has_departure:
             candidates.append("Departure arrangements")
         elif has_flight:
-            candidates.append("Onward flight")
+            candidates.append("Flight connection")
         elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
-            candidates.append("Onward scenic travel")
+            candidates.append("Scenic travel connection")
         else:
             candidates.append("Travel arrangements")
     if not candidates:
         if has_flight:
-            candidates.append("Onward flight")
+            candidates.append("Flight connection")
         elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
-            candidates.append("Onward scenic travel")
+            candidates.append("Scenic travel connection")
         else:
             candidates.append("Time to explore at your own pace")
 

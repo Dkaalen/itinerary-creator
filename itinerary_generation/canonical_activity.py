@@ -52,7 +52,10 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     description_row = dict(row)
     description_row["display_title"] = title
     if is_tallinn_ferry:
-        description = "Travel between Helsinki and Tallinn by ferry, with the crossings forming the logistics for your time in Tallinn."
+        description = (
+            "Travel between Helsinki and Tallinn by ferry, with the crossings and any Helsinki port transfers kept as logistics "
+            "so your time in Tallinn can focus on the historic Old Town. Guided sightseeing is shown separately when included."
+        )
     else:
         description = client_activity_description(description_row, get_activity_description(row))
 

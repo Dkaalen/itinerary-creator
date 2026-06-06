@@ -84,7 +84,9 @@ def get_fallback_activity_inclusions(row):
         return ["Guided experience"]
 
     if "ticket" in full_text or "admission" in full_text or "entry" in full_text:
-        return ["Ticket"]
+        if "round-trip" in full_text or "round trip" in full_text or "return" in full_text:
+            return ["Round-trip tickets"]
+        return ["Tickets/admission included"]
 
     return []
 

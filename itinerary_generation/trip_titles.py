@@ -44,7 +44,7 @@ def create_trip_title(parsed_rows, grouped_days):
     if has_cruise_heavy and len(countries) >= 2:
         return "Scandinavian Coastal Voyage" if set(countries).issubset({"Norway", "Sweden", "Denmark"}) else "Nordic Coastal Voyage"
     if has_aurora and countries == ["Sweden"]:
-        return "Swedish Lapland Aurora Break"
+        return "Swedish Lapland Northern Lights Break"
     if has_aurora and countries == ["Norway"] and any(city in cities for city in ["Tromsø", "Svalbard", "Kiruna"]):
         return "Arctic Norway Adventure"
     if has_nutshell and countries == ["Norway"]:

@@ -33,7 +33,7 @@ def test_inclusion_facade_preserves_exclusion_api():
     assert facade == direct
     text = "\n".join(facade)
     assert "Self-arranged flights or transport" in text
-    assert "Self-arranged transfer Hotel to Airport" in text
+    assert "Self-arranged transfer from your hotel to the airport" in text
     assert "Optional experiences unless specifically confirmed" in text
     assert "Second Walrus Safari Boat Tour" in text
 
@@ -132,7 +132,7 @@ def test_structured_exclusion_sections_group_specific_commercial_rows():
 
     sections = create_specific_exclusion_sections(rows)
     assert sections["self_arranged_flights"] == ["Flight from Tromsø to Bergen - 31st of December"]
-    assert sections["self_transfers"] == ["Self-arranged transfer Hotel to Airport - 4th of January"]
+    assert sections["self_transfers"] == ["Self-arranged transfer from your hotel to the airport - 4th of January"]
     assert sections["optional_experiences"] == ["Northern Lights Hunt - 27th of December"]
     assert sections["optional_transfers"] == ["Optional private transfer to the glass igloos - 28th of December"]
     assert sections["optional_hotels"] == ["Optional Igloo Upgrade - 29th of December"]
@@ -140,7 +140,7 @@ def test_structured_exclusion_sections_group_specific_commercial_rows():
 
     text = "\n".join(create_exclusions(rows))
     assert "Self-arranged flights\nFlight from Tromsø to Bergen - 31st of December" in text
-    assert "Self transfers\nSelf-arranged transfer Hotel to Airport - 4th of January" in text
+    assert "Self transfers\nSelf-arranged transfer from your hotel to the airport - 4th of January" in text
     assert "Optional experiences\nNorthern Lights Hunt - 27th of December" in text
     assert "Optional transfers\nOptional private transfer to the glass igloos - 28th of December" in text
     assert "Optional hotels/add-ons\nOptional Igloo Upgrade - 29th of December" in text

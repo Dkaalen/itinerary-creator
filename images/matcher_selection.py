@@ -33,6 +33,64 @@ def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandid
     return reusable_best
 
 
+def _attach_default_audit(
+    payload: dict | None,
+    context: dict,
+    candidates: list[ImageCandidate],
+    used_paths: set[str],
+) -> dict | None:
+    """Annotate default selections with proof that no stronger match was available."""
+
+    if not payload or not payload.get("is_default"):
+        return payload
+
+    require_matching_season = season_available_for_context(candidates, context)
+    day_season = normalize_keyword(context.get("season", ""))
+    best_non_default: dict | None = None
+    best_reused_non_default: dict | None = None
+
+    for candidate in candidates:
+        if is_global_default_candidate(candidate):
+            continue
+        normalized_path = str(Path(candidate.path).resolve())
+        if require_matching_season and day_season not in set(candidate.seasons):
+            continue
+        score, reasons = score_image_for_day(candidate, context)
+        if score <= 0:
+            continue
+        candidate_payload = candidate_to_payload(str(payload.get("day", "")), candidate, score, reasons)
+        if normalized_path in used_paths:
+            if best_reused_non_default is None or (
+                candidate_payload["score"],
+                candidate_payload["filename"],
+            ) > (best_reused_non_default["score"], best_reused_non_default["filename"]):
+                best_reused_non_default = candidate_payload
+            continue
+        if best_non_default is None or (
+            candidate_payload["score"],
+            candidate_payload["filename"],
+        ) > (best_non_default["score"], best_non_default["filename"]):
+            best_non_default = candidate_payload
+
+    selected_score = int(payload.get("score") or 0)
+    stronger_available = bool(best_non_default and int(best_non_default.get("score") or 0) > selected_score)
+    payload["stronger_candidate_available"] = stronger_available
+    payload["audit"] = {
+        "selected_default": True,
+        "stronger_candidate_available": stronger_available,
+        "best_non_default_score": int(best_non_default.get("score") or 0) if best_non_default else 0,
+        "best_non_default_path": str(best_non_default.get("path", "")) if best_non_default else "",
+        "best_reused_non_default_score": int(best_reused_non_default.get("score") or 0) if best_reused_non_default else 0,
+        "best_reused_non_default_path": str(best_reused_non_default.get("path", "")) if best_reused_non_default else "",
+        "fallback_proof": (
+            "stronger unused destination/activity match exists"
+            if stronger_available
+            else "no stronger unused destination/activity match available"
+        ),
+    }
+    return payload
+
+
 def select_best_candidate_for_context(
     day: str,
     context: dict,
@@ -79,8 +137,8 @@ def select_best_candidate_for_context(
         if allow_default_repair:
             reusable = _best_reusable_default(day, context, candidates)
             if reusable and reusable.get("score", 0) >= best.get("score", 0) + 12:
-                return reusable
-        return best
+                return _attach_default_audit(reusable, context, candidates, used_paths)
+        return _attach_default_audit(best, context, candidates, used_paths)
     if not allow_default_repair:
         return best
 
@@ -90,7 +148,7 @@ def select_best_candidate_for_context(
         and str(Path(candidate.path).resolve()) not in used_paths
     ]
     if not default_candidates:
-        return _best_reusable_default(day, context, candidates)
+        return _attach_default_audit(_best_reusable_default(day, context, candidates), context, candidates, used_paths)
 
     default_best = None
     for candidate in default_candidates:
@@ -111,7 +169,7 @@ def select_best_candidate_for_context(
     reusable = _best_reusable_default(day, context, candidates)
     if reusable and (not default_best or reusable.get("score", 0) >= default_best.get("score", 0) + 12):
         default_best = reusable
-    return default_best
+    return _attach_default_audit(default_best, context, candidates, used_paths)
 
 
 def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:
