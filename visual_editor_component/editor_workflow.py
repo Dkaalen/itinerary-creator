@@ -39,6 +39,7 @@ from ui.editor_sanitizer import clean_visual_editor_html, normalize_final_list_h
 from itinerary_generation.editable_draft import (
     day_by_id,
     first_block_html,
+    merge_editable_drafts,
     mirror_draft_to_legacy_output_edits,
     normalise_editable_draft,
     section_by_id,
@@ -505,7 +506,9 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
             output_edits[key] = str(final_pages.get(key, "")).strip()
 
     if "editor_draft" in data:
-        editor_draft = _sanitize_editor_draft(normalise_editable_draft(data))
+        incoming_draft = normalise_editable_draft(data)
+        existing_draft = output_edits.get("editor_draft") if isinstance(output_edits.get("editor_draft"), dict) else {}
+        editor_draft = _sanitize_editor_draft(merge_editable_drafts(existing_draft, incoming_draft))
         mirror_draft_to_legacy_output_edits(output_edits, editor_draft)
 
     if isinstance(data.get("issue_flags"), list):

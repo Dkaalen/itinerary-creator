@@ -93,12 +93,12 @@ def _as_text(value: Any) -> str:
 
 def _page_html(value: Any) -> str:
     if isinstance(value, Mapping):
-        return _as_text(value.get("html", ""))
+        return _as_text(value.get("content_html", value.get("html", "")))
     return _as_text(value)
 
 
 def _normalise_pages(value: Any) -> tuple[EditableFinalPage, ...]:
-    values = value if isinstance(value, list) else ([value] if value not in (None, "") else [])
+    values = value if isinstance(value, (list, tuple)) else ([value] if value not in (None, "") else [])
     pages: list[EditableFinalPage] = []
     for index, page in enumerate(values):
         pages.append(EditableFinalPage(page_id=f"page-{index + 1}", content_html=_page_html(page)))
@@ -114,7 +114,7 @@ def _normalise_day(value: Any, index: int) -> EditableDay | None:
 
     raw_blocks = value.get("blocks")
     blocks: list[EditableBlock] = []
-    if isinstance(raw_blocks, list):
+    if isinstance(raw_blocks, (list, tuple)):
         for block_index, block in enumerate(raw_blocks):
             if not isinstance(block, Mapping):
                 continue
@@ -252,6 +252,109 @@ def first_block_html(day: Mapping[str, Any]) -> str | None:
     if not isinstance(block, Mapping):
         return None
     return _as_text(block.get("content_html", block.get("html", "")))
+
+
+
+def _merge_mapping(existing: Any, incoming: Any) -> dict[str, Any]:
+    """Return a shallow mapping merge that treats incoming blank values as real edits."""
+
+    base = _as_dict(existing)
+    for key, value in _as_dict(incoming).items():
+        base[str(key)] = value
+    return base
+
+
+def _keyed_sequence_by_id(values: Any, *candidate_keys: str) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Normalize a draft sequence and return stable id -> index lookup."""
+
+    sequence: list[dict[str, Any]] = []
+    index_by_id: dict[str, int] = {}
+    if not isinstance(values, (list, tuple)):
+        return sequence, index_by_id
+    for item in values:
+        if not isinstance(item, Mapping):
+            continue
+        copied = dict(item)
+        item_id = ""
+        for key in candidate_keys:
+            item_id = _as_text(copied.get(key, "")).strip()
+            if item_id:
+                break
+        if not item_id:
+            continue
+        index_by_id[item_id] = len(sequence)
+        sequence.append(copied)
+    return sequence, index_by_id
+
+
+def merge_editable_drafts(existing: Mapping[str, Any] | None, incoming: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Merge a partial editor save into the stored typed draft.
+
+    The browser intentionally sends small payloads for normal "save for now"
+    actions.  Replacing ``output_edits['editor_draft']`` with that partial draft
+    would lose untouched days, copied blocks, final pages, and workflow state.
+    This merge keeps ``EditableDraft`` as the source of truth by applying edits
+    by stable day/section identity while preserving untouched typed state.
+    """
+
+    existing_draft = normalise_editable_draft(existing or {})
+    incoming_draft = normalise_editable_draft(incoming or {})
+
+    merged: dict[str, Any] = {
+        "schema_version": DRAFT_SCHEMA_VERSION,
+        "cover": _merge_mapping(existing_draft.get("cover"), incoming_draft.get("cover")),
+        "summary": _merge_mapping(existing_draft.get("summary"), incoming_draft.get("summary")),
+        "days": [],
+        "final_sections": [],
+        "workflow": _merge_mapping(existing_draft.get("workflow"), incoming_draft.get("workflow")),
+        "issue_flags": [],
+    }
+
+    days, day_indexes = _keyed_sequence_by_id(existing_draft.get("days"), "day_id", "day", "label")
+    for incoming_day in incoming_draft.get("days") or []:
+        if not isinstance(incoming_day, Mapping):
+            continue
+        day_id = _as_text(incoming_day.get("day_id") or incoming_day.get("day") or incoming_day.get("label", "")).strip()
+        if not day_id:
+            continue
+        copied = dict(incoming_day)
+        if day_id in day_indexes:
+            days[day_indexes[day_id]] = copied
+        else:
+            day_indexes[day_id] = len(days)
+            days.append(copied)
+    merged["days"] = days
+
+    sections, section_indexes = _keyed_sequence_by_id(existing_draft.get("final_sections"), "section_id")
+    for incoming_section in incoming_draft.get("final_sections") or []:
+        if not isinstance(incoming_section, Mapping):
+            continue
+        section_id = _as_text(incoming_section.get("section_id", "")).strip()
+        if not section_id:
+            continue
+        copied = dict(incoming_section)
+        if section_id in section_indexes:
+            sections[section_indexes[section_id]] = copied
+        else:
+            section_indexes[section_id] = len(sections)
+            sections.append(copied)
+    merged["final_sections"] = sections
+
+    seen_flags: set[tuple[str, str, str]] = set()
+    flags: list[dict[str, Any]] = []
+    for source in (existing_draft.get("issue_flags"), incoming_draft.get("issue_flags")):
+        for flag in source or []:
+            if not isinstance(flag, Mapping):
+                continue
+            copied = dict(flag)
+            key = (_as_text(copied.get("key", "")), _as_text(copied.get("original", "")), _as_text(copied.get("corrected", "")))
+            if key in seen_flags:
+                continue
+            seen_flags.add(key)
+            flags.append(copied)
+    merged["issue_flags"] = flags
+
+    return normalise_editable_draft(merged)
 
 
 def mirror_draft_to_legacy_output_edits(output_edits: dict[str, Any], editor_draft: Mapping[str, Any]) -> None:
