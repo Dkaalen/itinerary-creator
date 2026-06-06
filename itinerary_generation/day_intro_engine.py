@@ -21,7 +21,8 @@ from itinerary_generation.transport import (
     is_route_transfer,
 )
 from itinerary_generation.content_engine import is_supplier_day_row
-from itinerary_generation.day_activity_text import get_client_activity_phrase, _activity_phrase_with_city
+from itinerary_generation.day_activity_text import get_client_activity_phrase
+from itinerary_generation.client_text_decisions import client_activity_intro, client_group_tour_intro
 from itinerary_generation.day_arrival_text import _arrival_display_destination, _arrival_transfer_phrase
 from itinerary_generation.day_group_tour_text import (
     _extract_group_tour_overview_start_time,
@@ -61,92 +62,27 @@ def _explicit_transfer_airport(day_rows) -> str:
 
 
 def _activity_day_intro(activity_title: str, city: str, source_text: str, detail_level: str = "") -> str:
-    """Grounded, varied intro for activity-led days."""
+    """Compatibility wrapper around the shared activity-intro decision engine."""
 
-    title = str(activity_title or "the arranged experience").strip()
-    city_text = str(city or "the destination").strip()
-    lower = f"{title} {source_text}".lower()
-
-    if "walking" in lower or "city highlights" in lower or "suomenlinna" in lower:
-        return f"Spend time getting oriented in {city_text}, with {title} introducing key sights, local stories and practical context for the rest of your stay."
-    if "northern lights" in lower or "aurora" in lower:
-        return f"The day is kept easy around your evening Northern Lights experience, giving you time to settle before heading out with local guidance after dark."
-    if "fjord" in lower or "cruise" in lower or "boat" in lower or "silent electric ship" in lower:
-        return f"Today brings you closer to the water, with {title} adding fjord scenery, coastal views or a different perspective on {city_text}."
-    if "funicular" in lower or "cable car" in lower or "fjellheisen" in lower or "fløibanen" in lower or "floibanen" in lower:
-        return f"Use today for a flexible viewpoint visit in {city_text}, with {title} arranged so you can choose the timing that suits the day."
-    if "santa" in lower or "reindeer" in lower or "husky" in lower:
-        return f"Today focuses on classic Arctic experiences around {city_text}, with animal encounters or seasonal activities arranged at an easy pace."
-    if "blue lagoon" in lower or "volcano" in lower:
-        return f"Today combines Icelandic landscapes with time to unwind, balancing the volcano area and Blue Lagoon in one arranged day."
-    if "photo" in lower or "sommar" in lower or "landscape" in lower:
-        return f"Set out from {city_text} for a scenery-led experience, with the route shaped around light, weather and the best viewpoints of the day."
-
-    return f"{title} gives the day a clear focus in {city_text}, with the rest of the schedule kept straightforward and easy to follow."
+    return client_activity_intro(activity_title, city, source_text)
 
 
 def _group_tour_intro(activity_title: str, city: str, source_text: str) -> str:
-    """Varied intro for guided group-tour continuation days."""
+    """Compatibility wrapper around the shared group-tour decision engine."""
 
-    title = str(activity_title or "today's guided route").strip()
-    city_text = str(city or "the route").strip()
-    lower = f"{title} {source_text}".lower()
-
-    if "golden circle" in lower:
-        return f"The guided route moves into the Golden Circle today, combining Þingvellir, Geysir and Gullfoss with the first overnight stop outside Reykjavík."
-    if "south coast" in lower or "katla" in lower:
-        return f"Continue along Iceland’s South Coast, where waterfalls, black-sand scenery and the Katla Ice Cave shape the main part of the day."
-    if "jökuls" in lower or "jokuls" in lower or "diamond beach" in lower or "skaftafell" in lower:
-        return f"Glacier scenery leads the day, with Skaftafell, Jökulsárlón and Diamond Beach forming the main stops before the next overnight stay."
-    if "eastfjord" in lower or "egils" in lower:
-        return f"The route turns through the Eastfjords today, with fishing villages, mountain roads and local landscapes giving this stage a quieter pace."
-    if "north iceland" in lower or "mývatn" in lower or "myvatn" in lower or "dettifoss" in lower:
-        return f"Travel into North Iceland, with waterfall stops, geothermal landscapes and the Mývatn area giving the day its main focus."
-    if "whale" in lower or "hauganes" in lower:
-        return "Your guided route returns towards Reykjavík today, with time on the water for whale watching before the programme comes back to the capital."
-
-    return f"The guided programme continues through {city_text} today, with the main stops, route and overnight arrangements handled as part of the tour."
-
-
+    return client_group_tour_intro(activity_title, city, source_text)
 
 
 def _activity_intro(title: str, city: str) -> str:
-    lower = f"{title} {city}".lower()
-    city_text = city or "the destination"
-    if "walking" in lower or "city highlights" in lower or "suomenlinna" in lower:
-        return f"Spend time getting oriented in {city_text}, with {title} introducing key sights, local stories and practical context for the rest of your stay."
-    if "northern lights" in lower or "aurora" in lower:
-        return "The day is kept easy around your evening Northern Lights experience, giving you time to settle before heading out with local guidance after dark."
-    if "fjord" in lower or "cruise" in lower or "boat" in lower or "silent electric ship" in lower:
-        return f"Today brings you closer to the water, with {title} adding fjord scenery, coastal views or a different perspective on {city_text}."
-    if "funicular" in lower or "cable car" in lower or "fjellheisen" in lower or "fløibanen" in lower or "floibanen" in lower:
-        return f"Use today for a flexible viewpoint visit in {city_text}, with {title} arranged so you can choose the timing that suits the day."
-    if "santa" in lower or "reindeer" in lower or "husky" in lower:
-        return f"Today focuses on classic Arctic experiences around {city_text}, with animal encounters or seasonal activities arranged at an easy pace."
-    if "blue lagoon" in lower or "volcano" in lower:
-        return "Today combines Icelandic landscapes with time to unwind, balancing the volcano area and Blue Lagoon in one arranged day."
-    if "photo" in lower or "sommar" in lower or "landscape" in lower:
-        return f"Set out from {city_text} for a scenery-led experience, with the route shaped around light, weather and the best viewpoints of the day."
-    return f"{title} is the main arranged experience in {city_text}, with the rest of the day kept simple and easy to follow."
+    """Compatibility wrapper around the shared activity-intro decision engine."""
+
+    return client_activity_intro(title, city)
 
 
 def _group_tour_intro_from_source(title: str, source: str) -> str:
-    lower = f"{title} {source}".lower()
-    if "golden circle" in lower:
-        return "The guided route moves into the Golden Circle today, combining Þingvellir, Geysir and Gullfoss with the first overnight stop outside Reykjavík."
-    if "south coast" in lower or "katla" in lower:
-        return "Continue along Iceland’s South Coast, where waterfalls, black-sand scenery and the Katla Ice Cave shape the main part of the day."
-    if "jökuls" in lower or "jokuls" in lower or "diamond beach" in lower or "skaftafell" in lower:
-        return "Glacier scenery leads the day, with Skaftafell, Jökulsárlón and Diamond Beach forming the main stops before the next overnight stay."
-    if "eastfjord" in lower or "egils" in lower:
-        return "The route turns through the Eastfjords today, with fishing villages, mountain roads and local landscapes giving this stage a quieter pace."
-    if "north iceland" in lower or "mývatn" in lower or "myvatn" in lower or "dettifoss" in lower:
-        return "Travel into North Iceland, with waterfall stops, geothermal landscapes and the Mývatn area giving the day its main focus."
-    if "whale" in lower and "hauganes" in lower:
-        return "Your guided route returns towards Reykjavík today, with time on the water for whale watching before the programme comes back to the capital."
-    return ""
+    """Compatibility wrapper around the shared group-tour decision engine."""
 
-
+    return client_group_tour_intro(title, "the route", source)
 
 
 def _welcome_arrival_intro(city: str, detail_level: str, *, with_activity: bool = False) -> str:
@@ -184,7 +120,7 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "hop_on_city_day":
         return f"Use the day flexibly to explore {city} at your own pace, with sightseeing transport arranged to make the city’s main areas easy to reach." if city else "Use the day flexibly to explore at your own pace, with sightseeing transport arranged to make the main areas easy to reach."
     if pattern == "single_activity_day":
-        return _activity_intro(title, city)
+        return client_activity_intro(title, city)
     return ""
 
 
@@ -271,7 +207,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         if is_supplier_day_row(activities[0]):
             source_text = get_activity_text(activities[0])
             focus = _natural_group_tour_focus(activity_title, source_text)
-            return _group_tour_intro(activity_title, city_text, source_text)
+            return client_group_tour_intro(activity_title, city_text, source_text)
 
         combined_activity_text = " ".join(get_activity_text(row) for row in activities)
         if "tallinn" in combined_activity_text.lower():
@@ -302,8 +238,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"{activity_title} is the main arranged experience in {city_text}, with the rest of the day kept flexible."
 
-            activity_with_city = _activity_phrase_with_city(activity_title, city_for_activity)
-            return _activity_day_intro(activity_title, city_for_activity or city_text, activity_text, detail_level)
+            return client_activity_intro(activity_title, city_for_activity or city_text, activity_text)
 
     if (transports or route_transfers) and city:
         transport_context = " ".join(f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}' for row in transports + route_transfers).lower()

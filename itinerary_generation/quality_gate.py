@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping
 
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.client_text_decisions import is_weak_journey_arc_phrase
 
 
 IMPORTANT_ROW_TYPES = {
@@ -350,6 +351,31 @@ def _meta_lines_with_time_warnings(render_document: Any) -> list[str]:
     return findings
 
 
+
+def _journey_arc_phrase_issues(render_document: Any) -> list[ItineraryValidationIssue]:
+    """Find meaning-level Journey Arc filler, not just exact forbidden words."""
+
+    issues: list[ItineraryValidationIssue] = []
+    summary = getattr(render_document, "summary", None)
+    rows = getattr(summary, "journey_arc", []) or []
+    for row in rows:
+        if isinstance(row, Mapping):
+            chapter = str(row.get("chapter", "") or "")
+            experience = row.get("experience", "")
+        else:
+            chapter = str(getattr(row, "chapter", "") or "")
+            experience = getattr(row, "experience", "")
+        if is_weak_journey_arc_phrase(experience):
+            issues.append(
+                ItineraryValidationIssue(
+                    BLOCKING,
+                    "weak_journey_arc_meaning",
+                    "Journey Arc contains generic logistics filler instead of a destination, route, or real experience.",
+                    context=f"{chapter}: {experience}",
+                )
+            )
+    return issues
+
 def _bare_activity_blocks(render_document: Any) -> list[str]:
     findings: list[str] = []
     for day in getattr(render_document, "days", []) or []:
@@ -465,6 +491,7 @@ def evaluate_client_output_quality(
             )
         )
 
+    issues.extend(_journey_arc_phrase_issues(render_document))
     issues.extend(_image_match_issues(day_images))
     issues.extend(_image_bank_status_issues(image_bank_status))
     return ClientOutputQualityGateReport(issues=tuple(issues))

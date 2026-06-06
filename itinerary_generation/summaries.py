@@ -16,6 +16,14 @@ from itinerary_generation.transport import (
     has_norway_in_a_nutshell,
 )
 from itinerary_generation.group_tours import is_group_tour_overview
+from itinerary_generation.client_text_decisions import (
+    WEAK_JOURNEY_ARC_RE,
+    choose_journey_arc_phrase,
+    destination_logistics_phrase,
+    is_destination_logistics_only,
+    sanitize_journey_arc_phrase,
+    welcome_arc_phrase,
+)
 
 
 def create_trip_glance(parsed_rows, grouped_days):
@@ -118,61 +126,29 @@ def _add_theme(items, theme):
         items.append(theme)
 
 
-WEAK_JOURNEY_ARC_RE = re.compile(
-    r"(?:"
-    r"\bflight\s+connection\b|"
-    r"\b(?:scenic\s+)?travel\s+connection\b|"
-    r"\bonward\s+(?:flight|train|travel|connection|connections)\b|"
-    r"\btravel\s+arrangements\b|"
-    r"\baccommodation\s+as\s+listed\b|"
-    r"\barrival\s+arrangements\b"
-    r")",
-    flags=re.IGNORECASE,
-)
-
-
 def _welcome_arc_phrase(chapter: str = "") -> str:
-    chapter = str(chapter or "").strip()
-    if chapter and chapter.lower() not in {"journey", "cruise", "route"}:
-        return f"Welcome to {chapter}"
-    return "Arrival and time to settle in"
+    """Compatibility wrapper for the shared Journey Arc fallback rule."""
+
+    return welcome_arc_phrase(chapter)
 
 
 def sanitize_journey_arc_experience(text: str, *, chapter: str = "") -> str:
-    """Remove generic travel filler from Journey Arc copy.
+    """Compatibility wrapper for shared Journey Arc sanitising."""
 
-    The Journey Arc is a client summary, not a logistics ledger. If the source
-    only supports a travel/arrival day, prefer a destination welcome phrase over
-    fabricated filler such as ``Flight connection`` or ``onward train``.
-    """
-
-    value = str(text or "").strip()
-    if not value:
-        return _welcome_arc_phrase(chapter) if chapter else "Time to explore at your own pace"
-    value = re.sub(r"\bAurora\b", "Northern Lights", value, flags=re.IGNORECASE)
-    value = re.sub(r"\s+", " ", value).strip(" ,")
-    value = re.sub(r"\s+(?:and|&)\s+onward\s+(?:train|flight|travel|connections?)\b.*$", "", value, flags=re.IGNORECASE).strip(" ,")
-    value = re.sub(r"\bonward\s+(?:train|flight|travel|connections?)\b", "", value, flags=re.IGNORECASE).strip(" ,")
-    if not value or WEAK_JOURNEY_ARC_RE.search(value):
-        return _welcome_arc_phrase(chapter)
-    return value or _welcome_arc_phrase(chapter)
+    return sanitize_journey_arc_phrase(text, chapter=chapter)
 
 
 def _title_case_arc(text: str) -> str:
-    text = sanitize_journey_arc_experience(text)
+    text = sanitize_journey_arc_phrase(text)
     if not text:
         return "Time to explore at your own pace"
     return text[:1].upper() + text[1:]
 
 
-def _compact_arc_phrase(candidates):
-    """Pick a short Journey Arc phrase suitable for one table row."""
-    for phrase in candidates:
-        phrase = _title_case_arc(phrase)
-        if len(phrase) <= 48:
-            return phrase
-    phrase = _title_case_arc(candidates[0] if candidates else "Time to explore at your own pace")
-    return phrase[:45].rstrip(" ,") + "..." if len(phrase) > 48 else phrase
+def _compact_arc_phrase(candidates, *, chapter: str = ""):
+    """Compatibility wrapper for shared compact Journey Arc selection."""
+
+    return choose_journey_arc_phrase(candidates, chapter=chapter)
 
 
 def describe_city_experience(rows):
@@ -229,9 +205,18 @@ def describe_city_experience(rows):
     has_flight = _has(text, "flight")
     chapter_city = get_primary_city(rows) or ""
 
-    if not primary_experience_rows and (has_hotel_only or travel_only_with_hotel):
+    if not primary_experience_rows and is_destination_logistics_only(rows):
         if _has(text, "northern light village", "panorama suite"):
             return "Northern Lights village stay"
+        if has_nutshell:
+            return "Norway in a Nutshell and scenic rail"
+        if _has(text, "spend time at leisure onboard the cruise") and row_types == {"Cruise"}:
+            return "Coastal cruise at leisure"
+        if _has(text, "cruise to bergen") and _has(text, "kirkenes"):
+            return "Cruise departure towards Bergen"
+        if _has(text, "cruise arrival to bergen", "arrival to bergen"):
+            return "Cruise arrival and Bergen stay"
+        return destination_logistics_phrase(rows, chapter=chapter_city)
 
     candidates = []
 
@@ -365,8 +350,8 @@ def describe_city_experience(rows):
     if len(candidates) > 1:
         combined = f"{primary}, {candidates[1].lower()}"
         if len(combined) <= 48 and not any(word in primary.lower() for word in candidates[1].lower().split()[:2]):
-            return _compact_arc_phrase([combined, primary])
-    return _compact_arc_phrase([primary])
+            return _compact_arc_phrase([combined, primary], chapter=chapter_city)
+    return _compact_arc_phrase([primary], chapter=chapter_city)
 
 def format_day_range(days):
     if not days:
