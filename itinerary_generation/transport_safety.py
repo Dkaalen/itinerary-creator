@@ -254,10 +254,16 @@ def standardize_private_transfer_phrase(value: str, city: str = "") -> str:
         # Preserve explicit airport names from source, e.g. Kittilä Airport.
         directional = re.search(rf"\b(?:to|from)\s+(?P<airport>{_PLACE_WORD_RE}?\s+Airport)\b", text, flags=re.IGNORECASE)
         if directional:
-            return normalize_transport_place(directional.group("airport"))
+            airport = normalize_transport_place(directional.group("airport"))
+            if airport.lower() in {"airport", "the airport"}:
+                return "the airport"
+            return airport
         airport_matches = re.findall(r"\b([A-ZÅÄÖÆØ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,40}?\s+Airport)\b", text)
         if airport_matches:
-            return normalize_transport_place(airport_matches[-1])
+            airport = normalize_transport_place(airport_matches[-1])
+            if airport.lower() in {"airport", "the airport"}:
+                return "the airport"
+            return airport
         return f"{default_city} Airport" if default_city else "the airport"
 
     named_hotel_to_airport = re.search(r"\bprivate\s+(?:transfer\s+)?hotel\s+to\s+(?P<airport>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", text, flags=re.IGNORECASE)

@@ -258,7 +258,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
             trip_glance[route_label] = generated_trip_glance[route_label]
 
     saved_journey_arc = typed_summary.get("journey_arc") or output_edits.get("journey_arc")
-    weak_arc_markers = ("onward flight", "onward travel", "aurora")
+    weak_arc_markers = ("onward flight", "onward travel", "onward train", "onward connection", "flight connection", "travel continues", "aurora")
     if isinstance(saved_journey_arc, list) and saved_journey_arc and not any(
         any(marker in str(row.get("experience", "")).lower() for marker in weak_arc_markers)
         for row in saved_journey_arc

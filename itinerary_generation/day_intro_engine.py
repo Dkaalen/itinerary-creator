@@ -55,7 +55,7 @@ def _explicit_transfer_airport(day_rows) -> str:
                     return airport
             continue
         airport = normalize_transport_place(match.group(1))
-        if airport:
+        if airport and airport.lower() not in {"airport", "the airport"}:
             return airport
     return ""
 
@@ -322,8 +322,6 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Elegant concise":
                 return f"Travel from {route_label}."
             if detail_level == "Rich descriptive":
-                if route_destination:
-                    return f"Travel towards {route_destination} today, with the main transfer details laid out clearly in the itinerary."
                 return f"Travel from {route_label} today, with the main transfer details laid out clearly in the itinerary."
             return f"Travel from {route_label}, with the day focused on the planned route."
 

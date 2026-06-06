@@ -105,6 +105,9 @@ def _polish_text_fragment(text: str) -> str:
     # Remove low-value supplier metadata that should never be visible to clients.
     text = re.sub(r"\s*\(\s*(?:unlimited|if\s+snow|weather\s+permitting|if\s+weather\s+permits)\s*\)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\bto\s+Airport\b", "to the airport", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bAurora\s+Borealis\b", "Northern Lights", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bAuroras\b", "Northern Lights", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bAurora\b", "Northern Lights", text, flags=re.IGNORECASE)
 
     # Clean broken supplier inclusion fragments and recurring typo/casing issues.
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)

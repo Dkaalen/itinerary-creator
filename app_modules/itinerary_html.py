@@ -1,6 +1,7 @@
 import json
 
 from app_modules.itinerary_render_context import build_itinerary_render_context
+from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.itinerary_html_sections import (
     balanced_cover_subtitle_html,
     render_cover_page,
@@ -31,8 +32,18 @@ def _balanced_cover_destinations_html(destinations_line: str) -> str:
     return cover_route_html(destinations_line)
 
 
+def _raise_for_blocking_client_output(context) -> None:
+    report = evaluate_client_output_quality(context.render_document)
+    if report.is_blocked:
+        details = "; ".join(
+            f"{issue.code}: {issue.message}" for issue in report.blocking_issues
+        )
+        raise ValueError(f"Client output quality gate blocked itinerary generation: {details}")
+
+
 def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     context = build_itinerary_render_context(parsed_rows, grouped_days, output_edits or {})
+    _raise_for_blocking_client_output(context)
     colors_json = esc(json.dumps(context.colors))
 
     html_text = build_preview_style(context.colors, context.cover_theme, context.cover_background_data_uri)

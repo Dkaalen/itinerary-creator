@@ -21,7 +21,7 @@ from itinerary_generation.inclusions import create_whats_not_included
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 from itinerary_generation.transport_safety import scan_client_output
-from itinerary_generation.summaries import create_journey_arc, create_trip_glance
+from itinerary_generation.summaries import create_journey_arc, create_trip_glance, sanitize_journey_arc_experience
 from images.app_image_selection import (
     get_day_image_choice,
     get_day_image_crop_focus,
@@ -99,20 +99,31 @@ def _get_trip_glance(parsed_rows, grouped_days, output_edits):
 
 
 def _normalise_journey_arc(grouped_days, saved):
-    weak_arc_markers = ("onward flight and accommodation", "onward travel and accommodation", "onward travel")
+    weak_arc_markers = (
+        "onward flight",
+        "onward travel",
+        "onward train",
+        "onward connection",
+        "flight connection",
+        "travel continues",
+        "aurora",
+    )
     if isinstance(saved, list) and saved:
         clean_rows = []
+        should_regenerate = False
         for row in saved:
             if isinstance(row, dict):
+                chapter = str(row.get("chapter", "")).strip()
                 experience = str(row.get("experience", "")).strip()
                 if any(marker in experience.lower() for marker in weak_arc_markers):
-                    return create_journey_arc(grouped_days)
+                    should_regenerate = True
+                    break
                 clean_rows.append({
-                    "chapter": str(row.get("chapter", "")).strip(),
+                    "chapter": chapter,
                     "days": str(row.get("days", "")).strip(),
-                    "experience": experience,
+                    "experience": sanitize_journey_arc_experience(experience, chapter=chapter),
                 })
-        if clean_rows:
+        if clean_rows and not should_regenerate:
             return clean_rows
     return create_journey_arc(grouped_days)
 

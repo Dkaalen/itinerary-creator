@@ -65,6 +65,9 @@ QUALITY_TESTS = (
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_patch_ao_output_quality_engine.py",
     "tests/test_patch_ap_output_quality_and_images.py",
+    "tests/test_patch_aq_enforcement_gaps.py",
+    "tests/test_day_heading_dates.py",
+    "tests/test_regressions_travel_text.py",
 )
 
 PDF_TESTS = (

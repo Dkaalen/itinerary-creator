@@ -48,7 +48,20 @@ def _clean_route_place(value):
         raw = "Ålesund"
     place = normalize_transport_place(canonicalize_place_name(raw) or raw)
     lower = place.lower()
-    if lower in _ROUTE_PREFIX_ORIGINS | {"", "hotel", "station", "airport", "accommodation", "your accommodation"}:
+    invalid_places = _ROUTE_PREFIX_ORIGINS | {
+        "",
+        "the",
+        "hotel",
+        "the hotel",
+        "station",
+        "the station",
+        "airport",
+        "the airport",
+        "accommodation",
+        "your accommodation",
+        "your hotel",
+    }
+    if lower in invalid_places:
         return ""
     blocked_phrases = ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]
     if any(marker in lower for marker in blocked_phrases):
