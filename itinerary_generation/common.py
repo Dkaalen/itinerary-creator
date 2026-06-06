@@ -14,6 +14,7 @@ from itinerary_generation.destination_helpers import (
     get_row_city,
     get_unique_cities,
     is_valid_destination_city,
+    overnight_destination_cities,
 )
 from itinerary_generation.group_tour_accommodation import (
     _add_group_tour_accommodation_rows,
@@ -61,4 +62,5 @@ __all__ = [
     "main_rows_only",
     "normalize_detail_level",
     "optional_rows_only",
+    "overnight_destination_cities",
 ]

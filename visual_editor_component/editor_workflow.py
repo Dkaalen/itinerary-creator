@@ -14,6 +14,7 @@ from itinerary_generation.titles import (
     create_trip_subtitle,
     create_trip_title,
 )
+from itinerary_generation.cover_route import clean_or_create_cover_route_line
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
 from itinerary_generation.inclusions import create_whats_not_included
@@ -77,30 +78,47 @@ def _source_signature(parsed_rows, grouped_days):
     payload = "\n".join(pieces)
     return hashlib.sha256(payload.encode("utf-8", errors="ignore")).hexdigest()[:20]
 
-def _get_trip_glance(parsed_rows, grouped_days, output_edits):
+def _merge_trip_glance(parsed_rows, grouped_days, *saved_glances):
     generated = create_trip_glance(parsed_rows, grouped_days)
-    saved = (output_edits or {}).get("trip_glance") or {}
-    if isinstance(saved, dict):
-        for key, value in saved.items():
-            if key in generated:
-                generated[key] = value
+    for saved in saved_glances:
+        if isinstance(saved, dict):
+            for key, value in saved.items():
+                if key in generated:
+                    generated[key] = value
+    # Route-owned fields are never editable fallbacks: saved drafts can be old
+    # or polluted by transfer rows, so regenerate them from overnight stays.
+    route_owned = create_trip_glance(parsed_rows, grouped_days)
+    for key in ("Start", "End", "Destinations"):
+        if key in route_owned:
+            generated[key] = route_owned[key]
     return generated
 
 
-def _get_journey_arc(grouped_days, output_edits):
-    saved = (output_edits or {}).get("journey_arc")
+def _get_trip_glance(parsed_rows, grouped_days, output_edits):
+    return _merge_trip_glance(parsed_rows, grouped_days, (output_edits or {}).get("trip_glance"))
+
+
+def _normalise_journey_arc(grouped_days, saved):
+    weak_arc_markers = ("onward flight and accommodation", "onward travel and accommodation", "onward travel")
     if isinstance(saved, list) and saved:
         clean_rows = []
         for row in saved:
             if isinstance(row, dict):
+                experience = str(row.get("experience", "")).strip()
+                if any(marker in experience.lower() for marker in weak_arc_markers):
+                    return create_journey_arc(grouped_days)
                 clean_rows.append({
                     "chapter": str(row.get("chapter", "")).strip(),
                     "days": str(row.get("days", "")).strip(),
-                    "experience": str(row.get("experience", "")).strip(),
+                    "experience": experience,
                 })
         if clean_rows:
             return clean_rows
     return create_journey_arc(grouped_days)
+
+
+def _get_journey_arc(grouped_days, output_edits):
+    return _normalise_journey_arc(grouped_days, (output_edits or {}).get("journey_arc"))
 
 
 def _build_generated_inclusion_sections(parsed_rows, grouped_days):
@@ -202,7 +220,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             match = image_matches.get(day)
             image_path = match.get("path") if match else ""
             preview_data_uri = get_image_preview_for_path(image_path) if image_path else ""
-            options = list_replacement_image_options_for_rows(day, rows)
+            options = list_replacement_image_options_for_rows(day, rows, limit=12)
             image_obj = {
                 "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
                 "path": image_path or "",
@@ -305,11 +323,19 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "trip_title": typed_cover.get("trip_title") or output_edits.get("trip_title", create_trip_title(parsed_rows, grouped_days)),
             "trip_subtitle": typed_cover.get("trip_subtitle") or output_edits.get("trip_subtitle", create_trip_subtitle(parsed_rows, grouped_days)),
             "trip_dates": typed_cover.get("trip_dates") or output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows),
-            "destinations_line": typed_cover.get("destinations_line") or output_edits.get("destinations_line", create_destinations_line(parsed_rows)),
+            "destinations_line": clean_or_create_cover_route_line(parsed_rows, typed_cover.get("destinations_line") or output_edits.get("destinations_line") or create_destinations_line(parsed_rows)),
         },
         "summary": {
-            "trip_glance": typed_summary.get("trip_glance") or _get_trip_glance(parsed_rows, grouped_days, output_edits),
-            "journey_arc": typed_summary.get("journey_arc") or _get_journey_arc(grouped_days, output_edits),
+            "trip_glance": _merge_trip_glance(
+                parsed_rows,
+                grouped_days,
+                output_edits.get("trip_glance"),
+                typed_summary.get("trip_glance"),
+            ),
+            "journey_arc": _normalise_journey_arc(
+                grouped_days,
+                typed_summary.get("journey_arc") or output_edits.get("journey_arc"),
+            ),
         },
         "days": payload_days,
         "final_pages": {

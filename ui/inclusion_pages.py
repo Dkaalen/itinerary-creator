@@ -43,11 +43,20 @@ def _render_inclusion_item(item, *, bullet_multiline=False):
     return html_text
 
 
-def _render_plain_inclusion_items(items):
+def _render_plain_inclusion_items(items, *, as_entries: bool = False):
     normalized_items = [normalize_structured_list_item(item) for item in items]
     normalized_items = [item for item in normalized_items if item and item.label]
     if not normalized_items:
         return ""
+    if as_entries:
+        html_text = ""
+        for index, item in enumerate(normalized_items):
+            if index:
+                html_text += '<div class="body-text inclusion-entry-spacer">&nbsp;</div>'
+            html_text += f'<div class="body-text strong-line inclusion-entry-title">{esc(item.label)}</div>{_source_marker(item)}'
+            for line in item.detail_lines:
+                html_text += f'<div class="body-text inclusion-entry-detail">{esc(line)}</div>'
+        return html_text
     if any(item.source_row_ids for item in normalized_items):
         list_items = "".join(_render_inclusion_item(item) for item in normalized_items)
         return f'<ul class="detail-list inclusion-category-list">{list_items}</ul>'
@@ -66,11 +75,12 @@ def render_inclusion_sections_inner_html(sections):
         multiline_count = 0
         section_key = section.title.strip().lower()
         bullet_multiline = section_key not in {"accommodation", "activities & experiences"}
+        plain_as_entries = section_key == "activities & experiences"
         for item in section.items:
             has_details = bool(item.detail_lines)
             if has_details:
                 if plain_items:
-                    html_text += _render_plain_inclusion_items(plain_items)
+                    html_text += _render_plain_inclusion_items(plain_items, as_entries=plain_as_entries)
                     plain_items = []
                 if multiline_count and not bullet_multiline:
                     html_text += '<div class="body-text inclusion-entry-spacer">&nbsp;</div>'
@@ -80,7 +90,7 @@ def render_inclusion_sections_inner_html(sections):
                 plain_items.append(item)
 
         if plain_items:
-            html_text += _render_plain_inclusion_items(plain_items)
+            html_text += _render_plain_inclusion_items(plain_items, as_entries=plain_as_entries)
 
         html_text += '</div>'
     return html_text
@@ -92,25 +102,24 @@ def _estimate_inclusion_item_units(item):
         return 0
     lines = [structured_item.label, *structured_item.detail_lines]
     text = "\n".join(lines)
-    units = 2 + max(0, len(lines) - 1)
-    if len(text) > 90:
-        units += 1
-    if len(text) > 170:
-        units += 1
-    if len(text) > 260:
-        units += 1
+    units = 1.5 + max(0, len(lines) - 1) * 0.9
+    if len(text) > 110:
+        units += 0.7
+    if len(text) > 210:
+        units += 0.7
+    if len(text) > 330:
+        units += 0.7
     return units
 
 
 def _estimate_inclusion_section_units(section):
     """Approximate vertical space for keeping inclusion categories together.
 
-    Categories are kept together whenever they can fit on an otherwise empty
-    page. If one item would push a category over the current page limit, the
-    whole category moves to the next page. Only categories that are too large to
-    fit by themselves are split, with the heading repeated as ``continued``.
+    Categories are kept together whenever they can fit on the current page.
+    If a category is too large for a single page, it is split without adding
+    ugly "continued" wording to the client-facing page or section headings.
     """
-    units = 4  # section title and spacing
+    units = 3  # section title and spacing
     normalized = normalize_structured_list_sections([section])
     if not normalized:
         return 0
@@ -127,19 +136,19 @@ def _split_oversized_inclusion_section(section, page_body_units):
     section_title = section_obj.title
     chunks = []
     current_items = []
-    current_units = 4
+    current_units = 3
 
     for item in section_obj.items:
         item_units = _estimate_inclusion_item_units(item)
         if current_items and current_units + item_units > page_body_units:
-            chunks.append({"title": section_title if not chunks else f"{section_title} continued", "items": current_items})
+            chunks.append({"title": section_title, "items": current_items})
             current_items = []
-            current_units = 4
+            current_units = 3
         current_items.append(item)
         current_units += item_units
 
     if current_items:
-        chunks.append({"title": section_title if not chunks else f"{section_title} continued", "items": current_items})
+        chunks.append({"title": section_title, "items": current_items})
 
     return chunks or [section]
 
@@ -158,7 +167,7 @@ def paginate_categorized_inclusions(sections):
     pages = []
     current = []
     current_units = 7  # final page title and top spacing
-    max_units = 58
+    max_units = 70
     empty_page_body_units = max_units - 7
 
     for section in clean_sections:
@@ -193,7 +202,6 @@ def render_categorized_inclusions_pages(title, sections, page_class="final-list-
 
     html_text = ""
     for index, page_sections in enumerate(pages):
-        continued = "" if index == 0 else " continued"
         inner_html = render_inclusion_sections_inner_html(page_sections)
-        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
     return html_text

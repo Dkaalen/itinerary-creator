@@ -35,7 +35,7 @@ def _image_to_preview_data_uri_cached(path_text, max_size, quality, mtime):
     except Exception:
         return ""
 
-def image_to_preview_data_uri(path, max_size=(1100, 760), quality=74):
+def image_to_preview_data_uri(path, max_size=(820, 560), quality=64):
     """Return a browser-friendly preview data URI instead of the original image.
 
     The visual editor only needs a screen preview. Sending original local image
@@ -65,7 +65,7 @@ def image_to_preview_data_uri(path, max_size=(1100, 760), quality=74):
 
 def image_to_option_preview_data_uri(path):
     """Return a tiny preview used only after choosing a replacement image."""
-    return image_to_preview_data_uri(path, max_size=(420, 300), quality=60)
+    return image_to_preview_data_uri(path, max_size=(360, 250), quality=56)
 
 def get_image_preview_for_path(path, option=False):
     if not path:

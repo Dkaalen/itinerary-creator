@@ -205,7 +205,7 @@ def test_structured_inclusions_keep_source_ids_for_activity_rows():
     assert "Fjord" not in munch_item.label
 
 
-def test_structured_activity_inclusion_titles_render_as_separate_bullets():
+def test_structured_activity_inclusion_titles_render_as_client_entries_not_loose_bullets():
     rows = [
         {
             "row_id": "fjellheisen-row",
@@ -240,9 +240,11 @@ def test_structured_activity_inclusion_titles_render_as_separate_bullets():
     html = build_itinerary_html(rows, group_rows_by_day(rows), {"days": {}, "pictures_added": False})
 
     assert labels == ["Round-trip viewpoint ticket in Tromsø - 2nd of November", "Oslo Walking Tour - 5th of November"]
-    assert '<li>Round-trip viewpoint ticket in Tromsø - 2nd of November</li>' in html
+    assert '<div class="body-text strong-line inclusion-entry-title">Round-trip viewpoint ticket in Tromsø - 2nd of November</div>' in html
+    assert '<li>Round-trip viewpoint ticket in Tromsø - 2nd of November</li>' not in html
     assert 'Fjellheisen Cable Car - 2nd of November' not in html
-    assert '<li>Oslo Walking Tour - 5th of November</li>' in html
+    assert '<div class="body-text strong-line inclusion-entry-title">Oslo Walking Tour - 5th of November</div>' in html
+    assert '<li>Oslo Walking Tour - 5th of November</li>' not in html
 
 
 def test_structured_list_source_ids_are_validated():

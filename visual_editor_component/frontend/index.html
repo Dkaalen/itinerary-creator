@@ -300,6 +300,8 @@
     .saved-note { color: #bfe7d9; font-weight: 700; font-size: 12px; display: none; }
     .saved-note.show { display: inline; }
     .help-strip { margin-top: 10px; color: #a9b6c2; font-size: 12px; line-height: 1.4; text-align: center; }
+    .editor-error { max-width: 760px; margin: 24px auto; padding: 18px 20px; border: 1px solid rgba(232,182,86,.45); border-radius: 14px; background: rgba(232,182,86,.12); color: #fff1ca; line-height: 1.45; }
+    .editor-error strong { display: block; margin-bottom: 6px; color: #fff8df; }
     @media (max-width: 860px) {
       .a4-page { transform: scale(calc((100vw - 34px) / 794)); margin-bottom: calc(-1123px + ((100vw - 34px) / 794 * 1123px)); }
       .editor-toolbar { align-items: flex-start; flex-direction: column; }
@@ -519,11 +521,10 @@ function finalHtmlPages(label, title, key, pages) {
   model.final_pages[key] = cleanPages;
   return cleanPages.map((page, idx) => {
     const html = typeof page === 'string' ? page : (page?.html || '');
-    const suffix = idx === 0 ? '' : ' continued';
-    const pageLabel = idx === 0 ? label : `${label} continued`;
+    const pageLabel = label;
     const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Move content up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Remove empty page</button></div>`;
     return `<div class="page-wrap"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div><div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
-      <div class="final-title">${esc(title)}${suffix}</div>
+      <div class="final-title">${esc(title)}</div>
       ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
     </div></div></div>`;
   }).join('');
@@ -1256,10 +1257,24 @@ window.addEventListener('beforeunload', () => {
     persistLocalDraft();
   }
 });
+function showEditorError(err) {
+  const root = document.getElementById('root');
+  const message = err && err.message ? err.message : String(err || 'Unknown rendering error');
+  root.innerHTML = `<div class="editor-shell"><div class="editor-error"><strong>The editable preview could not render safely.</strong><div>${esc(message)}</div><div style="margin-top:8px">Your itinerary data is still in the app. Refresh the preview or generate the itinerary again after saving.</div></div></div>`;
+  Streamlit.setFrameHeight(360);
+}
+function safeRender(payload, commitNonce = null) {
+  try {
+    render(payload, commitNonce);
+  } catch (err) {
+    console.error(err);
+    showEditorError(err);
+  }
+}
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'streamlit:render') {
     const args = event.data.args || {};
-    render(args.payload, args.commit_nonce);
+    safeRender(args.payload, args.commit_nonce);
   }
 });
 Streamlit.setComponentReady();

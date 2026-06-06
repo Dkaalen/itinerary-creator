@@ -10,7 +10,7 @@ from itinerary_generation.common import (
     main_rows_only,
     destination_cities_for_row,
 )
-from place_aliases import canonicalize_place_name
+from itinerary_generation.cover_route import route_cities_with_return
 from itinerary_generation.transport import (
     has_glass_igloo_or_arctic_resort,
     has_norway_in_a_nutshell,
@@ -20,18 +20,21 @@ from itinerary_generation.group_tours import is_group_tour_overview
 
 def create_trip_glance(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
-    cities = get_unique_cities(parsed_rows)
+    cities = route_cities_with_return(parsed_rows) or get_unique_cities(parsed_rows)
     day_count = get_day_count(grouped_days)
     nights = max(day_count - 1, 0)
 
-    row_cities = [
+    # The Destinations field is owned by confirmed overnight stays.  Start and
+    # End are trip endpoints, so a clean final departure city can still be shown
+    # even when it is not another overnight stay.
+    endpoint_cities = [
         city
         for row in parsed_rows
         for city in destination_cities_for_row(row)
         if is_valid_destination_city(city)
     ]
-    start_city = row_cities[0] if row_cities else (cities[0] if cities else "TBA")
-    end_city = row_cities[-1] if row_cities else (cities[-1] if cities else "TBA")
+    start_city = endpoint_cities[0] if endpoint_cities else (cities[0] if cities else "TBA")
+    end_city = endpoint_cities[-1] if endpoint_cities else (cities[-1] if cities else "TBA")
     destinations = " · ".join(cities) if cities else "TBA"
 
     hotel_rows = [row for row in parsed_rows if get_row_type(row) == "Hotel"]
@@ -295,16 +298,25 @@ def describe_city_experience(rows):
     if has_departure and not candidates:
         candidates.append("Departure arrangements")
     if has_arrival and not candidates:
-        candidates.append("Arrival and accommodation")
+        candidates.append("Arrival arrangements")
     if has_hotel_only:
         candidates.append("Accommodation as listed")
     if travel_only_with_hotel and not candidates:
-        if has_flight:
-            candidates.append("Onward flight and accommodation")
+        if has_departure:
+            candidates.append("Departure arrangements")
+        elif has_flight:
+            candidates.append("Onward flight")
+        elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
+            candidates.append("Onward scenic travel")
         else:
-            candidates.append("Onward travel and accommodation")
+            candidates.append("Travel arrangements")
     if not candidates:
-        candidates.append("Time to explore at your own pace")
+        if has_flight:
+            candidates.append("Onward flight")
+        elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
+            candidates.append("Onward scenic travel")
+        else:
+            candidates.append("Time to explore at your own pace")
 
     # Prefer the most distinctive compact phrase, then add at most one short
     # secondary theme if the phrase remains safely one-line in the summary table.

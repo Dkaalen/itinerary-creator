@@ -82,7 +82,8 @@ def test_v36c54_transport_cruise_inclusion_quality_gate():
     assert_not_contains(inclusion_text, "Spend time at leisure onboard the cruise", "Cruise leisure days should not be commercial inclusions.")
     assert_not_contains(inclusion_text, "Self transfer", "Self transfers must never appear in the inclusions list.")
     pages_html = render_categorized_inclusions_pages("What’s included", sections)
-    assert_contains(pages_html, "What’s included continued", "Long categorized inclusions should split into explicit continued pages instead of orphan bullets.")
+    assert_equal(pages_html.count('categorized-inclusions-page'), 2, "Long categorized inclusions should still split rather than orphaning bullets.")
+    assert_not_contains(pages_html, "What’s included continued", "Repeated inclusion pages should keep the clean page title without 'continued' wording.")
 
     alta_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "finland_norway_autumn_alta.txt").read_text(encoding="utf-8")))
     alta_grouped = group_rows_by_day(alta_rows)

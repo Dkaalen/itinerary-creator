@@ -221,7 +221,8 @@ Please check-in 30 minutes before departure. Pick-up service is 75–45 minutes 
     rows = normalize_itinerary_rows(parse_itinerary(raw))
     grouped = group_rows_by_day(rows)
     assert_equal(create_trip_title(rows, grouped), "Iceland Summer Escape", "Iceland-only itineraries should not be branded Nordic.")
-    assert_contains(create_destinations_line(rows), "Blue Lagoon", "Concatenated place names should be normalized.")
+    assert_contains(create_destinations_line(rows), "Reykjavík", "Overnight stays should drive the route line.")
+    assert_not_contains(create_destinations_line(rows), "Blue Lagoon", "Day-trip spa locations should not enter the main overnight route.")
     glance = create_trip_glance(rows, grouped)
     assert_contains(glance["Travel Style"], "self-drive", "Rental vehicle rows should create a self-drive travel style.")
     blue = next(row for row in rows if row.get("city") == "Blue Lagoon")
@@ -240,7 +241,7 @@ def test_real_input_fixture_bank_core_expectations():
     expectations = {
         "iceland_self_drive_summer.txt": {
             "title": "Iceland Summer Escape",
-            "route_contains": ["Blue Lagoon", "Reykjavík", "Öræfi"],
+            "route_contains": ["Reykjavík", "Öræfi"],
             "style_contains": "self-drive",
             "forbidden": ["Nordic Summer Journey", "Bluelagoon", "National Park National Park", "Ranua"],
         },
@@ -465,8 +466,11 @@ def test_v36c57_real_uploaded_inputs_quality_gate():
 
     # Synthetic stress case for the inclusion pagination rule: if a category is
     # too large for one page, it is split with a repeated category heading.
-    huge_section = {"title": "Activities & experiences", "items": [f"Included experience number {index} with guide, tickets and transfers" for index in range(1, 32)]}
+    huge_section = {"title": "Activities & experiences", "items": [f"Included experience number {index} with guide, tickets and transfers" for index in range(1, 52)]}
     huge_html = render_categorized_inclusions_pages("What’s included", [huge_section])
-    assert_contains(huge_html, "What’s included continued", "Oversized inclusion sections should create continued pages.")
-    assert_contains(huge_html, "Activities &amp; experiences continued", "Oversized categories should repeat their category heading when split.")
+    assert_contains(huge_html, "What’s included", "Oversized inclusion sections should still create inclusion pages.")
+    assert_not_contains(huge_html, "What’s included continued", "Repeated inclusion pages should keep the clean page title without 'continued' wording.")
+    assert_contains(huge_html, "Activities &amp; experiences", "Split oversized categories should keep their category heading.")
+    assert_not_contains(huge_html, "Activities &amp; experiences continued", "Split categories should not add ugly continued wording.")
+    assert huge_html.count('categorized-inclusions-page') >= 2
 

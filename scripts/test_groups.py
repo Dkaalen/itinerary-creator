@@ -28,6 +28,7 @@ FAST_TESTS = (
     "tests/test_patch_ai_transport_domain.py",
     "tests/test_patch_ak_cleanup_hygiene.py",
     "tests/test_patch_al_editor_preview_ownership.py",
+    "tests/test_patch_am_client_output_quality.py",
     "tests/test_regressions_parser_normalizer.py",
     "tests/test_stress_logic_followups.py",
     "tests/test_itinerary_health_report.py",

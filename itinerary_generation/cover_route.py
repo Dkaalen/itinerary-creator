@@ -7,19 +7,26 @@ from html import escape
 from itinerary_generation.common import (
     destination_cities_for_row,
     main_rows_only,
+    overnight_destination_cities,
 )
 
 SEPARATOR = " · "
 
 
 def route_cities_with_return(parsed_rows: list[dict]) -> list[str]:
-    """Return display cities for the cover route, preserving real return loops."""
+    """Return display cities for the cover route, preserving real return loops.
 
-    route: list[str] = []
-    for row in main_rows_only(parsed_rows):
-        for city in destination_cities_for_row(row):
-            if not route or city != route[-1]:
-                route.append(city)
+    The primary route is owned by confirmed overnight stays. Route-only
+    transport rows are used only as a fallback when an itinerary has no
+    accommodation rows at all.
+    """
+
+    route: list[str] = overnight_destination_cities(parsed_rows)
+    if not route:
+        for row in main_rows_only(parsed_rows):
+            for city in destination_cities_for_row(row):
+                if not route or city != route[-1]:
+                    route.append(city)
 
     if len(route) >= 3 and route[-1] == route[0]:
         result: list[str] = []
@@ -41,6 +48,24 @@ def create_cover_route_line(parsed_rows: list[dict]) -> str:
     if not cities:
         return "Destinations will be detected from the itinerary text"
     return SEPARATOR.join(cities)
+
+
+def sanitize_route_line_for_overnights(parsed_rows: list[dict], route_line: str) -> str:
+    """Filter an existing/saved route line to overnight destinations when known."""
+
+    overnight = overnight_destination_cities(parsed_rows)
+    if not overnight:
+        return str(route_line or "").strip()
+    # The client-facing route is not an editable free-text summary.  It is owned
+    # by confirmed overnight stays so old saved drafts cannot keep logistics
+    # labels such as "your hotel", airports, rail stations or day-trip places.
+    return SEPARATOR.join(overnight)
+
+
+def clean_or_create_cover_route_line(parsed_rows: list[dict], route_line: str | None = None) -> str:
+    if route_line:
+        return sanitize_route_line_for_overnights(parsed_rows, route_line)
+    return create_cover_route_line(parsed_rows)
 
 
 def split_route_line(route_line: str) -> list[str]:

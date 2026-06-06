@@ -24,8 +24,7 @@ def render_custom_html_final_pages(title, page_htmls, page_class="final-list-pag
         inner_html = clean_visual_editor_html(inner_html or "")
         if not inner_html:
             continue
-        continued = "" if index == 0 else " continued"
-        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}{continued}</div>{inner_html}</div>'
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
     return html_text
 
 

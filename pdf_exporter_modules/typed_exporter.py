@@ -267,8 +267,7 @@ def _render_day(day: RenderDay, story, styles, *, image_match=None, crop_focus="
 
 
 def _render_final_page(title: str, page: RenderFinalPage, story, styles, *, continued=False):
-    heading = f"{title}{' continued' if continued else ''}"
-    add_paragraph(story, heading, styles["page_title"])
+    add_paragraph(story, title, styles["page_title"])
     add_premium_rule(story)
     for section in page.sections or []:
         add_paragraph(story, section.title, styles["section"])

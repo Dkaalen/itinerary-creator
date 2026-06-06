@@ -82,10 +82,9 @@ def render_optional_addons_pages(optional_addons, items_per_page=8):
 
     for start in range(0, len(optional_addons), items_per_page):
         chunk = optional_addons[start:start + items_per_page]
-        continued = "" if start == 0 else " continued"
         html_text += f"""
         <div class="a4-page final-list-page optional-addons-page">
-            <div class="final-page-title">Optional Experiences{continued}</div>
+            <div class="final-page-title">Optional Experiences</div>
         """
 
         for addon in chunk:

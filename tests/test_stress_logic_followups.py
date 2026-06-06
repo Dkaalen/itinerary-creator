@@ -42,9 +42,9 @@ def test_sightseeing_northern_lights_cruise_remains_activity():
 def test_cover_route_keeps_return_to_start_destination():
     rows = [
         {"type": "Hotel", "city": "Reykjavik"},
-        {"type": "Activity", "city": "South Coast"},
-        {"type": "Activity", "city": "Vik"},
-        {"type": "Activity", "city": "Akureyri"},
+        {"type": "Hotel", "city": "South Coast"},
+        {"type": "Hotel", "city": "Vik"},
+        {"type": "Hotel", "city": "Akureyri"},
         {"type": "Hotel", "city": "Reykjavik"},
     ]
 

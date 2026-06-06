@@ -9,6 +9,73 @@ from itinerary_generation.common_constants import TRANSPORT_TYPES
 from itinerary_generation.row_filters import get_row_type, is_optional_row
 
 
+_SERVICE_SUFFIX_RE = re.compile(
+    r"^\s*(?:private|shared|guided|self[-\s]?guided|optional|transfer|transport|flight|train|cruise|ferry|arrival|departure)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_service_suffix(value: str) -> str:
+    """Remove parser bleed such as ``Tromsø: Private`` from a city label."""
+
+    text = str(value or "").strip()
+    if ":" not in text:
+        return text
+    left, right = [part.strip() for part in text.split(":", 1)]
+    if left and right and _SERVICE_SUFFIX_RE.search(right):
+        return left
+    return text
+
+
+def _looks_like_rental_vehicle_row(row: dict) -> bool:
+    text = " ".join(str(row.get(key, "") or "") for key in ("type", "effective_type", "title", "original_title", "details")).lower()
+    return any(marker in text for marker in (
+        "rental car", "car rental", "rental vehicle", "pick up your rental",
+        "pickup rental", "deliver your rental", "return your rental",
+        "airport car rental office",
+    ))
+
+
+def _positive_night_count(row: dict) -> int:
+    """Return the explicit accommodation night count when the row represents a stay."""
+
+    if get_row_type(row) != "Hotel" or is_optional_row(row) or _looks_like_rental_vehicle_row(row):
+        return 0
+    value = str(row.get("hotel_nights", "") or "").strip()
+    if value.isdigit():
+        return max(int(value), 0)
+    source = " ".join(str(row.get(key, "") or "") for key in ("title", "original_title", "details"))
+    match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?\b", source, flags=re.IGNORECASE)
+    if match:
+        return max(int(match.group(1)), 0)
+    # A normalized Hotel row without an explicit count still means an overnight
+    # stay in the app's data model. Use it for route ownership rather than
+    # letting transfer rows pollute the destination line.
+    return 1
+
+
+def overnight_destination_cities(parsed_rows) -> list[str]:
+    """Return only destinations with at least one confirmed overnight stay.
+
+    This is the client-facing route source. Transfer points, ports, rail
+    stations, airports, day-trip places and supplier placeholders do not belong
+    in the main route when accommodation rows exist.
+    """
+
+    cities: list[str] = []
+    for row in parsed_rows or []:
+        if _positive_night_count(row) <= 0:
+            continue
+        for city in destination_cities_for_row(row):
+            if not city or (cities and city == cities[-1]):
+                continue
+            # Keep a genuine return-to-start loop, but do not let repeated
+            # intermediate accommodation rows clutter the route.
+            if city not in cities or (len(cities) >= 2 and city == cities[0]):
+                cities.append(city)
+    return cities
+
+
 def is_valid_destination_city(city):
     city = canonicalize_place_name(str(city or "").strip())
     if not city:
@@ -19,6 +86,9 @@ def is_valid_destination_city(city):
         "private airport",
         "hotel to airport",
         "airport to hotel",
+        "your hotel",
+        "your accommodation",
+        "your new accommodation",
         "optional addon",
         "optional add",
         "optinal addon",
@@ -69,7 +139,8 @@ def get_display_destination_city(city):
     "Vík area" or "Höfn area". The cover/glance route should keep the travel
     route clean, so those area suffixes are collapsed to the destination name.
     """
-    value = canonicalize_place_name(str(city or "").strip())
+    value = _strip_service_suffix(str(city or "").strip())
+    value = canonicalize_place_name(value)
     value = re.sub(r"\s+area$", "", value, flags=re.IGNORECASE).strip()
     return value
 
@@ -128,6 +199,10 @@ def destination_cities_for_row(row: dict) -> list[str]:
 
 
 def get_unique_cities(parsed_rows):
+    overnight_cities = overnight_destination_cities(parsed_rows)
+    if overnight_cities:
+        return overnight_cities
+
     cities = []
 
     for row in parsed_rows:

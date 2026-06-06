@@ -43,7 +43,8 @@ def test_structured_final_page_html_preserves_source_row_ids_on_list_items():
         )
     ])
 
-    assert '<li>Fjellheisen Cable Car - 2nd of November</li>' in html
+    assert '<div class="body-text strong-line inclusion-entry-title">Fjellheisen Cable Car - 2nd of November</div>' in html
+    assert '<li>Fjellheisen Cable Car - 2nd of November</li>' not in html
     assert 'data-source-row-ids="fjellheisen-row"' in html
     assert 'data-source-row-ids="oslo-walk-row"' in html
     assert source_row_ids_in_html(html) == ("fjellheisen-row", "oslo-walk-row")

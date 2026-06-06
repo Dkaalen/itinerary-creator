@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app_modules.display_settings import get_color_preset, get_color_preset_name
-from itinerary_generation.cover_route import cover_route_html
+from itinerary_generation.cover_route import clean_or_create_cover_route_line, cover_route_html
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.date_resolver import get_trip_date_range_text
 from itinerary_generation.editable_draft import section_by_id
@@ -232,7 +232,8 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     trip_dates = typed_cover.get("trip_dates") or output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows)
     cover_background_data_uri = cover_theme.get("background_data_uri", "")
     cover_background_path = cover_theme.get("background_path", "")
-    destinations_line = typed_cover.get("destinations_line") or output_edits.get("destinations_line") or create_destinations_line(parsed_rows)
+    saved_destinations_line = typed_cover.get("destinations_line") or output_edits.get("destinations_line")
+    destinations_line = clean_or_create_cover_route_line(parsed_rows, saved_destinations_line or create_destinations_line(parsed_rows))
     destinations_line_html = cover_route_html(destinations_line)
 
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
@@ -241,9 +242,20 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         for label, value in saved_trip_glance.items():
             if label in trip_glance:
                 trip_glance[label] = value
+    # Route ownership is not a manual free-text field: these values must match
+    # the overnight-stay model so old generated junk cannot survive in drafts.
+    generated_trip_glance = create_trip_glance(parsed_rows, grouped_days)
+    for route_label in ("Start", "End", "Destinations"):
+        if route_label in generated_trip_glance:
+            trip_glance[route_label] = generated_trip_glance[route_label]
 
     saved_journey_arc = typed_summary.get("journey_arc") or output_edits.get("journey_arc")
-    if isinstance(saved_journey_arc, list) and saved_journey_arc:
+    weak_arc_markers = ("onward flight and accommodation", "onward travel and accommodation", "onward travel")
+    if isinstance(saved_journey_arc, list) and saved_journey_arc and not any(
+        any(marker in str(row.get("experience", "")).lower() for marker in weak_arc_markers)
+        for row in saved_journey_arc
+        if isinstance(row, dict)
+    ):
         journey_arc = [
             {
                 "chapter": str(row.get("chapter", "")).strip(),

@@ -74,7 +74,8 @@ def test_visual_editor_saved_inclusion_pages_render_as_multiple_pdf_pages():
     assert apply_visual_editor_result(result, output_edits)
     html = build_itinerary_html([], {}, output_edits)
     assert html.count('categorized-inclusions-page') == 2
-    assert "What’s included continued" in html
+    assert "What’s included continued" not in html
+    assert html.count("What’s included") >= 2
 
 
 def test_hotel_bed_type_is_preserved_in_day_and_inclusions():
