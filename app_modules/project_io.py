@@ -11,6 +11,13 @@ from ui.output_edits import (
     refresh_generated_text_for_detail_level,
 )
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
+from app_modules.workflow_state import (
+    clear_pdf_artifacts,
+    ensure_workflow_defaults,
+    mark_pdf_dirty as mark_pdf_dirty_state,
+    reset_workflow_state,
+    set_workflow_stage,
+)
 from app_modules.parse_workflow import parse_and_normalize_itinerary
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.validation_gate import (
@@ -22,28 +29,7 @@ from app_modules.validation_gate import (
 
 
 def initialise_state():
-    defaults = {
-        "itinerary_html": "",
-        "html_path": None,
-        "pdf_bytes": None,
-        "export_pdf_bytes": None,
-        "parsed_rows": [],
-        "output_edits": {},
-        "last_generated_raw_text": "",
-        "parser_diagnostics": [],
-        "pdf_status": "Not created",
-        "preview_signature": None,
-        "pdf_signature": None,
-        "export_pdf_signature": None,
-        "detail_level": "Rich descriptive",
-        "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
-        "itinerary_validation_report": None,
-        "app_stage": "input",
-    }
-
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+    ensure_workflow_defaults(st.session_state)
 
 
 def load_project_json(uploaded_file):
@@ -74,18 +60,16 @@ def load_project_json(uploaded_file):
         st.session_state.output_edits["detail_level"] = "Rich descriptive"
         st.session_state.day_page_layout = st.session_state.output_edits.get("day_page_layout", st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT))
         st.session_state.last_generated_raw_text = raw_text
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
+        clear_pdf_artifacts(st.session_state, status="Not created")
 
         edited_rows = apply_output_edits(parsed_rows, st.session_state.output_edits)
         edited_grouped_days = group_rows_by_day(edited_rows)
         st.session_state.itinerary_html = build_itinerary_html(edited_rows, edited_grouped_days, st.session_state.output_edits)
         st.session_state.preview_signature = make_render_signature(parsed_rows, st.session_state.output_edits)
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
+        clear_pdf_artifacts(st.session_state, status="Not created")
         st.session_state.raw_text_input = raw_text
-        st.session_state.app_stage = "pictures" if st.session_state.output_edits.get("pictures_added") else "edit"
+        set_workflow_stage(st.session_state, "pictures" if st.session_state.output_edits.get("pictures_added") else "edit")
 
         render_warning_issues(validation_report)
         st.success("Editable project loaded.")
@@ -96,53 +80,7 @@ def load_project_json(uploaded_file):
 
 def reset_project_state(clear_raw_text=True):
     """Clear the current project and return the app to a clean generation state."""
-    for key in [
-        "itinerary_html",
-        "html_path",
-        "pdf_bytes",
-        "export_pdf_bytes",
-        "parsed_rows",
-        "output_edits",
-        "last_generated_raw_text",
-        "parser_diagnostics",
-        "preview_signature",
-        "pdf_signature",
-        "export_pdf_signature",
-        "_last_visual_editor_result",
-        "_visual_editor_commit_nonce",
-        "_visual_editor_commit_counter",
-        "_visual_editor_last_applied_commit_nonce",
-        "_visual_editor_export_commit_ready",
-        "_visual_editor_add_pictures_commit_ready",
-        "_pdf_after_visual_edit_commit_nonce",
-        "_add_pictures_after_visual_edit_commit_nonce",
-        "itinerary_validation_report",
-        "app_stage",
-        "image_bank_status",
-        "image_review_warning_count",
-        "generation_duplicate_count",
-        "generation_overflow_warnings",
-    ]:
-        if key in st.session_state:
-            del st.session_state[key]
-
-    st.session_state.itinerary_html = ""
-    st.session_state.html_path = None
-    st.session_state.pdf_bytes = None
-    st.session_state.export_pdf_bytes = None
-    st.session_state.parsed_rows = []
-    st.session_state.output_edits = {}
-    st.session_state.last_generated_raw_text = ""
-    st.session_state.parser_diagnostics = []
-    st.session_state.pdf_status = "Not created"
-    st.session_state.preview_signature = None
-    st.session_state.pdf_signature = None
-    st.session_state.export_pdf_signature = None
-    st.session_state.itinerary_validation_report = None
-    st.session_state.app_stage = "input"
-
-    if clear_raw_text:
-        st.session_state.raw_text_input = ""
+    reset_workflow_state(st.session_state, clear_raw_text=clear_raw_text)
 
 
 def rebuild_current_preview(mark_pdf_dirty=True, force=False, save_html=True):
@@ -176,11 +114,7 @@ def rebuild_current_preview(mark_pdf_dirty=True, force=False, save_html=True):
     st.session_state.preview_signature = render_signature
 
     if mark_pdf_dirty and html_changed:
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "Needs refresh"
+        mark_pdf_dirty_state(st.session_state, status="Needs refresh")
 
     if save_html:
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)

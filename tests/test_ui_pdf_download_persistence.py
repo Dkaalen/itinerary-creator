@@ -25,11 +25,14 @@ def test_pdf_download_button_is_sticky_when_ready():
 def test_dirty_state_clears_durable_pdf_artifact():
     output_edits = Path("ui/output_edits.py").read_text()
     project_io = Path("app_modules/project_io.py").read_text()
+    workflow_state = Path("app_modules/workflow_state.py").read_text()
 
     assert "st.session_state.export_pdf_bytes = None" in output_edits
     assert "st.session_state.export_pdf_signature = None" in output_edits
-    assert "export_pdf_bytes" in project_io
-    assert "export_pdf_signature" in project_io
+    assert "PDF_ARTIFACT_KEYS" in workflow_state
+    assert "export_pdf_bytes" in workflow_state
+    assert "export_pdf_signature" in workflow_state
+    assert "mark_pdf_dirty_state(st.session_state" in project_io
 
 
 def test_visual_editor_noop_saves_do_not_dirty_pdf():

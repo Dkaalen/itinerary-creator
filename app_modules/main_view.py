@@ -3,38 +3,41 @@ from __future__ import annotations
 from html import escape
 
 import streamlit as st
-import diagnostics
-
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
 from ui.export_files import save_html_file
 from ui.render_cache import make_render_signature
 from ui.output_edits import (
     apply_output_edits,
-    apply_rich_writing_to_all_days,
-    make_output_edit_state,
     mark_output_dirty,
 )
-from ui.picture_workflow import pictures_are_added, set_pictures_added
-from itinerary_generation.common import group_rows_by_day, is_optional_row
+from ui.picture_workflow import pictures_are_added
+from itinerary_generation.common import group_rows_by_day
 from visual_editor_component.editor_workflow import render_visual_editor
 
-from app_modules.itinerary_html import build_itinerary_html
 from app_modules.export_step import (
     render_export_step,
     render_pdf_download_station,
     request_pdf_creation_after_visual_editor_commit,
 )
-from app_modules.parse_workflow import parse_and_normalize_itinerary, get_duplicate_count, get_overflow_warnings
 from app_modules.project_io import load_project_json, rebuild_current_preview, reset_project_state
 from app_modules.validation_gate import (
     block_generation,
     render_blocking_issues,
     render_warning_issues,
-    validate_for_generation,
 )
 from app_modules.workflow_shell import build_project_metrics, project_route_label, project_title
-from app_modules.image_gateway import connect_image_bank_for_picture_stage
+from app_modules.workflow_actions import (
+    enter_export_stage,
+    enter_picture_stage,
+    generate_itinerary,
+    retry_image_bank_connection,
+)
+from app_modules.workflow_state import (
+    image_grouped_days_from_state,
+    session_stage_from_state,
+    set_workflow_stage,
+)
 from images.app_image_selection import (
     audit_day_image_matches,
     connect_remote_image_bank_if_missing,
@@ -76,19 +79,11 @@ STAGE_COPY = {
 
 
 def _session_stage() -> str:
-    stage = str(st.session_state.get("app_stage", "input") or "input")
-    if stage not in FLOW_STAGES:
-        stage = "input"
-    if not st.session_state.get("parsed_rows"):
-        return "input"
-    if stage in {"pictures", "export"} and not pictures_are_added(st.session_state.get("output_edits", {})):
-        return "edit"
-    return stage
+    return session_stage_from_state(st.session_state)
 
 
 def _set_stage(stage: str) -> None:
-    if stage in FLOW_STAGES:
-        st.session_state["app_stage"] = stage
+    set_workflow_stage(st.session_state, stage)
 
 
 def _stage_panel(title: str, body: str) -> None:
@@ -148,43 +143,13 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
 
 
 def _generate_itinerary(raw_text: str) -> bool:
-    diagnostics.reset()
-    parsed_rows = parse_and_normalize_itinerary(raw_text)
-    validation_report = validate_for_generation(parsed_rows)
-    if validation_report.is_blocked:
-        block_generation(validation_report)
-        st.session_state.parser_diagnostics = diagnostics.get_warnings()
-        render_blocking_issues(validation_report)
+    result = generate_itinerary(st.session_state, raw_text)
+    if not result.ok:
+        validation_report = (result.payload or {}).get("validation_report")
+        if validation_report is not None:
+            block_generation(validation_report)
+            render_blocking_issues(validation_report)
         return False
-
-    grouped_days = group_rows_by_day(parsed_rows)
-    duplicate_count = get_duplicate_count(raw_text, parsed_rows)
-
-    st.session_state.parsed_rows = parsed_rows
-    st.session_state.output_edits = make_output_edit_state(parsed_rows, grouped_days)
-    st.session_state.output_edits = apply_rich_writing_to_all_days(parsed_rows, st.session_state.output_edits)
-    st.session_state.output_edits["allow_default_final_images"] = False
-    st.session_state.last_generated_raw_text = raw_text
-    st.session_state.pdf_bytes = None
-    st.session_state.export_pdf_bytes = None
-    st.session_state.pdf_signature = None
-    st.session_state.export_pdf_signature = None
-    st.session_state.pdf_status = "Not created"
-    st.session_state.parser_diagnostics = diagnostics.get_warnings()
-    st.session_state.itinerary_validation_report = validation_report
-
-    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    edited_grouped_days = group_rows_by_day(edited_rows)
-    st.session_state.itinerary_html = build_itinerary_html(
-        edited_rows,
-        edited_grouped_days,
-        st.session_state.output_edits,
-    )
-    st.session_state.preview_signature = make_render_signature(st.session_state.parsed_rows, st.session_state.output_edits)
-    st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
-
-    st.session_state["generation_duplicate_count"] = duplicate_count
-    st.session_state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
     return True
 
 
@@ -273,11 +238,7 @@ def _render_document_editor(*, pictures_active: bool) -> None:
 
 
 def _image_grouped_days() -> dict:
-    grouped_days = group_rows_by_day(st.session_state.get("parsed_rows", []) or [])
-    return {
-        day: [row for row in rows if not is_optional_row(row)] or list(rows)
-        for day, rows in grouped_days.items()
-    }
+    return image_grouped_days_from_state(st.session_state)
 
 
 def _image_status_notice() -> None:
@@ -322,46 +283,22 @@ def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
 
     if st.button("Retry image-bank connection", use_container_width=True):
         with st.spinner("Connecting the separate itinerary-image-bank repository…"):
-            retry = connect_image_bank_for_picture_stage(image_bank_status, connect_remote_image_bank_if_missing).as_dict()
-        st.session_state["image_bank_gateway"] = retry
-        st.session_state["image_bank_status"] = retry.get("status", {})
-        if retry.get("ready"):
+            retry = retry_image_bank_connection(st.session_state, image_bank_status, connect_remote_image_bank_if_missing)
+        if retry.ok:
             st.success("Image bank connected. Click Add pictures again to select destination images.")
         st.rerun()
 
 
 def _activate_picture_stage() -> bool:
-    gateway = connect_image_bank_for_picture_stage(image_bank_status, connect_remote_image_bank_if_missing).as_dict()
-    st.session_state["image_bank_gateway"] = gateway
-    st.session_state["image_bank_status"] = gateway.get("status", {})
-    st.session_state.output_edits["allow_default_final_images"] = False
-
-    if not gateway.get("ready"):
-        set_pictures_added(st.session_state.output_edits, False)
-        st.session_state["image_review_warning_count"] = 0
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "Image bank missing"
-        _set_stage("edit")
-        return False
-
-    set_pictures_added(st.session_state.output_edits, True)
-
-    matches = select_day_images_with_overrides(_image_grouped_days(), st.session_state.output_edits)
-    warnings = audit_day_image_matches(_image_grouped_days(), matches, st.session_state.output_edits)
-    st.session_state["image_review_warning_count"] = len([warning for warning in warnings if warning.severity == "error"])
-
-    st.session_state.pdf_bytes = None
-    st.session_state.export_pdf_bytes = None
-    st.session_state.pdf_signature = None
-    st.session_state.export_pdf_signature = None
-    st.session_state.pdf_status = "Needs refresh"
-    st.session_state.pop("image_bank_gateway", None)
-    rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)
-    _set_stage("pictures")
-    return True
+    result = enter_picture_stage(
+        st.session_state,
+        status_func=image_bank_status,
+        connect_func=connect_remote_image_bank_if_missing,
+        select_images_func=select_day_images_with_overrides,
+        audit_images_func=audit_day_image_matches,
+        rebuild_preview_func=rebuild_current_preview,
+    )
+    return result.ok
 
 
 def render_edit_page(app_version: str) -> None:
@@ -407,8 +344,7 @@ def render_picture_page(app_version: str) -> None:
 
     st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final client PDF from the current document.</span></div></div>')
     if st.button("Create PDF", type="primary", use_container_width=True):
-        request_pdf_creation_after_visual_editor_commit()
-        _set_stage("export")
+        enter_export_stage(st.session_state, request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit)
         st.rerun()
 
 

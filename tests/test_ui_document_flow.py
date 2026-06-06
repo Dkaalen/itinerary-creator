@@ -26,7 +26,8 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     assert "Add pictures" in source
     assert "Create PDF" in source
     assert "def render_export_page" in source
-    assert "request_pdf_creation_after_visual_editor_commit()" in source
+    assert "enter_export_stage" in source
+    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" in source
 
 
 def test_edit_page_stops_duplicate_add_pictures_button_after_gateway_block():
@@ -48,7 +49,8 @@ def test_picture_page_hands_off_to_real_export_stage():
     export_source = source[export_start:source.index("def render_debug_tools")]
 
     assert 'if st.button("Create PDF", type="primary", use_container_width=True):' in picture_source
-    assert '_set_stage("export")' in picture_source
+    assert "enter_export_stage" in picture_source
+    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" in picture_source
     assert "render_export_step(app_version)" not in picture_source
 
     assert "render_pdf_download_station(location=\"top\")" in export_source

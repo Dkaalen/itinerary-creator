@@ -9,13 +9,14 @@ from ui.export_files import save_pdf_file
 from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 from app_modules.project_io import rebuild_current_preview
-from itinerary_generation.common import group_rows_by_day, is_optional_row
+from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.output_contract import validate_output_layout_contract
 from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
+from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import (
     audit_day_image_matches,
     connect_remote_image_bank_if_missing,
@@ -116,11 +117,7 @@ def render_pdf_download_station(*, location: str = "bottom") -> None:
 
 
 def _image_grouped_days() -> dict:
-    grouped_days = group_rows_by_day(st.session_state.get("parsed_rows", []) or [])
-    return {
-        day: [row for row in rows if not is_optional_row(row)] or list(rows)
-        for day, rows in grouped_days.items()
-    }
+    return image_grouped_days_from_state(st.session_state)
 
 
 def _show_issue_list(title: str, issues) -> None:
@@ -131,11 +128,7 @@ def _show_issue_list(title: str, issues) -> None:
 
 
 def _clear_pdf_artifact(status: str) -> None:
-    st.session_state.pdf_bytes = None
-    st.session_state.export_pdf_bytes = None
-    st.session_state.pdf_signature = None
-    st.session_state.export_pdf_signature = None
-    st.session_state.pdf_status = status
+    clear_pdf_artifacts(st.session_state, status=status)
 
 
 def _create_pdf_from_current_preview() -> bool:
@@ -305,7 +298,7 @@ def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
 
 
 def _session_state_snapshot() -> dict:
-    return {key: st.session_state.get(key) for key in st.session_state.keys()}
+    return session_state_snapshot(st.session_state)
 
 
 def _current_image_review_errors() -> tuple:
