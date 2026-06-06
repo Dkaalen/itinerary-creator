@@ -305,6 +305,38 @@ def test_real_input_fixture_bank_core_expectations():
     assert_not_contains(explore_html, "Suggested Route", "Explore fixture should not use route label.")
 
 
+def test_sweden_lapland_supplier_booking_information_not_in_client_inclusions():
+    from app_modules.itinerary_render_context import build_itinerary_render_context
+    from itinerary_generation.quality_gate import evaluate_client_output_quality, render_document_text
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "real_inputs" / "sweden_lapland_latest_uploaded.txt"
+    rows = normalize_itinerary_rows(parse_itinerary(fixture.read_text(encoding="utf-8")))
+    grouped = group_rows_by_day(rows)
+
+    context = build_itinerary_render_context(rows, grouped, {})
+    report = evaluate_client_output_quality(context.render_document)
+    output_text = render_document_text(context.render_document)
+
+    assert not report.is_blocked
+    assert_not_contains(output_text, "Booking Information", "Supplier booking headings must not reach client output.")
+    assert_not_contains(output_text, "diet restrictions", "Supplier dietary/admin instructions must not be treated as inclusions.")
+    assert_not_contains(output_text, "booking flow", "Supplier booking-flow instructions must not reach final inclusions.")
+
+    included_text = "\n".join(
+        item
+        for section in context.render_document.final_sections
+        if section.title == "What’s included"
+        for page in section.pages
+        for render_section in page.sections
+        if render_section.title == "Activities & experiences"
+        for item in render_section.items
+    )
+    assert_contains(included_text, "Mountain Hike in Abisko", "The real activity should remain included.")
+    assert_contains(included_text, "Lunch, coffee and something sweet", "Useful food inclusion should remain.")
+    assert_contains(included_text, "Transfer with chair lift to Nuolja Mountain", "Useful transfer/lift inclusion should remain.")
+    assert_not_contains(included_text, "we gather at", "Truncated supplier instruction fragments must not remain in inclusions.")
+
+
 def test_v36c53_optional_arc_transfer_quality_gate():
     from generator import create_day_title, create_journey_arc
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
@@ -330,7 +362,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
 
     day4_titles = [row.get("title") for row in grouped["Day 4"] if row.get("effective_type") == "Activity"]
     assert_contains("\n".join(day4_titles), "Santa Claus Village & Reindeer Visit", "The first Day 4 activity should remain visible.")
-    assert_contains("\n".join(day4_titles), "Small-Group Aurora Hunt by Minibus", "The second Day 4 activity must not be skipped by trailing spreadsheet markers.")
+    assert_contains("\n".join(day4_titles), "Small-Group Northern Lights Hunt by Minibus", "The second Day 4 activity must not be skipped by trailing spreadsheet markers.")
 
     day8_title = create_day_title(grouped["Day 8"])
     assert_equal(day8_title, "Coach Transfer to Alta", "Coach transfer days should title the actual destination, not the origin city.")

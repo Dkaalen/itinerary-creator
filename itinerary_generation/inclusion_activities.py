@@ -13,6 +13,57 @@ from itinerary_generation.date_formatting import format_client_date
 from .inclusion_utils import add_unique, clean
 
 
+_SUPPLIER_SECTION_LABEL_RE = re.compile(
+    r"^(?:what[’']?s included\??|what to expect\??|booking information|"
+    r"please note|important information|supplier note|operator note|"
+    r"duration|suitable for|age limit|gather at|meeting point)$",
+    flags=re.IGNORECASE,
+)
+
+_SUPPLIER_SECTION_START_RE = re.compile(
+    r"\b(?:what[’']?s included|what to expect|booking information|"
+    r"please note|important information|supplier note|operator note)\b",
+    flags=re.IGNORECASE,
+)
+
+_SUPPLIER_OPERATIONAL_INCLUSION_RE = re.compile(
+    r"\b(?:booking flow|diet(?:ary)? restrictions?|food allergies|please fill in|"
+    r"personally responsible|activity day|equipped and ready|"
+    r"15\s*(?:min\.?|minutes?)\s+before\s+start|"
+    r"wear clothes accordingly to weather|meeting point\s+15)\b",
+    flags=re.IGNORECASE,
+)
+
+_FIRST_PERSON_MARKETING_RE = re.compile(
+    r"\b(?:join us|we\s+(?:start|take|hike|go|eat|gather)|our\s+local\s+guide)\b",
+    flags=re.IGNORECASE,
+)
+
+_NARRATIVE_FRAGMENT_RE = re.compile(
+    r"^(?:close to\b|where\s+we\b|it[’']?s\s+time\s+to\b|we\s+gather\s+at\b|"
+    r".+\bnational\s+park\s+is\s+located\s+\d+\b)",
+    flags=re.IGNORECASE,
+)
+
+def _strip_supplier_tail(text: str) -> str:
+    return _SUPPLIER_SECTION_START_RE.split(str(text or ""), maxsplit=1)[0].strip(" -:,;")
+
+
+def _is_supplier_only_inclusion(text: str) -> bool:
+    lower = str(text or "").lower().strip(" -:,;? .")
+    if not lower:
+        return True
+    if _SUPPLIER_SECTION_LABEL_RE.match(lower):
+        return True
+    if _SUPPLIER_OPERATIONAL_INCLUSION_RE.search(lower):
+        return True
+    if _NARRATIVE_FRAGMENT_RE.search(lower):
+        return True
+    if _FIRST_PERSON_MARKETING_RE.search(lower) and len(lower.split()) > 8:
+        return True
+    return False
+
+
 def _looks_like_descriptive_prose(text: str) -> bool:
     lower = str(text or "").lower()
     prose_markers = [
@@ -34,8 +85,11 @@ def _looks_like_descriptive_prose(text: str) -> bool:
 def _polish_activity_inclusion(value: str, title: str = "") -> str:
     text = polish_inclusion_item(sanitize_client_text(strip_price_fragments(str(value or "").strip())), title)
     text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
+    text = _strip_supplier_tail(text)
     lower = text.lower().strip(":? ")
     if not text:
+        return ""
+    if _is_supplier_only_inclusion(text):
         return ""
     if lower in {"what's included", "what’s included", "includes", "included", "description", "overview"}:
         return ""
@@ -50,6 +104,9 @@ def _polish_activity_inclusion(value: str, title: str = "") -> str:
     if len(text) > 150 and "included" not in lower:
         return ""
     text = polish_inclusion_item(clean_include_item(sanitize_client_text(text), title), title)
+    text = _strip_supplier_tail(text)
+    if _is_supplier_only_inclusion(text):
+        return ""
     return sanitize_inclusion_item(text, title)
 
 
