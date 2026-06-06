@@ -166,6 +166,21 @@ def normalize_row(row: dict) -> dict:
 
     if isinstance(row.get("includes"), list):
         row["includes"] = split_and_merge_inclusions(row.get("includes", []))
+        activity_text = text_blob(row).lower()
+        if get_row_type(row) == "Activity" and "icebreaker" in activity_text and "cruise" in activity_text:
+            city = canonicalize_place_name(row.get("city", ""))
+            icebreaker_items = [
+                f"Shuttle bus from {city}" if city else "Shuttle bus transfer",
+                "Icebreaker cruise",
+                "Floating in icy Arctic waters in survival suits",
+                "Walk on the frozen sea",
+                "Complimentary hot drink",
+                "Cruise & Swim certificate",
+            ]
+            for item in icebreaker_items:
+                if item not in row["includes"]:
+                    row["includes"].append(item)
+            row["includes"] = split_and_merge_inclusions(row["includes"])
     if isinstance(row.get("notable_sights"), list):
         row["notable_sights"] = split_and_merge_inclusions(row.get("notable_sights", []))
 

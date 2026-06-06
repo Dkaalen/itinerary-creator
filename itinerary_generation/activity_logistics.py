@@ -76,6 +76,55 @@ def clean_pickup_dropoff_value(value):
     return text or value
 
 
+
+def _format_logistics_time(value):
+    text = clean_space(value).upper()
+    if not text:
+        return ""
+    if "AM" in text or "PM" in text:
+        return re.sub(r"\s+", " ", text)
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})", text)
+    if not match:
+        return text
+    hour = int(match.group(1))
+    minute = match.group(2)
+    suffix = "AM" if hour < 12 else "PM"
+    display_hour = hour % 12 or 12
+    return f"{display_hour}:{minute} {suffix}"
+
+
+def _activity_pickup_dropoff_from_detail_text(value):
+    """Extract compact pickup/drop-off metadata from pipe-style supplier rows."""
+
+    text = clean_space(value)
+    if not text:
+        return ""
+
+    pickup = re.search(
+        r"\bpick[- ]?up\s+(?P<time>\d{1,2}:\d{2}\s*(?:am|pm)?)\s+from\s+(?P<place>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*\||\s+Drop\b|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    drop = re.search(
+        r"\bdrop(?:[- ]?off)?\s+(?P<time>\d{1,2}:\d{2}\s*(?:am|pm)?)\s+(?P<place>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*\||\s+Cruise\b|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not pickup and not drop:
+        return ""
+
+    parts = []
+    if pickup:
+        pickup_time = _format_logistics_time(pickup.group("time"))
+        pickup_place = clean_space(pickup.group("place"))
+        parts.append(f"Pick-up {pickup_time} from {pickup_place}")
+    if drop:
+        drop_time = _format_logistics_time(drop.group("time"))
+        drop_place = clean_space(drop.group("place"))
+        parts.append(f"drop-off {drop_time} in {drop_place}")
+    return "; ".join(parts)
+
+
 def get_activity_logistics(row):
     """Return a practical meeting/pick-up line for the day-by-day block."""
 
@@ -112,6 +161,10 @@ def get_activity_logistics(row):
         str(row.get(key) or "")
         for key in ["title", "original_title", "details", "client_description"]
     )
+    pickup_dropoff = _activity_pickup_dropoff_from_detail_text(detail_text)
+    if pickup_dropoff:
+        return "Pick-up/drop-off", pickup_dropoff
+
     hotel_phrase = detect_hotel_pickup_dropoff_text(detail_text)
     if hotel_phrase:
         return "Pick-up/drop-off", hotel_phrase

@@ -111,12 +111,22 @@ def _polish_activity_inclusion(value: str, title: str = "") -> str:
 
 
 def _fallback_activity_inclusions(row: dict, title: str) -> list[str]:
-    source = " ".join(str(row.get(key, "") or "") for key in ["title", "original_title", "details"]).lower()
+    source = " ".join(str(row.get(key, "") or "") for key in ["title", "original_title", "details", "includes"]).lower()
     if "fløibanen" in source or "floibanen" in source:
         items = ["Round-trip Fløibanen ticket"] if re.search(r"\bround[-\s]?trip\b|\broundtrip\b", source, flags=re.IGNORECASE) else ["Fløibanen ticket"]
         if "fløyen" in source or "floyen" in source or "mount" in source or "viewpoint" in source:
             items.append("Flexible visit to Mount Fløyen")
         return items
+    if "icebreaker" in source and "cruise" in source:
+        city = str(row.get("city", "") or "").strip()
+        return [
+            f"Shuttle bus from {city}" if city else "Shuttle bus transfer",
+            "Icebreaker cruise",
+            "Floating in icy Arctic waters in survival suits",
+            "Walk on the frozen sea",
+            "Complimentary hot drink",
+            "Cruise & Swim certificate",
+        ]
     return []
 
 
@@ -127,7 +137,10 @@ def _activity_inclusion_items(row: dict, title: str) -> list[str]:
         item = _polish_activity_inclusion(item, title)
         if item and item not in cleaned:
             cleaned.append(item)
-    if not cleaned:
+    source_text = " ".join(str(row.get(key, "") or "") for key in ["title", "original_title", "details", "includes"]).lower()
+    if "icebreaker" in source_text and "cruise" in source_text:
+        cleaned = _fallback_activity_inclusions(row, title)
+    elif not cleaned:
         cleaned = _fallback_activity_inclusions(row, title)
     merged = merge_compound_inclusions(polish_inclusion_items(cleaned, title))
     return [item for item in merged if item]

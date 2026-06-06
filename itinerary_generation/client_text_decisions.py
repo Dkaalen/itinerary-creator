@@ -43,6 +43,10 @@ def _contains(text: str, *markers: str) -> bool:
 
 ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     TextRule(
+        ("icebreaker", "survival suit", "frozen sea", "cruise & swim"),
+        lambda title, city: f"Today includes a distinctive Arctic sea experience, with {title} arranged from {city} and time on the frozen water built into the day.",
+    ),
+    TextRule(
         ("walking", "city highlights", "suomenlinna"),
         lambda title, city: f"Spend time getting oriented in {city}, with {title} introducing key sights, local stories and practical context for the rest of your stay.",
     ),

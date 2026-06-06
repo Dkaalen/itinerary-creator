@@ -42,6 +42,14 @@ def _is_sightseeing_cruise_activity(text: str) -> bool:
             "silent electric ship",
             "cruise on the oslofjord",
             "mostraumen fjord cruise",
+            "icebreaker cruise",
+            "arctic explorer icebreaker",
+            "polar explorer icebreaker",
+            "finnish arctic explorer",
+            "survival suits",
+            "walk on the frozen sea",
+            "float in icy arctic waters",
+            "cruise & swim certificate",
         ]
     )
 
@@ -55,7 +63,9 @@ def _is_route_transfer_activity(row: dict) -> bool:
     # column without a leading "Bus:"/"Coach:" label. Keep only strongly
     # route-shaped wording here so activity products that merely use a bus or
     # coach (Northern Lights by coach, hop-on tickets, etc.) stay activities.
-    if re.search(r"\b(?:train|flight|coach|bus|cruise|ferry)\s*[:|]", text):
+    if re.search(r"\b(?:train|flight|coach|bus|ferry)\s*[:|]", text):
+        return True
+    if re.search(r"\bcruise\s*(?!time\b)[:|]", text):
         return True
     if re.search(r"\b(?:long[-\s]*distance|panorama|panoramic)\b[^.]{0,80}\b(?:coach|bus)\b[^.]{0,80}\btransfer\b[^.]{0,120}\bfrom\b[^.]{1,120}\bto\b", text):
         return True

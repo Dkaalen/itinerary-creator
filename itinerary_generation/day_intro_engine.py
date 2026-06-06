@@ -178,6 +178,13 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     if has_arrival and city:
         destination = _arrival_display_destination(city)
         transfer_phrase = _arrival_transfer_phrase(day_rows)
+        if activities:
+            activity_title = get_client_activity_phrase(activities[0])
+            activity_text = get_activity_text(activities[0])
+            activity_city = str(activities[0].get("city", "") or "").strip()
+            city_for_activity = activity_city or city_text
+            activity_intro = _activity_day_intro(activity_title, city_for_activity, activity_text, detail_level)
+            return f"Welcome to {destination}. {transfer_phrase} {activity_intro}"
         if detail_level == "Elegant concise":
             return f"Welcome to {destination}. {transfer_phrase}"
         if detail_level == "Rich descriptive":

@@ -79,6 +79,17 @@ def get_fallback_activity_inclusions(row):
             return ["Round-trip Fløibanen ticket"]
         return ["Fløibanen ticket"]
 
+    if "icebreaker" in full_text and "cruise" in full_text:
+        city = str(row.get("city", "") or "").strip()
+        return [
+            f"Shuttle bus from {city}" if city else "Shuttle bus transfer",
+            "Icebreaker cruise",
+            "Floating in icy Arctic waters in survival suits",
+            "Walk on the frozen sea",
+            "Complimentary hot drink",
+            "Cruise & Swim certificate",
+        ]
+
     if "walking" in full_text and "canal" in full_text:
         return ["Guided walking tour", "Canal experience"]
 
@@ -136,7 +147,7 @@ def prioritize_inline_inclusions(items, max_items=6):
             return 0
         if "reindeer" in lower or "snowmobile" in lower or "santa claus" in lower or "husky" in lower:
             return 1
-        if any(marker in lower for marker in ["thermal", "overall", "winter clothes", "winter equipment", "equipment", "boots", "gloves", "balaclava", "helmet", "survival suit", "floating suit"]):
+        if any(marker in lower for marker in ["thermal", "overall", "winter clothes", "winter equipment", "equipment", "boots", "gloves", "balaclava", "helmet", "survival suit", "floating suit", "frozen sea"]):
             return 2
         if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower or "barbecue" in lower or "bbq" in lower or "berry juice" in lower:
             return 3
@@ -217,6 +228,8 @@ def clean_activity_inclusion_items(items, title=""):
         if looks_like_descriptive_prose(text):
             continue
         if len(text) > 150 and "included" not in lower:
+            continue
+        if "icebreaker" in str(title or "").lower() and re.search(r"explorerthe|suitswalk|drinkcruise|classic icebreaker experience", lower):
             continue
 
         text = polish_inclusion_item(clean_include_item(text, title), title)

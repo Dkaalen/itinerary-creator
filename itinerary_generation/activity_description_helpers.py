@@ -136,6 +136,9 @@ def get_activity_description(row, detail_level=None):
     if product_match and product_match.description:
         return product_match.description
 
+    if "icebreaker" in title and "cruise" in title:
+        return "Experience the Arctic coastline from an icebreaker cruise, with time on the frozen sea and the included floating experience arranged as part of the excursion."
+
     if "wildlife photography" in title and "longyearbyen" in title:
         return "Spend time looking for Arctic wildlife and landscape photo opportunities around Longyearbyen with the guidance arranged for the experience."
 
