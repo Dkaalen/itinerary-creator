@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import base64
+import binascii
+
+import diagnostics
 from pathlib import Path
 
 from text_polish import polish_title
@@ -37,7 +40,8 @@ def save_data_uri_day_image(data_uri, filename, city, season='Summer', label='',
     try:
         header, encoded = str(data_uri).split(',', 1)
         raw = base64.b64decode(encoded)
-    except Exception:
+    except (ValueError, binascii.Error) as error:
+        diagnostics.warn_exception("image_upload", "Could not decode uploaded visual-editor image data.", error, filename, source="images.image_uploads")
         return ''
 
     class _UploadedBytes:

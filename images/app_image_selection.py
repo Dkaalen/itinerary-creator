@@ -5,6 +5,7 @@ from images.image_bank import (
     clean_space,
     esc,
     ensure_runtime_image_bank as _ensure_runtime_image_bank,
+    ensure_runtime_image_bank_status as _ensure_runtime_image_bank_status,
     get_image_bank_path as _get_image_bank_path,
     get_image_bank_paths as _get_image_bank_paths,
     get_image_bank_scan_paths as _get_image_bank_scan_paths,
@@ -46,6 +47,10 @@ from images.image_match_audit import audit_day_image_matches as _audit_day_image
 
 def ensure_runtime_image_bank():
     return _ensure_runtime_image_bank(APP_ROOT)
+
+
+def ensure_runtime_image_bank_status():
+    return _ensure_runtime_image_bank_status(APP_ROOT)
 
 
 def image_bank_status():

@@ -7,6 +7,8 @@ import re
 import shutil
 import subprocess
 
+import diagnostics
+
 from images.scanner import coerce_image_bank_paths, scan_image_bank
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -57,7 +59,8 @@ def _dedupe_existing_paths(paths: list[Path]) -> list[Path]:
             continue
         try:
             key = str(path.resolve())
-        except Exception:
+        except OSError as error:
+            diagnostics.warn_exception("image_bank_path", "Could not resolve image-bank path.", error, str(path), source="images.image_bank")
             key = str(path)
         if key in seen:
             continue
@@ -97,50 +100,98 @@ def _runtime_bootstrap_allowed() -> bool:
     return True
 
 
-def ensure_runtime_image_bank(root: Path | str | None = None) -> Path | None:
-    """Optionally clone the separate image-bank repo when explicitly enabled.
+def ensure_runtime_image_bank_status(root: Path | str | None = None) -> dict:
+    """Explicitly fetch/update the runtime image bank and return diagnostics.
 
-    Zip/deployment workflows should normally ship a populated image bank or set
-    ``ITINERARY_IMAGE_BANK_FULL`` to a known local checkout.  Runtime cloning is
-    used as the last-resort production fallback and can be disabled with
-    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.
+    This is intentionally separate from get_image_bank_paths(), so normal path
+    lookup stays deterministic and never performs network work.
     """
 
     root = Path(root) if root is not None else APP_ROOT
     runtime_repo = root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank"
     runtime_bank = runtime_repo / "image_bank_full"
+
+    def _status(ok: bool, code: str, message: str, *, path: Path | None = None, error: str = "") -> dict:
+        payload = {
+            "ok": bool(ok),
+            "code": code,
+            "message": message,
+            "path": str(path or ""),
+            "repo_url": IMAGE_BANK_REPO_URL,
+            "bootstrap_allowed": _runtime_bootstrap_allowed(),
+            "error": error,
+        }
+        if not ok:
+            diagnostics.warn("image_bank_setup", message, error, source="images.image_bank")
+        return payload
+
     if runtime_bank.exists() and any(runtime_bank.rglob("*.webp")):
-        return runtime_bank
+        return _status(True, "already_available", "Runtime image bank is already available.", path=runtime_bank)
 
     if not _runtime_bootstrap_allowed():
-        return None
+        return _status(
+            False,
+            "bootstrap_disabled",
+            "Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL or enable ITINERARY_IMAGE_BANK_BOOTSTRAP.",
+        )
     if shutil.which("git") is None:
-        return None
+        return _status(False, "git_missing", "Cannot fetch image bank because git is not available on this machine.")
 
     try:
         runtime_repo.parent.mkdir(parents=True, exist_ok=True)
-        if runtime_repo.exists():
-            subprocess.run(
-                ["git", "-C", str(runtime_repo), "pull", "--ff-only"],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=60,
-            )
-        else:
-            subprocess.run(
-                ["git", "clone", "--depth", "1", IMAGE_BANK_REPO_URL, str(runtime_repo)],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=180,
-            )
-    except Exception:
-        return None
+    except OSError as error:
+        return _status(
+            False,
+            "runtime_dir_failed",
+            "Could not create the runtime image-bank folder.",
+            error=f"{type(error).__name__}: {error}",
+        )
+
+    command = ["git", "clone", "--depth", "1", IMAGE_BANK_REPO_URL, str(runtime_repo)]
+    if runtime_repo.exists():
+        command = ["git", "-C", str(runtime_repo), "pull", "--ff-only"]
+
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=180 if "clone" in command else 60,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        return _status(
+            False,
+            "git_command_failed",
+            "Could not fetch the image bank from GitHub.",
+            error=f"{type(error).__name__}: {error}",
+        )
+
+    if result.returncode != 0:
+        error_text = " ".join((result.stderr or result.stdout or "").split())[:600]
+        return _status(
+            False,
+            "git_returned_error",
+            "Git could not fetch the image bank from GitHub.",
+            error=error_text,
+        )
 
     if runtime_bank.exists() and any(runtime_bank.rglob("*.webp")):
-        return runtime_bank
-    return None
+        return _status(True, "fetched", "Image bank fetched from GitHub.", path=runtime_bank)
+
+    return _status(
+        False,
+        "image_bank_missing_after_fetch",
+        "Git finished, but image_bank_full was not found in the fetched repository.",
+    )
+
+
+def ensure_runtime_image_bank(root: Path | str | None = None) -> Path | None:
+    """Compatibility wrapper returning only the fetched path when setup succeeds."""
+
+    status = ensure_runtime_image_bank_status(root)
+    return Path(status["path"]) if status.get("ok") and status.get("path") else None
 
 
 def get_image_bank_paths(root=None):
@@ -172,7 +223,8 @@ def get_image_bank_scan_paths(root=None):
 def normalize_path_key(value):
     try:
         return str(Path(str(value or "")).resolve())
-    except Exception:
+    except OSError as error:
+        diagnostics.warn_exception("image_bank_path", "Could not normalize image path.", error, str(value or ""), source="images.image_bank")
         return str(value or "")
 
 

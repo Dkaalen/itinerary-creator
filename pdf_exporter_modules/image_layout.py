@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+import diagnostics
+
 try:
     from PIL import Image as PILImage, ImageOps
-except Exception:  # pragma: no cover - export safely skips images if Pillow is unavailable
+except ImportError:  # pragma: no cover - export safely skips images if Pillow is unavailable
     PILImage = None
     ImageOps = None
 
@@ -86,5 +88,6 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
             )
             image.save(temp_path, format="JPEG", quality=76, optimize=True)
             return temp_path
-    except Exception:
+    except (OSError, ValueError) as error:
+        diagnostics.warn_exception("pdf_image", "Could not crop image for PDF output.", error, str(source_path), source="pdf_exporter_modules.image_layout")
         return None

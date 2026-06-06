@@ -2,12 +2,15 @@ from pathlib import Path
 
 import streamlit as st
 
+from images.diagnostics import image_bank_debug_payload, image_bank_status_summary
+
 from itinerary_generation.common import get_primary_city, group_rows_by_day
 from ui.output_edits import apply_output_edits, mark_output_dirty
 from images.app_image_selection import (
     CROP_FOCUS_LABELS,
     CROP_FOCUS_OPTIONS,
     ensure_runtime_image_bank,
+    ensure_runtime_image_bank_status,
     get_day_image_choice,
     image_bank_status,
     list_replacement_image_options,
@@ -42,24 +45,27 @@ def get_current_day_image_warnings(output_edits, image_matches=None):
 def render_image_bank_status_notice():
     status = image_bank_status()
     if status.get("full_bank_found"):
-        st.success(
-            f"Using full image bank: {status.get('destination_image_count', 0)} destination images "
-            f"across {len(status.get('destinations_found', []) or [])} destinations."
-        )
-        return status
-
-    st.error(status.get("blocking_message") or "Full destination image bank is missing.")
-    st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full")
-    if status.get("runtime_bootstrap_allowed"):
-        if st.button("Fetch image bank from GitHub", key="fetch_runtime_image_bank", use_container_width=False):
-            fetched = ensure_runtime_image_bank()
-            if fetched:
-                st.success(f"Image bank fetched: {fetched}")
-                st.rerun()
-            else:
-                st.warning("Could not fetch the image bank automatically. Check git/internet access or set ITINERARY_IMAGE_BANK_FULL.")
+        st.success(image_bank_status_summary(status) + ".")
     else:
-        st.warning("Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL to the local image_bank_full folder.")
+        st.error(status.get("blocking_message") or "Full destination image bank is missing.")
+        st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full")
+        if status.get("runtime_bootstrap_allowed"):
+            if st.button("Fetch image bank from GitHub", key="fetch_runtime_image_bank", use_container_width=False):
+                setup_status = ensure_runtime_image_bank_status()
+                if setup_status.get("ok"):
+                    st.success(f"Image bank fetched: {setup_status.get('path')}")
+                    st.rerun()
+                else:
+                    st.warning(setup_status.get("message") or "Could not fetch the image bank automatically.")
+                    if setup_status.get("error"):
+                        with st.expander("Image-bank setup error details"):
+                            st.code(str(setup_status.get("error")), language=None)
+        else:
+            st.warning("Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL to the local image_bank_full folder.")
+
+    with st.expander("Image-bank diagnostics", expanded=False):
+        st.json(image_bank_debug_payload(status.get("paths") or []))
+
     return status
 
 

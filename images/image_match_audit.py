@@ -7,6 +7,8 @@ and PDF export warn about image drift without changing the client-facing layout.
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+import diagnostics
 from pathlib import Path
 
 from images.fallback import is_global_default_candidate
@@ -33,7 +35,8 @@ class ImageAuditWarning:
 def _normalize_path_key(path) -> str:
     try:
         return str(Path(path).expanduser().resolve()).lower().replace("\\", "/")
-    except Exception:
+    except (OSError, TypeError, ValueError) as error:
+        diagnostics.warn_exception("image_match_audit", "Could not normalize image path for audit.", error, str(path or ""), source="images.image_match_audit")
         return str(path or "").lower().replace("\\", "/")
 
 
@@ -44,10 +47,7 @@ def _match_path(match: dict | None) -> str:
 def _candidate_lookup(candidates: list[ImageCandidate]) -> dict[str, ImageCandidate]:
     lookup: dict[str, ImageCandidate] = {}
     for candidate in candidates:
-        try:
-            lookup[_normalize_path_key(candidate.path)] = candidate
-        except Exception:
-            continue
+        lookup[_normalize_path_key(candidate.path)] = candidate
     return lookup
 
 
@@ -59,14 +59,16 @@ def _fallback_candidate_from_path(path_text: str, image_bank_scan_paths) -> Imag
     path = Path(path_text)
     try:
         resolved = path.resolve()
-    except Exception:
+    except OSError as error:
+        diagnostics.warn_exception("image_match_audit", "Could not resolve selected image path for audit.", error, path_text, source="images.image_match_audit")
         resolved = path
 
     for base in coerce_image_bank_paths(image_bank_scan_paths):
         try:
             if resolved.exists() and resolved.is_relative_to(base.resolve()):
                 return extract_image_metadata(resolved, base)
-        except Exception:
+        except (OSError, TypeError, ValueError) as error:
+            diagnostics.warn_exception("image_match_audit", "Could not compare selected image with scan path.", error, str(base), source="images.image_match_audit")
             continue
 
     if not resolved.exists():
@@ -100,7 +102,7 @@ def _candidate_for_match(match: dict | None, candidates: list[ImageCandidate], i
 def _choice_mode(output_edits: dict | None, day: str) -> str:
     try:
         mode = ((output_edits or {}).get("day_images", {}) or {}).get(day, {}).get("mode", "auto")
-    except Exception:
+    except AttributeError:
         mode = "auto"
     mode = str(mode or "auto").strip().lower()
     return mode if mode in {"auto", "manual", "none"} else "auto"
@@ -109,7 +111,7 @@ def _choice_mode(output_edits: dict | None, day: str) -> str:
 def _format_name(path_text: str) -> str:
     try:
         return Path(path_text).name
-    except Exception:
+    except (OSError, TypeError, ValueError):
         return str(path_text or "selected image")
 
 

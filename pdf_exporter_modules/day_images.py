@@ -6,6 +6,8 @@ from pathlib import Path
 
 from reportlab.lib.pagesizes import A4
 
+import diagnostics
+
 from .image_constants import PDF_IMAGE_BOTTOM_Y
 from .image_flowables import SamePageDayImage
 from .image_layout import normalize_crop_focus
@@ -30,7 +32,8 @@ def _image_path_from_embedded_data_uri(slot, temp_dir):
         temp_path = Path(temp_dir) / f"embedded_day_image_{abs(hash(raw_src)) % 10_000_000}.img"
         temp_path.write_bytes(base64.b64decode(match.group(1)))
         return temp_path
-    except Exception:
+    except (OSError, ValueError) as error:
+        diagnostics.warn_exception("pdf_image", "Could not decode embedded preview image for PDF fallback.", error, "data-uri", source="pdf_exporter_modules.day_images")
         return None
 
 

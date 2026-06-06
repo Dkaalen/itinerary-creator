@@ -40,7 +40,48 @@ def get_image_bank_diagnostics(image_bank_path: Path | str | list | tuple | set 
     }
 
 
+def image_bank_status_summary(status: dict | None) -> str:
+    """Return a concise operational status string for image-bank UI/logs."""
+
+    status = status or {}
+    if status.get("full_bank_found"):
+        return (
+            f"Full image bank: {status.get('destination_image_count', 0)} destination images "
+            f"across {len(status.get('destinations_found', []) or [])} destinations"
+        )
+    if status.get("blocking_message"):
+        return str(status.get("blocking_message"))
+    return "Image-bank status unavailable"
+
+
+def image_bank_debug_payload(image_bank_path: Path | str | list | tuple | set = "image_bank") -> dict:
+    """Return a copyable diagnostic payload for support/debugging."""
+
+    diagnostics = get_image_bank_diagnostics(image_bank_path)
+    return {
+        "paths": diagnostics.get("paths", []),
+        "existing_paths": diagnostics.get("existing_paths", []),
+        "full_bank_found": diagnostics.get("full_bank_found", False),
+        "source_path": diagnostics.get("source_path", ""),
+        "total_images": diagnostics.get("total_images", 0),
+        "destination_images": diagnostics.get("destination_images", 0),
+        "default_images": diagnostics.get("default_images", 0),
+        "countries_found": diagnostics.get("countries_found", []),
+        "destinations_found_sample": (diagnostics.get("destinations_found", []) or [])[:25],
+        "blocking_message": diagnostics.get("blocking_message", ""),
+    }
+
+
 def format_match_for_debug(match: dict | None) -> str:
     if not match:
         return "No suitable image found"
-    return f"{match['path']} — score {match['score']} ({match['reason']})"
+    breakdown = match.get("score_breakdown") if isinstance(match.get("score_breakdown"), dict) else {}
+    breakdown_text = ""
+    if breakdown:
+        breakdown_text = (
+            f" | destination {breakdown.get('destination_score', 0)}, "
+            f"activity {breakdown.get('activity_product_score', 0)}, "
+            f"season {breakdown.get('season_score', 0)}, "
+            f"country/region {breakdown.get('country_region_score', 0)}"
+        )
+    return f"{match.get('path', '')} — score {match.get('score', 0)} ({match.get('reason', '')}){breakdown_text}"

@@ -1,6 +1,6 @@
 """Image helpers for the itinerary app."""
 
-from .diagnostics import format_match_for_debug, get_image_bank_diagnostics
+from .diagnostics import format_match_for_debug, get_image_bank_diagnostics, image_bank_debug_payload, image_bank_status_summary
 from .fallback import _is_global_default_candidate, _score_default_candidate, is_global_default_candidate, score_default_candidate
 from .matcher import (
     _candidate_destination_matches,
@@ -61,6 +61,8 @@ __all__ = [
     "extract_image_metadata",
     "format_match_for_debug",
     "get_image_bank_diagnostics",
+    "image_bank_debug_payload",
+    "image_bank_status_summary",
     "infer_season_from_rows",
     "infer_seasons",
     "infer_themes",
