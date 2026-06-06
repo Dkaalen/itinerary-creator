@@ -171,32 +171,46 @@ def project_route_label(metrics: Mapping[str, Any]) -> str:
 
 
 def workflow_steps_html(steps: Sequence[WorkflowStep]) -> str:
+    """Return Streamlit-safe HTML for the workflow cards.
+
+    Keep this fragment compact and unindented. Streamlit renders ``st.markdown``
+    through Markdown first, and indented sibling ``<div>`` blocks can be
+    interpreted as code blocks. The compact output also works cleanly with
+    ``st.html``.
+    """
+
     cards = []
     for step in steps:
         status_label = _STATUS_LABELS.get(step.status, step.status.title())
         cards.append(
-            f"""
-            <div class="workflow-step-card workflow-step-{escape(step.css_status)}">
-                <div class="workflow-step-topline">
-                    <span class="workflow-step-number">{step.number}</span>
-                    <span class="workflow-status-pill">{escape(status_label)}</span>
-                </div>
-                <div class="workflow-step-title">{escape(step.title)}</div>
-                <div class="workflow-step-eyebrow">{escape(step.eyebrow)}</div>
-                <div class="workflow-step-description">{escape(step.description)}</div>
-                <div class="workflow-step-helper">{escape(step.helper)}</div>
-            </div>
-            """
+            ''.join(
+                [
+                    f'<div class="workflow-step-card workflow-step-{escape(step.css_status)}">',
+                    '<div class="workflow-step-topline">',
+                    f'<span class="workflow-step-number">{step.number}</span>',
+                    f'<span class="workflow-status-pill">{escape(status_label)}</span>',
+                    '</div>',
+                    f'<div class="workflow-step-title">{escape(step.title)}</div>',
+                    f'<div class="workflow-step-eyebrow">{escape(step.eyebrow)}</div>',
+                    f'<div class="workflow-step-description">{escape(step.description)}</div>',
+                    f'<div class="workflow-step-helper">{escape(step.helper)}</div>',
+                    '</div>',
+                ]
+            )
         )
     return f'<div class="workflow-step-grid">{"".join(cards)}</div>'
 
 
 def metric_card_html(label: str, value: Any, helper: str = "") -> str:
+    """Return compact HTML so cards never fall back to Markdown code blocks."""
+
     helper_html = f'<div class="metric-card-helper">{escape(str(helper))}</div>' if helper else ""
-    return f"""
-    <div class="metric-card">
-        <div class="metric-card-label">{escape(label)}</div>
-        <div class="metric-card-value">{escape(str(value))}</div>
-        {helper_html}
-    </div>
-    """
+    return ''.join(
+        [
+            '<div class="metric-card">',
+            f'<div class="metric-card-label">{escape(label)}</div>',
+            f'<div class="metric-card-value">{escape(str(value))}</div>',
+            helper_html,
+            '</div>',
+        ]
+    )

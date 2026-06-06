@@ -177,7 +177,7 @@ def render_workflow_overview():
         st.session_state.get("parsed_rows", []),
         st.session_state.get("output_edits", {}),
     )
-    st.markdown(workflow_steps_html(steps), unsafe_allow_html=True)
+    st.html(workflow_steps_html(steps))
 
     if not st.session_state.get("parsed_rows"):
         st.markdown(
@@ -192,7 +192,7 @@ def render_workflow_overview():
         metric_card_html("Activities", metrics["activities"], "Included experiences"),
         metric_card_html("Hotels", metrics["hotels"], "Accommodation blocks"),
     ])
-    st.markdown(f'<div class="metric-grid">{metric_html}</div>', unsafe_allow_html=True)
+    st.html(f'<div class="metric-grid">{metric_html}</div>')
 
 
 def render_input_step():

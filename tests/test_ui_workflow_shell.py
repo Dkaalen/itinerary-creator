@@ -64,3 +64,23 @@ def test_project_metrics_are_consultant_facing_and_exclude_optional_items():
     assert metrics["transfers"] == 1
     assert metrics["optional_rows"] == 1
     assert project_route_label(metrics) == "Rome → Sorrento"
+
+def test_workflow_html_is_not_indented_markdown_code():
+    steps = build_workflow_steps({})
+    html = workflow_steps_html(steps)
+
+    assert "\n    <div" not in html
+    assert "\n            <div" not in html
+    assert html.count('class="workflow-step-card') == 6
+    assert not html.startswith("\n")
+
+
+def test_metric_card_html_is_compact_for_streamlit():
+    from app_modules.workflow_shell import metric_card_html
+
+    html = metric_card_html("Destinations", 3, "Rome → Amalfi")
+
+    assert "metric-card" in html
+    assert "\n    <div" not in html
+    assert not html.startswith("\n")
+
