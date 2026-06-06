@@ -21,6 +21,21 @@ from ui.day_page_sections import render_day_section
 from visual_editor_component.editor_workflow import apply_visual_editor_result, build_visual_editor_payload
 
 
+def _visual_editor_frontend_source():
+    frontend = Path("visual_editor_component/frontend")
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def test_editor_payload_exposes_typed_draft_contract():
     rows = [
         {
@@ -152,7 +167,7 @@ def test_full_preview_can_consume_typed_final_sections_without_legacy_keys():
 
 
 def test_frontend_builds_typed_draft_before_commit():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "function buildEditableDraftFromPayload" in editor_html
     assert "payload.editor_draft = buildEditableDraftFromPayload(payload)" in editor_html

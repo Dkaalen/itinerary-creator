@@ -2,6 +2,21 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _visual_editor_frontend_source() -> str:
+    frontend = ROOT / "visual_editor_component" / "frontend"
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
 TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(TESTS_DIR))
@@ -90,7 +105,7 @@ def test_day_page_editorial_parity_markup():
     assert_contains(final_html_css, "box-shadow: none", "Final preview divider should not use a two-tone shadow line.")
     assert_not_contains(final_html_css, 'content: "✦";\n            position: absolute;\n            left: 50%;', "The day-image divider emblem should be fully removed.")
 
-    editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
     assert_contains(editor_html, "day-kicker", "The visual editor preview must use the same day-kicker structure as final preview/PDF.")
     assert_contains(editor_html, "summaryStyle", "The visual editor summary page must receive the seasonal background inline.")
     assert_not_contains(editor_html, ".image-stage::after", "The visual editor should no longer draw the decorative image divider emblem.")
@@ -246,7 +261,7 @@ def test_cover_route_html_keeps_final_pair_together_for_preview():
 
 
 def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
-    editor_html = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
     bridge_py = (ROOT / "visual_editor_component" / "editor_bridge.py").read_text(encoding="utf-8")
     main_view_py = (ROOT / "app_modules" / "main_view.py").read_text(encoding="utf-8")
 

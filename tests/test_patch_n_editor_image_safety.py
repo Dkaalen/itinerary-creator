@@ -25,6 +25,21 @@ from visual_editor_component.editor_workflow import apply_visual_editor_result
 from ui.day_page_sections import render_day_section
 
 
+def _visual_editor_frontend_source() -> str:
+    frontend = Path("visual_editor_component/frontend")
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def test_pdf_export_commit_persists_full_visible_editor_model():
     output_edits = {"days": {}}
     result = json.dumps({
@@ -56,7 +71,7 @@ def test_pdf_export_commit_persists_full_visible_editor_model():
 
 
 def test_visual_editor_frontend_has_page_controls_and_full_commit_contract():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "Remove empty page" in editor_html
     assert "Move content up" in editor_html

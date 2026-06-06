@@ -1,0 +1,132 @@
+let initialPayload = null;
+let model = null;
+let uploadedImages = {};
+let touchedKeys = new Set();
+let lastCommitNonce = null;
+let lastSavedPayload = '';
+// Autosaving is limited to browser-local draft persistence; Streamlit commits happen only on Save/Add pictures/PDF.
+let activeEditKey = null;
+let undoStack = [];
+let restoredLocalDraftPendingSave = false;
+const WARNING_PATTERNS = [
+  /\bPls\b/i, /\bplz\b/i, /\baddon cost\b/i, /\bpaid on ground\b/i,
+  /\btranfers\b/i, /\bDate dependant\b/i, /\bFight\s*:/i,
+  /\bPrivate Hotel to\b/i, /\bPrivate Airport to\b/i, /\bPrivate Station to\b/i,
+  /\bself Transfer\b/, /\blevi Bus Station\b/, /\brovaniemi Bus Station\b/
+];
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+function escAttr(s) {
+  return esc(s).replace(/'/g, '&#39;');
+}
+function focusPos(focus) {
+  if (focus === 'bottom') return 'center 78%';
+  if (focus === 'center') return 'center center';
+  return 'center 22%';
+}
+function picturesAdded() {
+  return !!model?.workflow?.pictures_added;
+}
+function draftStorageKey() {
+  const fallback = [initialPayload?.cover?.trip_title || '', initialPayload?.cover?.trip_dates || '', (initialPayload?.days || []).length].join('|');
+  return `itinerary-visual-editor-draft:${initialPayload?.draft_id || fallback}`;
+}
+function persistLocalDraft() {
+  if (!model || !initialPayload) return;
+  try {
+    const snapshot = attachEditableDraft(compactFullPayloadForCommit(model));
+    localStorage.setItem(draftStorageKey(), JSON.stringify({
+      saved_at: Date.now(),
+      source_signature: initialPayload?.meta?.source_signature || '',
+      draft_schema_version: initialPayload?.meta?.draft_schema_version || 1,
+      model: snapshot
+    }));
+  } catch (err) {}
+}
+function sameDraftDay(a, b, fallbackIndex) {
+  const left = String(a?.day || a?.label || fallbackIndex || '').trim();
+  const right = String(b?.day || b?.label || fallbackIndex || '').trim();
+  return left && right && left === right;
+}
+function findServerDayForLocalDraft(mergedDays, localDay, fallbackIndex) {
+  if (!Array.isArray(mergedDays)) return null;
+  const byIdentity = mergedDays.find(day => sameDraftDay(day, localDay, fallbackIndex));
+  if (byIdentity) return byIdentity;
+  return mergedDays[fallbackIndex] || null;
+}
+function mergeLocalDraftOntoServerPayload(localDraft) {
+  const merged = JSON.parse(JSON.stringify(initialPayload || {}));
+  const localPicturesAdded = !!localDraft.workflow?.pictures_added;
+  if (localDraft.cover) merged.cover = Object.assign({}, merged.cover || {}, localDraft.cover);
+  if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
+  const localDays = Array.isArray(localDraft.days) ? localDraft.days : [];
+  if (!Array.isArray(merged.days)) merged.days = [];
+  localDays.forEach((localDay, idx) => {
+    let targetDay = findServerDayForLocalDraft(merged.days, localDay, idx);
+    if (!targetDay) {
+      targetDay = {day: localDay.day || `Day ${idx + 1}`};
+      merged.days.push(targetDay);
+    }
+    ['day','label','date','title','city','intro','blocks_html','blocks'].forEach(field => {
+      if (field in localDay) targetDay[field] = localDay[field];
+    });
+    if (localPicturesAdded && localDay.image) {
+      targetDay.image = Object.assign({}, targetDay.image || {}, localDay.image);
+    }
+  });
+  if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
+  if (localDraft.editor_draft) merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
+  if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
+  merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
+  if (localDraft.workflow && 'pictures_added' in localDraft.workflow) {
+    merged.workflow.pictures_added = !!localDraft.workflow.pictures_added;
+  }
+  return merged;
+}
+function restoreLocalDraftIfAvailable() {
+  if (!initialPayload) return false;
+  try {
+    const raw = localStorage.getItem(draftStorageKey());
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.model) return false;
+    const currentSourceSignature = initialPayload?.meta?.source_signature || '';
+    const savedSourceSignature = parsed.source_signature || parsed.model?.meta?.source_signature || '';
+    if (currentSourceSignature && savedSourceSignature && currentSourceSignature !== savedSourceSignature) return false;
+    const merged = mergeLocalDraftOntoServerPayload(parsed.model);
+    const serverSnapshot = JSON.stringify(compactFullPayloadForCommit(initialPayload));
+    const localSnapshot = JSON.stringify(compactFullPayloadForCommit(merged));
+    if (serverSnapshot === localSnapshot) return false;
+    model = merged;
+    restoredLocalDraftPendingSave = true;
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+function clearLocalDraft() {
+  try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
+}
+function editableText(value, key, cls='') {
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
+}
+function editableSpan(value, key, cls='') {
+  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</span>`;
+}
+function editableHtml(value, key, cls='') {
+  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${value || ''}</div>`;
+}
+function splitRouteParts(value) {
+  return String(value || '').replace(/\s*\n+\s*/g, ' · ').split('·').map(p => p.trim()).filter(Boolean);
+}
+function routeHtml(value) {
+  const parts = splitRouteParts(value);
+  if (parts.length < 5) return esc(parts.join(' · '));
+  const first = parts.slice(0, -2).map(esc).join(' · ');
+  const pair = `<span class="cover-destination-pair">${esc(parts[parts.length - 2])}&nbsp;·&nbsp;${esc(parts[parts.length - 1])}</span>`;
+  return `<span class="cover-route-line">${first}</span><span class="cover-route-line">${pair}</span>`;
+}
+function editableRoute(value, key, cls='') {
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${routeHtml(value)}</div>`;
+}

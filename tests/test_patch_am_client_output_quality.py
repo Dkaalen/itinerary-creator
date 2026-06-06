@@ -28,6 +28,21 @@ from visual_editor_component.editor_workflow import build_visual_editor_payload
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _visual_editor_frontend_source() -> str:
+    frontend = ROOT / "visual_editor_component" / "frontend"
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def _rows(raw: str) -> list[dict]:
     return normalize_itinerary_rows(parse_itinerary(raw))
 
@@ -148,7 +163,7 @@ def test_inclusion_pagination_uses_clean_titles_and_less_aggressive_page_breaks(
 
 
 def test_visual_editor_add_pictures_path_has_defensive_error_ui_and_bounded_image_payloads():
-    frontend = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    frontend = _visual_editor_frontend_source()
     workflow = (ROOT / "visual_editor_component" / "editor_workflow.py").read_text(encoding="utf-8")
     previews = (ROOT / "images" / "image_preview.py").read_text(encoding="utf-8")
 

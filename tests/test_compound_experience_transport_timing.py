@@ -3,6 +3,21 @@ import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _visual_editor_frontend_source() -> str:
+    frontend = ROOT / "visual_editor_component" / "frontend"
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
 sys.path.insert(0, str(ROOT))
 
 streamlit_stub = sys.modules.get("streamlit") or types.ModuleType("streamlit")
@@ -115,6 +130,6 @@ Day 2	Activity	02.01.2026		Norway in a NUtshell | Oslo to Bergen | 08:35 --- 20:
     assert "Scenic rail &amp; fjord journeys" in joined or "Scenic rail & fjord journeys" in joined
     assert "Norway in a Nutshell from Oslo to Bergen" in joined
 
-    frontend = (ROOT / "visual_editor_component" / "frontend" / "index.html").read_text(encoding="utf-8")
+    frontend = _visual_editor_frontend_source()
     assert "key.includes('.whats_included_pages_html.')" in frontend
     assert "el.innerHTML.trim()" in frontend

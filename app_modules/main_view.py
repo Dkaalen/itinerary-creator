@@ -70,7 +70,7 @@ STAGE_COPY = {
     "export": {
         "subtitle": "Run the final quality checks, create the PDF, then download the client-ready file.",
         "panel_title": "Create the final PDF",
-        "panel_text": "The current document and picture choices are used for export. Create the PDF here, then download it from the ready panel.",
+        "panel_text": "The current document and picture choices are used for export. Create PDF applies pending page edits first, then the ready panel keeps the download available. If the PDF already up to date, the existing download is reused.",
     },
 }
 

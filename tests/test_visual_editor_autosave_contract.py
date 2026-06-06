@@ -19,6 +19,21 @@ import visual_editor_component.editor_workflow as editor_workflow
 from visual_editor_component.editor_workflow import apply_visual_editor_result
 
 
+def _visual_editor_frontend_source():
+    frontend = Path("visual_editor_component/frontend")
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def test_visual_editor_minimal_save_does_not_freeze_generated_inclusions():
     output_edits = {"days": {}}
     result = json.dumps({
@@ -150,13 +165,13 @@ def test_visual_editor_persists_flagged_issue_notes_for_future_patches():
 
 
 def test_visual_editor_v2_contract_is_inline_not_separate_form():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
-    assert "Save for now" in editor_html
-    assert "Create PDF applies pending edits first" in editor_html
+    assert "Save changes" in editor_html
+    assert "Use the image controls on each day page" in editor_html
     assert "cover.trip_dates" in editor_html
-    assert "Undo last edit" in editor_html
-    assert "Reset selected block" in editor_html
+    assert "Undo" in editor_html
+    assert "Reset section" in editor_html
     assert "Replace all" in editor_html
     assert "Add bullet" in editor_html
     assert "Flag issue" in editor_html
@@ -277,9 +292,9 @@ def test_preview_html_omits_day_images_until_pictures_are_added():
 
 
 def test_visual_editor_frontend_has_autosave_and_text_first_contract():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
-    assert "Text-first editing mode" in editor_html
+    assert "Edit itinerary text" in editor_html
     assert "Autosaving" in editor_html
     assert "localStorage.setItem" in editor_html
     assert "beforeunload" in editor_html
@@ -287,14 +302,14 @@ def test_visual_editor_frontend_has_autosave_and_text_first_contract():
 
 
 def test_visual_editor_text_mode_cover_uses_high_contrast_edit_skin():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "editor-text-cover" in editor_html
     assert "cover-page.editor-text-cover .cover-title" in editor_html
     assert "picturesAdded() ? '' : 'editor-text-cover'" in editor_html
 
 def test_visual_editor_recovered_browser_draft_is_saved_back_to_streamlit():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "restoredLocalDraftPendingSave" in editor_html
     assert "saveRestoredLocalDraftToServer" in editor_html
@@ -337,7 +352,7 @@ def test_visual_editor_payload_includes_source_signature_for_draft_recovery():
 
 
 def test_visual_editor_frontend_rejects_stale_local_draft_signatures():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "source_signature: initialPayload?.meta?.source_signature" in editor_html
     assert "currentSourceSignature" in editor_html
@@ -346,7 +361,7 @@ def test_visual_editor_frontend_rejects_stale_local_draft_signatures():
 
 
 def test_visual_editor_frontend_recovers_picture_stage_and_images_after_refresh():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "const localPicturesAdded = !!localDraft.workflow?.pictures_added" in editor_html
     assert "if (localPicturesAdded && localDay.image)" in editor_html
@@ -355,7 +370,7 @@ def test_visual_editor_frontend_recovers_picture_stage_and_images_after_refresh(
 
 
 def test_visual_editor_frontend_merges_recovered_days_by_identity_not_only_index():
-    editor_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    editor_html = _visual_editor_frontend_source()
 
     assert "function sameDraftDay" in editor_html
     assert "function findServerDayForLocalDraft" in editor_html

@@ -5,7 +5,18 @@ from itinerary_generation.day_titles import create_day_title
 
 
 def _editor_html() -> str:
-    return Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    frontend = Path("visual_editor_component/frontend")
+    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    for relative in (
+        "styles/editor.css",
+        "js/state.js",
+        "js/images.js",
+        "js/render.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    ):
+        parts.append((frontend / relative).read_text(encoding="utf-8"))
+    return "\n".join(parts)
 
 
 def test_editor_page_actions_collect_before_redraw_and_do_not_delete_nonempty_pages():
@@ -34,9 +45,9 @@ def test_editor_page_actions_collect_before_redraw_and_do_not_delete_nonempty_pa
 def test_editor_toolbar_keeps_daily_surface_simple_with_advanced_tools_hidden():
     html = _editor_html()
 
-    assert "More edit tools" in html
+    assert "Advanced tools" in html
     assert "<details class=\"advanced-tools\">" in html
-    assert "Save for now" in html
+    assert "Save changes" in html
     assert "Make heading" in html
     assert "Normal text" in html
 
