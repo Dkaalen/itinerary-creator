@@ -8,24 +8,27 @@ def apply_global_styles():
         """
         <style>
             :root {
-                --app-bg: #f3f6f8;
+                --app-bg: #eef4f8;
                 --surface: #ffffff;
-                --surface-soft: #f8fafc;
-                --surface-glass: rgba(255, 255, 255, 0.78);
-                --ink: #102033;
-                --ink-soft: #475569;
-                --muted: #64748b;
-                --line: #dbe4ed;
-                --line-strong: #c8d4e0;
-                --navy: #071528;
-                --navy-2: #0d2744;
-                --teal: #0f9b8e;
-                --teal-dark: #08756e;
-                --gold: #c79a3b;
-                --warning: #d97706;
+                --surface-soft: #f5f8fb;
+                --surface-glass: #ffffff;
+                --ink: #101828;
+                --ink-soft: #344054;
+                --muted: #475467;
+                --line: #cfd8e3;
+                --line-strong: #b8c6d6;
+                --navy: #071527;
+                --navy-2: #12314c;
+                --teal: #007f79;
+                --teal-dark: #005f5b;
+                --gold: #b7791f;
+                --warning: #b45309;
                 --danger: #b42318;
-                --shadow-soft: 0 20px 45px rgba(15, 35, 55, 0.10);
-                --shadow-card: 0 10px 30px rgba(15, 35, 55, 0.08);
+                --success-soft: #dff7f1;
+                --active-soft: #fff3d8;
+                --locked-soft: #eef3f7;
+                --shadow-soft: 0 20px 45px rgba(15, 35, 55, 0.12);
+                --shadow-card: 0 10px 30px rgba(15, 35, 55, 0.10);
             }
 
             html, body, [data-testid="stAppViewContainer"] {
@@ -50,13 +53,34 @@ def apply_global_styles():
                 color: var(--ink-soft);
             }
 
+            label, [data-testid="stWidgetLabel"] p {
+                color: var(--ink) !important;
+                font-weight: 650;
+            }
+
             div[data-testid="stSidebar"] {
-                background: linear-gradient(180deg, var(--navy) 0%, #06101f 100%);
-                border-right: 1px solid rgba(255, 255, 255, 0.08);
+                background: linear-gradient(180deg, #071527 0%, #0b1627 100%);
+                border-right: 1px solid rgba(255, 255, 255, 0.10);
             }
 
             div[data-testid="stSidebar"] * {
-                color: rgba(255, 255, 255, 0.88) !important;
+                color: rgba(255, 255, 255, 0.92) !important;
+            }
+
+            div[data-testid="stSidebar"] [data-testid="stWidgetLabel"] *,
+            div[data-testid="stSidebar"] label,
+            div[data-testid="stSidebar"] [data-testid="stCheckbox"] *,
+            div[data-testid="stSidebar"] [data-testid="stCaptionContainer"] *,
+            div[data-testid="stSidebar"] h2,
+            div[data-testid="stSidebar"] h3,
+            div[data-testid="stSidebar"] p {
+                color: rgba(255, 255, 255, 0.92) !important;
+            }
+
+            div[data-testid="stSidebar"] [data-baseweb="select"] > div *,
+            div[data-testid="stSidebar"] input,
+            div[data-testid="stSidebar"] textarea {
+                color: #102033 !important;
             }
 
             div[data-testid="stSidebar"] h2,
@@ -69,7 +93,7 @@ def apply_global_styles():
             div[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
             div[data-testid="stSidebar"] small,
             div[data-testid="stSidebar"] p {
-                color: rgba(255, 255, 255, 0.68) !important;
+                color: rgba(255, 255, 255, 0.78) !important;
             }
 
             div[data-testid="stSidebar"] [data-testid="stMetric"] {
@@ -82,8 +106,30 @@ def apply_global_styles():
             div[data-testid="stSidebar"] [data-testid="stSelectbox"] > div,
             div[data-testid="stSidebar"] [data-testid="stFileUploader"] section,
             div[data-testid="stSidebar"] [data-testid="stCheckbox"] {
-                background: rgba(255, 255, 255, 0.04);
+                background: rgba(255, 255, 255, 0.08);
                 border-radius: 14px;
+            }
+
+            div[data-testid="stSidebar"] [data-baseweb="select"] > div,
+            div[data-testid="stSidebar"] input,
+            div[data-testid="stSidebar"] textarea {
+                background: #f8fafc !important;
+                color: #102033 !important;
+                border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            }
+
+            div[data-testid="stSidebar"] .stButton > button,
+            div[data-testid="stSidebar"] .stDownloadButton > button {
+                background: rgba(255, 255, 255, 0.10) !important;
+                border-color: rgba(255, 255, 255, 0.20) !important;
+                color: #ffffff !important;
+                box-shadow: none !important;
+            }
+
+            div[data-testid="stSidebar"] .stButton > button:hover,
+            div[data-testid="stSidebar"] .stDownloadButton > button:hover {
+                background: rgba(255, 255, 255, 0.16) !important;
+                border-color: rgba(255, 255, 255, 0.34) !important;
             }
 
             .sidebar-brand {
@@ -234,10 +280,10 @@ def apply_global_styles():
 
             .workflow-step-card {
                 min-height: 174px;
-                border: 1px solid var(--line);
+                border: 1px solid var(--line-strong);
                 border-radius: 20px;
                 padding: 0.9rem;
-                background: var(--surface-glass);
+                background: var(--surface);
                 box-shadow: var(--shadow-card);
                 position: relative;
                 overflow: hidden;
@@ -256,7 +302,11 @@ def apply_global_styles():
             .workflow-step-complete::before { background: var(--teal); }
             .workflow-step-active::before { background: var(--gold); }
             .workflow-step-attention::before { background: var(--warning); }
-            .workflow-step-locked { opacity: 0.62; }
+            .workflow-step-locked {
+                opacity: 1;
+                background: var(--locked-soft);
+                border-color: #d5dee8;
+            }
 
             .workflow-step-topline {
                 display: flex;
@@ -272,20 +322,35 @@ def apply_global_styles():
                 align-items: center;
                 justify-content: center;
                 border-radius: 999px;
-                background: #e8f4f2;
+                background: var(--success-soft);
                 color: var(--teal-dark);
                 font-weight: 850;
             }
 
             .workflow-status-pill {
                 border-radius: 999px;
-                background: #eef2f7;
-                color: var(--ink-soft);
+                background: #e7edf4;
+                color: #24364b;
                 padding: 0.25rem 0.48rem;
                 font-size: 0.68rem;
-                font-weight: 800;
+                font-weight: 850;
                 text-transform: uppercase;
                 letter-spacing: 0.06em;
+            }
+
+            .workflow-step-complete .workflow-status-pill {
+                background: var(--success-soft);
+                color: var(--teal-dark);
+            }
+
+            .workflow-step-active .workflow-status-pill {
+                background: var(--active-soft);
+                color: #7a4a00;
+            }
+
+            .workflow-step-attention .workflow-status-pill {
+                background: #fff0d9;
+                color: var(--warning);
             }
 
             .workflow-step-title {
@@ -307,7 +372,7 @@ def apply_global_styles():
 
             .workflow-step-description,
             .workflow-step-helper {
-                color: var(--muted);
+                color: var(--ink-soft);
                 font-size: 0.82rem;
                 line-height: 1.38;
             }
@@ -380,7 +445,7 @@ def apply_global_styles():
             .panel-card-copy,
             .workflow-note {
                 font-size: 0.92rem;
-                color: var(--muted) !important;
+                color: var(--ink-soft) !important;
                 line-height: 1.5;
                 margin-bottom: 0.75rem;
             }
@@ -439,8 +504,23 @@ def apply_global_styles():
             div[data-testid="stTextInput"] input,
             div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
                 border-radius: 16px !important;
-                border-color: var(--line-strong) !important;
-                background: rgba(255, 255, 255, 0.86) !important;
+                border: 1px solid var(--line-strong) !important;
+                background: #ffffff !important;
+                color: var(--ink) !important;
+                caret-color: var(--teal-dark) !important;
+            }
+
+            div[data-testid="stTextArea"] textarea::placeholder,
+            div[data-testid="stTextInput"] input::placeholder {
+                color: #667085 !important;
+                opacity: 1 !important;
+            }
+
+            div[data-testid="stTextArea"] textarea:focus,
+            div[data-testid="stTextInput"] input:focus,
+            div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within {
+                border-color: var(--teal) !important;
+                box-shadow: 0 0 0 3px rgba(0, 127, 121, 0.18) !important;
             }
 
             div[data-testid="stExpander"] {
