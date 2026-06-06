@@ -379,6 +379,78 @@ def apply_global_styles():
             }
 
 
+            .export-readiness-panel {
+                margin: 1rem 0 1.1rem;
+                padding: 1rem;
+                border: 1px solid rgba(0, 127, 121, .22);
+                border-radius: 26px;
+                background: linear-gradient(135deg, #ffffff 0%, #f4fbfa 100%);
+                box-shadow: var(--shadow-card);
+            }
+
+            .export-readiness-heading {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                padding: 0 .15rem .8rem;
+            }
+
+            .export-readiness-heading span {
+                color: var(--teal-dark) !important;
+                font-size: .78rem;
+                font-weight: 900;
+                letter-spacing: .12em;
+                text-transform: uppercase;
+            }
+
+            .export-readiness-heading strong {
+                color: var(--ink) !important;
+                font-size: 1.12rem;
+                font-weight: 950;
+            }
+
+            .export-readiness-grid {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: .72rem;
+            }
+
+            .export-readiness-card {
+                padding: .82rem .9rem;
+                border-radius: 18px;
+                border: 1px solid var(--line);
+                background: #ffffff;
+            }
+
+            .export-readiness-card span {
+                display: block;
+                color: var(--muted) !important;
+                font-size: .74rem;
+                font-weight: 850;
+                text-transform: uppercase;
+                letter-spacing: .08em;
+            }
+
+            .export-readiness-card strong {
+                display: block;
+                margin-top: .25rem;
+                color: var(--ink) !important;
+                font-size: 1rem;
+                font-weight: 950;
+            }
+
+            .export-ready {
+                border-color: rgba(8, 116, 67, .26);
+                background: #f0fdf4;
+            }
+
+            .export-blocked {
+                border-color: rgba(180, 83, 9, .25);
+                background: #fff7ed;
+            }
+
+
             .pdf-ready-panel {
                 display: flex;
                 justify-content: space-between;
@@ -457,11 +529,13 @@ def apply_global_styles():
                 .luxury-hero { grid-template-columns: 1fr; }
                 .flow-nav { grid-template-columns: 1fr 1fr; }
                 .metric-grid { grid-template-columns: 1fr 1fr; }
+                .export-readiness-grid { grid-template-columns: 1fr 1fr; }
             }
 
             @media (max-width: 620px) {
                 .flow-nav { grid-template-columns: 1fr; }
                 .metric-grid { grid-template-columns: 1fr; }
+                .export-readiness-grid { grid-template-columns: 1fr; }
                 .block-container { padding-left: 1rem; padding-right: 1rem; }
             }
         </style>

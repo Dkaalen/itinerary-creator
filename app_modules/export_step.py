@@ -8,12 +8,13 @@ import streamlit as st
 from ui.export_files import save_pdf_file
 from ui.output_edits import apply_output_edits
 from app_modules.project_io import rebuild_current_preview
-from ui.picture_workflow import pictures_are_added
 from itinerary_generation.common import group_rows_by_day, is_optional_row
 from itinerary_generation.output_contract import validate_output_layout_contract
 from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.itinerary_render_context import build_itinerary_render_context
+from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
+from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from images.app_image_selection import (
     audit_day_image_matches,
     connect_remote_image_bank_if_missing,
@@ -81,6 +82,7 @@ def _store_current_pdf_bytes(pdf_bytes: bytes, signature: str | None) -> None:
     st.session_state.export_pdf_bytes = pdf_bytes
     st.session_state.export_pdf_signature = signature
     st.session_state.pdf_status = "Ready"
+    st.session_state["export_last_error"] = ""
 
 
 def render_pdf_download_station(*, location: str = "bottom") -> None:
@@ -127,6 +129,14 @@ def _show_issue_list(title: str, issues) -> None:
             st.write(f"- {getattr(issue, 'message', issue)}")
 
 
+def _clear_pdf_artifact(status: str) -> None:
+    st.session_state.pdf_bytes = None
+    st.session_state.export_pdf_bytes = None
+    st.session_state.pdf_signature = None
+    st.session_state.export_pdf_signature = None
+    st.session_state.pdf_status = status
+
+
 def _create_pdf_from_current_preview() -> bool:
     validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))
     if validation_report.is_blocked:
@@ -148,11 +158,7 @@ def _create_pdf_from_current_preview() -> bool:
     )
     blocking_contract_issues = [issue for issue in contract_issues if issue.severity == "error"]
     if blocking_contract_issues:
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "Needs review"
+        _clear_pdf_artifact("Needs review")
         _show_issue_list("PDF export stopped because the preview structure needs review.", blocking_contract_issues)
         return False
 
@@ -160,6 +166,10 @@ def _create_pdf_from_current_preview() -> bool:
     current_image_bank_status = image_bank_status()
     if image_grouped_days and current_image_bank_status.get("missing_full_bank"):
         current_image_bank_status = connect_remote_image_bank_if_missing()
+    if not image_bank_is_ready_for_client_pictures(current_image_bank_status):
+        _clear_pdf_artifact("Image bank missing")
+        st.error(current_image_bank_status.get("blocking_message") or "PDF export stopped because the real destination image bank is missing.")
+        return False
 
     selected_image_matches = select_day_images_with_overrides(
         image_grouped_days,
@@ -175,11 +185,7 @@ def _create_pdf_from_current_preview() -> bool:
     )
     blocking_image_issues = [issue for issue in image_issues if issue.severity == "error"]
     if blocking_image_issues:
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "Needs image review"
+        _clear_pdf_artifact("Needs image review")
         _show_issue_list("PDF export stopped because one or more pictures need review.", blocking_image_issues)
         return False
 
@@ -212,11 +218,7 @@ def _create_pdf_from_current_preview() -> bool:
         image_bank_status=current_image_bank_status,
     )
     if client_quality_report.is_blocked:
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "Blocked by output quality gate"
+        _clear_pdf_artifact("Blocked by output quality gate")
         for issue in client_quality_report.blocking_issues:
             st.error(issue.message)
         return False
@@ -230,11 +232,7 @@ def _create_pdf_from_current_preview() -> bool:
         output_edits=st.session_state.get("output_edits", {}) or {},
     )
     if pdf_path is None:
-        st.session_state.pdf_bytes = None
-        st.session_state.export_pdf_bytes = None
-        st.session_state.pdf_signature = None
-        st.session_state.export_pdf_signature = None
-        st.session_state.pdf_status = "PDF failed"
+        _clear_pdf_artifact("PDF failed")
         return False
 
     _store_current_pdf_bytes(Path(pdf_path).read_bytes(), current_pdf_signature)
@@ -271,15 +269,56 @@ def _render_secondary_downloads(app_version: str) -> None:
             st.button("Download HTML", disabled=True, use_container_width=True)
 
 
+def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
+    states = [
+        ("Document", "Ready" if readiness.has_document else "Missing", readiness.has_document),
+        ("Pictures", "Ready" if readiness.pictures_added else "Not added", readiness.pictures_added),
+        ("Image bank", "Connected" if readiness.image_bank_ready else "Missing", readiness.image_bank_ready),
+        ("PDF", "Ready" if readiness.pdf_ready else "Not created", readiness.pdf_ready),
+    ]
+    cards = "".join(
+        '<div class="export-readiness-card export-ready" data-ready="true">'
+        f'<span>{label}</span><strong>{value}</strong>'
+        '</div>'
+        if ok
+        else '<div class="export-readiness-card export-blocked" data-ready="false">'
+        f'<span>{label}</span><strong>{value}</strong>'
+        '</div>'
+        for label, value, ok in states
+    )
+    st.html(
+        '<div class="export-readiness-panel">'
+        '<div class="export-readiness-heading">'
+        f'<span>Export status</span><strong>{readiness.status_label}</strong>'
+        '</div>'
+        f'<div class="export-readiness-grid">{cards}</div>'
+        '</div>'
+    )
+    if readiness.blocking_messages and not readiness.pending_editor_commit:
+        with st.expander("What needs attention before PDF export?", expanded=False):
+            for message in readiness.blocking_messages:
+                st.write(f"- {message}")
+
+
+def _session_state_snapshot() -> dict:
+    return {key: st.session_state.get(key) for key in st.session_state.keys()}
+
+
 def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
         return
 
-    pictures_added = pictures_are_added(st.session_state.get("output_edits", {}))
+    current_image_status = image_bank_status()
     commit_ready = _visual_editor_export_commit_ready()
+    readiness = export_readiness_from_state(_session_state_snapshot(), current_image_status)
+    _render_export_readiness_panel(readiness)
 
-    if not pictures_added:
+    if not readiness.pictures_added:
         st.warning("Add pictures before creating the final PDF.")
+        return
+
+    if not readiness.image_bank_ready:
+        st.warning("Connect the real destination image bank before creating the final PDF.")
         return
 
     if st.session_state.get("_pdf_after_visual_edit_commit_nonce") and not commit_ready:
@@ -288,12 +327,12 @@ def render_export_step(app_version: str) -> None:
 
     if _current_pdf_bytes():
         render_pdf_download_station(location="bottom")
-        st.caption("PDF is ready. Create PDF again only if you make more edits.")
-        if st.button("Create PDF again", use_container_width=True):
+        st.caption("PDF is ready and will stay available while the current itinerary is unchanged.")
+        if st.button("Create PDF again", use_container_width=True, disabled=not readiness.can_create_pdf):
             request_pdf_creation_after_visual_editor_commit()
             st.rerun()
     else:
-        if st.button("Create PDF", type="primary", use_container_width=True):
+        if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
             request_pdf_creation_after_visual_editor_commit()
             st.rerun()
 
@@ -308,11 +347,8 @@ def render_export_step(app_version: str) -> None:
                 st.success("PDF created. Use the download button.")
                 st.rerun()
         except Exception as error:
-            st.session_state.pdf_bytes = None
-            st.session_state.export_pdf_bytes = None
-            st.session_state.pdf_signature = None
-            st.session_state.export_pdf_signature = None
-            st.session_state.pdf_status = "PDF failed"
+            _clear_pdf_artifact("PDF failed")
+            st.session_state["export_last_error"] = str(error)
             st.error("PDF export failed in this environment. The itinerary preview and HTML download still work.")
             with st.expander("PDF export error details"):
                 st.exception(error)
