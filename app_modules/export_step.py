@@ -13,6 +13,7 @@ from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from images.app_image_selection import audit_day_image_matches, connect_remote_image_bank_if_missing, get_day_image_crop_focus, image_bank_status, select_day_images_with_overrides
+from images.preview_image_contract import day_image_matches_from_preview_html, merge_preview_image_contract
 
 
 def render_export_step(app_version):
@@ -114,9 +115,16 @@ def render_export_step(app_version):
                             with st.spinner("Connecting the separate itinerary-image-bank repository from GitHub…"):
                                 current_image_bank_status = connect_remote_image_bank_if_missing()
 
-                        image_matches = select_day_images_with_overrides(
+                        selected_image_matches = select_day_images_with_overrides(
                             image_grouped_days,
                             st.session_state.get("output_edits", {}),
+                        )
+                        preview_image_matches = day_image_matches_from_preview_html(
+                            st.session_state.get("itinerary_html", "")
+                        )
+                        image_matches = merge_preview_image_contract(
+                            selected_image_matches,
+                            preview_image_matches,
                         )
                         current_image_bank_status = image_bank_status()
                         image_issues = audit_day_image_matches(

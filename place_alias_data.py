@@ -222,4 +222,11 @@ SERVICE_PHRASES = [
     "optional addons",
     "arrange day wise",
     "travel element",
+    "shuttle / flybus",
+    "shuttle flybus",
+    "flybus",
+    "city centre to airport",
+    "city center to airport",
+    "airport to city centre",
+    "airport to city center",
 ]

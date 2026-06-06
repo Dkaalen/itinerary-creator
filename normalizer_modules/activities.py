@@ -44,7 +44,9 @@ def _extract_supplier_day_heading(source: str) -> str:
         return ""
     heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
     heading = re.split(
-        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        r"\s+(?:Embark|After\s+a|After\s+breakfast|Start\s+your|Continuing|Continue\s+your|"
+        r"The\s+highlight|Your\s+adventure\s+begins|On\s+the\s+final|Finally|After\s+\w+|We start|"
+        r"You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
         heading,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -66,7 +68,17 @@ def looks_like_leisure_activity(row: dict) -> bool:
     experiences or activity inclusions.
     """
 
-    lower = text_blob(row).lower()
+    source_text = text_blob(row)
+    lower = source_text.lower()
+    # Supplier group-tour day rows often contain phrases such as "free time"
+    # or "at your own pace" inside a real guided day description.  A clean
+    # supplier heading ("Day 2: Discover Glaciers...") is a high-confidence
+    # signal that this is an included programme day, not leisure.
+    if _extract_supplier_day_heading(row.get("original_title") or row.get("details") or source_text):
+        return False
+    if re.search(r"\bday\s+\d+\s*[:\-–]", source_text, flags=re.IGNORECASE):
+        return False
+
     leisure_markers = [
         "spend time at leisure",
         "day at leisure",
@@ -82,6 +94,17 @@ def looks_like_leisure_activity(row: dict) -> bool:
         return False
     arranged_payload = bool(row.get("time") or row.get("duration") or row.get("meeting_point") or row.get("includes"))
     arranged_payload = arranged_payload or any(marker in lower for marker in ["ticket", "tickets", "admission", "includes:", "what's included", "what’s included"])
+
+    arranged_group_tour_markers = [
+        "ice cave", "glacier", "glacial lagoon", "jökulsárlón", "jokulsarlon",
+        "diamond beach", "waterfall", "geyser", "geysir", "gullfoss",
+        "national park", "golden circle", "south coast", "eastfjords",
+        "mývatn", "myvatn", "dettifoss", "goðafoss", "godafoss",
+        "geothermal", "hot spring", "blue lagoon", "vök baths", "vok baths",
+        "whale watching", "puffin", "snæfellsnes", "snaefellsnes",
+    ]
+    if any(marker in lower for marker in arranged_group_tour_markers):
+        return False
 
     independent_markers = [
         "self-guided", "self guided", "explore independently", "independent walk",

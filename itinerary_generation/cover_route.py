@@ -13,6 +13,23 @@ from itinerary_generation.common import (
 SEPARATOR = " · "
 
 
+def _has_group_tour_overview(parsed_rows: list[dict]) -> bool:
+    text = " ".join(
+        f'{row.get("type", "")} {row.get("effective_type", "")} {row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'
+        for row in parsed_rows or []
+    ).lower()
+    return any(marker in text for marker in ("group tour", "holiday package", "guided holiday"))
+
+
+def _route_from_all_valid_day_cities(parsed_rows: list[dict]) -> list[str]:
+    route: list[str] = []
+    for row in main_rows_only(parsed_rows):
+        for city in destination_cities_for_row(row):
+            if not route or city != route[-1]:
+                route.append(city)
+    return route
+
+
 def route_cities_with_return(parsed_rows: list[dict]) -> list[str]:
     """Return display cities for the cover route, preserving real return loops.
 
@@ -22,11 +39,14 @@ def route_cities_with_return(parsed_rows: list[dict]) -> list[str]:
     """
 
     route: list[str] = overnight_destination_cities(parsed_rows)
+    # Packaged group tours often include several overnight regions inside one
+    # overview row, while only the pre/post tour hotels are explicit Hotel rows.
+    # In that case the client route should follow the day-by-day programme
+    # cities instead of collapsing to Reykjavík only.
+    if _has_group_tour_overview(parsed_rows) and len(route) <= 1:
+        route = _route_from_all_valid_day_cities(parsed_rows)
     if not route:
-        for row in main_rows_only(parsed_rows):
-            for city in destination_cities_for_row(row):
-                if not route or city != route[-1]:
-                    route.append(city)
+        route = _route_from_all_valid_day_cities(parsed_rows)
 
     if len(route) >= 3 and route[-1] == route[0]:
         result: list[str] = []
@@ -54,6 +74,9 @@ def sanitize_route_line_for_overnights(parsed_rows: list[dict], route_line: str)
     """Filter an existing/saved route line to overnight destinations when known."""
 
     overnight = overnight_destination_cities(parsed_rows)
+    if _has_group_tour_overview(parsed_rows) and len(overnight) <= 1:
+        generated = route_cities_with_return(parsed_rows)
+        return SEPARATOR.join(generated) if generated else str(route_line or "").strip()
     if not overnight:
         return str(route_line or "").strip()
     # The client-facing route is not an editable free-text summary.  It is owned

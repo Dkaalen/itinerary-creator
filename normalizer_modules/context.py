@@ -158,6 +158,12 @@ def fill_missing_context_cities(rows: list[dict]) -> list[dict]:
             continue
         if city.lower() in {"accommodation", "journey"}:
             row["city"] = ""
+        if row_type == "Transfer" and not row.get("city") and previous_city:
+            transfer_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+            if re.search(r"\b(?:city\s+cent(?:re|er)|hotel|accommodation)\s+to\s+(?:the\s+)?airport\b|\bto\s+(?:the\s+)?airport\b", transfer_text):
+                row["city"] = previous_city
+                city_by_day.setdefault(row.get("day", ""), previous_city)
+                continue
         if row_type in _FILLABLE_CONTEXT_TYPES:
             inferred = city_by_day.get(row.get("day", "")) or previous_city
             if inferred:

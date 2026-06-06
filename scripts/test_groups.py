@@ -70,6 +70,7 @@ QUALITY_TESTS = (
     "tests/test_patch_as_text_engine_consolidation.py",
     "tests/test_patch_at_reliability_diagnostics.py",
     "tests/test_patch_au_remote_image_bank_connector.py",
+    "tests/test_patch_av_preview_pdf_group_tours.py",
     "tests/test_day_heading_dates.py",
     "tests/test_regressions_travel_text.py",
 )

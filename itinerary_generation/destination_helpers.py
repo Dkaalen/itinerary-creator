@@ -116,6 +116,11 @@ def is_valid_destination_city(city):
         "your hotel",
         "the accommodation",
         "your accommodation",
+        "shuttle / flybus",
+        "shuttle flybus",
+        "flybus",
+        "city centre",
+        "city center",
     }
     if lower in invalid_exact:
         return False

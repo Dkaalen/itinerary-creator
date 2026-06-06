@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from copy import copy
 from pathlib import Path
+import base64
+import re
 import tempfile
 from typing import Mapping
 
@@ -227,6 +229,26 @@ def _block_story(block: RenderBlock, styles) -> list:
     return block_story
 
 
+def _image_path_from_match(image_match, temp_dir):
+    """Resolve a PDF image source from the final preview image contract."""
+
+    if not image_match or not temp_dir:
+        return None
+    path = Path(str(image_match.get("path", "") or ""))
+    if path.exists() and path.is_file():
+        return path
+    data_uri = str(image_match.get("data_uri", "") or "").strip()
+    match = re.match(r"^data:image/(?:jpeg|jpg|png|webp);base64,(.+)$", data_uri, flags=re.IGNORECASE | re.DOTALL)
+    if not match:
+        return None
+    temp_path = Path(temp_dir) / f"preview_contract_day_image_{abs(hash(data_uri)) % 10_000_000}.img"
+    try:
+        temp_path.write_bytes(base64.b64decode(match.group(1)))
+        return temp_path
+    except (OSError, ValueError):
+        return None
+
+
 def _render_day(day: RenderDay, story, styles, *, image_match=None, crop_focus="top", temp_dir=None, doc=None):
     kicker = f"DAY {day.number}"
     if day.city:
@@ -249,8 +271,8 @@ def _render_day(day: RenderDay, story, styles, *, image_match=None, crop_focus="
             story.extend(block_story)
 
     if image_match and temp_dir and doc:
-        path = Path(str(image_match.get("path", "") or ""))
-        if path.exists() and path.is_file():
+        path = _image_path_from_match(image_match, temp_dir)
+        if path and path.exists() and path.is_file():
             story.append(
                 SamePageDayImage(
                     source_path=path,

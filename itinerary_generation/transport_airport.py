@@ -21,7 +21,7 @@ def has_airport_arrival_transfer(day_rows):
 
 def has_airport_departure_transfer(day_rows):
     text = " ".join(f'{row.get("title", "")} {row.get("details", "")}' for row in day_rows).lower()
-    return ("airport" in text and ("hotel to" in text or "accommodation to" in text or "to airport" in text))
+    return ("airport" in text and ("hotel to" in text or "accommodation to" in text or "to airport" in text or "to the airport" in text))
 
 
 def has_only_departure_arrangements(day_rows):

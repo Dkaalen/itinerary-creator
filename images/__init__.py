@@ -35,6 +35,7 @@ from .metadata import (
     tokenize,
 )
 from .scanner import _coerce_image_bank_paths, coerce_image_bank_paths, scan_image_bank
+from .preview_image_contract import day_image_matches_from_preview_html, merge_preview_image_contract
 
 __all__ = [
     "CITY_ALIASES",
@@ -69,6 +70,8 @@ __all__ = [
     "image_bank_status",
     "image_bank_status_for_paths",
     "image_bank_status_summary",
+    "day_image_matches_from_preview_html",
+    "merge_preview_image_contract",
     "infer_season_from_rows",
     "infer_seasons",
     "infer_themes",
