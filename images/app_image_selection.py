@@ -4,9 +4,11 @@ from images.image_bank import (
     APP_ROOT,
     clean_space,
     esc,
+    ensure_runtime_image_bank as _ensure_runtime_image_bank,
     get_image_bank_path as _get_image_bank_path,
     get_image_bank_paths as _get_image_bank_paths,
     get_image_bank_scan_paths as _get_image_bank_scan_paths,
+    image_bank_status as _image_bank_status,
     infer_country_for_city as _infer_country_for_city,
     normalize_path_key,
     slugify_filename,
@@ -39,6 +41,15 @@ from images.image_uploads import (
 from images.day_image_ui import render_day_image_slot as _render_day_image_slot
 from images.image_match_audit import audit_day_image_matches as _audit_day_image_matches
 
+
+
+
+def ensure_runtime_image_bank():
+    return _ensure_runtime_image_bank(APP_ROOT)
+
+
+def image_bank_status():
+    return _image_bank_status(APP_ROOT)
 
 def get_image_bank_paths():
     return _get_image_bank_paths(APP_ROOT)

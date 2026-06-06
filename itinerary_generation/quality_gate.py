@@ -396,10 +396,36 @@ def _image_match_issues(day_images: Mapping[str, Mapping[str, Any] | None] | Non
     return issues
 
 
+def _image_bank_status_issues(image_bank_status: Mapping[str, Any] | None) -> list[ItineraryValidationIssue]:
+    if not isinstance(image_bank_status, Mapping):
+        return []
+    missing = bool(
+        image_bank_status.get("missing_full_bank")
+        or image_bank_status.get("default_only")
+        or image_bank_status.get("is_default_only")
+        or not image_bank_status.get("full_bank_found", image_bank_status.get("using_full_destination_bank", False))
+    )
+    if not missing:
+        return []
+    message = str(
+        image_bank_status.get("blocking_message")
+        or "Full destination image bank is missing; default-only picture selection cannot be approved."
+    )
+    return [
+        ItineraryValidationIssue(
+            BLOCKING,
+            "image_bank_full_missing",
+            message,
+            context=str(image_bank_status.get("source_path") or image_bank_status.get("paths") or ""),
+        )
+    ]
+
+
 def evaluate_client_output_quality(
     render_document: Any,
     *,
     day_images: Mapping[str, Mapping[str, Any] | None] | None = None,
+    image_bank_status: Mapping[str, Any] | None = None,
 ) -> ClientOutputQualityGateReport:
     """Validate final generated client output after parsing/normalization."""
 
@@ -440,6 +466,7 @@ def evaluate_client_output_quality(
         )
 
     issues.extend(_image_match_issues(day_images))
+    issues.extend(_image_bank_status_issues(image_bank_status))
     return ClientOutputQualityGateReport(issues=tuple(issues))
 
 

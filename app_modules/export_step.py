@@ -12,7 +12,7 @@ from itinerary_generation.output_contract import validate_output_layout_contract
 from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.itinerary_render_context import build_itinerary_render_context
-from images.app_image_selection import audit_day_image_matches, get_day_image_crop_focus, select_day_images_with_overrides
+from images.app_image_selection import audit_day_image_matches, get_day_image_crop_focus, image_bank_status, select_day_images_with_overrides
 
 
 def render_export_step(app_version):
@@ -113,6 +113,7 @@ def render_export_step(app_version):
                             image_grouped_days,
                             st.session_state.get("output_edits", {}),
                         )
+                        current_image_bank_status = image_bank_status()
                         image_issues = audit_day_image_matches(
                             image_grouped_days,
                             image_matches,
@@ -164,6 +165,7 @@ def render_export_step(app_version):
                             client_quality_report = evaluate_client_output_quality(
                                 pdf_render_context.render_document,
                                 day_images=image_matches,
+                                image_bank_status=current_image_bank_status,
                             )
                             if client_quality_report.is_blocked:
                                 st.session_state.pdf_status = "Blocked by output quality gate"

@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 
-from image_matcher import scan_image_bank
+from images.scanner import coerce_image_bank_paths, scan_image_bank
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 IMAGE_BANK_REPO_URL = "https://github.com/Dkaalen/itinerary-image-bank.git"
@@ -44,7 +44,7 @@ def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
     # destination imagery wins over the bundled Default bank.
     paths.append(root.parent / "image_bank_full")
     # Runtime bootstrap fallback for zip/deploy checkouts that do not populate
-    # submodules. This path is populated lazily by _ensure_runtime_image_bank().
+    # submodules. This path is populated only by explicit ensure_runtime_image_bank().
     paths.append(root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank" / "image_bank_full")
     return paths
 
@@ -97,7 +97,7 @@ def _runtime_bootstrap_allowed() -> bool:
     return True
 
 
-def _ensure_runtime_image_bank(root: Path) -> Path | None:
+def ensure_runtime_image_bank(root: Path | str | None = None) -> Path | None:
     """Optionally clone the separate image-bank repo when explicitly enabled.
 
     Zip/deployment workflows should normally ship a populated image bank or set
@@ -106,6 +106,7 @@ def _ensure_runtime_image_bank(root: Path) -> Path | None:
     ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.
     """
 
+    root = Path(root) if root is not None else APP_ROOT
     runtime_repo = root / RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank"
     runtime_bank = runtime_repo / "image_bank_full"
     if runtime_bank.exists() and any(runtime_bank.rglob("*.webp")):
@@ -143,23 +144,18 @@ def _ensure_runtime_image_bank(root: Path) -> Path | None:
 
 
 def get_image_bank_paths(root=None):
-    """Return image-bank paths in priority order.
+    """Return image-bank paths in priority order without side effects.
 
-    Destination-specific imagery from the separate image-bank repo is scanned
-    before local fallback banks. If no full bank is available, the app attempts a
-    one-time runtime bootstrap from the image-bank GitHub repo before falling
-    back to the tiny bundled Default bank. Set
-    ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0`` to disable that bootstrap.
+    Path discovery must be deterministic.  It may include an already-populated
+    runtime checkout, but it must not clone, pull, or otherwise mutate the file
+    system.  Use :func:`ensure_runtime_image_bank` as an explicit setup step when
+    a deployment needs to fetch the separate image-bank repository.
     """
     root = Path(root) if root is not None else APP_ROOT
     external_banks = _candidate_external_image_bank_paths(root)
     full_bank = root / "image_bank_full"
     fallback_bank = root / "image_bank"
     paths = _dedupe_existing_paths([*external_banks, full_bank, fallback_bank])
-    if not paths or paths[0] in {full_bank, fallback_bank}:
-        runtime_bank = _ensure_runtime_image_bank(root)
-        if runtime_bank:
-            paths = _dedupe_existing_paths([runtime_bank, *external_banks, full_bank, fallback_bank])
     return paths or [fallback_bank]
 
 
@@ -187,21 +183,67 @@ def slugify_filename(value):
     return text or "Image"
 
 
+def _is_default_city(value: str) -> bool:
+    return clean_space(value).lower() in {"default", "defoult"}
+
+
+def image_bank_status_for_paths(paths) -> dict:
+    """Return image-bank status for a concrete path list.
+
+    This is used by quality gates that already know which paths were scanned.
+    It deliberately performs no network or bootstrap work.
+    """
+
+    scan_paths = _dedupe_existing_paths(coerce_image_bank_paths(paths))
+    candidates = scan_image_bank(scan_paths)
+    destination_candidates = [candidate for candidate in candidates if not _is_default_city(candidate.city)]
+    default_candidates = [candidate for candidate in candidates if _is_default_city(candidate.city)]
+
+    destination_paths: list[str] = []
+    for base in scan_paths:
+        base_candidates = scan_image_bank([base])
+        if any(not _is_default_city(candidate.city) for candidate in base_candidates):
+            destination_paths.append(str(base))
+
+    countries = sorted({clean_space(candidate.country) for candidate in destination_candidates if clean_space(candidate.country)})
+    destinations = sorted({clean_space(candidate.city) for candidate in destination_candidates if clean_space(candidate.city)})
+    full_bank_found = bool(destination_candidates)
+    default_only = bool(default_candidates) and not full_bank_found
+    missing_full_bank = not full_bank_found
+    blocking_message = ""
+    if missing_full_bank:
+        blocking_message = (
+            "Full destination image bank is missing. Add Pictures is currently using only the bundled Default bank; "
+            "connect Dkaalen/itinerary-image-bank/image_bank_full before approving final pictures."
+        )
+
+    return {
+        "paths": [str(path) for path in scan_paths],
+        "existing_paths": [str(path) for path in scan_paths if path.exists() and path.is_dir()],
+        "source_path": destination_paths[0] if destination_paths else "",
+        "destination_source_paths": destination_paths,
+        "repo_url": IMAGE_BANK_REPO_URL,
+        "full_bank_found": full_bank_found,
+        "using_full_destination_bank": full_bank_found,
+        "missing_full_bank": missing_full_bank,
+        "default_only": default_only,
+        "is_default_only": default_only,
+        "destination_image_count": len(destination_candidates),
+        "default_image_count": len(default_candidates),
+        "total_image_count": len(candidates),
+        "countries_found": countries,
+        "destinations_found": destinations,
+        "runtime_bootstrap_allowed": _runtime_bootstrap_allowed(),
+        "blocking_message": blocking_message,
+        "warnings": [blocking_message] if blocking_message else [],
+    }
+
+
 def image_bank_status(root=None) -> dict:
     """Return operational image-bank status for diagnostics and quality gates."""
 
     root = Path(root) if root is not None else APP_ROOT
-    paths = get_image_bank_paths(root)
-    candidates = scan_image_bank(paths)
-    destination_candidates = [candidate for candidate in candidates if clean_space(candidate.city).lower() not in {"default", "defoult"}]
-    return {
-        "paths": [str(path) for path in paths],
-        "using_full_destination_bank": bool(destination_candidates),
-        "destination_image_count": len(destination_candidates),
-        "total_image_count": len(candidates),
-        "runtime_bootstrap_allowed": _runtime_bootstrap_allowed(),
-        "repo_url": IMAGE_BANK_REPO_URL,
-    }
+    return image_bank_status_for_paths(get_image_bank_paths(root))
 
 
 def infer_country_for_city(city, root=None):

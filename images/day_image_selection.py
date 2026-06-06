@@ -22,6 +22,17 @@ def day_image_match_from_path(day, path, reason="manual selection"):
         "filename": path_obj.stem,
         "themes": [],
         "seasons": [],
+        "is_default": False,
+        "is_generic": False,
+        "fallback_reason": "",
+        "score_breakdown": {
+            "destination_score": 0,
+            "activity_product_score": 0,
+            "season_score": 0,
+            "country_region_score": 0,
+            "fallback_score": 0,
+            "total_score": 999,
+        },
     }
 
 

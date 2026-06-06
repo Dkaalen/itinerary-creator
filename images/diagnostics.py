@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .fallback import is_global_default_candidate
+from .image_bank import image_bank_status_for_paths
 from .scanner import coerce_image_bank_paths, scan_image_bank
 
 
@@ -22,6 +23,7 @@ def get_image_bank_diagnostics(image_bank_path: Path | str | list | tuple | set 
         by_city[city_key] = by_city.get(city_key, 0) + 1
         by_country[country_key] = by_country.get(country_key, 0) + 1
 
+    status = image_bank_status_for_paths(paths)
     return {
         "paths": [str(path) for path in paths],
         "existing_paths": [str(path) for path in paths if path.exists() and path.is_dir()],
@@ -30,6 +32,11 @@ def get_image_bank_diagnostics(image_bank_path: Path | str | list | tuple | set 
         "destination_images": len(destination_images),
         "by_city": dict(sorted(by_city.items(), key=lambda item: item[0].lower())),
         "by_country": dict(sorted(by_country.items(), key=lambda item: item[0].lower())),
+        "full_bank_found": status.get("full_bank_found", False),
+        "source_path": status.get("source_path", ""),
+        "countries_found": status.get("countries_found", []),
+        "destinations_found": status.get("destinations_found", []),
+        "blocking_message": status.get("blocking_message", ""),
     }
 
 

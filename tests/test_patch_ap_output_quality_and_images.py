@@ -66,27 +66,22 @@ def test_patch_ap_real_fixture_day_intros_use_experience_or_welcome_copy():
     assert not report.blocking_issues
 
 
-def test_patch_ap_image_bank_runtime_bootstrap_is_default_last_resort(monkeypatch, tmp_path):
+def test_patch_ap_image_bank_path_discovery_is_side_effect_free(monkeypatch, tmp_path):
     root = tmp_path / "itinerary-creator-git"
     fallback = root / "image_bank"
     fallback.mkdir(parents=True)
     (fallback / "Default").mkdir()
 
-    runtime_bank = root / image_bank.RUNTIME_IMAGE_BANK_DIR / "itinerary-image-bank" / "image_bank_full"
-
-    def fake_run(cmd, **kwargs):
-        runtime_bank.mkdir(parents=True, exist_ok=True)
-        Image.new("RGB", (20, 20), (1, 2, 3)).save(runtime_bank / "dummy.webp", format="WEBP")
-        return subprocess.CompletedProcess(cmd, 0)
+    def fail_if_called(*args, **kwargs):  # pragma: no cover
+        raise AssertionError("path discovery must not clone or pull repositories")
 
     monkeypatch.delenv("ITINERARY_IMAGE_BANK_BOOTSTRAP", raising=False)
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "run", fail_if_called)
 
     paths = image_bank.get_image_bank_paths(root)
 
-    assert paths[0] == runtime_bank
-    assert fallback in paths
+    assert paths == [fallback]
 
 
 def test_patch_ap_image_bank_bootstrap_can_be_disabled(monkeypatch, tmp_path):

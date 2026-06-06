@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from images.fallback import is_global_default_candidate
+from images.image_bank import image_bank_status_for_paths
 from images.matcher_context import build_day_context
 from images.matcher_scoring import (
     candidate_destination_matches,
@@ -220,6 +221,16 @@ def audit_day_image_matches(
     image_bank_scan_paths="image_bank",
 ) -> tuple[ImageAuditWarning, ...]:
     warnings: list[ImageAuditWarning] = []
+    status = image_bank_status_for_paths(image_bank_scan_paths)
+    if grouped_days and status.get("missing_full_bank"):
+        warnings.append(ImageAuditWarning(
+            code="image_bank_full_missing",
+            message=str(status.get("blocking_message") or "Full destination image bank is missing."),
+            severity="error",
+            day="",
+            path="",
+        ))
+
     for day, rows in (grouped_days or {}).items():
         warnings.extend(audit_day_image_match(
             day,

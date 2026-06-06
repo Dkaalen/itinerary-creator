@@ -11,6 +11,7 @@ SEASON_MATCH_SCORE = 24
 THEME_MATCH_SCORE = 12
 KEYWORD_MATCH_SCORE_PER_TOKEN = 4
 KEYWORD_MATCH_SCORE_CAP = 20
+COUNTRY_REGION_MATCH_SCORE = 8
 
 
 def candidate_destination_matches(candidate: ImageCandidate, day_context: dict) -> bool:
@@ -61,6 +62,8 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
 
     candidate_city_variants = city_variants(candidate.city)
     filename_city_variants = city_variants(candidate.filename)
+    day_country_variants = set(day_context.get("country_variants", set()))
+    candidate_country = normalize_keyword(candidate.country)
 
     if is_global_default_candidate(candidate):
         return score_default_candidate(candidate, day_context)
@@ -70,6 +73,10 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
 
     score += DESTINATION_FOLDER_MATCH_SCORE
     reasons.append("city folder match")
+
+    if candidate_country and candidate_country in day_country_variants:
+        score += COUNTRY_REGION_MATCH_SCORE
+        reasons.append(f"country/region match: {candidate_country}")
 
     if filename_city_variants & day_city_variants:
         score += DESTINATION_FILENAME_MATCH_SCORE
@@ -137,6 +144,8 @@ def _score_breakdown_from_reasons(score: int, reasons: list[str], *, is_default:
             breakdown["destination_score"] += DESTINATION_FOLDER_MATCH_SCORE
         elif reason == "city filename match":
             breakdown["destination_score"] += DESTINATION_FILENAME_MATCH_SCORE
+        elif reason.startswith("country/region match"):
+            breakdown["country_region_score"] += COUNTRY_REGION_MATCH_SCORE
         elif reason.startswith("season match"):
             breakdown["season_score"] += SEASON_MATCH_SCORE
         elif reason.startswith("theme match"):

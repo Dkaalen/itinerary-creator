@@ -4,6 +4,50 @@ from __future__ import annotations
 
 from .metadata import CITY_ALIASES, city_variants, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
 
+CITY_TO_COUNTRY = {
+    "oslo": "norway",
+    "bergen": "norway",
+    "tromso": "norway",
+    "tromsø": "norway",
+    "flam": "norway",
+    "flåm": "norway",
+    "alesund": "norway",
+    "ålesund": "norway",
+    "helsinki": "finland",
+    "rovaniemi": "finland",
+    "kakslauttanen": "finland",
+    "kakslauttenen": "finland",
+    "ivalo": "finland",
+    "tallinn": "estonia",
+    "stockholm": "sweden",
+    "kiruna": "sweden",
+    "abisko": "sweden",
+    "gallivare": "sweden",
+    "gällivare": "sweden",
+    "copenhagen": "denmark",
+    "kobenhavn": "denmark",
+    "københavn": "denmark",
+    "reykjavik": "iceland",
+    "reykjavík": "iceland",
+    "keflavik": "iceland",
+    "keflavík": "iceland",
+    "vik": "iceland",
+    "vík": "iceland",
+    "hella": "iceland",
+    "hofn": "iceland",
+    "höfn": "iceland",
+    "akureyri": "iceland",
+}
+
+
+def _country_variants_for_city(city: str) -> set[str]:
+    variants = set()
+    for city_variant in city_variants(city):
+        country = CITY_TO_COUNTRY.get(normalize_keyword(city_variant), "")
+        if country:
+            variants.add(country)
+    return variants
+
 
 def _row_type(row: dict) -> str:
     return normalize_keyword(row.get("effective_type") or row.get("type") or "")
@@ -141,10 +185,17 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
     tokens = tokenize(text)
     themes = infer_themes(tokens) | _themes_for_rows(rows or [])
     primary_themes = _themes_for_rows(primary_rows)
+    city_variant_values = _all_city_variants(rows or [], city)
+    country_variants = _country_variants_for_city(city)
+    for row in rows or []:
+        row_city = str(row.get("city", "") or "").strip()
+        country_variants.update(_country_variants_for_city(row_city))
+
     return {
         "day": day,
         "city": city,
-        "city_variants": _all_city_variants(rows or [], city),
+        "city_variants": city_variant_values,
+        "country_variants": country_variants,
         "tokens": tokens,
         "themes": themes,
         "primary_themes": primary_themes,
