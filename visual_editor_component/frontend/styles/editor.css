@@ -52,6 +52,15 @@
     .advanced-tools .toolbar-tools { max-width: 760px; padding: 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
     .stat-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border-radius: 999px; border: 1px solid rgba(17,38,63,.14); color: #253041; background: #f8fafc; font-size: 11px; font-weight: 850; }
     .stat-pill.warn { color: #6d4200; border-color: rgba(197,138,36,.50); background: rgba(197,138,36,.16); }
+
+    .warning-panel { grid-column: 1 / -1; width: 100%; margin-top: 2px; border: 1px solid rgba(197,138,36,.34); border-radius: 16px; background: rgba(197,138,36,.08); text-align: left; }
+    .warning-panel summary { padding: 9px 12px; cursor: pointer; color: #6d4200; font-size: 12px; font-weight: 900; }
+    .warning-panel ul { margin: 0; padding: 0 12px 10px 30px; }
+    .warning-panel li { margin: 7px 0; color: #263241; font-size: 12px; line-height: 1.35; }
+    .warning-panel li strong { display: inline-block; margin-right: 7px; color: #7c4a02; }
+    .warning-panel li span { display: block; color: #2f3b4a; }
+    .warning-panel li em { display: block; color: #6b7280; font-style: normal; margin-top: 2px; }
+    .warning-panel-more { padding: 0 12px 10px 30px; color: #6d4200; font-size: 11.5px; font-weight: 800; }
     button, select, input[type="text"] {
       border: 1px solid var(--border);
       border-radius: 999px;

@@ -173,7 +173,17 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "tallinn" in full:
         return "Travel between Helsinki and Tallinn by ferry, with time arranged for your visit to Tallinn before returning to Helsinki."
     if "icebreaker" in full:
-        return "Experience the Polar Explorer Icebreaker in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
+        if "polar explorer" in full:
+            product_name = "Polar Explorer Icebreaker"
+        elif "arctic explorer" in full:
+            product_name = "Arctic Explorer Icebreaker"
+        elif "sampo" in full:
+            product_name = "Sampo Icebreaker"
+        elif "arktis" in full:
+            product_name = "Arktis Icebreaker"
+        else:
+            product_name = "icebreaker cruise"
+        return f"Experience the {product_name} in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
     if "husky" in full and "reindeer" in full:
         return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
     if "abisko" in full or "mountain hike" in full:

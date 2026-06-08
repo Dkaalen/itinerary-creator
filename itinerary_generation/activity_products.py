@@ -331,6 +331,95 @@ def _ticket_title(source_title: str, fallback: str) -> str:
     return fallback
 
 
+def _icebreaker_match(source_lower: str, source_title: str) -> ActivityProductFingerprint:
+    """Return distinct icebreaker products without merging supplier brands.
+
+    Polar Explorer and Arctic Explorer are sister products on icebreaker.fi,
+    while Sampo and Arktis are separate Kemi icebreaker cruises.  Keep the
+    supplier-facing product name when the source clearly names one.
+    """
+
+    title_lower = source_title.lower()
+    if "polar explorer" in source_lower or "polar explorer" in title_lower:
+        return _match(
+            "polar_explorer_icebreaker_cruise",
+            "icebreaker_cruise",
+            "Polar Explorer Icebreaker Cruise",
+            source_title=source_title,
+            variant_tags=("polar_explorer",),
+        )
+    if "arctic explorer" in source_lower or "arctic explorer" in title_lower:
+        display = source_title if source_title and "arctic explorer" in title_lower and len(source_title) <= 90 else "Arctic Explorer Icebreaker Cruise"
+        return _match(
+            "arctic_explorer_icebreaker_cruise",
+            "icebreaker_cruise",
+            display,
+            source_title=source_title,
+            variant_tags=("arctic_explorer",),
+        )
+    if "sampo" in source_lower or "sampo" in title_lower:
+        return _match(
+            "sampo_icebreaker_cruise",
+            "icebreaker_cruise",
+            "Sampo Icebreaker Cruise",
+            source_title=source_title,
+            variant_tags=("sampo",),
+        )
+    if "arktis" in source_lower or "arktis" in title_lower:
+        return _match(
+            "arktis_icebreaker_cruise",
+            "icebreaker_cruise",
+            "Arktis Icebreaker Cruise",
+            source_title=source_title,
+            variant_tags=("arktis",),
+        )
+    return _match(
+        "icebreaker_cruise",
+        "icebreaker_cruise",
+        source_title if source_title and "icebreaker" in source_title.lower() and len(source_title) <= 90 else "Icebreaker Cruise",
+        source_title=source_title,
+        confidence="weak",
+        warnings=("Review exact icebreaker product name.",),
+    )
+
+
+def _snowmobile_product_evidence(source_lower: str, source_title: str) -> bool:
+    """Avoid turning a Northern Lights tour into snowmobiling from a meeting point."""
+
+    title_lower = source_title.lower()
+    if "snowmobile" in title_lower:
+        return True
+    strong_patterns = (
+        r"\bsnowmobile\s+(?:evening\s+)?safari\b",
+        r"\bsnowmobile\s+adventure\b",
+        r"\bsnowmobile\s+journey\b",
+        r"\bsnowmobiling\b",
+        r"\bdrive\s+a\s+snowmobile\b",
+        r"\bsnowmobiles?\s+\(?(?:2\s+persons|shared)",
+    )
+    return any(re.search(pattern, source_lower, flags=re.IGNORECASE) for pattern in strong_patterns)
+
+
+def _northern_lights_product_evidence(source_lower: str, source_title: str) -> bool:
+    title_lower = source_title.lower()
+    if "northern light" in title_lower or "aurora" in title_lower:
+        return True
+    return any(marker in source_lower for marker in (
+        "northern lights hunt by minibus",
+        "northern lights hunt",
+        "northern lights safari",
+        "northern lights chase",
+        "northern lights basecamp",
+        "northern lights dinner",
+        "photo chase",
+        "photo tour",
+        "photography",
+        "ice floating",
+        "under the northern lights",
+        "northern lights cruise",
+    ))
+
+
 def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityProductFingerprint | None:
     """Return a canonical activity product fingerprint when source evidence is strong."""
 
@@ -453,23 +542,24 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
     if "ranua" in source_lower and "wildlife" in source_lower:
         return _match("ranua_wildlife_park", "wildlife_park", "Arctic Wildlife Adventure to Ranua Park", source_title=source_title)
 
-    if "snowmobile" in source_lower:
-        if "evening" in source_lower or "aurora" in source_lower or "northern light" in source_lower:
-            return _match("snowmobile_evening_safari", "snowmobile", "Snowmobile Evening Safari & Aurora Opportunity", source_title=source_title)
-        return _match("snowmobile_adventure", "snowmobile", source_title if source_title and "snowmobile" in source_title.lower() else "Snowmobile Adventure", source_title=source_title)
-
     if "icebreaker" in source_lower:
-        return _match("arctic_icebreaker_cruise", "icebreaker_cruise", "Arctic Explorer Icebreaker Cruise", source_title=source_title)
+        return _icebreaker_match(source_lower, source_title)
 
     if "crystal lavvo" in source_lower or ("lyngen" in source_lower and "lavvo" in source_lower):
         return _match("lyngen_crystal_lavvo", "overnight_activity", "Lyngen Alps Crystal Lavvo Stay", source_title=source_title)
 
     if "northern light" in source_lower or "aurora" in source_lower:
-        # Avoid renaming daytime activities that merely mention a chance of aurora in notes.
-        title_lower = source_title.lower()
-        title_has_aurora = "northern light" in title_lower or "aurora" in title_lower
-        if title_has_aurora or any(marker in source_lower for marker in ("basecamp", "base camp", "photo chase", "photo tour", "photography", "ice floating", "under the northern lights", "northern lights cruise", "northern lights dinner")):
+        # Run before snowmobile matching so a meeting point such as
+        # "Arctic City Snowmobile Park" cannot rename a minibus aurora hunt.
+        # But when the sold supplier title itself is a snowmobile safari, keep
+        # the snowmobile product family.
+        if _northern_lights_product_evidence(source_lower, source_title) and not _snowmobile_product_evidence(source_lower, source_title):
             return _match("northern_lights_activity", "northern_lights", _northern_lights_title(source_lower, source_title), source_title=source_title)
+
+    if "snowmobile" in source_lower and _snowmobile_product_evidence(source_lower, source_title):
+        if "evening" in source_lower or "aurora" in source_lower or "northern light" in source_lower:
+            return _match("snowmobile_evening_safari", "snowmobile", "Snowmobile Evening Safari & Aurora Opportunity", source_title=source_title)
+        return _match("snowmobile_adventure", "snowmobile", source_title if source_title and "snowmobile" in source_title.lower() else "Snowmobile Adventure", source_title=source_title)
 
     if "blue lagoon" in source_lower:
         if "volcano" in source_lower or "fagradalsfjall" in source_lower or "eruption" in source_lower:

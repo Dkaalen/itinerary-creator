@@ -44,6 +44,42 @@ function finalHtmlPages(label, title, key, pages) {
     </div></div></div>`;
   }).join('');
 }
+
+function warningLocationLabel(warning) {
+  const text = String(warning?.excerpt || warning?.message || '');
+  const code = String(warning?.code || 'warning');
+  if (warning?.page_label) return String(warning.page_label);
+  const dayMatch = text.match(/\bDay\s+\d+\b/i);
+  if (dayMatch) return dayMatch[0];
+  for (const day of (model.days || [])) {
+    const label = String(day.day || '');
+    const haystack = [day.title, day.intro, day.blocks_html, day.city].map(v => String(v || '')).join(' ');
+    if (text && haystack.includes(text.slice(0, Math.min(40, text.length)))) return label || 'Day page';
+  }
+  if (/included|exclusion|commercial|self-arranged/i.test(text) || /inclusion|exclusion/i.test(code)) return 'Final pages';
+  return 'Review item';
+}
+function warningExplanation(warning) {
+  const code = String(warning?.code || 'warning');
+  if (code.includes('source_signal') || code.includes('source')) return 'Source detail may have been lost or renamed. Compare the page with the input row.';
+  if (code.includes('aurora')) return 'Aurora appears in client text. Keep it only when it is part of the real supplier/product name.';
+  if (code.includes('time')) return 'Time wording may contain supplier note text or an unusual time. Verify before export.';
+  if (code.includes('image')) return 'Image review needs attention for this destination/page.';
+  if (code.includes('optional')) return 'Optional or excluded wording may need review so it does not look confirmed.';
+  return 'Review this item before exporting the final PDF.';
+}
+function warningPanelHtml() {
+  const warnings = Array.isArray(model.client_output_warnings) ? model.client_output_warnings : [];
+  if (!warnings.length) return '';
+  const rows = warnings.slice(0, 12).map((warning, idx) => {
+    const location = warningLocationLabel(warning);
+    const excerpt = String(warning?.excerpt || warning?.message || warning?.code || 'Review warning');
+    return `<li><strong>${esc(location)}</strong><span>${esc(warningExplanation(warning))}</span><em>${esc(excerpt)}</em></li>`;
+  }).join('');
+  const hidden = warnings.length > 12 ? `<div class="warning-panel-more">${warnings.length - 12} more warning(s) hidden here. Use the page highlights and final PDF check as well.</div>` : '';
+  return `<details class="warning-panel" ${warnings.length <= 8 ? 'open' : ''}><summary>${warnings.length} warning(s) to review</summary><ul>${rows}</ul>${hidden}</details>`;
+}
+
 function render(payload, commitNonce = null) {
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {
@@ -100,6 +136,7 @@ function draw() {
           </div>
         </details>
       </div>
+      ${warningPanelHtml()}
     </div>
     <div class="page-stack">`;
   const coverBg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';

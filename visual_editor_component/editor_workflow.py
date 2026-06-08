@@ -148,19 +148,31 @@ def _build_generated_exclusions_html(parsed_rows, grouped_days=None):
     return render_inclusion_sections_inner_html(build_itinerary_document(parsed_rows, grouped_days).exclusions)
 
 
-def _compact_model_warnings(structured_document):
+def _compact_model_warnings(structured_document, parsed_rows=None):
     warnings = []
     seen = set()
+    row_lookup = {str(row.get("row_id") or ""): row for row in (parsed_rows or []) if isinstance(row, dict)}
     for warning in getattr(structured_document, "warnings", ()) or ():
         key = (warning.code, warning.message, tuple(warning.source_row_ids))
         if key in seen:
             continue
         seen.add(key)
+        source_ids = list(warning.source_row_ids)
+        source_row = next((row_lookup.get(str(row_id)) for row_id in source_ids if row_lookup.get(str(row_id))), None)
+        page_label = ""
+        if source_row:
+            day = str(source_row.get("day") or "").strip()
+            title = str(source_row.get("title") or source_row.get("original_title") or "").strip()
+            city = str(source_row.get("city") or "").strip()
+            bits = [bit for bit in (day, city, title) if bit]
+            page_label = " · ".join(bits[:3])
         warnings.append({
             "code": warning.code,
             "severity": warning.severity,
             "message": warning.message,
-            "source_row_ids": list(warning.source_row_ids),
+            "excerpt": warning.message,
+            "page_label": page_label or "Structured itinerary",
+            "source_row_ids": source_ids,
         })
     return warnings[:30]
 
@@ -312,7 +324,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         ),
     )
     structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
-    model_warnings = _compact_model_warnings(structured_document)
+    model_warnings = _compact_model_warnings(structured_document, parsed_rows)
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
     if pictures_added and cover_theme.get("background_path"):
         # The editor needs only a screen preview. Keep the PDF/export path
@@ -372,6 +384,9 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         output_warnings.append({
             "code": warning.get("code", "model_warning"),
             "excerpt": warning.get("message", "Structured model warning"),
+            "message": warning.get("message", "Structured model warning"),
+            "page_label": warning.get("page_label", "Structured itinerary"),
+            "source_row_ids": warning.get("source_row_ids", []),
         })
     for warning in image_warnings:
         output_warnings.append({
