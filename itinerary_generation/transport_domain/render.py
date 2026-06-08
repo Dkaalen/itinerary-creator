@@ -14,7 +14,7 @@ from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title, get_transport_route_phrase
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
-from itinerary_generation.transport_norway import extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,
@@ -188,7 +188,7 @@ def _line_with_time(label, row):
 
 def _norway_nutshell_lines(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
-    if "norway in a nutshell" not in text:
+    if not _is_norway_in_a_nutshell_text(text):
         return []
     source_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
     legs = extract_norway_nutshell_route_legs(source_text)

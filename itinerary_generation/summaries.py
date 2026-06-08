@@ -295,6 +295,8 @@ def describe_city_experience(rows):
 
     if _has(text, "lofoten", "henningsvær", "haukland", "trollfjord"):
         candidates.append("Lofoten scenery and Trollfjord cruising")
+    elif has_fjord and has_city and chapter_city.lower() == "oslo":
+        candidates.append("City sights and Oslofjord cruising")
     elif has_fjord and has_cable:
         if _has(text, "bergen", "fløibanen", "floibanen") and not _has(text, "tromsø", "tromso", "alta", "svalbard", "kiruna"):
             candidates.append("City, fjord and funicular")

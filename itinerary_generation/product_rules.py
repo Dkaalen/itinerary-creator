@@ -9,6 +9,7 @@ that must use a safe generic title and carry a warning).
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Iterable, Literal
 
 from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
@@ -136,6 +137,58 @@ def _match(rule_id: str, *, title: str | None = None, confidence: ProductConfide
     )
 
 
+def _titleish_source_context(row: dict | None = None, *values: object) -> str:
+    """Return only high-confidence title/heading text for product identity.
+
+    Long supplier descriptions can mention nearby sights such as museums in
+    route notes. Those incidental mentions must not rename the actual product.
+    """
+
+    pieces: list[str] = []
+    if row:
+        for key in ("display_title", "title", "original_title"):
+            value = row.get(key, "")
+            if value:
+                pieces.append(str(value))
+        details = str(row.get("details", "") or "")
+        if details:
+            first_line = next((line.strip() for line in details.replace("\r\n", "\n").replace("\r", "\n").split("\n") if line.strip()), "")
+            first_segment = first_line.split("|", 1)[0].strip()
+            if first_segment:
+                pieces.append(first_segment)
+    if values:
+        # Extra values passed to product matching are often the candidate title
+        # followed by long source text. Only the first supplied value is safe to
+        # treat as title-like evidence.
+        first = str(values[0] or "").strip()
+        if first:
+            pieces.append(first.split("|", 1)[0].strip())
+    return " ".join(piece for piece in pieces if piece).strip()
+
+
+def has_explicit_munch_museum_evidence(row: dict | None = None, *values: object) -> bool:
+    """Return True only when the row itself is a Munch Museum product.
+
+    Oslofjord cruise descriptions may mention that the boat passes near the
+    Munch Museum. That is incidental sightseeing context and must not override
+    the supplier's cruise title.
+    """
+
+    titleish = _titleish_source_context(row, *values).lower()
+    if "munch" in titleish and "museum" in titleish:
+        return True
+    source = product_source_context_lower(row, *values)
+    if not ("munch" in source and "museum" in source):
+        return False
+    explicit_product = re.search(
+        r"(?:munch\s+museum[^.\n]{0,80}\b(?:ticket|tickets|admission|entry|visit)\b|\b(?:ticket|tickets|admission|entry|visit)\b[^.\n]{0,80}munch\s+museum)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    incidental_context = re.search(r"(?:pass(?:ing)?|near|near to|close to|coastline|view of|stop at)\b[^.\n]{0,120}munch\s+museum", source, flags=re.IGNORECASE)
+    return bool(explicit_product and not incidental_context)
+
+
 def has_explicit_fjellheisen_evidence(row: dict | None = None, *values: object) -> bool:
     """Return True only when supplier/source text supports Fjellheisen naming.
 
@@ -173,7 +226,7 @@ def find_product_match(row: dict | None = None, *values: object) -> ProductRuleM
     if _looks_like_norway_in_a_nutshell(lower):
         return _match("norway_in_a_nutshell", title=_route_label_from_activity_text(product_context(row, *values)))
 
-    if "munch" in lower and "museum" in lower:
+    if has_explicit_munch_museum_evidence(row, *values):
         return _match("munch_museum")
 
     if has_explicit_fjellheisen_evidence(row, *values):

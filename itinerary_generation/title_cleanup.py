@@ -48,6 +48,9 @@ TYPO_FIXES = [
     (r"\bRosklide\b", "Roskilde"),
     (r"\bSt\s+Nickolas\b", "St Nicholas"),
     (r"\bSquate\b", "Square"),
+    (r"\bNuthsell\b", "Nutshell"),
+    (r"\bUpgradesd\b", "Upgrades"),
+    (r"\bavaiable\b", "available"),
 ]
 
 def repair_common_supplier_typos(value: str) -> str:
@@ -143,6 +146,9 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
     if is_forbidden_client_title(text):
         return ""
 
+    if re.search(r"\boptional\s+upgrades?\b", full, flags=re.IGNORECASE):
+        return "Optional Upgrades"
+
     product_match = find_product_match(row, text)
     if product_match and product_match.title:
         return product_match.title
@@ -211,6 +217,8 @@ def cleaned_generic_activity_title(title: str, row: dict | None = None) -> str:
         return "Runic Kingdom & Viking History Tour"
     if "secret food" in full and "copenhagen" in full:
         return "Copenhagen Food Tour"
+    if re.search(r"\boptional\s+upgrades?\b", full, flags=re.IGNORECASE):
+        return "Optional Upgrades"
     if "fløibanen" in text.lower() or "floibanen" in text.lower():
         return "Fløibanen Funicular"
     if "santa's igloos" in full or "glass igloo" in full:

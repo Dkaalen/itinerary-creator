@@ -241,6 +241,9 @@ def clean_activity_inclusion_items(items, title=""):
         lower = item.lower().strip(" .")
         if merged_items:
             prev_lower = merged_items[-1].lower()
+            if prev_lower.strip(" .") == "authorized" and lower in {"english-speaker guide", "english-speaking guide", "english speaker guide"}:
+                merged_items[-1] = "Authorized English-speaking guide"
+                continue
             if (lower in {"boots", "gloves", "shoes", "balaclava & goggles", "balaclava and goggles"} or lower.startswith(("boots,", "gloves,", "shoes,"))) and any(marker in prev_lower for marker in ["thermal suit", "warm thermal", "boots", "gloves"]):
                 merged_items[-1] = f"{merged_items[-1].rstrip(' .')}, {item}"
                 continue

@@ -4,6 +4,7 @@ import re
 
 from text_polish import polish_client_text, polish_title
 from normalizer_modules.text_utils import text_blob
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_points
 
 def normalize_transport_title(row: dict) -> dict:
     title = polish_title(row.get("title", ""))
@@ -13,6 +14,10 @@ def normalize_transport_title(row: dict) -> dict:
         row["title"] = re.sub("Tallin", "Tallinn", title, flags=re.IGNORECASE)
     if "rovaneimi" in full:
         row["title"] = re.sub("Rovaneimi", "Rovaniemi", title, flags=re.IGNORECASE)
+    if _is_norway_in_a_nutshell_text(full):
+        points = extract_norway_nutshell_route_points(f"{row.get('title', '')} {row.get('details', '')} {row.get('original_title', '')}")
+        destination = points[-1] if points else row.get("city", "")
+        row["title"] = f"Norway in a Nutshell to {polish_title(destination)}" if destination else "Norway in a Nutshell"
     if row.get("type") == "Cruise" or "overnight cruise" in full:
         if "stockholm" in full:
             row["title"] = "Cruise to Stockholm"
@@ -22,7 +27,7 @@ def normalize_transport_title(row: dict) -> dict:
 def _is_rail_or_fjord_route_activity(row: dict) -> bool:
     text = text_blob(row).lower()
     return (
-        "norway in a nutshell" in text
+        _is_norway_in_a_nutshell_text(text)
         or re.search(r"\btrain\s*[:|]", text)
         or ("flåm train" in text or "flam train" in text or "flåm railway" in text or "flam railway" in text)
         or ("nærøyfjord" in text or "naeroyfjord" in text) and ("rail" in text or "train" in text or "luggage transfer" in text)

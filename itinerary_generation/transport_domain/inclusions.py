@@ -12,7 +12,7 @@ from itinerary_generation.transport_domain.titles import get_transport_route_phr
 from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
-from itinerary_generation.transport_norway import extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.inclusion_utils import add_unique, clean, join_detail_parts
 
@@ -75,7 +75,7 @@ def transport_bucket(row: dict) -> str:
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
         return ""
-    if "norway in a nutshell" in text or "nærøyfjord" in text or "naeroyfjord" in text or "flåm" in text or "flam" in text:
+    if _is_norway_in_a_nutshell_text(text) or "nærøyfjord" in text or "naeroyfjord" in text or "flåm" in text or "flam" in text:
         return "Scenic rail & fjord journeys"
     if row_type == "Train" or "train" in text:
         return "Rail journeys"
@@ -111,7 +111,7 @@ def _santa_claus_express_inclusion_line(row: dict, title: str) -> str:
 
 def _norway_nutshell_inclusion_line(row: dict, title: str) -> str:
     text = get_transport_source_text(row)
-    if "norway in a nutshell" not in text.lower():
+    if not _is_norway_in_a_nutshell_text(text):
         return ""
     lines = [title]
     schedule = get_transport_time_text(row)

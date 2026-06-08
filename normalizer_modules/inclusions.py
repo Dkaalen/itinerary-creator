@@ -54,6 +54,10 @@ def split_and_merge_inclusions(items: list[str]) -> list[str]:
         next_item = raw_items[index + 1] if index + 1 < len(raw_items) else ""
         next_lower = next_item.lower().strip(" ,.:")
 
+        if lower == "authorized" and next_lower in {"english-speaker guide", "english-speaking guide", "english speaker guide"}:
+            cleaned.append("Authorized English-speaking guide")
+            index += 2
+            continue
         if lower == "english" and next_lower in {"french speaking guide", "french-speaking guide"}:
             cleaned.append("English- and French-speaking guide")
             index += 2

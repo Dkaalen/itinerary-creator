@@ -10,11 +10,12 @@ from place_aliases import canonicalize_place_name
 
 def _is_norway_in_a_nutshell_text(text):
     lower = str(text or "").lower()
-    if "norway in a nutshell" in lower:
+    if re.search(r"norway\s+in\s+a\s+(?:nutshell|nuthsell)", lower):
         return True
     has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
     has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
-    return has_flam and has_fjord
+    has_route_mode = bool(re.search(r"\b(?:train|rail|scenic\s+bus|bus|cruise)\b", lower))
+    return (has_flam and has_fjord) or ("gudvangen" in lower and "voss" in lower and has_route_mode)
 
 
 def _clean_nutshell_place(value: str) -> str:
@@ -44,7 +45,7 @@ def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
             return origin, destination
 
     prefix_route = re.search(
-        r"^\s*([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*\|\s*Norway\s+in\s+a\s+Nutshell",
+        r"^\s*([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*\|\s*Norway\s+in\s+a\s+(?:Nutshell|Nuthsell)",
         value,
         flags=re.IGNORECASE,
     )
@@ -64,7 +65,7 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
         return f"Norway in a Nutshell from {direct_origin} to {direct_destination}"
 
     explicit_destination_match = re.search(
-        r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
+        r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+(?:nutshell|nuthsell)|\s+-\s+|\s+\|\s+|$)",
         source,
         flags=re.IGNORECASE,
     )
@@ -124,6 +125,77 @@ def _format_leg_time(value: str) -> str:
     return f"{display_hour}:{minute} {display_suffix}"
 
 
+
+def _clean_nutshell_mode(value: str) -> str:
+    mode = polish_title(str(value or "").strip(" .-:|,"))
+    mode = re.sub(r"^Via\s+", "", mode, flags=re.IGNORECASE)
+    mode = re.sub(r"\bNorway\s+in\s+a\s+(?:Nutshell|Nuthsell).*$", "", mode, flags=re.IGNORECASE).strip(" .-:|,")
+    if mode.lower() == "scenic bus":
+        return "Scenic Bus"
+    if mode.lower() == "scenic train":
+        return "Scenic Train"
+    if mode.lower() == "train":
+        return "Train"
+    if mode.lower() == "bus":
+        return "Bus"
+    if mode.lower() == "cruise":
+        return "Cruise"
+    return mode
+
+
+def _time_place_points(source: str) -> list[dict[str, str]]:
+    """Extract single-line timetable points such as ``09:18 Oslo``.
+
+    Some supplier Norway in a Nutshell rows are pasted as alternating departure
+    and arrival lines rather than one full leg per line. Pairing those points in
+    order keeps route days structured instead of becoming generic activities.
+    """
+
+    points: list[dict[str, str]] = []
+    point_pattern = re.compile(
+        r"^\s*(?P<time>\d{1,2}:\d{2}\s*(?:am|pm)?)\s+(?P<place>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+via\s+(?P<mode>[^|,;]+))?\s*$",
+        flags=re.IGNORECASE,
+    )
+    for raw in source.replace("|", "\n").splitlines():
+        line = raw.strip(" .")
+        match = point_pattern.match(line)
+        if not match:
+            continue
+        place = _clean_nutshell_place(match.group("place"))
+        if not place:
+            continue
+        points.append({
+            "time": _format_leg_time(match.group("time")),
+            "place": place,
+            "mode": _clean_nutshell_mode(match.group("mode") or ""),
+        })
+    return points
+
+
+def _paired_nutshell_route_legs(source: str) -> list[dict[str, str]]:
+    points = _time_place_points(source)
+    if len(points) < 2 or len(points) % 2 != 0:
+        return []
+    # Only pair alternating lines when the arrival rows carry transport mode
+    # evidence ("via train", "via scenic bus", etc.). Plain timetable stop
+    # lists are better rendered as route highlights.
+    if not any(point.get("mode") for point in points[1::2]):
+        return []
+    legs: list[dict[str, str]] = []
+    for index in range(0, len(points), 2):
+        departure = points[index]
+        arrival = points[index + 1]
+        if departure["place"].lower() == arrival["place"].lower():
+            return []
+        legs.append({
+            "departure_time": departure["time"],
+            "origin": departure["place"],
+            "arrival_time": arrival["time"],
+            "destination": arrival["place"],
+            "mode": arrival.get("mode", ""),
+        })
+    return legs
+
 def extract_norway_nutshell_route_legs(text: str) -> list[dict[str, str]]:
     """Return clean timetable legs for Norway in a Nutshell rows."""
 
@@ -142,9 +214,7 @@ def extract_norway_nutshell_route_legs(text: str) -> list[dict[str, str]]:
         destination = _clean_nutshell_place(match.group("destination"))
         if not origin or not destination:
             continue
-        mode = polish_title(str(match.group("mode") or "").strip(" .-"))
-        mode = re.sub(r"^Via\s+", "", mode, flags=re.IGNORECASE)
-        mode = re.sub(r"\bNorway\s+in\s+a\s+Nutshell.*$", "", mode, flags=re.IGNORECASE).strip(" .-:|,")
+        mode = _clean_nutshell_mode(match.group("mode") or "")
         legs.append({
             "departure_time": _format_leg_time(match.group("dep")),
             "origin": origin,
@@ -152,7 +222,7 @@ def extract_norway_nutshell_route_legs(text: str) -> list[dict[str, str]]:
             "destination": destination,
             "mode": mode,
         })
-    return legs
+    return legs or _paired_nutshell_route_legs(source)
 
 def extract_norway_nutshell_route_points(text: str) -> list[str]:
     """Return a clean stop list from Nutshell timetable or route text.
@@ -194,7 +264,7 @@ def extract_norway_nutshell_route_points(text: str) -> list[str]:
         if re.match(r"^[-–—]?\s*\d{1,2}:\d{2}\s*(?:am|pm)?\s*$", place, flags=re.IGNORECASE):
             continue
         place = re.split(r"\s+via\s+|\s+Via\s+", place, maxsplit=1)[0].strip(" -:|,.")
-        place = re.sub(r"\s+Norway\s+in\s+a\s+Nutshell.*$", "", place, flags=re.IGNORECASE).strip(" -:|,.")
+        place = re.sub(r"\s+Norway\s+in\s+a\s+(?:Nutshell|Nuthsell).*$", "", place, flags=re.IGNORECASE).strip(" -:|,.")
         add_point(place)
 
     if len(points) >= 2:

@@ -50,6 +50,7 @@ from normalizer_modules.context import (
     fill_missing_context_cities,
 )
 from itinerary_generation.transport_safety import repair_messy_client_text
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
 from itinerary_generation.group_tours import annotate_group_tour_optional_extras
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
@@ -133,7 +134,7 @@ def normalize_row(row: dict) -> dict:
             return row
         if _is_rail_or_fjord_route_activity(row):
             row["effective_type"] = "Train"
-            if "norway in a nutshell" in full.lower():
+            if _is_norway_in_a_nutshell_text(full):
                 row["title"] = normalize_transport_title(row).get("title", row.get("title", ""))
             row_type = "Train"
         elif _is_route_transfer_activity(row):

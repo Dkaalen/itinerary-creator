@@ -54,13 +54,21 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         " ".join(row.get("notable_sights", []) or []),
     ])
     full = f"{title} {landmark_source}".lower()
-    places = _extract_landmarks(landmark_source, limit=6)
+    places = _extract_landmarks(landmark_source, limit=8)
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 
     product_match = find_product_match(row, title, source)
     if product_match and product_match.description:
         return product_match.description
+    if ("oslofjord" in full or "oslo fjord" in full) and ("sightseeing cruise" in full or "electric boat" in full or "fjord sightseeing" in full):
+        return polish_client_text(
+            "Cruise through the Oslofjord by electric boat, with coastal scenery, islands and city landmarks forming the focus of the experience."
+        )
+    if "must-see bergen" in full or ("foot and boat" in full and "bergen" in full):
+        return polish_client_text(
+            "Explore Bergen from two perspectives: first on foot through the historic city streets and then by boat during the included harbour ride."
+        )
     if "food" in full and "culture" in full and "bergen" in full:
         return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
     if ("whale watching" in full or "whale watching from downtown" in full) and (
@@ -115,7 +123,7 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         if "stockholm" in full and "old town" in full and "Stockholm Old Town" not in safe_places:
             safe_places.insert(0, "Stockholm Old Town")
         if safe_places:
-            return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with the route introducing {_join(safe_places, max_items=4)} alongside local stories and practical tips.")
+            return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with the route introducing {_join(safe_places, max_items=8)} alongside local stories and practical tips.")
         return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with local stories, landmarks and practical tips introduced at an easy pace.")
     if "abisko" in full or "mountain hike" in full:
         return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."

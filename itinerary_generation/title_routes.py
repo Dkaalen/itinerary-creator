@@ -31,7 +31,7 @@ def _route_label_from_activity_text(text: str) -> str:
 
 def _looks_like_norway_in_a_nutshell(text: str) -> bool:
     lower = str(text or "").lower()
-    if "norway in a nutshell" in lower:
+    if re.search(r"norway\s+in\s+a\s+(?:nutshell|nuthsell)", lower):
         return True
     has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
     has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
