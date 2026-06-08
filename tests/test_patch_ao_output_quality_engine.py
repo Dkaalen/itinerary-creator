@@ -115,7 +115,7 @@ def test_client_output_quality_gate_blocks_ao_forbidden_output():
     assert "supplier_warning_in_time_field" in codes
     assert "bare_activity_inclusion_heading" in codes
     assert "raw_supplier_field_leak" in codes
-    assert "default_image_used_despite_stronger_match" in codes
+    assert "default_image_used_despite_stronger_match" not in codes
 
 
 def test_supplier_junk_parentheticals_and_time_warnings_are_cleaned_generically():

@@ -151,7 +151,7 @@ def prioritize_inline_inclusions(items, max_items=6):
             return 2
         if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower or "barbecue" in lower or "bbq" in lower or "berry juice" in lower:
             return 3
-        if "hike" in lower or "canyon" in lower or "waterfall" in lower:
+        if "hike" in lower or "canyon" in lower or "waterfall" in lower or "museum" in lower or "arktikum" in lower:
             return 4
         if "photo" in lower or "camera" in lower or "dslr" in lower:
             return 5

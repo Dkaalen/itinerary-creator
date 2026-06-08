@@ -36,6 +36,33 @@ def _activity_time_label(row: dict, time_display: str) -> str:
     return "Time"
 
 
+
+def _format_clock_time(value: str) -> str:
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})", str(value or "").strip())
+    if not match:
+        return str(value or "").strip()
+    hour = int(match.group(1))
+    minute = match.group(2)
+    suffix = "AM" if hour < 12 else "PM"
+    display_hour = hour % 12 or 12
+    return f"{display_hour}:{minute} {suffix}"
+
+
+def _timezone_specific_cruise_time(row: dict) -> str:
+    """Keep supplier timezone distinctions for cross-border cruise products."""
+
+    source = " ".join(str(row.get(key) or "") for key in ("raw", "original_title", "details", "title"))
+    match = re.search(
+        r"\bcruise\s*time\s*:?\s*(?P<s1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<s2>\d{1,2}:\d{2})\s*swedish\s*/\s*(?P<f1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<f2>\d{1,2}:\d{2})(?:\s*finnish)?",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    swedish = f"{_format_clock_time(match.group('s1'))} - {_format_clock_time(match.group('s2'))} Swedish time"
+    finnish = f"{_format_clock_time(match.group('f1'))} - {_format_clock_time(match.group('f2'))} Finnish time"
+    return f"{swedish} / {finnish}"
+
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     is_tallinn_ferry = is_tallinn_ferry_framework(row)
     title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
@@ -76,7 +103,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
             included_items = [item for item in included_items if item != "Guided experience"]
     included_items = [re.sub(r"\b(Admission|Ticket|Tour|Transfer)\s+\1\b", r"\1", item, flags=re.IGNORECASE) for item in included_items]
     included_items = list(dict.fromkeys(included_items))
-    included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=5)
+    included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=6)
 
     meta: list[CanonicalMetaLine] = []
     if is_tallinn_ferry:
@@ -86,9 +113,13 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     if pickup_range:
         meta.append(CanonicalMetaLine("Pick-up", pickup_range))
     elif not is_tallinn_ferry:
-        time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
-        if time_display:
-            meta.append(CanonicalMetaLine(_activity_time_label(row, time_display), time_display))
+        timezone_cruise_time = _timezone_specific_cruise_time(row)
+        if timezone_cruise_time:
+            meta.append(CanonicalMetaLine("Cruise time", timezone_cruise_time))
+        else:
+            time_display = time if row.get("display_time") else display_time_with_duration(time, duration)
+            if time_display:
+                meta.append(CanonicalMetaLine(_activity_time_label(row, time_display), time_display))
 
     if duration and not _is_fløibanen(title):
         meta.append(CanonicalMetaLine(get_activity_duration_label(row, duration), format_duration_display(duration)))

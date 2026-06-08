@@ -181,9 +181,9 @@ def audit_day_image_match(
             code="default_image_selected_for_final_output",
             message=(
                 f"{day} uses {display_name}, which is a bundled Default fallback. "
-                "Choose a real destination image before creating the client PDF."
+                "It can be used for export when no better destination image is selected."
             ),
-            severity="error",
+            severity="info",
             day=day,
             path=path_text,
         ))

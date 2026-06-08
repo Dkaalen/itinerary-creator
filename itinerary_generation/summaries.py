@@ -194,7 +194,12 @@ def describe_city_experience(rows):
     # Meal-plan words from hotel rows (for example "Breakfast + Dinner") should
     # not turn a destination chapter into "local food culture". Only use food
     # culture when there is an actual experience/prose signal for it.
-    has_food = bool(primary_experience_rows) and _has(text, "food", "tasting", "smørrebrød", "secret food", "fish soup", "lunch", "dinner", "meal")
+    food_is_excluded = bool(re.search(r"\bfood\s+(?:and\s+drinks?\s+)?(?:are\s+)?excluded\b|\bdrinks?\s+(?:are\s+)?excluded\b", text, flags=re.IGNORECASE))
+    has_food = (
+        bool(primary_experience_rows)
+        and not food_is_excluded
+        and _has(text, "food tour", "tasting", "smørrebrød", "secret food", "fish soup", "culinary")
+    )
     has_tallinn = _has(text, "tallinn")
     has_city = _has(text, "vasa", "old town", "museum", "walking tour", "city walk", "must-see", "guided visit", "helsinki guide", "senate square", "senate squate")
     has_nature = _has(text, "forest tower", "forgotten giants", "nature hike", "haukland", "henningsvær", "photo tour", "arctic landscape")

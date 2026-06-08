@@ -14,7 +14,7 @@ from app_modules.export_actions import (
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
-from images.app_image_selection import audit_day_image_matches, image_bank_status, select_day_images_with_overrides
+from images.app_image_selection import image_bank_status
 from ui.picture_workflow import pictures_are_added
 
 
@@ -115,13 +115,9 @@ def _session_state_snapshot() -> dict:
 
 
 def _current_image_review_errors() -> tuple:
-    output_edits = st.session_state.get("output_edits", {}) or {}
-    if not pictures_are_added(output_edits):
-        return ()
-    image_grouped_days = _image_grouped_days()
-    image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
-    image_issues = audit_day_image_matches(image_grouped_days, image_matches, output_edits)
-    return tuple(issue for issue in image_issues if getattr(issue, "severity", "") == "error")
+    """Compatibility hook: picture review no longer blocks PDF export."""
+
+    return ()
 
 
 def render_export_step(app_version: str) -> None:
@@ -142,13 +138,6 @@ def render_export_step(app_version: str) -> None:
 
     if not readiness.image_bank_ready:
         st.warning("Connect the real destination image bank before creating the final PDF.")
-        return
-
-    if not readiness.picture_review_ready:
-        st.warning("Resolve blocked picture selections before creating the final PDF.")
-        with st.expander("Picture issues blocking export", expanded=True):
-            for issue in image_review_errors:
-                st.write(f"- {getattr(issue, 'message', issue)}")
         return
 
     if st.session_state.get("_pdf_after_visual_edit_commit_nonce") and not commit_ready:

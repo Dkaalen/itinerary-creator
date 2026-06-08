@@ -408,31 +408,10 @@ def _image_payload_is_default(match: Mapping[str, Any]) -> bool:
 
 
 def _image_match_issues(day_images: Mapping[str, Mapping[str, Any] | None] | None) -> list[ItineraryValidationIssue]:
-    issues: list[ItineraryValidationIssue] = []
-    for day, match in (day_images or {}).items():
-        if not isinstance(match, Mapping) or not _image_payload_is_default(match):
-            continue
-        if not bool(match.get("allow_default_final_image")):
-            issues.append(
-                ItineraryValidationIssue(
-                    BLOCKING,
-                    "default_image_selected_for_final_output",
-                    "Default image selected for final output. Connect the full Dkaalen/itinerary-image-bank image bank or choose a real destination image.",
-                    context=str(day),
-                )
-            )
-        audit = match.get("audit") if isinstance(match.get("audit"), Mapping) else {}
-        stronger_available = bool(match.get("stronger_candidate_available") or audit.get("stronger_candidate_available"))
-        if stronger_available:
-            issues.append(
-                ItineraryValidationIssue(
-                    BLOCKING,
-                    "default_image_used_despite_stronger_match",
-                    "Default image was selected even though a stronger image-bank match was available.",
-                    context=str(day),
-                )
-            )
-    return issues
+    # Default/fallback pictures are no longer a final-output blocker.  The app
+    # may still record image metadata for diagnostics, but PDF creation should
+    # not be stopped by a picture-review state.
+    return []
 
 
 def _image_bank_status_issues(image_bank_status: Mapping[str, Any] | None) -> list[ItineraryValidationIssue]:

@@ -99,8 +99,17 @@ def create_client_activity_title(row):
     if "norwegian food tour" in full_text or ("food tour" in full_text and "oslo" in full_text):
         return "Oslo Food Tour"
 
+    # Preserve high-confidence supplier walking-tour identities.  Supplier rows
+    # often mention cafes/restaurants in local tips or exclusions; that must not
+    # turn a Bergen history/city walk into a food tour.
+    if ("walking tour" in title_text or "guided walking tour" in full_text) and not re.search(r"\b(food tour|tasting stops?|culinary tour|secret food)\b", full_text):
+        return polish_title(title or original_title or "Guided Walking Tour")
+
     if "food" in full_text and "culture" in full_text and "bergen" in full_text:
-        return "Bergen Food & Culture Walk"
+        food_is_excluded = re.search(r"\b(food|drinks?)\s+(?:and\s+drinks?\s+)?(?:are\s+)?excluded\b", full_text) or "food and drinks are excluded" in full_text
+        food_is_explicit_product = re.search(r"\b(food tour|tasting stops?|food walk|culinary|secret food)\b", full_text)
+        if food_is_explicit_product and not food_is_excluded:
+            return "Bergen Food & Culture Walk"
 
     if "hop-on" in title_text or "hop off" in title_text or "hop-off" in title_text or "hop on hop off" in full_text:
         city = str(row.get("city", "") or "").strip()

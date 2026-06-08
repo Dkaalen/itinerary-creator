@@ -14,7 +14,7 @@ from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title, get_transport_route_phrase
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
-from itinerary_generation.transport_norway import extract_norway_nutshell_route_points, format_norway_nutshell_route
+from itinerary_generation.transport_norway import extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,
@@ -190,14 +190,21 @@ def _norway_nutshell_lines(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
     if "norway in a nutshell" not in text:
         return []
+    source_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
+    legs = extract_norway_nutshell_route_legs(source_text)
     places = _extract_timed_route_places(row)
     lines = []
     base = get_travel_sequence_line(row)
     if places and len(places) >= 3:
         lines.append(_line_with_time(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}", row))
-        route_text = format_norway_nutshell_route(places)
-        if route_text:
-            lines.append(f"Route highlights: {route_text}")
+        if legs:
+            for leg in legs:
+                mode = f" — {leg['mode']}" if leg.get("mode") else ""
+                lines.append(f"{leg['departure_time']} {leg['origin']} - {leg['arrival_time']} {leg['destination']}{mode}")
+        else:
+            route_text = format_norway_nutshell_route(places)
+            if route_text:
+                lines.append(f"Route highlights: {route_text}")
     elif base:
         lines.append(_line_with_time(base, row))
     includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])

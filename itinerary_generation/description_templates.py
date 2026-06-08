@@ -151,7 +151,9 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if "husky" in full:
         return polish_client_text(f"Meet the huskies{city_phrase} and enjoy an active Arctic experience arranged around the season and local conditions.")
     if "reindeer" in full:
-        return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn more about this classic Lapland experience at an easy pace.")
+        if "tromsø" in full or "tromso" in full or city.lower() in {"tromsø", "tromso"}:
+            return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn about Sámi culture and Arctic traditions.")
+        return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn more about this classic Arctic experience at an easy pace.")
     if "northern lights" in full or "aurora" in full:
         return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
     if "tallinn" in full:

@@ -90,8 +90,9 @@ def test_default_image_selection_is_export_blocker_even_when_full_bank_exists():
 
         warnings = audit_day_image_matches(grouped, matches, output_edits={}, image_bank_scan_paths=[bank])
 
-        assert any(warning.code == "default_image_selected_for_final_output" for warning in warnings)
-        assert any(warning.severity == "error" for warning in warnings)
+        default_warnings = [warning for warning in warnings if warning.code == "default_image_selected_for_final_output"]
+        assert default_warnings
+        assert all(warning.severity == "info" for warning in default_warnings)
 
 
 def test_explicit_dev_default_image_fallback_is_not_an_export_blocker():

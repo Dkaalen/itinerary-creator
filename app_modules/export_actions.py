@@ -17,7 +17,6 @@ from app_modules.project_io import rebuild_current_preview
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state
 from images.app_image_selection import (
-    audit_day_image_matches,
     connect_remote_image_bank_if_missing,
     get_day_image_crop_focus,
     image_bank_status,
@@ -139,16 +138,6 @@ def create_pdf_from_current_preview() -> bool:
     preview_image_matches = day_image_matches_from_preview_html(st.session_state.get("itinerary_html", ""))
     image_matches = merge_preview_image_contract(selected_image_matches, preview_image_matches)
     current_image_bank_status = image_bank_status()
-    image_issues = audit_day_image_matches(
-        image_grouped_days,
-        image_matches,
-        st.session_state.get("output_edits", {}),
-    )
-    blocking_image_issues = [issue for issue in image_issues if issue.severity == "error"]
-    if blocking_image_issues:
-        clear_pdf_artifact("Needs image review")
-        _show_issue_list("PDF export stopped because one or more pictures need review.", blocking_image_issues)
-        return False
 
     current_pdf_signature = st.session_state.get("preview_signature")
     pdf_is_current = bool(st.session_state.get("pdf_bytes")) and st.session_state.get("pdf_signature") == current_pdf_signature

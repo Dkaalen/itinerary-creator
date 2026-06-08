@@ -95,6 +95,65 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
         return f"Norway in a Nutshell to {destination}"
     return "Norway in a Nutshell"
 
+
+def _normalise_nutshell_line_separators(text: str) -> str:
+    """Repair common supplier separator typos inside timetable legs."""
+
+    value = str(text or "")
+    # Common typo/OCR issue: ``Myrdal 0 22:27 Oslo`` should be a dash
+    # separator between departure place and arrival time.
+    value = re.sub(r"(?<=[A-Za-zÀ-ÿøØåÅäÄöÖ])\s+0\s+(?=\d{1,2}:\d{2})", " - ", value)
+    return value
+
+
+def _format_leg_time(value: str) -> str:
+    text = str(value or "").strip()
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})\s*(am|pm)?", text, flags=re.IGNORECASE)
+    if not match:
+        return text
+    hour = int(match.group(1))
+    minute = match.group(2)
+    suffix = (match.group(3) or "").upper()
+    if suffix:
+        if suffix == "PM" and hour < 12:
+            hour += 12
+        elif suffix == "AM" and hour == 12:
+            hour = 0
+    display_hour = hour % 12 or 12
+    display_suffix = "AM" if hour < 12 else "PM"
+    return f"{display_hour}:{minute} {display_suffix}"
+
+
+def extract_norway_nutshell_route_legs(text: str) -> list[dict[str, str]]:
+    """Return clean timetable legs for Norway in a Nutshell rows."""
+
+    source = _normalise_nutshell_line_separators(str(text or "").replace("\r\n", "\n").replace("\r", "\n"))
+    legs: list[dict[str, str]] = []
+    leg_pattern = re.compile(
+        r"^\s*(?P<dep>\d{1,2}:\d{2}\s*(?:am|pm)?)\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*[-–—]\s*(?P<arr>\d{1,2}:\d{2}\s*(?:am|pm)?)\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+via\s+(?P<mode>[^|,;]+))?\s*$",
+        flags=re.IGNORECASE,
+    )
+    for raw in source.replace("|", "\n").splitlines():
+        line = raw.strip(" .")
+        match = leg_pattern.match(line)
+        if not match:
+            continue
+        origin = _clean_nutshell_place(match.group("origin"))
+        destination = _clean_nutshell_place(match.group("destination"))
+        if not origin or not destination:
+            continue
+        mode = polish_title(str(match.group("mode") or "").strip(" .-"))
+        mode = re.sub(r"^Via\s+", "", mode, flags=re.IGNORECASE)
+        mode = re.sub(r"\bNorway\s+in\s+a\s+Nutshell.*$", "", mode, flags=re.IGNORECASE).strip(" .-:|,")
+        legs.append({
+            "departure_time": _format_leg_time(match.group("dep")),
+            "origin": origin,
+            "arrival_time": _format_leg_time(match.group("arr")),
+            "destination": destination,
+            "mode": mode,
+        })
+    return legs
+
 def extract_norway_nutshell_route_points(text: str) -> list[str]:
     """Return a clean stop list from Nutshell timetable or route text.
 
@@ -103,7 +162,7 @@ def extract_norway_nutshell_route_points(text: str) -> list[str]:
     so the end time cannot be misread as a route stop.
     """
 
-    source = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    source = _normalise_nutshell_line_separators(str(text or "").replace("\r\n", "\n").replace("\r", "\n"))
     points: list[str] = []
 
     def add_point(value: str) -> None:
@@ -117,6 +176,12 @@ def extract_norway_nutshell_route_points(text: str) -> list[str]:
 
     # Explicit pipe product route, e.g. "Norway in a Nutshell | Bergen to Oslo |".
     origin, destination = _direct_nutshell_pipe_route(source)
+
+    for leg in extract_norway_nutshell_route_legs(source):
+        add_point(leg.get("origin", ""))
+        add_point(leg.get("destination", ""))
+    if len(points) >= 2:
+        return points
 
     # Timetable rows, e.g. "08:29 Bergen" / "22:27 Oslo".
     for raw in source.replace("|", "\n").splitlines():

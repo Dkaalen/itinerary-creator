@@ -264,4 +264,16 @@ def choose_journey_arc_phrase(candidates: Sequence[str], *, chapter: str = "") -
         if len(phrase) <= 48:
             return phrase[:1].upper() + phrase[1:]
     phrase = cleaned[0]
-    return phrase[:45].rstrip(" ,") + "..." if len(phrase) > 48 else phrase[:1].upper() + phrase[1:]
+    lower = phrase.lower()
+    if "northern lights" in lower and ("sámi" in lower or "sami" in lower):
+        return "Northern Lights and Sámi culture"
+    if "santa village" in lower and "northern lights" in lower:
+        return "Northern Lights and Santa Village"
+    words = phrase.split()
+    shortened = ""
+    for word in words:
+        candidate = f"{shortened} {word}".strip()
+        if len(candidate) > 48:
+            break
+        shortened = candidate
+    return (shortened or phrase[:48].rstrip(" ,"))[:1].upper() + (shortened or phrase[:48].rstrip(" ,"))[1:]
