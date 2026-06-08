@@ -11,6 +11,13 @@ def normalize_transport_title(row: dict) -> dict:
     title = polish_title(row.get("title", ""))
     details = polish_client_text(row.get("details", ""))
     full = f"{title} {details}".lower()
+    product = fingerprint_activity(row)
+    if product and product.display_title and product.product_type not in {"scenic_route"}:
+        row["title"] = product.display_title
+        row["activity_product"] = product.as_row_metadata
+        if product.route_legs:
+            row["route_legs"] = [dict(leg) for leg in product.route_legs]
+        return row
     if "tallin" in full:
         row["title"] = re.sub("Tallin", "Tallinn", title, flags=re.IGNORECASE)
     if "rovaneimi" in full:
@@ -34,6 +41,9 @@ def normalize_transport_title(row: dict) -> dict:
 
 def _is_rail_or_fjord_route_activity(row: dict) -> bool:
     text = text_blob(row).lower()
+    product = fingerprint_activity(row)
+    if product and product.canonical_family in {"bergen_guided_flam_day_tour"}:
+        return False
     return (
         _is_norway_in_a_nutshell_text(text)
         or re.search(r"\btrain\s*[:|]", text)

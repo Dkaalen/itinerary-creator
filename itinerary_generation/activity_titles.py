@@ -104,16 +104,21 @@ def create_client_activity_title(row):
     original_title_text = str(original_title or "").lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
 
+    product_match = find_product_match(row, title, original_title, details)
+    if product_match and product_match.title:
+        product = fingerprint_activity(row, title, original_title, details)
+        if product and product.canonical_family == product_match.rule_id:
+            row["activity_product"] = product.as_row_metadata
+            if product.route_legs:
+                row["route_legs"] = [dict(leg) for leg in product.route_legs]
+        return product_match.title
+
     product = fingerprint_activity(row, title, original_title, details)
     if product and product.display_title:
         row["activity_product"] = product.as_row_metadata
         if product.route_legs:
             row["route_legs"] = [dict(leg) for leg in product.route_legs]
         return product.display_title
-
-    product_match = find_product_match(row, title, original_title, details)
-    if product_match and product_match.title:
-        return product_match.title
 
     title = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", str(title or ""), flags=re.IGNORECASE).strip(" -:|")
     title = re.sub(r"^Watch\s+Whales\b", "Whale Watching", title, flags=re.IGNORECASE).strip()

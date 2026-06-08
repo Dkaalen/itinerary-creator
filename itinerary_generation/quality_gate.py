@@ -235,7 +235,6 @@ def blocking_validation_messages(parsed_rows) -> list[str]:
 # Client-output quality gate -------------------------------------------------
 
 FORBIDDEN_CLIENT_PATTERNS: tuple[tuple[str, str, str], ...] = (
-    ("forbidden_aurora_wording", r"\bAurora\b", "Use 'Northern Lights' in client-facing output."),
     ("forbidden_onward_flight", r"\bOnward\s+flight\b", "Use grounded destination or route wording."),
     ("forbidden_onward_travel", r"\bOnward\s+travel\b", "Use grounded destination or route wording."),
     ("weak_journey_arc_flight_connection", r"\bFlight\s+connection\b", "Use destination welcome wording when only a flight/check-in happens."),
@@ -247,6 +246,8 @@ FORBIDDEN_CLIENT_PATTERNS: tuple[tuple[str, str, str], ...] = (
     ("supplier_parenthetical_if_snow", r"\(\s*if\s+snow\s*\)", "Remove supplier parenthetical '(if snow)'."),
     ("rough_airport_wording", r"\bto\s+Airport\b", "Use 'to the airport' or a named airport."),
 )
+
+AURORA_REVIEW_PATTERN = re.compile(r"\bAurora\b", flags=re.IGNORECASE)
 
 PRICE_CLIENT_PATTERN_MESSAGE = "Supplier prices, costs and currency values must not appear in client-facing output."
 
@@ -453,6 +454,15 @@ def evaluate_client_output_quality(
     for code, pattern, message in FORBIDDEN_CLIENT_PATTERNS:
         if re.search(pattern, text, flags=re.IGNORECASE):
             issues.append(ItineraryValidationIssue(BLOCKING, code, message))
+
+    if AURORA_REVIEW_PATTERN.search(text):
+        issues.append(
+            ItineraryValidationIssue(
+                WARNING,
+                "aurora_wording_review",
+                "Client-facing output contains 'Aurora'. Verify it is preserved supplier/product wording; otherwise prefer 'Northern Lights'.",
+            )
+        )
 
     if contains_price_or_currency(text):
         issues.append(ItineraryValidationIssue(BLOCKING, "client_price_or_currency_leak", PRICE_CLIENT_PATTERN_MESSAGE))

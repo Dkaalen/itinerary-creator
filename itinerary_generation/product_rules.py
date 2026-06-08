@@ -224,6 +224,18 @@ def find_product_match(row: dict | None = None, *values: object) -> ProductRuleM
     if row and is_tallinn_ferry_framework(row, *values):
         return _match("tallinn_ferry_framework")
 
+    # Keep legacy registry decisions before the broader activity-fingerprint
+    # catalogue.  The catalogue is useful for normalized activity metadata, but
+    # these rules intentionally distinguish explicit/weak source evidence and
+    # own specific warning behavior.
+    if has_explicit_munch_museum_evidence(row, *values):
+        return _match("munch_museum")
+
+    if has_explicit_fjellheisen_evidence(row, *values):
+        return _match("fjellheisen")
+    if is_weak_tromso_viewpoint_ticket(row, *values):
+        return _match("tromso_viewpoint_ticket_possible_fjellheisen", confidence="weak")
+
     product = fingerprint_activity(row, *values)
     if product and product.display_title:
         return ProductRuleMatch(
@@ -237,14 +249,6 @@ def find_product_match(row: dict | None = None, *values: object) -> ProductRuleM
 
     if _looks_like_norway_in_a_nutshell(lower):
         return _match("norway_in_a_nutshell", title=_route_label_from_activity_text(product_context(row, *values)))
-
-    if has_explicit_munch_museum_evidence(row, *values):
-        return _match("munch_museum")
-
-    if has_explicit_fjellheisen_evidence(row, *values):
-        return _match("fjellheisen")
-    if is_weak_tromso_viewpoint_ticket(row, *values):
-        return _match("tromso_viewpoint_ticket_possible_fjellheisen", confidence="weak")
 
     if "santa claus" in lower and "friends" in lower:
         return _match("santa_claus_friends")

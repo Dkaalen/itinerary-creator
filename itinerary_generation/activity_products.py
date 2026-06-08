@@ -87,8 +87,9 @@ _TITLE_STOP_MARKERS = (
 
 _TYPO_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     (r"\bNUtsheel\b|\bNutsheel\b|\bNuthsell\b|\bNUtshell\b", "Nutshell"),
-    (r"\bTallin\b", "Tallinn"),
-    (r"\bReykajvik\b|\bReykavik\b|\bReykjavik\b", "Reykjavík"),
+    (r"\bTallinnn\b|\bTallin\b", "Tallinn"),
+    (r"\bHlesinkih?\b|\bHellsinki\b|\bHelisnki\b", "Helsinki"),
+    (r"\bReyakjvik\b|\bReykajvik\b|\bReykavik\b|\bReykjavik\b", "Reykjavík"),
     (r"\bTromso\b", "Tromsø"),
     (r"\bAlesund\b", "Ålesund"),
     (r"\bFlam\b|\bFLam\b", "Flåm"),
@@ -99,6 +100,12 @@ _TYPO_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     (r"\bEngish\b", "English"),
     (r"\bticktes\b", "tickets"),
     (r"\btickert\b", "ticket"),
+    (r"\bavaiable\b", "available"),
+    (r"\barrnaged\b", "arranged"),
+    (r"\bAfternon\b", "Afternoon"),
+    (r"\bMelas\s+onboard\b", "Meals onboard"),
+    (r"\bCLaus\b", "Claus"),
+    (r"\bVIllage\b", "Village"),
     (r"\badditonal\b", "additional"),
 )
 
@@ -297,6 +304,33 @@ def _northern_lights_title(source_lower: str, source_title: str) -> str:
     return "Northern Lights Experience"
 
 
+def _is_bergen_guided_flam_day_tour(source_lower: str) -> bool:
+    """Return True for Bergen-to-Flåm guided day tours that resemble Nutshell routes.
+
+    These supplier products include several Norway in a Nutshell ingredients
+    (Flåm Railway, Nærøyfjord/fjord cruise, Gudvangen/Voss legs), but the sold
+    product is a guided round-trip day tour from Bergen.  It must not be
+    renamed to "Norway in a Nutshell" just because the route components overlap.
+    """
+
+    has_bergen_origin = "bergen" in source_lower
+    has_flam_product = "flåm" in source_lower or "flam" in source_lower
+    has_guided_day_tour = any(marker in source_lower for marker in ("guided day tour", "guided discovery", "day tour to flåm", "day tour to flam"))
+    has_route_components = any(marker in source_lower for marker in ("flåm railway", "flam railway", "nærøyfjord", "naeroyfjord", "fjord cruise"))
+    has_roundtrip_legs = "voss to bergen" in source_lower or "coach, voss to bergen" in source_lower or "back to bergen" in source_lower
+    return has_bergen_origin and has_flam_product and has_guided_day_tour and has_route_components and has_roundtrip_legs
+
+
+def _ticket_title(source_title: str, fallback: str) -> str:
+    """Preserve safe ticket/admission names without leaking long supplier prose."""
+
+    if source_title and len(source_title) <= 80:
+        lower = source_title.lower()
+        if any(marker in lower for marker in ("ticket", "tickets", "admission", "entrance", "museum", "tivoli", "skyview", "munch", "vasa")):
+            return source_title
+    return fallback
+
+
 def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityProductFingerprint | None:
     """Return a canonical activity product fingerprint when source evidence is strong."""
 
@@ -306,6 +340,15 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
         return None
 
     source_title = extract_source_product_title(row, *values)
+
+    if _is_bergen_guided_flam_day_tour(source_lower):
+        return _match(
+            "bergen_guided_flam_day_tour",
+            "guided_scenic_day_tour",
+            "Bergen Guided Day Tour to Flåm with Flåm Railway & Fjord Cruise",
+            source_title=source_title,
+            variant_tags=("flam_railway", "fjord_cruise", "coach", "guided"),
+        )
 
     if _is_norway_in_a_nutshell_text(source):
         # Use supplier route-bearing fields only. Normalized titles and generic
@@ -367,6 +410,9 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
             tags.append("electric_boat")
         title = source_title if source_title and "fjord" in source_title.lower() and "cruise" in source_title.lower() else ("Oslofjord Sightseeing Cruise" if "sightseeing" in source_lower else "Oslofjord Cruise with Silent Electric Ship")
         return _match("oslofjord_cruise", "fjord_cruise", title, source_title=source_title, variant_tags=tuple(tags))
+
+    if "oslo" in source_lower and ("munch museum" in source_lower or re.search(r"\bmunch\b", source_lower)) and any(marker in source_lower for marker in ("ticket", "tickets", "entrance", "entry", "admission", "museum")):
+        return _match("munch_museum_ticket", "admission", "Munch Museum Visit", source_title=source_title)
 
     if "bergen" in source_lower and "city drive" in source_lower:
         return _match("bergen_city_drive", "private_drive", source_title if source_title else "Private Bergen City Drive", source_title=source_title)
@@ -466,6 +512,9 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
             title = "Fjord Tour of Kvaløya & Sommarøy"
         return _match("tromso_kvaloya_sommaroy_fjord", "fjord_sightseeing", title, source_title=source_title)
 
+    if ("tromsø" in source_lower or "tromso" in source_lower) and any(marker in source_lower for marker in ("cable car", "round trip ticket", "viewpoint ticket", "fjellheisen")):
+        return _match("tromso_cable_car_ticket", "ticket", "Tromsø Cable Car Round-Trip Ticket", source_title=source_title)
+
     if "reindeer" in source_lower and "sami" in source_lower:
         if "night" in source_lower or "northern light" in source_lower:
             title = "Night Reindeer Sledding & Chance of Northern Lights"
@@ -478,17 +527,26 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
     if "copenhagen" in source_lower and "city walking" in source_lower and "canal" in source_lower:
         return _match("copenhagen_walking_canal", "walking_boat_tour", "Copenhagen Walking & Canal Tour", source_title=source_title)
 
+    if "copenhagen" in source_lower and "canal" in source_lower and "walking" not in source_lower and any(marker in source_lower for marker in ("cruise", "boat", "harbor", "harbour")):
+        return _match("copenhagen_canal_cruise", "canal_cruise", source_title if source_title and "canal" in source_title.lower() else "Copenhagen Canal Cruise", source_title=source_title)
+
     if "tivoli" in source_lower:
-        return _match("tivoli_gardens_ticket", "ticket", "Tivoli Gardens Entrance Ticket", source_title=source_title)
+        return _match("tivoli_gardens_ticket", "ticket", _ticket_title(source_title, "Tivoli Gardens Entrance Ticket"), source_title=source_title)
 
     if "stockholm" in source_lower and "vasa" in source_lower and "old town" in source_lower:
         return _match("stockholm_vasa_old_town_boat", "walking_museum_boat_tour", "Stockholm Must-See Tour with Vasa Museum, Old Town & Boat Trip", source_title=source_title)
+
+    if "stockholm" in source_lower and "city highlights" in source_lower and "boat" in source_lower:
+        return _match("stockholm_city_highlights_boat", "boat_tour", "Stockholm City Highlights Boat Tour", source_title=source_title)
+
+    if "stockholm" in source_lower and "vasa" in source_lower and any(marker in source_lower for marker in ("ticket", "tickets", "entrance", "entry", "admission", "museum")):
+        return _match("vasa_museum_ticket", "admission", _ticket_title(source_title, "Vasa Museum Entrance Ticket"), source_title=source_title)
 
     if "archipelago" in source_lower and "stockholm" in source_lower:
         return _match("stockholm_archipelago_tour", "boat_tour", "Stockholm Archipelago Tour with Guide", source_title=source_title)
 
     if "skyview" in source_lower or "sky high views" in source_lower:
-        return _match("skyview_stockholm_ticket", "ticket", "SkyView Stockholm Ticket", source_title=source_title)
+        return _match("skyview_stockholm_ticket", "ticket", _ticket_title(source_title, "SkyView Stockholm Ticket"), source_title=source_title)
 
     if "sigtuna" in source_lower:
         return _match("sigtuna_city_walk", "walking_tour", "Sigtuna City Walk", source_title=source_title)

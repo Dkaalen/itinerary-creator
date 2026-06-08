@@ -106,9 +106,11 @@ def test_client_output_quality_gate_blocks_ao_forbidden_output():
         day_images={"Day 1": {"city": "Default", "filename": "Default_Winter_01", "is_default": True, "stronger_candidate_available": True}},
     )
     codes = {issue.code for issue in report.blocking_issues}
+    warning_codes = {issue.code for issue in report.warnings}
 
     assert report.is_blocked
-    assert "forbidden_aurora_wording" in codes
+    assert "forbidden_aurora_wording" not in codes
+    assert "aurora_wording_review" in warning_codes
     assert "forbidden_onward_flight" in codes
     assert "supplier_parenthetical_if_snow" in codes
     assert "rough_airport_wording" in codes
