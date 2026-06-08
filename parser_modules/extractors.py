@@ -109,7 +109,7 @@ def _truncate_meeting_point_metadata(value):
     # Supplier rows often put "Meeting point: address What's included? ..."
     # on one line. Keep only the address/logistics before later metadata.
     text = re.split(
-        r"\s+(?=(?:what[’']?s\s+included|what\s+to\s+expect|overview|please\s+note|important\s+information)\b)",
+        r"\s*(?=(?:what[’']?s\s+included|what\s+to\s+expect|overview|highlights?|itinerary|packages|please\s+note|important\s+information)\b)",
         text,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -198,6 +198,13 @@ def extract_includes_from_description(main_text):
             r"\bwhat to expect\b",
             r"\bimportant info\b",
             r"\bour floating suits\b",
+            r"\byou will\b",
+            r"\byou are\b",
+            r"\btravel to\b",
+            r"\barguably\b",
+            r"\bwhen selecting\b",
+            r"\bafter having\b",
+            r"\bdo not worry\b",
         ],
     )
 

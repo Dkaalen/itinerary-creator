@@ -81,7 +81,7 @@ def get_transport_route_phrase(row):
             if destination and destination.lower() == "geiranger":
                 return "Geirangerfjord Cruise from Ålesund to Geiranger" if origin else "One-way Geirangerfjord Cruise to Geiranger"
         is_ferry = row_type == "Ferry" or ("ferry" in lower and "cruise" not in lower)
-        if row_type == "Cruise" and "arrival" in lower:
+        if row_type == "Cruise" and "arrival" in lower and "overnight" not in lower:
             return f"Cruise arrival to {destination}" if destination else "Cruise arrival"
         if is_ferry:
             label = "Ferry Transfer"

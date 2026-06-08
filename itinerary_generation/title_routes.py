@@ -51,7 +51,9 @@ def _extract_supplier_day_heading(text: str) -> str:
         return ""
     heading = re.split(r"\s{2,}|\s+Overview\b|\s+What's included\b|\s+What’s included\b|\s+What to expect\b", match.group(1), maxsplit=1, flags=re.IGNORECASE)[0]
     heading = re.split(
-        r"\s+(?:We start|You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
+        r"\s+(?:Embark|After\s+a|After\s+breakfast|Start\s+your|Continuing|Continue\s+your|"
+        r"The\s+highlight|Your\s+adventure\s+begins|On\s+the\s+final|Finally|After\s+\w+|We start|"
+        r"You will|You are|Prepare to|The first|A \d|At \w+|Once you|Afterwards|On your way)\b",
         heading,
         maxsplit=1,
         flags=re.IGNORECASE,

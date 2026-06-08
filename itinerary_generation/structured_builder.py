@@ -221,9 +221,52 @@ def _ambiguous_row_warnings(row: dict) -> tuple[ModelWarning, ...]:
     return tuple(dict.fromkeys(warnings))
 
 
+
+
+def _row_data_warnings(row: dict) -> tuple[ModelWarning, ...]:
+    """Return source-data warnings that should survive into the document model."""
+
+    row_id = _row_id(row)
+    row_type = str(get_row_type(row) or "")
+    source = " ".join(
+        str(row.get(key, "") or "")
+        for key in ("raw", "original_title", "details", "title")
+        if str(row.get(key, "") or "").strip()
+    )
+    source_lower = source.lower()
+    warnings: list[ModelWarning] = []
+
+    if row_type == "Activity":
+        time_text = str(row.get("time") or "")
+        suspicious_am = re.search(r"\b(?:1|2|3|4|5):\d{2}\s*AM\b", time_text, flags=re.IGNORECASE)
+        is_normal_night_activity = any(marker in source_lower for marker in [
+            "northern light", "aurora", "overnight", "night train", "night cruise", "dinner cruise",
+        ])
+        is_daytime_product = any(marker in source_lower for marker in [
+            "sightseeing", "walking tour", "city tour", "fjord cruise", "canal tour", "hop-on", "hop on",
+        ])
+        if suspicious_am and is_daytime_product and not is_normal_night_activity:
+            warnings.append(ModelWarning(
+                code="suspicious_activity_time",
+                message=f"Activity time {time_text} looks unusual for a daytime sightseeing product; verify AM/PM before final output.",
+                source_row_ids=(row_id,),
+            ))
+
+    if row_type == "Hotel":
+        hotel_name = str(row.get("hotel_name") or "").strip()
+        generic_hotel_name = bool(re.fullmatch(r"(?:\d\s*[- ]?star\s+)?hotel", hotel_name, flags=re.IGNORECASE))
+        if not hotel_name or generic_hotel_name:
+            warnings.append(ModelWarning(
+                code="missing_hotel_name",
+                message="Accommodation row has no hotel name; verify supplier data before final output.",
+                source_row_ids=(row_id,),
+            ))
+
+    return tuple(dict.fromkeys(warnings))
+
 def _document_item(row: dict, fallback_index: int) -> DocumentItem:
     row_id = _row_id(row, fallback_index)
-    warnings = _ambiguous_row_warnings(row)
+    warnings = _ambiguous_row_warnings(row) + _row_data_warnings(row)
     confidence = 0.55 if warnings else 1.0
     return DocumentItem(
         item_id=row_id,

@@ -98,6 +98,11 @@ def get_travel_sequence_line(row):
     if row_type in TRANSPORT_TYPES and is_self_arranged(row):
         title = _clean_self_arranged_travel_title(get_transport_route_phrase(row) or row.get("title", "Self-arranged travel"))
         if row_type == "Flight" and title.lower().startswith("flight"):
+            destination_only = re.search(r"\bflight\s+from\s+.+?\s+to\s+(.+)$", title, flags=re.IGNORECASE)
+            if destination_only:
+                clean_destination = polish_title(destination_only.group(1).strip(" -:|.,"))
+                if clean_destination:
+                    title = f"Flight to {clean_destination}"
             return f"Self-arranged {title[0].lower() + title[1:]} (not included)"
         return f"{title} (self-arranged, not included)"
 

@@ -115,7 +115,7 @@ def test_split_norway_in_a_nutshell_days_render_as_route_travel_not_generic_acti
     day_5 = _day_text(grouped, "Day 5")
 
     day_4_source = next(row for row in rows if row.get("day") == "Day 4" and "Nutshell" in row.get("title", ""))["details"]
-    day_5_source = next(row for row in rows if row.get("day") == "Day 5" and "Nuthsell" in row.get("original_title", "") + row.get("details", ""))["details"]
+    day_5_source = next(row for row in rows if row.get("day") == "Day 5" and "Nutshell" in row.get("original_title", "") + row.get("details", ""))["details"]
 
     assert extract_norway_nutshell_route_points(day_4_source) == ["Oslo", "Myrdal", "Flåm", "Gudvangen"]
     assert extract_norway_nutshell_route_legs(day_4_source) == [

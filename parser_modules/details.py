@@ -67,13 +67,22 @@ def extract_detail(text, label):
 
     after_marker = source[match.end():]
     stop_labels = [re.escape(item) for item in DETAIL_LABELS if item.lower() != str(label).lower()]
-    stop_labels.extend([r"what[’']?s\ included", r"what\ is\ included", r"please\ note", r"important\ information"])
+    stop_labels.extend([
+        r"what[’']?s\s+included",
+        r"what\s+is\s+included",
+        r"what\s+to\s+expect",
+        r"overview",
+        r"please\s+note",
+        r"important\s+information",
+        r"pick[-\s]*up\s*/\s*meeting\s*point",
+        r"meeting\s+point",
+    ])
     if stop_labels:
         # Stop on both dash-separated metadata (" - Includes:") and supplier
         # block labels on their own line or after a pasted sentence.  Without
         # this, labels such as "What's included?" can leak into meeting points.
         stop_pattern = re.compile(
-            rf"(?:\s+-\s+|\n+\s*|\s{{2,}})(?:{'|'.join(stop_labels)})\s*(?::|\?)",
+            rf"(?:\s+-\s+|\n+\s*|\s{{2,}})(?:{'|'.join(stop_labels)})\s*(?::|\?|(?=\s|[A-ZÀ-ÖØ-Þ]))",
             flags=re.IGNORECASE,
         )
         stop_match = stop_pattern.search(after_marker)
@@ -271,7 +280,33 @@ def detect_effective_type(item_type, title, details):
     ):
         return "Activity"
 
+    # Attraction/ticket products can include shuttle/return-transfer logistics.
+    # Keep the product as an activity unless the row is clearly a pure route.
+    if normalized_item_type == "Activity" and any(
+        marker in combined
+        for marker in ["blue lagoon", "comfort ticket", "admission", "entry ticket", "return transfer"]
+    ) and any(marker in combined for marker in ["overview", "what's included", "what to expect", "ticket", "admission", "experience"]):
+        return "Activity"
+
+    # Tallinn day excursions use ferry tickets as logistics, but the row is the
+    # day trip/activity, not a ferry transfer.
+    if normalized_item_type == "Activity" and "tallinn" in combined and any(
+        marker in combined for marker in ["excursion", "guided tour", "self guided", "old town"]
+    ):
+        return "Activity"
+
     if "norway in a nutshell" in combined:
+        return "Transport"
+
+    route_mode_match = re.search(r"\b[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\s+(train|flight|cruise|ferry|coach|bus)\b", combined)
+    if route_mode_match and normalized_item_type in {"Transfer", "Transport", "Activity"} and "private" not in combined:
+        mode = route_mode_match.group(1)
+        if mode == "train":
+            return "Train"
+        if mode == "flight":
+            return "Flight"
+        if mode in {"cruise", "ferry"}:
+            return "Cruise" if mode == "cruise" else "Ferry"
         return "Transport"
 
     if (

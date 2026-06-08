@@ -128,6 +128,8 @@ def prioritize_inline_inclusions(items, max_items=6):
             continue
         if lower.startswith("duration") or " with panoramic views" in lower:
             continue
+        if lower.startswith(("depart for ", "return to ", "departure from ", "return from ")):
+            continue
         if "small group" in lower or ("max " in lower and "guest" in lower):
             continue
         # The title already tells the client they are visiting Santa Claus Village;

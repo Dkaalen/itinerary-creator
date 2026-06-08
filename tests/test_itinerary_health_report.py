@@ -41,7 +41,7 @@ def test_health_report_summarizes_day_coverage_route_and_row_statuses():
 
 def test_health_report_is_clear_when_validation_has_no_issues():
     rows = [
-        {"day": "Day 1", "type": "Hotel", "effective_type": "Hotel", "city": "Oslo", "commercial_status": "included"},
+        {"day": "Day 1", "type": "Hotel", "effective_type": "Hotel", "city": "Oslo", "hotel_name": "Hotel Oslo", "commercial_status": "included"},
         {"day": "Day 2", "type": "Activity", "effective_type": "Activity", "city": "Bergen", "commercial_status": "included"},
     ]
 

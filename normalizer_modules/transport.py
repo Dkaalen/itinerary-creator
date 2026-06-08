@@ -63,6 +63,12 @@ def _is_route_transfer_activity(row: dict) -> bool:
     text = text_blob(row).lower()
     if _is_sightseeing_cruise_activity(text):
         return False
+    # Activity products may include return transfers as logistics. Do not turn
+    # them into transport days when the product identity is a ticket/admission
+    # or named attraction experience.
+    if any(marker in text for marker in ["blue lagoon", "comfort ticket", "admission", "entry ticket", "return transfer"]):
+        if any(marker in text for marker in ["what's included", "overview", "what to expect", "ticket", "admission", "experience"]):
+            return False
 
     # Supplier sheets sometimes paste real route transport into the Activity
     # column without a leading "Bus:"/"Coach:" label. Keep only strongly

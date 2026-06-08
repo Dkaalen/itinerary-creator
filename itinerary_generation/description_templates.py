@@ -23,10 +23,11 @@ def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
     region = canonicalize_place_name(row.get("city", "")) or city or "the region"
     full = f"{title} {source}".lower()
 
-    if "whale" in full and "hauganes" in full:
+    if "whale" in full:
+        place_list = _join(places, max_items=6) if places else "North Iceland"
         return polish_client_text(
-            "Today your guided group tour travels to Hauganes for the included Whale Watching experience. "
-            "After time on the water looking for marine life, the route continues back to Reykjavík for the end of the guided programme."
+            f"Combine the included whale watching experience with {place_list}, "
+            "before the route carries on towards the next overnight stop or back to Reykjavík."
         )
 
     if places:
@@ -84,6 +85,11 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return polish_client_text(
             "Travel from Tromsø towards the Lyngen Alps for an overnight Crystal Lavvo experience, "
             "with meals, snowshoeing, Northern Lights guidance and return transfers arranged as part of the programme."
+        )
+
+    if "sauna" in full and ("lakeside" in full or "finnish" in full or "wooden" in full):
+        return polish_client_text(
+            f"Enjoy a Finnish sauna experience{city_phrase}, with time to relax by the lakeside setting and warm drinks or cookies included where specified."
         )
 
     if ("northern lights" in full or "aurora" in full) and ("cruise" in full or "silent electric ship" in full or "boat" in full):

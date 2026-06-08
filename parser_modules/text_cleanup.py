@@ -20,6 +20,7 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bprice\s+not\s+inclueded\b", "price not included"),
     (r"\bprice\s+not\s+inclued\b", "price not included"),
     (r"\bNUtshell\b", "Nutshell"),
+    (r"\bNuthsell\b", "Nutshell"),
     (r"\bExcurssion\b", "Excursion"),
     (r"\btransfere\b", "transfer"),
     (r"\bcrusie\b", "cruise"),
@@ -30,10 +31,14 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bRosklide\b", "Roskilde"),
     (r"\bSt\s+Nickolas\b", "St Nicholas"),
     (r"\bFLybus\b", "Flybus"),
+    (r"\bHelisnki\b", "Helsinki"),
+    (r"\bReyakjvik\b", "Reykjavík"),
+    (r"\bReykjavik\b", "Reykjavík"),
     (r"\bFlyBus\b", "Flybus"),
     (r"\bReykajvik\b", "Reykjavík"),
     (r"\bReykavik\b", "Reykjavík"),
     (r"\bCity Centre\b", "city centre"),
+    (r"\bKøbenhavn\b", "Copenhagen"),
     (r"\bStaion\b", "Station"),
     (r"\bPirce\b", "price"),
     (r"\bNutsheel\b", "Nutshell"),
@@ -54,6 +59,8 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bTrosmø\b", "Tromsø"),
     (r"\bTrosmo\b", "Tromsø"),
     (r"\bGothernburg\b", "Gothenburg"),
+    (r"\bGothenBurg\b", "Gothenburg"),
+    (r"\bGothenburg\b", "Gothenburg"),
     (r"\bGothenbrug\b", "Gothenburg"),
     (r"\baccommodaiton\b", "accommodation"),
     (r"\binlcuded\b", "included"),
@@ -62,11 +69,17 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bFull\s+Pention\b", "Full pension"),
     (r"\bFull\s+Pension\b", "Full pension"),
     (r"\bOptinal\b", "Optional"),
+    (r"\bUpgradesd\b", "Upgrades"),
+    (r"\bavaiable\b", "available"),
+    (r"\barrivak\b", "arrival"),
+    (r"\btickert\b", "ticket"),
+    (r"\bPirvate\b", "Private"),
     (r"\bRecepion\b", "Reception"),
     (r"\bStaion\b", "Station"),
     (r"\bKriuna\b", "Kiruna"),
     (r"\bwitj\b", "with"),
     (r"\bTromso\b", "Tromsø"),
+    (r"\bTallin\b", "Tallinn"),
     (r"\bKakslauttenen\b", "Kakslauttanen"),
     (r"\b(\d{1,2})\s+:\s*(\d{2})", r"\1:\2"),
     (r"\bWi-FI\b", "Wi-Fi"),
@@ -78,6 +91,97 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\b4Star\b", "4 Star"),
     (r"\b3Star\b", "3 Star"),
 ]
+
+
+SECTION_BOUNDARY_PATTERNS = (
+    r"Overview",
+    r"What[’']?s included\??",
+    r"What to expect\??",
+    r"Not Included",
+    r"Not included",
+    r"Includes?\s*:",
+    r"Included\s*:",
+    r"Pick[-\s]*up\s*/\s*meeting\s*point",
+    r"Pick[-\s]*up\s*:",
+    r"Meeting Point\s*:",
+    r"Meeting point\s*:",
+    r"Highlights?\s*:",
+    r"Itinerary",
+    r"Packages",
+)
+
+RUN_ON_ITEM_STARTS = (
+    "Personalized",
+    "Harbor ferry",
+    "Change of guards",
+    "Guided visit",
+    "Guided walking",
+    "City cruise",
+    "English-speaking",
+    "Professional",
+    "Knowledgeable",
+    "Sightseeing",
+    "Bottled water",
+    "Thermal",
+    "Winter",
+    "Hot drinks",
+    "Hot drink",
+    "Snowsuits",
+    "Stories about",
+    "Feeding",
+    "Traditional",
+    "Pick-up/drop-off",
+    "Pickup/drop-off",
+    "Cruise on",
+    "Free",
+    "Warm",
+    "Walking tour",
+    "Authorized",
+    "Other languages",
+    "Towels",
+    "Warm drink",
+    "Helmet",
+    "Wi-Fi",
+    "Equipment",
+    "Visit to",
+    "Visit",
+    "Private transfer",
+    "Glacier hiking",
+    "English &",
+    "English and",
+    "Round-trip",
+)
+
+
+def repair_supplier_section_boundaries(value: str) -> str:
+    """Insert safe boundaries into run-on supplier cells before parsing.
+
+    Supplier exports often paste labels and list items together, e.g.
+    ``KøbenhavnOverviewSee...`` or ``guideVisit to...``.  Repairing the
+    source once here keeps meeting points, inclusions and descriptions from
+    swallowing each other across the parser/generator/PDF stack.
+    """
+
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    if not text:
+        return text
+
+    # Label stuck to previous prose: ``KøbenhavnOverview``.
+    label_group = "|".join(SECTION_BOUNDARY_PATTERNS)
+    text = re.sub(rf"(?<=[A-Za-zÀ-ÿøØåÅäÄöÖ0-9).])(?=(?:{label_group}))", "\n", text, flags=re.IGNORECASE)
+
+    # Label stuck to following prose: ``OverviewSee`` / ``What's included?Pick-up``.
+    text = re.sub(r"\b(Overview|What[’']?s included\?|What to expect\?|Not Included|Not included|Itinerary|Packages)(?=[A-ZÀ-ÖØ-Þ])", r"\1\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(Pick[-\s]*up\s*/\s*meeting\s*point|Meeting Point|Meeting point|Highlights?)(\s*:)(?=[A-ZÀ-ÖØ-Þ])", r"\1\2\n", text, flags=re.IGNORECASE)
+
+    # Inclusion/list item stuck to previous item: ``guideVisit to...``.
+    item_group = "|".join(re.escape(item) for item in RUN_ON_ITEM_STARTS)
+    text = re.sub(rf"(?<=[a-zøåäöéèüñ),])(?=(?:{item_group})(?:\b|\s))", "\n", text)
+
+    # Common no-space sentence/item joins from supplier exports.
+    text = re.sub(r"(?<=[.!?])(?=[A-ZÀ-ÖØ-Þ])", " ", text)
+    text = re.sub(r"\b([A-Za-zÀ-ÿøØåÅäÄöÖ]+)(What[’']?s included|What to expect|Overview)\b", r"\1\n\2", text, flags=re.IGNORECASE)
+    return text
 
 SUSPICIOUS_FRAGMENTS = [
     "brekafast",
@@ -107,7 +211,7 @@ SUSPICIOUS_FRAGMENTS = [
 def fix_common_text(value):
     """Silently fixes small recurring spelling/capitalization issues in pasted itineraries."""
 
-    text = str(value or "")
+    text = repair_supplier_section_boundaries(str(value or ""))
 
     for pattern, replacement in COMMON_TEXT_REPLACEMENTS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)

@@ -11,6 +11,34 @@ from itinerary_generation.transport_safety import (
 )
 
 
+def _explicit_transport_route_from_text(text: str):
+    place = r"[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?"
+    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Gudvangen|Voss|Flåm|Flam|Myrdal)"
+    patterns = [
+        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*:?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|,|$)",
+        rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s+(?:\d+\s*(?:hr|hrs|hour|hours)\s+)?(?:cruise|ferry|train|flight|coach|bus)\b",
+        rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s*\|",
+        rf"\b(?:train|flight|coach|bus|cruise|ferry)\s+(?P<origin>{known_places})\s+(?P<destination>{known_places})\b",
+        rf"\b(?P<origin>{known_places})\s+to\s+(?P<destination>{known_places})\s+(?:train|flight|coach|bus|cruise|ferry)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, str(text or ""), flags=re.IGNORECASE)
+        if not match:
+            continue
+        raw_origin = match.group("origin").strip(" -:|.,")
+        raw_origin = re.sub(
+            r"^(?:long[-\s]*distance\s+comfortable\s+panorama\s+coach\s+transfer|long[-\s]*distance\s+panorama\s+coach\s+transfer|panoramic\s+coach\s+transfer|panorama\s+coach\s+transfer|coach\s+transfer|bus\s+transfer|transfer)\s+from\s+",
+            "",
+            raw_origin,
+            flags=re.IGNORECASE,
+        ).strip(" -:|.,")
+        origin = normalize_place_name(raw_origin)
+        destination = normalize_place_name(match.group("destination").strip(" -:|.,"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+    return "", ""
+
+
 def _explicit_airport_from_text(text, fallback_city=""):
     source = text or ""
     directional = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", source, flags=re.IGNORECASE)
@@ -45,6 +73,15 @@ def standardize_private_transfer_title(title, details, city):
 
     if "airport to hotel" in lower or "airport to accommodation" in lower:
         return f"Private transfer from {airport} to your accommodation"
+
+    if "hotel to cruise terminal" in lower or "hotel to terminal" in lower:
+        return "Private transfer from your hotel to the cruise terminal"
+
+    if "cruise terminal to hotel" in lower or "terminal to hotel" in lower or "terminal to accommodation" in lower:
+        return "Private transfer from the cruise terminal to your accommodation"
+
+    if "terminal to airport" in lower:
+        return "Private transfer from the terminal to the airport"
 
     if "bus station" in lower or "bustation" in lower:
         if "hotel to" in lower or "to bus" in lower:
@@ -121,7 +158,13 @@ def create_clean_transport_title(row):
     details = fix_common_text(row.get("details", ""))
     text = f"{title} {details}"
     lower = text.lower()
-    origin, destination = extract_route_points(details)
+    origin, destination = _explicit_transport_route_from_text(details)
+    if not destination:
+        origin, destination = _explicit_transport_route_from_text(title)
+    if not destination:
+        origin, destination = _explicit_transport_route_from_text(text)
+    if not destination:
+        origin, destination = extract_route_points(details)
     if not destination:
         origin, destination = extract_route_points(title)
     if not destination:

@@ -64,8 +64,16 @@ def create_client_activity_title(row):
         title = sanitized_title
 
     supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
-    if supplier_heading and (title.lower().startswith("guided experience") or is_bad_raw_day_title(title)):
-        title = supplier_heading
+    if supplier_heading and not is_bad_raw_day_title(supplier_heading):
+        source_for_heading = f"{row.get('original_title', '')} {details}".lstrip()
+        # A supplier ``Day X: ...`` heading inside a multi-day group tour is
+        # the product identity for that programme day.  Preserve it before
+        # keyword fallbacks can collapse the day into a generic item such as
+        # "Whale Watching" or "Blue Lagoon Admission".
+        if re.match(r"^\s*Day\s+\d+\s*[:\-–]", source_for_heading, flags=re.IGNORECASE):
+            return supplier_heading
+        if title.lower().startswith("guided experience") or is_bad_raw_day_title(title):
+            title = supplier_heading
 
     if not title:
         for segment in re.split(r"\s*\|\s*|\s+-\s+", details):

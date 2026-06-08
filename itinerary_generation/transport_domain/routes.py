@@ -26,8 +26,45 @@ def _transport_source_text(row):
     return get_transport_source_text(row)
 
 
+
+
+def _explicit_transport_route_from_source(source_text: str) -> tuple[str, str]:
+    """Extract direction from compact supplier route titles before generic parsing.
+
+    Generic route parsing can mistake timing phrases such as ``to next day
+    arrival`` for a destination.  Route transport titles usually state the real
+    direction immediately after the mode: ``Overnight Cruise Stockholm to
+    Tallinn`` or ``Tallinn to Helsinki 2 Hr cruise``.
+    """
+
+    source = str(source_text or "")
+    place = r"[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?"
+    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Gudvangen|Voss|Flåm|Flam|Myrdal)"
+    patterns = [
+        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*:?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|,|$)",
+        rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s+(?:\d+\s*(?:hr|hrs|hour|hours)\s+)?(?:cruise|ferry|train|flight|coach|bus)\b",
+        rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s*\|",
+        rf"\b(?:train|flight|coach|bus|cruise|ferry)\s+(?P<origin>{known_places})\s+(?P<destination>{known_places})\b",
+        rf"\b(?P<origin>{known_places})\s+to\s+(?P<destination>{known_places})\s+(?:train|flight|coach|bus|cruise|ferry)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, source, flags=re.IGNORECASE)
+        if not match:
+            continue
+        origin = _clean_route_place(match.group("origin"))
+        destination = _clean_route_place(match.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+    return "", ""
+
 def _clean_route_place(value):
     raw = str(value or "").strip(" -:|.,")
+    raw = re.sub(
+        r"^(?:long[-\s]*distance\s+comfortable\s+panorama\s+coach\s+transfer|long[-\s]*distance\s+panorama\s+coach\s+transfer|panoramic\s+coach\s+transfer|panorama\s+coach\s+transfer|coach\s+transfer|bus\s+transfer|transfer)\s+from\s+",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    ).strip(" -:|.,")
     raw = re.sub(r"^(?:from|to)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     raw = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", raw, flags=re.IGNORECASE)
@@ -60,6 +97,9 @@ def _clean_route_place(value):
         "accommodation",
         "your accommodation",
         "your hotel",
+        "next day",
+        "arrival next day",
+        "arrives next day",
     }
     if lower in invalid_places:
         return ""
@@ -71,6 +111,28 @@ def _clean_route_place(value):
     return place
 
 
+
+def _scheduled_route_points_from_source(source_text: str) -> tuple[str, str]:
+    """Extract first departure place and final arrival place from timetable prose."""
+
+    source = str(source_text or "")
+    departures = re.findall(
+        r"\bdeparture\s+from\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*:",
+        source,
+        flags=re.IGNORECASE,
+    )
+    arrivals = re.findall(
+        r"\barrival\s+in\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*:",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if departures and arrivals:
+        origin = _clean_route_place(departures[0])
+        destination = _clean_route_place(arrivals[-1])
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+    return "", ""
+
 def get_route_points_for_transport(row):
     """Return normalized (origin, destination) for a transport row.
 
@@ -79,6 +141,15 @@ def get_route_points_for_transport(row):
     any of those locations.
     """
     source_text = _transport_source_text(row)
+
+    scheduled_origin, scheduled_destination = _scheduled_route_points_from_source(source_text)
+    if scheduled_destination:
+        return scheduled_origin, scheduled_destination
+
+    for key in ["details", "original_title", "raw", "title"]:
+        explicit_origin, explicit_destination = _explicit_transport_route_from_source(str(row.get(key, "") or ""))
+        if explicit_destination:
+            return explicit_origin, explicit_destination
 
     explicit_from_to_match = re.search(
         r"\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+-\s+|\s+\|\s+|$)",
@@ -148,9 +219,28 @@ def get_route_points_for_transport(row):
     return "", _clean_route_place(row.get("city", ""))
 
 
+
+def _scheduled_via_points_from_source(source_text: str, origin: str = "", destination: str = "") -> list[str]:
+    """Return intermediate arrival places from timetable prose."""
+
+    source = str(source_text or "")
+    arrivals = re.findall(
+        r"\barrival\s+in\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*:",
+        source,
+        flags=re.IGNORECASE,
+    )
+    points: list[str] = []
+    for raw in arrivals[:-1]:
+        candidate = _clean_route_place(raw)
+        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
+            points.append(candidate)
+    return points[:2]
+
 def get_route_via_points(row, origin="", destination=""):
     text = polish_client_text(_transport_source_text(row))
-    points = []
+    points = _scheduled_via_points_from_source(text, origin, destination)
+    if points:
+        return points
 
     for via_match in re.finditer(r"\bvia\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\||,|$)", text, flags=re.IGNORECASE):
         candidate = _clean_route_place(via_match.group(1))
