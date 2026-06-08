@@ -13,6 +13,7 @@ from itinerary_generation.tallinn import (
     is_tallinn_ferry_framework,
     tallinn_departure_meta,
     tallinn_ferry_title,
+    tallinn_ferry_description,
 )
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, strip_price_fragments
 from itinerary_generation.activity_inclusions import clean_activity_inclusion_items, get_fallback_activity_inclusions, prioritize_inline_inclusions
@@ -79,10 +80,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     description_row = dict(row)
     description_row["display_title"] = title
     if is_tallinn_ferry:
-        description = (
-            "Travel between Helsinki and Tallinn by ferry, with the crossings and any Helsinki port transfers kept as logistics "
-            "so your time in Tallinn can focus on the historic Old Town. Guided sightseeing is shown separately when included."
-        )
+        description = tallinn_ferry_description(row)
     else:
         description = client_activity_description(description_row, get_activity_description(row))
 

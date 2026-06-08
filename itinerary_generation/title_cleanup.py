@@ -37,6 +37,7 @@ TYPO_FIXES = [
     (r"\bSupeerior\b", "Superior"),
     (r"\bTallin\b", "Tallinn"),
     (r"\bhellsinki\b", "Helsinki"),
+    (r"\bhlesinkih?\b", "Helsinki"),
     (r"\bROvaniemi\b", "Rovaniemi"),
     (r"\bKriuna\b", "Kiruna"),
     (r"\bExcurssion\b", "Excursion"),

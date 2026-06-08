@@ -70,6 +70,43 @@ def is_tallinn_old_town_guided_tour(row: dict | None = None, *values: object) ->
     return not has_tallinn_crossing_markers(text)
 
 
+def tallinn_guidance_mode(row: dict | None = None, *values: object) -> str:
+    """Return whether the Tallinn shore time is guided, self-guided or unclear.
+
+    The ferry row can contain both logistics and Old Town wording. Self-guided
+    language must win over the word "guided" because supplier rows often say
+    "self guided tour".
+    """
+
+    text = tallinn_text(row, *values)
+    if not mentions_tallinn(text):
+        return "neutral"
+    if re.search(r"\b(?:self[-\s]?guided|on\s+own|own\s+pace|free\s+time|leisure\s+time|explore\s+independently|explore\s+on\s+your\s+own)\b", text):
+        return "self_guided"
+    if re.search(r"\b(?:guided\s+(?:old\s+town\s+)?(?:walking\s+)?tour|old\s+town\s+guided|english[-\s]?speaking\s+guide|professional\s+guide)\b", text):
+        return "guided"
+    return "neutral"
+
+
+def tallinn_ferry_description(row: dict | None = None) -> str:
+    """Return client-safe ferry description without implying a guide."""
+
+    mode = tallinn_guidance_mode(row)
+    if mode == "self_guided":
+        return (
+            "Travel between Helsinki and Tallinn by ferry, with the crossings arranged so your time in Tallinn "
+            "can focus on exploring the historic Old Town at your own pace."
+        )
+    if mode == "guided":
+        return (
+            "Travel between Helsinki and Tallinn by ferry, with time in Tallinn set aside for your guided Old Town experience."
+        )
+    return (
+        "Travel between Helsinki and Tallinn by ferry, with the crossings arranged so your time in Tallinn "
+        "can focus on the historic Old Town before returning to Helsinki."
+    )
+
+
 def tallinn_ferry_title(row: dict | None = None) -> str:
     text = tallinn_text(row)
     if "helsinki" in text:

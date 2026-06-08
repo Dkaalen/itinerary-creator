@@ -144,6 +144,7 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bFlyBus\b", "Flybus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
     text = re.sub(r"\bReykajvik\b|\bReykavik\b", "Reykjavík", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHlesinkih?\b|\bHellsinki\b", "Helsinki", text, flags=re.IGNORECASE)
 
     # Keep client-facing wording grounded. Supplier labels sometimes use
     # expensive-sounding adjectives for standard room categories, coaches or

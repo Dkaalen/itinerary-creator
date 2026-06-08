@@ -138,7 +138,8 @@ Day 1	Activity		01/06/2026		13:00	2 hours			Tallinn	Old Town Guided Tour
 
     assert "Old Town" in text
     assert "ferry crossings" in text or "ferry" in text
-    assert "Guided sightseeing is shown separately" in text
+    assert "Guided sightseeing is shown separately" not in text
+    assert "historic Old Town before returning to Helsinki" in text
     assert "Today combines complementary experiences in Helsinki" not in day.intro
 
 
