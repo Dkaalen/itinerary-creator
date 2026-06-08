@@ -9,6 +9,7 @@ from text_polish import polish_title, strip_price_fragments
 from itinerary_generation.content_text import clean_inline
 from itinerary_generation.title_safety import is_forbidden_client_title, strip_supplier_title_cta
 from itinerary_generation.product_rules import find_product_match
+from itinerary_generation.title_routes import _extract_supplier_day_heading
 
 
 RAW_SUPPLIER_MARKERS = [
@@ -149,6 +150,11 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
 
     if re.search(r"\boptional\s+upgrades?\b", full, flags=re.IGNORECASE):
         return "Optional Upgrades"
+
+    for heading_source in (row.get("original_title"), row.get("details")):
+        supplier_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_heading and text.strip().lower() == supplier_heading.lower():
+            return polish_title(text)
 
     product_match = find_product_match(row, text)
     if product_match and product_match.title:

@@ -8,8 +8,8 @@ large rewrite.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from typing import Literal
+from dataclasses import asdict, dataclass, field
+from typing import Any, Literal
 
 DocumentItemKind = Literal[
     "activity",
@@ -74,6 +74,7 @@ class DocumentItem:
     confidence: float = 1.0
     detail_lines: tuple[str, ...] = ()
     warnings: tuple[ModelWarning, ...] = ()
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

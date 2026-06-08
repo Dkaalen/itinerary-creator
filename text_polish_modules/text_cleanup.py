@@ -143,8 +143,20 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bFLybus\b", "Flybus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bFlyBus\b", "Flybus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bReykajvik\b|\bReykavik\b", "Reykjavík", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHlesinkih?\b|\bHellsinki\b", "Helsinki", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bReykajvik\b|\bReykavik\b|\bReykjavik\b", "Reykjavík", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHlesinkih?\b|\bHellsinki\b|\bHelisnki\b", "Helsinki", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bNUtsheel\b|\bNutsheel\b|\bNuthsell\b|\bNUtshell\b", "Nutshell", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bTallin\b", "Tallinn", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bTromso\b", "Tromsø", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bAlesund\b", "Ålesund", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bFlam\b|\bFLam\b", "Flåm", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bKakslauttenen\b", "Kakslauttanen", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bSaariselka\b", "Saariselkä", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bProfesional\b", "Professional", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bEngish\b", "English", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bticktes\b", "tickets", text, flags=re.IGNORECASE)
+    text = re.sub(r"\btickert\b", "ticket", text, flags=re.IGNORECASE)
+    text = re.sub(r"\badditonal\b", "additional", text, flags=re.IGNORECASE)
 
     # Keep client-facing wording grounded. Supplier labels sometimes use
     # expensive-sounding adjectives for standard room categories, coaches or

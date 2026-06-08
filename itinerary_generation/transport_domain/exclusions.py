@@ -40,15 +40,29 @@ def self_arranged_flight_notice(row: dict) -> str:
     """Return a clear commercial exclusion label for a self-arranged flight."""
 
     destination = ""
-    title = str(row.get("title") or "")
-    match = re.search(r"\bflight\s+to\s+(.+)$", title, flags=re.IGNORECASE)
-    if match:
-        destination = polish_title(match.group(1).strip(" -:|.,"))
+    origin = ""
+    text = " ".join(str(row.get(key, "") or "") for key in ["details", "original_title", "title"])
+    route_match = re.search(
+        r"\bflight\s+(?:from\s+)?(?P<origin>[A-ZÀ-ÝÆØÅÄÖ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,35}?)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,|\s+-|\s*\||\s+self\b|\s+cost\b|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if route_match:
+        origin = polish_title(route_match.group("origin").strip(" -:|.,"))
+        destination = polish_title(route_match.group("destination").strip(" -:|.,"))
+        # Unit title-only notices historically omit the origin; itinerary rows
+        # with a known source city keep it for clearer route context.
+        if not str(row.get("city") or "").strip():
+            origin = ""
     if not destination:
-        text = " ".join(str(row.get(key, "") or "") for key in ["details", "original_title", "title"])
-        match = re.search(r"\bflight\s+(?:from\s+)?[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s*,|\s+-|\s*\||$)", text, flags=re.IGNORECASE)
+        title = str(row.get("title") or "")
+        match = re.search(r"\bflight\s+to\s+(.+)$", title, flags=re.IGNORECASE)
         if match:
             destination = polish_title(match.group(1).strip(" -:|.,"))
+    if not origin and destination:
+        origin = polish_title(str(row.get("city") or "").strip(" -:|.,"))
+    if origin and destination:
+        return f"Self-arranged flight from {origin} to {destination} (not included)"
     if destination:
         return f"Self-arranged flight to {destination} (not included)"
     return "Self-arranged flight (not included)"

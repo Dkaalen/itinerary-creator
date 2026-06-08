@@ -14,6 +14,7 @@ from typing import Iterable, Literal
 
 from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 from itinerary_generation.title_routes import _looks_like_norway_in_a_nutshell, _route_label_from_activity_text
+from itinerary_generation.activity_products import fingerprint_activity
 
 ProductConfidence = Literal["strong", "weak"]
 
@@ -222,6 +223,17 @@ def find_product_match(row: dict | None = None, *values: object) -> ProductRuleM
         return _match("tallinn_old_town_guided_tour")
     if row and is_tallinn_ferry_framework(row, *values):
         return _match("tallinn_ferry_framework")
+
+    product = fingerprint_activity(row, *values)
+    if product and product.display_title:
+        return ProductRuleMatch(
+            rule_id=product.canonical_family,
+            title=product.display_title,
+            confidence=product.confidence,
+            description=product_description(product.canonical_family, confidence=product.confidence),
+            warning_code="ambiguous_activity_title" if product.confidence == "weak" else "",
+            warning_message="Activity product was inferred from weak source evidence; confirm the exact product name before final output." if product.confidence == "weak" else "",
+        )
 
     if _looks_like_norway_in_a_nutshell(lower):
         return _match("norway_in_a_nutshell", title=_route_label_from_activity_text(product_context(row, *values)))

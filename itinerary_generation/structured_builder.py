@@ -280,6 +280,10 @@ def _document_item(row: dict, fallback_index: int) -> DocumentItem:
         confidence=confidence,
         detail_lines=_detail_lines(row),
         warnings=warnings,
+        metadata={
+            "activity_product": row.get("activity_product") or {},
+            "route_legs": row.get("route_legs") or [],
+        } if row.get("activity_product") or row.get("route_legs") else {},
     )
 
 

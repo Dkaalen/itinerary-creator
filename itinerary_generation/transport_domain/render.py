@@ -116,10 +116,17 @@ def get_travel_sequence_line(row):
         return clean_client_title(row.get("title", ""), row)
 
     if row_type in TRANSPORT_TYPES:
+        product = row.get("activity_product") if isinstance(row.get("activity_product"), dict) else {}
+        title = polish_title(row.get("title", ""))
+        if product.get("canonical_family") == "norway_in_a_nutshell" and title.lower().startswith("norway in a nutshell"):
+            original_title = str(row.get("original_title") or "")
+            city_names = r"Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal"
+            if title.lower().startswith("norway in a nutshell to") and re.match(rf"^\s*(?:{city_names})\s+to\s+(?:{city_names})\s*:", original_title, flags=re.IGNORECASE):
+                return title
         phrase = get_transport_route_phrase(row)
         if phrase:
             return _destination_focused_coach_day_line(row, phrase)
-        return polish_title(row.get("title", ""))
+        return title
 
     return polish_title(row.get("title", ""))
 

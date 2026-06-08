@@ -7,6 +7,7 @@ from text_polish import polish_title
 from itinerary_generation.title_cleanup import clean_client_title
 from normalizer_modules.text_utils import text_blob, _lower_key
 from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
+from itinerary_generation.activity_products import fingerprint_activity
 
 def _is_group_tour_overview(row: dict) -> bool:
     text = text_blob(row).lower()
@@ -127,12 +128,24 @@ def normalize_activity_title(row: dict) -> str:
     lower = source.lower()
     city = canonicalize_place_name(row.get("city", ""))
 
-    supplier_day_heading = _extract_supplier_day_heading(row.get("original_title") or row.get("details") or source)
+    supplier_day_heading = ""
+    for heading_source in (row.get("original_title"), row.get("details"), source):
+        supplier_day_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_day_heading:
+            break
     if supplier_day_heading:
         return supplier_day_heading
 
     if looks_like_departure_text(source):
         return f"Departure from {city}" if city else "Departure"
+
+    product = fingerprint_activity(row)
+    if product and product.display_title:
+        row["activity_product"] = product.as_row_metadata
+        if product.route_legs:
+            row["route_legs"] = [dict(leg) for leg in product.route_legs]
+        return product.display_title
+
     if ("aurora" in lower or "northern light" in lower) and "reindeer" in lower and ("hunt" in lower or "hunting" in lower or "chase" in lower):
         return "Northern Lights Hunt by Reindeer"
     if "tallin" in lower or "tallinn" in lower:

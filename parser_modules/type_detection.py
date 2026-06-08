@@ -97,11 +97,17 @@ def is_optional_addon_header(value):
 def is_explicit_optional_text(value):
     """Return True when a row itself clearly declares optional status."""
     text = _normalized_optional_text(value)
-    return text.startswith((
+    optional_prefixes = (
         "optional",
         "optinal",
         "optional/recommended",
         "optional recommended",
         "optional recommeded",
         "available as optional",
-    ))
+        "addon optional",
+        "add on optional",
+        "add on activity optional",
+    )
+    if text.startswith(optional_prefixes):
+        return True
+    return bool(re.match(r"^(?:addon|add on)\s+optional\s+(?:activity\s+)?(?:at\s+addi?t?ional\s+cost|on\s+request)\b", text))

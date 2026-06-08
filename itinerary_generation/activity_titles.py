@@ -14,6 +14,7 @@ from itinerary_generation.title_routes import (
 )
 from itinerary_generation.title_safety import BAD_TITLE_PATTERNS, is_forbidden_client_title
 from itinerary_generation.product_rules import find_product_match
+from itinerary_generation.activity_products import fingerprint_activity
 from text_polish import polish_title, strip_price_fragments
 
 def is_bad_raw_day_title(title: str) -> bool:
@@ -34,6 +35,10 @@ def normalize_client_day_title(title: str, row: dict | None = None) -> str:
     raw supplier/admin wording cannot re-enter the PDF from a different layer.
     """
     row = row or {}
+    for heading_source in (row.get("original_title"), row.get("details")):
+        supplier_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_heading and str(title or "").strip().lower() == supplier_heading.lower():
+            return supplier_heading
     text = cleaned_generic_activity_title(title or "", row)
     full = f"{text} {row.get('title', '')} {row.get('original_title', '')} {row.get('details', '')}".lower()
 
@@ -56,6 +61,11 @@ def create_client_activity_title(row):
     original_title = clean_client_title(strip_price_fragments(row.get("original_title", "") or title))
     details = str(row.get("details", "") or "")
 
+    for heading_source in (row.get("original_title"), details):
+        supplier_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_heading and not is_bad_raw_day_title(supplier_heading) and re.match(r"^\s*Day\s+\d+\s*[:\-–]", str(heading_source or ""), flags=re.IGNORECASE):
+            return supplier_heading
+
     # First pass through the central title sanitizer. If it can identify a
     # high-confidence client-facing title (museum, leisure, raw ticket/admin
     # title, etc.), use it before older product-specific fallbacks.
@@ -63,14 +73,19 @@ def create_client_activity_title(row):
     if sanitized_title and not is_bad_raw_day_title(sanitized_title):
         title = sanitized_title
 
-    supplier_heading = _extract_supplier_day_heading(row.get("original_title") or details)
+    supplier_heading = ""
+    supplier_heading_source = ""
+    for heading_source in (row.get("original_title"), details):
+        supplier_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_heading:
+            supplier_heading_source = str(heading_source or "")
+            break
     if supplier_heading and not is_bad_raw_day_title(supplier_heading):
-        source_for_heading = f"{row.get('original_title', '')} {details}".lstrip()
         # A supplier ``Day X: ...`` heading inside a multi-day group tour is
-        # the product identity for that programme day.  Preserve it before
+        # the product identity for that programme day. Preserve it before
         # keyword fallbacks can collapse the day into a generic item such as
         # "Whale Watching" or "Blue Lagoon Admission".
-        if re.match(r"^\s*Day\s+\d+\s*[:\-–]", source_for_heading, flags=re.IGNORECASE):
+        if re.match(r"^\s*Day\s+\d+\s*[:\-–]", supplier_heading_source, flags=re.IGNORECASE):
             return supplier_heading
         if title.lower().startswith("guided experience") or is_bad_raw_day_title(title):
             title = supplier_heading
@@ -88,6 +103,13 @@ def create_client_activity_title(row):
     title_text = str(title or original_title or "").lower()
     original_title_text = str(original_title or "").lower()
     full_text = f"{title_text} {original_title_text} {details}".lower()
+
+    product = fingerprint_activity(row, title, original_title, details)
+    if product and product.display_title:
+        row["activity_product"] = product.as_row_metadata
+        if product.route_legs:
+            row["route_legs"] = [dict(leg) for leg in product.route_legs]
+        return product.display_title
 
     product_match = find_product_match(row, title, original_title, details)
     if product_match and product_match.title:
