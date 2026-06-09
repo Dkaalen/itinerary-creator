@@ -37,6 +37,18 @@ Day 2	Activity	02/06/2026									Bergen: Fløibanen Funicual - Time: Flexible -
     assert "Guided experience" not in " ".join(row["title"] for row in rows)
 
 
+def test_bergen_city_drive_highlight_mentions_do_not_override_supplier_title():
+    raw = """
+Day 1	Activity	01/06/2026		Bergen: Private Bergen City Drive - Time: 09:00 am - 12:00 pm - Meeting point: Hotel pick up - Includes: All transport modes, including fuel and tolls - Highlights: Bergen historical core, Mt Fløyen roads, waterfall
+"""
+    rows = _rows(raw)
+
+    assert rows[0]["title"] == "Private Bergen City Drive"
+    assert rows[0]["activity_product"]["canonical_family"] == "bergen_city_drive"
+    assert rows[0]["activity_product"]["product_type"] == "private_drive"
+    assert rows[0]["activity_product"]["display_title"] == "Private Bergen City Drive"
+
+
 def test_norway_in_a_nutshell_typos_keep_clean_route_and_structured_legs():
     raw = """
 Day 1	Activity	01/06/2026								Oslo	Oslo to Bergen | Norway in a NUtsheel 08:25 - 20:40 | Including Luggage porter service

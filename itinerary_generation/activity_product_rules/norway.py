@@ -73,6 +73,42 @@ def _is_bergen_guided_flam_day_tour(source_lower: str) -> bool:
     return has_bergen_origin and has_flam_product and has_guided_day_tour and has_route_components and has_roundtrip_legs
 
 
+def _is_explicit_bergen_city_drive(source_lower: str, source_title: str) -> bool:
+    """True when the supplier title/product identity is a Bergen city drive.
+
+    City-drive rows can mention Mt Fløyen or Fløibanen in highlights, but those
+    incidental landmark references must not outrank the explicit product title.
+    """
+
+    title_lower = source_title.lower()
+    return (
+        "bergen" in source_lower
+        and "city drive" in source_lower
+        and (
+            "city drive" in title_lower
+            or re.search(r"\bbergen\s*:\s*(?:private\s+)?city\s+drive\b", source_lower)
+            or re.search(r"\b(?:private\s+)?bergen\s+city\s+drive\b", source_lower)
+        )
+    )
+
+
+def _is_explicit_floibanen_product(source_lower: str, source_title: str) -> bool:
+    """True for dedicated Fløibanen/funicular products, not incidental highlights."""
+
+    title_lower = source_title.lower()
+    explicit_title = any(
+        marker in title_lower
+        for marker in ("fløibanen", "floibanen", "funicular", "funicual")
+    )
+    explicit_ticket_line = bool(
+        re.search(
+            r"\bbergen\s*(?::|round[-\s]?trip)?[^.\n|]{0,80}\b(?:fløibanen|floibanen|funicular|funicual)\b",
+            source_lower,
+        )
+    )
+    return explicit_title or explicit_ticket_line
+
+
 def match_norway_activity(
     row: dict[str, Any] | None,
     source: str,
@@ -124,7 +160,15 @@ def match_norway_activity(
             route_legs=legs,
         )
 
-    if "fløibanen" in source_lower or "floibanen" in source_lower or "funicular" in source_lower or "funicual" in source_lower:
+    if _is_explicit_bergen_city_drive(source_lower, source_title):
+        return match_product(
+            "bergen_city_drive",
+            "private_drive",
+            source_title if source_title else "Private Bergen City Drive",
+            source_title=source_title,
+        )
+
+    if _is_explicit_floibanen_product(source_lower, source_title):
         return match_product("floibanen_funicular", "ticket", "Fløibanen Funicular", source_title=source_title)
 
     if "must-see bergen" in source_lower and ("foot" in source_lower or "boat" in source_lower or "ferry" in source_lower):
@@ -141,9 +185,6 @@ def match_norway_activity(
 
     if "bergen" in source_lower and ("past & present" in source_lower or "past and present" in source_lower or "walk through bergen" in source_lower):
         return match_product("bergen_past_present_walk", "walking_tour", "Guided Walking Tour of Bergen Past & Present", source_title=source_title)
-
-    if "bergen" in source_lower and "city drive" in source_lower:
-        return match_product("bergen_city_drive", "private_drive", source_title if source_title else "Private Bergen City Drive", source_title=source_title)
 
     if "mostraumen" in source_lower:
         return match_product("mostraumen_fjord_cruise", "fjord_cruise", "Mostraumen Fjord Cruise", source_title=source_title)
