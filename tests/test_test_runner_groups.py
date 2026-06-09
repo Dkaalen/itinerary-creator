@@ -2,12 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts.run_test_group import _pytest_command, _pytest_env
+from scripts.run_test_group import (
+    RUNNER_GROUPS,
+    _extract_runner_flags,
+    _pytest_command,
+    _pytest_env,
+    _stages_for_group,
+)
 
 from scripts.test_groups import (
     GROUPS,
+    GROUP_ORDER,
     build_full_stages,
     build_slow_stages,
+    focused_group_names,
+    group_descriptions,
     empty_legacy_test_modules,
     missing_group_paths,
     pdf_module_names,
@@ -61,15 +70,63 @@ def test_marker_sets_stay_aligned_with_named_groups() -> None:
 
 
 def test_powershell_runners_delegate_to_shared_python_runner() -> None:
-    for script in (
-        "run_fast_tests.ps1",
-        "run_quality_tests.ps1",
-        "run_pdf_tests.ps1",
-        "run_full_tests.ps1",
-    ):
+    expected_scripts = {
+        "fast": "run_fast_tests.ps1",
+        "parser": "run_parser_tests.ps1",
+        "activity": "run_activity_tests.ps1",
+        "architecture": "run_architecture_tests.ps1",
+        "editor": "run_editor_tests.ps1",
+        "images": "run_image_tests.ps1",
+        "ui": "run_ui_tests.ps1",
+        "quality": "run_quality_tests.ps1",
+        "pdf": "run_pdf_tests.ps1",
+        "full": "run_full_tests.ps1",
+    }
+
+    for group, script in expected_scripts.items():
         text = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8")
         assert "run_test_group.py" in text
+        assert f"run_test_group.py {group}" in text
 
+
+def test_runner_accepts_every_documented_group() -> None:
+    assert RUNNER_GROUPS == (*GROUP_ORDER, "full")
+    assert set(group_descriptions()) == set(GROUPS)
+
+
+def test_focused_groups_exist_for_common_patch_areas() -> None:
+    assert focused_group_names() == (
+        "parser",
+        "activity",
+        "architecture",
+        "editor",
+        "images",
+        "ui",
+    )
+    for name in focused_group_names():
+        assert GROUPS[name]
+        assert name in group_descriptions()
+
+
+def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
+    fast_stages = _stages_for_group("fast")
+
+    assert len(fast_stages) > 1
+    assert all(name.startswith("fast") for name, _paths in fast_stages)
+    assert _stages_for_group("activity") == (("activity", GROUPS["activity"]),)
+    assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
+    assert _stages_for_group("slow") == build_slow_stages()
+
+
+
+def test_runner_plan_flags_do_not_leak_into_pytest_args() -> None:
+    assert _extract_runner_flags(["activity", "--plan"]) == (["activity"], False, True)
+    assert _extract_runner_flags(["--list-groups"]) == ([], True, False)
+    assert _extract_runner_flags(["activity", "--", "--plan"]) == (
+        ["activity", "--", "--plan"],
+        False,
+        False,
+    )
 
 def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     stages = build_slow_stages()

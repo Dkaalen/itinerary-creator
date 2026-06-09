@@ -12,6 +12,7 @@ from pathlib import Path
 TEST_ROOT = "tests"
 EMPTY_LEGACY_TEST_MODULES = frozenset()
 REMAINING_STAGE_SIZE = 8
+TIERED_STAGE_SIZE = 4
 
 FAST_TESTS = (
     "tests/test_time_text_helpers.py",
@@ -46,6 +47,87 @@ FAST_TESTS = (
     "tests/test_structured_html_source_identity.py",
     "tests/test_output_layout_contract.py",
     "tests/test_image_match_audit.py",
+)
+
+PARSER_TESTS = (
+    "tests/test_time_text_helpers.py",
+    "tests/test_date_formatting.py",
+    "tests/test_date_resolver.py",
+    "tests/test_regressions_parser_normalizer.py",
+    "tests/test_normalizer_context_architecture.py",
+    "tests/test_patch_bf_parser_extractor_architecture.py",
+    "tests/test_train_details.py",
+    "tests/test_commercial_status_helpers.py",
+    "tests/test_content_validator_scoping.py",
+)
+
+ACTIVITY_TESTS = (
+    "tests/test_activity_compound_stress_fixtures.py",
+    "tests/test_activity_cruise_classification.py",
+    "tests/test_compound_experience_transport_timing.py",
+    "tests/test_content_classification_priority.py",
+    "tests/test_product_rule_registry.py",
+    "tests/test_patch_bc_activity_training_catalogue.py",
+    "tests/test_patch_be_activity_product_architecture.py",
+    "tests/test_patch_bg_activity_catalogue_and_qa.py",
+    "tests/test_qg_c_source_fidelity.py",
+    "tests/test_qg_d_norway_source_fidelity.py",
+    "tests/test_qg_f_tallinn_excursion_wording.py",
+    "tests/test_qg_g_activity_product_fingerprints.py",
+    "tests/test_qg_h_activity_catalogue_hardening.py",
+    "tests/test_qg_i_warning_ui_and_icebreaker_fidelity.py",
+    "tests/test_title_safety_phase1.py",
+)
+
+ARCHITECTURE_TESTS = (
+    "tests/test_architecture_consolidation.py",
+    "tests/test_canonical_block_renderers.py",
+    "tests/test_canonical_boundary.py",
+    "tests/test_inclusion_exclusion_architecture.py",
+    "tests/test_normalizer_context_architecture.py",
+    "tests/test_output_layout_contract.py",
+    "tests/test_quality_gate_architecture.py",
+    "tests/test_render_document_source_of_truth.py",
+    "tests/test_structured_core_model.py",
+    "tests/test_structured_html_source_identity.py",
+    "tests/test_transport_model_architecture.py",
+    "tests/test_wrapper_exports.py",
+    "tests/test_test_runner_groups.py",
+)
+
+EDITOR_TESTS = (
+    "tests/test_patch_al_editor_preview_ownership.py",
+    "tests/test_patch_n_editor_image_safety.py",
+    "tests/test_patch_o_editor_section_safety.py",
+    "tests/test_qg_m_persistent_draft_autosave.py",
+    "tests/test_structured_html_source_identity.py",
+    "tests/test_visual_editor_autosave_contract.py",
+    "tests/test_visual_editor_frontend_assets.py",
+    "tests/test_visual_editor_typed_draft.py",
+)
+
+IMAGE_TESTS = (
+    "tests/test_app_image_bank_paths.py",
+    "tests/test_image_match_audit.py",
+    "tests/test_image_matcher_selection.py",
+    "tests/test_patch_an_add_pictures_workflow.py",
+    "tests/test_patch_ap_output_quality_and_images.py",
+    "tests/test_patch_ar_image_bank_enforcement.py",
+    "tests/test_patch_au_remote_image_bank_connector.py",
+    "tests/test_patch_aw_client_sanitizer_default_images.py",
+    "tests/test_qg_k_picture_destination_accommodation.py",
+)
+
+UI_TESTS = (
+    "tests/test_legacy_ui_cleanup.py",
+    "tests/test_regressions_ui_boundaries.py",
+    "tests/test_ui_document_flow.py",
+    "tests/test_ui_export_readiness.py",
+    "tests/test_ui_image_bank_gateway.py",
+    "tests/test_ui_pdf_download_persistence.py",
+    "tests/test_ui_style_contrast.py",
+    "tests/test_ui_workflow_shell.py",
+    "tests/test_ui_workflow_state_actions.py",
 )
 
 QUALITY_TESTS = (
@@ -96,9 +178,30 @@ SLOW_TESTS = (
 
 GROUPS = {
     "fast": FAST_TESTS,
+    "parser": PARSER_TESTS,
+    "activity": ACTIVITY_TESTS,
+    "architecture": ARCHITECTURE_TESTS,
+    "editor": EDITOR_TESTS,
+    "images": IMAGE_TESTS,
+    "ui": UI_TESTS,
     "quality": QUALITY_TESTS,
     "pdf": PDF_TESTS,
     "slow": SLOW_TESTS,
+}
+
+GROUP_ORDER = tuple(GROUPS)
+
+GROUP_DESCRIPTIONS = {
+    "fast": "small everyday safety gate for most patches",
+    "parser": "text cleanup, date/time, extractor, and normalizer regressions",
+    "activity": "activity product rules, catalogue matching, source fidelity, and QA warnings",
+    "architecture": "structured model boundaries, render ownership, and test-runner infrastructure",
+    "editor": "typed draft ownership, autosave, visual editor, and editor/PDF state safety",
+    "images": "image-bank paths, matching, auditing, destination pictures, and image QA",
+    "ui": "Streamlit workflow shell, export readiness, image gateway, and UI boundary tests",
+    "quality": "medium itinerary quality and content/rendering regressions",
+    "pdf": "PDF export and preview/PDF parity checks",
+    "slow": "isolated large-fixture and PDF-heavy stability checks",
 }
 
 SLOW_TEST_SPLITS = {
@@ -146,6 +249,28 @@ def missing_group_paths(repo_root: Path) -> tuple[str, ...]:
     return tuple(path for path in configured if not (repo_root / path).exists())
 
 
+
+def chunked_group_stages(
+    stage_prefix: str,
+    paths: tuple[str, ...],
+    stage_size: int = TIERED_STAGE_SIZE,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Split larger named lanes into readable, timeout-friendly stages."""
+
+    if not paths:
+        return ()
+
+    chunks = tuple(
+        paths[index : index + stage_size]
+        for index in range(0, len(paths), stage_size)
+    )
+    if len(chunks) == 1:
+        return ((stage_prefix, chunks[0]),)
+    return tuple(
+        (f"{stage_prefix} {index}/{len(chunks)}", chunk)
+        for index, chunk in enumerate(chunks, start=1)
+    )
+
 def remaining_test_paths(
     repo_root: Path,
     already_covered: set[str] | None = None,
@@ -173,9 +298,9 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
         ("quality", QUALITY_TESTS),
     ):
         stage_paths = tuple(path for path in paths if _module_name(path) not in covered)
-        if stage_paths:
-            stages.append((name, stage_paths))
-            covered.update(_module_name(path) for path in stage_paths)
+        for stage_name, chunk in chunked_group_stages(name, stage_paths):
+            stages.append((stage_name, chunk))
+            covered.update(_module_name(path) for path in chunk)
 
     reserved_for_later = {
         _module_name(path)
@@ -233,6 +358,18 @@ def build_slow_stages(
         (f"slow {index}/{len(selected_targets)}: {_target_label(target)}", (target,))
         for index, target in enumerate(selected_targets, start=1)
     )
+
+
+def focused_group_names() -> tuple[str, ...]:
+    """Return non-tiered convenience lanes for targeted patch validation."""
+
+    return ("parser", "activity", "architecture", "editor", "images", "ui")
+
+
+def group_descriptions() -> dict[str, str]:
+    """Return human-readable descriptions for every named test lane."""
+
+    return dict(GROUP_DESCRIPTIONS)
 
 
 def pdf_module_names() -> set[str]:

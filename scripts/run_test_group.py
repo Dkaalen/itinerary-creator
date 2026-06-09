@@ -13,12 +13,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.test_groups import GROUPS, build_full_stages, build_slow_stages, missing_group_paths
+from scripts.test_groups import (
+    GROUPS,
+    GROUP_ORDER,
+    chunked_group_stages,
+    build_full_stages,
+    build_slow_stages,
+    group_descriptions,
+    missing_group_paths,
+)
 
 DEFAULT_PYTEST_FLAGS = ("-q", "--durations=10")
 DEFAULT_STAGE_TIMEOUT_SECONDS = int(
     os.environ.get("ITINERARY_TEST_STAGE_TIMEOUT_SECONDS", "300")
 )
+RUNNER_GROUPS = (*GROUP_ORDER, "full")
 
 
 def _split_extra_pytest_args(extra_args: list[str]) -> list[str]:
@@ -99,6 +108,35 @@ def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[
     return result.returncode
 
 
+def _stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    if group_name == "full":
+        return build_full_stages(REPO_ROOT)
+    if group_name == "slow":
+        return build_slow_stages()
+    if group_name in {"fast", "quality"}:
+        return chunked_group_stages(group_name, GROUPS[group_name])
+    return ((group_name, GROUPS[group_name]),)
+
+
+def _print_group_plan(group_name: str) -> None:
+    descriptions = group_descriptions()
+    stages = _stages_for_group(group_name)
+    print(f"{group_name}: {descriptions.get(group_name, 'progress-tracked full validation')}")
+    print(f"Stages: {len(stages)}")
+    for index, (stage_name, pytest_paths) in enumerate(stages, start=1):
+        print(f"  {index:02d}. {stage_name} ({len(pytest_paths)} target{'s' if len(pytest_paths) != 1 else ''})")
+        for path in pytest_paths:
+            print(f"      - {path}")
+
+
+def _print_available_groups() -> None:
+    descriptions = group_descriptions()
+    print("Available test groups:")
+    for name in RUNNER_GROUPS:
+        description = descriptions.get(name, "progress-tracked full validation")
+        print(f"  {name:12} {description}")
+
+
 def run_named_group(group_name: str, extra_args: list[str]) -> int:
     missing = missing_group_paths(REPO_ROOT)
     if missing:
@@ -110,12 +148,7 @@ def run_named_group(group_name: str, extra_args: list[str]) -> int:
     if group_name == "slow" and not extra_args:
         return _run_slow_harness()
 
-    if group_name == "full":
-        stages = build_full_stages(REPO_ROOT)
-    elif group_name == "slow":
-        stages = build_slow_stages()
-    else:
-        stages = ((group_name, GROUPS[group_name]),)
+    stages = _stages_for_group(group_name)
 
     if group_name == "full":
         print(f"Full suite plan: {len(stages)} progress-tracked stages", flush=True)
@@ -127,13 +160,34 @@ def run_named_group(group_name: str, extra_args: list[str]) -> int:
     return 0
 
 
+def _extract_runner_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
+    """Pull runner flags out before pytest passthrough args consume them."""
+
+    if "--" in argv:
+        separator_index = argv.index("--")
+        runner_side = argv[:separator_index]
+        pytest_side = argv[separator_index:]
+    else:
+        runner_side = argv
+        pytest_side = []
+
+    list_groups = "--list-groups" in runner_side
+    plan = "--plan" in runner_side
+    remaining = [arg for arg in runner_side if arg not in {"--list-groups", "--plan"}]
+    return [*remaining, *pytest_side], list_groups, plan
+
+
 def main(argv: list[str] | None = None) -> int:
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    runner_args, list_groups, plan = _extract_runner_flags(raw_args)
+
     parser = argparse.ArgumentParser(
         description="Run Itinerary App pytest groups with progress by suite bucket."
     )
     parser.add_argument(
         "group",
-        choices=("fast", "quality", "pdf", "slow", "full"),
+        nargs="?",
+        choices=RUNNER_GROUPS,
         help="Named test group to run.",
     )
     parser.add_argument(
@@ -141,7 +195,29 @@ def main(argv: list[str] | None = None) -> int:
         nargs=argparse.REMAINDER,
         help="Optional extra pytest args. Use -- before pytest flags, e.g. -- -k parser.",
     )
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--list-groups",
+        action="store_true",
+        help="Show available groups and exit without running pytest.",
+    )
+    parser.add_argument(
+        "--plan",
+        action="store_true",
+        help="Show the selected group's staged pytest plan without running it.",
+    )
+    args = parser.parse_args(runner_args)
+
+    if list_groups:
+        _print_available_groups()
+        return 0
+
+    if not args.group:
+        parser.error("the following arguments are required: group unless --list-groups is used")
+
+    if plan:
+        _print_group_plan(args.group)
+        return 0
+
     return run_named_group(args.group, _split_extra_pytest_args(args.pytest_args))
 
 

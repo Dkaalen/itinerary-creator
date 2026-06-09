@@ -1,8 +1,24 @@
 # Testing Workflow
 
-The app has a mixed test suite: very fast parser/unit tests, broader itinerary
-quality checks, and slower PDF/rendering checks.  Use the tiered commands below
-so small patches do not require a full slow-suite run every time.
+The app has a mixed test suite: very fast parser/unit tests, focused subsystem
+lanes, broader itinerary quality checks, and slower PDF/rendering checks. Use
+the tiered commands below so small patches do not require a raw full-suite run
+every time.
+
+## Inspect available groups
+
+To see the current validation lanes:
+
+```powershell
+python .\scripts\run_test_group.py --list-groups
+```
+
+To preview exactly what a group will run without executing pytest:
+
+```powershell
+python .\scripts\run_test_group.py full --plan
+python .\scripts\run_test_group.py activity --plan
+```
 
 ## Fast safety tests
 
@@ -13,8 +29,25 @@ Run after every code patch:
 ```
 
 This suite is intentionally small. It catches common breakage in parser helpers,
-date handling, render caching, and broad stress follow-ups without doing expensive
-PDF or large-fixture rendering.
+date handling, render caching, editor draft ownership, image audit contracts, and
+broad stress follow-ups without doing expensive PDF or large-fixture rendering.
+
+## Focused subsystem lanes
+
+Use these when a patch touches a specific architecture area:
+
+```powershell
+.\scripts\run_parser_tests.ps1
+.\scripts\run_activity_tests.ps1
+.\scripts\run_architecture_tests.ps1
+.\scripts\run_editor_tests.ps1
+.\scripts\run_image_tests.ps1
+.\scripts\run_ui_tests.ps1
+```
+
+These lanes are convenience validation gates. They may overlap with `fast` or
+`quality`; overlap is intentional because a focused patch should be able to run
+one clear command for the subsystem it changed.
 
 ## Medium quality tests
 
@@ -24,7 +57,9 @@ Run when you want broader confidence but do not need the full real-fixture suite
 .\scripts\run_quality_tests.ps1
 ```
 
-This is a curated parser/content/inclusions/transport set. It is broader than the fast suite but still avoids the longest real-fixture quality gates that can exceed hosted timeout limits.
+This is a curated parser/content/inclusions/transport set. It is broader than
+the fast suite but still avoids the longest real-fixture quality gates that can
+exceed hosted timeout limits.
 
 ## PDF/rendering tests
 
@@ -43,9 +78,13 @@ Run locally before important pushes or releases:
 .\scripts\run_full_tests.ps1
 ```
 
-The full suite can exceed short timeout limits in hosted patch-review
+The full runner does not simply call raw `pytest -q`. It builds progress-tracked
+stages, keeps slow/PDF-heavy targets near the end, and isolates known slow
+stability targets so failures are easier to locate.
+
+Raw full-suite pytest can exceed short timeout limits in hosted patch-review
 environments, so a timeout there does not automatically mean the app is broken.
-Use the fast and targeted scripts to isolate failures quickly.
+Use the fast and focused scripts to isolate failures quickly.
 
 ## Marker policy
 
@@ -55,5 +94,7 @@ Markers are assigned centrally in `tests/conftest.py` by test module name:
 - `pdf` for tests that render or inspect PDF output.
 - `quality` for broad real-fixture quality gates.
 
-When adding new test files, update `tests/conftest.py` if the file belongs to one
-of these categories.
+When adding new heavy test files, update `scripts/test_groups.py` and
+`tests/conftest.py` if the file belongs to one of these marker categories. For
+ordinary subsystem tests, add the file to the most relevant focused lane in
+`scripts/test_groups.py` so future patches can validate it with one command.
