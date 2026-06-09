@@ -21,6 +21,37 @@ def _clean_title(value: str) -> str:
     return title
 
 
+def _meaningful_travel_rows(rows: list[dict]) -> list[dict]:
+    return [
+        row
+        for row in rows
+        if get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transfer", "Transport"}
+        and not re.search(r"\b(?:hotel|accommodation)\s+to\s+(?:bus|coach|train|station|airport)|\bself\s+transfer\b", _text(row), flags=re.I)
+    ]
+
+
+def travel_sequence_title(rows: list[dict], city: str) -> str:
+    """Title a multi-leg travel day by the final destination, not first leg.
+
+    Example: Bergen -> Oslo by train, then self-arranged flight Oslo ->
+    Helsinki should be titled "Travel to Helsinki" because the overnight stay
+    is in Helsinki.
+    """
+
+    travel_rows = _meaningful_travel_rows(rows)
+    if len(travel_rows) < 2 or not city:
+        return ""
+    first_destination = _destination_from_transport([travel_rows[0]])
+    final_city = polish_title(city)
+    if first_destination and first_destination.lower() != final_city.lower():
+        return f"Travel to {final_city}"
+    if any(get_row_type(row) == "Flight" or "flight" in _text(row).lower() for row in travel_rows) and any(
+        get_row_type(row) == "Train" or "train" in _text(row).lower() for row in travel_rows
+    ):
+        return f"Travel to {final_city}"
+    return ""
+
+
 def _destination_from_transport(rows: list[dict]) -> str:
     for row in rows:
         if get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transfer", "Transport"}:

@@ -176,7 +176,10 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bPremium\s+bus\b", "Bus", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPremium\s+vehicle\b", "Vehicle", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPremium\s+transfer\b", "Transfer", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bPremium\s+(?=(?:Glass\s+)?Igloo\b)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+Double\s+Igloo\b", "__PREMIUM_DOUBLE_IGLOO__", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bPremium\s+Glass\s+Igloo\b", "__PREMIUM_GLASS_IGLOO__", text, flags=re.IGNORECASE)
+    # Preserve supplier room categories such as "Premium Double Igloo" and
+    # "Premium Glass Igloo". Premium can be part of the sold room type here.
     text = re.sub(r"\bPremium\s+(?=(?:waterfront|sea|fjord|mountain|view|standard|double|twin|single|suite|room)\b)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\bPremium\s+(?=(?:entry|admission|ticket|tickets)\b)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(?:hi[- ]?end|high[- ]end|upscale|luxurious|luxury|bespoke|vip)\s+coach\b", "Coach", text, flags=re.IGNORECASE)
@@ -193,6 +196,7 @@ def _polish_text_fragment(text: str) -> str:
         flags=re.IGNORECASE,
     )
     text = re.sub(r"\b(?:premium|luxurious|luxury|hi[- ]?end|high[- ]end|upscale|bespoke|vip)\s+(?=\w)", "", text, flags=re.IGNORECASE)
+    text = text.replace("__PREMIUM_DOUBLE_IGLOO__", "Premium Double Igloo").replace("__PREMIUM_GLASS_IGLOO__", "Premium Glass Igloo")
     if original_leading_sales_adjective or leading_sales_adjective:
         text = re.sub(r"^(\s*)([a-zà-ÿ])", lambda m: m.group(1) + m.group(2).upper(), text, count=1)
 

@@ -86,7 +86,7 @@ _TITLE_STOP_MARKERS = (
 )
 
 _TYPO_REPLACEMENTS: tuple[tuple[str, str], ...] = (
-    (r"\bNUtsheel\b|\bNutsheel\b|\bNuthsell\b|\bNUtshell\b", "Nutshell"),
+    (r"\bNUtsheel\b|\bNutsheel\b|\bNuthsell\b|\bnuthsell\b|\bNUtshell\b", "Nutshell"),
     (r"\bTallinnn\b|\bTallin\b", "Tallinn"),
     (r"\bHlesinkih?\b|\bHellsinki\b|\bHelisnki\b", "Helsinki"),
     (r"\bReyakjvik\b|\bReykajvik\b|\bReykavik\b|\bReykjavik\b", "Reykjavík"),
@@ -511,6 +511,15 @@ def fingerprint_activity(row: dict | None = None, *values: object) -> ActivityPr
 
     if "must-see bergen" in source_lower and ("foot" in source_lower or "boat" in source_lower or "ferry" in source_lower):
         return _match("bergen_foot_and_boat", "walking_boat_tour", "Bergen Walking & Boat Tour", source_title=source_title, variant_tags=("walking", "boat"))
+
+    if "stegastein" in source_lower and ("electric minibus" in source_lower or "electric bus" in source_lower or "viewpoint" in source_lower):
+        return _match(
+            "flam_stegastein_electric_minibus",
+            "sightseeing_activity",
+            "Electric Minibus to Stegastein Viewpoint",
+            source_title=source_title,
+            variant_tags=("electric_bus", "viewpoint", "flam"),
+        )
 
     if "bergen" in source_lower and ("past & present" in source_lower or "past and present" in source_lower or "walk through bergen" in source_lower):
         return _match("bergen_past_present_walk", "walking_tour", "Guided Walking Tour of Bergen Past & Present", source_title=source_title)

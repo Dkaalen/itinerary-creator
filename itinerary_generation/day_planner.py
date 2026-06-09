@@ -31,6 +31,7 @@ from itinerary_generation.day_title_planner import (
     _single_activity_title,
     _transport_title,
     _travel_activity_title,
+    travel_sequence_title,
 )
 from itinerary_generation.titles import create_day_title
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
@@ -111,6 +112,9 @@ def plan_day(rows: list[dict]) -> DayPlan:
         accommodation_title = _accommodation_led_title(rows, city)
         if accommodation_title:
             return DayPlan("stay_day", accommodation_title, _intro_for_title(accommodation_title, city, "stay_day"), suppress_free_time=True)
+        sequence_title = travel_sequence_title(rows, city)
+        if sequence_title:
+            return DayPlan("travel_day", sequence_title, _intro_for_title(sequence_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
         transfer_text = " ".join(_text(row).lower() for row in travel_rows)
         if "to your accommodation" in transfer_text or "to your hotel" in transfer_text:
             return DayPlan("arrival_day", f"Arrival in {city}" if city else "Arrival", "")
@@ -155,7 +159,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("single_activity_day", title, _intro_for_title(title, city, "single_activity_day"), skip_empty_activity_rows=True)
 
     if travel_rows:
-        title = _transport_title(rows)
+        title = travel_sequence_title(rows, city) or _transport_title(rows)
         if not title:
             dest = _destination_from_transport(rows) or city
             title = f"Travel to {dest}" if dest else "Travel day"

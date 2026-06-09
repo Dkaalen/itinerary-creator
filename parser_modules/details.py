@@ -280,6 +280,17 @@ def detect_effective_type(item_type, title, details):
     ):
         return "Activity"
 
+    # Stegastein electric minibus is a sightseeing activity from Flåm, not a
+    # route transfer, even though the supplier wording contains minibus/bus.
+    if normalized_item_type == "Activity" and "stegastein" in combined and any(marker in combined for marker in ["electric minibus", "electric bus", "viewpoint", "sightseeing tour"]):
+        return "Activity"
+
+    # Accommodation-relocation rows occasionally land in the Activity column.
+    # Treat explicit transfer-to-igloo/stay snippets as transfer logistics so
+    # the accommodation can lead the day title instead of becoming an activity.
+    if normalized_item_type == "Activity" and re.search(r"\btransfer\s+to\s+(?:glass\s+)?igloo\s+stay\b|\btransfer\s+to\s+[^.]{0,40}stay\b", combined, flags=re.IGNORECASE):
+        return "Transfer"
+
     # Attraction/ticket products can include shuttle/return-transfer logistics.
     # Keep the product as an activity unless the row is clearly a pure route.
     if normalized_item_type == "Activity" and any(

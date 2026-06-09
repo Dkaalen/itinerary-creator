@@ -34,7 +34,14 @@ def _hotel_nights_from_date_range(start_value: object, end_value: object) -> str
     return ""
 
 def _normalize_single_room_category(value: str, *, preserve_quantity: bool = False) -> str:
+    original_room = str(value or "")
     room = polish_client_text(value)
+    # Preserve named igloo room categories. General marketing cleanup removes
+    # "Premium" before igloo in descriptions, but in a room category it is a
+    # supplier room type and must stay visible.
+    if re.search(r"\bpremium\s+double\s+igloo\b", original_room, flags=re.IGNORECASE):
+        if not re.search(r"\bpremium\s+double\s+igloo\b", room, flags=re.IGNORECASE):
+            room = re.sub(r"\bdouble\s+igloo\b", "Premium Double Igloo", room, flags=re.IGNORECASE)
     # Room categories are source-product names. Do not let general client-text
     # rewriting turn supplier room types such as "Aurora Nest" into
     # "Northern Lights Nest".
@@ -105,7 +112,11 @@ def _room_fragment_candidates(value: str) -> list[str]:
 
 
 def normalize_room_category(value: str) -> str:
+    original_room = str(value or "")
     room = polish_client_text(value)
+    if re.search(r"\bpremium\s+double\s+igloo\b", original_room, flags=re.IGNORECASE):
+        if not re.search(r"\bpremium\s+double\s+igloo\b", room, flags=re.IGNORECASE):
+            room = re.sub(r"\bdouble\s+igloo\b", "Premium Double Igloo", room, flags=re.IGNORECASE)
     room = re.sub(r"\bNorthern Lights\s+Nest\b", "Aurora Nest", room, flags=re.IGNORECASE)
     room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
     room = re.sub(r"(?<=\D)(\d+\s*x\s*)", r" \1", room, flags=re.IGNORECASE)

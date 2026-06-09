@@ -13,7 +13,14 @@ from itinerary_generation.accommodation_display_helpers import meal_phrase, plur
 def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
     nights = plural_nights(row.get("hotel_nights", ""))
-    room_category = polish_client_text(row.get("room_category") or "")
+    raw_room_category = str(row.get("room_category") or "")
+    room_category = polish_client_text(raw_room_category)
+    # Room categories are source product names. Undo broad description-level
+    # substitutions that are safe for prose but unsafe for room names.
+    room_category = re.sub(r"\bNorthern Lights\s+Nest\b", "Aurora Nest", room_category, flags=re.IGNORECASE)
+    if re.search(r"\bpremium\s+double\s+igloo\b", raw_room_category, flags=re.IGNORECASE):
+        if not re.search(r"\bpremium\s+double\s+igloo\b", room_category, flags=re.IGNORECASE):
+            room_category = re.sub(r"\bdouble\s+igloo\b", "Premium Double Igloo", room_category, flags=re.IGNORECASE)
     if room_category.lower().strip() in {"self arranged", "self-arranged", "n/a", "na"}:
         room_category = ""
     meal = meal_phrase(row.get("meal_plan", ""))
