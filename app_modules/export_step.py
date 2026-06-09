@@ -16,6 +16,13 @@ from app_modules.export_state import ExportReadiness, export_readiness_from_stat
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import image_bank_status
 from ui.picture_workflow import pictures_are_added
+from itinerary_generation.qa_report import (
+    build_qa_report,
+    persist_qa_report,
+    qa_reports_dir,
+    render_qa_report_json,
+    render_qa_report_markdown,
+)
 
 
 def render_pdf_download_station(*, location: str = "bottom") -> None:
@@ -42,11 +49,75 @@ def render_pdf_download_station(*, location: str = "bottom") -> None:
     )
 
 
+
+def _current_qa_warnings() -> list:
+    warnings = []
+    report = st.session_state.get("itinerary_validation_report")
+    if report is not None:
+        warnings.extend(getattr(report, "warnings", ()) or ())
+    warnings.extend(st.session_state.get("parser_diagnostics", []) or [])
+    warnings.extend(st.session_state.get("generation_overflow_warnings", []) or [])
+    output_edits = st.session_state.get("output_edits", {}) or {}
+    if isinstance(output_edits, dict):
+        warnings.extend(output_edits.get("latest_client_output_warnings", []) or [])
+    return warnings
+
+
+def _render_qa_report_downloads(app_version: str) -> None:
+    parsed_rows = st.session_state.get("parsed_rows", []) or []
+    output_edits = st.session_state.get("output_edits", {}) or {}
+    if not parsed_rows:
+        st.caption("QA report is available after itinerary generation.")
+        return
+
+    report = build_qa_report(
+        parsed_rows,
+        output_edits,
+        app_version=app_version,
+        warnings=_current_qa_warnings(),
+    )
+    json_text = render_qa_report_json(report)
+    markdown_text = render_qa_report_markdown(report)
+
+    st.markdown("**QA report / edit learning log**")
+    st.caption(
+        "Use this when an activity, warning, inclusion, or page text looks wrong. "
+        "Save it to shared storage for the team, or download it and send it with the latest ZIP."
+    )
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        st.download_button(
+            "Download QA Markdown",
+            data=markdown_text.encode("utf-8"),
+            file_name="itinerary_qa_report.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    with col_b:
+        st.download_button(
+            "Download QA JSON",
+            data=json_text.encode("utf-8"),
+            file_name="itinerary_qa_report.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with col_c:
+        if st.button("Save QA report", use_container_width=True):
+            paths = persist_qa_report(report)
+            st.session_state["last_saved_qa_report"] = paths
+
+    saved = st.session_state.get("last_saved_qa_report") or {}
+    if saved:
+        st.success(f"QA report saved to shared storage: {saved.get('markdown_path')}")
+    st.caption(f"Shared QA storage: {qa_reports_dir()}")
+
 def _image_grouped_days() -> dict:
     return image_grouped_days_from_state(st.session_state)
 
 
 def _render_secondary_downloads(app_version: str) -> None:
+    _render_qa_report_downloads(app_version)
+    st.divider()
     project_data = {
         "app_version": app_version,
         "raw_text": st.session_state.get("last_generated_raw_text", ""),

@@ -394,6 +394,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "excerpt": warning.message,
         })
     payload["client_output_warnings"] = output_warnings[:30]
+    if isinstance(output_edits, dict):
+        # Keep the latest warning payload available for the persistent QA report.
+        # This is tiny metadata only; it avoids rebuilding the visual editor model
+        # during QA-report export.
+        output_edits["latest_client_output_warnings"] = payload["client_output_warnings"]
     return payload
 
 

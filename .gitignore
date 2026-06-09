@@ -9,3 +9,4 @@ outputs/
 .runtime_image_bank/
 .chatgpt_write_test.txt
 *.zip
+qa_reports/
