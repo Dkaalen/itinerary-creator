@@ -110,3 +110,18 @@ def test_render_day_section_uses_render_day_contract_not_legacy_day_blocks():
     assert "build_render_day" in source
     assert "build_day_blocks" not in source
     assert "render_blocks_to_html" in source
+
+
+def test_source_row_identity_helpers_are_shared_across_model_render_and_qa_layers():
+    from itinerary_generation.source_identity import edit_row_id, rows_by_source_id, source_row_id, source_text
+
+    rows = [
+        {"row_id": "row_a", "title": "Private Transfer", "details": "Airport to hotel"},
+        {"line_number": 12, "original_title": "Supplier activity", "title": "Clean activity"},
+    ]
+
+    assert source_row_id(rows[0]) == "row_a"
+    assert source_row_id(rows[1], 1) == "generated-row-1"
+    assert edit_row_id(rows[1], 1) == "line_12"
+    assert rows_by_source_id(rows)["generated-row-1"] is rows[1]
+    assert source_text(rows[0], ("title", "details"), separator=" | ") == "Private Transfer | Airport to hotel"

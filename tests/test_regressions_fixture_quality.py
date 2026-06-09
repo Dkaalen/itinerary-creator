@@ -64,9 +64,9 @@ Professional driver & guide (English)
 
     activity_rows = [row for row in rows if row.get("effective_type") == "Activity"]
     assert_equal(
-        activity_rows[0].get("time"),
+        activity_rows[0].get("display_time"),
         "10:30 AM - 12:45 PM",
-        "The Helsinki walking tour should display the correct time range.",
+        "The Helsinki walking tour should expose the correct normalized display time range.",
     )
     joined_includes = "\n".join(item for row in activity_rows for item in row.get("includes", []))
     assert_contains(joined_includes, "Baby seats are provided if needed", "Baby-seat text should be grammatical.")
@@ -123,7 +123,7 @@ Traditional Finnish lunch buffet
 
     santa = [row for row in rows if row.get("day") == "Day 4" and row.get("effective_type") == "Activity"][0]
     assert_equal(santa.get("title"), "Santa Claus Village by Snowmobile & Reindeer Sleigh", "Snowmobile and reindeer titles should preserve the core activity.")
-    assert_equal(santa.get("time"), "8:15 AM - 1:15 PM", "Spaced times such as 8 15 should parse as 8:15 AM and expand with duration.")
+    assert_equal(santa.get("display_time"), "8:15 AM - 1:15 PM", "Spaced times such as 8 15 should parse as 8:15 AM and expand into display_time.")
     santa_inline = prioritize_inline_inclusions(clean_activity_inclusion_items(santa.get("includes", []), santa.get("title")), 5)
     santa_inline_text = "\n".join(santa_inline)
     assert_contains(santa_inline_text, "Short reindeer sleigh ride experience", "Important reindeer ride inclusion should survive compact day-page prioritization.")

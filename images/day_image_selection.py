@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Mapping
 
-from image_matcher import select_day_images
+from images.matcher import select_day_images
 from images.image_bank import image_bank_status_for_paths, normalize_path_key
 
 
@@ -37,6 +38,45 @@ def day_image_match_from_path(day, path, reason="manual selection", image_bank_s
         },
     }
 
+
+
+def normalize_day_image_match(day, match, *, image_bank_status=None):
+    """Return the canonical day-image match payload or ``None``.
+
+    Older saved projects/tests may store ``day_image_matches`` as a plain image
+    path string. Newer code expects a structured mapping with a ``path`` key.
+    Normalizing at the boundary keeps workflow, preview, audit and PDF code from
+    each carrying their own compatibility checks.
+    """
+
+    if not match:
+        return None
+    if isinstance(match, Mapping):
+        path = str(match.get("path", "") or "").strip()
+        if not path and not match.get("data_uri"):
+            return None
+        payload = dict(match)
+        payload.setdefault("day", day)
+        if image_bank_status is not None and not isinstance(payload.get("image_bank_status"), Mapping):
+            payload["image_bank_status"] = dict(image_bank_status or {})
+        return payload
+    path = str(match or "").strip()
+    if not path:
+        return None
+    return day_image_match_from_path(day, path, reason="legacy image match path", image_bank_status=image_bank_status)
+
+
+def normalize_day_image_matches(matches, *, image_bank_status=None):
+    """Normalize a mapping of day -> image match payloads.
+
+    Explicit empty/removed days are preserved as ``None`` so downstream code can
+    distinguish an intentional no-image state from an absent match mapping.
+    """
+
+    normalized = {}
+    for day, match in (matches or {}).items():
+        normalized[str(day)] = normalize_day_image_match(str(day), match, image_bank_status=image_bank_status)
+    return normalized
 
 
 def _attach_image_bank_contract(match, status):

@@ -149,3 +149,38 @@ def test_day_image_slot_carries_source_and_match_metadata_without_visible_text()
     assert 'data-image-city="Tromso"' in html
     assert 'data-image-themes="fjord,mountain"' in html
     assert "source-row-7a" not in html.split(">", 1)[-1]
+
+
+def test_legacy_string_image_match_is_normalized_for_audit_and_render_slot():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        oslo_dir = bank / "Norway" / "Oslo"
+        oslo_dir.mkdir(parents=True)
+        image_path = oslo_dir / "Oslo_Summer_City_01.webp"
+        image_path.write_bytes(b"fake image")
+
+        grouped = {
+            "Day 1": [
+                {
+                    "row_id": "source-row-1",
+                    "day": "Day 1",
+                    "type": "Activity",
+                    "effective_type": "Activity",
+                    "city": "Oslo",
+                    "title": "Oslo city walk",
+                }
+            ]
+        }
+
+        warnings = audit_day_image_matches(grouped, {"Day 1": str(image_path)}, output_edits={}, image_bank_scan_paths=bank)
+        html = render_day_image_slot(
+            "Day 1",
+            grouped["Day 1"],
+            match=str(image_path),
+            output_edits={},
+            image_bank_scan_paths=bank,
+        )
+
+        assert not any(warning.severity == "error" for warning in warnings)
+        assert 'data-image-path="' in html
+        assert "Oslo_Summer_City_01.webp" in html

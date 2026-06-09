@@ -33,13 +33,11 @@ from itinerary_generation.transport_domain.inclusions import (
 )
 from itinerary_generation.inclusion_utils import clean
 from itinerary_generation.structured_model import StructuredListItem, StructuredListSection
+from itinerary_generation.source_identity import source_row_id
 
 
 def _row_id(row: dict, fallback_index: int = 0) -> str:
-    value = str(row.get("row_id") or "").strip()
-    if value:
-        return value
-    return f"generated-row-{fallback_index}"
+    return source_row_id(row, fallback_index)
 
 
 def _source_row_id_for_inclusion(row: dict, row_indexes: dict[int, int], known_source_ids: set[str], fallback_index: int) -> str:

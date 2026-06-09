@@ -24,6 +24,7 @@ from app_modules.workflow_state import (
 )
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
+from images.day_image_selection import normalize_day_image_matches
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import (
     apply_output_edits,
@@ -206,8 +207,8 @@ def enter_picture_stage(
     # connected while still producing zero usable matches because destination
     # names, folder aliases or bank contents do not line up.  In that case the
     # user needs an actionable warning instead of a false "Pictures added" state.
-    matches = select_images_func(image_grouped_days, output_edits)
-    matched_days = [day for day, match in (matches or {}).items() if isinstance(match, Mapping) and match.get("path")]
+    matches = normalize_day_image_matches(select_images_func(image_grouped_days, output_edits))
+    matched_days = [day for day, match in (matches or {}).items() if isinstance(match, Mapping) and (match.get("path") or match.get("data_uri"))]
     unmatched_days = [day for day in (image_grouped_days or {}) if day not in matched_days]
 
     if not matched_days:

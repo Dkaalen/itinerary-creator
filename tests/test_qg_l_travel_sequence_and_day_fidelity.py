@@ -88,3 +88,48 @@ Hot drinks & hot meal (Sámi stew or veg option)"'''
 
     assert any("feeding the herd" in item.lower() for item in activity["includes"])
     assert not any(item.lower().strip() == "entrance to the fence and feeding the her" for item in activity["includes"])
+
+
+def test_structured_travel_sequence_owns_multi_leg_final_destination_before_rendering():
+    from itinerary_generation.structured_builder import build_itinerary_document
+    from itinerary_generation.day_render_blocks import build_render_day_from_document
+
+    raw = '''Day 6	Transfer 		28/10/2026						Oslo	Train : bergen to Oslo , Sitting coach
+Day 6	Transfer 		28/10/2026						Helsinki 	Flgiht to helsinki, self arrange , cost not included
+Day 6	Hotel		28/10/2026	29/10/2026					Helsinki 	3 Star Hotel arthur , 1xNight , 1xStandard Double Room, Incl Brekafast '''
+
+    rows = _rows(raw)
+    grouped = group_rows_by_day(rows)
+    document = build_itinerary_document(rows, grouped)
+    sequences = [sequence for sequence in document.travel_sequences if sequence.day == "Day 6"]
+
+    assert len(sequences) == 1
+    assert sequences[0].final_destination == "Helsinki"
+    assert sequences[0].primary_travel_mode == "Flight"
+    assert sequences[0].self_arranged is True
+    assert len(sequences[0].legs) == 2
+
+    render_day = build_render_day_from_document(document, "Day 6", grouped["Day 6"])
+    travel_blocks = [block for block in render_day.blocks if block.kind == "travel_sequence"]
+
+    assert len(travel_blocks) == 1
+    assert travel_blocks[0].row_id == sequences[0].sequence_id
+    assert list(sequences[0].source_row_ids) == travel_blocks[0].source_row_ids
+
+
+def test_cruise_leisure_rows_stay_out_of_structured_travel_sequence():
+    from itinerary_generation.structured_builder import build_itinerary_document
+    from itinerary_generation.day_render_blocks import build_render_day_from_document
+
+    raw = '''Day 9\tCruise\t\t09/10/2026\t\t\t\t\t\tCruise\tCoastal Cruise onboard the cruise Cruise: Spend time at leisure'''
+
+    rows = _rows(raw)
+    grouped = group_rows_by_day(rows)
+    document = build_itinerary_document(rows, grouped)
+
+    assert not document.travel_sequences
+
+    render_day = build_render_day_from_document(document, "Day 9", grouped["Day 9"])
+    assert not [block for block in render_day.blocks if block.kind == "travel_sequence"]
+    assert any(block.kind == "cruise_leisure" for block in render_day.blocks)
+    assert any(block.title == "Spend time at leisure onboard the cruise" for block in render_day.blocks)

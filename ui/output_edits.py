@@ -3,7 +3,20 @@
 import copy
 import uuid
 
-import streamlit as st
+try:
+    import streamlit as st
+except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallback
+    class _SessionState(dict):
+        def __getattr__(self, key):
+            return self.get(key)
+
+        def __setattr__(self, key, value):
+            self[key] = value
+
+    class _NoStreamlit:
+        session_state = _SessionState()
+
+    st = _NoStreamlit()
 
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro, create_travel_route_label
@@ -18,7 +31,8 @@ from itinerary_generation.titles import (
 from itinerary_generation.cover_theme import get_cover_season
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.app_constants import DEFAULT_IMPORTANT_TRAVEL_NOTES, DETAIL_LEVELS
-from ui.render_helpers import display_time_with_duration, get_activity_description, list_to_text, text_to_list
+from normalizer_modules.times import normalize_activity_display_time_fields
+from ui.render_helpers import get_activity_description, list_to_text, text_to_list
 from ui.picture_workflow import PICTURES_ADDED_KEY
 
 
@@ -188,12 +202,10 @@ def apply_output_edits(parsed_rows, output_edits):
         if "includes_text" in edits:
             row["includes"] = text_to_list(edits.get("includes_text", ""))
 
-    # Final display-level guardrail: even if Streamlit session edits contain an
-    # old single start time, activities with a reliable duration should render as
-    # a start-end range. This keeps preview and PDF export consistent after code
-    # updates without requiring manual edit resets.
+    # Rebuild typed display fields after user edits. This intentionally leaves
+    # the editable/source ``time`` value unchanged; renderers should consume
+    # ``display_time`` when they need a client-facing range.
     for row in edited_rows:
-        if get_row_type(row) == "Activity":
-            row["time"] = display_time_with_duration(row.get("time", ""), row.get("duration", ""))
+        normalize_activity_display_time_fields(row)
 
     return edited_rows

@@ -68,8 +68,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
 
     html_text += render_day_pages(context.render_grouped_days, context.output_edits, render_document=context.render_document)
 
-    if context.typed_inclusion_pages:
-        html_text += render_custom_html_final_pages("What’s included", context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
+    if context.typed_inclusions_owned:
+        if context.typed_inclusion_pages:
+            html_text += render_custom_html_final_pages("What’s included", context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
     elif context.output_edits.get("whats_included_pages_html"):
         html_text += render_custom_html_final_pages("What’s included", context.output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
     elif context.output_edits.get("whats_included_html"):
@@ -79,8 +80,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     else:
         html_text += render_categorized_inclusions_pages("What’s included", context.categorized_inclusions)
     html_text += render_optional_addons_pages(context.optional_addons)
-    if context.typed_exclusion_html:
-        html_text += render_custom_html_final_page("What’s not included", context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
+    if context.typed_exclusions_owned:
+        if context.typed_exclusion_html:
+            html_text += render_custom_html_final_page("What’s not included", context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
     elif context.output_edits.get("whats_not_included_html"):
         html_text += render_custom_html_final_page("What’s not included", context.output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
     elif context.output_edits.get("whats_not_included_text"):

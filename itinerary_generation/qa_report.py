@@ -19,7 +19,9 @@ from typing import Any, Iterable, Mapping
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro, create_travel_route_label
 from itinerary_generation.titles import create_client_activity_title, create_day_title
-from ui.render_helpers import list_to_text
+from itinerary_generation.render_text_helpers import list_to_text
+from itinerary_generation.editable_draft import section_by_id
+from itinerary_generation.source_identity import clean_text, edit_row_id, source_text
 
 QA_SCHEMA_VERSION = 1
 DEFAULT_QA_REPORT_DIR = "qa_reports"
@@ -83,7 +85,7 @@ def qa_reports_dir() -> Path:
 
 
 def _clean(value: Any) -> str:
-    return " ".join(str(value or "").replace("\xa0", " ").split())
+    return clean_text(value)
 
 
 def _block_text(value: Any, *, limit: int = 800) -> str:
@@ -93,16 +95,21 @@ def _block_text(value: Any, *, limit: int = 800) -> str:
     return text[: limit - 1].rstrip() + "…"
 
 
-def _row_id(row: Mapping[str, Any]) -> str:
-    return str(row.get("row_id") or f"line_{row.get('line_number', '')}" or "").strip()
+def _row_id(row: Mapping[str, Any], fallback_index: int = 0) -> str:
+    return edit_row_id(row, fallback_index)
 
 
-def _source_text(row: Mapping[str, Any]) -> str:
-    for key in ("source_text", "raw_text", "description_raw", "original_text", "input_text"):
-        if row.get(key):
-            return _block_text(row.get(key))
-    title = row.get("original_title") or row.get("title") or ""
-    return _block_text(title)
+def _source_text(row: Mapping[str, Any] | None) -> str:
+    text = source_text(
+        row,
+        ("source_text", "raw_text", "description_raw", "original_text", "input_text"),
+        separator=" ",
+        first_non_empty=True,
+        limit=800,
+    )
+    if text:
+        return text
+    return _block_text(source_text(row, ("original_title", "title"), separator=" ", first_non_empty=True))
 
 
 def _product_family(row: Mapping[str, Any]) -> str:
@@ -260,7 +267,7 @@ def collect_edit_events(parsed_rows: Iterable[Mapping[str, Any]], output_edits: 
 
 
 def _row_lookup(parsed_rows: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
-    return {_row_id(row): row for row in parsed_rows or [] if isinstance(row, Mapping)}
+    return {_row_id(row, index): row for index, row in enumerate(parsed_rows or []) if isinstance(row, Mapping)}
 
 
 def _warning_from_any(warning: Any, row_by_id: Mapping[str, Mapping[str, Any]]) -> QaWarningEvent | None:
@@ -289,6 +296,49 @@ def _warning_from_any(warning: Any, row_by_id: Mapping[str, Mapping[str, Any]]) 
     return QaWarningEvent(code=code, message=message, location=str(getattr(warning, "context", "General") or "General"))
 
 
+
+def _legacy_editor_state_warnings(output_edits: Mapping[str, Any]) -> tuple[QaWarningEvent, ...]:
+    """Warn when typed editor state suppresses stale legacy final-page keys.
+
+    Patch AZ made typed final sections authoritative for preview/PDF parity. This
+    QA warning makes the compatibility mirror visible to developers so stale
+    legacy HTML can be cleaned from saved drafts instead of silently lingering.
+    """
+
+    if not isinstance(output_edits, Mapping):
+        return ()
+    editor_draft = output_edits.get("editor_draft") if isinstance(output_edits.get("editor_draft"), Mapping) else {}
+    if not editor_draft:
+        return ()
+
+    checks = (
+        (
+            "whats_included",
+            "What’s included",
+            ("whats_included_pages_html", "whats_included_html", "whats_included_text"),
+        ),
+        (
+            "whats_not_included",
+            "What’s not included",
+            ("whats_not_included_html", "whats_not_included_text"),
+        ),
+    )
+    warnings: list[QaWarningEvent] = []
+    for section_id, label, legacy_keys in checks:
+        if not section_by_id(editor_draft, section_id):
+            continue
+        stale_keys = tuple(key for key in legacy_keys if output_edits.get(key))
+        if not stale_keys:
+            continue
+        warnings.append(QaWarningEvent(
+            code="typed_editor_suppressed_legacy_final_section",
+            message=f"Typed editor draft owns {label}; stale legacy keys were ignored for preview/PDF: {', '.join(stale_keys)}.",
+            location=f"Final pages · {label}",
+            section=label,
+            suggested_action="Clean the stale legacy final-page keys from the saved draft or keep relying on the typed editor_draft section.",
+        ))
+    return tuple(warnings)
+
 def collect_warning_events(parsed_rows: Iterable[Mapping[str, Any]], warnings: Iterable[Any] | None) -> tuple[QaWarningEvent, ...]:
     row_by_id = _row_lookup(parsed_rows)
     events: list[QaWarningEvent] = []
@@ -315,7 +365,7 @@ def build_qa_report(
     rows = [dict(row) for row in parsed_rows or []]
     output_edits = output_edits or {}
     edits = collect_edit_events(rows, output_edits)
-    warning_events = collect_warning_events(rows, warnings)
+    warning_events = collect_warning_events(rows, warnings) + _legacy_editor_state_warnings(output_edits)
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     draft_id = str(output_edits.get("draft_id") or "no-draft")
     digest_source = json.dumps({"draft_id": draft_id, "edits": [asdict(e) for e in edits], "warnings": [asdict(w) for w in warning_events]}, ensure_ascii=False, sort_keys=True)

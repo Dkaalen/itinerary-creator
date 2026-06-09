@@ -9,24 +9,18 @@ render block builders until every block type has been fully typed.
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Mapping, Sequence
+from typing import Mapping
 
 from itinerary_generation.common import group_rows_by_day, is_optional_row
 from itinerary_generation.render_model import RenderDocument
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import ItineraryDocument
+from itinerary_generation.source_identity import source_row_id, rows_by_source_id
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
 
 
 def _row_id(row: Mapping[str, object], fallback_index: int = 0) -> str:
-    value = str(row.get("row_id") or "").strip()
-    return value or f"generated-row-{fallback_index}"
-
-
-def rows_by_source_id(rows: Sequence[Mapping[str, object]]) -> dict[str, Mapping[str, object]]:
-    """Return a stable source-row lookup keyed like ``SourceRowRef.row_id``."""
-
-    return {_row_id(row, index): row for index, row in enumerate(rows or [])}
+    return source_row_id(row, fallback_index)
 
 
 def grouped_days_with_day_optional_rows(grouped_days, parsed_rows):

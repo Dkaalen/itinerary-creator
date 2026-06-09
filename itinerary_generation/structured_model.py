@@ -61,6 +61,42 @@ class ModelWarning:
     source_row_ids: tuple[str, ...] = ()
 
 
+
+
+@dataclass(slots=True, frozen=True)
+class TravelLeg:
+    """Structured transport leg owned by the document model, not the renderer."""
+
+    leg_id: str
+    source_row_ids: tuple[str, ...]
+    day: str
+    from_place: str = ""
+    to_place: str = ""
+    transport_type: str = ""
+    operator: str = ""
+    departure: str = ""
+    arrival: str = ""
+    notes: tuple[str, ...] = ()
+    self_arranged: bool = False
+    scenic: bool = False
+    overnight: bool = False
+
+
+@dataclass(slots=True, frozen=True)
+class TravelSequence:
+    """Consecutive travel legs for a day, before any render block is built."""
+
+    sequence_id: str
+    day: str
+    source_row_ids: tuple[str, ...]
+    final_destination: str = ""
+    primary_travel_mode: str = ""
+    legs: tuple[TravelLeg, ...] = ()
+    self_arranged: bool = False
+    scenic: bool = False
+    overnight: bool = False
+
+
 @dataclass(slots=True)
 class DocumentItem:
     item_id: str
@@ -110,6 +146,7 @@ class ItineraryDocument:
     items: tuple[DocumentItem, ...] = ()
     inclusions: tuple[StructuredListSection, ...] = ()
     exclusions: tuple[StructuredListSection, ...] = ()
+    travel_sequences: tuple[TravelSequence, ...] = ()
     warnings: tuple[ModelWarning, ...] = ()
 
     def as_dict(self) -> dict:

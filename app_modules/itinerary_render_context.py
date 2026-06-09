@@ -76,7 +76,9 @@ class ItineraryRenderContext:
     whats_not_included: list[str]
     structured_whats_not_included: Any
     typed_inclusion_pages: list[str]
+    typed_inclusions_owned: bool
     typed_exclusion_html: str
+    typed_exclusions_owned: bool
     important_travel_notes: list[str] | str
 
 
@@ -121,8 +123,9 @@ def _html_final_pages(page_htmls: list[str] | str) -> list[RenderFinalPage]:
 def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[RenderFinalSection]:
     sections: list[RenderFinalSection] = []
 
-    if context.typed_inclusion_pages:
-        sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
+    if context.typed_inclusions_owned:
+        if context.typed_inclusion_pages:
+            sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
     elif context.output_edits.get("whats_included_pages_html"):
         sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
     elif context.output_edits.get("whats_included_html"):
@@ -160,8 +163,9 @@ def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[Rende
         if optional_pages:
             sections.append(RenderFinalSection("optional_experiences", "Optional Experiences", pages=optional_pages, css_class="optional-addons-page"))
 
-    if context.typed_exclusion_html:
-        sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
+    if context.typed_exclusions_owned:
+        if context.typed_exclusion_html:
+            sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
     elif context.output_edits.get("whats_not_included_html"):
         sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
     elif context.output_edits.get("whats_not_included_text"):
@@ -289,6 +293,8 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     typed_inclusions = section_by_id(editor_draft, "whats_included")
     typed_exclusions = section_by_id(editor_draft, "whats_not_included")
     typed_notes = section_by_id(editor_draft, "important_travel_notes")
+    typed_inclusions_owned = bool(typed_inclusions)
+    typed_exclusions_owned = bool(typed_exclusions)
     typed_inclusion_pages = [page.get("content_html", "") for page in typed_inclusions.get("pages", []) if isinstance(page, dict)] if typed_inclusions else []
     typed_exclusion_html = typed_exclusions.get("content_html", "") if typed_exclusions else ""
     if typed_exclusions and not typed_exclusion_html and typed_exclusions.get("pages"):
@@ -327,7 +333,9 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         whats_not_included=whats_not_included,
         structured_whats_not_included=structured_whats_not_included,
         typed_inclusion_pages=typed_inclusion_pages,
+        typed_inclusions_owned=typed_inclusions_owned,
         typed_exclusion_html=typed_exclusion_html,
+        typed_exclusions_owned=typed_exclusions_owned,
         important_travel_notes=important_travel_notes,
     )
     _attach_pdf_contract(context)

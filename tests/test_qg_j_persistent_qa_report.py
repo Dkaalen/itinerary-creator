@@ -70,3 +70,27 @@ def test_qa_report_is_empty_but_valid_without_manual_edits():
     assert report.summary["edited_items"] == 0
     assert report.summary["warnings"] == 0
     assert "No manual edits" in render_qa_report_markdown(report)
+
+
+def test_qa_report_warns_when_typed_final_section_suppresses_stale_legacy_html():
+    output_edits = {
+        "draft_id": "typed-draft",
+        "whats_included_html": "<div>Old generated inclusions</div>",
+        "whats_included_text": "Old text inclusions",
+        "editor_draft": {
+            "final_sections": [
+                {
+                    "section_id": "whats_included",
+                    "title": "What’s included",
+                    "pages": [{"page_id": "page-1", "content_html": "<div>Current typed inclusions</div>"}],
+                }
+            ]
+        },
+    }
+
+    report = build_qa_report([], output_edits, app_version="test", warnings=[])
+
+    assert report.summary["warnings"] == 1
+    assert report.warnings[0].code == "typed_editor_suppressed_legacy_final_section"
+    assert "whats_included_html" in report.warnings[0].message
+    assert report.warnings[0].location == "Final pages · What’s included"

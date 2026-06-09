@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from image_matcher import select_day_image
+from images.day_image_selection import normalize_day_image_match
 from images.image_overrides import CROP_FOCUS_OBJECT_POSITIONS, get_day_image_crop_focus
 from images.image_preview import image_to_preview_data_uri
 from images.image_bank import esc
@@ -27,6 +28,7 @@ def render_day_image_slot(day, rows, match=None, output_edits=None, *, image_ban
     """Return the day-image marker used by the preview and PDF exporter."""
     if match is None:
         match = select_day_image(day, rows, image_bank_scan_paths)
+    match = normalize_day_image_match(day, match)
     if not match:
         return ""
 

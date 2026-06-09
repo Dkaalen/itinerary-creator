@@ -78,6 +78,18 @@ def has_local_transfer_marker(text: str) -> bool:
     return any(marker in lower for marker in LOCAL_TRANSFER_MARKERS)
 
 
+def is_cruise_leisure_row(row: dict) -> bool:
+    """Return True for cruise rows that describe onboard leisure, not route travel.
+
+    These rows are client-facing cruise-day content and must not be absorbed by
+    travel sequencing or travel-arrangement grouping simply because their row
+    type is ``Cruise``.
+    """
+
+    text = get_transport_source_text(row, ("title", "details", "original_title")).lower()
+    return get_row_type(row) == "Cruise" and "leisure" in text and "cruise" in text
+
+
 def is_transport_like_row(row: dict, *, include_drive: bool = False) -> bool:
     """Return whether a row participates in travel-arrangement rendering."""
 

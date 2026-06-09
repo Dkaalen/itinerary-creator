@@ -30,7 +30,7 @@ from images.image_preview import (
     image_to_option_preview_data_uri,
     image_to_preview_data_uri,
 )
-from images.day_image_selection import day_image_match_from_path
+from images.day_image_selection import day_image_match_from_path, normalize_day_image_match, normalize_day_image_matches
 from images.day_image_selection import select_day_images_with_overrides as _select_day_images_with_overrides
 from images.replacement_options import (
     list_replacement_image_options as _list_replacement_image_options,

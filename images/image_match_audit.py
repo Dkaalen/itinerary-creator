@@ -12,6 +12,7 @@ import diagnostics
 from pathlib import Path
 
 from images.fallback import is_global_default_candidate
+from images.day_image_selection import normalize_day_image_match, normalize_day_image_matches
 from images.image_bank import image_bank_status_for_paths
 from images.matcher_context import build_day_context
 from images.matcher_scoring import (
@@ -139,6 +140,7 @@ def audit_day_image_match(
     if mode == "none":
         return ()
 
+    match = normalize_day_image_match(day, match)
     path_text = _match_path(match)
     if not path_text:
         return ()
@@ -240,6 +242,7 @@ def audit_day_image_matches(
 ) -> tuple[ImageAuditWarning, ...]:
     warnings: list[ImageAuditWarning] = []
     status = image_bank_status_for_paths(image_bank_scan_paths)
+    image_matches = normalize_day_image_matches(image_matches, image_bank_status=status)
     if grouped_days and status.get("missing_full_bank"):
         warnings.append(ImageAuditWarning(
             code="image_bank_full_missing",

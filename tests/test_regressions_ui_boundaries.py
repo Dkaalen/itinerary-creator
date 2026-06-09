@@ -32,7 +32,7 @@ from layout_policy import (
     is_three_day_packing_enabled,
 )
 
-def test_apply_output_edits_preserves_activity_time_range_after_split():
+def test_apply_output_edits_rebuilds_activity_display_time_without_mutating_source_time():
     import types
 
     sys.modules.setdefault("streamlit", types.SimpleNamespace(session_state={}))
@@ -53,8 +53,13 @@ def test_apply_output_edits_preserves_activity_time_range_after_split():
     edited_rows = apply_output_edits(rows, {"rows": {}})
     assert_equal(
         edited_rows[0].get("time"),
+        "9:00 AM",
+        "Output edit application should preserve the editable source start time.",
+    )
+    assert_equal(
+        edited_rows[0].get("display_time"),
         "9:00 AM - 2:30 PM",
-        "Output edit application should keep activity time ranges working after module split.",
+        "Output edit application should rebuild typed display-time fields after edits.",
     )
 
 

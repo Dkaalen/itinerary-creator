@@ -15,7 +15,8 @@ from itinerary_generation.day_planner import plan_day
 from itinerary_generation.canonical_render_adapter import render_block_from_canonical
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine
 from itinerary_generation.structured_builder import build_itinerary_document
-from itinerary_generation.structured_model import DayDocument, ItineraryDocument
+from itinerary_generation.structured_model import DayDocument, ItineraryDocument, TravelSequence
+from itinerary_generation.source_identity import source_row_id, rows_by_source_id
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.title_safety import is_forbidden_client_title
@@ -146,7 +147,7 @@ def build_optional_render_block(row: dict) -> RenderBlock:
     row_type = row.get("effective_type") or row.get("type", "")
     title = _optional_title(row)
     meta: list[RenderMetaLine] = []
-    time_display = display_time_with_duration(row.get("time", ""), row.get("duration", ""))
+    time_display = row.get("display_time") or display_time_with_duration(row.get("time", ""), row.get("duration", ""))
     if time_display:
         meta.append(RenderMetaLine("Time", time_display))
 
@@ -172,11 +173,19 @@ def build_optional_render_block(row: dict) -> RenderBlock:
     )
 
 
-def build_day_render_blocks(rows):
-    """Build day blocks in source order as UI-neutral render blocks."""
+def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple[TravelSequence, ...] | None = None):
+    """Build day blocks in source order as UI-neutral render blocks.
+
+    When available, TravelSequence objects from the structured document own the
+    travel grouping.  The renderer then only places the precomputed sequence at
+    the first source row instead of discovering consecutive transport rows late.
+    """
 
     blocks: list[RenderBlock] = []
     travel_group: list[dict] = []
+    sequence_by_first_row = {str(sequence.source_row_ids[0]): sequence for sequence in (travel_sequences or []) if sequence.source_row_ids}
+    sequence_row_ids = {str(row_id) for sequence in (travel_sequences or []) for row_id in sequence.source_row_ids}
+    row_lookup = rows_by_source_id(rows)
     main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
     day_plan = plan_day(main_rows)
     departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
@@ -199,6 +208,25 @@ def build_day_render_blocks(rows):
         if is_optional_row(row):
             flush_travel_group()
             blocks.append(build_optional_render_block(row))
+            continue
+
+        current_row_id = _row_id(row)
+        if current_row_id in sequence_by_first_row:
+            flush_travel_group()
+            sequence = sequence_by_first_row[current_row_id]
+            sequence_rows = [row_lookup[row_id] for row_id in sequence.source_row_ids if row_id in row_lookup]
+            block = build_travel_arrangements_render_block(sequence_rows)
+            if block:
+                block.row_id = sequence.sequence_id
+                block.source_row_ids = list(sequence.source_row_ids)
+                block.warnings.extend(
+                    warning for warning in [
+                        "Travel sequence has no final destination; review source route endpoints." if not sequence.final_destination else "",
+                    ] if warning
+                )
+                blocks.append(block)
+            continue
+        if current_row_id in sequence_row_ids:
             continue
 
         if is_travel_sequence_candidate(row):
@@ -258,8 +286,7 @@ def build_day_render_blocks(rows):
 
 
 def _row_id(row: dict, fallback_index: int = 0) -> str:
-    value = str(row.get("row_id") or "").strip()
-    return value or f"generated-row-{fallback_index}"
+    return source_row_id(row, fallback_index)
 
 
 def _day_document_for(document: ItineraryDocument, day: str) -> DayDocument | None:
@@ -280,7 +307,7 @@ def _rows_ordered_by_day_document(day_document: DayDocument | None, rows: list[d
 
     if not day_document:
         return list(rows)
-    row_lookup = {_row_id(row, index): row for index, row in enumerate(rows)}
+    row_lookup = rows_by_source_id(rows)
     ordered: list[dict] = []
     used_ids: set[str] = set()
     for source_id in day_document.source_row_ids:
@@ -295,11 +322,15 @@ def _rows_ordered_by_day_document(day_document: DayDocument | None, rows: list[d
     return ordered
 
 
+
+def _travel_sequences_for_day(document: ItineraryDocument, day: str) -> tuple[TravelSequence, ...]:
+    return tuple(sequence for sequence in getattr(document, "travel_sequences", ()) if str(sequence.day) == str(day))
+
 def build_day_render_blocks_from_document(document: ItineraryDocument, day: str, rows: list[dict]) -> list[RenderBlock]:
     """Build day render blocks using the structured document for source order."""
 
     day_document = _day_document_for(document, day)
-    return build_day_render_blocks(_rows_ordered_by_day_document(day_document, rows))
+    return build_day_render_blocks(_rows_ordered_by_day_document(day_document, rows), _travel_sequences_for_day(document, day))
 
 
 def build_render_day_from_document(
@@ -327,7 +358,7 @@ def build_render_day_from_document(
         title=day_shell.title,
         intro=day_shell.intro,
         date=day_document.date if day_document and day_document.date else "",
-        blocks=build_day_render_blocks(ordered_rows),
+        blocks=build_day_render_blocks(ordered_rows, _travel_sequences_for_day(document, day)),
         source_row_ids=source_ids,
         warnings=list(dict.fromkeys(warnings)),
     )

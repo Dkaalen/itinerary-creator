@@ -174,3 +174,70 @@ def test_frontend_builds_typed_draft_before_commit():
     assert "function buildEditableDraftFromPayload" in editor_html
     assert "payload.editor_draft = buildEditableDraftFromPayload(payload)" in editor_html
     assert "full.editor_draft = buildEditableDraftFromPayload(full)" in editor_html
+
+
+def test_empty_typed_final_section_suppresses_stale_legacy_inclusions_html():
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Oslo",
+            "title": "Generated Activity",
+            "commercial_status": "included",
+        }
+    ]
+    output_edits = {
+        "days": {},
+        "whats_included_html": "<div>Stale legacy inclusion</div>",
+        "editor_draft": normalise_editable_draft(
+            {
+                "final_sections": [
+                    {
+                        "section_id": "whats_included",
+                        "title": "What's included",
+                        "pages": [],
+                        "content_html": "",
+                        "text": "",
+                    }
+                ]
+            }
+        ),
+    }
+
+    html = build_itinerary_html(rows, {"Day 1": rows}, output_edits)
+
+    assert "Stale legacy inclusion" not in html
+
+
+def test_empty_typed_final_section_suppresses_stale_legacy_exclusions_html():
+    rows = [
+        {
+            "type": "Activity",
+            "effective_type": "Activity",
+            "day": "Day 1",
+            "city": "Oslo",
+            "title": "Generated Activity",
+        }
+    ]
+    output_edits = {
+        "days": {},
+        "whats_not_included_html": "<div>Stale legacy exclusion</div>",
+        "editor_draft": normalise_editable_draft(
+            {
+                "final_sections": [
+                    {
+                        "section_id": "whats_not_included",
+                        "title": "What's not included",
+                        "pages": [],
+                        "content_html": "",
+                        "text": "",
+                    }
+                ]
+            }
+        ),
+    }
+
+    html = build_itinerary_html(rows, {"Day 1": rows}, output_edits)
+
+    assert "Stale legacy exclusion" not in html

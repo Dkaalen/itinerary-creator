@@ -2,7 +2,27 @@
 
 from pathlib import Path
 
-import streamlit as st
+try:
+    import streamlit as st
+except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallback
+    class _NoStreamlit:
+        def error(self, *_args, **_kwargs):
+            return None
+
+        def exception(self, *_args, **_kwargs):
+            return None
+
+        class _Expander:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        def expander(self, *_args, **_kwargs):
+            return self._Expander()
+
+    st = _NoStreamlit()
 
 from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
 

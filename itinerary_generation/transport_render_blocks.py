@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 from itinerary_generation.common import get_row_type
+from itinerary_generation.transport_model import is_cruise_leisure_row
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time
 from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items, polish_title
-
-
-def is_cruise_leisure_row(row):
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
-    return get_row_type(row) == "Cruise" and "leisure" in text and "cruise" in text
 
 
 def build_transport_render_block(row, title_override=None):
