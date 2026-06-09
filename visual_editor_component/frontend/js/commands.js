@@ -6,6 +6,7 @@ function markTouched(key) {
     note.classList.add('show');
   }
   persistLocalDraft();
+  scheduleServerAutosave();
   updateEditorStats();
 }
 function isHtmlEditKey(key) {

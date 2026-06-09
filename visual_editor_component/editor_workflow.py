@@ -46,6 +46,11 @@ from itinerary_generation.editable_draft import (
     section_by_id,
 )
 from visual_editor_component.editor_bridge import render_visual_page_editor
+from itinerary_generation.draft_autosave import (
+    apply_autosaved_payload_to_output_edits,
+    load_autosave_payload,
+    save_autosave_payload,
+)
 
 
 
@@ -403,13 +408,52 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
 
 def _decode_visual_editor_result(result):
-    """Decode visual editor payloads, including export-commit wrappers."""
+    """Decode visual editor payloads, including export/autosave wrappers."""
     data = json.loads(result) if isinstance(result, str) else result
-    if isinstance(data, dict) and "payload" in data and "commit_nonce" in data:
-        return data.get("payload") or {}, str(data.get("commit_nonce") or "")
-    return data, ""
+    if isinstance(data, dict) and "payload" in data and ("commit_nonce" in data or "autosave" in data):
+        commit_nonce = str(data.get("commit_nonce") or "")
+        return data.get("payload") or {}, commit_nonce, bool(data.get("autosave"))
+    return data, "", False
 
 
+def _autosave_status(saved_info, *, recovered=False):
+    if not isinstance(saved_info, dict):
+        return
+    status = st.session_state.setdefault("persistent_draft_status", {})
+    status.update({
+        "ok": bool(saved_info.get("ok")),
+        "draft_id": saved_info.get("draft_id", ""),
+        "saved_at": saved_info.get("saved_at", ""),
+        "payload_hash": saved_info.get("payload_hash", ""),
+        "recovered": bool(recovered),
+        "reason": saved_info.get("reason", ""),
+    })
+
+
+def _try_apply_server_autosave(payload, output_edits, mark_dirty=None):
+    """Apply a matching server-side autosave before rendering the editor."""
+    draft_id = str((output_edits or {}).get("draft_id") or payload.get("draft_id") or "").strip()
+    source_signature = str((payload.get("meta") or {}).get("source_signature") or "")
+    if not draft_id or st.session_state.get("_persistent_draft_recovery_checked") == draft_id:
+        return False
+    st.session_state["_persistent_draft_recovery_checked"] = draft_id
+    saved_payload = load_autosave_payload(draft_id, source_signature=source_signature)
+    if not saved_payload:
+        return False
+    before = _stable_output_edits_snapshot(output_edits)
+    applied = apply_autosaved_payload_to_output_edits(saved_payload, output_edits, apply_visual_editor_result)
+    if not applied:
+        return False
+    changed = before != _stable_output_edits_snapshot(output_edits)
+    if changed and mark_dirty:
+        mark_dirty()
+    _autosave_status({
+        "ok": True,
+        "draft_id": draft_id,
+        "saved_at": "",
+        "payload_hash": "",
+    }, recovered=True)
+    return changed
 
 
 def _sanitize_editor_draft(editor_draft):
@@ -460,12 +504,18 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         return False
     before_snapshot = _stable_output_edits_snapshot(output_edits)
     try:
-        data, commit_nonce = _decode_visual_editor_result(result)
+        data, commit_nonce, is_autosave = _decode_visual_editor_result(result)
     except Exception:
         st.warning("Visual editor edits could not be read. Please try saving again.")
         return False
     if not isinstance(data, dict):
         return False
+
+    st.session_state["_visual_editor_last_result_was_autosave"] = bool(is_autosave)
+
+    if is_autosave:
+        saved_info = save_autosave_payload(data, draft_id=(output_edits or {}).get("draft_id"))
+        _autosave_status(saved_info)
 
     cover = data.get("cover", {}) or {}
     for key in ["cover_kicker", "trip_title", "trip_subtitle", "trip_dates", "destinations_line"]:
@@ -620,6 +670,8 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
     skip any additional rebuild based on the pre-save rows from the same rerun.
     """
     payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
+    if _try_apply_server_autosave(payload, output_edits, mark_dirty=mark_dirty):
+        payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
     commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
     result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
     if result and result != st.session_state.get("_last_visual_editor_result"):
@@ -633,7 +685,8 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             elif applied_nonce and str(applied_nonce) == str(st.session_state.get("_add_pictures_after_visual_edit_commit_nonce", "")):
                 st.session_state["_visual_editor_add_pictures_commit_ready"] = True
             else:
-                if st.session_state.get("_visual_editor_last_result_changed"):
+                # Autosaves should feel invisible. Manual Save keeps the visible success message.
+                if st.session_state.get("_visual_editor_last_result_changed") and not st.session_state.get("_visual_editor_last_result_was_autosave"):
                     st.success("Edits saved to preview and PDF export.")
             return True
     return False

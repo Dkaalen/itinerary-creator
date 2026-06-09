@@ -10,3 +10,5 @@ outputs/
 .chatgpt_write_test.txt
 *.zip
 qa_reports/
+
+persistent_drafts/

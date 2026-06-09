@@ -4,10 +4,16 @@ let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
 let lastSavedPayload = '';
-// Autosaving is limited to browser-local draft persistence; Streamlit commits happen only on Save/Add pictures/PDF.
+// Browser-local autosave is immediate; server-side autosave is debounced and quiet.
 let activeEditKey = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
+let serverAutosaveTimer = null;
+let serverAutosaveInFlight = false;
+let lastServerAutosavePayload = "";
+let lastServerAutosaveAt = 0;
+const SERVER_AUTOSAVE_DELAY_MS = 12000;
+const SERVER_AUTOSAVE_MIN_INTERVAL_MS = 9000;
 const WARNING_PATTERNS = [
   /\bPls\b/i, /\bplz\b/i, /\baddon cost\b/i, /\bpaid on ground\b/i,
   /\btranfers\b/i, /\bDate dependant\b/i, /\bFight\s*:/i,

@@ -109,12 +109,12 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page, then save before exporting the final PDF.' : 'Edit directly on the document pages. Your browser keeps a local draft until you save changes.'}</span></div>
+      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page, then save before exporting the final PDF.' : 'Edit directly on the document pages. Changes autosave quietly while you work.'}</span></div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
           <span id="editCount" class="stat-pill">0 manual edits pending</span>
           <span id="warningCount" class="stat-pill warn">0 warnings</span>
-          <span id="savedNote" class="saved-note">Saved for now</span>
+          <span id="savedNote" class="saved-note">Autosave ready</span>
           <button class="primary" id="saveBtn" type="button">Save changes</button>
         </div>
         <details class="advanced-tools">

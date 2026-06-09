@@ -156,3 +156,9 @@ function buildSaveEnvelope(commitNonce = null) {
   }
   return JSON.stringify(payload);
 }
+
+function buildServerAutosaveEnvelope() {
+  collect();
+  const payload = compactFullPayloadForCommit(model);
+  return JSON.stringify({autosave: true, payload});
+}

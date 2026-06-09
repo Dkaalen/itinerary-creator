@@ -1,10 +1,46 @@
+function updateAutosaveNote(message) {
+  const note = document.getElementById('savedNote');
+  if (!note) return;
+  note.textContent = message;
+  note.classList.add('show');
+}
+
+function sendServerAutosaveNow() {
+  if (!model || serverAutosaveInFlight) return;
+  if (!touchedKeys.size && !restoredLocalDraftPendingSave) return;
+  const now = Date.now();
+  if (now - lastServerAutosaveAt < SERVER_AUTOSAVE_MIN_INTERVAL_MS) {
+    scheduleServerAutosave(SERVER_AUTOSAVE_MIN_INTERVAL_MS);
+    return;
+  }
+  const serialized = buildServerAutosaveEnvelope();
+  if (serialized === lastServerAutosavePayload) return;
+  serverAutosaveInFlight = true;
+  lastServerAutosaveAt = now;
+  lastServerAutosavePayload = serialized;
+  persistLocalDraft();
+  updateAutosaveNote('Autosaving…');
+  Streamlit.setComponentValue(serialized);
+  setTimeout(() => { serverAutosaveInFlight = false; }, 4000);
+}
+
+function scheduleServerAutosave(delayMs = SERVER_AUTOSAVE_DELAY_MS) {
+  if (serverAutosaveTimer) clearTimeout(serverAutosaveTimer);
+  serverAutosaveTimer = setTimeout(() => {
+    serverAutosaveTimer = null;
+    sendServerAutosaveNow();
+  }, delayMs);
+}
+
 function saveRestoredLocalDraftToServer() {
   if (!restoredLocalDraftPendingSave) return;
   restoredLocalDraftPendingSave = false;
   collect();
-  const serialized = JSON.stringify(compactFullPayloadForCommit(model));
+  const serialized = buildServerAutosaveEnvelope();
   if (serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
+  lastServerAutosavePayload = serialized;
+  lastServerAutosaveAt = Date.now();
   persistLocalDraft();
   Streamlit.setComponentValue(serialized);
   const note = document.getElementById('savedNote');
@@ -17,10 +53,12 @@ function saveRestoredLocalDraftToServer() {
 }
 
 function saveChanges(commitNonce = null) {
+  if (serverAutosaveTimer) { clearTimeout(serverAutosaveTimer); serverAutosaveTimer = null; }
   if (!touchedKeys.size && !commitNonce) return;
   const serialized = buildSaveEnvelope(commitNonce);
   if (!commitNonce && serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
+  lastServerAutosavePayload = serialized;
   persistLocalDraft();
   Streamlit.setComponentValue(serialized);
   touchedKeys = new Set();
