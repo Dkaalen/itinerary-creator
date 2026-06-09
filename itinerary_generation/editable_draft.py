@@ -427,7 +427,13 @@ def mirror_draft_to_legacy_output_edits(output_edits: dict[str, Any], editor_dra
 
     workflow = _as_dict(editor_draft.get("workflow"))
     if "pictures_added" in workflow:
-        output_edits["pictures_added"] = bool(workflow.get("pictures_added"))
+        # The Streamlit workflow state is the source of truth once picture review
+        # has been activated. Older/stale editor payloads can still carry
+        # workflow.pictures_added=false; those must not turn off pictures after
+        # the user has clicked Add pictures. A positive editor value may still
+        # promote the state for restored projects.
+        editor_pictures_added = bool(workflow.get("pictures_added"))
+        output_edits["pictures_added"] = bool(output_edits.get("pictures_added")) or editor_pictures_added
 
     issue_flags = [dict(flag) for flag in editor_draft.get("issue_flags") or [] if isinstance(flag, Mapping)]
     if issue_flags:

@@ -11,14 +11,14 @@ import unicodedata
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 CITY_ALIASES = {
-    "tromso": {"tromso", "tromsø"},
-    "tromsø": {"tromso", "tromsø"},
+    "tromso": {"tromso", "tromsø", "tromsoe"},
+    "tromsø": {"tromso", "tromsø", "tromsoe"},
     "oslo": {"oslo"},
     "bergen": {"bergen"},
     "voss": {"voss"},
     "stavanger": {"stavanger", "preikestolen", "lysefjord"},
     "helsinki": {"helsinki"},
-    "rovaniemi": {"rovaniemi"},
+    "rovaniemi": {"rovaniemi", "rovaneimi", "rovaniem", "rovaniemi city"},
     "kakslauttanen": {"kakslauttanen", "kakslauttenen"},
     "kakslauttenen": {"kakslauttanen", "kakslauttenen"},
     "ivalo": {"ivalo"},
@@ -53,8 +53,8 @@ CITY_ALIASES = {
     "jökulsárlón": {"jokulsarlon", "jökulsárlón", "jokulsárlón"},
     "flam": {"flam", "flåm"},
     "flåm": {"flam", "flåm"},
-    "alesund": {"alesund", "ålesund"},
-    "ålesund": {"alesund", "ålesund"},
+    "alesund": {"alesund", "ålesund", "aalesund"},
+    "ålesund": {"alesund", "ålesund", "aalesund"},
     "gallivare": {"gallivare", "gällivare"},
     "gällivare": {"gallivare", "gällivare"},
     "abisko": {"abisko"},

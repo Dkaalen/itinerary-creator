@@ -137,3 +137,31 @@ def _arrival_title(city: str) -> str:
 
 def _departure_title(city: str) -> str:
     return f"Departure from {city}" if city else "Departure"
+
+
+def _accommodation_led_title(rows: list[dict], city: str) -> str:
+    """Return an accommodation-led title for same-city resort moves.
+
+    When guests are already in a city and the day is mainly a transfer to a
+    distinctive stay (glass igloo, aurora nest, spa resort), "Welcome to City"
+    is misleading. Title the day by the stay instead.
+    """
+
+    hotel_rows = [row for row in rows if get_row_type(row) == "Hotel"]
+    if not hotel_rows:
+        return ""
+    hotel = hotel_rows[0]
+    text = _all_text(rows).lower()
+    hotel_name = polish_title(str(hotel.get("hotel_name") or hotel.get("title") or "").strip())
+    room = polish_title(str(hotel.get("room_category") or "").strip())
+    distinctive = re.search(r"\b(?:igloo|aurora\s+nest|glass\s+igloo|spa\s+resort|snow\s+hotel)\b", text, flags=re.I)
+    if not distinctive:
+        return ""
+    if hotel_name and not re.search(r"\b(?:centrally located hotel|accommodation|[2-5][ -]?star hotel)\b", hotel_name, flags=re.I):
+        if re.search(r"\bigloo|spa\s+resort|snow\s+hotel\b", hotel_name, flags=re.I):
+            return f"{hotel_name} Stay"
+        if re.search(r"\b(?:igloo|aurora\s+nest|glass)\b", room, flags=re.I):
+            return f"{hotel_name} Stay"
+    if city:
+        return f"Glass Igloo Stay in {city}"
+    return "Glass Igloo Stay"

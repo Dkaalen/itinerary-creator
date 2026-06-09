@@ -60,6 +60,33 @@ from normalizer_modules.rental import (
 
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
+
+def _looks_like_misclassified_hotel_row(row: dict) -> bool:
+    """Return True when an accommodation row was pasted under Transfer.
+
+    Supplier sheets sometimes put hotel rows in the wrong category. If the text
+    clearly contains accommodation evidence (star level, night count and room or
+    known hotel/resort wording) and does not describe a point-to-point transfer,
+    normalize it as Hotel so route summaries, image matching and accommodation
+    blocks stay correct.
+    """
+
+    row_type = get_row_type(row)
+    if row_type not in {"Transfer", "Transport"}:
+        return False
+    full = text_blob(row).lower()
+    if re.search(r"\b(?:airport|station|bus\s*station|hotel)\s+to\s+(?:airport|station|bus\s*station|hotel)\b", full):
+        return False
+    if re.search(r"\b(?:private|shared)\s+(?:airport|station|hotel)\s+to\s+(?:airport|station|hotel)\b", full):
+        return False
+    accommodation_markers = (
+        re.search(r"\b[2-5]\s*[- ]?star\b", full)
+        and re.search(r"\b\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?\b", full)
+    )
+    room_markers = re.search(r"\b(?:standard|superior|deluxe|double|twin|family|room|igloo|aurora\s+nest|suite|cabin|incl\s+brek?afast|breakfast)\b", full)
+    hotel_markers = re.search(r"\b(?:hotel|resort|scandic|comfort|clarion|radisson|thon|igloo|spa)\b", full)
+    return bool((accommodation_markers and (room_markers or hotel_markers)) or (hotel_markers and room_markers and re.search(r"\b\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?\b", full)))
+
 # Compatibility aliases for older private imports. New code should import from
 # normalizer_modules.context or normalizer_modules.rental directly.
 _fill_missing_context_cities = fill_missing_context_cities
@@ -107,6 +134,11 @@ def normalize_row(row: dict) -> dict:
 
     row_type = get_row_type(row)
     full = text_blob(row)
+
+    if _looks_like_misclassified_hotel_row(row):
+        row["effective_type"] = "Hotel"
+        row["type"] = row.get("type") or "Hotel"
+        return normalize_hotel_row(row)
 
     if looks_like_departure_text(full) and not _is_group_tour_overview(row):
         row["effective_type"] = "Departure"

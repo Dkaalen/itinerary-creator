@@ -201,9 +201,37 @@ def enter_picture_stage(
             payload={"gateway": gateway},
         )
 
-    set_pictures_added(output_edits, True)
     image_grouped_days = image_grouped_days_from_state(state)
+    # Select before marking the workflow successful.  The image bank may be
+    # connected while still producing zero usable matches because destination
+    # names, folder aliases or bank contents do not line up.  In that case the
+    # user needs an actionable warning instead of a false "Pictures added" state.
     matches = select_images_func(image_grouped_days, output_edits)
+    matched_days = [day for day, match in (matches or {}).items() if isinstance(match, Mapping) and match.get("path")]
+    unmatched_days = [day for day in (image_grouped_days or {}) if day not in matched_days]
+
+    if not matched_days:
+        set_pictures_added(output_edits, False)
+        output_edits["day_image_matches"] = dict(matches or {})
+        output_edits["image_match_unmatched_days"] = unmatched_days
+        state["image_review_warning_count"] = max(1, len(unmatched_days))
+        clear_pdf_artifacts(state, status="No destination pictures matched")
+        stage = set_workflow_stage(state, "edit")
+        return WorkflowActionResult(
+            ok=False,
+            stage=stage,
+            message="Image bank connected, but no destination pictures matched. Check destination names and image-bank folders.",
+            payload={"gateway": gateway, "matches": matches, "unmatched_days": unmatched_days},
+        )
+
+    set_pictures_added(output_edits, True)
+    output_edits["day_image_matches"] = dict(matches or {})
+    output_edits["image_match_unmatched_days"] = unmatched_days
+    editor_draft = output_edits.get("editor_draft")
+    if isinstance(editor_draft, dict):
+        workflow = editor_draft.setdefault("workflow", {})
+        if isinstance(workflow, dict):
+            workflow["pictures_added"] = True
     warnings = audit_images_func(image_grouped_days, matches, output_edits)
     state["image_review_warning_count"] = len(
         [warning for warning in warnings if getattr(warning, "severity", "") == "error"]
@@ -212,7 +240,8 @@ def enter_picture_stage(
     mark_pdf_dirty(state, status="Needs refresh")
     rebuild_preview_func(mark_pdf_dirty=True, force=True, save_html=True)
     stage = set_workflow_stage(state, "pictures")
-    return WorkflowActionResult(ok=True, stage=stage, message="Pictures added.", payload={"matches": matches})
+    message = "Pictures added." if not unmatched_days else f"Pictures added. {len(unmatched_days)} day(s) still need image review."
+    return WorkflowActionResult(ok=True, stage=stage, message=message, payload={"matches": matches, "unmatched_days": unmatched_days})
 
 
 def enter_export_stage(

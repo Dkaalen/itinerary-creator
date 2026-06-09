@@ -23,6 +23,7 @@ from itinerary_generation.day_row_selectors import (
 from itinerary_generation.day_title_planner import (
     _arrival_title,
     _departure_title,
+    _accommodation_led_title,
     _destination_from_transport,
     _hop_on_title,
     _leisure_title,
@@ -107,6 +108,9 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)
 
     if has_hotel(rows) and not activity_rows and travel_rows:
+        accommodation_title = _accommodation_led_title(rows, city)
+        if accommodation_title:
+            return DayPlan("stay_day", accommodation_title, _intro_for_title(accommodation_title, city, "stay_day"), suppress_free_time=True)
         transfer_text = " ".join(_text(row).lower() for row in travel_rows)
         if "to your accommodation" in transfer_text or "to your hotel" in transfer_text:
             return DayPlan("arrival_day", f"Arrival in {city}" if city else "Arrival", "")
@@ -158,8 +162,9 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("travel_day", title, _intro_for_title(title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
 
     if has_hotel(rows) and city:
-        title = f"Welcome to {city}"
-        return DayPlan("stay_day", title, f"Welcome to {city}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination.")
+        title = _accommodation_led_title(rows, city) or f"Welcome to {city}"
+        intro = _intro_for_title(title, city, "stay_day") if not title.startswith("Welcome to") else f"Welcome to {city}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination."
+        return DayPlan("stay_day", title, intro)
 
     title = _leisure_title(city)
     return DayPlan("leisure_day", title, _intro_for_title(title, city, "leisure_day"), skip_empty_activity_rows=True)

@@ -35,6 +35,10 @@ def _hotel_nights_from_date_range(start_value: object, end_value: object) -> str
 
 def _normalize_single_room_category(value: str, *, preserve_quantity: bool = False) -> str:
     room = polish_client_text(value)
+    # Room categories are source-product names. Do not let general client-text
+    # rewriting turn supplier room types such as "Aurora Nest" into
+    # "Northern Lights Nest".
+    room = re.sub(r"\bNorthern Lights\s+Nest\b", "Aurora Nest", room, flags=re.IGNORECASE)
     quantity_match = re.match(r"^\s*(\d+)\s*x\s*", room, flags=re.IGNORECASE)
     quantity = f"{quantity_match.group(1)} x" if quantity_match else ""
     room = re.sub(r"^\s*\d+\s*x\s*", "", room, flags=re.IGNORECASE)
@@ -53,6 +57,7 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
     room = re.sub(r"\bPanorama\s+suites?\b", "Panorama Suite", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall\s+Glass\s+Igloo\b", "Small Glass Igloo", room, flags=re.IGNORECASE)
     room = re.sub(r"\bWest\s+or\s+east\s+Village\b", "West or East Village", room, flags=re.IGNORECASE)
+    room = re.sub(r"\bAurora\s+Nests?\b", "Aurora Nest", room, flags=re.IGNORECASE)
     room = re.sub(r"\bSmall Glass Igloo\s+(West or East Village)\b", r"Small Glass Igloo, \1", room, flags=re.IGNORECASE)
     room = clean_space(room.strip(" ,-"))
     room = re.sub(r"\bRooms\b", "Room", room, flags=re.IGNORECASE)
@@ -77,10 +82,10 @@ def _normalize_single_room_category(value: str, *, preserve_quantity: bool = Fal
         return f"{quantity} {room}"
     return room
 
-ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|suites?|cabins?|apartments?|villas?|cottages?|lodges?)"
+ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|nests?|suites?|cabins?|apartments?|villas?|cottages?|lodges?)"
 ROOM_DESCRIPTOR_PATTERN = (
     r"(?:standard|std\.?|superior|deluxe|small glass|glass|panorama|triple|tirple|"
-    r"double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view|one bedroom|two bedroom|three bedroom|four bedroom|aurora|log|arctic treehouse|fisherman[’']?s?)"
+    r"double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view|one bedroom|two bedroom|three bedroom|four bedroom|aurora|aurora nest|log|arctic treehouse|fisherman[’']?s?)"
 )
 
 
@@ -101,9 +106,13 @@ def _room_fragment_candidates(value: str) -> list[str]:
 
 def normalize_room_category(value: str) -> str:
     room = polish_client_text(value)
+    room = re.sub(r"\bNorthern Lights\s+Nest\b", "Aurora Nest", room, flags=re.IGNORECASE)
     room = re.sub(r"\bTirple\b", "Triple", room, flags=re.IGNORECASE)
     room = re.sub(r"(?<=\D)(\d+\s*x\s*)", r" \1", room, flags=re.IGNORECASE)
-    if re.search(r"\bnight'?s?\b", room, flags=re.IGNORECASE):
+    if re.search(r"\b(?:night|ngiht|nite|nt)'?s?\b", room, flags=re.IGNORECASE):
+        # Only reject pure accommodation-duration fragments. Rows such as
+        # "1xngiht, 2xAurora Nest" still contain a valid room category that
+        # will be seen in a later comma fragment.
         return ""
 
     # Preserve room quantities from source rows. Client inclusions need to show
@@ -225,7 +234,7 @@ def is_placeholder_hotel_name(name: str, city: str = "") -> bool:
         return True
     if re.search(r"\b\d\s*[- ]?star\b", lower):
         return True
-    if re.search(r"\b\d+\s*(?:x\s*)?(?:night|nite|nt)s?", lower):
+    if re.search(r"\b\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?", lower):
         return True
     if any(marker in lower for marker in ["standard room", "standard double room", "incl breakfast", "incl brekafast", "breakfast", "room category"]):
         return True
@@ -273,11 +282,11 @@ def clean_hotel_name_from_source(row: dict) -> str:
             continue
         if re.fullmatch(r"\s*\d\s*[- ]?star\s*", lower):
             continue
-        if re.search(r"\b\d+\s*(?:x\s*)?(?:night|nite|nt)s?", lower):
+        if re.search(r"\b\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?", lower):
             # Some weak inputs use either "2 Night's Hotel Scandic Kemi" or
             # "Hotel Aakenus 2xNight" in the same comma fragment.
-            trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?(?:night|nite|nt)'?s?\s*", "", part_clean, flags=re.IGNORECASE).strip(" ,-:")
-            trailing = re.sub(r"\s*\d+\s*(?:x\s*)?(?:night|nite|nt)'?s?\s*$", "", trailing, flags=re.IGNORECASE).strip(" ,-:")
+            trailing = re.sub(r"^\s*\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)'?s?\s*", "", part_clean, flags=re.IGNORECASE).strip(" ,-:")
+            trailing = re.sub(r"\s*\d+\s*(?:x\s*)?(?:night|ngiht|nite|nt)'?s?\s*$", "", trailing, flags=re.IGNORECASE).strip(" ,-:")
             if trailing:
                 part_clean = trailing
                 lower = part_clean.lower()
@@ -326,7 +335,7 @@ def normalize_hotel_row(row: dict) -> dict:
     if date_range_nights and (not nights or (nights == "1" and int(date_range_nights) > 1)):
         nights = date_range_nights
     elif not nights:
-        night_match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", source, flags=re.IGNORECASE)
+        night_match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?", source, flags=re.IGNORECASE)
         if night_match:
             nights = night_match.group(1)
 

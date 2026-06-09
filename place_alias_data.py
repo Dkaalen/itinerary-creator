@@ -64,7 +64,7 @@ PLACES = [
 
     # Finland
     {"country": "Finland", "canonical": "Helsinki", "kind": "city", "aliases": []},
-    {"country": "Finland", "canonical": "Rovaniemi", "kind": "city", "aliases": []},
+    {"country": "Finland", "canonical": "Rovaniemi", "kind": "city", "aliases": ["Rovaneimi", "Rovaniem"]},
     {"country": "Finland", "canonical": "Turku", "kind": "city", "aliases": []},
     {"country": "Finland", "canonical": "Tampere", "kind": "city", "aliases": []},
     {"country": "Finland", "canonical": "Oulu", "kind": "city", "aliases": []},
