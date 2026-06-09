@@ -7,6 +7,7 @@ import re
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import polish_client_text, polish_title
 from itinerary_generation.render_text_helpers import get_detail_level_name
+from itinerary_generation.activity_training_catalogue import catalogue_description_for_row
 from itinerary_generation.product_rules import find_product_match
 
 
@@ -114,8 +115,13 @@ def _real_supplier_description(row: dict, max_words: int = 90) -> str:
         if not re.match(r"^\s*Day\s*\d+\s*[:\-–]", text, flags=re.IGNORECASE):
             lower_text = text.lower()
             has_metadata = any(marker in lower_text for marker in [" time:", " meeting point", " includes:", " what's included", " what’s included"])
+            pipe_parts = [part.strip() for part in re.split(r"\s*\|\s*", text) if part.strip()]
+            has_pipe_metadata = len(pipe_parts) >= 3 and any(
+                re.search(r"\b(?:\d{1,2}(?::\d{2})?\s*(?:am|pm)|\d+(?:\.\d+)?\s*(?:hrs?|hours?))\b", part, flags=re.IGNORECASE)
+                for part in pipe_parts[1:]
+            )
             has_section = any(marker in lower_text for marker in ["overview", "what to expect", "description:"])
-            if has_metadata and not has_section:
+            if (has_metadata or has_pipe_metadata) and not has_section:
                 continue
         candidate = _trim_description_sentences(text, max_words=max_words)
         if candidate:
@@ -194,6 +200,14 @@ def get_activity_description(row, detail_level=None):
         if detail_level == "Rich descriptive":
             return "Use your flexible ticket to explore the city at your own pace, choosing the stops and sights that suit your day best."
         return "Use your flexible ticket to explore the city at your own pace."
+
+    # The training catalogue is a structured example layer, not the highest
+    # authority.  Use it after explicit supplier prose and specific product
+    # templates, but before broad keyword fallbacks such as generic walking,
+    # boat, Northern Lights, or planned-experience copy.
+    catalogue_description = catalogue_description_for_row(row)
+    if catalogue_description:
+        return catalogue_description
 
     clean_title = polish_title(create_client_activity_title(row) or row.get("title", "") or "Included experience")
     city_name = polish_title(row.get("city", ""))

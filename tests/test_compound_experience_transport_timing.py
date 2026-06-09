@@ -65,7 +65,7 @@ Day 1	Activity	01.01.2026		Norway in a NUtshell | Oslo to Bergen | 08:35 --- 20:
     rows = _rows(raw)
     row = rows[0]
 
-    assert row["title"] == "Norway in a Nutshell to Bergen"
+    assert row["title"] == "Norway in a Nutshell from Oslo to Bergen"
     assert row["time"] == "8:35 AM - 8:38 PM"
     assert "Luggage porter service" in row["includes"]
     assert get_transport_route_phrase(row) == "Norway in a Nutshell from Oslo to Bergen"

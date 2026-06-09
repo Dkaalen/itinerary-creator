@@ -46,6 +46,21 @@ _TRANSPORT_KIND_BY_TYPE = {
     "Drive": "transfer",
 }
 
+_ACTIVITY_STRUCTURE_MARKERS = (
+    "|",
+    "what's included",
+    "whats included",
+    "meeting point",
+    "pick up / meeting point",
+    "pickup / meeting point",
+    "pick-up/drop-off",
+    "duration",
+)
+
+
+def _has_structured_activity_supplier_text(source_lower: str) -> bool:
+    return sum(1 for marker in _ACTIVITY_STRUCTURE_MARKERS if marker in source_lower) >= 2
+
 
 def _clean(value: object) -> str:
     return clean_text(value)
@@ -249,6 +264,16 @@ def _row_data_warnings(row: dict) -> tuple[ModelWarning, ...]:
             warnings.append(ModelWarning(
                 code="suspicious_activity_time",
                 message=f"Activity time {time_text} looks unusual for a daytime sightseeing product; verify AM/PM before final output.",
+                source_row_ids=(row_id,),
+            ))
+        product = row.get("activity_product") if isinstance(row.get("activity_product"), dict) else {}
+        if not product and _has_structured_activity_supplier_text(source_lower):
+            warnings.append(ModelWarning(
+                code="low_confidence_activity_structure",
+                message=(
+                    "Structured supplier activity text did not match a known product fingerprint; "
+                    "review the title, meeting point and inclusions before final output."
+                ),
                 source_row_ids=(row_id,),
             ))
 

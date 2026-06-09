@@ -384,7 +384,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     inclusions = "\n".join(item for sec in create_categorized_inclusions(rows, grouped) for item in sec.get("items", []))
     assert_not_contains(inclusions, "Whale Watching & Arctic Wildlife Safari", "Optional add-ons must not appear in normal inclusions.")
     assert_not_contains(inclusions, "Whale Watching From Downtown", "Generic whale title should not leak for the optional Alta RIB safari.")
-    assert_contains(inclusions, "Northern Lights Experience", "The included Alta northern lights activity should remain included.")
+    assert_contains(inclusions, "Northern Lights Tour by Minibus with Photo Assistance", "The included Alta northern lights activity should remain included with its source-specific title.")
 
     not_included = "\n".join(create_whats_not_included(rows))
     assert_contains(not_included, "Optional add-ons and experiences", "Optional add-ons should be commercially clear in exclusions.")

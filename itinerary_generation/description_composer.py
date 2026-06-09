@@ -7,6 +7,7 @@ import re
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text, strip_price_fragments
 
+from itinerary_generation.activity_training_catalogue import catalogue_description_for_row
 from itinerary_generation.description_facts import _has_bad_residue
 from itinerary_generation.description_patterns import GENERATED_INTRO_PATTERNS
 from itinerary_generation.description_schema import DescriptionDraft
@@ -39,7 +40,17 @@ def compose_activity_description(row: dict, fallback: str = "") -> DescriptionDr
         text = _compose_group_day(row, source, title, city)
         return DescriptionDraft(text=text, source="composed_group_day", warnings=warnings)
 
+    # Product-specific templates are intentionally evaluated before the
+    # training catalogue.  The catalogue is example-backed and useful, but it
+    # must not override stronger domain templates such as icebreaker product
+    # names, ice-floating wording, Sámi/reindeer wording, or Bergen foot-and-
+    # boat phrasing.
     text = _compose_known_activity(row, source, title, city)
+
+    if not text:
+        catalogue_description = catalogue_description_for_row(row)
+        if catalogue_description and not _has_bad_residue(catalogue_description):
+            return DescriptionDraft(text=catalogue_description, source="training_catalogue", warnings=warnings)
     if not text and fallback:
         # Keep fallback only if it is already clean and specific. Otherwise compose generic.
         fb = polish_client_text(_clean_inline(strip_price_fragments(fallback)))

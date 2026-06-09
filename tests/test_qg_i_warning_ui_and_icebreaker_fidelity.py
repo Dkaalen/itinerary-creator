@@ -34,13 +34,13 @@ def test_meeting_point_snowmobile_park_does_not_rename_northern_lights_minibus_t
 ''')
     activity = next(row for row in rows if row.get("effective_type") == "Activity")
 
-    assert activity["title"] == "Northern Lights Hunt"
+    assert activity["title"] == "Northern Lights Hunt by Minibus at the Arctic Circle"
     assert "Snowmobile" not in activity["title"]
 
     day_html = "\n".join(block["html"] for block in build_day_blocks(grouped["Day 5"]) if block)
     plain = compact_html(day_html)
 
-    assert "Northern Lights Hunt" in plain
+    assert "Northern Lights Hunt by Minibus at the Arctic Circle" in plain
     assert "Snowmobile Evening Safari" not in plain
 
 

@@ -181,6 +181,14 @@ def get_primary_transport_title(day_rows):
         for row in day_rows:
             if get_row_type(row) == preferred_type:
                 source_text = get_transport_source_text(row)
+                if preferred_type == "Transport" and has_local_transfer_marker(source_text.lower()):
+                    has_main_transport = any(
+                        get_row_type(other) == preferred_type
+                        and not has_local_transfer_marker(get_transport_source_text(other).lower())
+                        for other in day_rows
+                    )
+                    if has_main_transport:
+                        continue
                 if _is_norway_in_a_nutshell_text(source_text):
                     route_phrase = get_transport_route_phrase(row)
                     if route_phrase:

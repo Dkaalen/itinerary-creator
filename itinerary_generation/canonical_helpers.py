@@ -5,15 +5,16 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+from itinerary_generation.source_identity import clean_text, source_row_id, source_text
 from itinerary_generation.content_engine import group_tour_pickup_window_from_overview
 
 
 def _clean(value: object) -> str:
-    return " ".join(str(value or "").split()).strip()
+    return clean_text(value)
 
 
 def _row_id(row: dict) -> str:
-    return str(row.get("row_id") or "")
+    return source_row_id(row, 0) if row.get("row_id") else ""
 
 
 def _is_fløibanen(title: str) -> bool:
@@ -30,4 +31,4 @@ def _group_tour_pickup_window(rows: Iterable[dict]) -> str:
 
 
 def _source_text(row: dict) -> str:
-    return " ".join(str(row.get(key) or "") for key in ("title", "hotel_name", "details", "original_title"))
+    return source_text(row, ("title", "hotel_name", "details", "original_title"), separator=" ")

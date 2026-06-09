@@ -182,9 +182,10 @@ def _coach_terminal_transfer_lines(row):
 
 
 def _self_transfer_lines(row):
-    if get_row_type(row) != "Transfer" or not is_self_arranged(row):
-        return []
     text = get_transport_source_text(row)
+    lower = text.lower()
+    if "self transfer" not in lower and "self-arranged transfer" not in lower:
+        return []
     return split_self_transfer_notes(text)
 
 
