@@ -12,6 +12,10 @@ from typing import Any
 
 import diagnostics
 
+from app_modules.editor_commit import (
+    add_pictures_editor_commit_ready,
+    clear_add_pictures_editor_commit_request,
+)
 from app_modules.image_gateway import connect_image_bank_for_picture_stage
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.parse_workflow import get_duplicate_count, get_overflow_warnings, parse_and_normalize_itinerary
@@ -186,6 +190,15 @@ def enter_picture_stage(
     state["output_edits"] = output_edits
     output_edits["allow_default_final_images"] = False
 
+    if not add_pictures_editor_commit_ready(state):
+        stage = set_workflow_stage(state, "edit")
+        return WorkflowActionResult(
+            ok=False,
+            stage=stage,
+            message="Apply changes before adding pictures.",
+            payload={"requires_apply_changes": True},
+        )
+
     gateway = connect_image_bank_for_picture_stage(status_func, connect_func).as_dict()
     state["image_bank_gateway"] = gateway
     state["image_bank_status"] = gateway.get("status", {})
@@ -213,6 +226,7 @@ def enter_picture_stage(
 
     if not matched_days:
         set_pictures_added(output_edits, False)
+        # Derived audit metadata only. Durable user choices live in day_images.
         output_edits["day_image_matches"] = dict(matches or {})
         output_edits["image_match_unmatched_days"] = unmatched_days
         state["image_review_warning_count"] = max(1, len(unmatched_days))
@@ -226,6 +240,7 @@ def enter_picture_stage(
         )
 
     set_pictures_added(output_edits, True)
+    # Derived audit metadata only. Durable user choices live in day_images.
     output_edits["day_image_matches"] = dict(matches or {})
     output_edits["image_match_unmatched_days"] = unmatched_days
     editor_draft = output_edits.get("editor_draft")
@@ -238,6 +253,7 @@ def enter_picture_stage(
         [warning for warning in warnings if getattr(warning, "severity", "") == "error"]
     )
     state.pop("image_bank_gateway", None)
+    clear_add_pictures_editor_commit_request(state)
     mark_pdf_dirty(state, status="Needs refresh")
     rebuild_preview_func(mark_pdf_dirty=True, force=True, save_html=True)
     stage = set_workflow_stage(state, "pictures")

@@ -98,6 +98,38 @@ def test_visual_editor_accepts_pdf_export_commit_envelope():
     assert editor_workflow.st.session_state["_visual_editor_last_applied_commit_nonce"] == "7"
 
 
+def test_stale_visual_editor_payload_cannot_disable_added_pictures():
+    editor_workflow.st.session_state = {}
+    output_edits = {"days": {}, "pictures_added": True}
+    result = json.dumps({
+        "workflow": {"pictures_added": False},
+        "cover": {},
+        "summary": {},
+        "days": [],
+        "final_pages": {},
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["pictures_added"] is True
+
+
+def test_visual_editor_can_promote_picture_state_from_recovered_payload():
+    editor_workflow.st.session_state = {}
+    output_edits = {"days": {}, "pictures_added": False}
+    result = json.dumps({
+        "workflow": {"pictures_added": True},
+        "cover": {},
+        "summary": {},
+        "days": [],
+        "final_pages": {},
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["pictures_added"] is True
+
+
 def test_pdf_export_commit_applies_route_and_day_title_edits():
     editor_workflow.st.session_state = {}
     output_edits = {"days": {}}
@@ -301,6 +333,7 @@ def test_visual_editor_frontend_has_autosave_and_text_first_contract():
     assert "localStorage.setItem" in editor_html
     assert "beforeunload" in editor_html
     assert "picturesAdded" in editor_html
+    assert "Applying changes…" in editor_html
 
 
 def test_visual_editor_text_mode_cover_uses_high_contrast_edit_skin():

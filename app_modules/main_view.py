@@ -15,6 +15,12 @@ from ui.picture_workflow import pictures_are_added
 from itinerary_generation.common import group_rows_by_day
 from visual_editor_component.editor_workflow import render_visual_editor
 
+from app_modules.editor_commit import (
+    ADD_PICTURES_COMMIT_REQUEST_KEY,
+    add_pictures_editor_commit_ready,
+    clear_add_pictures_editor_commit_request,
+    request_add_pictures_editor_commit,
+)
 from app_modules.export_step import (
     render_export_step,
     render_pdf_download_station,
@@ -301,23 +307,59 @@ def _activate_picture_stage() -> bool:
     return result.ok
 
 
+def _add_pictures_apply_ready() -> bool:
+    return add_pictures_editor_commit_ready(st.session_state)
+
+
+def _add_pictures_apply_pending() -> bool:
+    return bool(st.session_state.get(ADD_PICTURES_COMMIT_REQUEST_KEY)) and not _add_pictures_apply_ready()
+
+
 def render_edit_page(app_version: str) -> None:
     _render_app_header(app_version, stage="edit")
     _render_generation_messages()
     _render_stage_actions("edit")
     _stage_panel(STAGE_COPY["edit"]["panel_title"], STAGE_COPY["edit"]["panel_text"])
-    _render_document_editor(pictures_active=False)
 
-    st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Add destination pictures and return to the top for visual review.</span></div></div>')
+    was_waiting_for_apply = _add_pictures_apply_pending()
+    if not _add_pictures_apply_ready():
+        _render_document_editor(pictures_active=False)
+        if was_waiting_for_apply and _add_pictures_apply_ready():
+            st.rerun()
+
+    st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Apply the current preview changes, then add destination pictures from the committed itinerary.</span></div></div>')
     gateway_result = st.session_state.get("image_bank_gateway")
     if _image_bank_gateway_is_blocking(gateway_result):
         _render_image_bank_gateway_repair(gateway_result)
         return
 
-    if st.button("Add pictures", type="primary", use_container_width=True):
-        with st.spinner("Finding best images…"):
-            _activate_picture_stage()
+    apply_ready = _add_pictures_apply_ready()
+    apply_pending = _add_pictures_apply_pending()
+
+    if apply_ready:
+        st.success("Changes applied. Add pictures is ready to run from the committed itinerary.")
+        left, right = st.columns(2)
+        with left:
+            if st.button("Edit again", use_container_width=True):
+                clear_add_pictures_editor_commit_request(st.session_state)
+                st.rerun()
+        with right:
+            if st.button("Add pictures", type="primary", use_container_width=True):
+                with st.spinner("Finding best images…"):
+                    _activate_picture_stage()
+                st.rerun()
+        return
+
+    if apply_pending:
+        st.info("Applying preview changes before pictures can be added…")
+        st.button("Add pictures", disabled=True, use_container_width=True)
+        return
+
+    if st.button("Apply Changes", type="primary", use_container_width=True):
+        request_add_pictures_editor_commit(st.session_state)
         st.rerun()
+    st.button("Add pictures", disabled=True, use_container_width=True)
+    st.caption("Apply changes before adding pictures so image matching uses the latest committed itinerary.")
 
 
 def render_final_preview_step():

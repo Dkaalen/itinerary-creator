@@ -12,6 +12,7 @@ from typing import Any, Mapping, MutableMapping
 
 from itinerary_generation.common import group_rows_by_day, is_optional_row
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
+from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 
 
@@ -142,11 +143,54 @@ def session_state_snapshot(state: Mapping[str, Any]) -> dict[str, Any]:
     return {key: state.get(key) for key in state.keys()}
 
 
-def image_grouped_days_from_state(state: Mapping[str, Any]) -> dict:
-    """Return image-relevant rows grouped by day, excluding optional rows when possible."""
+def _day_overview_image_row(day: str, day_edit: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Return a synthetic day-overview row for committed day-level edits.
 
-    grouped_days = group_rows_by_day(state.get("parsed_rows", []) or [])
+    Image matching works from rows, but the visual editor stores some important
+    destination signals at day level.  Adding a lightweight overview row lets the
+    image matcher consume the same committed itinerary the preview/PDF use
+    without mutating supplier rows or teaching the image matcher about editor
+    internals.
+    """
+
+    if not isinstance(day_edit, Mapping):
+        return None
+    title = str(day_edit.get("title", "") or "").strip()
+    city = str(day_edit.get("city", "") or "").strip()
+    intro = str(day_edit.get("intro", "") or "").strip()
+    if not any((title, city, intro)):
+        return None
     return {
-        day: [row for row in rows if not is_optional_row(row)] or list(rows)
-        for day, rows in grouped_days.items()
+        "day": day,
+        "type": "Day Overview",
+        "effective_type": "Day Overview",
+        "city": city,
+        "title": title,
+        "client_description": intro,
+        "display_description": intro,
+        "image_context_source": "committed_day_edit",
     }
+
+
+def image_grouped_days_from_state(state: Mapping[str, Any]) -> dict:
+    """Return committed image-relevant rows grouped by day.
+
+    The picture workflow must not match against stale raw parser rows after the
+    user has edited the preview.  Start from ``apply_output_edits`` and add a
+    synthetic day-overview row when the committed visual editor state has
+    day-level destination/title signals. Optional supplier rows are excluded
+    unless they are the only rows available for the day.
+    """
+
+    parsed_rows = state.get("parsed_rows", []) or []
+    output_edits = state.get("output_edits", {}) or {}
+    edited_rows = apply_output_edits(parsed_rows, output_edits) if output_edits else deepcopy(parsed_rows)
+    grouped_days = group_rows_by_day(edited_rows)
+    day_edits = output_edits.get("days", {}) if isinstance(output_edits, Mapping) else {}
+
+    image_grouped_days = {}
+    for day, rows in grouped_days.items():
+        usable_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
+        overview_row = _day_overview_image_row(str(day), day_edits.get(day, {}) if isinstance(day_edits, Mapping) else {})
+        image_grouped_days[day] = ([overview_row] if overview_row else []) + usable_rows
+    return image_grouped_days

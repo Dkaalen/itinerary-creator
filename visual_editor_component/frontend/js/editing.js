@@ -64,7 +64,7 @@ function saveChanges(commitNonce = null) {
   touchedKeys = new Set();
   const note = document.getElementById('savedNote');
   if (note) {
-    note.textContent = commitNonce ? 'Applying edits before PDF…' : 'Saved';
+    note.textContent = commitNonce ? 'Applying changes…' : 'Saved';
     note.classList.add('show');
     if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
   }

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from app_modules.editor_commit import (
+    ADD_PICTURES_COMMIT_READY_KEY,
+    ADD_PICTURES_COMMIT_REQUEST_KEY,
+    VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY,
+)
 from app_modules.workflow_actions import enter_export_stage, enter_picture_stage, retry_image_bank_connection
 from app_modules.workflow_state import (
     clear_pdf_artifacts,
@@ -15,6 +20,12 @@ from app_modules.workflow_state import (
 
 READY_BANK = {"full_bank_found": True, "missing_full_bank": False, "destination_image_count": 4}
 MISSING_BANK = {"full_bank_found": False, "missing_full_bank": True, "blocking_message": "Missing bank"}
+
+
+def _mark_add_pictures_apply_changes_ready(state, nonce="apply-1"):
+    state[ADD_PICTURES_COMMIT_REQUEST_KEY] = nonce
+    state[ADD_PICTURES_COMMIT_READY_KEY] = True
+    state[VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY] = nonce
 
 
 def test_workflow_state_normalizes_stage_and_blocks_picture_stage_without_pictures():
@@ -76,6 +87,31 @@ def test_image_grouped_days_excludes_optional_rows_when_possible():
     assert [row["title"] for row in grouped["Day 1"]] == ["Included"]
 
 
+def test_enter_picture_stage_requires_applied_preview_changes_before_image_selection():
+    state = {
+        "app_stage": "edit",
+        "parsed_rows": [{"day": "Day 1", "city": "Oslo"}],
+        "output_edits": {"pictures_added": False},
+    }
+    calls = {"select": 0, "connect": 0, "rebuild": 0}
+
+    result = enter_picture_stage(
+        state,
+        status_func=lambda: READY_BANK,
+        connect_func=lambda: calls.__setitem__("connect", calls["connect"] + 1) or READY_BANK,
+        select_images_func=lambda grouped, edits: calls.__setitem__("select", calls["select"] + 1) or {},
+        audit_images_func=lambda grouped, matches, edits: (),
+        rebuild_preview_func=lambda **kwargs: calls.__setitem__("rebuild", calls["rebuild"] + 1) or True,
+    )
+
+    assert result.ok is False
+    assert result.payload == {"requires_apply_changes": True}
+    assert result.message == "Apply changes before adding pictures."
+    assert state["app_stage"] == "edit"
+    assert state["output_edits"]["pictures_added"] is False
+    assert calls == {"select": 0, "connect": 0, "rebuild": 0}
+
+
 def test_enter_picture_stage_blocks_missing_bank_and_clears_stale_pdf():
     state = {
         "app_stage": "edit",
@@ -87,6 +123,7 @@ def test_enter_picture_stage_blocks_missing_bank_and_clears_stale_pdf():
         "export_pdf_signature": "old",
     }
     calls = {"rebuild": 0}
+    _mark_add_pictures_apply_changes_ready(state)
 
     result = enter_picture_stage(
         state,
@@ -116,6 +153,7 @@ def test_enter_picture_stage_sets_review_state_and_marks_pdf_dirty():
         "export_pdf_bytes": b"old",
     }
     rebuild_calls = []
+    _mark_add_pictures_apply_changes_ready(state)
 
     result = enter_picture_stage(
         state,
@@ -134,6 +172,60 @@ def test_enter_picture_stage_sets_review_state_and_marks_pdf_dirty():
     assert state["export_pdf_bytes"] is None
     assert rebuild_calls == [{"mark_pdf_dirty": True, "force": True, "save_html": True}]
     assert "image_bank_gateway" not in state
+    assert state.get(ADD_PICTURES_COMMIT_REQUEST_KEY) is None
+    assert state.get(ADD_PICTURES_COMMIT_READY_KEY) is False
+
+
+def test_enter_picture_stage_uses_committed_day_edits_for_image_matching():
+    state = {
+        "app_stage": "edit",
+        "parsed_rows": [{"day": "Day 1", "city": "Oslo", "title": "Walk"}],
+        "output_edits": {"days": {"Day 1": {"city": "Bergen", "title": "Edited Bergen Day"}}},
+    }
+    _mark_add_pictures_apply_changes_ready(state)
+    captured = {}
+
+    result = enter_picture_stage(
+        state,
+        status_func=lambda: READY_BANK,
+        connect_func=lambda: READY_BANK,
+        select_images_func=lambda grouped, edits: (captured.setdefault("grouped", grouped), {"Day 1": "bergen.webp"})[1],
+        audit_images_func=lambda grouped, matches, edits: (),
+        rebuild_preview_func=lambda **kwargs: True,
+    )
+
+    assert result.ok is True
+    overview = captured["grouped"]["Day 1"][0]
+    assert overview["effective_type"] == "Day Overview"
+    assert overview["city"] == "Bergen"
+    assert overview["title"] == "Edited Bergen Day"
+
+
+def test_enter_picture_stage_treats_day_image_matches_as_derived_metadata():
+    state = {
+        "app_stage": "edit",
+        "parsed_rows": [{"day": "Day 1", "city": "Oslo", "title": "Walk"}],
+        "output_edits": {
+            "day_images": {"Day 1": {"mode": "manual", "path": "manual-oslo.webp"}},
+            "day_image_matches": {"Day 1": {"path": "stale-auto.webp"}},
+        },
+    }
+    _mark_add_pictures_apply_changes_ready(state)
+    captured = {}
+
+    result = enter_picture_stage(
+        state,
+        status_func=lambda: READY_BANK,
+        connect_func=lambda: READY_BANK,
+        select_images_func=lambda grouped, edits: (captured.setdefault("edits", edits), {"Day 1": {"path": edits["day_images"]["Day 1"]["path"]}})[1],
+        audit_images_func=lambda grouped, matches, edits: (),
+        rebuild_preview_func=lambda **kwargs: True,
+    )
+
+    assert result.ok is True
+    assert captured["edits"]["day_images"]["Day 1"]["path"] == "manual-oslo.webp"
+    assert state["output_edits"]["day_images"]["Day 1"]["path"] == "manual-oslo.webp"
+    assert state["output_edits"]["day_image_matches"]["Day 1"]["path"] == "manual-oslo.webp"
 
 
 def test_retry_image_bank_connection_keeps_gateway_result_in_state():

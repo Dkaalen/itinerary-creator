@@ -28,29 +28,20 @@ from itinerary_generation.output_contract import validate_output_layout_contract
 from itinerary_generation.quality_gate import evaluate_client_output_quality
 from ui.export_files import save_pdf_file
 from ui.output_edits import apply_output_edits
-
-
-def _request_visual_editor_commit(target_key: str) -> None:
-    next_nonce = str(int(st.session_state.get("_visual_editor_commit_counter", 0)) + 1)
-    st.session_state["_visual_editor_commit_counter"] = int(next_nonce)
-    st.session_state["_visual_editor_commit_nonce"] = next_nonce
-    st.session_state[target_key] = next_nonce
-    st.session_state["_visual_editor_export_commit_ready"] = False
+from app_modules.editor_commit import (
+    pdf_editor_commit_ready,
+    request_pdf_editor_commit,
+)
 
 
 def request_pdf_creation_after_visual_editor_commit() -> None:
     """Ask the visual editor to save before PDF creation starts."""
 
-    _request_visual_editor_commit("_pdf_after_visual_edit_commit_nonce")
+    request_pdf_editor_commit(st.session_state)
 
 
 def visual_editor_export_commit_ready() -> bool:
-    requested_commit_nonce = st.session_state.get("_pdf_after_visual_edit_commit_nonce")
-    return bool(
-        requested_commit_nonce
-        and st.session_state.get("_visual_editor_export_commit_ready")
-        and str(st.session_state.get("_visual_editor_last_applied_commit_nonce", "")) == str(requested_commit_nonce)
-    )
+    return pdf_editor_commit_ready(st.session_state)
 
 
 def current_pdf_bytes() -> bytes | None:

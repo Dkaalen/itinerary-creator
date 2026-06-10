@@ -13,6 +13,11 @@ streamlit_stub = types.SimpleNamespace(
 )
 sys.modules.setdefault("streamlit", streamlit_stub)
 
+from app_modules.editor_commit import (
+    ADD_PICTURES_COMMIT_READY_KEY,
+    ADD_PICTURES_COMMIT_REQUEST_KEY,
+    VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY,
+)
 from app_modules.workflow_actions import enter_picture_stage
 from images.day_image_selection import select_day_images_with_overrides
 from itinerary_generation.cover_route import create_cover_route_line
@@ -25,6 +30,12 @@ from parser_modules.parser_main import parse_itinerary
 
 def _parse_normalized(raw: str) -> list[dict]:
     return normalize_itinerary_rows(parse_itinerary(raw))
+
+
+def _mark_add_pictures_apply_changes_ready(state, nonce="apply-1"):
+    state[ADD_PICTURES_COMMIT_REQUEST_KEY] = nonce
+    state[ADD_PICTURES_COMMIT_READY_KEY] = True
+    state[VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY] = nonce
 
 
 def test_visual_editor_stale_picture_workflow_false_cannot_reset_active_picture_state():
@@ -43,6 +54,7 @@ def test_enter_picture_stage_does_not_report_success_when_no_images_match():
         "grouped_days": {"Day 1": [{"day": "Day 1", "city": "Oslo", "type": "Activity", "effective_type": "Activity", "title": "Walking tour"}]},
         "itinerary_html": "<html></html>",
     }
+    _mark_add_pictures_apply_changes_ready(state)
 
     result = enter_picture_stage(
         state,

@@ -37,6 +37,12 @@ from ui.day_blocks import build_day_blocks
 from ui.render_helpers import get_detail_level_name, list_to_text
 from ui.picture_workflow import pictures_are_added
 from ui.editor_sanitizer import clean_visual_editor_html, normalize_final_list_html
+from app_modules.editor_commit import (
+    ADD_PICTURES_COMMIT_REQUEST_KEY,
+    ADD_PICTURES_COMMIT_READY_KEY,
+    PDF_COMMIT_REQUEST_KEY,
+    PDF_COMMIT_READY_KEY,
+)
 from itinerary_generation.editable_draft import (
     day_by_id,
     first_block_html,
@@ -525,7 +531,12 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
 
     workflow = data.get("workflow", {}) or {}
     if isinstance(workflow, dict) and "pictures_added" in workflow:
-        output_edits["pictures_added"] = bool(workflow.get("pictures_added"))
+        # Visual-editor payloads can be stale across the text → picture-stage
+        # transition. The app workflow action is authoritative for disabling
+        # pictures; editor payloads may promote False → True, but must not
+        # downgrade True → False after pictures have been added.
+        incoming_pictures_added = bool(workflow.get("pictures_added"))
+        output_edits["pictures_added"] = bool(output_edits.get("pictures_added")) or incoming_pictures_added
 
     summary = data.get("summary", {}) or {}
     if isinstance(summary.get("trip_glance"), dict):
@@ -680,10 +691,10 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             if rebuild_preview:
                 rebuild_preview(mark_pdf_dirty=True)
             applied_nonce = st.session_state.get("_visual_editor_last_applied_commit_nonce")
-            if applied_nonce and str(applied_nonce) == str(st.session_state.get("_pdf_after_visual_edit_commit_nonce", "")):
-                st.session_state["_visual_editor_export_commit_ready"] = True
-            elif applied_nonce and str(applied_nonce) == str(st.session_state.get("_add_pictures_after_visual_edit_commit_nonce", "")):
-                st.session_state["_visual_editor_add_pictures_commit_ready"] = True
+            if applied_nonce and str(applied_nonce) == str(st.session_state.get(PDF_COMMIT_REQUEST_KEY, "")):
+                st.session_state[PDF_COMMIT_READY_KEY] = True
+            elif applied_nonce and str(applied_nonce) == str(st.session_state.get(ADD_PICTURES_COMMIT_REQUEST_KEY, "")):
+                st.session_state[ADD_PICTURES_COMMIT_READY_KEY] = True
             else:
                 # Autosaves should feel invisible. Manual Save keeps the visible success message.
                 if st.session_state.get("_visual_editor_last_result_changed") and not st.session_state.get("_visual_editor_last_result_was_autosave"):
