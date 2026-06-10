@@ -15,6 +15,7 @@ from typing import Iterable, Literal
 from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 from itinerary_generation.title_routes import _looks_like_norway_in_a_nutshell, _route_label_from_activity_text
 from itinerary_generation.activity_products import fingerprint_activity
+from itinerary_generation.fjordtours_activity_catalogue import fjordtours_activity_description
 
 ProductConfidence = Literal["strong", "weak"]
 
@@ -276,6 +277,9 @@ def product_description(rule_id: str, *, confidence: ProductConfidence = "strong
         return "Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included."
     if rule_id == "korouoma_canyon":
         return "Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience."
+    fjordtours_description = fjordtours_activity_description(rule_id)
+    if fjordtours_description:
+        return fjordtours_description
     return ""
 
 

@@ -10,8 +10,10 @@ from text_polish import polish_title
 
 from itinerary_generation.activity_product_core import ActivityProductFingerprint, match_product
 from itinerary_generation.activity_product_text import canonicalize_activity_route_source
+from itinerary_generation.fjordtours_activity_catalogue import match_fjordtours_nutshell_addon
 from itinerary_generation.transport_norway import (
     _is_norway_in_a_nutshell_text,
+    NUTSHELL_ROUTE_PLACES,
     explicit_norway_nutshell_title,
     extract_norway_nutshell_route_legs,
     extract_norway_nutshell_route_points,
@@ -27,7 +29,7 @@ def _legs_from_route_points(points: list[str]) -> tuple[dict[str, str], ...]:
 def _direct_route_points_from_source(source: str) -> list[str]:
     if explicit_norway_nutshell_title(source):
         return []
-    city = r"Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal"
+    city = NUTSHELL_ROUTE_PLACES
     patterns = (
         rf"\b(?P<origin>{city})\s+to\s+(?P<destination>{city})\b",
         rf"\bnorway\s+in\s+a\s+nutshell\s+(?P<origin>{city})\s+to\s+(?P<destination>{city})\b",
@@ -44,7 +46,7 @@ def _direct_route_points_from_source(source: str) -> list[str]:
 
 
 def _should_preserve_nutshell_origin(source: str) -> bool:
-    city = r"Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal"
+    city = NUTSHELL_ROUTE_PLACES
     return bool(
         re.search(rf"^\s*(?:{city})\s+to\s+(?:{city})\s*\|\s*Norway\s+in\s+a\s+Nutshell", source, flags=re.IGNORECASE)
         or re.search(rf"\b(?:Nærøyfjord|Naeroyfjord)[^\n:|]{{0,160}}\b(?:{city})\s+to\s+(?:{city})\s*(?:[:|,\-]|$)", source, flags=re.IGNORECASE)
@@ -174,6 +176,16 @@ def match_norway_activity(
 
     if _is_explicit_floibanen_product(source_lower, source_title):
         return match_product("floibanen_funicular", "ticket", "Fløibanen Funicular", source_title=source_title)
+
+    fjordtours_entry = match_fjordtours_nutshell_addon(source, source_title)
+    if fjordtours_entry:
+        return match_product(
+            fjordtours_entry.rule_id,
+            fjordtours_entry.product_type,
+            fjordtours_entry.display_title,
+            source_title=source_title,
+            variant_tags=fjordtours_entry.variant_tags,
+        )
 
     if "must-see bergen" in source_lower and ("foot" in source_lower or "boat" in source_lower or "ferry" in source_lower):
         return match_product("bergen_foot_and_boat", "walking_boat_tour", "Bergen Walking & Boat Tour", source_title=source_title, variant_tags=("walking", "boat"))

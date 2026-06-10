@@ -53,6 +53,7 @@ FAST_TESTS = (
     "tests/test_output_layout_contract.py",
     "tests/test_image_match_audit.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 PARSER_TESTS = (
@@ -84,6 +85,7 @@ ACTIVITY_TESTS = (
     "tests/test_qg_i_warning_ui_and_icebreaker_fidelity.py",
     "tests/test_title_safety_phase1.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 ARCHITECTURE_TESTS = (
@@ -104,6 +106,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_bq_style_registry.py",
     "tests/test_patch_bs_architecture_boundaries.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 EDITOR_TESTS = (
@@ -120,6 +123,7 @@ EDITOR_TESTS = (
     "tests/test_visual_editor_frontend_assets.py",
     "tests/test_visual_editor_typed_draft.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 IMAGE_TESTS = (
@@ -133,6 +137,7 @@ IMAGE_TESTS = (
     "tests/test_patch_aw_client_sanitizer_default_images.py",
     "tests/test_qg_k_picture_destination_accommodation.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 UI_TESTS = (
@@ -184,6 +189,7 @@ PDF_TESTS = (
     "tests/test_rendered_pdf_quality.py",
     "tests/test_self_drive_pdf_preview_parity.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
+    "tests/test_patch_bu_nutshell_fjordtours.py",
 )
 
 SLOW_TESTS = (

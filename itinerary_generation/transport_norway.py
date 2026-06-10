@@ -13,7 +13,7 @@ def _is_norway_in_a_nutshell_text(text):
     if re.search(r"norway\s+in\s+a\s+(?:nutshell|nuthsell)", lower):
         return True
     has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
-    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss"])
+    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss", "geilo"])
     has_route_mode = bool(re.search(r"\b(?:train|rail|scenic\s+bus|bus|cruise)\b", lower))
     return (has_flam and has_fjord) or ("gudvangen" in lower and "voss" in lower and has_route_mode)
 
@@ -22,19 +22,35 @@ def _clean_nutshell_place(value: str) -> str:
     return canonicalize_place_name(polish_title(str(value or "").strip(" -:|.,")))
 
 
-NUTSHELL_INTERNAL_ROUTE_NODES = {"myrdal", "gudvangen", "voss"}
+NUTSHELL_ROUTE_PLACES = "Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal|Geilo"
+# Myrdal is normally an interchange station on the Flåm Railway leg.
+# Gudvangen and Voss are not globally blocked: Fjord Tours supports route starts/ends
+# and overnight extensions in real route villages, so they may be valid titles when
+# supplier title, route endpoint or accommodation context supports them.
+NUTSHELL_INTERCHANGE_ONLY_NODES = {"myrdal"}
 
 
 def explicit_norway_nutshell_title(text: str) -> str:
     """Return the supplier's explicit Nutshell title when present.
 
-    Norway in a Nutshell is a route product.  Internal route nodes such as
-    Myrdal, Gudvangen and Voss should never be promoted from the included
-    leg text into the main title when the supplier already wrote a route
-    destination, e.g. ``Norway in a Nutshell to Flåm``.
+    Norway in a Nutshell is a route product. The supplier-written title
+    destination must win over route-leg text. Places such as Gudvangen and
+    Voss can be valid starts, ends or overnight stops; they are only wrong
+    when promoted from an included intermediate leg over a clearer title.
     """
 
     source = str(text or "")
+    full_route = re.search(
+        r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+from\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?=\s+-\s+|\s+\|\s+|\s+time\s*:|\s+meeting\s+point\s*:|\s+includes?\s*:|\s+description\s*:|$)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if full_route:
+        origin = _clean_nutshell_place(full_route.group("origin"))
+        destination = _clean_nutshell_place(full_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return f"Norway in a Nutshell from {origin} to {destination}"
+
     match = re.search(
         r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?=\s+-\s+|\s+\|\s+|\s+time\s*:|\s+meeting\s+point\s*:|\s+includes?\s*:|\s+description\s*:|$)",
         source,
@@ -54,7 +70,7 @@ def explicit_norway_nutshell_destination(text: str) -> str:
 
 def is_nutshell_internal_route_node(place: str) -> bool:
     clean = _clean_nutshell_place(place).lower()
-    return clean in NUTSHELL_INTERNAL_ROUTE_NODES
+    return clean in NUTSHELL_INTERCHANGE_ONLY_NODES
 
 
 def _split_supplier_inclusion_items(value: str) -> list[str]:
@@ -115,6 +131,24 @@ def extract_norway_nutshell_supplier_includes(row_or_text) -> list[str]:
     return route_items
 
 
+
+
+def should_preserve_nutshell_origin_label(source: str, origin: str = "", destination: str = "") -> bool:
+    """Return True when a Nutshell label should keep ``from X to Y`` wording."""
+
+    source_text = str(source or "")
+    origin_clean = _clean_nutshell_place(origin).lower()
+    destination_clean = _clean_nutshell_place(destination).lower()
+    if re.search(r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+from\s+", source_text, flags=re.IGNORECASE):
+        return True
+    if re.search(r"\|\s*[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\s*\|", source_text):
+        return True
+    if "luggage" in source_text.lower() and ("porter" in source_text.lower() or "transfer" in source_text.lower() or "service" in source_text.lower()):
+        return True
+    major_endpoints = {"oslo", "bergen"}
+    return bool(origin_clean in major_endpoints and destination_clean in major_endpoints and origin_clean != destination_clean)
+
+
 def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
     """Return the main route from compact pipe-style Nutshell rows.
 
@@ -161,11 +195,17 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     if explicit_title:
         return explicit_title
 
+    points = extract_norway_nutshell_route_points(source)
+    if len(points) >= 2:
+        if should_preserve_nutshell_origin_label(source, points[0], points[-1]):
+            return f"Norway in a Nutshell from {points[0]} to {points[-1]}"
+        return f"Norway in a Nutshell to {points[-1]}"
+
     # Product titles may include supplier service words before the real route,
     # e.g. "Nærøyfjord Cruise & Luggage Transfer Bergen to Oslo: Day Tour...".
     # Prefer a clean main city pair over the generic from/to extractor, which
     # can otherwise swallow the supplier prefix as part of the origin.
-    city_names = "Bergen|Oslo|Flåm|Flam|Voss|Myrdal|Gudvangen"
+    city_names = NUTSHELL_ROUTE_PLACES
     main_route_match = re.search(
         rf"(?:luggage\s+transfer\s+)?\b(?P<origin>{city_names})\s+to\s+(?P<destination>{city_names})\b",
         source,
@@ -338,6 +378,26 @@ def extract_norway_nutshell_route_points(text: str) -> list[str]:
     for leg in extract_norway_nutshell_route_legs(source):
         add_point(leg.get("origin", ""))
         add_point(leg.get("destination", ""))
+    if len(points) >= 2:
+        return points
+
+    # Source-faithful supplier includes, e.g. "Fjord Cruise Flåm to Gudvangen,
+    # Coach Transfer Gudvangen to Voss, Train transfer Voss to Bergen".
+    # These route legs may be all we have when the supplier title is generic;
+    # use the complete chain endpoint, never the first included waypoint alone.
+    for item in extract_norway_nutshell_supplier_includes(source):
+        route_match = re.search(
+            r"\b(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*$",
+            item,
+            flags=re.IGNORECASE,
+        )
+        if not route_match:
+            continue
+        origin = route_match.group("origin")
+        destination = route_match.group("destination")
+        origin = re.sub(r"^(?:train\s+transfer|train|rail|railway|flåm\s+railway|flam\s+railway|fjord\s+cruise|cruise|coach\s+transfer|coach|bus\s+transfer|bus)\s+", "", origin, flags=re.IGNORECASE).strip(" -:|,")
+        add_point(origin)
+        add_point(destination)
     if len(points) >= 2:
         return points
 
