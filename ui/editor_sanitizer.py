@@ -1,5 +1,7 @@
 import re
 
+from itinerary_generation.clipboard_sanitizer import strip_clipboard_fragment_markers
+
 
 def clean_visual_editor_html(value):
     """Sanitize editable-page HTML before it is reused in preview/PDF.
@@ -8,7 +10,7 @@ def clean_visual_editor_html(value):
     tags/attributes and normalize accidental browser artifacts so custom day
     blocks remain safe and close to the PDF display model.
     """
-    text = str(value or "")
+    text = strip_clipboard_fragment_markers(value)
     if not text.strip():
         return ""
     text = re.sub(

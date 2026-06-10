@@ -63,6 +63,7 @@ function findServerDayForLocalDraft(mergedDays, localDay, fallbackIndex) {
 }
 function mergeLocalDraftOntoServerPayload(localDraft) {
   const merged = JSON.parse(JSON.stringify(initialPayload || {}));
+  const serverPicturesAdded = !!initialPayload?.workflow?.pictures_added;
   const localPicturesAdded = !!localDraft.workflow?.pictures_added;
   if (localDraft.cover) merged.cover = Object.assign({}, merged.cover || {}, localDraft.cover);
   if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
@@ -77,7 +78,7 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
     ['day','label','date','title','city','intro','blocks_html','blocks'].forEach(field => {
       if (field in localDay) targetDay[field] = localDay[field];
     });
-    if (localPicturesAdded && localDay.image) {
+    if (serverPicturesAdded && localPicturesAdded && localDay.image) {
       targetDay.image = Object.assign({}, targetDay.image || {}, localDay.image);
     }
   });
@@ -85,8 +86,11 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
   if (localDraft.editor_draft) merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
   merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
-  if (localDraft.workflow && 'pictures_added' in localDraft.workflow) {
-    merged.workflow.pictures_added = !!localDraft.workflow.pictures_added;
+  // Server workflow state is authoritative. Browser-local drafts may restore
+  // text edits, but they must never downgrade an app-level transition such as
+  // text-only → picture review.
+  if (serverPicturesAdded) {
+    merged.workflow.pictures_added = true;
   }
   return merged;
 }

@@ -3,7 +3,7 @@ import html as html_lib
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
 
 from . import styles as pdf_styles
 from .html_utils import clean_text, para_text
@@ -34,13 +34,45 @@ def _bullet_lines(value):
     return [line for line in lines if line]
 
 
-def add_bullets(story, items, styles):
-    """Render bullet lists as a table for stable PDF bullet alignment.
+def _bullet_item_table(item, styles, bullet_style):
+    lines = _bullet_lines(item)
+    if not lines:
+        return None
+    rows = [[
+        Paragraph("&#8226;", bullet_style),
+        Paragraph(html_lib.escape(lines[0]), styles["bullet"]),
+    ]]
+    for continuation in lines[1:]:
+        rows.append([
+            Paragraph("", bullet_style),
+            Paragraph(html_lib.escape(continuation), styles["bullet_continuation"]),
+        ])
+    table = Table(
+        rows,
+        colWidths=[4.5 * mm, 142 * mm],
+        hAlign="LEFT",
+        splitByRow=False,
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0.6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.6),
+            ]
+        )
+    )
+    return table
 
-    Multiline items are split into one bullet row followed by continuation
-    rows in the text column. This makes details such as "Coach ticket
-    included" visually sit under the bullet text rather than at the page
-    margin, and avoids relying on whitespace inside a Paragraph.
+
+def add_bullets(story, items, styles):
+    """Render bullet lists with each logical item kept together.
+
+    Multi-line items such as final-page flight inclusions are one client-facing
+    unit: bullet label, time and baggage/details must not split across pages.
+    The list may still break between separate items.
     """
 
     clean_items = [_clean_bullet_text(item) for item in items if _clean_bullet_text(item)]
@@ -57,40 +89,11 @@ def add_bullets(story, items, styles):
         alignment=TA_LEFT,
     )
 
-    rows = []
     for item in clean_items:
-        lines = _bullet_lines(item)
-        if not lines:
-            continue
-        rows.append([
-            Paragraph("&#8226;", bullet_style),
-            Paragraph(html_lib.escape(lines[0]), styles["bullet"]),
-        ])
-        for continuation in lines[1:]:
-            rows.append([
-                Paragraph("", bullet_style),
-                Paragraph(html_lib.escape(continuation), styles["bullet_continuation"]),
-            ])
+        table = _bullet_item_table(item, styles, bullet_style)
+        if table is not None:
+            story.append(KeepTogether([table]))
 
-    table = Table(
-        rows,
-        colWidths=[4.5 * mm, 142 * mm],
-        hAlign="LEFT",
-        splitByRow=True,
-    )
-    table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0.6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.6),
-            ]
-        )
-    )
-
-    story.append(table)
     story.append(Spacer(1, 7))
 
 

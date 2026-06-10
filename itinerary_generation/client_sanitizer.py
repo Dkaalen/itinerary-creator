@@ -13,6 +13,7 @@ from dataclasses import fields, is_dataclass
 from typing import Any
 
 from text_polish import strip_price_fragments
+from itinerary_generation.clipboard_sanitizer import strip_clipboard_fragment_markers
 
 _CURRENCY_RE = re.compile(
     r"(?:€|\$|£|\b(?:NOK|SEK|DKK|ISK|USD|EUR|GBP)\b|\bkr\b)",
@@ -57,7 +58,7 @@ def contains_price_or_currency(value: object) -> bool:
 def sanitize_client_text(value: object) -> str:
     """Remove prices/currency and tidy leftover punctuation from a text value."""
 
-    text = str(value or "")
+    text = strip_clipboard_fragment_markers(value)
     if not text:
         return ""
     text = text.replace("\r\n", "\n").replace("\r", "\n")

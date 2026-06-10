@@ -91,11 +91,15 @@ function render(payload, commitNonce = null) {
     return;
   }
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
-  if (!model || !touchedKeys.size) {
+  const incomingPicturesAdded = !!initialPayload?.workflow?.pictures_added;
+  const currentPicturesAdded = !!model?.workflow?.pictures_added;
+  const workflowPromotedToPictures = incomingPicturesAdded && !currentPicturesAdded;
+  if (!model || !touchedKeys.size || workflowPromotedToPictures) {
     model = JSON.parse(JSON.stringify(initialPayload));
     if (!model.workflow) model.workflow = {pictures_added: false};
     restoreLocalDraftIfAvailable();
     if (!model.workflow) model.workflow = {pictures_added: false};
+    if (incomingPicturesAdded) model.workflow.pictures_added = true;
     uploadedImages = {};
     touchedKeys = new Set();
   }

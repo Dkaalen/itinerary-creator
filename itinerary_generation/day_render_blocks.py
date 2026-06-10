@@ -10,6 +10,7 @@ from itinerary_generation.canonical_builder import should_hide_note_row
 from itinerary_generation.canonical_day_builder import canonical_day
 from itinerary_generation.common import get_primary_city, get_row_type, is_optional_row
 from itinerary_generation.content_engine import clean_client_title, group_tour_pickup_window_from_overview, is_group_tour_overview
+from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.day_overview_blocks import build_day_overview_render_block
 from itinerary_generation.day_planner import plan_day
 from itinerary_generation.canonical_render_adapter import render_block_from_canonical
@@ -326,6 +327,36 @@ def _rows_ordered_by_day_document(day_document: DayDocument | None, rows: list[d
 def _travel_sequences_for_day(document: ItineraryDocument, day: str) -> tuple[TravelSequence, ...]:
     return tuple(sequence for sequence in getattr(document, "travel_sequences", ()) if str(sequence.day) == str(day))
 
+def _output_edits_with_typed_day_overrides(output_edits: dict | None, day: str) -> dict | None:
+    """Return edits where typed editor day fields directly own PDF titles.
+
+    ``editor_draft`` is the preferred save contract.  The legacy
+    ``output_edits["days"]`` mirror is kept for compatibility, but render/PDF
+    ownership should not depend on that mirror being populated.
+    """
+
+    if not isinstance(output_edits, dict):
+        return output_edits
+    editor_draft = output_edits.get("editor_draft") if isinstance(output_edits.get("editor_draft"), dict) else {}
+    typed_day = day_by_id(editor_draft, day) if isinstance(editor_draft, dict) else {}
+    if not typed_day:
+        return output_edits
+    direct_fields = {
+        field: str(typed_day.get(field, "")).strip()
+        for field in ("title", "city", "intro")
+        if field in typed_day and str(typed_day.get(field, "")).strip()
+    }
+    if not direct_fields:
+        return output_edits
+    merged = dict(output_edits)
+    days = {key: dict(value) if isinstance(value, dict) else value for key, value in (output_edits.get("days") or {}).items()}
+    day_edits = dict(days.get(day, {})) if isinstance(days.get(day, {}), dict) else {}
+    day_edits.update(direct_fields)
+    days[day] = day_edits
+    merged["days"] = days
+    return merged
+
+
 def build_day_render_blocks_from_document(document: ItineraryDocument, day: str, rows: list[dict]) -> list[RenderBlock]:
     """Build day render blocks using the structured document for source order."""
 
@@ -345,7 +376,8 @@ def build_render_day_from_document(
 
     ordered_rows = _rows_ordered_by_day_document(_day_document_for(document, day), rows)
     main_rows = [row for row in ordered_rows if not is_optional_row(row)] or list(ordered_rows)
-    day_shell = canonical_day(day, main_rows, output_edits=output_edits, detail_level=detail_level)
+    effective_output_edits = _output_edits_with_typed_day_overrides(output_edits, day)
+    day_shell = canonical_day(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level)
     day_document = _day_document_for(document, day)
     source_ids = list(day_document.source_row_ids) if day_document else list(day_shell.source_row_ids)
     warnings = list(day_shell.warnings)

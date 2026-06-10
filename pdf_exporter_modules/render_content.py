@@ -23,10 +23,51 @@ def _activity_time_range_text(time_text, duration_text):
     return cleaned_time
 
 
+def _append_inclusion_entry(story, entry_story):
+    if entry_story:
+        story.append(KeepTogether(entry_story))
+
+
+def render_inclusion_category_block(child, story, styles):
+    """Render edited/generated inclusion HTML with item-level keep-together."""
+
+    entry_story = []
+    for element in child.find_all(recursive=False):
+        element_classes = element.get("class") or []
+
+        if "section-title" in element_classes:
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+            add_paragraph(story, element.get_text(" "), styles["section"])
+        elif "inclusion-entry-title" in element_classes:
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+            add_paragraph(entry_story, element.get_text(" "), styles["body_bold"])
+        elif "inclusion-entry-detail" in element_classes:
+            add_paragraph(entry_story, element.get_text(" "), styles["body"])
+        elif "inclusion-entry-spacer" in element_classes:
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+        elif element.name == "ul":
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+            add_bullets(story, [li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles)
+        elif "body-text" in element_classes:
+            text = clean_text(element.get_text(" "))
+            if text:
+                add_paragraph(entry_story or story, text, styles["body_bold"] if "strong-line" in element_classes else styles["body"])
+
+    _append_inclusion_entry(story, entry_story)
+
+
 def render_content_blocks(container, story, styles):
     for child in container.find_all(recursive=False):
         classes = child.get("class") or []
         if "content-block" in classes or "activity-inclusion-block" in classes:
+            if "inclusion-category-block" in classes:
+                render_inclusion_category_block(child, story, styles)
+                continue
+
             block_story = []
 
             for element in child.find_all(recursive=False):

@@ -395,13 +395,15 @@ def test_visual_editor_frontend_rejects_stale_local_draft_signatures():
     assert "currentSourceSignature !== savedSourceSignature" in editor_html
 
 
-def test_visual_editor_frontend_recovers_picture_stage_and_images_after_refresh():
+def test_visual_editor_frontend_keeps_server_picture_workflow_authoritative():
     editor_html = _visual_editor_frontend_source()
 
-    assert "const localPicturesAdded = !!localDraft.workflow?.pictures_added" in editor_html
-    assert "if (localPicturesAdded && localDay.image)" in editor_html
-    assert "merged.workflow.pictures_added = !!localDraft.workflow.pictures_added" in editor_html
-    assert "picturesAdded() && localDraft.workflow?.pictures_added" not in editor_html
+    assert "const serverPicturesAdded = !!initialPayload?.workflow?.pictures_added" in editor_html
+    assert "if (serverPicturesAdded && localPicturesAdded && localDay.image)" in editor_html
+    assert "if (serverPicturesAdded)" in editor_html
+    assert "merged.workflow.pictures_added = !!localDraft.workflow.pictures_added" not in editor_html
+    assert "workflowPromotedToPictures" in editor_html
+    assert "if (incomingPicturesAdded) model.workflow.pictures_added = true" in editor_html
 
 
 def test_visual_editor_frontend_merges_recovered_days_by_identity_not_only_index():
@@ -410,3 +412,59 @@ def test_visual_editor_frontend_merges_recovered_days_by_identity_not_only_index
     assert "function sameDraftDay" in editor_html
     assert "function findServerDayForLocalDraft" in editor_html
     assert "sameDraftDay(day, localDay, fallbackIndex)" in editor_html
+
+
+def test_visual_editor_commit_strips_clipboard_fragment_markers():
+    output_edits = {"days": {}}
+    result = json.dumps({
+        "cover": {},
+        "summary": {},
+        "days": [
+            {"day": "Day 3", "blocks_html": "<div>Included journey: StartFragmentBergen RailwayEndFragment</div>"},
+        ],
+        "final_pages": {
+            "whats_included_pages_html": [{"html": "<div>StartFragmentFlight from Bergen to TromsøEndFragment</div>"}],
+        },
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert "StartFragment" not in output_edits["days"]["Day 3"]["blocks_html"]
+    assert "EndFragment" not in output_edits["whats_included_pages_html"][0]
+    assert "Bergen Railway" in output_edits["days"]["Day 3"]["blocks_html"]
+
+
+def test_render_document_reads_typed_day_titles_without_legacy_mirror():
+    from app_modules.itinerary_render_context import build_itinerary_render_context
+
+    rows = [
+        {
+            "row_id": "r1",
+            "day": "Day 1",
+            "date": "01/01/2027",
+            "city": "Oslo",
+            "type": "Arrival",
+            "effective_type": "Arrival",
+            "title": "Welcome to Oslo",
+        }
+    ]
+    output_edits = {
+        "editor_draft": {
+            "schema_version": 3,
+            "days": [
+                {
+                    "day_id": "Day 1",
+                    "label": "Day 1",
+                    "title": "Edited Preview Title",
+                    "city": "Oslo",
+                    "intro": "Edited preview intro.",
+                    "blocks": [],
+                }
+            ],
+        }
+    }
+
+    context = build_itinerary_render_context(rows, {"Day 1": rows}, output_edits)
+
+    assert context.render_document.days[0].title == "Edited Preview Title"
+    assert context.render_document.days[0].intro == "Edited preview intro."
