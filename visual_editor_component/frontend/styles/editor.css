@@ -46,6 +46,7 @@
     .toolbar-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-top: 8px; }
     .toolbar-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 320px; }
     .toolbar-tools input[type="text"] { width: 132px; font-weight: 650; }
+    .style-tools { max-width: 760px; padding: 8px 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
     .advanced-tools { width: 100%; text-align: right; }
     .advanced-tools summary { display: inline-flex; min-height: 32px; align-items: center; padding: 6px 11px; border: 1px solid rgba(17,38,63,.18); border-radius: 999px; background: #ffffff; color: #253041; font-size: 11px; font-weight: 850; cursor: pointer; user-select: none; }
     .advanced-tools[open] summary { margin-bottom: 8px; }
@@ -245,6 +246,29 @@
     .cover-route-line { display: block; }
     .cover-destination-pair { display: inline-block; white-space: nowrap; }
     .day-blocks[contenteditable="true"] { padding: 2px; margin: -2px; }
+
+    .cover-image-panel {
+      position: absolute;
+      z-index: 8;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(15, 20, 26, 0.84);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity .16s ease;
+    }
+    .a4-page:hover .cover-image-panel, .cover-image-panel:focus-within { opacity: 1; }
+    .cover-image-panel strong { color: #fff7ec; font-size: 11px; font-weight: 900; margin-right: 4px; }
+    .cover-image-panel select, .cover-image-panel button { min-height: 30px; font-size: 11px; padding: 5px 8px; }
+
     .image-stage {
       position: absolute;
       z-index: 1;

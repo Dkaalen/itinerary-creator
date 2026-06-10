@@ -14,6 +14,7 @@ from typing import Any
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 from itinerary_generation.cover_route import clean_or_create_cover_route_line, cover_route_html
 from itinerary_generation.cover_theme import get_cover_theme
+from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.date_resolver import get_trip_date_range_text
 from itinerary_generation.editable_draft import section_by_id
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
@@ -65,6 +66,10 @@ class ItineraryRenderContext:
     trip_dates: str
     cover_background_data_uri: str
     cover_background_path: str
+    cover_crop_focus: str
+    summary_background_data_uri: str
+    summary_background_path: str
+    summary_crop_focus: str
     destinations_line: str
     destinations_line_html: str
     trip_glance: dict[str, str]
@@ -188,6 +193,7 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
         dates=context.trip_dates,
         route=context.destinations_line,
         background_path=context.cover_background_path,
+        crop_focus=context.cover_crop_focus,
         ink=str(context.cover_theme.get("ink", "")),
         muted=str(context.cover_theme.get("muted", "")),
         accent=str(context.cover_theme.get("accent", "")),
@@ -204,7 +210,8 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
             for row in context.journey_arc
             if isinstance(row, dict)
         ],
-        background_path=str(context.cover_theme.get("background_path", "")),
+        background_path=context.summary_background_path,
+        crop_focus=context.summary_crop_focus,
     )
     context.render_document.cover = cover
     context.render_document.summary = summary
@@ -228,7 +235,9 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     preset_name = get_color_preset_name(output_edits)
     colors = get_color_preset(output_edits)
 
-    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_are_added(output_edits))
+    include_picture_data = pictures_are_added(output_edits)
+    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=include_picture_data)
+    summary_image = resolve_cover_background(parsed_rows, output_edits, key="summary_image", include_image_data=include_picture_data)
     typed_cover = editor_draft.get("cover", {}) if isinstance(editor_draft.get("cover"), dict) else {}
     typed_summary = editor_draft.get("summary", {}) if isinstance(editor_draft.get("summary"), dict) else {}
 
@@ -244,6 +253,10 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     trip_dates = typed_cover.get("trip_dates") or output_edits.get("trip_dates") or get_trip_date_range_text(parsed_rows)
     cover_background_data_uri = cover_theme.get("background_data_uri", "")
     cover_background_path = cover_theme.get("background_path", "")
+    cover_crop_focus = cover_theme.get("background_crop_focus", "top")
+    summary_background_data_uri = summary_image.get("data_uri", "")
+    summary_background_path = summary_image.get("path", "")
+    summary_crop_focus = summary_image.get("crop_focus", "top")
     saved_destinations_line = typed_cover.get("destinations_line") or output_edits.get("destinations_line")
     destinations_line = clean_or_create_cover_route_line(parsed_rows, saved_destinations_line or create_destinations_line(parsed_rows))
     destinations_line_html = cover_route_html(destinations_line)
@@ -322,6 +335,10 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         trip_dates=trip_dates,
         cover_background_data_uri=cover_background_data_uri,
         cover_background_path=cover_background_path,
+        cover_crop_focus=cover_crop_focus,
+        summary_background_data_uri=summary_background_data_uri,
+        summary_background_path=summary_background_path,
+        summary_crop_focus=summary_crop_focus,
         destinations_line=destinations_line,
         destinations_line_html=destinations_line_html,
         trip_glance=trip_glance,

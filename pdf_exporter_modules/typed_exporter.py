@@ -251,7 +251,7 @@ def _render_cover(render_document: RenderDocument, story, styles, temp_dir):
     muted = _cover_color(getattr(cover, "muted", ""), pdf_styles.MUTED)
     background_path = Path(str(getattr(cover, "background_path", "") or ""))
     if background_path.exists() and background_path.is_file():
-        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
+        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=getattr(cover, "crop_focus", "top")))
 
     story.append(Spacer(1, 9 * mm))
     emblem = Table([[CoverEmblem(color=muted)]], colWidths=[15 * mm], hAlign="CENTER")
@@ -285,7 +285,7 @@ def _render_summary(render_document: RenderDocument, story, styles, temp_dir):
         return
     background_path = Path(str(getattr(summary, "background_path", "") or ""))
     if background_path.exists() and background_path.is_file():
-        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus="top"))
+        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=getattr(summary, "crop_focus", "top")))
         story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.38))
 
     glance_story = []

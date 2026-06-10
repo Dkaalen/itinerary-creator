@@ -34,9 +34,12 @@ function compactImage(image) {
 
 function buildEditableDraftFromPayload(value) {
   const source = JSON.parse(JSON.stringify(value || {}));
+  const coverDraft = JSON.parse(JSON.stringify(source.cover || {}));
+  if (coverDraft.cover_image) coverDraft.cover_image = compactImage(coverDraft.cover_image);
+  if (coverDraft.summary_image) coverDraft.summary_image = compactImage(coverDraft.summary_image);
   const draft = {
     schema_version: 3,
-    cover: source.cover || {},
+    cover: coverDraft,
     summary: source.summary || {},
     days: [],
     final_sections: [],
@@ -109,7 +112,8 @@ function pruneForSave(value) {
   touchedKeys.forEach(key => {
     if (key.startsWith('cover.')) {
       const name = key.slice('cover.'.length);
-      payload.cover[name] = full.cover?.[name] ?? '';
+      if (name === 'cover_image' || name === 'summary_image') payload.cover[name] = compactImage(full.cover?.[name] || {});
+      else payload.cover[name] = full.cover?.[name] ?? '';
     } else if (key.startsWith('summary.trip_glance.')) {
       payload.summary.trip_glance = full.summary?.trip_glance || {};
     } else if (key.startsWith('summary.journey_arc.')) {
@@ -138,6 +142,8 @@ function pruneForSave(value) {
 
 function compactFullPayloadForCommit(value) {
   const full = JSON.parse(JSON.stringify(value || {}));
+  if (full.cover?.cover_image) full.cover.cover_image = compactImage(full.cover.cover_image);
+  if (full.cover?.summary_image) full.cover.summary_image = compactImage(full.cover.summary_image);
   (full.days || []).forEach(day => {
     if (day.image) day.image = compactImage(day.image);
   });

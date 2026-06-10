@@ -77,6 +77,19 @@ function attachHandlers() {
   document.getElementById('resetBlockBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('replaceBtn')?.addEventListener('click', replaceAllText);
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
+
+  document.getElementById('textStylePreset')?.addEventListener('change', event => {
+    if (event.target.value) applyTextStylePreset(event.target.value);
+    event.target.value = '';
+  });
+  document.getElementById('colorPreset')?.addEventListener('change', event => {
+    if (event.target.value) applyColorPreset(event.target.value);
+    event.target.value = '';
+  });
+  document.getElementById('compactSpacingBtn')?.addEventListener('click', () => applySpacingPreset('compact'));
+  document.getElementById('normalSpacingBtn')?.addEventListener('click', () => applySpacingPreset('normal'));
+  document.getElementById('addNoteBlockBtn')?.addEventListener('click', addNoteBlock);
+  document.getElementById('addDividerBtn')?.addEventListener('click', addDividerBlock);
   document.getElementById('resetBtn')?.addEventListener('click', () => {
     clearLocalDraft();
     model = JSON.parse(JSON.stringify(initialPayload));
@@ -112,6 +125,52 @@ function attachHandlers() {
     });
   });
   updateEditorStats();
+
+  document.querySelectorAll('[data-cover-img-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      collect();
+      const key = btn.getAttribute('data-cover-img-key');
+      const action = btn.getAttribute('data-cover-img-action');
+      if (!model.cover) model.cover = {};
+      const image = model.cover[key] || (model.cover[key] = {mode: 'auto', path: '', crop_focus: 'top', options: []});
+      markTouched(`cover.${key}`);
+      if (action === 'auto') {
+        image.mode = 'auto';
+        image.path = '';
+        image.data_uri = image.auto_data_uri || image.data_uri || '';
+        image.name = image.auto_name || image.name || '';
+      }
+      if (action === 'none') {
+        image.mode = 'none';
+        image.path = '';
+        image.data_uri = '';
+        image.name = '';
+      }
+      if (action === 'manual') {
+        const sel = document.querySelector(`[data-cover-img-bank="${CSS.escape(key)}"]`);
+        if (sel && sel.value) {
+          const selected = (image.options || []).find(opt => opt.path === sel.value) || {};
+          image.mode = 'manual';
+          image.path = sel.value;
+          image.data_uri = '';
+          image.name = selected.name || sel.options[sel.selectedIndex]?.text || '';
+          image.pending_preview = true;
+        }
+      }
+      draw();
+    });
+  });
+  document.querySelectorAll('[data-cover-img-focus]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const key = sel.getAttribute('data-cover-img-focus');
+      if (!model.cover) model.cover = {};
+      const image = model.cover[key] || (model.cover[key] = {mode: 'auto', path: '', crop_focus: 'top', options: []});
+      image.crop_focus = sel.value;
+      markTouched(`cover.${key}`);
+      const page = sel.closest('.a4-page');
+      if (page) page.style.backgroundPosition = focusPos(sel.value);
+    });
+  });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       collect();

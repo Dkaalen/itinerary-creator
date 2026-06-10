@@ -31,6 +31,7 @@ class RenderCover:
     dates: str = ""
     route: str = ""
     background_path: str = ""
+    crop_focus: str = "top"
     ink: str = ""
     muted: str = ""
     accent: str = ""
@@ -42,6 +43,7 @@ class RenderSummary:
     trip_glance: list[RenderMetaLine] = field(default_factory=list)
     journey_arc: list[dict[str, str]] = field(default_factory=list)
     background_path: str = ""
+    crop_focus: str = "top"
 
 
 @dataclass(slots=True)

@@ -4,6 +4,7 @@ import re
 
 from parser_modules.place_parsing import city_airport, extract_route_points, normalize_place_name
 from parser_modules.text_cleanup import fix_common_text
+from itinerary_generation.transport_norway import _norway_nutshell_route_label, explicit_norway_nutshell_title
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,
     normalize_transport_place,
@@ -172,16 +173,7 @@ def create_clean_transport_title(row):
     city = normalize_place_name(row.get("city", ""))
 
     if "norway in a nutshell" in lower:
-        explicit_destination_match = re.search(
-            r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
-            text,
-            flags=re.IGNORECASE,
-        )
-        if explicit_destination_match:
-            return f"Norway in a Nutshell to {normalize_place_name(explicit_destination_match.group(1).strip())}"
-        if destination:
-            return f"Norway in a Nutshell to {destination}"
-        return "Norway in a Nutshell"
+        return _norway_nutshell_route_label(text, origin, destination)
 
     if row_type == "Flight" or "flight" in lower:
         if destination:

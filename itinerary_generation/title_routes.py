@@ -4,17 +4,12 @@ import re
 
 from parser_modules.common import extract_route_points
 from text_polish import polish_title
+from itinerary_generation.transport_norway import explicit_norway_nutshell_title
 
 def _route_label_from_activity_text(text: str) -> str:
-    explicit_destination_match = re.search(
-        r"\bnorway\s+in\s+a\s+nutshell\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+nutshell|\s+-\s+|\s+\|\s+|$)",
-        str(text or ""),
-        flags=re.IGNORECASE,
-    )
-    if explicit_destination_match:
-        destination = polish_title(explicit_destination_match.group(1).strip())
-        if destination:
-            return f"Norway in a Nutshell to {destination}"
+    explicit_title = explicit_norway_nutshell_title(text)
+    if explicit_title:
+        return explicit_title
     route_match = re.search(r"\b(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\s+to\s+(Bergen|Oslo|Fl[åa]m|Voss|Gudvangen|Myrdal)\b", text, flags=re.IGNORECASE)
     if route_match:
         origin, destination = route_match.group(1), route_match.group(2)

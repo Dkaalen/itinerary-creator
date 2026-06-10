@@ -12,6 +12,7 @@ from itinerary_generation.activity_product_core import ActivityProductFingerprin
 from itinerary_generation.activity_product_text import canonicalize_activity_route_source
 from itinerary_generation.transport_norway import (
     _is_norway_in_a_nutshell_text,
+    explicit_norway_nutshell_title,
     extract_norway_nutshell_route_legs,
     extract_norway_nutshell_route_points,
 )
@@ -24,6 +25,8 @@ def _legs_from_route_points(points: list[str]) -> tuple[dict[str, str], ...]:
 
 
 def _direct_route_points_from_source(source: str) -> list[str]:
+    if explicit_norway_nutshell_title(source):
+        return []
     city = r"Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal"
     patterns = (
         rf"\b(?P<origin>{city})\s+to\s+(?P<destination>{city})\b",
@@ -141,6 +144,7 @@ def match_norway_activity(
             route_source = canonicalize_activity_route_source("\n".join(value for value in route_fields if value.strip()))
         else:
             route_source = canonicalize_activity_route_source(source)
+        explicit_title = explicit_norway_nutshell_title(route_source) or explicit_norway_nutshell_title(source_title)
         direct_points = _direct_route_points_from_source(route_source)
         points = extract_norway_nutshell_route_points(route_source) or direct_points
         legs = tuple(extract_norway_nutshell_route_legs(route_source)) or _legs_from_route_points(points)
@@ -154,8 +158,8 @@ def match_norway_activity(
         return match_product(
             "norway_in_a_nutshell",
             "scenic_route",
-            _route_title_from_points(points, preserve_origin=_should_preserve_nutshell_origin(route_source)),
-            source_title=source_title or "Norway in a Nutshell",
+            explicit_title or _route_title_from_points(points, preserve_origin=_should_preserve_nutshell_origin(route_source)),
+            source_title=source_title or explicit_title or "Norway in a Nutshell",
             variant_tags=tuple(tags),
             route_legs=legs,
         )

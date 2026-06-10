@@ -52,6 +52,7 @@ FAST_TESTS = (
     "tests/test_structured_html_source_identity.py",
     "tests/test_output_layout_contract.py",
     "tests/test_image_match_audit.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 PARSER_TESTS = (
@@ -82,6 +83,7 @@ ACTIVITY_TESTS = (
     "tests/test_qg_h_activity_catalogue_hardening.py",
     "tests/test_qg_i_warning_ui_and_icebreaker_fidelity.py",
     "tests/test_title_safety_phase1.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 ARCHITECTURE_TESTS = (
@@ -101,6 +103,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_bp_editor_workflow_split.py",
     "tests/test_patch_bq_style_registry.py",
     "tests/test_patch_bs_architecture_boundaries.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 EDITOR_TESTS = (
@@ -116,6 +119,7 @@ EDITOR_TESTS = (
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_visual_editor_frontend_assets.py",
     "tests/test_visual_editor_typed_draft.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 IMAGE_TESTS = (
@@ -128,6 +132,7 @@ IMAGE_TESTS = (
     "tests/test_patch_au_remote_image_bank_connector.py",
     "tests/test_patch_aw_client_sanitizer_default_images.py",
     "tests/test_qg_k_picture_destination_accommodation.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 UI_TESTS = (
@@ -140,6 +145,7 @@ UI_TESTS = (
     "tests/test_ui_style_contrast.py",
     "tests/test_ui_workflow_shell.py",
     "tests/test_ui_workflow_state_actions.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 QUALITY_TESTS = (
@@ -177,6 +183,7 @@ PDF_TESTS = (
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_rendered_pdf_quality.py",
     "tests/test_self_drive_pdf_preview_parity.py",
+    "tests/test_patch_bt_nutshell_cover_toolbar.py",
 )
 
 SLOW_TESTS = (

@@ -83,6 +83,9 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
         description = tallinn_ferry_description(row)
     else:
         description = client_activity_description(description_row, get_activity_description(row))
+    if _is_fløibanen(title):
+        description = re.sub(r"\bMount\s+Fløibanen\b", "Mount Fløyen", description)
+        description = re.sub(r"\bMount\s+Floibanen\b", "Mount Fløyen", description, flags=re.IGNORECASE)
 
     if is_tallinn_ferry:
         included_items = clean_tallinn_ferry_inclusions(row)

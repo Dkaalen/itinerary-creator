@@ -207,9 +207,12 @@ def match_nordic_activity(
         return match_product("snowmobile_adventure", "snowmobile", source_title if source_title and "snowmobile" in source_title.lower() else "Snowmobile Adventure", source_title=source_title)
 
     if "kvaløya" in source_lower or "sommarøy" in source_lower or "sommaroy" in source_lower:
-        if "accessible" in source_lower:
+        title_lower = str(source_title or "").lower()
+        if source_title and ("kvaløya" in title_lower or "sommarøy" in title_lower or "sommaroy" in title_lower):
+            title = source_title
+        elif "accessible" in title_lower:
             title = "Accessible Fjord Tour of Kvaløya & Sommarøy"
-        elif "photo" in source_lower:
+        elif "photo" in title_lower or "photography" in title_lower:
             title = "Photo Tour to Arctic Landscapes and Fjords"
         else:
             title = "Fjord Tour of Kvaløya & Sommarøy"

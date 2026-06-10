@@ -14,7 +14,7 @@ from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title, get_transport_route_phrase
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, extract_norway_nutshell_supplier_includes, format_norway_nutshell_route
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,
@@ -220,9 +220,15 @@ def _norway_nutshell_lines(row):
                 lines.append(f"Route highlights: {route_text}")
     elif base:
         lines.append(_line_with_time(base, row))
-    includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
-    if includes:
-        lines.append("Included journey: " + ", ".join(includes))
+    supplier_route_items = extract_norway_nutshell_supplier_includes(row)
+    if supplier_route_items:
+        first, *rest = polish_inclusion_items(supplier_route_items)
+        lines.append(f"Included journey: {first}")
+        lines.extend(rest)
+    else:
+        includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
+        if includes:
+            lines.append("Included journey: " + ", ".join(includes))
     return lines
 
 

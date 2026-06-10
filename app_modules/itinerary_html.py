@@ -53,6 +53,7 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     html_text += render_cover_page(
         cover_theme=context.cover_theme,
         cover_background_path=context.cover_background_path,
+        cover_crop_focus=context.cover_crop_focus,
         cover_kicker=context.cover_kicker,
         cover_title_class=context.cover_title_class,
         trip_title=context.trip_title,
@@ -64,6 +65,9 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
         cover_theme=context.cover_theme,
         trip_glance=context.trip_glance,
         journey_arc=context.journey_arc,
+        summary_background_data_uri=context.summary_background_data_uri,
+        summary_background_path=context.summary_background_path,
+        summary_crop_focus=context.summary_crop_focus,
     )
 
     html_text += render_day_pages(context.render_grouped_days, context.output_edits, render_document=context.render_document)

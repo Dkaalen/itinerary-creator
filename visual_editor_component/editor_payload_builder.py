@@ -13,6 +13,7 @@ from itinerary_generation.titles import (
 )
 from itinerary_generation.cover_route import clean_or_create_cover_route_line
 from itinerary_generation.cover_theme import get_cover_theme
+from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
 from itinerary_generation.inclusions import create_whats_not_included
 from itinerary_generation.structured_builder import build_itinerary_document
@@ -203,6 +204,19 @@ def _client_output_warnings_for_payload(payload):
     return compact[:20]
 
 
+def _editor_cover_image_payload(parsed_rows, output_edits, key: str, *, pictures_added: bool) -> dict:
+    image = resolve_cover_background(parsed_rows, output_edits, key=key, include_image_data=False)
+    if not pictures_added:
+        image["data_uri"] = ""
+        image["auto_data_uri"] = ""
+        return image
+    if image.get("path"):
+        image["data_uri"] = get_image_preview_for_path(image.get("path"))
+    if image.get("auto_path"):
+        image["auto_data_uri"] = get_image_preview_for_path(image.get("auto_path"))
+    return image
+
+
 def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
     output_edits = output_edits or {}
@@ -311,12 +325,12 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     )
     structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
     model_warnings = _compact_model_warnings(structured_document, parsed_rows)
-    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=pictures_added)
-    if pictures_added and cover_theme.get("background_path"):
-        # The editor needs only a screen preview. Keep the PDF/export path
-        # pointing at the original file, but avoid sending the full cover image
-        # through the Streamlit component payload.
-        cover_theme["background_data_uri"] = get_image_preview_for_path(cover_theme.get("background_path"))
+    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=False)
+    cover_image = _editor_cover_image_payload(parsed_rows, output_edits, "cover_image", pictures_added=pictures_added)
+    summary_image = _editor_cover_image_payload(parsed_rows, output_edits, "summary_image", pictures_added=pictures_added)
+    cover_theme["background_path"] = cover_image.get("path", "")
+    cover_theme["background_data_uri"] = cover_image.get("data_uri", "")
+    cover_theme["background_crop_focus"] = cover_image.get("crop_focus", "top")
     typed_cover = stored_editor_draft.get("cover", {}) if isinstance(stored_editor_draft.get("cover"), dict) else {}
     typed_summary = stored_editor_draft.get("summary", {}) if isinstance(stored_editor_draft.get("summary"), dict) else {}
 
@@ -331,6 +345,8 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "cover_kicker": typed_cover.get("cover_kicker") or output_edits.get("cover_kicker", "Travel Itinerary"),
             "cover_season": cover_theme.get("season", "summer"),
             "cover_background_data_uri": cover_theme.get("background_data_uri", ""),
+            "cover_image": cover_image,
+            "summary_image": summary_image,
             "cover_ink": cover_theme.get("ink", "#1f3446"),
             "cover_muted": cover_theme.get("muted", "#7b746c"),
             "cover_accent": cover_theme.get("accent", "#b89555"),

@@ -1,4 +1,5 @@
 from ui.render_helpers import esc
+from itinerary_generation.cover_assets import cover_focus_css_position
 
 
 def balanced_cover_subtitle_html(subtitle: str) -> str:
@@ -49,6 +50,7 @@ def render_cover_page(
     *,
     cover_theme: dict,
     cover_background_path: str,
+    cover_crop_focus: str,
     cover_kicker: str,
     cover_title_class: str,
     trip_title: str,
@@ -57,7 +59,8 @@ def render_cover_page(
     destinations_line_html: str,
 ) -> str:
     """Render the cover page section for the itinerary preview/PDF HTML."""
-    return f"""        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}">
+    background_position = cover_focus_css_position(cover_crop_focus)
+    return f"""        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-crop-focus="{esc(cover_crop_focus)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}" style="background-position: {esc(background_position)};">
             <div class="cover-main">
                 <div class="cover-emblem" aria-hidden="true"></div>
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
@@ -75,9 +78,24 @@ def render_cover_page(
 """
 
 
-def render_summary_page(*, cover_theme: dict, trip_glance: dict, journey_arc: list[dict]) -> str:
+def render_summary_page(
+    *,
+    cover_theme: dict,
+    trip_glance: dict,
+    journey_arc: list[dict],
+    summary_background_data_uri: str = "",
+    summary_background_path: str = "",
+    summary_crop_focus: str = "top",
+) -> str:
     """Render the trip glance and journey arc summary page."""
-    html_text = f"""        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_theme.get('background_path', ''))}">
+    background_position = cover_focus_css_position(summary_crop_focus)
+    background_style = (
+        f"background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('{esc(summary_background_data_uri)}'); "
+        f"background-position: center center, {esc(background_position)};"
+        if summary_background_data_uri
+        else f"background-position: center center, {esc(background_position)};"
+    )
+    html_text = f"""        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(summary_background_path)}" data-cover-crop-focus="{esc(summary_crop_focus)}" style="{background_style}">
             <div class="glance-card">
                 <div class="glance-title">Your Trip at a Glance</div>
     """

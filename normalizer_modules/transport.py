@@ -4,7 +4,7 @@ import re
 
 from text_polish import polish_client_text, polish_title
 from normalizer_modules.text_utils import text_blob
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_points
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, explicit_norway_nutshell_title, extract_norway_nutshell_route_points
 from itinerary_generation.activity_products import fingerprint_activity
 
 def normalize_transport_title(row: dict) -> dict:
@@ -30,9 +30,14 @@ def normalize_transport_title(row: dict) -> dict:
             if product.route_legs:
                 row["route_legs"] = [dict(leg) for leg in product.route_legs]
         else:
-            points = extract_norway_nutshell_route_points(f"{row.get('title', '')} {row.get('details', '')} {row.get('original_title', '')}")
-            destination = points[-1] if points else row.get("city", "")
-            row["title"] = f"Norway in a Nutshell to {polish_title(destination)}" if destination else "Norway in a Nutshell"
+            source_text = f"{row.get('original_title', '')} {row.get('title', '')} {row.get('details', '')}"
+            explicit_title = explicit_norway_nutshell_title(source_text)
+            if explicit_title:
+                row["title"] = explicit_title
+            else:
+                points = extract_norway_nutshell_route_points(source_text)
+                destination = points[-1] if points else row.get("city", "")
+                row["title"] = f"Norway in a Nutshell to {polish_title(destination)}" if destination else "Norway in a Nutshell"
     if row.get("type") == "Cruise" or "overnight cruise" in full:
         if "stockholm" in full:
             row["title"] = "Cruise to Stockholm"

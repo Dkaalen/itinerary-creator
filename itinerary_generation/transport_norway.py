@@ -22,6 +22,99 @@ def _clean_nutshell_place(value: str) -> str:
     return canonicalize_place_name(polish_title(str(value or "").strip(" -:|.,")))
 
 
+NUTSHELL_INTERNAL_ROUTE_NODES = {"myrdal", "gudvangen", "voss"}
+
+
+def explicit_norway_nutshell_title(text: str) -> str:
+    """Return the supplier's explicit Nutshell title when present.
+
+    Norway in a Nutshell is a route product.  Internal route nodes such as
+    Myrdal, Gudvangen and Voss should never be promoted from the included
+    leg text into the main title when the supplier already wrote a route
+    destination, e.g. ``Norway in a Nutshell to Flåm``.
+    """
+
+    source = str(text or "")
+    match = re.search(
+        r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?=\s+-\s+|\s+\|\s+|\s+time\s*:|\s+meeting\s+point\s*:|\s+includes?\s*:|\s+description\s*:|$)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    destination = _clean_nutshell_place(match.group("destination"))
+    return f"Norway in a Nutshell to {destination}" if destination else ""
+
+
+def explicit_norway_nutshell_destination(text: str) -> str:
+    title = explicit_norway_nutshell_title(text)
+    match = re.search(r"\bto\s+(.+)$", title)
+    return match.group(1).strip() if match else ""
+
+
+def is_nutshell_internal_route_node(place: str) -> bool:
+    clean = _clean_nutshell_place(place).lower()
+    return clean in NUTSHELL_INTERNAL_ROUTE_NODES
+
+
+def _split_supplier_inclusion_items(value: str) -> list[str]:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\btranfser\b", "transfer", text, flags=re.IGNORECASE)
+    parts = [part.strip(" -•;.") for part in re.split(r"\s*(?:,|;|\n|\u2022)\s*", text) if part.strip(" -•;.")]
+    return parts
+
+
+def extract_norway_nutshell_supplier_includes(row_or_text) -> list[str]:
+    """Return source-faithful included route legs for Nutshell rows.
+
+    These are supplier inclusions, not catalogue template labels.  They are
+    intentionally preserved so a row saying ``Train transfer Oslo to Myrdal``
+    does not become only ``Bergen Railway`` in client output.
+    """
+
+    if isinstance(row_or_text, dict):
+        values = [
+            str(row_or_text.get("raw_text") or ""),
+            str(row_or_text.get("raw") or ""),
+            str(row_or_text.get("details") or ""),
+            str(row_or_text.get("description_raw") or ""),
+            str(row_or_text.get("original_title") or ""),
+            str(row_or_text.get("title") or ""),
+        ]
+        source = "\n".join(value for value in values if value.strip())
+    else:
+        source = str(row_or_text or "")
+
+    include_match = re.search(
+        r"\bincludes?\s*:\s*(?P<items>.*?)(?=\s+-\s+(?:description|notes?|meeting\s+point|time|duration)\s*:|\s+description\s*:|$)",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    raw_items = include_match.group("items") if include_match else ""
+    if not raw_items and isinstance(row_or_text, dict):
+        # Fallback for rows where the parser already split inclusions but kept
+        # route-shaped supplier wording there.  Generic catalogue labels are
+        # filtered below.
+        includes = row_or_text.get("source_includes") or row_or_text.get("supplier_includes") or row_or_text.get("includes") or []
+        if isinstance(includes, str):
+            raw_items = includes
+        else:
+            raw_items = "\n".join(str(item) for item in includes or [])
+
+    route_items: list[str] = []
+    for item in _split_supplier_inclusion_items(raw_items):
+        clean = polish_title(item).replace("Tranfser", "Transfer")
+        clean = re.sub(r"\btrain\s+transfer\b", "Train transfer", clean, flags=re.IGNORECASE)
+        clean = re.sub(r"\bcoach\s+transfer\b", "Coach Transfer", clean, flags=re.IGNORECASE)
+        clean = re.sub(r"\bfjord\s+cruise\b", "Fjord Cruise", clean, flags=re.IGNORECASE)
+        has_route = re.search(r"\b[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\b", clean, flags=re.IGNORECASE)
+        has_mode = re.search(r"\b(?:train|rail|railway|fjord\s+cruise|cruise|coach|bus|transfer)\b", clean, flags=re.IGNORECASE)
+        generic_catalogue = clean.lower() in {"bergen railway", "flåm railway", "flam railway", "fjord cruise", "scenic bus journey"}
+        if has_route and has_mode and not generic_catalogue and clean not in route_items:
+            route_items.append(clean)
+    return route_items
+
+
 def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
     """Return the main route from compact pipe-style Nutshell rows.
 
@@ -64,14 +157,9 @@ def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=
     if direct_origin and direct_destination:
         return f"Norway in a Nutshell from {direct_origin} to {direct_destination}"
 
-    explicit_destination_match = re.search(
-        r"\bnorway\s+in\s+a\s+(?:nutshell|nuthsell)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ ]+?)(?:\s+norway\s+in\s+a\s+(?:nutshell|nuthsell)|\s+-\s+|\s+\|\s+|$)",
-        source,
-        flags=re.IGNORECASE,
-    )
-    if explicit_destination_match:
-        destination = polish_title(explicit_destination_match.group(1).strip())
-        return f"Norway in a Nutshell to {destination}"
+    explicit_title = explicit_norway_nutshell_title(source)
+    if explicit_title:
+        return explicit_title
 
     # Product titles may include supplier service words before the real route,
     # e.g. "Nærøyfjord Cruise & Luggage Transfer Bergen to Oslo: Day Tour...".

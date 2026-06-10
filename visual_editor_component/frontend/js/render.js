@@ -1,11 +1,32 @@
+function coverImageControls(key, label, image) {
+  if (!picturesAdded()) return '';
+  const img = image || {};
+  const options = img.options || [];
+  const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
+  return `<div class="cover-image-panel" data-cover-image-key="${esc(key)}">
+    <strong>${esc(label)}</strong>
+    <button type="button" data-cover-img-action="auto" data-cover-img-key="${esc(key)}">Automatic</button>
+    <button type="button" class="danger" data-cover-img-action="none" data-cover-img-key="${esc(key)}">Remove</button>
+    <select data-cover-img-focus="${esc(key)}">
+      <option value="top" ${img.crop_focus === 'top' ? 'selected' : ''}>Sky / upper crop</option>
+      <option value="center" ${img.crop_focus === 'center' ? 'selected' : ''}>Center crop</option>
+      <option value="bottom" ${img.crop_focus === 'bottom' ? 'selected' : ''}>Lower crop</option>
+    </select>
+    <select data-cover-img-bank="${esc(key)}"><option value="">Choose replacement…</option>${optionHtml}</select>
+    <button type="button" data-cover-img-action="manual" data-cover-img-key="${esc(key)}">Use selected</button>
+  </div>`;
+}
+
 function summaryPage(summary) {
   const glance = summary?.trip_glance || {};
   const arc = summary?.journey_arc || [];
   const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value')}</div>`).join('');
   const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
-  const bg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';
-  const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}');` : '';
+  const bg = picturesAdded() ? (model.cover?.summary_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
+  const summaryFocus = model.cover?.summary_image?.crop_focus || 'top';
+  const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)};` : '';
   return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
+    ${coverImageControls('summary_image', 'Page 2 background image', model.cover?.summary_image)}
     <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
     <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
   </div></div></div>`;
@@ -121,18 +142,20 @@ function draw() {
           <span id="savedNote" class="saved-note">Autosave ready</span>
           <button class="primary" id="saveBtn" type="button">Save changes</button>
         </div>
+        <div class="toolbar-tools style-tools">
+          <select id="textStylePreset" aria-label="Text style preset">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
+          <select id="colorPreset" aria-label="Color preset">${controlledPresetOptionsHtml('colors', 'Color')}</select>
+          <button class="ghost" id="addNoteBlockBtn" type="button">Add note block</button>
+          <button class="ghost" id="addDividerBtn" type="button">Add divider</button>
+          <button class="ghost" id="compactSpacingBtn" type="button">Compact spacing</button>
+          <button class="ghost" id="normalSpacingBtn" type="button">Normal spacing</button>
+        </div>
         <details class="advanced-tools">
           <summary>Advanced tools</summary>
           <div class="toolbar-tools">
             <button class="ghost" id="undoBtn" type="button">Undo</button>
             <button class="ghost" id="resetBlockBtn" type="button">Reset section</button>
             <button class="ghost" id="resetBtn" type="button">Reset draft</button>
-            <select id="textStylePreset" aria-label="Text style preset">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
-            <select id="colorPreset" aria-label="Color preset">${controlledPresetOptionsHtml('colors', 'Color')}</select>
-            <button class="ghost" id="addNoteBlockBtn" type="button">Add note block</button>
-            <button class="ghost" id="addDividerBtn" type="button">Add divider</button>
-            <button class="ghost" id="compactSpacingBtn" type="button">Compact spacing</button>
-            <button class="ghost" id="normalSpacingBtn" type="button">Normal spacing</button>
             <input id="findText" type="text" placeholder="Find text">
             <input id="replaceText" type="text" placeholder="Replace with">
             <button class="ghost" id="replaceBtn" type="button">Replace all</button>
@@ -143,12 +166,14 @@ function draw() {
       ${warningPanelHtml()}
     </div>
     <div class="page-stack">`;
-  const coverBg = picturesAdded() ? (model.cover?.cover_background_data_uri || '') : '';
+  const coverBg = picturesAdded() ? (model.cover?.cover_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';
   const coverMuted = picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c';
   const coverAccent = picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555';
-  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}');` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
+  const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
+  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)};` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
   h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
+      ${coverImageControls('cover_image', 'Front cover image', model.cover?.cover_image)}
       <div class="cover-main">
         <div class="cover-emblem" aria-hidden="true"></div>
         ${editableText(model.cover?.cover_kicker || 'Travel Itinerary', 'cover.cover_kicker', 'cover-kicker')}

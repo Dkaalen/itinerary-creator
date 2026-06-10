@@ -43,10 +43,84 @@ def image_to_data_uri(path: Path | None) -> str:
         return ""
 
 
+
+
+COVER_IMAGE_KEYS = {"cover_image", "summary_image"}
+
+
+def normalize_cover_crop_focus(value: str) -> str:
+    text = str(value or "top").strip().lower()
+    return text if text in {"top", "center", "bottom"} else "top"
+
+
+def cover_focus_css_position(value: str) -> str:
+    focus = normalize_cover_crop_focus(value)
+    if focus == "bottom":
+        return "center bottom"
+    if focus == "center":
+        return "center center"
+    return "center top"
+
+
+def _cover_image_key(key: str) -> str:
+    return key if key in COVER_IMAGE_KEYS else "cover_image"
+
+
+def get_cover_image_choice(output_edits=None, key: str = "cover_image") -> dict:
+    edits = output_edits if isinstance(output_edits, dict) else {}
+    raw = edits.get(_cover_image_key(key))
+    raw = raw if isinstance(raw, dict) else {}
+    mode = str(raw.get("mode") or "auto").strip().lower()
+    if mode not in {"auto", "manual", "none"}:
+        mode = "auto"
+    return {
+        "mode": mode,
+        "path": str(raw.get("path") or ""),
+        "crop_focus": normalize_cover_crop_focus(raw.get("crop_focus") or "top"),
+    }
+
+
+def list_cover_background_options() -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    for path in sorted(COVER_BACKGROUND_DIR.glob("*")):
+        if path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            continue
+        label = path.stem.replace("_", " ").replace("-", " ").title()
+        options.append({"path": str(path), "name": label})
+    return options
+
+
+def resolve_cover_background(parsed_rows, output_edits=None, *, key: str = "cover_image", include_image_data: bool = True) -> dict:
+    season = get_cover_season(parsed_rows, output_edits)
+    auto_path = get_cover_background_path(season, parsed_rows)
+    choice = get_cover_image_choice(output_edits, key)
+    selected_path: Path | None = auto_path
+    if choice["mode"] == "none":
+        selected_path = None
+    elif choice["mode"] == "manual" and choice.get("path"):
+        manual = Path(choice["path"])
+        if manual.exists() and manual.is_file():
+            selected_path = manual
+        else:
+            selected_path = None
+    return {
+        "mode": choice["mode"],
+        "path": str(selected_path) if selected_path else "",
+        "name": selected_path.name if selected_path else "",
+        "data_uri": image_to_data_uri(selected_path) if include_image_data else "",
+        "auto_path": str(auto_path) if auto_path else "",
+        "auto_name": auto_path.name if auto_path else "",
+        "auto_data_uri": image_to_data_uri(auto_path) if include_image_data else "",
+        "crop_focus": choice["crop_focus"],
+        "options": list_cover_background_options(),
+    }
+
+
 def get_cover_theme(parsed_rows, output_edits=None, *, include_image_data: bool = True) -> dict:
     season = get_cover_season(parsed_rows, output_edits)
     background_key = select_cover_background_key(season, parsed_rows)
-    path = get_cover_background_path(season, parsed_rows) if include_image_data else None
+    cover_image = resolve_cover_background(parsed_rows, output_edits, key="cover_image", include_image_data=include_image_data)
+    path = Path(cover_image.get("path")) if cover_image.get("path") else None
     colors = dict(SEASON_TEXT_COLORS.get(season, SEASON_TEXT_COLORS["summer"]))
     if "northern_lights" in background_key:
         colors = {"ink": "#f5f1e8", "muted": "#d8cfbe", "accent": "#ead7a2"}
@@ -57,7 +131,8 @@ def get_cover_theme(parsed_rows, output_edits=None, *, include_image_data: bool 
         "title": SEASON_TITLES.get(season, SEASON_TITLES["summer"]),
         "subtitle": SEASON_SUBTITLES.get(season, SEASON_SUBTITLES["summer"]),
         "background_path": str(path) if path else "",
-        "background_data_uri": image_to_data_uri(path) if include_image_data else "",
+        "background_data_uri": cover_image.get("data_uri", "") if include_image_data else "",
+        "background_crop_focus": cover_image.get("crop_focus", "top"),
         "ink": colors["ink"],
         "muted": colors["muted"],
         "accent": colors["accent"],

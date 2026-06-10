@@ -15,6 +15,7 @@ from itinerary_generation.editable_draft import (
     normalise_editable_draft,
 )
 from ui.editor_sanitizer import clean_visual_editor_html, normalize_final_list_html
+from itinerary_generation.cover_assets import normalize_cover_crop_focus
 from itinerary_generation.draft_autosave import save_autosave_payload
 from visual_editor_component.editor_status import autosave_status
 
@@ -36,6 +37,19 @@ def _decode_visual_editor_result(result):
     return data, "", False
 
 
+def _sanitize_cover_image_payload(value: dict) -> dict:
+    raw = value if isinstance(value, dict) else {}
+    mode = str(raw.get("mode") or "auto").strip().lower()
+    if mode not in {"auto", "manual", "none"}:
+        mode = "auto"
+    path = str(raw.get("path") or "").strip() if mode == "manual" else ""
+    return {
+        "mode": mode,
+        "path": path,
+        "crop_focus": normalize_cover_crop_focus(raw.get("crop_focus") or "top"),
+    }
+
+
 def _sanitize_editor_draft(editor_draft):
     """Clean typed editor draft values before storing/mirroring them."""
     if not isinstance(editor_draft, dict):
@@ -43,6 +57,9 @@ def _sanitize_editor_draft(editor_draft):
     cleaned = json.loads(json.dumps(editor_draft))
     cover = cleaned.get("cover") if isinstance(cleaned.get("cover"), dict) else {}
     for key, value in list(cover.items()):
+        if key in {"cover_image", "summary_image"}:
+            cover[key] = _sanitize_cover_image_payload(value)
+            continue
         text = str(value or "").strip()
         cover[key] = _normalize_route_edit(text) if key == "destinations_line" else text
     cleaned["cover"] = cover
@@ -109,6 +126,9 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         if key in cover:
             value = str(cover.get(key, "")).strip()
             output_edits[key] = _normalize_route_edit(value) if key == "destinations_line" else value
+    for key in ["cover_image", "summary_image"]:
+        if key in cover:
+            output_edits[key] = _sanitize_cover_image_payload(cover.get(key) or {})
 
     workflow = data.get("workflow", {}) or {}
     if isinstance(workflow, dict) and "pictures_added" in workflow:
