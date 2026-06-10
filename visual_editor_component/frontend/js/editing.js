@@ -76,18 +76,6 @@ function attachHandlers() {
   document.getElementById('undoBtn')?.addEventListener('click', undoLastEdit);
   document.getElementById('resetBlockBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('replaceBtn')?.addEventListener('click', replaceAllText);
-  document.getElementById('textStylePreset')?.addEventListener('change', event => {
-    applyTextStylePreset(event.target.value);
-    event.target.value = '';
-  });
-  document.getElementById('colorPreset')?.addEventListener('change', event => {
-    applyColorPreset(event.target.value);
-    event.target.value = '';
-  });
-  document.getElementById('addNoteBlockBtn')?.addEventListener('click', addNoteBlock);
-  document.getElementById('addDividerBtn')?.addEventListener('click', addDividerBlock);
-  document.getElementById('compactSpacingBtn')?.addEventListener('click', () => applySpacingPreset('compact'));
-  document.getElementById('normalSpacingBtn')?.addEventListener('click', () => applySpacingPreset('normal'));
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('resetBtn')?.addEventListener('click', () => {
     clearLocalDraft();

@@ -91,24 +91,9 @@ function closestEditableBlock() {
   if (!editable.contains(candidate) && candidate !== editable) return editable;
   return candidate === editable ? editable : candidate;
 }
-const CONTROLLED_TEXT_STYLE_CLASSES = [
-  've-text-small-note',
-  've-text-large',
-  've-text-heading',
-  've-text-subheading',
-  've-text-muted',
-  've-text-accent',
-];
-const CONTROLLED_COLOR_CLASSES = [
-  've-color-muted',
-  've-color-accent',
-  've-color-warning',
-  've-color-highlight',
-];
-const CONTROLLED_SPACING_CLASSES = [
-  've-spacing-compact',
-  've-spacing-normal',
-];
+const CONTROLLED_TEXT_STYLE_CLASSES = controlledPresetClassNames('text_styles');
+const CONTROLLED_COLOR_CLASSES = controlledPresetClassNames('colors');
+const CONTROLLED_SPACING_CLASSES = controlledPresetClassNames('spacing');
 
 function isRichEditable(el) {
   return !!(el && isHtmlEditKey(el.getAttribute('data-edit-key') || ''));
@@ -167,29 +152,15 @@ function applyClassPreset(className, classGroup) {
   commitEditableDomChange(editable);
 }
 function applyTextStylePreset(preset) {
-  const mapping = {
-    normal: '',
-    small_note: 've-text-small-note',
-    large_text: 've-text-large',
-    heading: 've-text-heading',
-    subheading: 've-text-subheading',
-    muted_text: 've-text-muted',
-    accent_text: 've-text-accent',
-  };
+  const mapping = controlledPresetClassMap('text_styles');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_TEXT_STYLE_CLASSES);
 }
 function applyColorPreset(preset) {
-  const mapping = {
-    default: '',
-    muted_grey: 've-color-muted',
-    accent_gold: 've-color-accent',
-    warning: 've-color-warning',
-    soft_highlight: 've-color-highlight',
-  };
+  const mapping = controlledPresetClassMap('colors');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_COLOR_CLASSES);
 }
 function applySpacingPreset(preset) {
-  const mapping = {compact: 've-spacing-compact', normal: 've-spacing-normal'};
+  const mapping = controlledPresetClassMap('spacing');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_SPACING_CLASSES);
 }
 function insertHtmlAtSelectionOrEnd(editable, html) {
@@ -209,14 +180,10 @@ function insertControlledBlock(html) {
   commitEditableDomChange(editable);
 }
 function addNoteBlock() {
-  insertControlledBlock('<div class="content-block ve-note-block"><div class="body-text ve-text-small-note ve-color-muted">Note: Add your note here.</div></div>');
+  insertControlledBlock(controlledBlockTemplate('note'));
 }
 function addDividerBlock() {
-  insertControlledBlock('<div class="content-block ve-divider-block"><div class="ve-divider">&nbsp;</div></div>');
-}
-function makeSelectedBlockClass(className) {
-  const mapping = {'section-title': 'heading', '': 'normal'};
-  applyTextStylePreset(mapping[className] || 'normal');
+  insertControlledBlock(controlledBlockTemplate('divider'));
 }
 function plainTextToCleanPasteHtml(text) {
   const lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -251,10 +218,8 @@ function sanitizeClipboardHtml(html, fallbackText) {
     'section-title','row-type','strong-line','body-text','detail-list','final-list','inclusion-entry',
     'inclusion-entry-title','inclusion-entry-detail','inclusion-entry-spacer','meta-line','meta-label',
     'small-section','content-block','muted-note','inclusion-category-block','inclusion-category-list',
-    'inclusion-multiline-list','ve-text-small-note','ve-text-large','ve-text-heading',
-    've-text-subheading','ve-text-muted','ve-text-accent','ve-color-muted','ve-color-accent',
-    've-color-warning','ve-color-highlight','ve-spacing-compact','ve-spacing-normal',
-    've-note-block','ve-divider-block','ve-divider'
+    'inclusion-multiline-list',
+    ...controlledEditorAllowedClasses(),
   ]);
   box.querySelectorAll('*').forEach(node => {
     const tag = node.tagName;
@@ -288,53 +253,6 @@ function htmlTextContent(html) {
   const box = document.createElement('div');
   box.innerHTML = html || '';
   return (box.textContent || '').replace(/\s+/g, ' ').trim();
-}
-function currentListItem() {
-  const selection = window.getSelection();
-  let node = selection?.anchorNode || document.activeElement;
-  if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
-  return node?.closest?.('li') || null;
-}
-function editableForListAction() {
-  const li = currentListItem();
-  if (li) return li.closest('[data-edit-key]');
-  return selectedEditable();
-}
-function addBullet() {
-  const el = editableForListAction();
-  if (!el) return;
-  pushUndo(el, editableValue(el));
-  let list = currentListItem()?.parentElement || el.querySelector('ul,ol');
-  if (!list) {
-    el.insertAdjacentHTML('beforeend', '<ul><li>New item</li></ul>');
-  } else {
-    const li = currentListItem();
-    const newLi = document.createElement('li');
-    newLi.textContent = 'New item';
-    if (li && li.parentElement === list) li.insertAdjacentElement('afterend', newLi);
-    else list.appendChild(newLi);
-  }
-  markTouched(el.getAttribute('data-edit-key'));
-  requestAnimationFrame(adjustDayImages);
-}
-function deleteBullet() {
-  const li = currentListItem();
-  const el = li?.closest?.('[data-edit-key]');
-  if (!li || !el) return;
-  pushUndo(el, editableValue(el));
-  li.remove();
-  markTouched(el.getAttribute('data-edit-key'));
-  requestAnimationFrame(adjustDayImages);
-}
-function moveBullet(direction) {
-  const li = currentListItem();
-  const el = li?.closest?.('[data-edit-key]');
-  if (!li || !el) return;
-  pushUndo(el, editableValue(el));
-  if (direction < 0 && li.previousElementSibling) li.parentElement.insertBefore(li, li.previousElementSibling);
-  if (direction > 0 && li.nextElementSibling) li.parentElement.insertBefore(li.nextElementSibling, li);
-  markTouched(el.getAttribute('data-edit-key'));
-  requestAnimationFrame(adjustDayImages);
 }
 function stripEditorArtifactsFromHtml(html) {
   const box = document.createElement('div');

@@ -15,24 +15,14 @@ from .html_utils import clean_text
 from .render_flowables import add_premium_rule
 from .render_text import li_text_with_line_breaks
 from .story import add_bullets, add_paragraph
+from visual_editor_component.style_presets import (
+    CONTROLLED_STYLE_CLASSES as REGISTERED_CONTROLLED_STYLE_CLASSES,
+    pdf_base_style_for_classes,
+    pdf_effects_for_classes,
+)
 
 
-CONTROLLED_TEXT_CLASSES = {
-    "ve-text-small-note",
-    "ve-text-large",
-    "ve-text-heading",
-    "ve-text-subheading",
-    "ve-text-muted",
-    "ve-text-accent",
-}
-CONTROLLED_COLOR_CLASSES = {
-    "ve-color-muted",
-    "ve-color-accent",
-    "ve-color-warning",
-    "ve-color-highlight",
-}
-CONTROLLED_SPACING_CLASSES = {"ve-spacing-compact", "ve-spacing-normal"}
-CONTROLLED_CLASSES = CONTROLLED_TEXT_CLASSES | CONTROLLED_COLOR_CLASSES | CONTROLLED_SPACING_CLASSES
+CONTROLLED_CLASSES = set(REGISTERED_CONTROLLED_STYLE_CLASSES)
 
 
 def _activity_time_range_text(time_text, duration_text):
@@ -54,45 +44,35 @@ def _class_set(element) -> set[str]:
     return {str(cls) for cls in (element.get("class") or [])}
 
 
-def _controlled_style(styles, classes, default_style_name="body"):
-    base_name = default_style_name
-    if "ve-text-small-note" in classes:
-        base_name = "editor_small_note"
-    elif "ve-text-large" in classes:
-        base_name = "editor_large"
-    elif "ve-text-heading" in classes:
-        base_name = "editor_heading"
-    elif "ve-text-subheading" in classes:
-        base_name = "editor_subheading"
+def _registry_color(value):
+    if value == "muted":
+        return pdf_styles.MUTED
+    if value == "accent":
+        return pdf_styles.ACCENT
+    if isinstance(value, str) and value.startswith("#"):
+        return colors.HexColor(value)
+    return None
 
+
+def _controlled_style(styles, classes, default_style_name="body"):
+    base_name = pdf_base_style_for_classes(classes, default_style_name)
     style = styles[base_name]
     text_color = None
     back_color = None
+    space_after = None
     suffix = []
 
-    if "ve-text-muted" in classes or "ve-color-muted" in classes:
-        text_color = pdf_styles.MUTED
-        suffix.append("muted")
-    if "ve-text-accent" in classes:
-        text_color = pdf_styles.ACCENT
-        suffix.append("accent")
-    if "ve-color-accent" in classes:
-        text_color = colors.HexColor("#9a6a16")
-        suffix.append("gold")
-    if "ve-color-warning" in classes:
-        text_color = colors.HexColor("#7a1c1c")
-        suffix.append("warning")
-    if "ve-color-highlight" in classes:
-        back_color = colors.HexColor("#eadfcf")
-        suffix.append("highlight")
-
-    space_after = None
-    if "ve-spacing-compact" in classes:
-        space_after = 1.5
-        suffix.append("compact")
-    elif "ve-spacing-normal" in classes:
-        space_after = 6
-        suffix.append("normal")
+    for effect in pdf_effects_for_classes(classes):
+        effect_text_color = _registry_color(effect.get("pdf_text_color"))
+        if effect_text_color is not None:
+            text_color = effect_text_color
+        effect_back_color = _registry_color(effect.get("pdf_back_color"))
+        if effect_back_color is not None:
+            back_color = effect_back_color
+        if effect.get("pdf_space_after") is not None:
+            space_after = effect.get("pdf_space_after")
+        if effect.get("pdf_suffix"):
+            suffix.append(str(effect["pdf_suffix"]))
 
     if not suffix:
         return style

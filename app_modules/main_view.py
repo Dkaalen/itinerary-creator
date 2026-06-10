@@ -40,7 +40,6 @@ from app_modules.workflow_actions import (
     retry_image_bank_connection,
 )
 from app_modules.workflow_state import (
-    image_grouped_days_from_state,
     session_stage_from_state,
     set_workflow_stage,
 )
@@ -242,9 +241,6 @@ def _render_document_editor(*, pictures_active: bool) -> None:
     elif not st.session_state.get("html_path"):
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-
-def _image_grouped_days() -> dict:
-    return image_grouped_days_from_state(st.session_state)
 
 
 def _image_status_notice() -> None:

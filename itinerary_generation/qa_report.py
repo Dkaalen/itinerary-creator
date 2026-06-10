@@ -21,7 +21,7 @@ from itinerary_generation.day_text import create_day_intro, create_travel_route_
 from itinerary_generation.titles import create_client_activity_title, create_day_title
 from itinerary_generation.render_text_helpers import list_to_text
 from itinerary_generation.editable_draft import section_by_id
-from itinerary_generation.source_identity import clean_text, edit_row_id, source_text
+from shared.source_rows import clean_text, edit_row_id, source_text
 
 QA_SCHEMA_VERSION = 1
 DEFAULT_QA_REPORT_DIR = "qa_reports"

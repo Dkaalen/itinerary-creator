@@ -102,7 +102,7 @@ def test_save_pdf_file_prefers_typed_renderer_when_model_owns_content(monkeypatc
     assert calls[0][1] is True
 
 
-def test_save_pdf_file_falls_back_when_visual_editor_html_owns_content(monkeypatch, tmp_path):
+def test_save_pdf_file_keeps_supported_final_html_on_typed_path(monkeypatch, tmp_path):
     context = _context()
     context.render_document.final_sections.append(
         RenderFinalSection(
@@ -130,5 +130,44 @@ def test_save_pdf_file_falls_back_when_visual_editor_html_owns_content(monkeypat
     output_path = export_files.save_pdf_file(html_path, render_document=context.render_document, output_edits={})
 
     assert output_path == Path("outputs/itinerary_preview.pdf")
+    assert calls == ["typed"]
+    assert render_document_requires_html_fallback(context.render_document, {}) is False
+
+
+def test_save_pdf_file_falls_back_for_unsupported_visual_editor_html(monkeypatch, tmp_path):
+    context = _context()
+    context.render_document.final_sections.append(
+        RenderFinalSection(
+            "whats_included",
+            "What’s included",
+            pages=[RenderFinalPage(content_html="<table><tr><td>Unsupported layout</td></tr></table>")],
+        )
+    )
+    html_path = tmp_path / "preview.html"
+    html_path.write_text("<html><body>edited preview</body></html>", encoding="utf-8")
+    calls = []
+
+    def fake_typed(render_document, pdf_path, **kwargs):
+        calls.append("typed")
+        Path(pdf_path).write_bytes(b"typed pdf")
+
+    def fake_html(html_path_arg, pdf_path):
+        calls.append("html")
+        Path(pdf_path).write_bytes(b"html pdf")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(export_files, "export_render_document_to_pdf", fake_typed)
+    monkeypatch.setattr(export_files, "export_html_to_pdf", fake_html)
+
+    output_path = export_files.save_pdf_file(html_path, render_document=context.render_document, output_edits={})
+
+    assert output_path == Path("outputs/itinerary_preview.pdf")
     assert calls == ["html"]
     assert render_document_requires_html_fallback(context.render_document, {}) is True
+
+
+def test_save_pdf_file_still_falls_back_for_day_body_html():
+    assert render_document_requires_html_fallback(
+        RenderDocument(),
+        {"days": {"Day 1": {"blocks_html": "<div>Edited day body</div>"}}},
+    ) is True

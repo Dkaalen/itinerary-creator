@@ -166,7 +166,7 @@ def test_inclusion_pagination_uses_clean_titles_and_less_aggressive_page_breaks(
 
 def test_visual_editor_add_pictures_path_has_defensive_error_ui_and_bounded_image_payloads():
     frontend = _visual_editor_frontend_source()
-    workflow = (ROOT / "visual_editor_component" / "editor_workflow.py").read_text(encoding="utf-8")
+    workflow = (ROOT / "visual_editor_component" / "editor_payload_builder.py").read_text(encoding="utf-8")
     previews = (ROOT / "images" / "image_preview.py").read_text(encoding="utf-8")
 
     assert "function showEditorError" in frontend

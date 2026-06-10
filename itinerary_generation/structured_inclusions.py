@@ -33,7 +33,7 @@ from itinerary_generation.transport_domain.inclusions import (
 )
 from itinerary_generation.inclusion_utils import clean
 from itinerary_generation.structured_model import StructuredListItem, StructuredListSection
-from itinerary_generation.source_identity import source_row_id
+from shared.source_rows import source_row_id
 
 
 def _row_id(row: dict, fallback_index: int = 0) -> str:

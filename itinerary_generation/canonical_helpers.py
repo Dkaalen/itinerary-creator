@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-from itinerary_generation.source_identity import clean_text, source_row_id, source_text
+from shared.source_rows import clean_text, source_row_id, source_text
 from itinerary_generation.content_engine import group_tour_pickup_window_from_overview
 
 

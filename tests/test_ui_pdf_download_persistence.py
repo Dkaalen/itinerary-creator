@@ -37,7 +37,7 @@ def test_dirty_state_clears_durable_pdf_artifact():
 
 
 def test_visual_editor_noop_saves_do_not_dirty_pdf():
-    source = Path("visual_editor_component/editor_workflow.py").read_text()
+    source = Path("visual_editor_component/editor_result_applier.py").read_text()
 
     assert "before_snapshot = _stable_output_edits_snapshot(output_edits)" in source
     assert "after_snapshot = _stable_output_edits_snapshot(output_edits)" in source

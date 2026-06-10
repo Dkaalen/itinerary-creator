@@ -17,7 +17,7 @@ from itinerary_generation.canonical_render_adapter import render_block_from_cano
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import DayDocument, ItineraryDocument, TravelSequence
-from itinerary_generation.source_identity import source_row_id, rows_by_source_id
+from shared.source_rows import source_row_id, rows_by_source_id
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.title_safety import is_forbidden_client_title

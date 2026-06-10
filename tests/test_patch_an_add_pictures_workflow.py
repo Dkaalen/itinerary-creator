@@ -28,7 +28,7 @@ def test_add_pictures_is_gated_by_explicit_apply_changes_commit():
 
 
 def test_visual_editor_picture_payload_uses_screen_sized_previews():
-    workflow = (ROOT / "visual_editor_component" / "editor_workflow.py").read_text(encoding="utf-8")
+    workflow = (ROOT / "visual_editor_component" / "editor_payload_builder.py").read_text(encoding="utf-8")
     previews = (ROOT / "images" / "image_preview.py").read_text(encoding="utf-8")
 
     assert 'cover_theme["background_data_uri"] = get_image_preview_for_path' in workflow

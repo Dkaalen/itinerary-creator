@@ -127,24 +127,8 @@ function draw() {
             <button class="ghost" id="undoBtn" type="button">Undo</button>
             <button class="ghost" id="resetBlockBtn" type="button">Reset section</button>
             <button class="ghost" id="resetBtn" type="button">Reset draft</button>
-            <select id="textStylePreset" aria-label="Text style preset">
-              <option value="">Text style</option>
-              <option value="normal">Normal text</option>
-              <option value="small_note">Small note</option>
-              <option value="large_text">Large text</option>
-              <option value="heading">Heading</option>
-              <option value="subheading">Subheading</option>
-              <option value="muted_text">Muted text</option>
-              <option value="accent_text">Accent text</option>
-            </select>
-            <select id="colorPreset" aria-label="Color preset">
-              <option value="">Color</option>
-              <option value="default">Default</option>
-              <option value="muted_grey">Muted grey</option>
-              <option value="accent_gold">Accent gold</option>
-              <option value="warning">Warning / important</option>
-              <option value="soft_highlight">Soft highlight</option>
-            </select>
+            <select id="textStylePreset" aria-label="Text style preset">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
+            <select id="colorPreset" aria-label="Color preset">${controlledPresetOptionsHtml('colors', 'Color')}</select>
             <button class="ghost" id="addNoteBlockBtn" type="button">Add note block</button>
             <button class="ghost" id="addDividerBtn" type="button">Add divider</button>
             <button class="ghost" id="compactSpacingBtn" type="button">Compact spacing</button>

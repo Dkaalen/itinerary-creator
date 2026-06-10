@@ -15,7 +15,7 @@ from itinerary_generation.common import get_primary_city, get_row_type, group_ro
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.exclusion_sections import create_structured_whats_not_included
 from itinerary_generation.structured_inclusions import build_structured_inclusion_sections
-from itinerary_generation.source_identity import clean_text, source_row_id, source_text
+from shared.source_rows import clean_text, source_row_id, source_text
 from itinerary_generation.structured_model import (
     DayDocument,
     DocumentItem,

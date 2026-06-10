@@ -13,7 +13,7 @@ from app_modules.export_actions import (
     visual_editor_export_commit_ready,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
-from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
+from app_modules.workflow_state import session_state_snapshot
 from images.app_image_selection import image_bank_status
 from ui.picture_workflow import pictures_are_added
 from itinerary_generation.qa_report import (
@@ -110,9 +110,6 @@ def _render_qa_report_downloads(app_version: str) -> None:
     if saved:
         st.success(f"QA report saved to shared storage: {saved.get('markdown_path')}")
     st.caption(f"Shared QA storage: {qa_reports_dir()}")
-
-def _image_grouped_days() -> dict:
-    return image_grouped_days_from_state(st.session_state)
 
 
 def _render_secondary_downloads(app_version: str) -> None:

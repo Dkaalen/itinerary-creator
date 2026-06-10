@@ -9,15 +9,16 @@ from ui.editor_sanitizer import clean_visual_editor_html
 
 def test_patch_bl_toolbar_exposes_controlled_presets_not_freeform_styles():
     render_js = open("visual_editor_component/frontend/js/render.js", encoding="utf-8").read()
+    style_presets_js = open("visual_editor_component/frontend/js/style_presets.js", encoding="utf-8").read()
     commands_js = open("visual_editor_component/frontend/js/commands.js", encoding="utf-8").read()
 
     assert "Text style" in render_js
-    assert "Small note" in render_js
-    assert "Accent gold" in render_js
+    assert "Small note" in style_presets_js
+    assert "Accent gold" in style_presets_js
     assert "Add note block" in render_js
     assert "Add divider" in render_js
     assert "Compact spacing" in render_js
-    assert "input type=\"color\"" not in render_js
+    assert 'input type="color"' not in render_js
     assert "fontSize" not in commands_js
     assert "style.color" not in commands_js
 

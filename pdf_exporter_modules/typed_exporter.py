@@ -9,6 +9,8 @@ contract is expanded.
 from __future__ import annotations
 
 from copy import copy
+
+from bs4 import BeautifulSoup, NavigableString
 from pathlib import Path
 import base64
 import re
@@ -23,29 +25,102 @@ from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocu
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint, SamePageDayImage
 from pdf_exporter_modules.image_layout import normalize_crop_focus
 from pdf_exporter_modules.render_flowables import CoverEmblem, add_cover_rule, add_premium_rule, boxed_story_table
-from pdf_exporter_modules.html_utils import para_text
+from pdf_exporter_modules.html_utils import clean_text, para_text
+from pdf_exporter_modules.render_content import render_content_blocks
+from pdf_exporter_modules.render_text import li_text_with_line_breaks
 from pdf_exporter_modules.story import add_bullets, add_paragraph, make_table
 from pdf_exporter_modules import styles as pdf_styles
 from pdf_exporter_modules.styles import apply_pdf_palette, hex_to_color, make_styles, page_background
 
 
-def render_document_requires_html_fallback(render_document: RenderDocument | None, output_edits: Mapping | None = None) -> bool:
-    """Return True when saved visual-editor HTML still owns visible content.
+_SUPPORTED_FINAL_HTML_TAGS = {
+    "b",
+    "br",
+    "div",
+    "em",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "span",
+    "strong",
+    "ul",
+}
 
-    Direct typed PDF rendering is safe when generated model fields own the day
-    and final-page content. If the visual editor saved arbitrary HTML, the
-    legacy HTML exporter remains the compatibility path until that HTML is fully
-    normalized into typed blocks.
+_SUPPORTED_FINAL_HTML_CLASSES = {
+    "activity-inclusion-block",
+    "activity-inclusion-title",
+    "body-text",
+    "content-block",
+    "final-list",
+    "inclusion-category-block",
+    "inclusion-entry-detail",
+    "inclusion-entry-spacer",
+    "inclusion-entry-title",
+    "section-title",
+    "strong-line",
+}
+
+
+def _iter_html_values(value):
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            if isinstance(item, Mapping):
+                yield str(item.get("content_html") or item.get("html") or "")
+            else:
+                yield str(item or "")
+        return
+    if isinstance(value, Mapping):
+        yield str(value.get("content_html") or value.get("html") or "")
+        return
+    yield str(value or "")
+
+
+def _final_content_html_supported(html_fragment: str) -> bool:
+    """Return True when an edited final-page fragment can render in typed PDF.
+
+    This deliberately supports only the small, sanitized HTML contract emitted by
+    the visual editor/final-page builders. Unsupported structures still use the
+    legacy HTML exporter rather than silently dropping layout.
+    """
+
+    html_fragment = str(html_fragment or "").strip()
+    if not html_fragment:
+        return True
+
+    soup = BeautifulSoup(html_fragment, "html.parser")
+    for tag in soup.find_all(True):
+        if tag.name not in _SUPPORTED_FINAL_HTML_TAGS:
+            return False
+        for class_name in tag.get("class") or []:
+            if class_name not in _SUPPORTED_FINAL_HTML_CLASSES:
+                return False
+    return True
+
+
+def _any_final_html_requires_fallback(value) -> bool:
+    return any(
+        bool(html.strip()) and not _final_content_html_supported(html)
+        for html in _iter_html_values(value)
+    )
+
+
+def render_document_requires_html_fallback(render_document: RenderDocument | None, output_edits: Mapping | None = None) -> bool:
+    """Return True only when unsupported saved HTML still owns visible content.
+
+    Final-page HTML from the controlled editor contract can now render inside the
+    typed PDF path. Day body HTML still falls back because it can contain complex
+    arbitrary layout that has not yet been normalized into typed blocks.
     """
 
     if render_document is None:
         return True
 
     for section in getattr(render_document, "final_sections", []) or []:
-        if getattr(section, "content_html", ""):
+        if _any_final_html_requires_fallback(getattr(section, "content_html", "")):
             return True
         for page in getattr(section, "pages", []) or []:
-            if getattr(page, "content_html", ""):
+            if _any_final_html_requires_fallback(getattr(page, "content_html", "")):
                 return True
 
     edits = output_edits or {}
@@ -64,18 +139,69 @@ def render_document_requires_html_fallback(render_document: RenderDocument | Non
         for section in draft.get("final_sections") or []:
             if not isinstance(section, Mapping):
                 continue
-            if str(section.get("content_html") or "").strip():
+            if _any_final_html_requires_fallback(section.get("content_html", "")):
                 return True
             for page in section.get("pages") or []:
-                if isinstance(page, Mapping) and str(page.get("content_html") or page.get("html") or "").strip():
+                if isinstance(page, Mapping) and _any_final_html_requires_fallback(page):
                     return True
 
+    if not isinstance(edits, Mapping):
+        return False
     legacy_html_keys = (
         "whats_included_pages_html",
         "whats_included_html",
         "whats_not_included_html",
     )
-    return any(bool(edits.get(key)) for key in legacy_html_keys) if isinstance(edits, Mapping) else False
+    return any(_any_final_html_requires_fallback(edits.get(key)) for key in legacy_html_keys)
+
+
+
+
+def _render_supported_final_html(html_fragment: str, story, styles) -> None:
+    html_fragment = str(html_fragment or "").strip()
+    if not html_fragment:
+        return
+
+    soup = BeautifulSoup(html_fragment, "html.parser")
+
+    def render_children(container):
+        for child in getattr(container, "contents", []):
+            if isinstance(child, NavigableString):
+                text = clean_text(str(child))
+                if text:
+                    add_paragraph(story, text, styles["body"])
+                continue
+            if not getattr(child, "name", None):
+                continue
+
+            classes = child.get("class") or []
+            if "content-block" in classes or "activity-inclusion-block" in classes:
+                render_content_blocks(BeautifulSoup(str(child), "html.parser"), story, styles)
+                continue
+
+            if child.name in {"ul", "ol"}:
+                add_bullets(story, [li_text_with_line_breaks(li) for li in child.find_all("li", recursive=False)], styles)
+                continue
+
+            if "section-title" in classes:
+                add_paragraph(story, child.get_text(" "), styles["section"])
+                continue
+
+            if child.name in {"strong", "b"}:
+                add_paragraph(story, child.get_text(" "), styles["body_bold"])
+                continue
+
+            if child.name in {"p", "span", "div", "em", "i"}:
+                nested_structures = child.find_all(["ul", "ol"], recursive=False) or child.find_all(class_="content-block", recursive=False)
+                if nested_structures:
+                    render_children(child)
+                    continue
+                text = clean_text(child.get_text(" "))
+                if text:
+                    style_name = "body_bold" if "strong-line" in classes else "body"
+                    add_paragraph(story, text, styles[style_name])
+
+    render_children(soup)
 
 
 def _cover_color(value, fallback):
@@ -291,6 +417,9 @@ def _render_day(day: RenderDay, story, styles, *, image_match=None, crop_focus="
 def _render_final_page(title: str, page: RenderFinalPage, story, styles, *, continued=False):
     add_paragraph(story, title, styles["page_title"])
     add_premium_rule(story)
+    if page.content_html:
+        _render_supported_final_html(page.content_html, story, styles)
+        return
     for section in page.sections or []:
         add_paragraph(story, section.title, styles["section"])
         add_bullets(story, section.items, styles)

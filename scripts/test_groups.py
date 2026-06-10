@@ -27,6 +27,11 @@ FAST_TESTS = (
     "tests/test_patch_al_editor_preview_ownership.py",
     "tests/test_patch_am_client_output_quality.py",
     "tests/test_patch_an_add_pictures_workflow.py",
+    "tests/test_patch_bl_editor_styling.py",
+    "tests/test_patch_bp_editor_workflow_split.py",
+    "tests/test_patch_bq_style_registry.py",
+    "tests/test_patch_bo_state_ownership.py",
+    "tests/test_patch_bs_architecture_boundaries.py",
     "tests/test_regressions_parser_normalizer.py",
     "tests/test_stress_logic_followups.py",
     "tests/test_itinerary_health_report.py",
@@ -43,7 +48,6 @@ FAST_TESTS = (
     "tests/test_visual_editor_typed_draft.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
-    "tests/test_patch_bl_editor_styling.py",
     "tests/test_structured_core_model.py",
     "tests/test_structured_html_source_identity.py",
     "tests/test_output_layout_contract.py",
@@ -94,18 +98,24 @@ ARCHITECTURE_TESTS = (
     "tests/test_transport_model_architecture.py",
     "tests/test_wrapper_exports.py",
     "tests/test_test_runner_groups.py",
+    "tests/test_patch_bp_editor_workflow_split.py",
+    "tests/test_patch_bq_style_registry.py",
+    "tests/test_patch_bs_architecture_boundaries.py",
 )
 
 EDITOR_TESTS = (
     "tests/test_patch_al_editor_preview_ownership.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
+    "tests/test_patch_bl_editor_styling.py",
+    "tests/test_patch_bp_editor_workflow_split.py",
+    "tests/test_patch_bq_style_registry.py",
+    "tests/test_patch_bo_state_ownership.py",
     "tests/test_qg_m_persistent_draft_autosave.py",
     "tests/test_structured_html_source_identity.py",
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_visual_editor_frontend_assets.py",
     "tests/test_visual_editor_typed_draft.py",
-    "tests/test_patch_bl_editor_styling.py",
 )
 
 IMAGE_TESTS = (
