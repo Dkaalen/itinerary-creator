@@ -50,8 +50,10 @@ def test_editor_toolbar_keeps_daily_surface_simple_with_advanced_tools_hidden():
     assert "Advanced tools" in html
     assert "<details class=\"advanced-tools\">" in html
     assert "Save changes" in html
-    assert "Make heading" in html
+    assert "Text style" in html
     assert "Normal text" in html
+    assert "Add note block" in html
+    assert "Add divider" in html
 
 
 def test_editor_paste_preserves_clean_itinerary_structure_without_editor_artifacts():

@@ -408,6 +408,98 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
             margin-bottom: 5px;
         }}
 
+        .muted-note {{
+            color: var(--muted);
+        }}
+
+        .ve-text-small-note {{
+            font-family: Arial, sans-serif;
+            font-size: 11.5px;
+            line-height: 1.36;
+            color: var(--muted);
+        }}
+
+        .ve-text-large {{
+            font-size: 15.5px;
+            line-height: 1.45;
+        }}
+
+        .ve-text-heading {{
+            font-size: 20px;
+            line-height: 1.22;
+            font-weight: 700;
+            color: var(--ink);
+            margin-top: 10px;
+            margin-bottom: 7px;
+        }}
+
+        .ve-text-subheading {{
+            font-family: Arial, sans-serif;
+            font-size: 11.5px;
+            line-height: 1.3;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-top: 8px;
+            margin-bottom: 5px;
+        }}
+
+        .ve-text-muted,
+        .ve-color-muted {{
+            color: var(--muted);
+        }}
+
+        .ve-text-accent {{
+            color: var(--accent);
+            font-weight: 700;
+        }}
+
+        .ve-color-accent {{
+            color: #9a6a16;
+        }}
+
+        .ve-color-warning {{
+            color: #7a1c1c;
+            font-weight: 700;
+        }}
+
+        .ve-color-highlight {{
+            box-shadow: inset 0 -0.58em 0 rgba(197, 138, 36, .22);
+            border-radius: 3px;
+        }}
+
+        .ve-spacing-compact {{
+            margin-bottom: 4px !important;
+        }}
+
+        .ve-spacing-normal {{
+            margin-bottom: 13px !important;
+        }}
+
+        .ve-note-block {{
+            border-left: 3px solid rgba(197,138,36,.72);
+            padding: 8px 10px;
+            margin: 10px 0 14px;
+            box-shadow: inset 0 0 0 999px rgba(255,255,255,.18);
+        }}
+
+        .ve-note-block .body-text {{
+            margin-bottom: 0;
+        }}
+
+        .ve-divider-block {{
+            margin: 14px 0 16px;
+        }}
+
+        .ve-divider {{
+            height: 1px;
+            line-height: 1px;
+            border-top: 1px solid rgba(31,52,70,.20);
+            background: transparent;
+            overflow: hidden;
+        }}
+
         .strong-line {{
             font-weight: 600;
         }}

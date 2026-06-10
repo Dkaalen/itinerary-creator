@@ -76,12 +76,18 @@ function attachHandlers() {
   document.getElementById('undoBtn')?.addEventListener('click', undoLastEdit);
   document.getElementById('resetBlockBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('replaceBtn')?.addEventListener('click', replaceAllText);
-  document.getElementById('addBulletBtn')?.addEventListener('click', addBullet);
-  document.getElementById('deleteBulletBtn')?.addEventListener('click', deleteBullet);
-  document.getElementById('moveBulletUpBtn')?.addEventListener('click', () => moveBullet(-1));
-  document.getElementById('moveBulletDownBtn')?.addEventListener('click', () => moveBullet(1));
-  document.getElementById('makeHeadingBtn')?.addEventListener('click', () => makeSelectedBlockClass('section-title'));
-  document.getElementById('makeNormalBtn')?.addEventListener('click', () => makeSelectedBlockClass(''));
+  document.getElementById('textStylePreset')?.addEventListener('change', event => {
+    applyTextStylePreset(event.target.value);
+    event.target.value = '';
+  });
+  document.getElementById('colorPreset')?.addEventListener('change', event => {
+    applyColorPreset(event.target.value);
+    event.target.value = '';
+  });
+  document.getElementById('addNoteBlockBtn')?.addEventListener('click', addNoteBlock);
+  document.getElementById('addDividerBtn')?.addEventListener('click', addDividerBlock);
+  document.getElementById('compactSpacingBtn')?.addEventListener('click', () => applySpacingPreset('compact'));
+  document.getElementById('normalSpacingBtn')?.addEventListener('click', () => applySpacingPreset('normal'));
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('resetBtn')?.addEventListener('click', () => {
     clearLocalDraft();

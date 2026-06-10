@@ -91,15 +91,132 @@ function closestEditableBlock() {
   if (!editable.contains(candidate) && candidate !== editable) return editable;
   return candidate === editable ? editable : candidate;
 }
-function makeSelectedBlockClass(className) {
+const CONTROLLED_TEXT_STYLE_CLASSES = [
+  've-text-small-note',
+  've-text-large',
+  've-text-heading',
+  've-text-subheading',
+  've-text-muted',
+  've-text-accent',
+];
+const CONTROLLED_COLOR_CLASSES = [
+  've-color-muted',
+  've-color-accent',
+  've-color-warning',
+  've-color-highlight',
+];
+const CONTROLLED_SPACING_CLASSES = [
+  've-spacing-compact',
+  've-spacing-normal',
+];
+
+function isRichEditable(el) {
+  return !!(el && isHtmlEditKey(el.getAttribute('data-edit-key') || ''));
+}
+function richEditableContext() {
   const editable = selectedEditable();
-  const block = closestEditableBlock();
-  if (!editable || !block) return;
+  if (!isRichEditable(editable)) {
+    notifyEditor('Select a day or final-page content block first. Cover and title fields keep their fixed PDF styles.');
+    return null;
+  }
+  return editable;
+}
+function commitEditableDomChange(editable) {
+  const key = editable?.getAttribute('data-edit-key');
+  if (!key) return;
+  setByPath(model, key, editableValue(editable));
+  markTouched(key);
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); });
+}
+function removeClassGroup(node, classGroup) {
+  classGroup.forEach(cls => node.classList?.remove(cls));
+}
+function selectedNodeInside(editable) {
+  const selection = window.getSelection();
+  let node = selection?.anchorNode || document.activeElement;
+  if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  if (node && editable.contains(node)) return node;
+  return null;
+}
+function selectedStyleTarget(editable) {
+  let node = selectedNodeInside(editable);
+  let candidate = node?.closest?.('li,.body-text,.section-title,.row-type,.meta-line,p,span');
+  if (candidate && candidate !== editable && editable.contains(candidate) && !candidate.classList.contains('source-row-marker')) return candidate;
+
+  candidate = editable.querySelector('li,.body-text,.section-title,.row-type,.meta-line,p,span');
+  if (candidate && !candidate.classList.contains('source-row-marker')) return candidate;
+
+  const text = editable.textContent || '';
+  if (text.trim() && !editable.children.length) {
+    editable.innerHTML = `<div class="body-text">${esc(text.trim())}</div>`;
+    return editable.querySelector('.body-text');
+  }
+  return null;
+}
+function applyClassPreset(className, classGroup) {
+  const editable = richEditableContext();
+  if (!editable) return;
+  const target = selectedStyleTarget(editable);
+  if (!target) {
+    notifyEditor('Place the cursor in a text line first.');
+    return;
+  }
   pushUndo(editable, editableValue(editable));
-  ['section-title','row-type','strong-line','body-text','meta-line','inclusion-entry-title','inclusion-entry-detail'].forEach(cls => block.classList?.remove(cls));
-  if (className) block.classList?.add(className);
-  markTouched(editable.getAttribute('data-edit-key'));
-  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
+  removeClassGroup(target, classGroup);
+  if (className) target.classList.add(className);
+  commitEditableDomChange(editable);
+}
+function applyTextStylePreset(preset) {
+  const mapping = {
+    normal: '',
+    small_note: 've-text-small-note',
+    large_text: 've-text-large',
+    heading: 've-text-heading',
+    subheading: 've-text-subheading',
+    muted_text: 've-text-muted',
+    accent_text: 've-text-accent',
+  };
+  applyClassPreset(mapping[preset] ?? '', CONTROLLED_TEXT_STYLE_CLASSES);
+}
+function applyColorPreset(preset) {
+  const mapping = {
+    default: '',
+    muted_grey: 've-color-muted',
+    accent_gold: 've-color-accent',
+    warning: 've-color-warning',
+    soft_highlight: 've-color-highlight',
+  };
+  applyClassPreset(mapping[preset] ?? '', CONTROLLED_COLOR_CLASSES);
+}
+function applySpacingPreset(preset) {
+  const mapping = {compact: 've-spacing-compact', normal: 've-spacing-normal'};
+  applyClassPreset(mapping[preset] ?? '', CONTROLLED_SPACING_CLASSES);
+}
+function insertHtmlAtSelectionOrEnd(editable, html) {
+  editable.focus();
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount && editable.contains(selection.anchorNode)) {
+    document.execCommand('insertHTML', false, html);
+  } else {
+    editable.insertAdjacentHTML('beforeend', html);
+  }
+}
+function insertControlledBlock(html) {
+  const editable = richEditableContext();
+  if (!editable) return;
+  pushUndo(editable, editableValue(editable));
+  insertHtmlAtSelectionOrEnd(editable, html);
+  commitEditableDomChange(editable);
+}
+function addNoteBlock() {
+  insertControlledBlock('<div class="content-block ve-note-block"><div class="body-text ve-text-small-note ve-color-muted">Note: Add your note here.</div></div>');
+}
+function addDividerBlock() {
+  insertControlledBlock('<div class="content-block ve-divider-block"><div class="ve-divider">&nbsp;</div></div>');
+}
+function makeSelectedBlockClass(className) {
+  const mapping = {'section-title': 'heading', '': 'normal'};
+  applyTextStylePreset(mapping[className] || 'normal');
 }
 function plainTextToCleanPasteHtml(text) {
   const lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -130,7 +247,15 @@ function sanitizeClipboardHtml(html, fallbackText) {
   const box = document.createElement('div');
   box.innerHTML = html;
   const allowedTags = new Set(['DIV','P','BR','UL','OL','LI','STRONG','B','EM','I','SPAN']);
-  const allowedClasses = new Set(['section-title','row-type','strong-line','body-text','detail-list','final-list','inclusion-entry','inclusion-entry-title','inclusion-entry-detail','inclusion-entry-spacer','meta-line','meta-label','small-section','content-block']);
+  const allowedClasses = new Set([
+    'section-title','row-type','strong-line','body-text','detail-list','final-list','inclusion-entry',
+    'inclusion-entry-title','inclusion-entry-detail','inclusion-entry-spacer','meta-line','meta-label',
+    'small-section','content-block','muted-note','inclusion-category-block','inclusion-category-list',
+    'inclusion-multiline-list','ve-text-small-note','ve-text-large','ve-text-heading',
+    've-text-subheading','ve-text-muted','ve-text-accent','ve-color-muted','ve-color-accent',
+    've-color-warning','ve-color-highlight','ve-spacing-compact','ve-spacing-normal',
+    've-note-block','ve-divider-block','ve-divider'
+  ]);
   box.querySelectorAll('*').forEach(node => {
     const tag = node.tagName;
     if (!allowedTags.has(tag)) {

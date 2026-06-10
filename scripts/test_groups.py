@@ -43,6 +43,7 @@ FAST_TESTS = (
     "tests/test_visual_editor_typed_draft.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
+    "tests/test_patch_bl_editor_styling.py",
     "tests/test_structured_core_model.py",
     "tests/test_structured_html_source_identity.py",
     "tests/test_output_layout_contract.py",
@@ -104,6 +105,7 @@ EDITOR_TESTS = (
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_visual_editor_frontend_assets.py",
     "tests/test_visual_editor_typed_draft.py",
+    "tests/test_patch_bl_editor_styling.py",
 )
 
 IMAGE_TESTS = (

@@ -2,15 +2,37 @@
 
 import re
 
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether
 
 from text_polish import expand_time_with_duration
 
+from . import styles as pdf_styles
 from .day_images import add_day_image_if_possible
 from .html_utils import clean_text
 from .render_flowables import add_premium_rule
 from .render_text import li_text_with_line_breaks
 from .story import add_bullets, add_paragraph
+
+
+CONTROLLED_TEXT_CLASSES = {
+    "ve-text-small-note",
+    "ve-text-large",
+    "ve-text-heading",
+    "ve-text-subheading",
+    "ve-text-muted",
+    "ve-text-accent",
+}
+CONTROLLED_COLOR_CLASSES = {
+    "ve-color-muted",
+    "ve-color-accent",
+    "ve-color-warning",
+    "ve-color-highlight",
+}
+CONTROLLED_SPACING_CLASSES = {"ve-spacing-compact", "ve-spacing-normal"}
+CONTROLLED_CLASSES = CONTROLLED_TEXT_CLASSES | CONTROLLED_COLOR_CLASSES | CONTROLLED_SPACING_CLASSES
 
 
 def _activity_time_range_text(time_text, duration_text):
@@ -28,34 +50,150 @@ def _append_inclusion_entry(story, entry_story):
         story.append(KeepTogether(entry_story))
 
 
+def _class_set(element) -> set[str]:
+    return {str(cls) for cls in (element.get("class") or [])}
+
+
+def _controlled_style(styles, classes, default_style_name="body"):
+    base_name = default_style_name
+    if "ve-text-small-note" in classes:
+        base_name = "editor_small_note"
+    elif "ve-text-large" in classes:
+        base_name = "editor_large"
+    elif "ve-text-heading" in classes:
+        base_name = "editor_heading"
+    elif "ve-text-subheading" in classes:
+        base_name = "editor_subheading"
+
+    style = styles[base_name]
+    text_color = None
+    back_color = None
+    suffix = []
+
+    if "ve-text-muted" in classes or "ve-color-muted" in classes:
+        text_color = pdf_styles.MUTED
+        suffix.append("muted")
+    if "ve-text-accent" in classes:
+        text_color = pdf_styles.ACCENT
+        suffix.append("accent")
+    if "ve-color-accent" in classes:
+        text_color = colors.HexColor("#9a6a16")
+        suffix.append("gold")
+    if "ve-color-warning" in classes:
+        text_color = colors.HexColor("#7a1c1c")
+        suffix.append("warning")
+    if "ve-color-highlight" in classes:
+        back_color = colors.HexColor("#eadfcf")
+        suffix.append("highlight")
+
+    space_after = None
+    if "ve-spacing-compact" in classes:
+        space_after = 1.5
+        suffix.append("compact")
+    elif "ve-spacing-normal" in classes:
+        space_after = 6
+        suffix.append("normal")
+
+    if not suffix:
+        return style
+
+    kwargs = {
+        "parent": style,
+        "textColor": text_color or getattr(style, "textColor", pdf_styles.BODY),
+    }
+    if back_color is not None:
+        kwargs["backColor"] = back_color
+    if space_after is not None:
+        kwargs["spaceAfter"] = space_after
+    return ParagraphStyle(f"{style.name}_{'_'.join(suffix)}", **kwargs)
+
+
+def _add_controlled_paragraph(story, element, styles, default_style_name="body"):
+    text = clean_text(element.get_text(" "))
+    if not text:
+        return
+    classes = _class_set(element)
+    add_paragraph(story, text, _controlled_style(styles, classes, default_style_name))
+
+
+def _is_divider(element) -> bool:
+    classes = _class_set(element)
+    return "ve-divider" in classes or "ve-divider-block" in classes
+
+
+def _has_controlled_classes(element) -> bool:
+    return bool(_class_set(element) & CONTROLLED_CLASSES)
+
+
+def _add_controlled_list(story, ul, styles):
+    items = ul.find_all("li", recursive=False)
+    if not items:
+        return
+    if not any(_has_controlled_classes(li) for li in items):
+        add_bullets(story, [li_text_with_line_breaks(li) for li in items], styles)
+        return
+    for li in items:
+        text = li_text_with_line_breaks(li)
+        if not text:
+            continue
+        classes = _class_set(li)
+        add_paragraph(story, f"• {text}", _controlled_style(styles, classes, "bullet"))
+
+
+def _render_controlled_note_block(child, story, styles):
+    note_story = []
+    for element in child.find_all(recursive=False):
+        if _is_divider(element):
+            continue
+        if element.name == "ul":
+            _add_controlled_list(note_story, element, styles)
+            continue
+        _add_controlled_paragraph(note_story, element, styles, "editor_note")
+    if not note_story:
+        text = clean_text(child.get_text(" "))
+        if text:
+            add_paragraph(note_story, text, styles["editor_note"])
+    if note_story:
+        story.append(KeepTogether(note_story))
+
+
 def render_inclusion_category_block(child, story, styles):
     """Render edited/generated inclusion HTML with item-level keep-together."""
 
     entry_story = []
     for element in child.find_all(recursive=False):
         element_classes = element.get("class") or []
+        classes = set(element_classes)
 
-        if "section-title" in element_classes:
+        if _is_divider(element):
             _append_inclusion_entry(story, entry_story)
             entry_story = []
-            add_paragraph(story, element.get_text(" "), styles["section"])
+            add_premium_rule(story, width=38 * mm, space_after=8)
+        elif "ve-note-block" in classes:
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+            _render_controlled_note_block(element, story, styles)
+        elif "section-title" in element_classes:
+            _append_inclusion_entry(story, entry_story)
+            entry_story = []
+            _add_controlled_paragraph(story, element, styles, "section")
         elif "inclusion-entry-title" in element_classes:
             _append_inclusion_entry(story, entry_story)
             entry_story = []
-            add_paragraph(entry_story, element.get_text(" "), styles["body_bold"])
+            _add_controlled_paragraph(entry_story, element, styles, "body_bold")
         elif "inclusion-entry-detail" in element_classes:
-            add_paragraph(entry_story, element.get_text(" "), styles["body"])
+            _add_controlled_paragraph(entry_story, element, styles, "body")
         elif "inclusion-entry-spacer" in element_classes:
             _append_inclusion_entry(story, entry_story)
             entry_story = []
         elif element.name == "ul":
             _append_inclusion_entry(story, entry_story)
             entry_story = []
-            add_bullets(story, [li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles)
-        elif "body-text" in element_classes:
-            text = clean_text(element.get_text(" "))
-            if text:
-                add_paragraph(entry_story or story, text, styles["body_bold"] if "strong-line" in element_classes else styles["body"])
+            _add_controlled_list(story, element, styles)
+        elif "body-text" in element_classes or _has_controlled_classes(element):
+            target_story = entry_story or story
+            default_style = "body_bold" if "strong-line" in element_classes else "body"
+            _add_controlled_paragraph(target_story, element, styles, default_style)
 
     _append_inclusion_entry(story, entry_story)
 
@@ -63,6 +201,13 @@ def render_inclusion_category_block(child, story, styles):
 def render_content_blocks(container, story, styles):
     for child in container.find_all(recursive=False):
         classes = child.get("class") or []
+        class_set = set(classes)
+        if _is_divider(child):
+            add_premium_rule(story, width=38 * mm, space_after=8)
+            continue
+        if "ve-note-block" in class_set:
+            _render_controlled_note_block(child, story, styles)
+            continue
         if "content-block" in classes or "activity-inclusion-block" in classes:
             if "inclusion-category-block" in classes:
                 render_inclusion_category_block(child, story, styles)
@@ -70,21 +215,30 @@ def render_content_blocks(container, story, styles):
 
             block_story = []
 
+            if "ve-divider-block" in class_set:
+                add_premium_rule(story, width=38 * mm, space_after=8)
+                continue
+            if "ve-note-block" in class_set:
+                _render_controlled_note_block(child, story, styles)
+                continue
+
             for element in child.find_all(recursive=False):
                 element_classes = element.get("class") or []
+                element_class_set = set(element_classes)
 
-                if "section-title" in element_classes:
-                    add_paragraph(block_story, element.get_text(" "), styles["section"])
+                if _is_divider(element):
+                    add_premium_rule(block_story, width=38 * mm, space_after=8)
+                elif "ve-note-block" in element_class_set:
+                    _render_controlled_note_block(element, block_story, styles)
+                elif "section-title" in element_classes:
+                    _add_controlled_paragraph(block_story, element, styles, "section")
                 elif "activity-inclusion-title" in element_classes:
-                    add_paragraph(block_story, element.get_text(" "), styles["activity_title"])
+                    _add_controlled_paragraph(block_story, element, styles, "activity_title")
                 elif element.name == "ul":
-                    add_bullets(block_story, [li_text_with_line_breaks(li) for li in element.find_all("li", recursive=False)], styles)
-                elif "body-text" in element_classes:
-                    text = clean_text(element.get_text(" "))
-                    if "strong-line" in element_classes:
-                        add_paragraph(block_story, text, styles["body_bold"])
-                    else:
-                        add_paragraph(block_story, text, styles["body"])
+                    _add_controlled_list(block_story, element, styles)
+                elif "body-text" in element_classes or _has_controlled_classes(element):
+                    default_style = "body_bold" if "strong-line" in element_classes else "body"
+                    _add_controlled_paragraph(block_story, element, styles, default_style)
 
             if "activity-block" in classes and block_story:
                 story.append(KeepTogether(block_story))
@@ -160,7 +314,7 @@ def render_general_page(
     render_content_blocks(page, story, styles)
 
     for ul in page.find_all("ul", recursive=False):
-        add_bullets(story, [li_text_with_line_breaks(li) for li in ul.find_all("li", recursive=False)], styles)
+        _add_controlled_list(story, ul, styles)
 
     if "day-page" in (page.get("class") or []) and html_path and temp_dir and available_width and available_height:
         add_day_image_if_possible(

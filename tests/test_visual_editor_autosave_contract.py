@@ -207,7 +207,8 @@ def test_visual_editor_v2_contract_is_inline_not_separate_form():
     assert "Undo" in editor_html
     assert "Reset section" in editor_html
     assert "Replace all" in editor_html
-    assert "Add bullet" in editor_html
+    assert "Add note block" in editor_html
+    assert "Compact spacing" in editor_html
     assert "Flag issue" in editor_html
     assert "warning-hit" in editor_html
     assert "function flagSelectedIssue" in editor_html
