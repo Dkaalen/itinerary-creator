@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate
 
+from .day_page_guard import one_page_day_flowable
 from .renderers import render_cover_page, render_general_page, render_glance_page
 from .styles import (
     apply_pdf_palette,
@@ -47,14 +48,19 @@ def export_html_to_pdf(html_path, pdf_path):
         for index, page in enumerate(pages):
             classes = page.get("class") or []
 
+            page_story = story
+            is_day_page = "day-page" in classes
+            if is_day_page:
+                page_story = []
+
             if "cover-page" in classes:
-                render_cover_page(page, story, styles, html_path=html_path, temp_dir=image_temp_dir)
+                render_cover_page(page, page_story, styles, html_path=html_path, temp_dir=image_temp_dir)
             elif page.select_one(".glance-card") or page.select_one(".journey-arc"):
-                render_glance_page(page, story, styles, html_path=html_path, temp_dir=image_temp_dir)
+                render_glance_page(page, page_story, styles, html_path=html_path, temp_dir=image_temp_dir)
             else:
                 render_general_page(
                     page,
-                    story,
+                    page_story,
                     styles,
                     html_path=html_path,
                     temp_dir=image_temp_dir,
@@ -63,6 +69,12 @@ def export_html_to_pdf(html_path, pdf_path):
                     left_margin=doc.leftMargin,
                     top_margin=doc.topMargin,
                 )
+
+            if is_day_page and page_story:
+                label = page.get("data-day-id") or page.get("id") or page.select_one(".day-kicker") or page.select_one(".day-label")
+                if hasattr(label, "get_text"):
+                    label = label.get_text(" ")
+                story.append(one_page_day_flowable(page_story, doc.width, doc.height, label=str(label or "Day page")))
 
             if index < len(pages) - 1:
                 story.append(PageBreak())

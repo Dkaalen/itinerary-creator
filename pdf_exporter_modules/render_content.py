@@ -220,10 +220,11 @@ def render_content_blocks(container, story, styles):
                     default_style = "body_bold" if "strong-line" in element_classes else "body"
                     _add_controlled_paragraph(block_story, element, styles, default_style)
 
-            if "activity-block" in classes and block_story:
-                story.append(KeepTogether(block_story))
-            else:
-                story.extend(block_story)
+            # The full activity must not be one unbreakable PDF object.
+            # Keeping the whole activity together can push it to a new unlabelled
+            # continuation page after the day header/accommodation block. The
+            # day page itself is guarded as one page by the exporter instead.
+            story.extend(block_story)
 
 
 def render_day_section_pdf(section, story, styles):

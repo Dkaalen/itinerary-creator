@@ -19,9 +19,11 @@ from typing import Mapping
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
-from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocument, RenderFinalPage, RenderFinalSection
+from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_flowable
+from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint, SamePageDayImage
 from pdf_exporter_modules.image_layout import normalize_crop_focus
 from pdf_exporter_modules.render_flowables import CoverEmblem, add_cover_rule, add_premium_rule, boxed_story_table
@@ -313,7 +315,35 @@ def _render_summary(render_document: RenderDocument, story, styles, temp_dir):
     story.append(boxed_story_table(journey_story, background=pdf_styles.SUMMARY_CARD))
 
 
-def _block_story(block: RenderBlock, styles) -> list:
+def _ellipsize_text(value: str, limit: int) -> str:
+    """Return a compact sentence-safe text fragment for overflow fallback."""
+
+    text = clean_text(value)
+    if not text or len(text) <= limit:
+        return text
+    sentence_match = re.match(r"^(.{40,}?[.!?])\s", text)
+    if sentence_match and len(sentence_match.group(1)) <= limit:
+        return sentence_match.group(1)
+    trimmed = text[: max(0, limit - 1)].rsplit(" ", 1)[0].strip()
+    return f"{trimmed}…" if trimmed else ""
+
+
+def _compact_items(items, limit: int, item_limit: int) -> list[str]:
+    compacted = []
+    for item in list(items or [])[:limit]:
+        compacted.append(_ellipsize_text(item, item_limit))
+    return [item for item in compacted if item]
+
+
+def _block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
+    """Build flowables for one block.
+
+    Activity content is deliberately not wrapped as one KeepTogether here. The
+    complete day page is measured and kept together at the page level instead;
+    wrapping the activity alone is what caused activities to jump to a new blank
+    continuation page.
+    """
+
     block_story = []
     if block.section_title:
         add_paragraph(block_story, block.section_title, styles["section"])
@@ -324,21 +354,46 @@ def _block_story(block: RenderBlock, styles) -> list:
             add_paragraph(block_story, f"{meta.label}: {meta.value}" if meta.label else str(meta.value), styles["body"])
 
     if block.kind == "activity":
-        if block.includes:
+        includes = list(block.includes or [])
+        description = block.description
+        notable_sights = list(block.notable_sights or [])
+        extra_sections = list(block.extra_sections or [])
+        if compact_level >= 1:
+            description = _ellipsize_text(description, 220)
+            notable_sights = notable_sights[:6]
+        if compact_level >= 2:
+            includes = _compact_items(includes, 6, 95)
+            notable_sights = notable_sights[:4]
+            description = _ellipsize_text(description, 160)
+        if compact_level >= 3:
+            includes = _compact_items(includes, 5, 75)
+            extra_sections = []
+            description = _ellipsize_text(description, 115)
+            notable_sights = []
+
+        if includes:
             add_paragraph(block_story, "Included With This Experience", styles["section"])
-            add_bullets(block_story, block.includes, styles)
-        if block.description:
+            add_bullets(block_story, includes, styles)
+        if description:
             add_paragraph(block_story, "Description", styles["section"])
-            add_paragraph(block_story, block.description, styles["body"])
-        if block.notable_sights:
+            add_paragraph(block_story, description, styles["body"])
+        if notable_sights:
             add_paragraph(block_story, "Notable Sights", styles["section"])
-            add_bullets(block_story, block.notable_sights, styles)
-    elif block.kind == "transport":
+            add_bullets(block_story, notable_sights, styles)
+        for section in extra_sections:
+            if section.items:
+                items = _compact_items(section.items, 5, 90) if compact_level >= 2 else section.items
+                if items:
+                    add_paragraph(block_story, section.title, styles["section"])
+                    add_bullets(block_story, items, styles)
+        return block_story
+
+    if block.kind == "transport":
         if block.includes:
             add_paragraph(block_story, "Includes", styles["section"])
             add_bullets(block_story, block.includes, styles)
         if block.description:
-            add_paragraph(block_story, block.description, styles["body"])
+            add_paragraph(block_story, _ellipsize_text(block.description, 180) if compact_level >= 3 else block.description, styles["body"])
     elif block.kind == "accommodation":
         for line in block.lines:
             add_paragraph(block_story, line, styles["body"])
@@ -346,12 +401,14 @@ def _block_story(block: RenderBlock, styles) -> list:
         if block.lines:
             add_bullets(block_story, block.lines, styles)
         if block.description:
-            add_paragraph(block_story, block.description, styles["body"])
+            add_paragraph(block_story, _ellipsize_text(block.description, 180) if compact_level >= 3 else block.description, styles["body"])
 
     for section in block.extra_sections:
         if section.items:
-            add_paragraph(block_story, section.title, styles["section"])
-            add_bullets(block_story, section.items, styles)
+            items = _compact_items(section.items, 5, 90) if compact_level >= 2 else section.items
+            if items:
+                add_paragraph(block_story, section.title, styles["section"])
+                add_bullets(block_story, items, styles)
     return block_story
 
 
@@ -375,44 +432,77 @@ def _image_path_from_match(image_match, temp_dir):
         return None
 
 
-def _render_day(day: RenderDay, story, styles, *, image_match=None, crop_focus="top", temp_dir=None, doc=None):
+def _day_label(day: RenderDay) -> str:
     kicker = f"DAY {day.number}"
     if day.city:
         kicker += f" ✦ {str(day.city).upper()}"
     if getattr(day, "date", ""):
         kicker += f" ✦ {day.date}"
-    add_paragraph(story, kicker, styles["day_kicker"])
+    return kicker
+
+
+def _day_image_has_layout_budget(story, doc) -> bool:
+    result = measure_day_story(story, doc.width, doc.height, label="day image budget")
+    text_bottom_y = float(doc.pagesize[1] - doc.topMargin) - result.used_height
+    image_top_y = min(text_bottom_y - PDF_IMAGE_GAP, (float(doc.pagesize[1]) / 2.0) - PDF_IMAGE_HALF_OFFSET)
+    return (image_top_y - PDF_IMAGE_BOTTOM_Y) >= PDF_MIN_IMAGE_HEIGHT
+
+
+def _render_day_story(day: RenderDay, styles, *, compact_level: int = 0) -> list:
+    story = []
+    add_paragraph(story, _day_label(day), styles["day_kicker"])
     add_paragraph(story, day.title, styles["day_title"])
     if day.city:
         add_paragraph(story, day.city, styles["city"])
-    add_paragraph(story, day.intro, styles["intro"])
+    intro = _ellipsize_text(day.intro, 185) if compact_level >= 2 else day.intro
+    add_paragraph(story, intro, styles["intro"])
 
     for block in day.blocks or []:
-        block_story = _block_story(block, styles)
-        if not block_story:
-            continue
-        if block.kind == "activity":
-            story.append(KeepTogether(block_story))
-        else:
-            story.extend(block_story)
+        story.extend(_block_story(block, styles, compact_level=compact_level))
+    return story
 
-    if image_match and temp_dir and doc:
-        path = _image_path_from_match(image_match, temp_dir)
-        if path and path.exists() and path.is_file():
-            story.append(
-                SamePageDayImage(
-                    source_path=path,
-                    temp_dir=temp_dir,
-                    x=0,
-                    content_top_y=doc.pagesize[1] - doc.topMargin,
-                    content_width=doc.pagesize[0],
-                    content_height=doc.height,
-                    page_height=doc.pagesize[1],
-                    bottom_y=0,
-                    crop_focus=normalize_crop_focus(crop_focus),
-                )
-            )
 
+def _render_day_image_flowable(image_match, crop_focus, temp_dir, doc):
+    if not (image_match and temp_dir and doc):
+        return None
+    path = _image_path_from_match(image_match, temp_dir)
+    if not (path and path.exists() and path.is_file()):
+        return None
+    return SamePageDayImage(
+        source_path=path,
+        temp_dir=temp_dir,
+        x=0,
+        content_top_y=doc.pagesize[1] - doc.topMargin,
+        content_width=doc.pagesize[0],
+        content_height=doc.height,
+        page_height=doc.pagesize[1],
+        bottom_y=PDF_IMAGE_BOTTOM_Y,
+        crop_focus=normalize_crop_focus(crop_focus),
+    )
+
+
+def _build_one_page_day_flowable(day: RenderDay, styles, *, image_match=None, crop_focus="top", temp_dir=None, doc=None):
+    """Return a guarded one-page flowable for a day.
+
+    Order of operations:
+    1. render full text and keep the image only when it has real page budget;
+    2. compact low-priority descriptive text if the day is too tall;
+    3. fail explicitly instead of silently creating an unlabelled continuation.
+    """
+
+    image_flowable = _render_day_image_flowable(image_match, crop_focus, temp_dir, doc)
+    last_story = []
+    for compact_level in range(0, 4):
+        candidate = _render_day_story(day, styles, compact_level=compact_level)
+        last_story = candidate
+        if doc and image_flowable and _day_image_has_layout_budget(candidate, doc):
+            candidate = [*candidate, image_flowable]
+        result = measure_day_story(candidate, doc.width, doc.height, label=_day_label(day)) if doc else None
+        if result is None or result.fits:
+            return one_page_day_flowable(candidate, doc.width, doc.height, label=_day_label(day))
+
+    # This raises PdfDayLayoutError with the measured final compact story.
+    return one_page_day_flowable(last_story, doc.width, doc.height, label=_day_label(day))
 
 def _render_final_page(title: str, page: RenderFinalPage, story, styles, *, continued=False):
     add_paragraph(story, title, styles["page_title"])
@@ -474,14 +564,15 @@ def export_render_document_to_pdf(
 
         for day in render_document.days or []:
             story.append(PageBreak())
-            _render_day(
-                day,
-                story,
-                styles,
-                image_match=(day_images or {}).get(day.day) if day_images else None,
-                crop_focus=(day_image_crop_focus or {}).get(day.day, "top") if day_image_crop_focus else "top",
-                temp_dir=image_temp_dir,
-                doc=doc,
+            story.append(
+                _build_one_page_day_flowable(
+                    day,
+                    styles,
+                    image_match=(day_images or {}).get(day.day) if day_images else None,
+                    crop_focus=(day_image_crop_focus or {}).get(day.day, "top") if day_image_crop_focus else "top",
+                    temp_dir=image_temp_dir,
+                    doc=doc,
+                )
             )
 
         for section in render_document.final_sections or []:
