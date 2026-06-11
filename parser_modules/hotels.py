@@ -72,6 +72,11 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     nights = ""
     room_category = ""
     meal_plan = ""
+    star_rating = ""
+
+    star_match = re.search(r"\b([2-5])\s*[- ]?star\b", text, flags=re.IGNORECASE)
+    if star_match:
+        star_rating = star_match.group(1)
 
     if night_count_hint and str(night_count_hint).strip().isdigit():
         nights = str(night_count_hint).strip()
@@ -193,4 +198,5 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
         "hotel_nights": nights,
         "room_category": room_category,
         "meal_plan": meal_plan,
+        "star_rating": star_rating,
     }

@@ -165,7 +165,7 @@ def create_client_activity_title(row):
 
     if "whale watching" in full_text:
         if "arctic wildlife" in full_text or "rib boat" in full_text or "wildlife safari" in full_text:
-            return "Whale Watching & Arctic Wildlife Safari"
+            return "Whale Watching & Arctic Wildlife Safari by RIB Boat" if "rib boat" in full_text else "Whale Watching & Arctic Wildlife Safari"
         if "from downtown" in full_text:
             return "Whale Watching From Downtown"
         return "Whale Watching"
@@ -241,6 +241,9 @@ def create_client_activity_title(row):
 
     if "reindeer" in full_text and ("hunt" in full_text or "hunting" in full_text or "chase" in full_text):
         return "Northern Lights Hunt by Reindeer"
+
+    if "aurora basecamp" in full_text or "aurora base camp" in full_text:
+        return "Northern Lights Safari to Aurora Basecamp" if "safari" in full_text else "Aurora Basecamp"
 
     if "basecamp" in full_text or "base camp" in full_text:
         return "Northern Lights Basecamp"

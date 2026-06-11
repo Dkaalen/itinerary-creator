@@ -64,6 +64,16 @@ def _timezone_specific_cruise_time(row: dict) -> str:
     finnish = f"{_format_clock_time(match.group('f1'))} - {_format_clock_time(match.group('f2'))} Finnish time"
     return f"{swedish} / {finnish}"
 
+
+
+def _important_activity_note(row: dict) -> str:
+    """Preserve commercial/safety notes that should not be lost in prose polish."""
+
+    source = " ".join(str(row.get(key) or "") for key in ("details", "original_title", "title"))
+    if re.search(r"\b(?:cannot|can not|can't)\s+guarantee\b.*?\bwhales?\b|\bwhale\s+sightings?\s+(?:cannot|can not|can't)\s+be\s+guaranteed\b", source, flags=re.IGNORECASE):
+        return "Whale sightings cannot be guaranteed and depend on migration patterns and conditions."
+    return ""
+
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     is_tallinn_ferry = is_tallinn_ferry_framework(row)
     title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
@@ -130,6 +140,9 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
         meta.append(CanonicalMetaLine(meeting_label, meeting_point))
     if end_point:
         meta.append(CanonicalMetaLine("End point", end_point))
+    important_note = _important_activity_note(row)
+    if important_note:
+        meta.append(CanonicalMetaLine("Notes", polish_client_text(important_note)))
 
     warnings: list[str] = []
     source_text = " ".join(str(row.get(key) or "") for key in ("raw", "original_title", "details", "title")).lower()

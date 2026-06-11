@@ -25,8 +25,12 @@ def canonical_accommodation_block(row: dict) -> CanonicalBlock:
         room_category = ""
     meal = meal_phrase(row.get("meal_plan", ""))
     city = polish_title(row.get("city", ""))
+    star_rating = str(row.get("star_rating") or "").strip()
 
-    accommodation_line = polish_client_text(hotel_name)
+    protected_hotel_name = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", hotel_name, flags=re.IGNORECASE)
+    accommodation_line = polish_client_text(protected_hotel_name).replace("__HOTEL_AURORA__", "Aurora")
+    if star_rating and not re.search(r"\b[2-5]\s*[- ]?star\b", accommodation_line, flags=re.IGNORECASE):
+        accommodation_line = f"{star_rating}-star {accommodation_line}"
     if re.search(r"\bor\s+similar\b", _source_text(row), flags=re.IGNORECASE):
         if not re.search(r"\bor\s+similar\b", accommodation_line, flags=re.IGNORECASE):
             accommodation_line += " or similar"

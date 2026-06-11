@@ -22,10 +22,23 @@ SELF_ARRANGED_MARKERS = [
     "self arranged",
     "self arrnaged",
     "self arrange",
+    "own arrangement",
     "cost not included",
     "cost not inclueded",
     "price not included",
     "flight cost not",
+    "ticket to be bought on spot",
+    "ticket to be bought on site",
+    "tickets to be bought on spot",
+    "tickets to be bought on site",
+    "ticket to be purchased locally",
+    "tickets to be purchased locally",
+    "ticket to be purchased on site",
+    "tickets to be purchased on site",
+    "to be paid locally",
+    "ticket counter",
+    "on spot",
+    "on site",
 ]
 
 

@@ -14,9 +14,9 @@ from itinerary_generation.transport_safety import (
 
 def _explicit_transport_route_from_text(text: str):
     place = r"[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?"
-    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Gudvangen|Voss|Flåm|Flam|Myrdal)"
+    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Alta|Gudvangen|Voss|Flåm|Flam|Myrdal)"
     patterns = [
-        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*:?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|,|$)",
+        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*[:,]?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|\s*,?\s*tickets?\s+to\s+be\s+bought|\s*,?\s*tickets?\s+to\s+be\s+purchased|,|$)",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s+(?:\d+\s*(?:hr|hrs|hour|hours)\s+)?(?:cruise|ferry|train|flight|coach|bus)\b",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s*\|",
         rf"\b(?:train|flight|coach|bus|cruise|ferry)\s+(?P<origin>{known_places})\s+(?P<destination>{known_places})\b",
@@ -45,13 +45,13 @@ def _explicit_airport_from_text(text, fallback_city=""):
     directional = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", source, flags=re.IGNORECASE)
     if directional:
         raw_airport = directional.group(1).strip()
-        if raw_airport.lower() not in {"private airport", "airport"}:
+        if raw_airport.lower() not in {"private airport", "airport", "the airport"}:
             airport = normalize_transport_place(raw_airport)
             if airport:
                 return airport
     matches = re.findall(r"\b([A-ZÅÄÖÆØ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,40}?\s+Airport)\b", source)
     for raw_airport in reversed(matches):
-        if raw_airport.strip().lower() in {"private airport", "airport"}:
+        if raw_airport.strip().lower() in {"private airport", "airport", "the airport"}:
             continue
         airport = normalize_transport_place(raw_airport)
         if airport:

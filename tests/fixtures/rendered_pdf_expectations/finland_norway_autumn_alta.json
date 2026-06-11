@@ -24,18 +24,22 @@
       "start": "What’s included",
       "end": "Optional Experiences",
       "must_contain": [
-        "Northern Lights Tour by Minibus with Photo Assistance",
-        "Panoramic Coach Transfer from Tromsø to Alta"
+        "Northern Lights Tour by Minibus with Photo Assistance"
       ],
       "must_not_contain": [
         "Whale Watching & Arctic Wildlife Safari",
-        "Self-arranged transfer"
+        "Self-arranged transfer",
+        "Panoramic Coach Transfer from Tromsø to Alta"
       ]
     },
     {
       "start": "What’s not included",
       "must_not_contain": [
         "Self-guided"
+      ],
+      "must_contain": [
+        "Panoramic Coach Transfer from Tromsø to Alta",
+        "tickets to be purchased on site"
       ]
     }
   ]

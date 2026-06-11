@@ -12,8 +12,11 @@ from itinerary_generation.activity_product_text import canonicalize_activity_tex
 
 
 def _northern_lights_title(source_lower: str, source_title: str) -> str:
-    cleaned_source_title = polish_title(canonicalize_activity_text(source_title)).strip(" -:|")
-    if re.search(r"aurora\s+basecamp|aurora\s+base\s+camp", str(source_title or ""), flags=re.IGNORECASE):
+    raw_source_title = str(source_title or "")
+    protected_source_title = re.sub(r"\bAurora\s+Base\s*camp\b", "__AURORA_BASECAMP__", raw_source_title, flags=re.IGNORECASE)
+    cleaned_source_title = polish_title(canonicalize_activity_text(protected_source_title)).strip(" -:|")
+    cleaned_source_title = cleaned_source_title.replace("__AURORA_BASECAMP__", "Aurora Basecamp")
+    if re.search(r"aurora\s+basecamp|aurora\s+base\s+camp", raw_source_title, flags=re.IGNORECASE):
         cleaned_source_title = re.sub(r"Northern Lights Basecamp", "Aurora Basecamp", cleaned_source_title, flags=re.IGNORECASE)
         cleaned_source_title = re.sub(r"Northern Lights Base Camp", "Aurora Basecamp", cleaned_source_title, flags=re.IGNORECASE)
         if "safari" in cleaned_source_title.lower():

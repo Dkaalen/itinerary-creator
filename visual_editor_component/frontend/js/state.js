@@ -65,7 +65,24 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
   const merged = JSON.parse(JSON.stringify(initialPayload || {}));
   const serverPicturesAdded = !!initialPayload?.workflow?.pictures_added;
   const localPicturesAdded = !!localDraft.workflow?.pictures_added;
-  if (localDraft.cover) merged.cover = Object.assign({}, merged.cover || {}, localDraft.cover);
+  if (localDraft.cover) {
+    const serverCover = merged.cover || {};
+    merged.cover = Object.assign({}, serverCover, localDraft.cover);
+    ['cover_image', 'summary_image'].forEach(key => {
+      if (localDraft.cover?.[key]) {
+        // Local drafts intentionally omit heavy preview data URIs. Preserve the
+        // server image contract so picture-review preview stays in parity with
+        // the PDF after a browser/local-draft restore.
+        merged.cover[key] = Object.assign({}, serverCover[key] || {}, localDraft.cover[key] || {});
+        if (!merged.cover[key].data_uri && serverCover[key]?.data_uri) merged.cover[key].data_uri = serverCover[key].data_uri;
+        if (!merged.cover[key].auto_data_uri && serverCover[key]?.auto_data_uri) merged.cover[key].auto_data_uri = serverCover[key].auto_data_uri;
+        if (!merged.cover[key].options && serverCover[key]?.options) merged.cover[key].options = serverCover[key].options;
+      }
+    });
+    if (!merged.cover.cover_background_data_uri && serverCover.cover_background_data_uri) {
+      merged.cover.cover_background_data_uri = serverCover.cover_background_data_uri;
+    }
+  }
   if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
   const localDays = Array.isArray(localDraft.days) ? localDraft.days : [];
   if (!Array.isArray(merged.days)) merged.days = [];

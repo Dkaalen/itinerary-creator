@@ -61,6 +61,12 @@ from normalizer_modules.rental import (
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
 
+def _protect_hotel_owned_text(value: str) -> str:
+    protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", str(value or ""), flags=re.IGNORECASE)
+    cleaned = repair_messy_client_text(polish_client_text(protected))
+    return cleaned.replace("__HOTEL_AURORA__", "Aurora")
+
+
 def _looks_like_misclassified_hotel_row(row: dict) -> bool:
     """Return True when an accommodation row was pasted under Transfer.
 
@@ -117,10 +123,14 @@ def warn_suspicious_city(row: dict) -> None:
 
 def normalize_row(row: dict) -> dict:
     row = copy.deepcopy(row)
+    initial_row_type = get_row_type(row)
 
     for key in ["city", "title", "original_title", "details", "meeting_point", "end_point", "luggage_included"]:
         if row.get(key):
-            row[key] = repair_messy_client_text(polish_client_text(row[key]))
+            if initial_row_type == "Hotel" and key in {"title", "original_title", "details"}:
+                row[key] = _protect_hotel_owned_text(row[key])
+            else:
+                row[key] = repair_messy_client_text(polish_client_text(row[key]))
 
     if row.get("duration"):
         duration_text = row["duration"]

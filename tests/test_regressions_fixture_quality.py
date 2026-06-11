@@ -375,7 +375,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     optional_rows = [row for row in rows if row.get("is_optional")]
     assert optional_rows, "Optional add-on rows should be detected even when Optional Addon appears inside the activity cell."
     optional_title = create_client_activity_title(optional_rows[0])
-    assert_equal(optional_title, "Whale Watching & Arctic Wildlife Safari", "Optional whale/RIB add-ons should keep their specific title.")
+    assert_equal(optional_title, "Whale Watching & Arctic Wildlife Safari by RIB Boat", "Optional whale/RIB add-ons should keep their specific title.")
     assert "Day 9" in grouped, "The main Day 9 should remain after optional add-ons are excluded from grouped days."
     day9_titles = "\n".join(row.get("title", "") for row in grouped["Day 9"])
     assert_not_contains(day9_titles, "Optional Addon", "Optional add-ons must not appear as normal included day activities.")

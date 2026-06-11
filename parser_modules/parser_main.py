@@ -34,6 +34,17 @@ from parser_modules.rows import (
 )
 
 
+def _fix_common_text_for_row(value, item_type):
+    """Apply broad cleanup without rewriting supplier-owned hotel names."""
+
+    if normalize_type(item_type) != "Hotel":
+        return fix_common_text(value)
+
+    protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", str(value or ""), flags=re.IGNORECASE)
+    cleaned = fix_common_text(protected)
+    return cleaned.replace("__HOTEL_AURORA__", "Aurora")
+
+
 def parse_itinerary(raw_text):
     rows = []
     seen_row_ids = set()
@@ -167,6 +178,7 @@ def parse_itinerary(raw_text):
             "hotel_nights": "",
             "room_category": "",
             "meal_plan": "",
+            "star_rating": "",
         }
 
         main_text = description.strip().strip('"')
@@ -213,9 +225,9 @@ def parse_itinerary(raw_text):
                 row["city"] = clean_space(possible_city)
                 main_text = rest.strip()
 
-        main_text = fix_common_text(main_text)
+        main_text = _fix_common_text_for_row(main_text, item_type)
         check_for_unknown_typos(main_text, context=current_day)
-        row["details"] = fix_common_text(description)
+        row["details"] = _fix_common_text_for_row(description, item_type)
         check_for_unknown_typos(row["details"], context=current_day)
         row["city"] = canonicalize_place_name(fix_common_text(row.get("city", "")))
 

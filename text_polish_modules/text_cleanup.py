@@ -237,7 +237,13 @@ def polish_client_text(value: str) -> str:
     return _polish_text_fragment(text)
 
 def polish_hotel_name(value: str) -> str:
-    text = polish_client_text(value)
+    # Hotel names are source-owned product strings.  General client prose may
+    # rewrite "Aurora" to "Northern Lights", but that must never rename a
+    # property such as "Home Hotel Aurora" or "Clarion Collection Aurora".
+    raw_text = str(value or "")
+    protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", raw_text, flags=re.IGNORECASE)
+    text = polish_client_text(protected)
+    text = text.replace("__HOTEL_AURORA__", "Aurora")
     text = re.sub(r"\s+or\s+similar$", "", text, flags=re.IGNORECASE).strip()
 
     # Remove street-address suffixes that suppliers sometimes append to hotel

@@ -71,7 +71,13 @@ def _looks_over_capitalized_title(text: str) -> bool:
 
 def sentence_style_title(value: str) -> str:
     """Return a grammatical client-facing title, not blind title case."""
-    text = polish_client_text(value).strip(" -:|")
+    protected_value = re.sub(
+        r"\bAurora\s+Base\s*camp\b",
+        "__AURORA_BASECAMP__",
+        str(value or ""),
+        flags=re.IGNORECASE,
+    )
+    text = polish_client_text(protected_value).strip(" -:|")
     if not text:
         return ""
 
@@ -107,6 +113,7 @@ def sentence_style_title(value: str) -> str:
     text = re.sub(r"\bMeet Santa Claus and His Friends\b", "Meet Santa Claus and his friends", text, flags=re.IGNORECASE)
     text = re.sub(r"\bSanta Claus and His Friends\b", "Santa Claus and his friends", text, flags=re.IGNORECASE)
     text = re.sub(r"\bwith\s+transfers\b", "", text, flags=re.IGNORECASE)
+    text = text.replace("__AURORA_BASECAMP__", "Aurora Basecamp")
     text = re.sub(r"\s{2,}", " ", text)
     return clean_space(text).strip(" -:|")
 

@@ -38,8 +38,11 @@ def hotel_line(row: dict) -> str:
     nights = clean(row.get("hotel_nights", ""))
     room = clean(row.get("room_category", ""))
     meal = format_meal_plan(row.get("meal_plan", ""))
+    star_rating = clean(row.get("star_rating", ""))
 
     title = name
+    if star_rating and not re.search(r"\b[2-5]\s*[- ]?star\b", title, flags=re.IGNORECASE):
+        title = f"{star_rating}-star {title}"
     if city:
         title += f", {city}"
 

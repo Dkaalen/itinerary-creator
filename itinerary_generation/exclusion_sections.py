@@ -108,7 +108,7 @@ def _row_specific_not_included_items(row) -> list[str]:
         for key in ["details", "original_title", "title"]
         if str(row.get(key, "") or "").strip()
     )
-    if not re.search(r"\bnot\s+in(?:cl|lc)uded\b|\bexcluded\b|\bto\s+be\s+bought\s+on\s+site\b", source, flags=re.IGNORECASE):
+    if not re.search(r"\bnot\s+in(?:cl|lc)uded\b|\bexcluded\b|\bto\s+be\s+bought\s+on\s+(?:site|spot)\b|\btickets?\s+to\s+be\s+purchased\s+(?:locally|on\s+site)\b|\bticket\s+counter\b", source, flags=re.IGNORECASE):
         return []
 
     sections: list[str] = []
@@ -186,6 +186,10 @@ def _is_cost_not_included_row(row):
         or "price not included" in text
         or "not included" in text
         or "to be bought on site" in text
+        or "to be bought on spot" in text
+        or "ticket counter" in text
+        or "on spot" in text
+        or "on site" in text
     )
 
 
@@ -458,7 +462,7 @@ def create_structured_whats_not_included(parsed_rows=None):
         item = _commercial_rule_item("Optional add-ons and experiences unless specifically selected", specific_sections)
         if item["label"] not in {existing["label"] for existing in commercial_rules}:
             commercial_rules.append(item)
-    if "excludes" in text or "not included" in text or "to be bought on site" in text:
+    if "excludes" in text or "not included" in text or "to be bought on site" in text or "to be bought on spot" in text or "ticket counter" in text:
         item = _commercial_rule_item("Tickets or services marked as excluded or to be bought on site", specific_sections)
         if item["label"] not in {existing["label"] for existing in commercial_rules}:
             commercial_rules.append(item)
@@ -486,7 +490,7 @@ def create_whats_not_included(parsed_rows=None):
 
     if "optional addon" in text or "optional add-on" in text or "optional add on" in text:
         add_unique(itinerary_specific_items, "Optional add-ons and experiences unless specifically selected")
-    if "excludes" in text or "not included" in text or "to be bought on site" in text:
+    if "excludes" in text or "not included" in text or "to be bought on site" in text or "to be bought on spot" in text or "ticket counter" in text:
         add_unique(itinerary_specific_items, "Tickets or services marked as excluded or to be bought on site")
 
     if itinerary_specific_items:

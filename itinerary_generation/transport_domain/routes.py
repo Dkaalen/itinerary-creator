@@ -39,9 +39,9 @@ def _explicit_transport_route_from_source(source_text: str) -> tuple[str, str]:
 
     source = str(source_text or "")
     place = r"[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?"
-    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Gudvangen|Voss|Flåm|Flam|Myrdal)"
+    known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Alta|Gudvangen|Voss|Flåm|Flam|Myrdal)"
     patterns = [
-        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*:?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|,|$)",
+        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*[:,]?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|\s*,?\s*tickets?\s+to\s+be\s+bought|\s*,?\s*tickets?\s+to\s+be\s+purchased|,|$)",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s+(?:\d+\s*(?:hr|hrs|hour|hours)\s+)?(?:cruise|ferry|train|flight|coach|bus)\b",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s*\|",
         rf"\b(?:train|flight|coach|bus|cruise|ferry)\s+(?P<origin>{known_places})\s+(?P<destination>{known_places})\b",
@@ -69,6 +69,8 @@ def _clean_route_place(value):
     raw = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\bnot\s+included\b", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\s*,?\s*tickets?\s+to\s+be\s+(?:bought|purchased).*$", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\s*,?\s*to\s+be\s+paid\s+locally.*$", "", raw, flags=re.IGNORECASE)
     # Common supplier typo: "Saariselka t to Rovaniemi" leaves a stray
     # trailing "t" on the origin after route splitting. Do not let that
     # become a client-facing place name.
@@ -97,13 +99,16 @@ def _clean_route_place(value):
         "accommodation",
         "your accommodation",
         "your hotel",
+        "ticket counter",
+        "be bought on spot at ticket counter",
+        "be bought on site at ticket counter",
         "next day",
         "arrival next day",
         "arrives next day",
     }
     if lower in invalid_places:
         return ""
-    blocked_phrases = ["santa claus express", "downstairs cabin", "tickets included", "meal plan", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]
+    blocked_phrases = ["santa claus express", "downstairs cabin", "tickets included", "ticket to be bought", "ticket to be purchased", "ticket counter", "on spot", "on site", "meal plan", "wc in carriage", "women's", "men's", "benefits", "made bed", "sleeping compartment", "overnight train"]
     if any(marker in lower for marker in blocked_phrases):
         return ""
     if re.search(r"\b(?:shower|sink)\b", lower):

@@ -18,7 +18,7 @@ def test_arctic_whale_watching_description_is_not_reykjavik_fallback():
 
     block = canonical_activity_block(row)
 
-    assert block.title == "Whale Watching & Arctic Wildlife Safari"
+    assert block.title == "Whale Watching & Arctic Wildlife Safari by RIB Boat"
     assert "Arctic waters" in block.description
     assert "Reykjavík" not in block.description
     assert "Icelandic coast" not in block.description

@@ -315,7 +315,7 @@ def clean_hotel_name_from_source(row: dict) -> str:
 def normalize_hotel_row(row: dict) -> dict:
     source = clean_space(row.get("details", ""))
     city = clean_space(row.get("city", ""))
-    star = extract_star_level(source)
+    star = extract_star_level(source) or clean_space(row.get("star_rating", ""))
 
     name = polish_hotel_name(_strip_city_and_star_prefix(row.get("hotel_name", ""), city))
     if is_placeholder_hotel_name(name, city):
@@ -365,5 +365,6 @@ def normalize_hotel_row(row: dict) -> dict:
     row["room_category"] = room
     row["hotel_nights"] = nights
     row["meal_plan"] = meal
+    row["star_rating"] = star
     return row
 

@@ -78,11 +78,31 @@ def self_transfer_exclusion_title(row: dict) -> str:
     return clean_self_transfer_text(source)[:140].strip(" -:|")
 
 
+def _has_local_purchase_marker(row: dict) -> bool:
+    text = row_search_text(row)
+    return any(marker in text for marker in (
+        "ticket to be bought on spot",
+        "ticket to be bought on site",
+        "tickets to be bought on spot",
+        "tickets to be bought on site",
+        "ticket to be purchased locally",
+        "tickets to be purchased locally",
+        "ticket to be purchased on site",
+        "tickets to be purchased on site",
+        "ticket counter",
+        "on spot",
+        "on site",
+    ))
+
+
 def transport_commercial_title(row: dict) -> str:
     """Return client-facing title for transport rows in exclusions."""
 
     if is_self_transfer_row(row):
         return self_transfer_exclusion_title(row)
     if get_row_type(row) in set(TRANSPORT_TYPES) | {"Transfer"}:
-        return (get_transport_route_phrase(row) or get_transfer_travel_title(row) or "")[:120].strip(" -:|")
+        title = (get_transport_route_phrase(row) or get_transfer_travel_title(row) or "")[:120].strip(" -:|")
+        if title and _has_local_purchase_marker(row):
+            return f"{title} — tickets to be purchased on site"
+        return title
     return ""

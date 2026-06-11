@@ -28,7 +28,8 @@ def match_iceland_activity(
 
     if "whale" in source_lower and ("watching" in source_lower or "marine" in source_lower or "safari" in source_lower):
         if "arctic wildlife" in source_lower or "rib boat" in source_lower or "wildlife safari" in source_lower:
-            return match_product("arctic_whale_wildlife_safari", "whale_safari", "Whale Watching & Arctic Wildlife Safari", source_title=source_title)
+            title = "Whale Watching & Arctic Wildlife Safari by RIB Boat" if "rib boat" in source_lower else "Whale Watching & Arctic Wildlife Safari"
+            return match_product("arctic_whale_wildlife_safari", "whale_safari", title, source_title=source_title)
         if "tromsø" in source_lower or "tromso" in source_lower or "arctic cruise" in source_lower:
             return match_product("tromso_whale_safari", "whale_safari", "Winter Whale Safari by Arctic Cruise", source_title=source_title)
         if "marine" in source_lower:
