@@ -53,6 +53,7 @@ from itinerary_generation.transport_safety import repair_messy_client_text
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
 from itinerary_generation.nutshell_domain import attach_nutshell_journey, is_nutshell_row
 from itinerary_generation.group_tours import annotate_group_tour_optional_extras
+from itinerary_generation.group_tour_parsing import integrate_group_tour_rows, prepare_group_tour_source_rows
 from itinerary_generation.activity_products import fingerprint_activity
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
@@ -245,10 +246,21 @@ def normalize_row(row: dict) -> dict:
     return row
 
 
-def normalize_itinerary_rows(rows: list[dict]) -> list[dict]:
-    normalized = [normalize_row(row) for row in rows or []]
+def normalize_itinerary_rows(
+    rows: list[dict],
+    *,
+    source_name: str = "",
+    group_tour_season: str = "",
+) -> list[dict]:
+    prepared_rows = prepare_group_tour_source_rows(rows or [], source_name=source_name)
+    normalized = [normalize_row(row) for row in prepared_rows]
     normalized = fill_missing_context_cities(normalized)
     normalized = apply_contextual_travel_corrections(normalized)
     normalized = add_repeated_activity_context(normalized)
     normalized = annotate_group_tour_optional_extras(normalized)
+    normalized = integrate_group_tour_rows(
+        normalized,
+        season=group_tour_season,
+        source_name=source_name,
+    )
     return normalized

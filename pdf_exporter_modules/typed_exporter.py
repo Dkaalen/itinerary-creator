@@ -348,12 +348,12 @@ def _block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
     if block.section_title:
         add_paragraph(block_story, block.section_title, styles["section"])
     if block.title:
-        add_paragraph(block_story, block.title, styles["activity_title"] if block.kind == "activity" else styles["body_bold"])
+        add_paragraph(block_story, block.title, styles["activity_title"] if block.kind in {"activity", "group_tour_day"} else styles["body_bold"])
     for meta in block.meta:
         if meta.value:
             add_paragraph(block_story, f"{meta.label}: {meta.value}" if meta.label else str(meta.value), styles["body"])
 
-    if block.kind == "activity":
+    if block.kind in {"activity", "group_tour_day"}:
         includes = list(block.includes or [])
         description = block.description
         notable_sights = list(block.notable_sights or [])
@@ -372,7 +372,8 @@ def _block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
             notable_sights = []
 
         if includes:
-            add_paragraph(block_story, "Included With This Experience", styles["section"])
+            included_label = "Included on This Tour Day" if block.kind == "group_tour_day" else "Included With This Experience"
+            add_paragraph(block_story, included_label, styles["section"])
             add_bullets(block_story, includes, styles)
         if description:
             add_paragraph(block_story, "Description", styles["section"])

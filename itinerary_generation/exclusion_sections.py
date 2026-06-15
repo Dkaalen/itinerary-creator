@@ -283,7 +283,7 @@ def create_specific_exclusion_sections(parsed_rows):
             continue
 
         label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
-        row_type = get_row_type(row)
+        row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
         status = _commercial_status(row)
 
         rental_exclusion = _rental_cost_not_included_label(row)
@@ -356,7 +356,7 @@ def create_source_aware_exclusion_sections(parsed_rows):
             continue
 
         label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
-        row_type = get_row_type(row)
+        row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
         status = _commercial_status(row)
 
         rental_exclusion = _rental_cost_not_included_label(row)

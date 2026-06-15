@@ -27,7 +27,12 @@ def create_optional_addons(parsed_rows):
     addons = []
 
     for row in optional_rows:
-        row_type = get_row_type(row)
+        category = str(row.get("group_tour_commercial_category") or "")
+        if category == "single_supplement":
+            # This is a commercial pricing condition, not a client experience.
+            # It remains visible on the exclusions/commercial-notes page.
+            continue
+        row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
         title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
         title = polish_title(strip_price_fragments(str(title or row.get("title", "Optional add-on"))))
         city = polish_title(str(row.get("city", "")).strip())

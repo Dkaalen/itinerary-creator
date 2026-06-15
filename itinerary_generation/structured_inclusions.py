@@ -33,6 +33,10 @@ from itinerary_generation.transport_domain.inclusions import (
 )
 from itinerary_generation.inclusion_utils import clean
 from itinerary_generation.structured_model import StructuredListItem, StructuredListSection
+from itinerary_generation.group_tour_rendering import (
+    group_tour_package_from_rows,
+    group_tour_package_inclusion_item,
+)
 from shared.source_rows import source_row_id
 
 
@@ -167,7 +171,16 @@ def build_structured_inclusion_sections(
     rental_items: list[StructuredListItem] = []
     transport_buckets: OrderedDict[str, list[StructuredListItem]] = OrderedDict()
 
+    group_tour_package = group_tour_package_from_rows(rows)
+    if group_tour_package is not None and group_tour_package.commercial_status == "included":
+        _append_item_preserving_source(
+            activity_items,
+            group_tour_package_inclusion_item(group_tour_package),
+        )
+
     for row in _hotel_rows_for_inclusions(rows, grouped_days):
+        if group_tour_package is not None and row.get("is_group_tour_accommodation"):
+            continue
         _append_item_preserving_source(
             accommodation_items,
             _structured_item_from_line(
@@ -178,7 +191,12 @@ def build_structured_inclusion_sections(
         )
 
     for row in rows:
-        if get_row_type(row) != "Activity" or _is_empty_activity(row) or row.get("group_tour_optional_extra"):
+        if (
+            get_row_type(row) != "Activity"
+            or _is_empty_activity(row)
+            or row.get("group_tour_optional_extra")
+            or row.get("group_tour_role") in {"package_master", "day_segment"}
+        ):
             continue
         _append_item_preserving_source(
             activity_items,
@@ -189,11 +207,12 @@ def build_structured_inclusion_sections(
             ),
         )
 
-    for item in group_tour_overview_activity_lines(rows):
-        _append_item_preserving_source(
-            activity_items,
-            _structured_item_from_line(item, category="activities"),
-        )
+    if group_tour_package is None:
+        for item in group_tour_overview_activity_lines(rows):
+            _append_item_preserving_source(
+                activity_items,
+                _structured_item_from_line(item, category="activities"),
+            )
 
     if has_self_drive_markers(rows):
         for index, item in enumerate(extract_rental_summary(rows)):

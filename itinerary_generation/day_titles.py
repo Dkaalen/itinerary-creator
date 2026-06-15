@@ -9,6 +9,7 @@ from itinerary_generation.activity_titles import (
 )
 from itinerary_generation.common import clean_client_title, get_primary_city, get_row_type, has_hotel
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
+from itinerary_generation.group_tour_rendering import group_tour_day_title
 from itinerary_generation.transport import (
     get_primary_transport_title,
     has_airport_arrival_transfer,
@@ -38,6 +39,10 @@ def create_day_title(day_rows):
     # before allowing the transfer text to become the title.
     if hotel_present and not activity_rows and has_airport_arrival_transfer(day_rows) and city:
         return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
+
+    group_tour_title = group_tour_day_title(day_rows)
+    if group_tour_title:
+        return group_tour_title
 
     # Real day/activity headings should beat supplier overview snippets such as
     # "Day 1: Arrival Reykjavík, pick-up minibus". Those snippets are useful

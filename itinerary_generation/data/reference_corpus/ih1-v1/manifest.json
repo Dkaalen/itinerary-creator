@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "corpus_version": "ih1-v1",
+  "files": [
+    {
+      "name": "standard_input_templates.tsv",
+      "record_count": 643,
+      "sha256": "6d0c1151dafa4f42577414de0c96341e3ec83277286621df8e05ae6b04f43f53"
+    },
+    {
+      "name": "clean_activity_inputs.tsv",
+      "record_count": 163,
+      "sha256": "7217ddad9f7885053cd2b65a9fb0f0a5686c2cde06c2c2e7706b9d59650f97ea"
+    },
+    {
+      "name": "iceland_standard_itinerary.json",
+      "record_count": 402,
+      "sha256": "ac174116d95fb4bf9832e4203f7a4083dacf8e068247652041b516dd8ce3ff5b"
+    }
+  ],
+  "source_files": [
+    {
+      "name": "Pasted text.txt",
+      "sha256": "371702fa4d5d7a6251be4a449ab5e8623b01880d7f063b755e72bdc8ae1767c8"
+    },
+    {
+      "name": "Pasted text (2).txt",
+      "sha256": "591576341e0a8b4e587140dcbf9d380f519ef0a85c1a8265311ed0f27e13beb6"
+    },
+    {
+      "name": "Standard-Itinerary-Iceland.xlsx",
+      "sha256": "53f824bf59707d4200819a2ce9a88c7efba75a165d8c5800200f138d07744a68"
+    }
+  ],
+  "iceland_sheet_count": 15
+}

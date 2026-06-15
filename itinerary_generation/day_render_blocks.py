@@ -21,6 +21,10 @@ from shared.source_rows import source_row_id, rows_by_source_id
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.title_safety import is_forbidden_client_title
+from itinerary_generation.group_tour_rendering import (
+    build_group_tour_day_render_block,
+    is_group_tour_commercial_day_visible,
+)
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.travel_sequence_blocks import build_travel_arrangements_render_block, is_travel_sequence_candidate
@@ -206,6 +210,13 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
         row_type = get_row_type(row)
         title = row.get("title", "")
 
+        if row.get("group_tour_role") == "package_master":
+            # The package is rendered once in final inclusions.  The matching
+            # package-day row owns the day-page narrative.
+            continue
+        if not is_group_tour_commercial_day_visible(row):
+            continue
+
         if is_optional_row(row):
             flush_travel_group()
             blocks.append(build_optional_render_block(row))
@@ -260,6 +271,14 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
             generic_arrival = re.search(r"^(arrival|welcome\s+to\s+.+)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
             if not generic_arrival:
                 blocks.append(build_arrival_render_block(row))
+        elif row_type == "Group Tour" or row.get("group_tour_role") == "day_segment":
+            # Parsed supplier files often label package days as Activity while
+            # the group-tour contract correctly identifies their semantic role.
+            # Contract ownership must therefore win before generic activity
+            # rendering, otherwise preview/PDF diverge from workbook GTS/GTW.
+            block = build_group_tour_day_render_block(row)
+            if block:
+                blocks.append(block)
         elif row_type == "Activity":
             if _is_blank_activity_row(row):
                 continue

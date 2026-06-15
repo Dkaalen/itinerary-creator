@@ -39,6 +39,12 @@ def _add_group_tour_accommodation_rows(grouped):
         for overview in rows:
             if get_row_type(overview) != "Day Overview":
                 continue
+            # Canonical group-tour rows carry package-owned accommodation
+            # facts on their GroupTourDay contract.  Do not recreate those
+            # facts as independent Hotel products.  The legacy fallback below
+            # remains available for unannotated historical inputs.
+            if overview.get("group_tour_package") or overview.get("group_tour_role") == "package_master":
+                continue
             overview_text = f'{overview.get("title", "")}\n{overview.get("details", "")}\n{overview.get("original_title", "")}'
             if not re.search(r"\b(group\s+tour|holiday\s+package|sharing\s+room\s+basis)\b", overview_text, flags=re.IGNORECASE):
                 continue

@@ -101,9 +101,9 @@ def test_patch_aw_optional_group_tour_extra_is_not_rendered_as_included():
 
     context = build_itinerary_render_context(rows, group_rows_by_day(rows), {"pictures_added": False})
     day6_render = next(day for day in context.render_document.days if day.day == "Day 6")
-    whale_block = next(block for block in day6_render.blocks if block.kind == "activity")
+    whale_block = next(block for block in day6_render.blocks if block.kind == "group_tour_day")
 
-    assert whale_block.includes == []
+    assert not any("Whale Watching" in item for item in whale_block.includes)
     included_text = "\n".join(
         item
         for section in context.render_document.final_sections

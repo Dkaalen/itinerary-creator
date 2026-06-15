@@ -35,6 +35,12 @@ from itinerary_generation.transport_model import get_transport_source_text, is_c
 from itinerary_generation.transport_times import get_transport_time_text
 from itinerary_generation.time_display import display_time
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_generation.group_tour_rendering import (
+    group_tour_day_city,
+    group_tour_day_from_rows,
+    group_tour_day_title,
+    group_tour_package_from_rows,
+)
 
 _TRANSPORT_KIND_BY_TYPE = {
     "Transfer": "transfer",
@@ -93,6 +99,8 @@ def _source_ref(row: dict, fallback_index: int) -> SourceRowRef:
 
 
 def _kind_for_row(row: dict) -> DocumentItemKind:
+    if row.get("group_tour_role") in {"package_master", "day_segment"}:
+        return "activity"
     row_type = str(get_row_type(row) or "").strip()
     if row_type == "Hotel":
         return "accommodation"
@@ -115,6 +123,14 @@ def _kind_for_row(row: dict) -> DocumentItemKind:
 
 
 def _item_title(row: dict) -> str:
+    if row.get("group_tour_role") == "package_master":
+        package = group_tour_package_from_rows([row])
+        if package is not None:
+            return package.title
+    if row.get("group_tour_role") == "day_segment":
+        title = group_tour_day_title([row])
+        if title:
+            return title
     for key in ("title", "hotel_name", "original_title", "details"):
         text = _clean(row.get(key, ""))
         if text:
@@ -206,7 +222,7 @@ def _ambiguous_row_warnings(row: dict) -> tuple[ModelWarning, ...]:
     """Flag rows where the model should not over-trust an inferred title."""
 
     row_type = str(get_row_type(row) or "")
-    if row_type != "Activity":
+    if row.get("group_tour_role") in {"package_master", "day_segment"} or row_type != "Activity":
         return ()
 
     # Use only supplier/source fields for ambiguity checks. The normalized
@@ -251,6 +267,9 @@ def _row_data_warnings(row: dict) -> tuple[ModelWarning, ...]:
     source_lower = source.lower()
     warnings: list[ModelWarning] = []
 
+    if row.get("group_tour_role") in {"package_master", "day_segment"}:
+        return ()
+
     if row_type == "Activity":
         time_text = str(row.get("time") or "")
         suspicious_am = re.search(r"\b(?:1|2|3|4|5):\d{2}\s*AM\b", time_text, flags=re.IGNORECASE)
@@ -293,22 +312,33 @@ def _document_item(row: dict, fallback_index: int) -> DocumentItem:
     row_id = _row_id(row, fallback_index)
     warnings = _ambiguous_row_warnings(row) + _row_data_warnings(row)
     confidence = 0.55 if warnings else 1.0
+    destination = str(row.get("city", "") or "")
+    if row.get("group_tour_role") == "day_segment":
+        destination = group_tour_day_city([row])
+    metadata: dict[str, object] = {}
+    if row.get("activity_product") or row.get("route_legs"):
+        metadata.update({
+            "activity_product": row.get("activity_product") or {},
+            "route_legs": row.get("route_legs") or [],
+        })
+    if row.get("group_tour_package"):
+        metadata["group_tour_package"] = row.get("group_tour_package")
+    if row.get("group_tour_day"):
+        metadata["group_tour_day"] = row.get("group_tour_day")
+
     return DocumentItem(
         item_id=row_id,
         kind=_kind_for_row(row),
         day=str(row.get("day", "") or ""),
         date=str(row.get("start_date", "") or ""),
-        destination=str(row.get("city", "") or ""),
+        destination=destination,
         title=_item_title(row),
         source_row_ids=(row_id,),
         commercial_status=str(row.get("commercial_status") or ("optional" if row.get("is_optional") else "included")),
         confidence=confidence,
         detail_lines=_detail_lines(row),
         warnings=warnings,
-        metadata={
-            "activity_product": row.get("activity_product") or {},
-            "route_legs": row.get("route_legs") or [],
-        } if row.get("activity_product") or row.get("route_legs") else {},
+        metadata=metadata,
     )
 
 
@@ -331,11 +361,12 @@ def _build_days(
             if row.get("start_date"):
                 date = format_client_date(row.get("start_date"))
                 break
+        group_tour_destination = group_tour_day_city(rows) if group_tour_day_from_rows(rows) is not None else ""
         days.append(DayDocument(
             day=str(day),
             number=_day_number(str(day)),
             date=date,
-            destination=get_primary_city(rows),
+            destination=group_tour_destination or get_primary_city(rows),
             item_ids=item_ids,
             source_row_ids=source_ids,
         ))

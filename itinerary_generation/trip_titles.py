@@ -18,6 +18,7 @@ from itinerary_generation.cover_theme import (
     detect_cover_season,
     has_winter_focus,
 )
+from itinerary_generation.group_tour_rendering import group_tour_package_from_rows
 
 def create_trip_title(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
@@ -28,7 +29,8 @@ def create_trip_title(parsed_rows, grouped_days):
     countries = get_destination_countries(parsed_rows)
     text = " ".join(f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}' for row in parsed_rows).lower()
 
-    is_group_tour = any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
+    group_tour_package = group_tour_package_from_rows(parsed_rows)
+    is_group_tour = group_tour_package is not None or any(marker in text for marker in ["group tour", "holiday package", "sharing room basis"])
     has_cruise_heavy = sum(1 for row in parsed_rows if get_row_type(row) == "Cruise") >= 3
     has_nutshell = "norway in a nutshell" in text or ("flåm" in text or "flam" in text) and ("nærøyfjord" in text or "naeroyfjord" in text)
     has_aurora = any(marker in text for marker in ["northern light", "aurora", "icehotel", "kiruna", "svalbard", "lapland"])
@@ -98,11 +100,15 @@ def _indefinite_article(scope: str) -> str:
 
 def create_trip_subtitle(parsed_rows, grouped_days):
     parsed_rows = main_rows_only(parsed_rows)
+    group_tour_package = group_tour_package_from_rows(parsed_rows)
     season = detect_cover_season(parsed_rows)
     season_label = SEASON_LABELS.get(season, "summer").lower()
     countries = get_destination_countries(parsed_rows)
     scope = countries[0] if len(countries) == 1 else "Nordic"
     article = _indefinite_article(scope)
+    if group_tour_package is not None:
+        season_text = f" {group_tour_package.season}" if group_tour_package.season in {"summer", "winter"} else ""
+        return f"A guided{season_text} Iceland group tour with arranged transport, daily experiences and included accommodation"
     if has_self_drive_markers(parsed_rows):
         return f"{article} {scope} {season_label} self-drive journey with scenic routes and planned experiences"
     if season in SEASON_SUBTITLES:

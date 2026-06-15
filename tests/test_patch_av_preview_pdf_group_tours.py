@@ -59,7 +59,7 @@ def test_patch_av_group_tour_days_are_not_misclassified_as_leisure():
 
     assert day3.title == "Discover Glaciers, Ice Caves & Diamond Beach"
     assert "leisure" not in day3.title.lower()
-    assert any(block.kind == "activity" for block in day3.blocks)
+    assert any(block.kind == "group_tour_day" for block in day3.blocks)
     assert day5.title == "Admire Canyons, Waterfalls & Geothermal Wonders"
     assert day8.city == "Reykjavík"
     assert day8.title == "Departure from Reykjavík"

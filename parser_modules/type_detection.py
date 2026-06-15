@@ -41,6 +41,11 @@ KNOWN_TYPES = {
     "drive",
     "optional",
     "day overview",
+    "group tour",
+    "activity upgrade",
+    "transfer package",
+    "single supplement fee",
+    "extra hotel night",
 }
 
 

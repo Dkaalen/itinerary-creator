@@ -34,6 +34,7 @@ FAST_TESTS = (
     "tests/test_patch_bo_state_ownership.py",
     "tests/test_patch_bs_architecture_boundaries.py",
     "tests/test_regressions_parser_normalizer.py",
+    "tests/test_patch_ih3_iceland_group_tour_parsing.py",
     "tests/test_stress_logic_followups.py",
     "tests/test_itinerary_health_report.py",
     "tests/test_content_validator_scoping.py",
@@ -65,6 +66,7 @@ PARSER_TESTS = (
     "tests/test_date_formatting.py",
     "tests/test_date_resolver.py",
     "tests/test_regressions_parser_normalizer.py",
+    "tests/test_patch_ih3_iceland_group_tour_parsing.py",
     "tests/test_normalizer_context_architecture.py",
     "tests/test_patch_bf_parser_extractor_architecture.py",
     "tests/test_train_details.py",
@@ -95,6 +97,10 @@ ACTIVITY_TESTS = (
     "tests/test_patch_bz1b_nutshell_domain.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
+    "tests/test_patch_ih1_reference_corpus.py",
+    "tests/test_patch_ih2_group_tour_domain.py",
+    "tests/test_patch_ih3_iceland_group_tour_parsing.py",
+    "tests/test_patch_ih4_group_tour_rendering.py",
 )
 
 ARCHITECTURE_TESTS = (
@@ -122,6 +128,10 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
+    "tests/test_patch_ih1_reference_corpus.py",
+    "tests/test_patch_ih2_group_tour_domain.py",
+    "tests/test_patch_ih3_iceland_group_tour_parsing.py",
+    "tests/test_patch_ih4_group_tour_rendering.py",
 )
 
 EDITOR_TESTS = (
@@ -141,6 +151,7 @@ EDITOR_TESTS = (
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
+    "tests/test_patch_ih4_group_tour_rendering.py",
 )
 
 IMAGE_TESTS = (
@@ -202,6 +213,8 @@ QUALITY_TESTS = (
     "tests/test_regressions_travel_text.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
+    "tests/test_patch_ih1_reference_corpus.py",
+    "tests/test_patch_ih4_group_tour_rendering.py",
 )
 
 PDF_TESTS = (
@@ -216,6 +229,7 @@ PDF_TESTS = (
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
+    "tests/test_patch_ih4_group_tour_rendering.py",
 )
 
 SLOW_TESTS = (

@@ -14,6 +14,7 @@ from itinerary_generation.cover_route import route_cities_with_return
 from itinerary_generation.transport import has_glass_igloo_or_arctic_resort
 from itinerary_generation.nutshell_domain import has_nutshell_journey
 from itinerary_generation.group_tours import is_group_tour_overview
+from itinerary_generation.group_tour_rendering import group_tour_package_from_rows
 from itinerary_generation.client_text_decisions import (
     WEAK_JOURNEY_ARC_RE,
     choose_journey_arc_phrase,
@@ -58,11 +59,12 @@ def create_trip_glance(parsed_rows, grouped_days):
         for row in transfer_rows
     )
 
+    group_tour_package = group_tour_package_from_rows(parsed_rows)
     group_tour_rows = [row for row in parsed_rows if is_group_tour_overview(row)]
 
     travel_style_parts = []
 
-    if group_tour_rows:
+    if group_tour_package is not None or group_tour_rows:
         # Group-tour overviews are packaged guided products, not independent journeys.
         # Use every title source accepted by ``is_group_tour_overview`` so the
         # classification cannot disagree with the detector.
@@ -70,7 +72,7 @@ def create_trip_glance(parsed_rows, grouped_days):
             str(row.get(field, ""))
             for row in group_tour_rows
             for field in ("title", "original_title", "details")
-        ).lower()
+        ).lower() + " " + (group_tour_package.title.lower() if group_tour_package is not None else "")
         if "small" in group_tour_text:
             travel_style = "Guided small-group tour"
         else:

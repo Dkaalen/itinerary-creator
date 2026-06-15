@@ -57,14 +57,19 @@
       "end": "What’s not included",
       "must_contain": [
         "Fosshotel Raudara, Reykjavík",
+        "Center Hotels Skjaldbreið, Reykjavík",
+        "5-Day Holiday Package Icelandic Winter Minibus Tour",
+        "4 included nights",
+        "Private bathroom",
+        "Properties may vary according to availability"
+      ],
+      "must_not_contain": [
+        "Single traveler supplement",
         "Hotel accommodation, Reykjavík",
         "Guesthouse accommodation, West Iceland",
         "Countryside guesthouse accommodation",
         "Guesthouse accommodation, South Coast",
-        "Center Hotels Skjaldbreið, Reykjavík"
-      ],
-      "must_not_contain": [
-        "Single traveler supplement",
+        "Explore Borgarfjörður Valley & Waterfalls - 10th of June",
         "With breakfast"
       ]
     }

@@ -94,6 +94,17 @@ def parse_itinerary(raw_text):
             is_optional = True
             item_type = infer_optional_row_type(description)
 
+        # Iceland package worksheets keep commercial add-ons as explicit row
+        # types. They are related to the package but are not automatically
+        # included itinerary experiences.
+        if item_type.lower() in {
+            "activity upgrade",
+            "transfer package",
+            "single supplement fee",
+            "extra hotel night",
+        }:
+            is_optional = True
+
         if item_type.lower() not in KNOWN_TYPES:
             diagnostics.warn(
                 "unknown_type",

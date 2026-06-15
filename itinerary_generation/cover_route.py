@@ -9,6 +9,7 @@ from itinerary_generation.common import (
     main_rows_only,
     overnight_destination_cities,
 )
+from itinerary_generation.group_tour_rendering import group_tour_package_from_rows, group_tour_package_route
 
 SEPARATOR = " · "
 
@@ -39,11 +40,22 @@ def route_cities_with_return(parsed_rows: list[dict]) -> list[str]:
     """
 
     route: list[str] = overnight_destination_cities(parsed_rows)
+    package = group_tour_package_from_rows(parsed_rows)
+    if package is not None:
+        package_route = group_tour_package_route(package)
+        start = route[0] if route else ""
+        end = route[-1] if route else ""
+        combined: list[str] = []
+        for city in [start, *package_route, end]:
+            if city and (not combined or city != combined[-1]):
+                combined.append(city)
+        if combined:
+            route = combined
     # Packaged group tours often include several overnight regions inside one
     # overview row, while only the pre/post tour hotels are explicit Hotel rows.
     # In that case the client route should follow the day-by-day programme
     # cities instead of collapsing to Reykjavík only.
-    if _has_group_tour_overview(parsed_rows) and len(route) <= 1:
+    if package is None and _has_group_tour_overview(parsed_rows) and len(route) <= 1:
         route = _route_from_all_valid_day_cities(parsed_rows)
     if not route:
         route = _route_from_all_valid_day_cities(parsed_rows)

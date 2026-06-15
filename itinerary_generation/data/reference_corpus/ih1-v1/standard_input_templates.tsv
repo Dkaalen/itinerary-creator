@@ -1,0 +1,644 @@
+record_id	service_type	source_destination	canonical_destination	placeholders	template_text
+standard-0001	Hotel	Oslo	Oslo	BedType;HotelName;MealPlan;RoomCategory;X	Oslo: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0002	Leisure	Oslo	Oslo		Oslo: Spend time at leisure
+standard-0003	Transfer	Oslo	Oslo	Destination	Oslo: Self transfer to [Destination]
+standard-0004	Transfer	Oslo	Oslo	Destination	Oslo: Private transfer to [Destination]
+standard-0005	Flight	Oslo	Oslo	Destination;Time	Oslo: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0006	Cruise	Oslo	Oslo	Destination;Time	Oslo: Atlantic Coastal Cruise to [Destination] - Departure from Oslo: [Time] - Arrival at [Destination]: [Time] - Meeting point: Oslo Cruise Harbor - Includes: Tickets
+standard-0007	Train	Oslo	Oslo	Destination;Time	Oslo: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Oslo Train Station - Includes: Tickets
+standard-0008	Coach	Oslo	Oslo	Destination;Time	Oslo: Coach transfer to [Destination] - Time: [Time] - Meeting point: Oslo Bus Station - Includes: Tickets
+standard-0009	Hotel	Bergen	Bergen	BedType;HotelName;MealPlan;RoomCategory;X	Bergen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0010	Leisure	Bergen	Bergen		Bergen: Spend time at leisure
+standard-0011	Transfer	Bergen	Bergen	Destination	Bergen: Self transfer to [Destination]
+standard-0012	Transfer	Bergen	Bergen	Destination	Bergen: Private transfer to [Destination]
+standard-0013	Flight	Bergen	Bergen	Destination;Time	Bergen: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0014	Cruise	Bergen	Bergen	Destination;Time	Bergen: Atlantic Coastal Cruise to [Destination] - Departure from Bergen: [Time] - Arrival at [Destination]: [Time] - Meeting point: Bergen Cruise Harbor - Includes: Tickets
+standard-0015	Train	Bergen	Bergen	Destination;Time	Bergen: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Bergen Train Station - Includes: Tickets
+standard-0016	Coach	Bergen	Bergen	Destination;Time	Bergen: Coach transfer to [Destination] - Time: [Time] - Meeting point: Bergen Bus Station - Includes: Tickets
+standard-0017	Hotel	Flåm	Flåm	BedType;HotelName;MealPlan;RoomCategory;X	Flåm: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0018	Leisure	Flåm	Flåm		Flåm: Spend time at leisure
+standard-0019	Transfer	Flåm	Flåm	Destination	Flåm: Self transfer to [Destination]
+standard-0020	Transfer	Flåm	Flåm	Destination	Flåm: Private transfer to [Destination]
+standard-0021	Cruise	Flåm	Flåm	Destination;Time	Flåm: Scenic Fjord Cruise to [Destination] - Departure from Flåm: [Time] - Arrival at [Destination]: [Time] - Meeting point: Flåm Cruise Harbor - Includes: Tickets
+standard-0022	Train	Flåm	Flåm	Destination;Time	Flåm: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Flåm Train Station - Includes: Tickets
+standard-0023	Coach	Flåm	Flåm	Destination;Time	Flåm: Coach transfer to [Destination] - Time: [Time] - Meeting point: Flåm Bus Station - Includes: Tickets
+standard-0024	Hotel	Voss	Voss	BedType;HotelName;MealPlan;RoomCategory;X	Voss: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0025	Leisure	Voss	Voss		Voss: Spend time at leisure
+standard-0026	Transfer	Voss	Voss	Destination	Voss: Self transfer to [Destination]
+standard-0027	Transfer	Voss	Voss	Destination	Voss: Private transfer to [Destination]
+standard-0028	Train	Voss	Voss	Destination;Time	Voss: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Voss Train Station - Includes: Tickets
+standard-0029	Coach	Voss	Voss	Destination;Time	Voss: Coach transfer to [Destination] - Time: [Time] - Meeting point: Voss Bus Station - Includes: Tickets
+standard-0030	Hotel	Gudvangen	Gudvangen	BedType;HotelName;MealPlan;RoomCategory;X	Gudvangen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0031	Leisure	Gudvangen	Gudvangen		Gudvangen: Spend time at leisure
+standard-0032	Transfer	Gudvangen	Gudvangen	Destination	Gudvangen: Self transfer to [Destination]
+standard-0033	Transfer	Gudvangen	Gudvangen	Destination	Gudvangen: Private transfer to [Destination]
+standard-0034	Cruise	Gudvangen	Gudvangen	Destination;Time	Gudvangen: Scenic Fjord Cruise to [Destination] - Departure from Gudvangen: [Time] - Arrival at [Destination]: [Time] - Meeting point: Gudvangen Cruise Harbor - Includes: Tickets
+standard-0035	Coach	Gudvangen	Gudvangen	Destination;Time	Gudvangen: Coach transfer to [Destination] - Time: [Time] - Meeting point: Gudvangen Bus Station - Includes: Tickets
+standard-0036	Hotel	Myrdal	Myrdal	BedType;HotelName;MealPlan;RoomCategory;X	Myrdal: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0037	Leisure	Myrdal	Myrdal		Myrdal: Spend time at leisure
+standard-0038	Transfer	Myrdal	Myrdal	Destination	Myrdal: Self transfer to [Destination]
+standard-0039	Transfer	Myrdal	Myrdal	Destination	Myrdal: Private transfer to [Destination]
+standard-0040	Train	Myrdal	Myrdal	Destination;Time	Myrdal: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Myrdal Train Station - Includes: Tickets
+standard-0041	Hotel	Ålesund	Ålesund	BedType;HotelName;MealPlan;RoomCategory;X	Ålesund: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0042	Leisure	Ålesund	Ålesund		Ålesund: Spend time at leisure
+standard-0043	Transfer	Ålesund	Ålesund	Destination	Ålesund: Self transfer to [Destination]
+standard-0044	Transfer	Ålesund	Ålesund	Destination	Ålesund: Private transfer to [Destination]
+standard-0045	Flight	Ålesund	Ålesund	Destination;Time	Ålesund: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0046	Cruise	Ålesund	Ålesund	Destination;Time	Ålesund: Atlantic Coastal Cruise to [Destination] - Departure from Ålesund: [Time] - Arrival at [Destination]: [Time] - Meeting point: Ålesund Cruise Harbor - Includes: Tickets
+standard-0047	Coach	Ålesund	Ålesund	Destination;Time	Ålesund: Coach transfer to [Destination] - Time: [Time] - Meeting point: Ålesund Bus Station - Includes: Tickets
+standard-0048	Hotel	Geiranger	Geiranger	BedType;HotelName;MealPlan;RoomCategory;X	Geiranger: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0049	Leisure	Geiranger	Geiranger		Geiranger: Spend time at leisure
+standard-0050	Transfer	Geiranger	Geiranger	Destination	Geiranger: Self transfer to [Destination]
+standard-0051	Transfer	Geiranger	Geiranger	Destination	Geiranger: Private transfer to [Destination]
+standard-0052	Cruise	Geiranger	Geiranger	Destination;Time	Geiranger: Scenic Fjord Cruise to [Destination] - Departure from Geiranger: [Time] - Arrival at [Destination]: [Time] - Meeting point: Geiranger Cruise Harbor - Includes: Tickets
+standard-0053	Coach	Geiranger	Geiranger	Destination;Time	Geiranger: Coach transfer to [Destination] - Time: [Time] - Meeting point: Geiranger Bus Station - Includes: Tickets
+standard-0054	Hotel	Trondheim	Trondheim	BedType;HotelName;MealPlan;RoomCategory;X	Trondheim: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0055	Leisure	Trondheim	Trondheim		Trondheim: Spend time at leisure
+standard-0056	Transfer	Trondheim	Trondheim	Destination	Trondheim: Self transfer to [Destination]
+standard-0057	Transfer	Trondheim	Trondheim	Destination	Trondheim: Private transfer to [Destination]
+standard-0058	Flight	Trondheim	Trondheim	Destination;Time	Trondheim: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0059	Cruise	Trondheim	Trondheim	Destination;Time	Trondheim: Atlantic Coastal Cruise to [Destination] - Departure from Trondheim: [Time] - Arrival at [Destination]: [Time] - Meeting point: Trondheim Cruise Harbor - Includes: Tickets
+standard-0060	Train	Trondheim	Trondheim	Destination;Time	Trondheim: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Trondheim Train Station - Includes: Tickets
+standard-0061	Coach	Trondheim	Trondheim	Destination;Time	Trondheim: Coach transfer to [Destination] - Time: [Time] - Meeting point: Trondheim Bus Station - Includes: Tickets
+standard-0062	Hotel	Bodø	Bodø	BedType;HotelName;MealPlan;RoomCategory;X	Bodø: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0063	Leisure	Bodø	Bodø		Bodø: Spend time at leisure
+standard-0064	Transfer	Bodø	Bodø	Destination	Bodø: Self transfer to [Destination]
+standard-0065	Transfer	Bodø	Bodø	Destination	Bodø: Private transfer to [Destination]
+standard-0066	Flight	Bodø	Bodø	Destination;Time	Bodø: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0067	Cruise	Bodø	Bodø	Destination;Time	Bodø: Atlantic Coastal Cruise to [Destination] - Departure from Bodø: [Time] - Arrival at [Destination]: [Time] - Meeting point: Bodø Cruise Harbor - Includes: Tickets
+standard-0068	Train	Bodø	Bodø	Destination;Time	Bodø: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Bodø Train Station - Includes: Tickets
+standard-0069	Coach	Bodø	Bodø	Destination;Time	Bodø: Coach transfer to [Destination] - Time: [Time] - Meeting point: Bodø Bus Station - Includes: Tickets
+standard-0070	Hotel	Narvik	Narvik	BedType;HotelName;MealPlan;RoomCategory;X	Narvik: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0071	Leisure	Narvik	Narvik		Narvik: Spend time at leisure
+standard-0072	Transfer	Narvik	Narvik	Destination	Narvik: Self transfer to [Destination]
+standard-0073	Transfer	Narvik	Narvik	Destination	Narvik: Private transfer to [Destination]
+standard-0074	Flight	Narvik	Narvik	Destination;Time	Narvik: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0075	Train	Narvik	Narvik	Destination;Time	Narvik: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Narvik Train Station - Includes: Tickets
+standard-0076	Coach	Narvik	Narvik	Destination;Time	Narvik: Coach transfer to [Destination] - Time: [Time] - Meeting point: Narvik Bus Station - Includes: Tickets
+standard-0077	Hotel	Tromsø	Tromsø	BedType;HotelName;MealPlan;RoomCategory;X	Tromsø: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0078	Leisure	Tromsø	Tromsø		Tromsø: Spend time at leisure
+standard-0079	Transfer	Tromsø	Tromsø	Destination	Tromsø: Self transfer to [Destination]
+standard-0080	Transfer	Tromsø	Tromsø	Destination	Tromsø: Private transfer to [Destination]
+standard-0081	Flight	Tromsø	Tromsø	Destination;Time	Tromsø: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0082	Cruise	Tromsø	Tromsø	Destination;Time	Tromsø: Atlantic Coastal Cruise to [Destination] - Departure from Tromsø: [Time] - Arrival at [Destination]: [Time] - Meeting point: Tromsø Cruise Harbor - Includes: Tickets
+standard-0083	Coach	Tromsø	Tromsø	Destination;Time	Tromsø: Coach transfer to [Destination] - Time: [Time] - Meeting point: Tromsø Bus Station - Includes: Tickets
+standard-0084	Hotel	Alta	Alta	BedType;HotelName;MealPlan;RoomCategory;X	Alta: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0085	Leisure	Alta	Alta		Alta: Spend time at leisure
+standard-0086	Transfer	Alta	Alta	Destination	Alta: Self transfer to [Destination]
+standard-0087	Transfer	Alta	Alta	Destination	Alta: Private transfer to [Destination]
+standard-0088	Flight	Alta	Alta	Destination;Time	Alta: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0089	Cruise	Alta	Alta	Destination;Time	Alta: Atlantic Coastal Cruise to [Destination] - Departure from Alta: [Time] - Arrival at [Destination]: [Time] - Meeting point: Alta Cruise Harbor - Includes: Tickets
+standard-0090	Coach	Alta	Alta	Destination;Time	Alta: Coach transfer to [Destination] - Time: [Time] - Meeting point: Alta Bus Station - Includes: Tickets
+standard-0091	Hotel	Kirkenes	Kirkenes	BedType;HotelName;MealPlan;RoomCategory;X	Kirkenes: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0092	Leisure	Kirkenes	Kirkenes		Kirkenes: Spend time at leisure
+standard-0093	Transfer	Kirkenes	Kirkenes	Destination	Kirkenes: Self transfer to [Destination]
+standard-0094	Transfer	Kirkenes	Kirkenes	Destination	Kirkenes: Private transfer to [Destination]
+standard-0095	Flight	Kirkenes	Kirkenes	Destination;Time	Kirkenes: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0096	Cruise	Kirkenes	Kirkenes	Destination;Time	Kirkenes: Atlantic Coastal Cruise to [Destination] - Departure from Kirkenes: [Time] - Arrival at [Destination]: [Time] - Meeting point: Kirkenes Cruise Harbor - Includes: Tickets
+standard-0097	Coach	Kirkenes	Kirkenes	Destination;Time	Kirkenes: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kirkenes Bus Station - Includes: Tickets
+standard-0098	Hotel	Honningsvåg / North Cape	Honningsvåg / North Cape	BedType;HotelName;MealPlan;RoomCategory;X	Honningsvåg / North Cape: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0099	Leisure	Honningsvåg / North Cape	Honningsvåg / North Cape		Honningsvåg / North Cape: Spend time at leisure
+standard-0100	Transfer	Honningsvåg / North Cape	Honningsvåg / North Cape	Destination	Honningsvåg / North Cape: Self transfer to [Destination]
+standard-0101	Transfer	Honningsvåg / North Cape	Honningsvåg / North Cape	Destination	Honningsvåg / North Cape: Private transfer to [Destination]
+standard-0102	Flight	Honningsvåg / North Cape	Honningsvåg / North Cape	Destination;Time	Honningsvåg / North Cape: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0103	Cruise	Honningsvåg / North Cape	Honningsvåg / North Cape	Destination;Time	Honningsvåg / North Cape: Atlantic Coastal Cruise to [Destination] - Departure from Honningsvåg / North Cape: [Time] - Arrival at [Destination]: [Time] - Meeting point: Honningsvåg Cruise Harbor - Includes: Tickets
+standard-0104	Coach	Honningsvåg / North Cape	Honningsvåg / North Cape	Destination;Time	Honningsvåg / North Cape: Coach transfer to [Destination] - Time: [Time] - Meeting point: Honningsvåg Bus Station - Includes: Tickets
+standard-0105	Hotel	Lofoten	Lofoten	BedType;HotelName;MealPlan;RoomCategory;X	Lofoten: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0106	Leisure	Lofoten	Lofoten		Lofoten: Spend time at leisure
+standard-0107	Transfer	Lofoten	Lofoten	Destination	Lofoten: Self transfer to [Destination]
+standard-0108	Transfer	Lofoten	Lofoten	Destination	Lofoten: Private transfer to [Destination]
+standard-0109	Flight	Lofoten	Lofoten	Destination;Time	Lofoten: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0110	Cruise	Lofoten	Lofoten	Destination;Time	Lofoten: Atlantic Coastal Cruise to [Destination] - Departure from Lofoten: [Time] - Arrival at [Destination]: [Time] - Meeting point: Lofoten Cruise Harbor - Includes: Tickets
+standard-0111	Coach	Lofoten	Lofoten	Destination;Time	Lofoten: Coach transfer to [Destination] - Time: [Time] - Meeting point: Lofoten Bus Station - Includes: Tickets
+standard-0112	Hotel	Svolvær	Svolvær	BedType;HotelName;MealPlan;RoomCategory;X	Svolvær: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0113	Leisure	Svolvær	Svolvær		Svolvær: Spend time at leisure
+standard-0114	Transfer	Svolvær	Svolvær	Destination	Svolvær: Self transfer to [Destination]
+standard-0115	Transfer	Svolvær	Svolvær	Destination	Svolvær: Private transfer to [Destination]
+standard-0116	Flight	Svolvær	Svolvær	Destination;Time	Svolvær: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0117	Cruise	Svolvær	Svolvær	Destination;Time	Svolvær: Atlantic Coastal Cruise to [Destination] - Departure from Svolvær: [Time] - Arrival at [Destination]: [Time] - Meeting point: Svolvær Cruise Harbor - Includes: Tickets
+standard-0118	Coach	Svolvær	Svolvær	Destination;Time	Svolvær: Coach transfer to [Destination] - Time: [Time] - Meeting point: Svolvær Bus Station - Includes: Tickets
+standard-0119	Hotel	Reine	Reine	BedType;HotelName;MealPlan;RoomCategory;X	Reine: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0120	Leisure	Reine	Reine		Reine: Spend time at leisure
+standard-0121	Transfer	Reine	Reine	Destination	Reine: Self transfer to [Destination]
+standard-0122	Transfer	Reine	Reine	Destination	Reine: Private transfer to [Destination]
+standard-0123	Cruise	Reine	Reine	Destination;Time	Reine: Atlantic Coastal Cruise to [Destination] - Departure from Reine: [Time] - Arrival at [Destination]: [Time] - Meeting point: Reine Cruise Harbor - Includes: Tickets
+standard-0124	Coach	Reine	Reine	Destination;Time	Reine: Coach transfer to [Destination] - Time: [Time] - Meeting point: Reine Bus Station - Includes: Tickets
+standard-0125	Hotel	Stavanger	Stavanger	BedType;HotelName;MealPlan;RoomCategory;X	Stavanger: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0126	Leisure	Stavanger	Stavanger		Stavanger: Spend time at leisure
+standard-0127	Transfer	Stavanger	Stavanger	Destination	Stavanger: Self transfer to [Destination]
+standard-0128	Transfer	Stavanger	Stavanger	Destination	Stavanger: Private transfer to [Destination]
+standard-0129	Flight	Stavanger	Stavanger	Destination;Time	Stavanger: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0130	Cruise	Stavanger	Stavanger	Destination;Time	Stavanger: Atlantic Coastal Cruise to [Destination] - Departure from Stavanger: [Time] - Arrival at [Destination]: [Time] - Meeting point: Stavanger Cruise Harbor - Includes: Tickets
+standard-0131	Train	Stavanger	Stavanger	Destination;Time	Stavanger: Train Transfer to [Destination] - Time: [Time] - Meeting point: Stavanger Train Station - Includes: Tickets
+standard-0132	Coach	Stavanger	Stavanger	Destination;Time	Stavanger: Coach transfer to [Destination] - Time: [Time] - Meeting point: Stavanger Bus Station - Includes: Tickets
+standard-0133	Hotel	Kristiansand	Kristiansand	BedType;HotelName;MealPlan;RoomCategory;X	Kristiansand: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0134	Leisure	Kristiansand	Kristiansand		Kristiansand: Spend time at leisure
+standard-0135	Transfer	Kristiansand	Kristiansand	Destination	Kristiansand: Self transfer to [Destination]
+standard-0136	Transfer	Kristiansand	Kristiansand	Destination	Kristiansand: Private transfer to [Destination]
+standard-0137	Flight	Kristiansand	Kristiansand	Destination;Time	Kristiansand: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0138	Cruise	Kristiansand	Kristiansand	Destination;Time	Kristiansand: Atlantic Coastal Cruise to [Destination] - Departure from Kristiansand: [Time] - Arrival at [Destination]: [Time] - Meeting point: Kristiansand Cruise Harbor - Includes: Tickets
+standard-0139	Train	Kristiansand	Kristiansand	Destination;Time	Kristiansand: Train Transfer to [Destination] - Time: [Time] - Meeting point: Kristiansand Train Station - Includes: Tickets
+standard-0140	Coach	Kristiansand	Kristiansand	Destination;Time	Kristiansand: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kristiansand Bus Station - Includes: Tickets
+standard-0141	Hotel	Lillehammer	Lillehammer	BedType;HotelName;MealPlan;RoomCategory;X	Lillehammer: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0142	Leisure	Lillehammer	Lillehammer		Lillehammer: Spend time at leisure
+standard-0143	Transfer	Lillehammer	Lillehammer	Destination	Lillehammer: Self transfer to [Destination]
+standard-0144	Transfer	Lillehammer	Lillehammer	Destination	Lillehammer: Private transfer to [Destination]
+standard-0145	Train	Lillehammer	Lillehammer	Destination;Time	Lillehammer: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Lillehammer Train Station - Includes: Tickets
+standard-0146	Coach	Lillehammer	Lillehammer	Destination;Time	Lillehammer: Coach transfer to [Destination] - Time: [Time] - Meeting point: Lillehammer Bus Station - Includes: Tickets
+standard-0147	Hotel	Røros	Røros	BedType;HotelName;MealPlan;RoomCategory;X	Røros: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0148	Leisure	Røros	Røros		Røros: Spend time at leisure
+standard-0149	Transfer	Røros	Røros	Destination	Røros: Self transfer to [Destination]
+standard-0150	Transfer	Røros	Røros	Destination	Røros: Private transfer to [Destination]
+standard-0151	Flight	Røros	Røros	Destination;Time	Røros: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0152	Train	Røros	Røros	Destination;Time	Røros: Train Transfer to [Destination] - Time: [Time] - Meeting point: Røros Train Station - Includes: Tickets
+standard-0153	Coach	Røros	Røros	Destination;Time	Røros: Coach transfer to [Destination] - Time: [Time] - Meeting point: Røros Bus Station - Includes: Tickets
+standard-0154	Hotel	Longyearbyen	Longyearbyen	BedType;HotelName;MealPlan;RoomCategory;X	Longyearbyen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0155	Leisure	Longyearbyen	Longyearbyen		Longyearbyen: Spend time at leisure
+standard-0156	Transfer	Longyearbyen	Longyearbyen	Destination	Longyearbyen: Self transfer to [Destination]
+standard-0157	Transfer	Longyearbyen	Longyearbyen	Destination	Longyearbyen: Private transfer to [Destination]
+standard-0158	Flight	Longyearbyen	Longyearbyen	Destination;Time	Longyearbyen: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0159	Hotel	Andenes	Andenes	BedType;HotelName;MealPlan;RoomCategory;X	Andenes: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0160	Leisure	Andenes	Andenes		Andenes: Spend time at leisure
+standard-0161	Transfer	Andenes	Andenes	Destination	Andenes: Self transfer to [Destination]
+standard-0162	Transfer	Andenes	Andenes	Destination	Andenes: Private transfer to [Destination]
+standard-0163	Flight	Andenes	Andenes	Destination;Time	Andenes: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0164	Cruise	Andenes	Andenes	Destination;Time	Andenes: Atlantic Coastal Cruise to [Destination] - Departure from Andenes: [Time] - Arrival at [Destination]: [Time] - Meeting point: Andenes Cruise Harbor - Includes: Tickets
+standard-0165	Coach	Andenes	Andenes	Destination;Time	Andenes: Coach transfer to [Destination] - Time: [Time] - Meeting point: Andenes Bus Station - Includes: Tickets
+standard-0166	Hotel	Åndalsnes	Åndalsnes	BedType;HotelName;MealPlan;RoomCategory;X	Åndalsnes: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0167	Leisure	Åndalsnes	Åndalsnes		Åndalsnes: Spend time at leisure
+standard-0168	Transfer	Åndalsnes	Åndalsnes	Destination	Åndalsnes: Self transfer to [Destination]
+standard-0169	Transfer	Åndalsnes	Åndalsnes	Destination	Åndalsnes: Private transfer to [Destination]
+standard-0170	Cruise	Åndalsnes	Åndalsnes	Destination;Time	Åndalsnes: Scenic Fjord Cruise to [Destination] - Departure from Åndalsnes: [Time] - Arrival at [Destination]: [Time] - Meeting point: Åndalsnes Cruise Harbor - Includes: Tickets
+standard-0171	Train	Åndalsnes	Åndalsnes	Destination;Time	Åndalsnes: Scenic Train Transfer to [Destination] - Time: [Time] - Meeting point: Åndalsnes Train Station - Includes: Tickets
+standard-0172	Coach	Åndalsnes	Åndalsnes	Destination;Time	Åndalsnes: Coach transfer to [Destination] - Time: [Time] - Meeting point: Åndalsnes Bus Station - Includes: Tickets
+standard-0173	Hotel	Odda / Hardanger	Odda / Hardanger	BedType;HotelName;MealPlan;RoomCategory;X	Odda / Hardanger: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0174	Leisure	Odda / Hardanger	Odda / Hardanger		Odda / Hardanger: Spend time at leisure
+standard-0175	Transfer	Odda / Hardanger	Odda / Hardanger	Destination	Odda / Hardanger: Self transfer to [Destination]
+standard-0176	Transfer	Odda / Hardanger	Odda / Hardanger	Destination	Odda / Hardanger: Private transfer to [Destination]
+standard-0177	Cruise	Odda / Hardanger	Odda / Hardanger	Destination;Time	Odda / Hardanger: Scenic Fjord Cruise to [Destination] - Departure from Odda / Hardanger: [Time] - Arrival at [Destination]: [Time] - Meeting point: Odda Cruise Harbor - Includes: Tickets
+standard-0178	Coach	Odda / Hardanger	Odda / Hardanger	Destination;Time	Odda / Hardanger: Coach transfer to [Destination] - Time: [Time] - Meeting point: Odda Bus Station - Includes: Tickets
+standard-0179	Hotel	Kristiansund	Kristiansund	BedType;HotelName;MealPlan;RoomCategory;X	Kristiansund: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0180	Leisure	Kristiansund	Kristiansund		Kristiansund: Spend time at leisure
+standard-0181	Transfer	Kristiansund	Kristiansund	Destination	Kristiansund: Self transfer to [Destination]
+standard-0182	Transfer	Kristiansund	Kristiansund	Destination	Kristiansund: Private transfer to [Destination]
+standard-0183	Flight	Kristiansund	Kristiansund	Destination;Time	Kristiansund: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0184	Cruise	Kristiansund	Kristiansund	Destination;Time	Kristiansund: Atlantic Coastal Cruise to [Destination] - Departure from Kristiansund: [Time] - Arrival at [Destination]: [Time] - Meeting point: Kristiansund Cruise Harbor - Includes: Tickets
+standard-0185	Coach	Kristiansund	Kristiansund	Destination;Time	Kristiansund: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kristiansund Bus Station - Includes: Tickets
+standard-0186	Hotel	Stockholm	Stockholm	BedType;HotelName;MealPlan;RoomCategory;X	Stockholm: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0187	Leisure	Stockholm	Stockholm		Stockholm: Spend time at leisure
+standard-0188	Transfer	Stockholm	Stockholm	Destination	Stockholm: Self transfer to [Destination]
+standard-0189	Transfer	Stockholm	Stockholm	Destination	Stockholm: Private transfer to [Destination]
+standard-0190	Flight	Stockholm	Stockholm	Destination;Time	Stockholm: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0191	Cruise	Stockholm	Stockholm	Destination;Time	Stockholm: Ferry Cruise to [Destination] - Departure from Stockholm: [Time] - Arrival at [Destination]: [Time] - Meeting point: Stockholm Cruise Harbor - Includes: Tickets
+standard-0192	Train	Stockholm	Stockholm	Destination;Time	Stockholm: Train Transfer to [Destination] - Time: [Time] - Meeting point: Stockholm Train Station - Includes: Tickets
+standard-0193	Coach	Stockholm	Stockholm	Destination;Time	Stockholm: Coach transfer to [Destination] - Time: [Time] - Meeting point: Stockholm Bus Station - Includes: Tickets
+standard-0194	Hotel	Gothenburg	Gothenburg	BedType;HotelName;MealPlan;RoomCategory;X	Gothenburg: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0195	Leisure	Gothenburg	Gothenburg		Gothenburg: Spend time at leisure
+standard-0196	Transfer	Gothenburg	Gothenburg	Destination	Gothenburg: Self transfer to [Destination]
+standard-0197	Transfer	Gothenburg	Gothenburg	Destination	Gothenburg: Private transfer to [Destination]
+standard-0198	Flight	Gothenburg	Gothenburg	Destination;Time	Gothenburg: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0199	Cruise	Gothenburg	Gothenburg	Destination;Time	Gothenburg: Ferry Cruise to [Destination] - Departure from Gothenburg: [Time] - Arrival at [Destination]: [Time] - Meeting point: Gothenburg Cruise Harbor - Includes: Tickets
+standard-0200	Train	Gothenburg	Gothenburg	Destination;Time	Gothenburg: Train Transfer to [Destination] - Time: [Time] - Meeting point: Gothenburg Train Station - Includes: Tickets
+standard-0201	Coach	Gothenburg	Gothenburg	Destination;Time	Gothenburg: Coach transfer to [Destination] - Time: [Time] - Meeting point: Gothenburg Bus Station - Includes: Tickets
+standard-0202	Hotel	Malmö	Malmö	BedType;HotelName;MealPlan;RoomCategory;X	Malmö: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0203	Leisure	Malmö	Malmö		Malmö: Spend time at leisure
+standard-0204	Transfer	Malmö	Malmö	Destination	Malmö: Self transfer to [Destination]
+standard-0205	Transfer	Malmö	Malmö	Destination	Malmö: Private transfer to [Destination]
+standard-0206	Flight	Malmö	Malmö	Destination;Time	Malmö: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0207	Train	Malmö	Malmö	Destination;Time	Malmö: Train Transfer to [Destination] - Time: [Time] - Meeting point: Malmö Train Station - Includes: Tickets
+standard-0208	Coach	Malmö	Malmö	Destination;Time	Malmö: Coach transfer to [Destination] - Time: [Time] - Meeting point: Malmö Bus Station - Includes: Tickets
+standard-0209	Hotel	Uppsala	Uppsala	BedType;HotelName;MealPlan;RoomCategory;X	Uppsala: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0210	Leisure	Uppsala	Uppsala		Uppsala: Spend time at leisure
+standard-0211	Transfer	Uppsala	Uppsala	Destination	Uppsala: Self transfer to [Destination]
+standard-0212	Transfer	Uppsala	Uppsala	Destination	Uppsala: Private transfer to [Destination]
+standard-0213	Train	Uppsala	Uppsala	Destination;Time	Uppsala: Train Transfer to [Destination] - Time: [Time] - Meeting point: Uppsala Train Station - Includes: Tickets
+standard-0214	Coach	Uppsala	Uppsala	Destination;Time	Uppsala: Coach transfer to [Destination] - Time: [Time] - Meeting point: Uppsala Bus Station - Includes: Tickets
+standard-0215	Hotel	Kiruna	Kiruna	BedType;HotelName;MealPlan;RoomCategory;X	Kiruna: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0216	Leisure	Kiruna	Kiruna		Kiruna: Spend time at leisure
+standard-0217	Transfer	Kiruna	Kiruna	Destination	Kiruna: Self transfer to [Destination]
+standard-0218	Transfer	Kiruna	Kiruna	Destination	Kiruna: Private transfer to [Destination]
+standard-0219	Flight	Kiruna	Kiruna	Destination;Time	Kiruna: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0220	Train	Kiruna	Kiruna	Destination;Time	Kiruna: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Kiruna Train Station - Includes: Tickets
+standard-0221	Coach	Kiruna	Kiruna	Destination;Time	Kiruna: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kiruna Bus Station - Includes: Tickets
+standard-0222	Hotel	Abisko	Abisko	BedType;HotelName;MealPlan;RoomCategory;X	Abisko: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0223	Leisure	Abisko	Abisko		Abisko: Spend time at leisure
+standard-0224	Transfer	Abisko	Abisko	Destination	Abisko: Self transfer to [Destination]
+standard-0225	Transfer	Abisko	Abisko	Destination	Abisko: Private transfer to [Destination]
+standard-0226	Train	Abisko	Abisko	Destination;Time	Abisko: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Abisko Train Station - Includes: Tickets
+standard-0227	Coach	Abisko	Abisko	Destination;Time	Abisko: Coach transfer to [Destination] - Time: [Time] - Meeting point: Abisko Bus Station - Includes: Tickets
+standard-0228	Hotel	Jukkasjärvi	Jukkasjärvi	BedType;HotelName;MealPlan;RoomCategory;X	Jukkasjärvi: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0229	Leisure	Jukkasjärvi	Jukkasjärvi		Jukkasjärvi: Spend time at leisure
+standard-0230	Transfer	Jukkasjärvi	Jukkasjärvi	Destination	Jukkasjärvi: Self transfer to [Destination]
+standard-0231	Transfer	Jukkasjärvi	Jukkasjärvi	Destination	Jukkasjärvi: Private transfer to [Destination]
+standard-0232	Coach	Jukkasjärvi	Jukkasjärvi	Destination;Time	Jukkasjärvi: Coach transfer to [Destination] - Time: [Time] - Meeting point: Jukkasjärvi Bus Station - Includes: Tickets
+standard-0233	Hotel	Luleå	Luleå	BedType;HotelName;MealPlan;RoomCategory;X	Luleå: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0234	Leisure	Luleå	Luleå		Luleå: Spend time at leisure
+standard-0235	Transfer	Luleå	Luleå	Destination	Luleå: Self transfer to [Destination]
+standard-0236	Transfer	Luleå	Luleå	Destination	Luleå: Private transfer to [Destination]
+standard-0237	Flight	Luleå	Luleå	Destination;Time	Luleå: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0238	Train	Luleå	Luleå	Destination;Time	Luleå: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Luleå Train Station - Includes: Tickets
+standard-0239	Coach	Luleå	Luleå	Destination;Time	Luleå: Coach transfer to [Destination] - Time: [Time] - Meeting point: Luleå Bus Station - Includes: Tickets
+standard-0240	Hotel	Östersund	Östersund	BedType;HotelName;MealPlan;RoomCategory;X	Östersund: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0241	Leisure	Östersund	Östersund		Östersund: Spend time at leisure
+standard-0242	Transfer	Östersund	Östersund	Destination	Östersund: Self transfer to [Destination]
+standard-0243	Transfer	Östersund	Östersund	Destination	Östersund: Private transfer to [Destination]
+standard-0244	Flight	Östersund	Östersund	Destination;Time	Östersund: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0245	Train	Östersund	Östersund	Destination;Time	Östersund: Train Transfer to [Destination] - Time: [Time] - Meeting point: Östersund Train Station - Includes: Tickets
+standard-0246	Coach	Östersund	Östersund	Destination;Time	Östersund: Coach transfer to [Destination] - Time: [Time] - Meeting point: Östersund Bus Station - Includes: Tickets
+standard-0247	Hotel	Åre	Åre	BedType;HotelName;MealPlan;RoomCategory;X	Åre: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0248	Leisure	Åre	Åre		Åre: Spend time at leisure
+standard-0249	Transfer	Åre	Åre	Destination	Åre: Self transfer to [Destination]
+standard-0250	Transfer	Åre	Åre	Destination	Åre: Private transfer to [Destination]
+standard-0251	Train	Åre	Åre	Destination;Time	Åre: Train Transfer to [Destination] - Time: [Time] - Meeting point: Åre Train Station - Includes: Tickets
+standard-0252	Coach	Åre	Åre	Destination;Time	Åre: Coach transfer to [Destination] - Time: [Time] - Meeting point: Åre Bus Station - Includes: Tickets
+standard-0253	Hotel	Visby / Gotland	Visby / Gotland	BedType;HotelName;MealPlan;RoomCategory;X	Visby / Gotland: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0254	Leisure	Visby / Gotland	Visby / Gotland		Visby / Gotland: Spend time at leisure
+standard-0255	Transfer	Visby / Gotland	Visby / Gotland	Destination	Visby / Gotland: Self transfer to [Destination]
+standard-0256	Transfer	Visby / Gotland	Visby / Gotland	Destination	Visby / Gotland: Private transfer to [Destination]
+standard-0257	Flight	Visby / Gotland	Visby / Gotland	Destination;Time	Visby / Gotland: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0258	Cruise	Visby / Gotland	Visby / Gotland	Destination;Time	Visby / Gotland: Ferry Cruise to [Destination] - Departure from Visby / Gotland: [Time] - Arrival at [Destination]: [Time] - Meeting point: Visby Cruise Harbor - Includes: Tickets
+standard-0259	Coach	Visby / Gotland	Visby / Gotland	Destination;Time	Visby / Gotland: Coach transfer to [Destination] - Time: [Time] - Meeting point: Visby Bus Station - Includes: Tickets
+standard-0260	Hotel	Kalmar	Kalmar	BedType;HotelName;MealPlan;RoomCategory;X	Kalmar: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0261	Leisure	Kalmar	Kalmar		Kalmar: Spend time at leisure
+standard-0262	Transfer	Kalmar	Kalmar	Destination	Kalmar: Self transfer to [Destination]
+standard-0263	Transfer	Kalmar	Kalmar	Destination	Kalmar: Private transfer to [Destination]
+standard-0264	Flight	Kalmar	Kalmar	Destination;Time	Kalmar: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0265	Train	Kalmar	Kalmar	Destination;Time	Kalmar: Train Transfer to [Destination] - Time: [Time] - Meeting point: Kalmar Train Station - Includes: Tickets
+standard-0266	Coach	Kalmar	Kalmar	Destination;Time	Kalmar: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kalmar Bus Station - Includes: Tickets
+standard-0267	Hotel	Växjö	Växjö	BedType;HotelName;MealPlan;RoomCategory;X	Växjö: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0268	Leisure	Växjö	Växjö		Växjö: Spend time at leisure
+standard-0269	Transfer	Växjö	Växjö	Destination	Växjö: Self transfer to [Destination]
+standard-0270	Transfer	Växjö	Växjö	Destination	Växjö: Private transfer to [Destination]
+standard-0271	Flight	Växjö	Växjö	Destination;Time	Växjö: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0272	Train	Växjö	Växjö	Destination;Time	Växjö: Train Transfer to [Destination] - Time: [Time] - Meeting point: Växjö Train Station - Includes: Tickets
+standard-0273	Coach	Växjö	Växjö	Destination;Time	Växjö: Coach transfer to [Destination] - Time: [Time] - Meeting point: Växjö Bus Station - Includes: Tickets
+standard-0274	Hotel	Karlstad	Karlstad	BedType;HotelName;MealPlan;RoomCategory;X	Karlstad: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0275	Leisure	Karlstad	Karlstad		Karlstad: Spend time at leisure
+standard-0276	Transfer	Karlstad	Karlstad	Destination	Karlstad: Self transfer to [Destination]
+standard-0277	Transfer	Karlstad	Karlstad	Destination	Karlstad: Private transfer to [Destination]
+standard-0278	Flight	Karlstad	Karlstad	Destination;Time	Karlstad: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0279	Train	Karlstad	Karlstad	Destination;Time	Karlstad: Train Transfer to [Destination] - Time: [Time] - Meeting point: Karlstad Train Station - Includes: Tickets
+standard-0280	Coach	Karlstad	Karlstad	Destination;Time	Karlstad: Coach transfer to [Destination] - Time: [Time] - Meeting point: Karlstad Bus Station - Includes: Tickets
+standard-0281	Hotel	Helsingborg	Helsingborg	BedType;HotelName;MealPlan;RoomCategory;X	Helsingborg: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0282	Leisure	Helsingborg	Helsingborg		Helsingborg: Spend time at leisure
+standard-0283	Transfer	Helsingborg	Helsingborg	Destination	Helsingborg: Self transfer to [Destination]
+standard-0284	Transfer	Helsingborg	Helsingborg	Destination	Helsingborg: Private transfer to [Destination]
+standard-0285	Cruise	Helsingborg	Helsingborg	Destination;Time	Helsingborg: Ferry Cruise to [Destination] - Departure from Helsingborg: [Time] - Arrival at [Destination]: [Time] - Meeting point: Helsingborg Cruise Harbor - Includes: Tickets
+standard-0286	Train	Helsingborg	Helsingborg	Destination;Time	Helsingborg: Train Transfer to [Destination] - Time: [Time] - Meeting point: Helsingborg Train Station - Includes: Tickets
+standard-0287	Coach	Helsingborg	Helsingborg	Destination;Time	Helsingborg: Coach transfer to [Destination] - Time: [Time] - Meeting point: Helsingborg Bus Station - Includes: Tickets
+standard-0288	Hotel	Ystad	Ystad	BedType;HotelName;MealPlan;RoomCategory;X	Ystad: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0289	Leisure	Ystad	Ystad		Ystad: Spend time at leisure
+standard-0290	Transfer	Ystad	Ystad	Destination	Ystad: Self transfer to [Destination]
+standard-0291	Transfer	Ystad	Ystad	Destination	Ystad: Private transfer to [Destination]
+standard-0292	Cruise	Ystad	Ystad	Destination;Time	Ystad: Ferry Cruise to [Destination] - Departure from Ystad: [Time] - Arrival at [Destination]: [Time] - Meeting point: Ystad Cruise Harbor - Includes: Tickets
+standard-0293	Train	Ystad	Ystad	Destination;Time	Ystad: Train Transfer to [Destination] - Time: [Time] - Meeting point: Ystad Train Station - Includes: Tickets
+standard-0294	Coach	Ystad	Ystad	Destination;Time	Ystad: Coach transfer to [Destination] - Time: [Time] - Meeting point: Ystad Bus Station - Includes: Tickets
+standard-0295	Hotel	Umeå	Umeå	BedType;HotelName;MealPlan;RoomCategory;X	Umeå: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0296	Leisure	Umeå	Umeå		Umeå: Spend time at leisure
+standard-0297	Transfer	Umeå	Umeå	Destination	Umeå: Self transfer to [Destination]
+standard-0298	Transfer	Umeå	Umeå	Destination	Umeå: Private transfer to [Destination]
+standard-0299	Flight	Umeå	Umeå	Destination;Time	Umeå: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0300	Cruise	Umeå	Umeå	Destination;Time	Umeå: Ferry Cruise to [Destination] - Departure from Umeå: [Time] - Arrival at [Destination]: [Time] - Meeting point: Umeå Cruise Harbor - Includes: Tickets
+standard-0301	Train	Umeå	Umeå	Destination;Time	Umeå: Train Transfer to [Destination] - Time: [Time] - Meeting point: Umeå Train Station - Includes: Tickets
+standard-0302	Coach	Umeå	Umeå	Destination;Time	Umeå: Coach transfer to [Destination] - Time: [Time] - Meeting point: Umeå Bus Station - Includes: Tickets
+standard-0303	Hotel	Sundsvall	Sundsvall	BedType;HotelName;MealPlan;RoomCategory;X	Sundsvall: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0304	Leisure	Sundsvall	Sundsvall		Sundsvall: Spend time at leisure
+standard-0305	Transfer	Sundsvall	Sundsvall	Destination	Sundsvall: Self transfer to [Destination]
+standard-0306	Transfer	Sundsvall	Sundsvall	Destination	Sundsvall: Private transfer to [Destination]
+standard-0307	Flight	Sundsvall	Sundsvall	Destination;Time	Sundsvall: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0308	Train	Sundsvall	Sundsvall	Destination;Time	Sundsvall: Train Transfer to [Destination] - Time: [Time] - Meeting point: Sundsvall Train Station - Includes: Tickets
+standard-0309	Coach	Sundsvall	Sundsvall	Destination;Time	Sundsvall: Coach transfer to [Destination] - Time: [Time] - Meeting point: Sundsvall Bus Station - Includes: Tickets
+standard-0310	Hotel	Norrköping	Norrköping	BedType;HotelName;MealPlan;RoomCategory;X	Norrköping: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0311	Leisure	Norrköping	Norrköping		Norrköping: Spend time at leisure
+standard-0312	Transfer	Norrköping	Norrköping	Destination	Norrköping: Self transfer to [Destination]
+standard-0313	Transfer	Norrköping	Norrköping	Destination	Norrköping: Private transfer to [Destination]
+standard-0314	Train	Norrköping	Norrköping	Destination;Time	Norrköping: Train Transfer to [Destination] - Time: [Time] - Meeting point: Norrköping Train Station - Includes: Tickets
+standard-0315	Coach	Norrköping	Norrköping	Destination;Time	Norrköping: Coach transfer to [Destination] - Time: [Time] - Meeting point: Norrköping Bus Station - Includes: Tickets
+standard-0316	Hotel	Linköping	Linköping	BedType;HotelName;MealPlan;RoomCategory;X	Linköping: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0317	Leisure	Linköping	Linköping		Linköping: Spend time at leisure
+standard-0318	Transfer	Linköping	Linköping	Destination	Linköping: Self transfer to [Destination]
+standard-0319	Transfer	Linköping	Linköping	Destination	Linköping: Private transfer to [Destination]
+standard-0320	Flight	Linköping	Linköping	Destination;Time	Linköping: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0321	Train	Linköping	Linköping	Destination;Time	Linköping: Train Transfer to [Destination] - Time: [Time] - Meeting point: Linköping Train Station - Includes: Tickets
+standard-0322	Coach	Linköping	Linköping	Destination;Time	Linköping: Coach transfer to [Destination] - Time: [Time] - Meeting point: Linköping Bus Station - Includes: Tickets
+standard-0323	Hotel	Mora / Dalarna	Mora / Dalarna	BedType;HotelName;MealPlan;RoomCategory;X	Mora / Dalarna: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0324	Leisure	Mora / Dalarna	Mora / Dalarna		Mora / Dalarna: Spend time at leisure
+standard-0325	Transfer	Mora / Dalarna	Mora / Dalarna	Destination	Mora / Dalarna: Self transfer to [Destination]
+standard-0326	Transfer	Mora / Dalarna	Mora / Dalarna	Destination	Mora / Dalarna: Private transfer to [Destination]
+standard-0327	Train	Mora / Dalarna	Mora / Dalarna	Destination;Time	Mora / Dalarna: Train Transfer to [Destination] - Time: [Time] - Meeting point: Mora Train Station - Includes: Tickets
+standard-0328	Coach	Mora / Dalarna	Mora / Dalarna	Destination;Time	Mora / Dalarna: Coach transfer to [Destination] - Time: [Time] - Meeting point: Mora Bus Station - Includes: Tickets
+standard-0329	Hotel	Copenhagen	Copenhagen	BedType;HotelName;MealPlan;RoomCategory;X	Copenhagen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0330	Leisure	Copenhagen	Copenhagen		Copenhagen: Spend time at leisure
+standard-0331	Transfer	Copenhagen	Copenhagen	Destination	Copenhagen: Self transfer to [Destination]
+standard-0332	Transfer	Copenhagen	Copenhagen	Destination	Copenhagen: Private transfer to [Destination]
+standard-0333	Flight	Copenhagen	Copenhagen	Destination;Time	Copenhagen: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0334	Cruise	Copenhagen	Copenhagen	Destination;Time	Copenhagen: Ferry Cruise to [Destination] - Departure from Copenhagen: [Time] - Arrival at [Destination]: [Time] - Meeting point: Copenhagen Cruise Harbor - Includes: Tickets
+standard-0335	Train	Copenhagen	Copenhagen	Destination;Time	Copenhagen: Train Transfer to [Destination] - Time: [Time] - Meeting point: Copenhagen Train Station - Includes: Tickets
+standard-0336	Coach	Copenhagen	Copenhagen	Destination;Time	Copenhagen: Coach transfer to [Destination] - Time: [Time] - Meeting point: Copenhagen Bus Station - Includes: Tickets
+standard-0337	Hotel	Aarhus	Aarhus	BedType;HotelName;MealPlan;RoomCategory;X	Aarhus: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0338	Leisure	Aarhus	Aarhus		Aarhus: Spend time at leisure
+standard-0339	Transfer	Aarhus	Aarhus	Destination	Aarhus: Self transfer to [Destination]
+standard-0340	Transfer	Aarhus	Aarhus	Destination	Aarhus: Private transfer to [Destination]
+standard-0341	Flight	Aarhus	Aarhus	Destination;Time	Aarhus: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0342	Cruise	Aarhus	Aarhus	Destination;Time	Aarhus: Ferry Cruise to [Destination] - Departure from Aarhus: [Time] - Arrival at [Destination]: [Time] - Meeting point: Aarhus Cruise Harbor - Includes: Tickets
+standard-0343	Train	Aarhus	Aarhus	Destination;Time	Aarhus: Train Transfer to [Destination] - Time: [Time] - Meeting point: Aarhus Train Station - Includes: Tickets
+standard-0344	Coach	Aarhus	Aarhus	Destination;Time	Aarhus: Coach transfer to [Destination] - Time: [Time] - Meeting point: Aarhus Bus Station - Includes: Tickets
+standard-0345	Hotel	Odense	Odense	BedType;HotelName;MealPlan;RoomCategory;X	Odense: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0346	Leisure	Odense	Odense		Odense: Spend time at leisure
+standard-0347	Transfer	Odense	Odense	Destination	Odense: Self transfer to [Destination]
+standard-0348	Transfer	Odense	Odense	Destination	Odense: Private transfer to [Destination]
+standard-0349	Train	Odense	Odense	Destination;Time	Odense: Train Transfer to [Destination] - Time: [Time] - Meeting point: Odense Train Station - Includes: Tickets
+standard-0350	Coach	Odense	Odense	Destination;Time	Odense: Coach transfer to [Destination] - Time: [Time] - Meeting point: Odense Bus Station - Includes: Tickets
+standard-0351	Hotel	Aalborg	Aalborg	BedType;HotelName;MealPlan;RoomCategory;X	Aalborg: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0352	Leisure	Aalborg	Aalborg		Aalborg: Spend time at leisure
+standard-0353	Transfer	Aalborg	Aalborg	Destination	Aalborg: Self transfer to [Destination]
+standard-0354	Transfer	Aalborg	Aalborg	Destination	Aalborg: Private transfer to [Destination]
+standard-0355	Flight	Aalborg	Aalborg	Destination;Time	Aalborg: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0356	Train	Aalborg	Aalborg	Destination;Time	Aalborg: Train Transfer to [Destination] - Time: [Time] - Meeting point: Aalborg Train Station - Includes: Tickets
+standard-0357	Coach	Aalborg	Aalborg	Destination;Time	Aalborg: Coach transfer to [Destination] - Time: [Time] - Meeting point: Aalborg Bus Station - Includes: Tickets
+standard-0358	Hotel	Billund	Billund	BedType;HotelName;MealPlan;RoomCategory;X	Billund: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0359	Leisure	Billund	Billund		Billund: Spend time at leisure
+standard-0360	Transfer	Billund	Billund	Destination	Billund: Self transfer to [Destination]
+standard-0361	Transfer	Billund	Billund	Destination	Billund: Private transfer to [Destination]
+standard-0362	Flight	Billund	Billund	Destination;Time	Billund: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0363	Coach	Billund	Billund	Destination;Time	Billund: Coach transfer to [Destination] - Time: [Time] - Meeting point: Billund Bus Station - Includes: Tickets
+standard-0364	Hotel	Esbjerg	Esbjerg	BedType;HotelName;MealPlan;RoomCategory;X	Esbjerg: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0365	Leisure	Esbjerg	Esbjerg		Esbjerg: Spend time at leisure
+standard-0366	Transfer	Esbjerg	Esbjerg	Destination	Esbjerg: Self transfer to [Destination]
+standard-0367	Transfer	Esbjerg	Esbjerg	Destination	Esbjerg: Private transfer to [Destination]
+standard-0368	Cruise	Esbjerg	Esbjerg	Destination;Time	Esbjerg: Ferry Cruise to [Destination] - Departure from Esbjerg: [Time] - Arrival at [Destination]: [Time] - Meeting point: Esbjerg Cruise Harbor - Includes: Tickets
+standard-0369	Train	Esbjerg	Esbjerg	Destination;Time	Esbjerg: Train Transfer to [Destination] - Time: [Time] - Meeting point: Esbjerg Train Station - Includes: Tickets
+standard-0370	Coach	Esbjerg	Esbjerg	Destination;Time	Esbjerg: Coach transfer to [Destination] - Time: [Time] - Meeting point: Esbjerg Bus Station - Includes: Tickets
+standard-0371	Hotel	Ribe	Ribe	BedType;HotelName;MealPlan;RoomCategory;X	Ribe: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0372	Leisure	Ribe	Ribe		Ribe: Spend time at leisure
+standard-0373	Transfer	Ribe	Ribe	Destination	Ribe: Self transfer to [Destination]
+standard-0374	Transfer	Ribe	Ribe	Destination	Ribe: Private transfer to [Destination]
+standard-0375	Train	Ribe	Ribe	Destination;Time	Ribe: Train Transfer to [Destination] - Time: [Time] - Meeting point: Ribe Train Station - Includes: Tickets
+standard-0376	Coach	Ribe	Ribe	Destination;Time	Ribe: Coach transfer to [Destination] - Time: [Time] - Meeting point: Ribe Bus Station - Includes: Tickets
+standard-0377	Hotel	Skagen	Skagen	BedType;HotelName;MealPlan;RoomCategory;X	Skagen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0378	Leisure	Skagen	Skagen		Skagen: Spend time at leisure
+standard-0379	Transfer	Skagen	Skagen	Destination	Skagen: Self transfer to [Destination]
+standard-0380	Transfer	Skagen	Skagen	Destination	Skagen: Private transfer to [Destination]
+standard-0381	Train	Skagen	Skagen	Destination;Time	Skagen: Train Transfer to [Destination] - Time: [Time] - Meeting point: Skagen Train Station - Includes: Tickets
+standard-0382	Coach	Skagen	Skagen	Destination;Time	Skagen: Coach transfer to [Destination] - Time: [Time] - Meeting point: Skagen Bus Station - Includes: Tickets
+standard-0383	Hotel	Roskilde	Roskilde	BedType;HotelName;MealPlan;RoomCategory;X	Roskilde: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0384	Leisure	Roskilde	Roskilde		Roskilde: Spend time at leisure
+standard-0385	Transfer	Roskilde	Roskilde	Destination	Roskilde: Self transfer to [Destination]
+standard-0386	Transfer	Roskilde	Roskilde	Destination	Roskilde: Private transfer to [Destination]
+standard-0387	Train	Roskilde	Roskilde	Destination;Time	Roskilde: Train Transfer to [Destination] - Time: [Time] - Meeting point: Roskilde Train Station - Includes: Tickets
+standard-0388	Coach	Roskilde	Roskilde	Destination;Time	Roskilde: Coach transfer to [Destination] - Time: [Time] - Meeting point: Roskilde Bus Station - Includes: Tickets
+standard-0389	Hotel	Bornholm / Rønne	Bornholm / Rønne	BedType;HotelName;MealPlan;RoomCategory;X	Bornholm / Rønne: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0390	Leisure	Bornholm / Rønne	Bornholm / Rønne		Bornholm / Rønne: Spend time at leisure
+standard-0391	Transfer	Bornholm / Rønne	Bornholm / Rønne	Destination	Bornholm / Rønne: Self transfer to [Destination]
+standard-0392	Transfer	Bornholm / Rønne	Bornholm / Rønne	Destination	Bornholm / Rønne: Private transfer to [Destination]
+standard-0393	Flight	Bornholm / Rønne	Bornholm / Rønne	Destination;Time	Bornholm / Rønne: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0394	Cruise	Bornholm / Rønne	Bornholm / Rønne	Destination;Time	Bornholm / Rønne: Ferry Cruise to [Destination] - Departure from Bornholm / Rønne: [Time] - Arrival at [Destination]: [Time] - Meeting point: Rønne Cruise Harbor - Includes: Tickets
+standard-0395	Coach	Bornholm / Rønne	Bornholm / Rønne	Destination;Time	Bornholm / Rønne: Coach transfer to [Destination] - Time: [Time] - Meeting point: Rønne Bus Station - Includes: Tickets
+standard-0396	Hotel	Helsingør	Helsingør	BedType;HotelName;MealPlan;RoomCategory;X	Helsingør: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0397	Leisure	Helsingør	Helsingør		Helsingør: Spend time at leisure
+standard-0398	Transfer	Helsingør	Helsingør	Destination	Helsingør: Self transfer to [Destination]
+standard-0399	Transfer	Helsingør	Helsingør	Destination	Helsingør: Private transfer to [Destination]
+standard-0400	Cruise	Helsingør	Helsingør	Destination;Time	Helsingør: Ferry Cruise to [Destination] - Departure from Helsingør: [Time] - Arrival at [Destination]: [Time] - Meeting point: Helsingør Cruise Harbor - Includes: Tickets
+standard-0401	Train	Helsingør	Helsingør	Destination;Time	Helsingør: Train Transfer to [Destination] - Time: [Time] - Meeting point: Helsingør Train Station - Includes: Tickets
+standard-0402	Coach	Helsingør	Helsingør	Destination;Time	Helsingør: Coach transfer to [Destination] - Time: [Time] - Meeting point: Helsingør Bus Station - Includes: Tickets
+standard-0403	Hotel	Kolding	Kolding	BedType;HotelName;MealPlan;RoomCategory;X	Kolding: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0404	Leisure	Kolding	Kolding		Kolding: Spend time at leisure
+standard-0405	Transfer	Kolding	Kolding	Destination	Kolding: Self transfer to [Destination]
+standard-0406	Transfer	Kolding	Kolding	Destination	Kolding: Private transfer to [Destination]
+standard-0407	Train	Kolding	Kolding	Destination;Time	Kolding: Train Transfer to [Destination] - Time: [Time] - Meeting point: Kolding Train Station - Includes: Tickets
+standard-0408	Coach	Kolding	Kolding	Destination;Time	Kolding: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kolding Bus Station - Includes: Tickets
+standard-0409	Hotel	Fredericia	Fredericia	BedType;HotelName;MealPlan;RoomCategory;X	Fredericia: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0410	Leisure	Fredericia	Fredericia		Fredericia: Spend time at leisure
+standard-0411	Transfer	Fredericia	Fredericia	Destination	Fredericia: Self transfer to [Destination]
+standard-0412	Transfer	Fredericia	Fredericia	Destination	Fredericia: Private transfer to [Destination]
+standard-0413	Train	Fredericia	Fredericia	Destination;Time	Fredericia: Train Transfer to [Destination] - Time: [Time] - Meeting point: Fredericia Train Station - Includes: Tickets
+standard-0414	Coach	Fredericia	Fredericia	Destination;Time	Fredericia: Coach transfer to [Destination] - Time: [Time] - Meeting point: Fredericia Bus Station - Includes: Tickets
+standard-0415	Hotel	Svendborg	Svendborg	BedType;HotelName;MealPlan;RoomCategory;X	Svendborg: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0416	Leisure	Svendborg	Svendborg		Svendborg: Spend time at leisure
+standard-0417	Transfer	Svendborg	Svendborg	Destination	Svendborg: Self transfer to [Destination]
+standard-0418	Transfer	Svendborg	Svendborg	Destination	Svendborg: Private transfer to [Destination]
+standard-0419	Cruise	Svendborg	Svendborg	Destination;Time	Svendborg: Ferry Cruise to [Destination] - Departure from Svendborg: [Time] - Arrival at [Destination]: [Time] - Meeting point: Svendborg Cruise Harbor - Includes: Tickets
+standard-0420	Train	Svendborg	Svendborg	Destination;Time	Svendborg: Train Transfer to [Destination] - Time: [Time] - Meeting point: Svendborg Train Station - Includes: Tickets
+standard-0421	Coach	Svendborg	Svendborg	Destination;Time	Svendborg: Coach transfer to [Destination] - Time: [Time] - Meeting point: Svendborg Bus Station - Includes: Tickets
+standard-0422	Hotel	Helsinki	Helsinki	BedType;HotelName;MealPlan;RoomCategory;X	Helsinki: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0423	Leisure	Helsinki	Helsinki		Helsinki: Spend time at leisure
+standard-0424	Transfer	Helsinki	Helsinki	Destination	Helsinki: Self transfer to [Destination]
+standard-0425	Transfer	Helsinki	Helsinki	Destination	Helsinki: Private transfer to [Destination]
+standard-0426	Flight	Helsinki	Helsinki	Destination;Time	Helsinki: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0427	Cruise	Helsinki	Helsinki	Destination;Time	Helsinki: Ferry Cruise to [Destination] - Departure from Helsinki: [Time] - Arrival at [Destination]: [Time] - Meeting point: Helsinki Cruise Harbor - Includes: Tickets
+standard-0428	Train	Helsinki	Helsinki	Destination;Time	Helsinki: Train Transfer to [Destination] - Time: [Time] - Meeting point: Helsinki Train Station - Includes: Tickets
+standard-0429	Coach	Helsinki	Helsinki	Destination;Time	Helsinki: Coach transfer to [Destination] - Time: [Time] - Meeting point: Helsinki Bus Station - Includes: Tickets
+standard-0430	Hotel	Turku	Turku	BedType;HotelName;MealPlan;RoomCategory;X	Turku: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0431	Leisure	Turku	Turku		Turku: Spend time at leisure
+standard-0432	Transfer	Turku	Turku	Destination	Turku: Self transfer to [Destination]
+standard-0433	Transfer	Turku	Turku	Destination	Turku: Private transfer to [Destination]
+standard-0434	Flight	Turku	Turku	Destination;Time	Turku: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0435	Train	Turku	Turku	Destination;Time	Turku: Train Transfer to [Destination] - Time: [Time] - Meeting point: Turku Train Station - Includes: Tickets
+standard-0436	Coach	Turku	Turku	Destination;Time	Turku: Coach transfer to [Destination] - Time: [Time] - Meeting point: Turku Bus Station - Includes: Tickets
+standard-0437	Hotel	Tampere	Tampere	BedType;HotelName;MealPlan;RoomCategory;X	Tampere: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0438	Leisure	Tampere	Tampere		Tampere: Spend time at leisure
+standard-0439	Transfer	Tampere	Tampere	Destination	Tampere: Self transfer to [Destination]
+standard-0440	Transfer	Tampere	Tampere	Destination	Tampere: Private transfer to [Destination]
+standard-0441	Flight	Tampere	Tampere	Destination;Time	Tampere: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0442	Train	Tampere	Tampere	Destination;Time	Tampere: Train Transfer to [Destination] - Time: [Time] - Meeting point: Tampere Train Station - Includes: Tickets
+standard-0443	Coach	Tampere	Tampere	Destination;Time	Tampere: Coach transfer to [Destination] - Time: [Time] - Meeting point: Tampere Bus Station - Includes: Tickets
+standard-0444	Hotel	Porvoo	Porvoo	BedType;HotelName;MealPlan;RoomCategory;X	Porvoo: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0445	Leisure	Porvoo	Porvoo		Porvoo: Spend time at leisure
+standard-0446	Transfer	Porvoo	Porvoo	Destination	Porvoo: Self transfer to [Destination]
+standard-0447	Transfer	Porvoo	Porvoo	Destination	Porvoo: Private transfer to [Destination]
+standard-0448	Coach	Porvoo	Porvoo	Destination;Time	Porvoo: Coach transfer to [Destination] - Time: [Time] - Meeting point: Porvoo Bus Station - Includes: Tickets
+standard-0449	Hotel	Lahti	Lahti	BedType;HotelName;MealPlan;RoomCategory;X	Lahti: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0450	Leisure	Lahti	Lahti		Lahti: Spend time at leisure
+standard-0451	Transfer	Lahti	Lahti	Destination	Lahti: Self transfer to [Destination]
+standard-0452	Transfer	Lahti	Lahti	Destination	Lahti: Private transfer to [Destination]
+standard-0453	Train	Lahti	Lahti	Destination;Time	Lahti: Train Transfer to [Destination] - Time: [Time] - Meeting point: Lahti Train Station - Includes: Tickets
+standard-0454	Coach	Lahti	Lahti	Destination;Time	Lahti: Coach transfer to [Destination] - Time: [Time] - Meeting point: Lahti Bus Station - Includes: Tickets
+standard-0455	Hotel	Jyväskylä	Jyväskylä	BedType;HotelName;MealPlan;RoomCategory;X	Jyväskylä: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0456	Leisure	Jyväskylä	Jyväskylä		Jyväskylä: Spend time at leisure
+standard-0457	Transfer	Jyväskylä	Jyväskylä	Destination	Jyväskylä: Self transfer to [Destination]
+standard-0458	Transfer	Jyväskylä	Jyväskylä	Destination	Jyväskylä: Private transfer to [Destination]
+standard-0459	Flight	Jyväskylä	Jyväskylä	Destination;Time	Jyväskylä: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0460	Train	Jyväskylä	Jyväskylä	Destination;Time	Jyväskylä: Train Transfer to [Destination] - Time: [Time] - Meeting point: Jyväskylä Train Station - Includes: Tickets
+standard-0461	Coach	Jyväskylä	Jyväskylä	Destination;Time	Jyväskylä: Coach transfer to [Destination] - Time: [Time] - Meeting point: Jyväskylä Bus Station - Includes: Tickets
+standard-0462	Hotel	Kuopio	Kuopio	BedType;HotelName;MealPlan;RoomCategory;X	Kuopio: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0463	Leisure	Kuopio	Kuopio		Kuopio: Spend time at leisure
+standard-0464	Transfer	Kuopio	Kuopio	Destination	Kuopio: Self transfer to [Destination]
+standard-0465	Transfer	Kuopio	Kuopio	Destination	Kuopio: Private transfer to [Destination]
+standard-0466	Flight	Kuopio	Kuopio	Destination;Time	Kuopio: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0467	Train	Kuopio	Kuopio	Destination;Time	Kuopio: Train Transfer to [Destination] - Time: [Time] - Meeting point: Kuopio Train Station - Includes: Tickets
+standard-0468	Coach	Kuopio	Kuopio	Destination;Time	Kuopio: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kuopio Bus Station - Includes: Tickets
+standard-0469	Hotel	Oulu	Oulu	BedType;HotelName;MealPlan;RoomCategory;X	Oulu: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0470	Leisure	Oulu	Oulu		Oulu: Spend time at leisure
+standard-0471	Transfer	Oulu	Oulu	Destination	Oulu: Self transfer to [Destination]
+standard-0472	Transfer	Oulu	Oulu	Destination	Oulu: Private transfer to [Destination]
+standard-0473	Flight	Oulu	Oulu	Destination;Time	Oulu: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0474	Train	Oulu	Oulu	Destination;Time	Oulu: Train Transfer to [Destination] - Time: [Time] - Meeting point: Oulu Train Station - Includes: Tickets
+standard-0475	Coach	Oulu	Oulu	Destination;Time	Oulu: Coach transfer to [Destination] - Time: [Time] - Meeting point: Oulu Bus Station - Includes: Tickets
+standard-0476	Hotel	Rovaniemi	Rovaniemi	BedType;HotelName;MealPlan;RoomCategory;X	Rovaniemi: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0477	Leisure	Rovaniemi	Rovaniemi		Rovaniemi: Spend time at leisure
+standard-0478	Transfer	Rovaniemi	Rovaniemi	Destination	Rovaniemi: Self transfer to [Destination]
+standard-0479	Transfer	Rovaniemi	Rovaniemi	Destination	Rovaniemi: Private transfer to [Destination]
+standard-0480	Flight	Rovaniemi	Rovaniemi	Destination;Time	Rovaniemi: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0481	Train	Rovaniemi	Rovaniemi	Destination;Time	Rovaniemi: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Rovaniemi Train Station - Includes: Tickets
+standard-0482	Coach	Rovaniemi	Rovaniemi	Destination;Time	Rovaniemi: Coach transfer to [Destination] - Time: [Time] - Meeting point: Rovaniemi Bus Station - Includes: Tickets
+standard-0483	Hotel	Kemi	Kemi	BedType;HotelName;MealPlan;RoomCategory;X	Kemi: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0484	Leisure	Kemi	Kemi		Kemi: Spend time at leisure
+standard-0485	Transfer	Kemi	Kemi	Destination	Kemi: Self transfer to [Destination]
+standard-0486	Transfer	Kemi	Kemi	Destination	Kemi: Private transfer to [Destination]
+standard-0487	Flight	Kemi	Kemi	Destination;Time	Kemi: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0488	Train	Kemi	Kemi	Destination;Time	Kemi: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Kemi Train Station - Includes: Tickets
+standard-0489	Coach	Kemi	Kemi	Destination;Time	Kemi: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kemi Bus Station - Includes: Tickets
+standard-0490	Hotel	Levi	Levi	BedType;HotelName;MealPlan;RoomCategory;X	Levi: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0491	Leisure	Levi	Levi		Levi: Spend time at leisure
+standard-0492	Transfer	Levi	Levi	Destination	Levi: Self transfer to [Destination]
+standard-0493	Transfer	Levi	Levi	Destination	Levi: Private transfer to [Destination]
+standard-0494	Flight	Levi	Levi	Destination;Time	Levi: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0495	Coach	Levi	Levi	Destination;Time	Levi: Coach transfer to [Destination] - Time: [Time] - Meeting point: Levi Bus Station - Includes: Tickets
+standard-0496	Hotel	Ylläs	Ylläs	BedType;HotelName;MealPlan;RoomCategory;X	Ylläs: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0497	Leisure	Ylläs	Ylläs		Ylläs: Spend time at leisure
+standard-0498	Transfer	Ylläs	Ylläs	Destination	Ylläs: Self transfer to [Destination]
+standard-0499	Transfer	Ylläs	Ylläs	Destination	Ylläs: Private transfer to [Destination]
+standard-0500	Train	Ylläs	Ylläs	Destination;Time	Ylläs: Arctic Train Transfer to [Destination] - Time: [Time] - Meeting point: Kolari Train Station - Includes: Tickets
+standard-0501	Coach	Ylläs	Ylläs	Destination;Time	Ylläs: Coach transfer to [Destination] - Time: [Time] - Meeting point: Ylläs Bus Station - Includes: Tickets
+standard-0502	Hotel	Saariselkä	Saariselkä	BedType;HotelName;MealPlan;RoomCategory;X	Saariselkä: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0503	Leisure	Saariselkä	Saariselkä		Saariselkä: Spend time at leisure
+standard-0504	Transfer	Saariselkä	Saariselkä	Destination	Saariselkä: Self transfer to [Destination]
+standard-0505	Transfer	Saariselkä	Saariselkä	Destination	Saariselkä: Private transfer to [Destination]
+standard-0506	Flight	Saariselkä	Saariselkä	Destination;Time	Saariselkä: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0507	Coach	Saariselkä	Saariselkä	Destination;Time	Saariselkä: Coach transfer to [Destination] - Time: [Time] - Meeting point: Saariselkä Bus Station - Includes: Tickets
+standard-0508	Hotel	Ivalo	Ivalo	BedType;HotelName;MealPlan;RoomCategory;X	Ivalo: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0509	Leisure	Ivalo	Ivalo		Ivalo: Spend time at leisure
+standard-0510	Transfer	Ivalo	Ivalo	Destination	Ivalo: Self transfer to [Destination]
+standard-0511	Transfer	Ivalo	Ivalo	Destination	Ivalo: Private transfer to [Destination]
+standard-0512	Flight	Ivalo	Ivalo	Destination;Time	Ivalo: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0513	Coach	Ivalo	Ivalo	Destination;Time	Ivalo: Coach transfer to [Destination] - Time: [Time] - Meeting point: Ivalo Bus Station - Includes: Tickets
+standard-0514	Hotel	Inari	Inari	BedType;HotelName;MealPlan;RoomCategory;X	Inari: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0515	Leisure	Inari	Inari		Inari: Spend time at leisure
+standard-0516	Transfer	Inari	Inari	Destination	Inari: Self transfer to [Destination]
+standard-0517	Transfer	Inari	Inari	Destination	Inari: Private transfer to [Destination]
+standard-0518	Coach	Inari	Inari	Destination;Time	Inari: Coach transfer to [Destination] - Time: [Time] - Meeting point: Inari Bus Station - Includes: Tickets
+standard-0519	Hotel	Kakslauttanen	Kakslauttanen	BedType;HotelName;MealPlan;RoomCategory;X	Kakslauttanen: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0520	Leisure	Kakslauttanen	Kakslauttanen		Kakslauttanen: Spend time at leisure
+standard-0521	Transfer	Kakslauttanen	Kakslauttanen	Destination	Kakslauttanen: Self transfer to [Destination]
+standard-0522	Transfer	Kakslauttanen	Kakslauttanen	Destination	Kakslauttanen: Private transfer to [Destination]
+standard-0523	Coach	Kakslauttanen	Kakslauttanen	Destination;Time	Kakslauttanen: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kakslauttanen Bus Station - Includes: Tickets
+standard-0524	Hotel	Mariehamn / Åland	Mariehamn / Åland	BedType;HotelName;MealPlan;RoomCategory;X	Mariehamn / Åland: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0525	Leisure	Mariehamn / Åland	Mariehamn / Åland		Mariehamn / Åland: Spend time at leisure
+standard-0526	Transfer	Mariehamn / Åland	Mariehamn / Åland	Destination	Mariehamn / Åland: Self transfer to [Destination]
+standard-0527	Transfer	Mariehamn / Åland	Mariehamn / Åland	Destination	Mariehamn / Åland: Private transfer to [Destination]
+standard-0528	Flight	Mariehamn / Åland	Mariehamn / Åland	Destination;Time	Mariehamn / Åland: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0529	Coach	Mariehamn / Åland	Mariehamn / Åland	Destination;Time	Mariehamn / Åland: Coach transfer to [Destination] - Time: [Time] - Meeting point: Mariehamn Bus Station - Includes: Tickets
+standard-0530	Hotel	Savonlinna	Savonlinna	BedType;HotelName;MealPlan;RoomCategory;X	Savonlinna: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0531	Leisure	Savonlinna	Savonlinna		Savonlinna: Spend time at leisure
+standard-0532	Transfer	Savonlinna	Savonlinna	Destination	Savonlinna: Self transfer to [Destination]
+standard-0533	Transfer	Savonlinna	Savonlinna	Destination	Savonlinna: Private transfer to [Destination]
+standard-0534	Flight	Savonlinna	Savonlinna	Destination;Time	Savonlinna: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0535	Train	Savonlinna	Savonlinna	Destination;Time	Savonlinna: Train Transfer to [Destination] - Time: [Time] - Meeting point: Savonlinna Train Station - Includes: Tickets
+standard-0536	Coach	Savonlinna	Savonlinna	Destination;Time	Savonlinna: Coach transfer to [Destination] - Time: [Time] - Meeting point: Savonlinna Bus Station - Includes: Tickets
+standard-0537	Hotel	Vaasa	Vaasa	BedType;HotelName;MealPlan;RoomCategory;X	Vaasa: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0538	Leisure	Vaasa	Vaasa		Vaasa: Spend time at leisure
+standard-0539	Transfer	Vaasa	Vaasa	Destination	Vaasa: Self transfer to [Destination]
+standard-0540	Transfer	Vaasa	Vaasa	Destination	Vaasa: Private transfer to [Destination]
+standard-0541	Flight	Vaasa	Vaasa	Destination;Time	Vaasa: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0542	Train	Vaasa	Vaasa	Destination;Time	Vaasa: Train Transfer to [Destination] - Time: [Time] - Meeting point: Vaasa Train Station - Includes: Tickets
+standard-0543	Coach	Vaasa	Vaasa	Destination;Time	Vaasa: Coach transfer to [Destination] - Time: [Time] - Meeting point: Vaasa Bus Station - Includes: Tickets
+standard-0544	Hotel	Naantali	Naantali	BedType;HotelName;MealPlan;RoomCategory;X	Naantali: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0545	Leisure	Naantali	Naantali		Naantali: Spend time at leisure
+standard-0546	Transfer	Naantali	Naantali	Destination	Naantali: Self transfer to [Destination]
+standard-0547	Transfer	Naantali	Naantali	Destination	Naantali: Private transfer to [Destination]
+standard-0548	Coach	Naantali	Naantali	Destination;Time	Naantali: Coach transfer to [Destination] - Time: [Time] - Meeting point: Naantali Bus Station - Includes: Tickets
+standard-0549	Hotel	Reykjavík	Reykjavík	BedType;HotelName;MealPlan;RoomCategory;X	Reykjavík: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0550	Leisure	Reykjavík	Reykjavík		Reykjavík: Spend time at leisure
+standard-0551	Transfer	Reykjavík	Reykjavík	Destination	Reykjavík: Self transfer to [Destination]
+standard-0552	Transfer	Reykjavík	Reykjavík	Destination	Reykjavík: Private transfer to [Destination]
+standard-0553	Flight	Reykjavík	Reykjavík	Destination;Time	Reykjavík: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0554	Coach	Reykjavík	Reykjavík	Destination;Time	Reykjavík: Coach transfer to [Destination] - Time: [Time] - Meeting point: Reykjavík Bus Station - Includes: Tickets
+standard-0555	Hotel	Keflavík	Keflavík	BedType;HotelName;MealPlan;RoomCategory;X	Keflavík: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0556	Leisure	Keflavík	Keflavík		Keflavík: Spend time at leisure
+standard-0557	Transfer	Keflavík	Keflavík	Destination	Keflavík: Self transfer to [Destination]
+standard-0558	Transfer	Keflavík	Keflavík	Destination	Keflavík: Private transfer to [Destination]
+standard-0559	Flight	Keflavík	Keflavík	Destination;Time	Keflavík: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0560	Coach	Keflavík	Keflavík	Destination;Time	Keflavík: Coach transfer to [Destination] - Time: [Time] - Meeting point: Keflavík Bus Station - Includes: Tickets
+standard-0561	Hotel	Grindavík / Blue Lagoon	Grindavík / Blue Lagoon	BedType;HotelName;MealPlan;RoomCategory;X	Grindavík / Blue Lagoon: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0562	Leisure	Grindavík / Blue Lagoon	Grindavík / Blue Lagoon		Grindavík / Blue Lagoon: Spend time at leisure
+standard-0563	Transfer	Grindavík / Blue Lagoon	Grindavík / Blue Lagoon	Destination	Grindavík / Blue Lagoon: Self transfer to [Destination]
+standard-0564	Transfer	Grindavík / Blue Lagoon	Grindavík / Blue Lagoon	Destination	Grindavík / Blue Lagoon: Private transfer to [Destination]
+standard-0565	Coach	Grindavík / Blue Lagoon	Grindavík / Blue Lagoon	Destination;Time	Grindavík / Blue Lagoon: Coach transfer to [Destination] - Time: [Time] - Meeting point: Grindavík Bus Station - Includes: Tickets
+standard-0566	Hotel	Golden Circle / Þingvellir	Golden Circle / Þingvellir	BedType;HotelName;MealPlan;RoomCategory;X	Golden Circle / Þingvellir: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0567	Leisure	Golden Circle / Þingvellir	Golden Circle / Þingvellir		Golden Circle / Þingvellir: Spend time at leisure
+standard-0568	Transfer	Golden Circle / Þingvellir	Golden Circle / Þingvellir	Destination	Golden Circle / Þingvellir: Self transfer to [Destination]
+standard-0569	Transfer	Golden Circle / Þingvellir	Golden Circle / Þingvellir	Destination	Golden Circle / Þingvellir: Private transfer to [Destination]
+standard-0570	Coach	Golden Circle / Þingvellir	Golden Circle / Þingvellir	Destination;Time	Golden Circle / Þingvellir: Coach transfer to [Destination] - Time: [Time] - Meeting point: Þingvellir Bus Station - Includes: Tickets
+standard-0571	Hotel	Selfoss	Selfoss	BedType;HotelName;MealPlan;RoomCategory;X	Selfoss: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0572	Leisure	Selfoss	Selfoss		Selfoss: Spend time at leisure
+standard-0573	Transfer	Selfoss	Selfoss	Destination	Selfoss: Self transfer to [Destination]
+standard-0574	Transfer	Selfoss	Selfoss	Destination	Selfoss: Private transfer to [Destination]
+standard-0575	Coach	Selfoss	Selfoss	Destination;Time	Selfoss: Coach transfer to [Destination] - Time: [Time] - Meeting point: Selfoss Bus Station - Includes: Tickets
+standard-0576	Hotel	Hella	Hella	BedType;HotelName;MealPlan;RoomCategory;X	Hella: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0577	Leisure	Hella	Hella		Hella: Spend time at leisure
+standard-0578	Transfer	Hella	Hella	Destination	Hella: Self transfer to [Destination]
+standard-0579	Transfer	Hella	Hella	Destination	Hella: Private transfer to [Destination]
+standard-0580	Coach	Hella	Hella	Destination;Time	Hella: Coach transfer to [Destination] - Time: [Time] - Meeting point: Hella Bus Station - Includes: Tickets
+standard-0581	Hotel	Hvolsvöllur	Hvolsvöllur	BedType;HotelName;MealPlan;RoomCategory;X	Hvolsvöllur: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0582	Leisure	Hvolsvöllur	Hvolsvöllur		Hvolsvöllur: Spend time at leisure
+standard-0583	Transfer	Hvolsvöllur	Hvolsvöllur	Destination	Hvolsvöllur: Self transfer to [Destination]
+standard-0584	Transfer	Hvolsvöllur	Hvolsvöllur	Destination	Hvolsvöllur: Private transfer to [Destination]
+standard-0585	Coach	Hvolsvöllur	Hvolsvöllur	Destination;Time	Hvolsvöllur: Coach transfer to [Destination] - Time: [Time] - Meeting point: Hvolsvöllur Bus Station - Includes: Tickets
+standard-0586	Hotel	Vík	Vík	BedType;HotelName;MealPlan;RoomCategory;X	Vík: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0587	Leisure	Vík	Vík		Vík: Spend time at leisure
+standard-0588	Transfer	Vík	Vík	Destination	Vík: Self transfer to [Destination]
+standard-0589	Transfer	Vík	Vík	Destination	Vík: Private transfer to [Destination]
+standard-0590	Coach	Vík	Vík	Destination;Time	Vík: Coach transfer to [Destination] - Time: [Time] - Meeting point: Vík Bus Station - Includes: Tickets
+standard-0591	Hotel	Kirkjubæjarklaustur	Kirkjubæjarklaustur	BedType;HotelName;MealPlan;RoomCategory;X	Kirkjubæjarklaustur: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0592	Leisure	Kirkjubæjarklaustur	Kirkjubæjarklaustur		Kirkjubæjarklaustur: Spend time at leisure
+standard-0593	Transfer	Kirkjubæjarklaustur	Kirkjubæjarklaustur	Destination	Kirkjubæjarklaustur: Self transfer to [Destination]
+standard-0594	Transfer	Kirkjubæjarklaustur	Kirkjubæjarklaustur	Destination	Kirkjubæjarklaustur: Private transfer to [Destination]
+standard-0595	Coach	Kirkjubæjarklaustur	Kirkjubæjarklaustur	Destination;Time	Kirkjubæjarklaustur: Coach transfer to [Destination] - Time: [Time] - Meeting point: Kirkjubæjarklaustur Bus Station - Includes: Tickets
+standard-0596	Hotel	Skaftafell	Skaftafell	BedType;HotelName;MealPlan;RoomCategory;X	Skaftafell: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0597	Leisure	Skaftafell	Skaftafell		Skaftafell: Spend time at leisure
+standard-0598	Transfer	Skaftafell	Skaftafell	Destination	Skaftafell: Self transfer to [Destination]
+standard-0599	Transfer	Skaftafell	Skaftafell	Destination	Skaftafell: Private transfer to [Destination]
+standard-0600	Coach	Skaftafell	Skaftafell	Destination;Time	Skaftafell: Coach transfer to [Destination] - Time: [Time] - Meeting point: Skaftafell Bus Station - Includes: Tickets
+standard-0601	Hotel	Jökulsárlón	Jökulsárlón	BedType;HotelName;MealPlan;RoomCategory;X	Jökulsárlón: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0602	Leisure	Jökulsárlón	Jökulsárlón		Jökulsárlón: Spend time at leisure
+standard-0603	Transfer	Jökulsárlón	Jökulsárlón	Destination	Jökulsárlón: Self transfer to [Destination]
+standard-0604	Transfer	Jökulsárlón	Jökulsárlón	Destination	Jökulsárlón: Private transfer to [Destination]
+standard-0605	Coach	Jökulsárlón	Jökulsárlón	Destination;Time	Jökulsárlón: Coach transfer to [Destination] - Time: [Time] - Meeting point: Jökulsárlón Bus Station - Includes: Tickets
+standard-0606	Hotel	Höfn	Höfn	BedType;HotelName;MealPlan;RoomCategory;X	Höfn: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0607	Leisure	Höfn	Höfn		Höfn: Spend time at leisure
+standard-0608	Transfer	Höfn	Höfn	Destination	Höfn: Self transfer to [Destination]
+standard-0609	Transfer	Höfn	Höfn	Destination	Höfn: Private transfer to [Destination]
+standard-0610	Flight	Höfn	Höfn	Destination;Time	Höfn: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0611	Coach	Höfn	Höfn	Destination;Time	Höfn: Coach transfer to [Destination] - Time: [Time] - Meeting point: Höfn Bus Station - Includes: Tickets
+standard-0612	Hotel	Egilsstaðir	Egilsstaðir	BedType;HotelName;MealPlan;RoomCategory;X	Egilsstaðir: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0613	Leisure	Egilsstaðir	Egilsstaðir		Egilsstaðir: Spend time at leisure
+standard-0614	Transfer	Egilsstaðir	Egilsstaðir	Destination	Egilsstaðir: Self transfer to [Destination]
+standard-0615	Transfer	Egilsstaðir	Egilsstaðir	Destination	Egilsstaðir: Private transfer to [Destination]
+standard-0616	Flight	Egilsstaðir	Egilsstaðir	Destination;Time	Egilsstaðir: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0617	Coach	Egilsstaðir	Egilsstaðir	Destination;Time	Egilsstaðir: Coach transfer to [Destination] - Time: [Time] - Meeting point: Egilsstaðir Bus Station - Includes: Tickets
+standard-0618	Hotel	Mývatn	Mývatn	BedType;HotelName;MealPlan;RoomCategory;X	Mývatn: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0619	Leisure	Mývatn	Mývatn		Mývatn: Spend time at leisure
+standard-0620	Transfer	Mývatn	Mývatn	Destination	Mývatn: Self transfer to [Destination]
+standard-0621	Transfer	Mývatn	Mývatn	Destination	Mývatn: Private transfer to [Destination]
+standard-0622	Coach	Mývatn	Mývatn	Destination;Time	Mývatn: Coach transfer to [Destination] - Time: [Time] - Meeting point: Mývatn Bus Station - Includes: Tickets
+standard-0623	Hotel	Akureyri	Akureyri	BedType;HotelName;MealPlan;RoomCategory;X	Akureyri: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0624	Leisure	Akureyri	Akureyri		Akureyri: Spend time at leisure
+standard-0625	Transfer	Akureyri	Akureyri	Destination	Akureyri: Self transfer to [Destination]
+standard-0626	Transfer	Akureyri	Akureyri	Destination	Akureyri: Private transfer to [Destination]
+standard-0627	Flight	Akureyri	Akureyri	Destination;Time	Akureyri: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)
+standard-0628	Coach	Akureyri	Akureyri	Destination;Time	Akureyri: Coach transfer to [Destination] - Time: [Time] - Meeting point: Akureyri Bus Station - Includes: Tickets
+standard-0629	Hotel	Húsavík	Húsavík	BedType;HotelName;MealPlan;RoomCategory;X	Húsavík: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0630	Leisure	Húsavík	Húsavík		Húsavík: Spend time at leisure
+standard-0631	Transfer	Húsavík	Húsavík	Destination	Húsavík: Self transfer to [Destination]
+standard-0632	Transfer	Húsavík	Húsavík	Destination	Húsavík: Private transfer to [Destination]
+standard-0633	Coach	Húsavík	Húsavík	Destination;Time	Húsavík: Coach transfer to [Destination] - Time: [Time] - Meeting point: Húsavík Bus Station - Includes: Tickets
+standard-0634	Hotel	Snæfellsnes	Snæfellsnes	BedType;HotelName;MealPlan;RoomCategory;X	Snæfellsnes: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0635	Leisure	Snæfellsnes	Snæfellsnes		Snæfellsnes: Spend time at leisure
+standard-0636	Transfer	Snæfellsnes	Snæfellsnes	Destination	Snæfellsnes: Self transfer to [Destination]
+standard-0637	Transfer	Snæfellsnes	Snæfellsnes	Destination	Snæfellsnes: Private transfer to [Destination]
+standard-0638	Coach	Snæfellsnes	Snæfellsnes	Destination;Time	Snæfellsnes: Coach transfer to [Destination] - Time: [Time] - Meeting point: Snæfellsnes Bus Station - Includes: Tickets
+standard-0639	Hotel	Ísafjörður	Ísafjörður	BedType;HotelName;MealPlan;RoomCategory;X	Ísafjörður: Check in to your accommodation for a [X] night stay - [HotelName] - [RoomCategory] - [BedType] - [MealPlan]
+standard-0640	Leisure	Ísafjörður	Ísafjörður		Ísafjörður: Spend time at leisure
+standard-0641	Transfer	Ísafjörður	Ísafjörður	Destination	Ísafjörður: Self transfer to [Destination]
+standard-0642	Transfer	Ísafjörður	Ísafjörður	Destination	Ísafjörður: Private transfer to [Destination]
+standard-0643	Flight	Ísafjörður	Ísafjörður	Destination;Time	Ísafjörður: Flight to [Destination] - Time: [Time] - Includes: Tickets, Luggage included (1 x 23 kg check in and 1 x 8 kg carry on per person)

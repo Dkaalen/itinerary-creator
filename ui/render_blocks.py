@@ -8,6 +8,7 @@ from ui.render_helpers import esc, render_list_items
 
 _KIND_CLASS = {
     "activity": "activity-block",
+    "group_tour_day": "activity-block group-tour-day-block",
     "accommodation": "accommodation-block",
     "leisure": "leisure-block",
     "cruise_leisure": "cruise-leisure-block",
@@ -53,9 +54,10 @@ def render_block_to_html(block: RenderBlock) -> dict:
         if meta.value:
             html_text += f'<div class="body-text"><span class="meta-label">{esc(meta.label)}:</span> {esc(meta.value)}</div>'
 
-    if block.kind == "activity":
+    if block.kind in {"activity", "group_tour_day"}:
         if block.includes:
-            html_text += '<div class="section-title small-section">Included With This Experience</div>'
+            included_label = "Included on This Tour Day" if block.kind == "group_tour_day" else "Included With This Experience"
+            html_text += f'<div class="section-title small-section">{esc(included_label)}</div>'
             html_text += render_list_items(block.includes)
         if block.description:
             html_text += '<div class="section-title small-section">Description</div>'

@@ -17,6 +17,12 @@ from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.date_resolver import get_day_date_text, get_trip_date_range_text
 from itinerary_generation.inclusions import create_whats_not_included
 from itinerary_generation.structured_builder import build_itinerary_document
+from itinerary_generation.group_tour_rendering import (
+    group_tour_day_city,
+    group_tour_day_from_rows,
+    group_tour_day_intro,
+    group_tour_day_title,
+)
 from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 from itinerary_generation.transport_safety import scan_client_output
 from itinerary_generation.summaries import (
@@ -238,7 +244,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     for day, rows in grouped_days.items():
         day_edits = (output_edits or {}).get("days", {}).get(day, {})
         typed_day = day_by_id(stored_editor_draft, day)
-        city = typed_day.get("city") or day_edits.get("city") or create_travel_route_label(rows) or get_primary_city(rows)
+        group_tour_segment = group_tour_day_from_rows(rows)
+        generated_group_tour_city = group_tour_day_city(rows) if group_tour_segment else ""
+        generated_group_tour_title = group_tour_day_title(rows) if group_tour_segment else ""
+        generated_group_tour_intro = group_tour_day_intro(rows) if group_tour_segment else ""
+        city = typed_day.get("city") or day_edits.get("city") or generated_group_tour_city or create_travel_route_label(rows) or get_primary_city(rows)
         if pictures_added:
             match = image_matches.get(day)
             image_path = match.get("path") if match else ""
@@ -285,9 +295,9 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "day": day,
             "label": typed_day.get("label") or day,
             "date": typed_day.get("date") or get_day_date_text(rows),
-            "title": typed_day.get("title") or day_edits.get("title") or create_day_title(rows),
+            "title": typed_day.get("title") or day_edits.get("title") or generated_group_tour_title or create_day_title(rows),
             "city": city,
-            "intro": typed_day.get("intro") or day_edits.get("intro") or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
+            "intro": typed_day.get("intro") or day_edits.get("intro") or generated_group_tour_intro or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
             "blocks_html": blocks_html,
             "blocks": typed_day.get("blocks") or [{"block_id": "main", "kind": "day_content", "content_html": blocks_html}],
             "image": image_obj,
