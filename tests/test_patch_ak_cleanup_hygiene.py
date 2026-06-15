@@ -39,7 +39,17 @@ def test_runtime_image_bank_bootstrap_allows_explicit_opt_in(monkeypatch):
 def test_gitignore_blocks_patch_artifact_noise():
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
-    for pattern in (".pytest_cache/", ".runtime_image_bank/", "__pycache__/", "*.py[cod]", "*.zip"):
+    for pattern in (
+        ".cache/",
+        ".pytest_cache/",
+        ".runtime_image_bank/",
+        "__pycache__/",
+        "*.py[cod]",
+        "*.zip",
+        "outputs/",
+        "persistent_drafts/",
+        "qa_reports/",
+    ):
         assert pattern in gitignore
 
 
@@ -49,10 +59,14 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
     keep.write_text("# source\n", encoding="utf-8")
 
     noise_files = [
+        tmp_path / ".cache" / "puppeteer" / "chrome",
         tmp_path / ".git" / "index",
         tmp_path / ".pytest_cache" / "README.md",
         tmp_path / "module" / "__pycache__" / "x.pyc",
         tmp_path / ".runtime_image_bank" / "repo" / "image.webp",
+        tmp_path / "persistent_drafts" / "draft.json",
+        tmp_path / "qa_reports" / "report.json",
+        tmp_path / "scratch.tmp",
         tmp_path / "patch.zip",
         tmp_path / ".chatgpt_write_test.txt",
     ]
@@ -60,9 +74,13 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("noise", encoding="utf-8")
 
+    assert is_artifact_noise_path(".cache/puppeteer/chrome")
     assert is_artifact_noise_path(".git/index")
     assert is_artifact_noise_path("module/__pycache__/x.pyc")
     assert is_artifact_noise_path(".runtime_image_bank/repo/image.webp")
+    assert is_artifact_noise_path("persistent_drafts/draft.json")
+    assert is_artifact_noise_path("qa_reports/report.json")
+    assert is_artifact_noise_path("scratch.tmp")
     assert not is_artifact_noise_path("itinerary_generation/transport.py")
 
     assert list(iter_clean_artifact_files(tmp_path)) == [keep]
@@ -77,10 +95,14 @@ def test_clean_zip_builder_excludes_local_artifacts(tmp_path):
     source.write_text("# source\n", encoding="utf-8")
 
     noise_files = [
+        root / ".cache" / "puppeteer" / "chrome",
         root / ".git" / "index",
         root / ".pytest_cache" / "README.md",
         root / "app_modules" / "__pycache__" / "main_view.cpython-312.pyc",
         root / "outputs" / "itinerary.pdf",
+        root / "persistent_drafts" / "draft.json",
+        root / "qa_reports" / "report.json",
+        root / "backup.bak",
         root / "old_patch.zip",
     ]
     for path in noise_files:

@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping
 
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.row_sequence import ordered_cities
 from itinerary_generation.client_text_decisions import is_weak_journey_arc_phrase
 from itinerary_generation.client_sanitizer import contains_price_or_currency
 
@@ -111,16 +112,6 @@ def _important_rows(rows: Iterable[dict]) -> list[dict]:
     return [row for row in rows if _is_important_row(row)]
 
 
-def _ordered_cities(rows: Iterable[dict]) -> tuple[str, ...]:
-    cities: list[str] = []
-    seen: set[str] = set()
-    for row in rows:
-        city = str(row.get("city", "")).strip()
-        if city and city not in seen:
-            seen.add(city)
-            cities.append(city)
-    return tuple(cities)
-
 
 def build_quality_snapshot(parsed_rows) -> ItineraryQualitySnapshot:
     """Return stable row/day/status metrics for the parsed itinerary."""
@@ -141,9 +132,9 @@ def build_quality_snapshot(parsed_rows) -> ItineraryQualitySnapshot:
         input_max_day=_max_day(important_rows),
         main_max_day=_max_day(main_rows),
         optional_max_day=_max_day(optional_rows),
-        input_cities=_ordered_cities(important_rows),
-        main_cities=_ordered_cities(main_rows),
-        optional_cities=_ordered_cities(optional_rows),
+        input_cities=ordered_cities(important_rows),
+        main_cities=ordered_cities(main_rows),
+        optional_cities=ordered_cities(optional_rows),
     )
 
 

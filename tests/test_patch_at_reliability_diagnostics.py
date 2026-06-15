@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import urllib.error
 from pathlib import Path
 
 import diagnostics
@@ -42,6 +43,10 @@ def test_patch_at_runtime_image_bank_setup_returns_failure_diagnostics(monkeypat
     monkeypatch.setenv("ITINERARY_IMAGE_BANK_BOOTSTRAP", "1")
     monkeypatch.setattr("images.image_bank.shutil.which", lambda _name: "/usr/bin/git")
     monkeypatch.setattr("images.image_bank.subprocess.run", fail_run)
+    monkeypatch.setattr(
+        "images.image_bank.urllib.request.urlretrieve",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(urllib.error.URLError("offline")),
+    )
 
     status = ensure_runtime_image_bank_status(root)
 

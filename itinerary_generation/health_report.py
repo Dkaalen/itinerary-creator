@@ -20,6 +20,7 @@ from itinerary_generation.quality_gate import (
     evaluate_itinerary_quality,
 )
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.row_sequence import ordered_cities
 from itinerary_generation.structured_builder import build_itinerary_document
 
 
@@ -74,16 +75,6 @@ def _max_day(rows: Iterable[dict]) -> int:
     day_numbers = [get_day_number(row.get("day", "")) for row in rows]
     return max(day_numbers) if day_numbers else 0
 
-
-def _ordered_cities(rows: Iterable[dict]) -> tuple[str, ...]:
-    cities: list[str] = []
-    seen: set[str] = set()
-    for row in rows:
-        city = str(row.get("city", "")).strip()
-        if city and city not in seen:
-            seen.add(city)
-            cities.append(city)
-    return tuple(cities)
 
 
 def _validation_warnings(report: ItineraryQualityGateReport) -> list[str]:
@@ -150,7 +141,7 @@ def build_itinerary_health_report(
         hotels_found=len(hotel_rows),
         activities_found=len(activity_rows),
         transfers_found=len(transfer_rows),
-        route=_ordered_cities(commercial_main_rows) or snapshot.main_cities or snapshot.input_cities,
+        route=ordered_cities(commercial_main_rows) or snapshot.main_cities or snapshot.input_cities,
         warnings=tuple(dict.fromkeys(warnings)),
     )
 

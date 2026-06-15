@@ -58,18 +58,14 @@ def test_picture_page_hands_off_to_real_export_stage():
     assert "_render_document_editor(pictures_active=True)" in export_source
 
 
-def test_removed_duplicate_visual_editor_app_shells_are_shims():
-    duplicate_main = Path("visual_editor_component/app_modules/main_view.py").read_text()
-    duplicate_export = Path("visual_editor_component/app_modules/export_step.py").read_text()
-    duplicate_workflow = Path("visual_editor_component/app_modules/workflow_shell.py").read_text()
+def test_removed_duplicate_visual_editor_app_shells_stay_deleted():
+    removed = (
+        Path("visual_editor_component/app_modules/main_view.py"),
+        Path("visual_editor_component/app_modules/export_step.py"),
+        Path("visual_editor_component/app_modules/workflow_shell.py"),
+    )
 
-    assert "compatibility shim" in duplicate_main.lower()
-    assert "compatibility shim" in duplicate_export.lower()
-    assert "compatibility shim" in duplicate_workflow.lower()
-    assert "st.sidebar" not in duplicate_main
-    assert "1 — Import" not in duplicate_main
-    assert "render_export_step" in duplicate_export
-    assert "workflow-step-grid" not in duplicate_workflow
+    assert all(not path.exists() for path in removed)
 
 
 def test_styles_do_not_hide_legacy_workflow_or_force_sidebar_theme():

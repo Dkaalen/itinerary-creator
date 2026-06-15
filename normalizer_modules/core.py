@@ -51,6 +51,7 @@ from normalizer_modules.context import (
 )
 from itinerary_generation.transport_safety import repair_messy_client_text
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_generation.nutshell_domain import attach_nutshell_journey, is_nutshell_row
 from itinerary_generation.group_tours import annotate_group_tour_optional_extras
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
@@ -228,6 +229,8 @@ def normalize_row(row: dict) -> dict:
         row["notable_sights"] = split_and_merge_inclusions(row.get("notable_sights", []))
 
     row = normalize_time_range_fields(row)
+    if is_nutshell_row(row):
+        row = attach_nutshell_journey(row)
     return row
 
 

@@ -11,10 +11,8 @@ from itinerary_generation.common import (
     destination_cities_for_row,
 )
 from itinerary_generation.cover_route import route_cities_with_return
-from itinerary_generation.transport import (
-    has_glass_igloo_or_arctic_resort,
-    has_norway_in_a_nutshell,
-)
+from itinerary_generation.transport import has_glass_igloo_or_arctic_resort
+from itinerary_generation.nutshell_domain import has_nutshell_journey
 from itinerary_generation.group_tours import is_group_tour_overview
 from itinerary_generation.client_text_decisions import (
     WEAK_JOURNEY_ARC_RE,
@@ -60,15 +58,20 @@ def create_trip_glance(parsed_rows, grouped_days):
         for row in transfer_rows
     )
 
-    # Self transfers are day logistics, not a trip-style feature.
-    has_self_transfer = False
-    has_group_tour = any(is_group_tour_overview(row) for row in parsed_rows)
+    group_tour_rows = [row for row in parsed_rows if is_group_tour_overview(row)]
 
     travel_style_parts = []
 
-    if has_group_tour:
+    if group_tour_rows:
         # Group-tour overviews are packaged guided products, not independent journeys.
-        if any("small" in f'{row.get("title", "")} {row.get("details", "")}'.lower() for row in parsed_rows if is_group_tour_overview(row)):
+        # Use every title source accepted by ``is_group_tour_overview`` so the
+        # classification cannot disagree with the detector.
+        group_tour_text = " ".join(
+            str(row.get(field, ""))
+            for row in group_tour_rows
+            for field in ("title", "original_title", "details")
+        ).lower()
+        if "small" in group_tour_text:
             travel_style = "Guided small-group tour"
         else:
             travel_style = "Guided group tour"
@@ -182,7 +185,7 @@ def describe_city_experience(rows):
     has_hotel_only = row_types == {"Hotel"}
     travel_only_with_hotel = row_types.issubset({"Hotel", "Transfer", "Flight", "Train", "Transport", "Cruise", "Ferry"}) and any(get_row_type(row) == "Hotel" for row in rows)
 
-    has_nutshell = (not primary_experience_rows and has_norway_in_a_nutshell(rows)) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
+    has_nutshell = (not primary_experience_rows and has_nutshell_journey(rows)) or _has(text, "flåm", "flam", "nærøyfjord", "naeroyfjord", "bergen railway", "flåm railway", "flam railway")
     has_self_drive = _has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "rental car")
     has_lagoon = _has(text, "blue lagoon", "sky lagoon", "wellness", "7-step", "ritual") or bool(re.search(r"\bspa\b", text))
     has_silfra = _has(text, "silfra", "snork")

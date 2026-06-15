@@ -129,7 +129,7 @@ def test_split_norway_in_a_nutshell_days_render_as_route_travel_not_generic_acti
     assert extract_norway_nutshell_route_points(day_5_source) == ["Gudvangen", "Voss", "Bergen"]
     assert "Guided experience in Bergen" not in day_5
     assert "Travel Arrangements" in day_5
-    assert "Scenic Rail & Fjord Journey from Gudvangen to Bergen" in day_5
+    assert "Norway in a Nutshell to Bergen" in day_5
     assert "11:40 AM Gudvangen - 12:40 PM Voss — Scenic Bus" in day_5
     assert "1:02 PM Voss - 2:15 PM Bergen — Train" in day_5
 

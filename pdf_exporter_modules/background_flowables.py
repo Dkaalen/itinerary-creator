@@ -1,5 +1,6 @@
 """Full-page background image and tint flowables."""
 
+import logging
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -7,6 +8,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Flowable
 
 from .image_layout import make_cover_cropped_image, normalize_crop_focus
+
+
+logger = logging.getLogger(__name__)
 
 
 class FullPageBackgroundImage(Flowable):
@@ -67,10 +71,21 @@ class FullPageTint(Flowable):
 
     def drawOn(self, canv, x, y, _sW=0):
         canv.saveState()
-        canv.setFillColor(self.color)
         try:
-            canv.setFillAlpha(self.alpha)
-        except Exception:
-            pass
-        canv.rect(0, 0, self.page_width, self.page_height, fill=1, stroke=0)
-        canv.restoreState()
+            canv.setFillColor(self.color)
+            set_fill_alpha = getattr(canv, "setFillAlpha", None)
+            if callable(set_fill_alpha):
+                try:
+                    set_fill_alpha(self.alpha)
+                except (AttributeError, NotImplementedError) as exc:
+                    logger.warning(
+                        "PDF canvas does not support fill transparency; rendering an opaque tint: %s",
+                        exc,
+                    )
+            else:
+                logger.warning(
+                    "PDF canvas does not expose fill transparency; rendering an opaque tint"
+                )
+            canv.rect(0, 0, self.page_width, self.page_height, fill=1, stroke=0)
+        finally:
+            canv.restoreState()

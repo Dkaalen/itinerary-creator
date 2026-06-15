@@ -12,3 +12,4 @@ outputs/
 qa_reports/
 
 persistent_drafts/
+.cache/

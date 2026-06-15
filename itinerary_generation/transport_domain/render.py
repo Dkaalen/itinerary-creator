@@ -14,7 +14,8 @@ from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title, get_transport_route_phrase
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, extract_norway_nutshell_supplier_includes, format_norway_nutshell_route
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
+from itinerary_generation.transport_norway import format_norway_nutshell_route
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,
@@ -116,13 +117,10 @@ def get_travel_sequence_line(row):
         return clean_client_title(row.get("title", ""), row)
 
     if row_type in TRANSPORT_TYPES:
-        product = row.get("activity_product") if isinstance(row.get("activity_product"), dict) else {}
+        nutshell_journey = resolve_nutshell_journey(row)
+        if nutshell_journey is not None:
+            return nutshell_journey.client_title
         title = polish_title(row.get("title", ""))
-        if product.get("canonical_family") == "norway_in_a_nutshell" and title.lower().startswith("norway in a nutshell"):
-            original_title = str(row.get("original_title") or "")
-            city_names = r"Bergen|Oslo|Flåm|Flam|Voss|Gudvangen|Myrdal"
-            if title.lower().startswith("norway in a nutshell to") and re.match(rf"^\s*(?:{city_names})\s+to\s+(?:{city_names})\s*:", original_title, flags=re.IGNORECASE):
-                return title
         phrase = get_transport_route_phrase(row)
         if phrase:
             return _destination_focused_coach_day_line(row, phrase)
@@ -189,47 +187,55 @@ def _self_transfer_lines(row):
     return split_self_transfer_notes(text)
 
 
-def _extract_timed_route_places(row):
-    text = str(row.get("details") or row.get("original_title") or row.get("title") or "")
-    return extract_norway_nutshell_route_points(text)
-
-
-def _line_with_time(label, row):
-    time = display_time(get_transport_time_text(row)) or _inline_arrival_time(row)
+def _line_with_time_value(label: str, time_value: str, row: dict) -> str:
+    time = display_time(time_value) or display_time(get_transport_time_text(row)) or _inline_arrival_time(row)
     return f"{label} — {time}" if time else label
 
 
+def _nutshell_leg_line(leg) -> str:
+    origin = clean_space(leg.origin)
+    destination = clean_space(leg.destination)
+    if not origin or not destination:
+        return ""
+    departure = display_time(leg.departure_time)
+    arrival = display_time(leg.arrival_time)
+    if departure and arrival:
+        line = f"{departure} {origin} - {arrival} {destination}"
+    elif departure:
+        line = f"{departure} {origin} - {destination}"
+    elif arrival:
+        line = f"{origin} - {arrival} {destination}"
+    else:
+        line = f"{origin} to {destination}"
+    return f"{line} — {leg.mode}" if leg.mode else line
+
+
 def _norway_nutshell_lines(row):
-    text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
-    if not _is_norway_in_a_nutshell_text(text):
+    journey = resolve_nutshell_journey(row)
+    if journey is None:
         return []
-    source_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
-    legs = extract_norway_nutshell_route_legs(source_text)
-    places = _extract_timed_route_places(row)
-    lines = []
-    base = get_travel_sequence_line(row)
-    if places and len(places) >= 3:
-        lines.append(_line_with_time(f"Scenic Rail & Fjord Journey from {places[0]} to {places[-1]}", row))
-        if legs:
-            for leg in legs:
-                mode = f" — {leg['mode']}" if leg.get("mode") else ""
-                lines.append(f"{leg['departure_time']} {leg['origin']} - {leg['arrival_time']} {leg['destination']}{mode}")
-        else:
-            route_text = format_norway_nutshell_route(places)
-            if route_text:
-                lines.append(f"Route highlights: {route_text}")
-    elif base:
-        lines.append(_line_with_time(base, row))
-    supplier_route_items = extract_norway_nutshell_supplier_includes(row)
+
+    lines = [_line_with_time_value(journey.client_title, journey.journey_time, row)]
+    timed_legs = [leg for leg in journey.legs if leg.departure_time or leg.arrival_time]
+    if timed_legs and not journey.warnings:
+        lines.extend(line for line in (_nutshell_leg_line(leg) for leg in timed_legs) if line)
+    elif len(journey.route_points) >= 3 and not journey.warnings:
+        route_text = format_norway_nutshell_route(list(journey.route_points))
+        if route_text:
+            lines.append(f"Route highlights: {route_text}")
+
+    supplier_route_items = polish_inclusion_items(list(journey.supplier_includes))
     if supplier_route_items:
-        first, *rest = polish_inclusion_items(supplier_route_items)
+        first, *rest = supplier_route_items
         lines.append(f"Included journey: {first}")
         lines.extend(rest)
     else:
-        includes = polish_inclusion_items([clean_include_item(item, row.get("title", "")) for item in normalize_list(row.get("includes", []))])
+        includes = polish_inclusion_items(
+            [clean_include_item(item, journey.client_title) for item in journey.included_services]
+        )
         if includes:
             lines.append("Included journey: " + ", ".join(includes))
-    return lines
+    return list(dict.fromkeys(line for line in lines if line))
 
 
 def _santa_claus_express_lines(row):

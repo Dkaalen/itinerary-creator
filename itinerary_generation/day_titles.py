@@ -8,7 +8,7 @@ from itinerary_generation.activity_titles import (
     normalize_client_day_title,
 )
 from itinerary_generation.common import clean_client_title, get_primary_city, get_row_type, has_hotel
-from itinerary_generation.title_routes import _looks_like_norway_in_a_nutshell, _route_label_from_activity_text
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import (
     get_primary_transport_title,
     has_airport_arrival_transfer,
@@ -63,9 +63,9 @@ def create_day_title(day_rows):
     # Route-aware scenic journeys should keep their destination in the day title,
     # even when the row has been reclassified from Activity to Transport.
     for row in day_rows:
-        full_row_text = f"{row.get('original_title', '')} {row.get('title', '')} {row.get('details', '')}"
-        if _looks_like_norway_in_a_nutshell(full_row_text):
-            route_title = normalize_client_day_title(_route_label_from_activity_text(full_row_text), row)
+        nutshell_journey = resolve_nutshell_journey(row)
+        if nutshell_journey is not None:
+            route_title = normalize_client_day_title(nutshell_journey.client_title, row)
             if route_title:
                 return route_title
 

@@ -61,7 +61,7 @@ Day 1	Transfer	02/01/2027						Oslo	"Norway in a NUtshell | Bergen to Oslo |08:3
 
     block = build_travel_arrangements_block(grouped["Day 1"])
     html = block["html"]
-    assert "Scenic Rail &amp; Fjord Journey from Bergen to Oslo" in html
+    assert "Norway in a Nutshell from Bergen to Oslo" in html
     assert "Route highlights: Bergen, Voss, Gudvangen, Flåm, Myrdal and Oslo" in html
     assert "→" not in html
     assert "22:30 to Oslo" not in html

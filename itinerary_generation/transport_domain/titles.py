@@ -9,7 +9,7 @@ from text_polish import polish_title
 from itinerary_generation.common import get_row_type
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_model import get_transport_source_text, has_local_transfer_marker
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, _norway_nutshell_route_label
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport_safety import base_destination_from_terminal
 from itinerary_generation.transport_domain.routes import (
     _clean_route_place,
@@ -25,11 +25,12 @@ def get_transport_route_phrase(row):
     row_type = get_row_type(row)
     text = get_transport_source_text(row)
     lower = text.lower()
+    nutshell_journey = resolve_nutshell_journey(row)
+    if nutshell_journey is not None:
+        return nutshell_journey.client_title
+
     origin, destination = get_route_points_for_transport(row)
     via = get_route_via_points(row, origin, destination)
-
-    if _is_norway_in_a_nutshell_text(text):
-        return _norway_nutshell_route_label(text, origin, destination)
 
     if row_type == "Transfer" and has_local_transfer_marker(lower):
         return polish_title(row.get("title", "") or "Transfer")
@@ -189,13 +190,15 @@ def get_primary_transport_title(day_rows):
                     )
                     if has_main_transport:
                         continue
-                if _is_norway_in_a_nutshell_text(source_text):
-                    route_phrase = get_transport_route_phrase(row)
-                    if route_phrase:
-                        # Day titles read cleaner with destination focus, while
-                        # inclusions/travel lines keep the full from/to route.
-                        dest_match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+)\s*$", route_phrase)
-                        return f"Norway in a Nutshell to {polish_title(dest_match.group(1))}" if dest_match else route_phrase
+                nutshell_journey = resolve_nutshell_journey(row)
+                if nutshell_journey is not None:
+                    # Day headings stay destination-focused, while the product
+                    # line and inclusions keep the canonical full route title.
+                    return (
+                        f"Norway in a Nutshell to {nutshell_journey.destination}"
+                        if nutshell_journey.destination
+                        else nutshell_journey.client_title
+                    )
                 route_phrase = get_transport_route_phrase(row)
                 if route_phrase:
                     return _destination_focused_transport_title(row, route_phrase)

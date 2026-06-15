@@ -126,7 +126,8 @@ def extract_norway_nutshell_supplier_includes(row_or_text) -> list[str]:
         has_route = re.search(r"\b[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+\b", clean, flags=re.IGNORECASE)
         has_mode = re.search(r"\b(?:train|rail|railway|fjord\s+cruise|cruise|coach|bus|transfer)\b", clean, flags=re.IGNORECASE)
         generic_catalogue = clean.lower() in {"bergen railway", "flåm railway", "flam railway", "fjord cruise", "scenic bus journey"}
-        if has_route and has_mode and not generic_catalogue and clean not in route_items:
+        product_title_fragment = bool(re.search(r"\bday\s+tour\b.*\b(?:incl|including)\b", clean, flags=re.IGNORECASE))
+        if has_route and has_mode and not generic_catalogue and not product_title_fragment and clean not in route_items:
             route_items.append(clean)
     return route_items
 
@@ -186,43 +187,16 @@ def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
 
 
 def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
-    source = str(text or "")
-    direct_origin, direct_destination = _direct_nutshell_pipe_route(source)
-    if direct_origin and direct_destination:
-        return f"Norway in a Nutshell from {direct_origin} to {direct_destination}"
+    """Compatibility wrapper around the canonical Nutshell domain title."""
 
-    explicit_title = explicit_norway_nutshell_title(source)
-    if explicit_title:
-        return explicit_title
+    from itinerary_generation.nutshell_domain import build_nutshell_journey
 
-    points = extract_norway_nutshell_route_points(source)
-    if len(points) >= 2:
-        if should_preserve_nutshell_origin_label(source, points[0], points[-1]):
-            return f"Norway in a Nutshell from {points[0]} to {points[-1]}"
-        return f"Norway in a Nutshell to {points[-1]}"
-
-    # Product titles may include supplier service words before the real route,
-    # e.g. "Nærøyfjord Cruise & Luggage Transfer Bergen to Oslo: Day Tour...".
-    # Prefer a clean main city pair over the generic from/to extractor, which
-    # can otherwise swallow the supplier prefix as part of the origin.
-    city_names = NUTSHELL_ROUTE_PLACES
-    main_route_match = re.search(
-        rf"(?:luggage\s+transfer\s+)?\b(?P<origin>{city_names})\s+to\s+(?P<destination>{city_names})\b",
-        source,
-        flags=re.IGNORECASE,
+    journey = build_nutshell_journey(
+        str(text or ""),
+        fallback_origin=fallback_origin,
+        fallback_destination=fallback_destination,
     )
-    if main_route_match:
-        origin = _clean_nutshell_place(main_route_match.group("origin"))
-        destination = _clean_nutshell_place(main_route_match.group("destination"))
-        if origin and destination and origin.lower() != destination.lower():
-            return f"Norway in a Nutshell from {origin} to {destination}"
-
-    origin, destination = fallback_origin, fallback_destination
-    if origin and destination and origin.lower() != destination.lower():
-        return f"Norway in a Nutshell from {origin} to {destination}"
-    if destination:
-        return f"Norway in a Nutshell to {destination}"
-    return "Norway in a Nutshell"
+    return journey.client_title if journey else "Norway in a Nutshell"
 
 
 def _normalise_nutshell_line_separators(text: str) -> str:

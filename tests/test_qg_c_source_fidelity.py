@@ -105,7 +105,7 @@ def test_norway_in_a_nutshell_timetable_legs_are_cleaned():
     assert "Myrdal 0 22:27 Oslo" not in day_11
     assert "5:40 PM Myrdal - 10:27 PM Oslo — Scenic Train" in day_11
     assert "Scenic Train Norway in a Nutshell" not in day_11
-    assert "Scenic Rail & Fjord Journey from Bergen to Oslo" in day_11
+    assert "Norway in a Nutshell from Bergen to Oslo" in day_11
 
 
 def test_icebreaker_preserves_timezone_specific_cruise_times():

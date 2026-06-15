@@ -34,6 +34,7 @@ from itinerary_generation.day_title_planner import (
     travel_sequence_title,
 )
 from itinerary_generation.titles import create_day_title
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
 from text_polish import polish_title
 
@@ -72,12 +73,13 @@ def plan_day(rows: list[dict]) -> DayPlan:
     if any(rt == "Arrival" for rt in row_types) or (has_hotel(rows) and not activity_rows and has_airport_arrival_transfer(rows)):
         return DayPlan("arrival_day", _arrival_title(city), "")
 
-    looks_nutshell = _has_text(rows, "norway in a nutshell") or (re.search(r"fl[åa]m\s+train|fl[åa]m\s+railway|nærøyfjord|naeroyfjord", lower, flags=re.I) and re.search(r"luggage transfer|fjord cruise|myrdal|gudvangen", lower, flags=re.I))
-    if looks_nutshell:
-        title = create_day_title(rows)
-        m = re.search(r"Norway in a Nutshell from .+ to ([A-Za-zÀ-ÿøØåÅäÄöÖ]+)$", title)
-        if m:
-            title = f"Norway in a Nutshell to {polish_title(m.group(1))}"
+    nutshell_journey = next((journey for row in rows if (journey := resolve_nutshell_journey(row)) is not None), None)
+    if nutshell_journey is not None:
+        title = (
+            f"Norway in a Nutshell to {nutshell_journey.destination}"
+            if nutshell_journey.destination
+            else nutshell_journey.client_title
+        )
         if title == "Norway in a Nutshell" and city:
             title = f"Norway in a Nutshell to {city}"
         return DayPlan("norway_in_a_nutshell_day", title, _intro_for_title(title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)

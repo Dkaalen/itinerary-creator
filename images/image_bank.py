@@ -1,5 +1,6 @@
 """Image-bank path and filename helpers."""
 
+from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 import html
 import os
@@ -13,6 +14,7 @@ import uuid
 import zipfile
 
 import diagnostics
+from PIL import Image, UnidentifiedImageError
 
 from images.remote_distribution import (
     DestinationRequest,
@@ -28,6 +30,41 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE_BANK_REPO_URL = "https://github.com/Dkaalen/itinerary-image-bank.git"
 DEFAULT_IMAGE_BANK_REPO_BRANCH = "main"
 RUNTIME_IMAGE_BANK_DIR = ".runtime_image_bank"
+SUPPORTED_IMAGE_EXTENSIONS = frozenset({".webp", ".jpg", ".jpeg", ".png", ".avif"})
+
+
+@dataclass(frozen=True, slots=True)
+class ImageBankBootstrapResult:
+    """Stable public status contract for runtime image-bank setup."""
+
+    ok: bool
+    code: str
+    message: str
+    path: str = ""
+    method: str = ""
+    source: str = ""
+    error: str = ""
+    fallback_used: bool = False
+    degraded: bool = False
+    cache_available: bool = False
+    git_attempted: bool = False
+    git_error: str = ""
+    zip_attempted: bool = False
+    zip_error: str = ""
+    distribution_attempted: bool = False
+    distribution_error: str = ""
+
+    def to_dict(self) -> dict:
+        payload = asdict(self)
+        payload.update({
+            "diagnostic_code": self.code,
+            "repo_url": image_bank_repo_url(),
+            "branch": image_bank_repo_branch(),
+            "zip_url": _repo_zip_url(),
+            "manifest_url": image_bank_manifest_url(),
+            "bootstrap_allowed": _runtime_bootstrap_allowed(),
+        })
+        return payload
 
 
 def clean_space(value):
@@ -113,9 +150,12 @@ def _runtime_bootstrap_allowed() -> bool:
     The full destination image bank is a separate repository and is required for
     good Add Pictures results.  Local/sibling checkouts remain preferred, but a
     missing full bank should not silently degrade to the tiny bundled Default
-    folder.  Runtime bootstrap is therefore on by default for normal app runs and
-    can be disabled with ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.  Tests stay offline
-    unless they explicitly opt in.
+    folder. Runtime bootstrap is therefore on by default and can be disabled
+    explicitly with ``ITINERARY_IMAGE_BANK_BOOTSTRAP=0``.
+
+    This function deliberately does not inspect test-runner environment variables.
+    Tests and deployments must control network behaviour through the documented
+    application setting, just like production.
     """
 
     value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_BOOTSTRAP", "")).lower()
@@ -123,8 +163,6 @@ def _runtime_bootstrap_allowed() -> bool:
         return False
     if value in {"1", "true", "yes", "on", "enabled"}:
         return True
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return False
     return True
 
 
@@ -144,31 +182,157 @@ def _runtime_bank_paths(root: Path) -> tuple[Path, Path]:
 
 
 def _valid_image_bank(path: Path) -> bool:
-    return path.exists() and path.is_dir() and any(path.rglob("*.webp"))
+    if not path.exists() or not path.is_dir():
+        return False
+    return any(candidate.is_file() and candidate.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS for candidate in path.rglob("*"))
 
 
-def _setup_status(ok: bool, code: str, message: str, *, path: Path | None = None, error: str = "", method: str = "") -> dict:
-    payload = {
-        "ok": bool(ok),
-        "code": code,
-        "message": message,
-        "path": str(path or ""),
-        "repo_url": image_bank_repo_url(),
-        "branch": image_bank_repo_branch(),
-        "zip_url": _repo_zip_url(),
-        "manifest_url": image_bank_manifest_url(),
-        "bootstrap_allowed": _runtime_bootstrap_allowed(),
-        "method": method,
-        "error": error,
-    }
+def _valid_persistent_cache(path: Path) -> bool:
+    """Require at least one structurally readable image before trusting a cache."""
+
+    if not _valid_image_bank(path):
+        return False
+    for candidate in path.rglob("*"):
+        if not candidate.is_file() or candidate.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+            continue
+        try:
+            with Image.open(candidate) as image:
+                image.verify()
+            return True
+        except (OSError, SyntaxError, UnidentifiedImageError):
+            continue
+    return False
+
+
+def _setup_status(
+    ok: bool,
+    code: str,
+    message: str,
+    *,
+    path: Path | None = None,
+    error: str = "",
+    method: str = "",
+    source: str = "",
+    fallback_used: bool = False,
+    degraded: bool = False,
+    cache_available: bool = False,
+    warn: bool = True,
+) -> dict:
+    method = clean_space(method)
+    error = clean_space(error)
+    payload = ImageBankBootstrapResult(
+        ok=bool(ok),
+        code=code,
+        message=message,
+        path=str(path or ""),
+        method=method,
+        source=clean_space(source) or method,
+        error=error,
+        fallback_used=bool(fallback_used),
+        degraded=bool(degraded),
+        cache_available=bool(cache_available or (path and _valid_image_bank(path))),
+        git_attempted=method == "git",
+        git_error=error if method == "git" else "",
+        zip_attempted=method == "zip",
+        zip_error=error if method == "zip" else "",
+        distribution_attempted=method == "destination_packs",
+        distribution_error=error if method == "destination_packs" else "",
+    ).to_dict()
     if not ok:
-        diagnostics.warn("image_bank_setup", message, error, source="images.image_bank")
+        if warn:
+            diagnostics.warn("image_bank_setup", message, error, source="images.image_bank")
     return payload
+
+
+def _stage_error(status: dict | None) -> str:
+    if not status:
+        return ""
+    error = clean_space(status.get("error", ""))
+    if error:
+        return error
+    errors = status.get("errors")
+    if isinstance(errors, (list, tuple)):
+        return "; ".join(clean_space(value) for value in errors if clean_space(value))
+    return clean_space(status.get("message", "")) if not status.get("ok") else ""
+
+
+def _merge_attempts(
+    status: dict,
+    *,
+    distribution_status: dict | None = None,
+    git_status: dict | None = None,
+    zip_status: dict | None = None,
+) -> dict:
+    """Attach deterministic attempt diagnostics to a final setup result."""
+
+    payload = dict(status)
+    payload["distribution_attempted"] = distribution_status is not None
+    payload["distribution_error"] = _stage_error(distribution_status)
+    payload["git_attempted"] = git_status is not None
+    payload["git_error"] = _stage_error(git_status)
+    payload["zip_attempted"] = zip_status is not None
+    payload["zip_error"] = _stage_error(zip_status)
+    attempted = sum(bool(item) for item in (distribution_status, git_status, zip_status))
+    payload["fallback_used"] = bool(payload.get("fallback_used") or attempted > 1)
+    if git_status is not None and zip_status is not None:
+        payload["fallback_from"] = git_status.get("code", "")
+    elif distribution_status is not None and (git_status is not None or zip_status is not None):
+        payload["fallback_from"] = distribution_status.get("code", "")
+    if distribution_status is not None and git_status is not None and zip_status is not None:
+        payload["distribution_fallback_from"] = distribution_status.get("code", "")
+    return payload
+
+
+def _cached_bank_for_requests(root: Path, requests: list[DestinationRequest]) -> Path | None:
+    """Return a valid persistent cache that covers all requested destinations."""
+
+    _runtime_repo, runtime_bank = _runtime_bank_paths(root)
+    candidates = [active_distribution_bank(root), runtime_bank]
+    for candidate in candidates:
+        if candidate is None or not _valid_persistent_cache(candidate):
+            continue
+        if not requests:
+            return candidate
+        index = get_image_bank_index([candidate])
+        _covered, missing = _destination_coverage(index, requests)
+        if not missing:
+            return candidate
+    return None
+
+
+def _normalise_stage_status(status: dict | None, method: str) -> dict:
+    """Apply the stable bootstrap fields to connector-specific status payloads."""
+
+    raw = dict(status or {})
+    path_text = clean_space(raw.get("path", ""))
+    base = _setup_status(
+        bool(raw.get("ok")),
+        clean_space(raw.get("code", "")) or f"{method}_unknown",
+        clean_space(raw.get("message", "")) or "Image-bank setup returned no status message.",
+        path=Path(path_text) if path_text else None,
+        error=_stage_error(raw),
+        method=clean_space(raw.get("method", "")) or method,
+        source=clean_space(raw.get("source", "")) or method,
+        cache_available=bool(raw.get("cache_available")),
+        degraded=bool(raw.get("degraded")),
+        fallback_used=bool(raw.get("fallback_used")),
+        warn=False,
+    )
+    base.update(raw)
+    base["diagnostic_code"] = clean_space(base.get("code", ""))
+    base["bootstrap_allowed"] = _runtime_bootstrap_allowed()
+    return base
 
 
 def _fetch_image_bank_with_git(runtime_repo: Path, runtime_bank: Path) -> dict:
     if shutil.which("git") is None:
-        return _setup_status(False, "git_missing", "git is not available; ZIP download fallback will be attempted.", method="git")
+        return _setup_status(
+            False,
+            "git_missing",
+            "git is not available; ZIP download fallback will be attempted.",
+            method="git",
+            warn=False,
+        )
 
     command = ["git", "clone", "--depth", "1", "--branch", image_bank_repo_branch(), image_bank_repo_url(), str(runtime_repo)]
     if runtime_repo.exists() and (runtime_repo / ".git").exists():
@@ -190,6 +354,7 @@ def _fetch_image_bank_with_git(runtime_repo: Path, runtime_bank: Path) -> dict:
             "Git could not fetch the image bank; ZIP download fallback will be attempted.",
             error=f"{type(error).__name__}: {error}",
             method="git",
+            warn=False,
         )
 
     if result.returncode != 0:
@@ -200,16 +365,25 @@ def _fetch_image_bank_with_git(runtime_repo: Path, runtime_bank: Path) -> dict:
             "Git could not fetch the image bank; ZIP download fallback will be attempted.",
             error=error_text,
             method="git",
+            warn=False,
         )
 
     if _valid_image_bank(runtime_bank):
-        return _setup_status(True, "fetched_git", "Image bank connected from GitHub using git.", path=runtime_bank, method="git")
+        return _setup_status(
+            True,
+            "fetched_git",
+            "Image bank connected from GitHub using git.",
+            path=runtime_bank,
+            method="git",
+            source="git",
+        )
 
     return _setup_status(
         False,
         "image_bank_missing_after_git_fetch",
         "Git finished, but image_bank_full was not found; ZIP download fallback will be attempted.",
         method="git",
+        warn=False,
     )
 
 
@@ -229,7 +403,7 @@ def _extract_full_bank_archive(zip_path: Path, staging_repo: Path) -> int:
             except ValueError:
                 continue
             relative_parts = member.parts[bank_index:]
-            if Path(relative_parts[-1]).suffix.lower() not in {".webp", ".jpg", ".jpeg", ".png", ".avif"}:
+            if Path(relative_parts[-1]).suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
                 continue
             target = staging_repo.joinpath(*relative_parts)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -250,9 +424,22 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
             "Could not create the runtime image-bank folder.",
             error=f"{type(error).__name__}: {error}",
             method="zip",
+            warn=False,
         )
 
-    with tempfile.TemporaryDirectory(prefix="image-bank-zip-") as tmp_text:
+    try:
+        temporary_context = tempfile.TemporaryDirectory(prefix="image-bank-zip-")
+    except OSError as error:
+        return _setup_status(
+            False,
+            "zip_staging_failed",
+            "Could not create temporary storage for the image-bank ZIP.",
+            error=f"{type(error).__name__}: {error}",
+            method="zip",
+            warn=False,
+        )
+
+    with temporary_context as tmp_text:
         tmp = Path(tmp_text)
         zip_path = tmp / "image-bank.zip"
         try:
@@ -264,9 +451,20 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
                 "Could not download the image bank ZIP from GitHub.",
                 error=f"{type(error).__name__}: {error}",
                 method="zip",
+                warn=False,
             )
 
-        staging_repo = Path(tempfile.mkdtemp(prefix=".image-bank-full-", dir=runtime_repo.parent))
+        try:
+            staging_repo = Path(tempfile.mkdtemp(prefix=".image-bank-full-", dir=runtime_repo.parent))
+        except OSError as error:
+            return _setup_status(
+                False,
+                "zip_staging_failed",
+                "Could not create the staged image-bank installation folder.",
+                error=f"{type(error).__name__}: {error}",
+                method="zip",
+                warn=False,
+            )
         try:
             image_count = _extract_full_bank_archive(zip_path, staging_repo)
             staged_bank = staging_repo / "image_bank_full"
@@ -276,19 +474,30 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
                     "zip_missing_image_bank_full",
                     "Downloaded ZIP did not contain image_bank_full with supported images.",
                     method="zip",
+                    warn=False,
                 )
 
             backup = runtime_repo.with_name(f".{runtime_repo.name}.backup-{uuid.uuid4().hex}")
             if runtime_repo.exists():
                 os.replace(runtime_repo, backup)
+            replacement_committed = False
             try:
                 os.replace(staging_repo, runtime_repo)
-            except Exception:
+                replacement_committed = True
+            except OSError as install_error:
                 if backup.exists() and not runtime_repo.exists():
-                    os.replace(backup, runtime_repo)
+                    try:
+                        os.replace(backup, runtime_repo)
+                        replacement_committed = True
+                    except OSError as rollback_error:
+                        raise RuntimeError(
+                            "Image-bank install failed and the previous bank could not be restored; "
+                            f"the backup was retained at {backup}. Install error: {install_error}. "
+                            f"Rollback error: {rollback_error}."
+                        ) from rollback_error
                 raise
             finally:
-                if backup.exists():
+                if replacement_committed and backup.exists():
                     shutil.rmtree(backup, ignore_errors=True)
         except (OSError, zipfile.BadZipFile, RuntimeError) as error:
             return _setup_status(
@@ -297,15 +506,30 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
                 "Could not safely extract and install the image bank ZIP from GitHub.",
                 error=f"{type(error).__name__}: {error}",
                 method="zip",
+                warn=False,
             )
         finally:
             if staging_repo.exists():
                 shutil.rmtree(staging_repo, ignore_errors=True)
 
     if _valid_image_bank(runtime_bank):
-        return _setup_status(True, "fetched_zip", "Image bank connected from GitHub using ZIP download.", path=runtime_bank, method="zip")
+        return _setup_status(
+            True,
+            "fetched_zip",
+            "Image bank connected from GitHub using ZIP download.",
+            path=runtime_bank,
+            method="zip",
+            source="zip",
+            fallback_used=True,
+        )
 
-    return _setup_status(False, "zip_install_missing_after_copy", "ZIP image bank install finished, but image_bank_full is missing.", method="zip")
+    return _setup_status(
+        False,
+        "zip_install_missing_after_copy",
+        "ZIP image bank install finished, but image_bank_full is missing.",
+        method="zip",
+        warn=False,
+    )
 
 
 def ensure_runtime_image_bank_status(
@@ -314,7 +538,7 @@ def ensure_runtime_image_bank_status(
 ) -> dict:
     """Explicitly fetch/update the runtime image bank and return diagnostics.
 
-    The image bank remains a separate repository.  This connector installs a
+    The image bank remains a separate repository. This connector installs a
     runtime/cache copy of Dkaalen/itinerary-image-bank/image_bank_full when the
     deployed app cannot see a mounted local copy. For a known itinerary it
     prefers destination release packs, then keeps git and the full repository
@@ -324,15 +548,35 @@ def ensure_runtime_image_bank_status(
     root = Path(root) if root is not None else APP_ROOT
     destination_requests = destination_requests_from_rows(required_destinations)
     runtime_repo, runtime_bank = _runtime_bank_paths(root)
-
-    if not destination_requests and _valid_image_bank(runtime_bank):
-        return _setup_status(True, "already_available", "Runtime image bank is already connected.", path=runtime_bank, method="existing")
+    cached_bank = _cached_bank_for_requests(root, destination_requests)
 
     if not _runtime_bootstrap_allowed():
+        if cached_bank is not None:
+            return _setup_status(
+                True,
+                "cached_bootstrap_disabled",
+                "Runtime image-bank fetching is disabled; a valid cached image bank will be used.",
+                path=cached_bank,
+                method="cache",
+                source="cache",
+                cache_available=True,
+            )
         return _setup_status(
             False,
             "bootstrap_disabled",
             "Runtime image-bank fetching is disabled. Set ITINERARY_IMAGE_BANK_FULL or enable ITINERARY_IMAGE_BANK_BOOTSTRAP.",
+            method="disabled",
+        )
+
+    if cached_bank is not None:
+        return _setup_status(
+            True,
+            "already_available",
+            "A valid persistent image bank is already connected.",
+            path=cached_bank,
+            method="existing",
+            source="cache",
+            cache_available=True,
         )
 
     try:
@@ -343,10 +587,11 @@ def ensure_runtime_image_bank_status(
             "runtime_dir_failed",
             "Could not create the runtime image-bank folder.",
             error=f"{type(error).__name__}: {error}",
+            method="filesystem",
         )
 
     # Preferred path: fetch only the destinations used by this itinerary from
-    # the release manifest.  The legacy full-repository path remains as a safe
+    # the release manifest. The legacy full-repository path remains as a safe
     # fallback for older deployments and manifest outages.
     distribution_status = None
     if destination_requests:
@@ -369,41 +614,82 @@ def ensure_runtime_image_bank_status(
                 refreshed_status["initial_attempt"] = distribution_status
                 distribution_status = refreshed_status
         except Exception as error:
-            distribution_status = {
-                "ok": False,
-                "code": "destination_pack_exception",
-                "message": "Destination image packs could not be prepared; full-bank fallback will be attempted.",
-                "method": "destination_packs",
-                "error": f"{type(error).__name__}: {error}",
-                "manifest_url": image_bank_manifest_url(),
-            }
+            distribution_status = _setup_status(
+                False,
+                "destination_pack_exception",
+                "Destination image packs could not be prepared; full-bank fallback will be attempted.",
+                error=f"{type(error).__name__}: {error}",
+                method="destination_packs",
+                warn=False,
+            )
+        distribution_status = _normalise_stage_status(distribution_status, "destination_packs")
         if distribution_status.get("ok"):
             invalidate_image_bank_cache()
-            return distribution_status
+            return _merge_attempts(distribution_status, distribution_status=distribution_status)
 
-    git_status = _fetch_image_bank_with_git(runtime_repo, runtime_bank)
+    git_status = _normalise_stage_status(
+        _fetch_image_bank_with_git(runtime_repo, runtime_bank),
+        "git",
+    )
     if git_status.get("ok"):
         invalidate_image_bank_cache()
-        if distribution_status:
-            git_status["fallback_from"] = distribution_status.get("code")
-            git_status["distribution_error"] = distribution_status.get("error", "")
-        return git_status
+        return _merge_attempts(
+            git_status,
+            distribution_status=distribution_status,
+            git_status=git_status,
+        )
 
-    zip_status = _fetch_image_bank_with_zip(runtime_repo, runtime_bank)
+    zip_status = _normalise_stage_status(
+        _fetch_image_bank_with_zip(runtime_repo, runtime_bank),
+        "zip",
+    )
     if zip_status.get("ok"):
         invalidate_image_bank_cache()
-        zip_status["fallback_from"] = git_status.get("code")
-        if distribution_status:
-            zip_status["distribution_fallback_from"] = distribution_status.get("code")
-            zip_status["distribution_error"] = distribution_status.get("error", "")
-        return zip_status
+        return _merge_attempts(
+            zip_status,
+            distribution_status=distribution_status,
+            git_status=git_status,
+            zip_status=zip_status,
+        )
 
-    zip_status["fallback_from"] = git_status.get("code")
-    zip_status["git_error"] = git_status.get("error", "")
-    if distribution_status:
-        zip_status["distribution_fallback_from"] = distribution_status.get("code")
-        zip_status["distribution_error"] = distribution_status.get("error", "")
-    return zip_status
+    cached_after_failure = _cached_bank_for_requests(root, destination_requests)
+    if cached_after_failure is not None:
+        cached_status = _setup_status(
+            True,
+            "cached_after_remote_failure",
+            "Remote image-bank refresh failed; a valid persistent cache will be used.",
+            path=cached_after_failure,
+            method="cache",
+            source="cache",
+            fallback_used=True,
+            degraded=True,
+            cache_available=True,
+        )
+        return _merge_attempts(
+            cached_status,
+            distribution_status=distribution_status,
+            git_status=git_status,
+            zip_status=zip_status,
+        )
+
+    final_status = dict(zip_status)
+    final_status["ok"] = False
+    final_status["cache_available"] = False
+    final_status["degraded"] = False
+    final_status["error"] = _stage_error(zip_status)
+    final_status = _merge_attempts(
+        final_status,
+        distribution_status=distribution_status,
+        git_status=git_status,
+        zip_status=zip_status,
+    )
+    diagnostics.warn(
+        "image_bank_setup",
+        final_status.get("message", "Runtime image-bank setup failed."),
+        final_status.get("error", ""),
+        source="images.image_bank",
+    )
+    return final_status
 
 
 def connect_remote_image_bank_if_missing(

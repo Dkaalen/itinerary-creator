@@ -2,40 +2,12 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.common import extract_route_points
 from text_polish import polish_title
-from itinerary_generation.transport_norway import (
-    NUTSHELL_ROUTE_PLACES,
-    explicit_norway_nutshell_title,
-    extract_norway_nutshell_route_points,
-    should_preserve_nutshell_origin_label,
-)
+from itinerary_generation.nutshell_domain import build_nutshell_journey
 
 def _route_label_from_activity_text(text: str) -> str:
-    explicit_title = explicit_norway_nutshell_title(text)
-    if explicit_title:
-        return explicit_title
-
-    # Do not promote the first included leg (for example Oslo to Myrdal or
-    # Flåm to Gudvangen) to the product title.  First build the complete route
-    # from known Nutshell timetable/leg patterns and use the final endpoint.
-    points = extract_norway_nutshell_route_points(text)
-    if len(points) >= 2:
-        origin = points[0] if should_preserve_nutshell_origin_label(text, points[0], points[-1]) else ""
-        destination = points[-1]
-    else:
-        route_match = re.search(rf"\b({NUTSHELL_ROUTE_PLACES})\s+to\s+({NUTSHELL_ROUTE_PLACES})\b", text, flags=re.IGNORECASE)
-        if route_match:
-            origin, destination = route_match.group(1), route_match.group(2)
-        else:
-            origin, destination = extract_route_points(text)
-    origin = polish_title(origin) if origin else ""
-    destination = polish_title(destination) if destination else ""
-    if origin and destination and origin.lower() != destination.lower():
-        return f"Norway in a Nutshell from {origin} to {destination}"
-    if destination:
-        return f"Norway in a Nutshell to {destination}"
-    return "Norway in a Nutshell"
+    journey = build_nutshell_journey(text)
+    return journey.client_title if journey else "Norway in a Nutshell"
 
 
 def _looks_like_norway_in_a_nutshell(text: str) -> bool:

@@ -12,7 +12,8 @@ from itinerary_generation.transport_domain.titles import get_transport_route_phr
 from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points, format_norway_nutshell_route
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
+from itinerary_generation.transport_norway import format_norway_nutshell_route
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.inclusion_utils import add_unique, clean, join_detail_parts
 
@@ -75,7 +76,9 @@ def transport_bucket(row: dict) -> str:
         return "Private transfers"
     if "self-guided" in text or "self transfer" in text:
         return ""
-    if _is_norway_in_a_nutshell_text(text) or "nærøyfjord" in text or "naeroyfjord" in text or "flåm" in text or "flam" in text:
+    if resolve_nutshell_journey(row) is not None:
+        return "Scenic rail & fjord journeys"
+    if "nærøyfjord" in text or "naeroyfjord" in text or "flåm" in text or "flam" in text:
         return "Scenic rail & fjord journeys"
     if row_type == "Train" or "train" in text:
         return "Rail journeys"
@@ -109,34 +112,52 @@ def _santa_claus_express_inclusion_line(row: dict, title: str) -> str:
     return "\n".join(lines)
 
 
-def _norway_nutshell_inclusion_line(row: dict, title: str) -> str:
-    text = get_transport_source_text(row)
-    if not _is_norway_in_a_nutshell_text(text):
+def _nutshell_inclusion_leg_line(leg) -> str:
+    if not leg.origin or not leg.destination:
         return ""
-    lines = [title]
-    schedule = get_transport_time_text(row)
+    departure = str(leg.departure_time or "").strip()
+    arrival = str(leg.arrival_time or "").strip()
+    if departure and arrival:
+        line = f"{departure} {leg.origin} - {arrival} {leg.destination}"
+    elif departure:
+        line = f"{departure} {leg.origin} - {leg.destination}"
+    elif arrival:
+        line = f"{leg.origin} - {arrival} {leg.destination}"
+    else:
+        line = f"{leg.origin} to {leg.destination}"
+    return f"{line} — {leg.mode}" if leg.mode else line
+
+
+def _norway_nutshell_inclusion_line(row: dict, title: str) -> str:
+    journey = resolve_nutshell_journey(row)
+    if journey is None:
+        return ""
+
+    lines = [journey.client_title]
+    schedule = journey.journey_time or get_transport_time_text(row)
     if schedule:
         lines.append(schedule)
-    legs = extract_norway_nutshell_route_legs(text)
-    if legs:
+
+    timed_legs = [leg for leg in journey.legs if leg.departure_time or leg.arrival_time]
+    if timed_legs and not journey.warnings:
         lines.append("Route details:")
-        for leg in legs:
-            mode = f" — {leg['mode']}" if leg.get("mode") else ""
-            lines.append(f"{leg['departure_time']} {leg['origin']} - {leg['arrival_time']} {leg['destination']}{mode}")
-    else:
-        route_text = format_norway_nutshell_route(extract_norway_nutshell_route_points(text))
+        lines.extend(line for line in (_nutshell_inclusion_leg_line(leg) for leg in timed_legs) if line)
+    elif len(journey.route_points) >= 3 and not journey.warnings:
+        route_text = format_norway_nutshell_route(list(journey.route_points))
         if route_text:
             lines.append(f"Route highlights: {route_text}")
+
+    source_items = journey.supplier_includes or journey.included_services
     includes = merge_compound_inclusions([
-        polish_inclusion_item(sanitize_inclusion_item(item, title), title)
-        for item in (row.get("includes", []) or [])
-        if sanitize_inclusion_item(item, title)
+        polish_inclusion_item(sanitize_inclusion_item(item, journey.client_title), journey.client_title)
+        for item in source_items
+        if sanitize_inclusion_item(item, journey.client_title)
     ])
     if includes:
         detail = join_detail_parts(includes).strip(" .")
         if detail:
             lines.append(f"Included journey: {detail}.")
-    return "\n".join(line for line in lines if line)
+    return "\n".join(dict.fromkeys(line for line in lines if line))
 
 
 def transport_line(row: dict) -> str:

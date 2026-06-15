@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ARTIFACT_EXCLUDED_DIRS = frozenset({
+    ".cache",
     ".git",
     ".pytest_cache",
     ".mypy_cache",
@@ -19,6 +20,8 @@ ARTIFACT_EXCLUDED_DIRS = frozenset({
     ".venv",
     "venv",
     "outputs",
+    "persistent_drafts",
+    "qa_reports",
 })
 
 ARTIFACT_EXCLUDED_FILENAMES = frozenset({
@@ -26,7 +29,7 @@ ARTIFACT_EXCLUDED_FILENAMES = frozenset({
     ".DS_Store",
 })
 
-ARTIFACT_EXCLUDED_SUFFIXES = (".pyc", ".pyo", ".zip")
+ARTIFACT_EXCLUDED_SUFFIXES = (".pyc", ".pyo", ".zip", ".tmp", ".bak")
 
 
 def is_artifact_noise_path(path: str | Path) -> bool:

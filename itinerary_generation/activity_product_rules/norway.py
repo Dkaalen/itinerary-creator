@@ -5,66 +5,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from place_aliases import canonicalize_place_name
-from text_polish import polish_title
-
 from itinerary_generation.activity_product_core import ActivityProductFingerprint, match_product
 from itinerary_generation.activity_product_text import canonicalize_activity_route_source
 from itinerary_generation.fjordtours_activity_catalogue import match_fjordtours_nutshell_addon
-from itinerary_generation.transport_norway import (
-    _is_norway_in_a_nutshell_text,
-    NUTSHELL_ROUTE_PLACES,
-    explicit_norway_nutshell_title,
-    extract_norway_nutshell_route_legs,
-    extract_norway_nutshell_route_points,
-)
-
-
-def _legs_from_route_points(points: list[str]) -> tuple[dict[str, str], ...]:
-    if len(points) < 2:
-        return ()
-    return tuple({"origin": points[index], "destination": points[index + 1], "mode": ""} for index in range(len(points) - 1))
-
-
-def _direct_route_points_from_source(source: str) -> list[str]:
-    if explicit_norway_nutshell_title(source):
-        return []
-    city = NUTSHELL_ROUTE_PLACES
-    patterns = (
-        rf"\b(?P<origin>{city})\s+to\s+(?P<destination>{city})\b",
-        rf"\bnorway\s+in\s+a\s+nutshell\s+(?P<origin>{city})\s+to\s+(?P<destination>{city})\b",
-    )
-    for pattern in patterns:
-        match = re.search(pattern, source, flags=re.IGNORECASE)
-        if not match:
-            continue
-        origin = canonicalize_place_name(polish_title(match.group("origin")))
-        destination = canonicalize_place_name(polish_title(match.group("destination")))
-        if origin and destination and origin.lower() != destination.lower():
-            return [origin, destination]
-    return []
-
-
-def _should_preserve_nutshell_origin(source: str) -> bool:
-    city = NUTSHELL_ROUTE_PLACES
-    return bool(
-        re.search(rf"^\s*(?:{city})\s+to\s+(?:{city})\s*\|\s*Norway\s+in\s+a\s+Nutshell", source, flags=re.IGNORECASE)
-        or re.search(rf"\b(?:Nærøyfjord|Naeroyfjord)[^\n:|]{{0,160}}\b(?:{city})\s+to\s+(?:{city})\s*(?:[:|,\-]|$)", source, flags=re.IGNORECASE)
-        or re.search(rf"\b(?:luggage\s+(?:transfer|porter|service)|porter\s+service)[^\n:|]{{0,160}}\b(?:{city})\s+to\s+(?:{city})\b", source, flags=re.IGNORECASE)
-        or (
-            re.search(rf"^\s*(?:{city})\s+to\s+(?:{city})\s*:", source, flags=re.IGNORECASE)
-            and any(marker in source.lower() for marker in ("flåm train", "flam train", "nærøyfjord", "naeroyfjord", "luggage transfer", "fjord cruise"))
-        )
-        or re.search(rf"\b(?:Bergen|Oslo)\s+to\s+(?:Bergen|Oslo)\b", source, flags=re.IGNORECASE) and "nutshell" in source.lower()
-    )
-
-
-def _route_title_from_points(points: list[str], *, preserve_origin: bool = False) -> str:
-    if len(points) >= 2 and preserve_origin:
-        return f"Norway in a Nutshell from {polish_title(points[0])} to {polish_title(points[-1])}"
-    if points:
-        return f"Norway in a Nutshell to {polish_title(points[-1])}"
-    return "Norway in a Nutshell"
+from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_generation.nutshell_domain import build_nutshell_journey
 
 
 def _is_bergen_guided_flam_day_tour(source_lower: str) -> bool:
@@ -146,10 +91,13 @@ def match_norway_activity(
             route_source = canonicalize_activity_route_source("\n".join(value for value in route_fields if value.strip()))
         else:
             route_source = canonicalize_activity_route_source(source)
-        explicit_title = explicit_norway_nutshell_title(route_source) or explicit_norway_nutshell_title(source_title)
-        direct_points = _direct_route_points_from_source(route_source)
-        points = extract_norway_nutshell_route_points(route_source) or direct_points
-        legs = tuple(extract_norway_nutshell_route_legs(route_source)) or _legs_from_route_points(points)
+        journey = build_nutshell_journey(
+            row,
+            source=route_source,
+            source_title=source_title,
+        )
+        if journey is None:
+            return None
         tags: list[str] = []
         if "luggage" in source_lower and ("porter" in source_lower or "service" in source_lower):
             tags.append("luggage_service")
@@ -158,12 +106,13 @@ def match_norway_activity(
         if "part 2" in source_lower:
             tags.append("part_2")
         return match_product(
-            "norway_in_a_nutshell",
-            "scenic_route",
-            explicit_title or _route_title_from_points(points, preserve_origin=_should_preserve_nutshell_origin(route_source)),
-            source_title=source_title or explicit_title or "Norway in a Nutshell",
+            journey.canonical_family,
+            journey.product_type,
+            journey.client_title,
+            source_title=source_title or journey.source_title or journey.product_name,
             variant_tags=tuple(tags),
-            route_legs=legs,
+            route_legs=journey.legacy_route_legs,
+            warnings=journey.warnings,
         )
 
     if _is_explicit_bergen_city_drive(source_lower, source_title):

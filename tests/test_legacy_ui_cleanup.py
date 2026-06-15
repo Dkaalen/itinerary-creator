@@ -34,27 +34,17 @@ def test_removed_streamlit_editor_modules_are_not_imported() -> None:
     assert "app_modules.sidebar" not in text
 
 
-def test_duplicate_visual_editor_streamlit_styles_are_removed_from_shim() -> None:
-    text = (ROOT / "visual_editor_component" / "ui" / "styles.py").read_text(encoding="utf-8")
-
-    assert "Compatibility shim" in text
-    assert len(text.splitlines()) <= 5
-    assert "div[data-testid=\"stSidebar\"]" not in text
-    assert "from ui.styles import apply_global_styles" in text
-
-
-def test_visual_editor_app_module_shims_stay_small() -> None:
-    shim_paths = [
+def test_duplicate_visual_editor_compatibility_modules_stay_removed() -> None:
+    removed_paths = [
+        ROOT / "ui" / "transport_blocks.py",
+        ROOT / "visual_editor_component" / "ui" / "styles.py",
         ROOT / "visual_editor_component" / "app_modules" / "main_view.py",
         ROOT / "visual_editor_component" / "app_modules" / "export_step.py",
         ROOT / "visual_editor_component" / "app_modules" / "workflow_shell.py",
     ]
 
-    for path in shim_paths:
-        text = path.read_text(encoding="utf-8")
-        assert "Compatibility shim" in text
-        assert len(text.splitlines()) <= 40
-        assert "st.sidebar" not in text
+    for path in removed_paths:
+        assert not path.exists(), f"obsolete compatibility module should stay removed: {path}"
 
 
 def test_legacy_frontend_bullet_tools_are_removed() -> None:

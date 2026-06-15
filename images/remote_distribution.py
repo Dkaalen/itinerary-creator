@@ -456,14 +456,24 @@ def _install_archive(pack: ResolvedDestinationPack, archive_path: Path, version_
         backup = destination_dir.with_name(f".{destination_dir.name}.backup-{uuid.uuid4().hex}")
         if destination_dir.exists():
             os.replace(destination_dir, backup)
+        replacement_committed = False
         try:
             os.replace(staged_destination, destination_dir)
-        except Exception:
+            replacement_committed = True
+        except OSError as install_error:
             if backup.exists() and not destination_dir.exists():
-                os.replace(backup, destination_dir)
+                try:
+                    os.replace(backup, destination_dir)
+                    replacement_committed = True
+                except OSError as rollback_error:
+                    raise RuntimeError(
+                        "Destination-pack install failed and the previous pack could not be restored; "
+                        f"the backup was retained at {backup}. Install error: {install_error}. "
+                        f"Rollback error: {rollback_error}."
+                    ) from rollback_error
             raise
         finally:
-            if backup.exists():
+            if replacement_committed and backup.exists():
                 shutil.rmtree(backup, ignore_errors=True)
 
         _atomic_write_json(marker_path, {

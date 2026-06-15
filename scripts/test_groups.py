@@ -24,6 +24,7 @@ FAST_TESTS = (
     "tests/test_transport_model_architecture.py",
     "tests/test_patch_ai_transport_domain.py",
     "tests/test_patch_ak_cleanup_hygiene.py",
+    "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_patch_al_editor_preview_ownership.py",
     "tests/test_patch_am_client_output_quality.py",
     "tests/test_patch_an_add_pictures_workflow.py",
@@ -43,6 +44,7 @@ FAST_TESTS = (
     "tests/test_activity_compound_stress_fixtures.py",
     "tests/test_patch_bx1_hot_path_caching.py",
     "tests/test_patch_by_destination_image_delivery.py",
+    "tests/test_patch_bz1e_correctness_diagnostics.py",
     "tests/test_leisure_arrival_metadata_cleanup.py",
     "tests/test_patch_k_transport_preview_quality.py",
     "tests/test_messy_transport_safety_net.py",
@@ -89,10 +91,14 @@ ACTIVITY_TESTS = (
     "tests/test_title_safety_phase1.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
+    "tests/test_patch_bz1a_nutshell_characterization.py",
+    "tests/test_patch_bz1b_nutshell_domain.py",
+    "tests/test_patch_bz1c_nutshell_consumer_parity.py",
 )
 
 ARCHITECTURE_TESTS = (
     "tests/test_architecture_consolidation.py",
+    "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_canonical_block_renderers.py",
     "tests/test_canonical_boundary.py",
     "tests/test_inclusion_exclusion_architecture.py",
@@ -110,6 +116,10 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_bs_architecture_boundaries.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
+    "tests/test_patch_bz1a_nutshell_characterization.py",
+    "tests/test_patch_bz1b_nutshell_domain.py",
+    "tests/test_patch_bz1c_nutshell_consumer_parity.py",
+    "tests/test_patch_bz1e_correctness_diagnostics.py",
 )
 
 EDITOR_TESTS = (
@@ -127,6 +137,7 @@ EDITOR_TESTS = (
     "tests/test_visual_editor_typed_draft.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
+    "tests/test_patch_bz1c_nutshell_consumer_parity.py",
 )
 
 IMAGE_TESTS = (
@@ -135,6 +146,7 @@ IMAGE_TESTS = (
     "tests/test_image_matcher_selection.py",
     "tests/test_patch_bx1_hot_path_caching.py",
     "tests/test_patch_by_destination_image_delivery.py",
+    "tests/test_patch_bz1d_image_bank_bootstrap.py",
     "tests/test_patch_an_add_pictures_workflow.py",
     "tests/test_patch_ap_output_quality_and_images.py",
     "tests/test_patch_ar_image_bank_enforcement.py",
@@ -147,6 +159,7 @@ IMAGE_TESTS = (
 
 UI_TESTS = (
     "tests/test_legacy_ui_cleanup.py",
+    "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_regressions_ui_boundaries.py",
     "tests/test_ui_document_flow.py",
     "tests/test_ui_export_readiness.py",
@@ -184,6 +197,7 @@ QUALITY_TESTS = (
     "tests/test_patch_aw_client_sanitizer_default_images.py",
     "tests/test_day_heading_dates.py",
     "tests/test_regressions_travel_text.py",
+    "tests/test_patch_bz1e_correctness_diagnostics.py",
 )
 
 PDF_TESTS = (
@@ -195,6 +209,8 @@ PDF_TESTS = (
     "tests/test_self_drive_pdf_preview_parity.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
+    "tests/test_patch_bz1c_nutshell_consumer_parity.py",
+    "tests/test_patch_bz1e_correctness_diagnostics.py",
 )
 
 SLOW_TESTS = (

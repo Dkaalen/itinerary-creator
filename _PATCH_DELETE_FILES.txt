@@ -1,3 +1,0 @@
-app_modules/image_review.py
-app_modules/output_editor.py
-app_modules/sidebar.py
