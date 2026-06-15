@@ -103,7 +103,18 @@ def _polish_text_fragment(text: str) -> str:
     text = remove_duplicate_service_phrase(text)
 
     # Remove low-value supplier metadata that should never be visible to clients.
-    text = re.sub(r"\s*\(\s*(?:unlimited|if\s+snow|weather\s+permitting|if\s+weather\s+permits)\s*\)", "", text, flags=re.IGNORECASE)
+    # Commercial conditions must not disappear during prose cleanup.  Supplier
+    # shorthand such as ``(if snow)`` changes whether a service is guaranteed;
+    # rewrite it into client-facing wording instead of deleting it.  Pure sales
+    # qualifiers such as ``(unlimited)`` can still be removed safely.
+    text = re.sub(r"\s*\(\s*if\s+snow\s*\)", " if snow conditions allow", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\s*\(\s*(?:weather\s+permitting|if\s+weather\s+permits)\s*\)",
+        " if weather permits",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\s*\(\s*unlimited\s*\)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\bto\s+Airport\b", "to the airport", text, flags=re.IGNORECASE)
     text = re.sub(r"\bAurora\s+Borealis\b", "Northern Lights", text, flags=re.IGNORECASE)
     text = re.sub(r"\bAuroras\b", "Northern Lights", text, flags=re.IGNORECASE)

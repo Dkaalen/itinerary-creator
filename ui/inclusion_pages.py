@@ -102,7 +102,11 @@ def _estimate_inclusion_item_units(item):
         return 0
     lines = [structured_item.label, *structured_item.detail_lines]
     text = "\n".join(lines)
-    units = 1.5 + max(0, len(lines) - 1) * 0.9
+    # Detail lines render as separate block rows with their own line-height.
+    # The previous 0.9 multiplier under-estimated dense hotel/activity entries,
+    # allowing the browser/PDF renderer to split an explicit A4 page and leave
+    # the next category orphaned on a mostly empty page.
+    units = 1.5 + max(0, len(lines) - 1) * 1.2
     if len(text) > 110:
         units += 0.7
     if len(text) > 210:

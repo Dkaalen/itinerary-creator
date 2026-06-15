@@ -137,6 +137,34 @@ def _extract_cruise_cabin_detail(source: str) -> str:
     return ""
 
 
+def _extract_train_service(source: str) -> str:
+    """Return a named train service/number without reinterpreting its route."""
+
+    text = str(source or "")
+    match = re.search(r"\bInterCity\s*(\d+)\b", text, flags=re.IGNORECASE)
+    if match:
+        return f"InterCity {match.group(1)}"
+    match = re.search(r"\bIC\s*(\d+)\b", text, flags=re.IGNORECASE)
+    if match:
+        return f"IC {match.group(1)}"
+    return ""
+
+
+def _extract_provisional_train_note(source: str) -> str:
+    """Preserve supplier caveats that make a displayed train time provisional."""
+
+    text = str(source or "")
+    if not re.search(r"\b(?:train|intercity|rail)\b", text, flags=re.IGNORECASE):
+        return ""
+    if re.search(
+        r"dates?\s+not\s+yet\s+released|tim(?:e|ing)s?\s+to\s+be\s+confirmed|confirm(?:ed|ation).*?final\s+voucher|final\s+(?:travel\s+)?voucher",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        return "Train timing is provisional and will be confirmed in the final travel voucher"
+    return ""
+
+
 def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     """Return deduplicated details suitable below a transport route title."""
 
@@ -144,6 +172,10 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     source = get_transport_source_text(row)
     title = title or str(row.get("title", "") or "")
     details: list[str] = []
+
+    train_service = _extract_train_service(source)
+    if train_service:
+        add_unique(details, train_service)
 
     schedule = get_overnight_train_schedule(row)
     if schedule.get("departure_time") and schedule.get("departure_place"):
@@ -170,5 +202,9 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     luggage = clean(row.get("luggage_included", "")) or _extract_luggage_detail(source)
     if luggage:
         add_unique(details, luggage)
+
+    provisional_note = _extract_provisional_train_note(source)
+    if provisional_note:
+        add_unique(details, provisional_note)
 
     return details

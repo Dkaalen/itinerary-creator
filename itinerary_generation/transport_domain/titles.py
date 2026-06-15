@@ -36,7 +36,14 @@ def get_transport_route_phrase(row):
         return polish_title(row.get("title", "") or "Transfer")
 
     if row_type == "Train" or "train" in lower:
-        label = "Santa Claus Express" if "santa claus express" in lower else ("Overnight Train Transfer" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else "Scenic Train Transfer")
+        if "santa claus express" in lower:
+            label = "Santa Claus Express"
+        elif re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower):
+            label = "Overnight Train Transfer"
+        elif re.search(r"\bday\s+train\b|\bintercity\s*\d+\b", lower):
+            label = "Train"
+        else:
+            label = "Scenic Train Transfer"
         if label == "Santa Claus Express":
             santa_destination = re.search(r"\bsanta\s+claus\s+express\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-\s+\d{1,2}:\d{2}|\s+-\s+Arrival|\s+\|\s+|\s+-\s+|$)", text, flags=re.IGNORECASE)
             if santa_destination:

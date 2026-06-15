@@ -81,7 +81,7 @@ def tallinn_guidance_mode(row: dict | None = None, *values: object) -> str:
     text = tallinn_text(row, *values)
     if not mentions_tallinn(text):
         return "neutral"
-    if re.search(r"\b(?:self[-\s]?guided|on\s+own|own\s+pace|free\s+time|leisure\s+time|explore\s+independently|explore\s+on\s+your\s+own)\b", text):
+    if re.search(r"\b(?:self[-\s]?guided|self[-\s]?explored|on\s+own|own\s+pace|free\s+time|leisure\s+time|explore\s+independently|explore\s+on\s+your\s+own)\b", text):
         return "self_guided"
     if re.search(r"\b(?:guided\s+(?:old\s+town\s+)?(?:walking\s+)?tour|old\s+town\s+guided|english[-\s]?speaking\s+guide|professional\s+guide)\b", text):
         return "guided"
@@ -110,7 +110,8 @@ def tallinn_ferry_description(row: dict | None = None) -> str:
 def tallinn_ferry_title(row: dict | None = None) -> str:
     text = tallinn_text(row)
     if "helsinki" in text:
-        return "Helsinki to Tallinn return ferry" if ("departure from tallinn" in text or "return" in text) else "Helsinki to Tallinn ferry"
+        is_return = any(marker in text for marker in ["departure from tallinn", "return", "round trip", "round-trip", "roundtrip"])
+        return "Helsinki to Tallinn return ferry" if is_return else "Helsinki to Tallinn ferry"
     return "Tallinn ferry journey"
 
 
@@ -172,6 +173,13 @@ def clean_tallinn_ferry_inclusions(row: dict | None = None) -> list[str]:
         fallback_candidates.append("Cruise ticket")
     elif "ferry ticket" in source:
         fallback_candidates.append("Ferry ticket")
+
+    if any(marker in source for marker in ["round trip", "round-trip", "roundtrip", "return ferry"]):
+        fallback_candidates.append("Round-trip Helsinki–Tallinn ferry travel")
+    elif "ferry" in source:
+        fallback_candidates.append("Helsinki–Tallinn ferry travel")
+    if tallinn_guidance_mode(row) == "self_guided":
+        fallback_candidates.append("Self-guided time in Tallinn")
 
     existing = " ".join(items).lower()
     for item in fallback_candidates:

@@ -114,7 +114,7 @@ def get_travel_sequence_line(row):
         return get_transfer_travel_title(row) or polish_title(row.get("title", ""))
 
     if row_type == "Transfer":
-        return clean_client_title(row.get("title", ""), row)
+        return clean_client_title(row.get("title", ""), row) or polish_title(row.get("title", ""))
 
     if row_type in TRANSPORT_TYPES:
         nutshell_journey = resolve_nutshell_journey(row)

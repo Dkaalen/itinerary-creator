@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from itinerary_generation.date_formatting import format_client_date, format_client_date_range, parse_date
+from itinerary_generation.common import get_row_type
 
 
 def _row_start(row: dict):
@@ -16,9 +17,14 @@ def get_day_date_text(rows: list[dict]) -> str:
     """Return the display date for one itinerary day, if available."""
 
     for row in rows or []:
-        start = row.get("start_date")
-        end = row.get("end_date")
-        text = format_client_date_range(start, end)
+        if get_row_type(row) == "Hotel":
+            text = format_client_date(row.get("start_date"))
+        else:
+            text = format_client_date_range(row.get("start_date"), row.get("end_date"))
+        if text:
+            return text
+    for row in rows or []:
+        text = format_client_date(row.get("end_date"))
         if text:
             return text
     return ""

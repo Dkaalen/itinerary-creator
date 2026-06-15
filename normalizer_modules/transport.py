@@ -6,11 +6,13 @@ from text_polish import polish_client_text, polish_title
 from normalizer_modules.text_utils import text_blob
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, explicit_norway_nutshell_title, extract_norway_nutshell_route_points
 from itinerary_generation.activity_products import fingerprint_activity
+from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 
 def normalize_transport_title(row: dict) -> dict:
     title = polish_title(row.get("title", ""))
     details = polish_client_text(row.get("details", ""))
-    full = f"{title} {details}".lower()
+    original_title = polish_client_text(row.get("original_title", ""))
+    full = f"{original_title} {title} {details}".lower()
     product = fingerprint_activity(row)
     if product and product.display_title and product.product_type not in {"scenic_route"}:
         row["title"] = product.display_title
@@ -22,6 +24,28 @@ def normalize_transport_title(row: dict) -> dict:
         row["title"] = re.sub("Tallin", "Tallinn", title, flags=re.IGNORECASE)
     if "rovaneimi" in full:
         row["title"] = re.sub("Rovaneimi", "Rovaniemi", title, flags=re.IGNORECASE)
+
+    row_type = str(row.get("effective_type") or row.get("type") or "")
+    if row_type == "Transfer":
+        city = polish_title(row.get("city", ""))
+        if re.search(r"\bhotel\s+to\s+arctic\s+snow\s*hotel\b", full, flags=re.IGNORECASE):
+            row["title"] = "Transfer from your hotel to Arctic SnowHotel"
+        elif re.search(r"\b(?:arctic\s+)?snow\s*hotel\s+to\s+(?:railway\s+)?station\b", full, flags=re.IGNORECASE):
+            destination = f"{city} Railway Station" if city else "the railway station"
+            row["title"] = f"Transfer from Arctic SnowHotel to {destination}"
+
+    if row_type == "Train" and not _is_norway_in_a_nutshell_text(full):
+        origin, destination = get_route_points_for_transport(row)
+        if origin:
+            row["route_origin"] = origin
+        if destination:
+            row["route_destination"] = destination
+            if "santa claus express" in full:
+                row["title"] = f"Santa Claus Express to {destination}"
+            elif re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", full):
+                row["title"] = f"Overnight Train to {destination}"
+            else:
+                row["title"] = f"Train to {destination}"
     if _is_norway_in_a_nutshell_text(full):
         product = fingerprint_activity(row)
         if product and product.display_title:

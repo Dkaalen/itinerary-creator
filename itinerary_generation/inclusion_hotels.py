@@ -4,6 +4,7 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_hotel_name
+from itinerary_generation.accommodation_inclusions import extract_stay_inclusions
 
 from .inclusion_utils import clean
 
@@ -55,13 +56,19 @@ def hotel_line(row: dict) -> str:
     if meal:
         detail_sentences.append(meal.capitalize())
 
-    if not detail_sentences:
-        return title
+    detail_lines = []
+    if detail_sentences:
+        details = ". ".join(part.strip(" .") for part in detail_sentences if part.strip(" ."))
+        if details and not details.endswith("."):
+            details += "."
+        detail_lines.append(details)
 
-    details = ". ".join(part.strip(" .") for part in detail_sentences if part.strip(" ."))
-    if details and not details.endswith("."):
-        details += "."
-    return f"{title}\n{details}"
+    stay_inclusions = extract_stay_inclusions(row)
+    if stay_inclusions:
+        detail_lines.append("Included with this stay:")
+        detail_lines.extend(stay_inclusions)
+
+    return title if not detail_lines else f"{title}\n" + "\n".join(detail_lines)
 
 
 def has_non_breakfast_meal(meal: str) -> bool:

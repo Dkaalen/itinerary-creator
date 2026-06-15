@@ -94,6 +94,7 @@ ACTIVITY_TESTS = (
     "tests/test_patch_bz1a_nutshell_characterization.py",
     "tests/test_patch_bz1b_nutshell_domain.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
+    "tests/test_patch_bz1g_finland_source_fidelity.py",
 )
 
 ARCHITECTURE_TESTS = (
@@ -120,6 +121,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_bz1b_nutshell_domain.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
+    "tests/test_patch_bz1g_finland_source_fidelity.py",
 )
 
 EDITOR_TESTS = (
@@ -138,6 +140,7 @@ EDITOR_TESTS = (
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
+    "tests/test_patch_bz1g_finland_source_fidelity.py",
 )
 
 IMAGE_TESTS = (
@@ -198,6 +201,7 @@ QUALITY_TESTS = (
     "tests/test_day_heading_dates.py",
     "tests/test_regressions_travel_text.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
+    "tests/test_patch_bz1g_finland_source_fidelity.py",
 )
 
 PDF_TESTS = (
@@ -211,6 +215,7 @@ PDF_TESTS = (
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1e_correctness_diagnostics.py",
+    "tests/test_patch_bz1g_finland_source_fidelity.py",
 )
 
 SLOW_TESTS = (

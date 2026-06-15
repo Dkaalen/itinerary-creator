@@ -53,6 +53,7 @@ from itinerary_generation.transport_safety import repair_messy_client_text
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
 from itinerary_generation.nutshell_domain import attach_nutshell_journey, is_nutshell_row
 from itinerary_generation.group_tours import annotate_group_tour_optional_extras
+from itinerary_generation.activity_products import fingerprint_activity
 from normalizer_modules.rental import (
     looks_like_rental_vehicle_row,
     normalize_rental_vehicle_row,
@@ -145,6 +146,16 @@ def normalize_row(row: dict) -> dict:
 
     row_type = get_row_type(row)
     full = text_blob(row)
+
+    # Ferry day excursions are activities even when the parser sees the ferry
+    # keyword and assigns a transport-shaped effective type.  The named product
+    # owns both the return crossing and the independent time in Tallinn, so it
+    # must stay on the activity path rather than becoming a one-way transfer.
+    if str(row.get("type") or "") == "Activity":
+        activity_product = fingerprint_activity(row)
+        if activity_product and activity_product.product_type == "ferry_excursion":
+            row["effective_type"] = "Activity"
+            row_type = "Activity"
 
     if _looks_like_misclassified_hotel_row(row):
         row["effective_type"] = "Hotel"

@@ -67,7 +67,7 @@ def _bullet_item_table(item, styles, bullet_style):
     return table
 
 
-def add_bullets(story, items, styles):
+def add_bullets(story, items, styles, *, spacer_after=7):
     """Render bullet lists with each logical item kept together.
 
     Multi-line items such as final-page flight inclusions are one client-facing
@@ -94,7 +94,8 @@ def add_bullets(story, items, styles):
         if table is not None:
             story.append(KeepTogether([table]))
 
-    story.append(Spacer(1, 7))
+    if spacer_after:
+        story.append(Spacer(1, spacer_after))
 
 
 def make_table(data, widths, styles):

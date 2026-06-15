@@ -160,7 +160,7 @@ def prioritize_inline_inclusions(items, max_items=6):
         if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
             return 6
         if "guide" in lower or "guided" in lower or "certified" in lower:
-            return 7
+            return 1
         if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
             return 8
         return 10
@@ -193,6 +193,7 @@ def _polish_activity_bullet_case(value: str) -> str:
     if not text:
         return ""
     replacements = {
+        r"\bprofessional authorised helsinki guide\b": "Professional authorised Helsinki guide",
         r"\bfull day transportation\b": "Full day transportation",
         r"\bguide and entrance tickets\b": "Guide and entrance tickets",
         r"\bfrederiksborg palace\b": "Frederiksborg Palace",

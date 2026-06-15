@@ -111,7 +111,8 @@ def _split_pipe_inclusion_candidates(main_text: str) -> list[str]:
         ]
         marker_hits = sum(1 for marker in inclusion_markers if marker in lower_part)
         looks_like_prose = any(marker in lower_part for marker in prose_markers)
-        looks_like_list = (part.count(",") >= 1 or marker_hits >= 2) and not looks_like_prose
+        looks_like_single_inclusion = marker_hits >= 1 and len(part.split()) <= 16
+        looks_like_list = (part.count(",") >= 1 or marker_hits >= 2 or looks_like_single_inclusion) and not looks_like_prose
         if looks_like_list:
             pipe_candidates.extend(split_comma_list(part, protect_compound_phrases=True))
 

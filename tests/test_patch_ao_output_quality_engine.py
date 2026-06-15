@@ -121,7 +121,7 @@ def test_client_output_quality_gate_blocks_ao_forbidden_output():
 
 
 def test_supplier_junk_parentheticals_and_time_warnings_are_cleaned_generically():
-    assert polish_client_text("Thermal suit (unlimited) and snowmobile route (if snow)") == "Thermal suit and snowmobile route"
+    assert polish_client_text("Thermal suit (unlimited) and snowmobile route (if snow)") == "Thermal suit and snowmobile route if snow conditions allow"
     assert polish_client_text("Private transfer to Airport") == "Private transfer to the airport"
     assert normalize_time_text("15 min. before departure. Bring warm clothes.") == ""
     assert normalize_time_text("08:30 AM. Please arrive 15 min. before departure.") == "8:30 AM"

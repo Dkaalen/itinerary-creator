@@ -211,7 +211,7 @@ def destination_cities_for_row(row: dict) -> list[str]:
     add_city(row.get("city", ""))
 
     row_type = get_row_type(row)
-    if row_type in set(TRANSPORT_TYPES) | {"Transfer"}:
+    if row_type in TRANSPORT_TYPES:
         # Import lazily: transport route extraction depends on the common facade,
         # which in turn re-exports this destination module. Lazy import keeps the
         # boundary acyclic at module-import time.
@@ -220,6 +220,18 @@ def destination_cities_for_row(row: dict) -> list[str]:
         origin, destination = get_route_points_for_transport(row)
         add_city(origin)
         add_city(destination)
+    elif row_type == "Transfer":
+        # Local hotel/station/airport transfers should not inject terminal or
+        # property names into trip endpoints. Only enrich transfers that are
+        # genuinely intercity route transport (for example a supplier coach
+        # transfer entered under the generic Transfer type).
+        from itinerary_generation.transport_detection import is_route_transfer
+        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+
+        if is_route_transfer(row):
+            origin, destination = get_route_points_for_transport(row)
+            add_city(origin)
+            add_city(destination)
 
     return cities
 

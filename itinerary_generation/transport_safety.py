@@ -280,6 +280,10 @@ def standardize_private_transfer_phrase(value: str, city: str = "") -> str:
     if re.search(r"\bprivate\s+(?:transfer\s+)?station\s+to\s+hotel\b", lower):
         station = f"{city} Railway Station" if city else "the railway station"
         return f"Private transfer from {station} to your accommodation"
+    if re.search(r"\bprivate\s+(?:transfer\s+)?(?:railway\s+)?station\s+to\s+(?:the\s+)?airport\b", lower):
+        station = f"{city} Railway Station" if city else "the railway station"
+        airport = f"{city} Airport" if city else "the airport"
+        return f"Private transfer from {station} to {airport}"
     if re.search(r"\bprivate\s+(?:transfer\s+)?hotel\s+to\s+station\b", lower):
         station = f"{city} Railway Station" if city else "the railway station"
         return f"Private transfer from your hotel to {station}"

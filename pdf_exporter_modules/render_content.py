@@ -105,12 +105,17 @@ def _has_controlled_classes(element) -> bool:
     return bool(_class_set(element) & CONTROLLED_CLASSES)
 
 
-def _add_controlled_list(story, ul, styles):
+def _add_controlled_list(story, ul, styles, *, spacer_after=7):
     items = ul.find_all("li", recursive=False)
     if not items:
         return
     if not any(_has_controlled_classes(li) for li in items):
-        add_bullets(story, [li_text_with_line_breaks(li) for li in items], styles)
+        add_bullets(
+            story,
+            [li_text_with_line_breaks(li) for li in items],
+            styles,
+            spacer_after=spacer_after,
+        )
         return
     for li in items:
         text = li_text_with_line_breaks(li)
@@ -137,11 +142,27 @@ def _render_controlled_note_block(child, story, styles):
         story.append(KeepTogether(note_story))
 
 
+def _is_renderable_inclusion_element(element) -> bool:
+    classes = set(element.get("class") or [])
+    return bool(
+        _is_divider(element)
+        or "ve-note-block" in classes
+        or "section-title" in classes
+        or "inclusion-entry-title" in classes
+        or "inclusion-entry-detail" in classes
+        or "inclusion-entry-spacer" in classes
+        or element.name == "ul"
+        or "body-text" in classes
+        or _has_controlled_classes(element)
+    )
+
+
 def render_inclusion_category_block(child, story, styles):
     """Render edited/generated inclusion HTML with item-level keep-together."""
 
     entry_story = []
-    for element in child.find_all(recursive=False):
+    elements = list(child.find_all(recursive=False))
+    for index, element in enumerate(elements):
         element_classes = element.get("class") or []
         classes = set(element_classes)
 
@@ -169,7 +190,16 @@ def render_inclusion_category_block(child, story, styles):
         elif element.name == "ul":
             _append_inclusion_entry(story, entry_story)
             entry_story = []
-            _add_controlled_list(story, element, styles)
+            has_following_content = any(
+                _is_renderable_inclusion_element(candidate)
+                for candidate in elements[index + 1:]
+            )
+            _add_controlled_list(
+                story,
+                element,
+                styles,
+                spacer_after=7 if has_following_content else 0,
+            )
         elif "body-text" in element_classes or _has_controlled_classes(element):
             target_story = entry_story or story
             default_style = "body_bold" if "strong-line" in element_classes else "body"

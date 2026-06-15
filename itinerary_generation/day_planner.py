@@ -36,6 +36,7 @@ from itinerary_generation.day_title_planner import (
 from itinerary_generation.titles import create_day_title
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
+from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 from text_polish import polish_title
 
 
@@ -67,8 +68,23 @@ def plan_day(rows: list[dict]) -> DayPlan:
     row_types = [get_row_type(row) for row in rows]
     activity_rows = _activity_rows(rows)
     travel_rows = [row for row in rows if get_row_type(row) in {"Transfer", "Train", "Flight", "Cruise", "Ferry", "Transport"}]
+    has_main_route_transport = any(
+        get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transport"}
+        or (
+            get_row_type(row) == "Transfer"
+            and all(get_route_points_for_transport(row))
+            and not has_airport_departure_transfer([row])
+        )
+        for row in travel_rows
+    )
 
-    if any(rt == "Departure" for rt in row_types) or (travel_rows and not activity_rows and not has_hotel(rows) and has_airport_departure_transfer(rows)):
+    if any(rt == "Departure" for rt in row_types) or (
+        travel_rows
+        and not activity_rows
+        and not has_hotel(rows)
+        and has_airport_departure_transfer(rows)
+        and not has_main_route_transport
+    ):
         return DayPlan("departure_day", _departure_title(city), "")
     if any(rt == "Arrival" for rt in row_types) or (has_hotel(rows) and not activity_rows and has_airport_arrival_transfer(rows)):
         return DayPlan("arrival_day", _arrival_title(city), "")

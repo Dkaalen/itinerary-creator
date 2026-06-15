@@ -213,12 +213,21 @@ def transport_line(row: dict) -> str:
         extras = [item for item in extras if item]
         extras = [item for item in extras if "ticket included" not in item.lower()] + [item for item in extras if "ticket included" in item.lower()]
         extras = merge_compound_inclusions(extras)
+        provisional_notes = [
+            item for item in extras
+            if item.lower().startswith("train timing is provisional")
+        ]
+        extras = [item for item in extras if item not in provisional_notes]
         detail_lines = list(schedule_lines)
         detail = join_detail_parts(extras).strip(" .")
         if detail:
             detail = re.sub(r"\bFull pension Meal plan\b", "full pension meal plan", detail, flags=re.IGNORECASE)
             detail = detail[:1].upper() + detail[1:]
             detail_lines.append(f"{detail}.")
+        for note in provisional_notes:
+            clean_note = note.strip().rstrip(".")
+            if clean_note:
+                detail_lines.append(f"{clean_note}.")
         if detail_lines:
             return f"{title}\n" + "\n".join(detail_lines)
     return title

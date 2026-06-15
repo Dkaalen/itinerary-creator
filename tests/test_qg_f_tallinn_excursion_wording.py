@@ -56,7 +56,8 @@ Day 1	Activity	01/06/2026							Helsinki	Excursion to Tallinn - Round Trip Ferry
     text = _day_text(raw)
 
     assert "exploring the historic Old Town at your own pace" in text
-    assert "guided" not in text.lower()
+    assert "Self-guided time in Tallinn" in text
+    assert "guided tour" not in text.lower()
 
 
 def test_generated_text_repairs_hlesinki_typo():

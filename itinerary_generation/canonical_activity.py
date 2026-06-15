@@ -54,7 +54,7 @@ def _timezone_specific_cruise_time(row: dict) -> str:
 
     source = " ".join(str(row.get(key) or "") for key in ("raw", "original_title", "details", "title"))
     match = re.search(
-        r"\bcruise\s*time\s*:?\s*(?P<s1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<s2>\d{1,2}:\d{2})\s*swedish\s*/\s*(?P<f1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<f2>\d{1,2}:\d{2})(?:\s*finnish)?",
+        r"(?:\bcruise\s*time\s*:?\s*)?(?P<s1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<s2>\d{1,2}:\d{2})\s*swedish\s*/\s*(?P<f1>\d{1,2}:\d{2})\s*[-–—]\s*(?P<f2>\d{1,2}:\d{2})(?:\s*finnish)?",
         source,
         flags=re.IGNORECASE,
     )
@@ -70,6 +70,8 @@ def _important_activity_note(row: dict) -> str:
     """Preserve commercial/safety notes that should not be lost in prose polish."""
 
     source = " ".join(str(row.get(key) or "") for key in ("details", "original_title", "title"))
+    if re.search(r"\bwithout\s+meals?\b", source, flags=re.IGNORECASE):
+        return "Meals are not included with this experience."
     if re.search(r"\b(?:cannot|can not|can't)\s+guarantee\b.*?\bwhales?\b|\bwhale\s+sightings?\s+(?:cannot|can not|can't)\s+be\s+guaranteed\b", source, flags=re.IGNORECASE):
         return "Whale sightings cannot be guaranteed and depend on migration patterns and conditions."
     return ""

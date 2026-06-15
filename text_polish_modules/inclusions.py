@@ -34,6 +34,13 @@ def polish_inclusion_item(value: str, context_title: str = "") -> str:
     if lower.endswith(" is") and len(item.split()) <= 5:
         item = item[:-3].strip()
 
+    item = re.sub(
+        r"\bProfessional authorised Helsinki Guide\b",
+        "Professional authorised Helsinki guide",
+        item,
+        flags=re.IGNORECASE,
+    )
+
     item = dedupe_or_similar(item)
     return item
 

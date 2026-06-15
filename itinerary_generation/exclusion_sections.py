@@ -108,7 +108,11 @@ def _row_specific_not_included_items(row) -> list[str]:
         for key in ["details", "original_title", "title"]
         if str(row.get(key, "") or "").strip()
     )
-    if not re.search(r"\bnot\s+in(?:cl|lc)uded\b|\bexcluded\b|\bto\s+be\s+bought\s+on\s+(?:site|spot)\b|\btickets?\s+to\s+be\s+purchased\s+(?:locally|on\s+site)\b|\bticket\s+counter\b", source, flags=re.IGNORECASE):
+    direct_items: list[str] = []
+    if re.search(r"\bwithout\s+meals?\b", source, flags=re.IGNORECASE):
+        direct_items.append("Meals")
+
+    if not re.search(r"\bnot\s+in(?:cl|lc)uded\b|\bexcluded\b|\bwithout\s+meals?\b|\bto\s+be\s+bought\s+on\s+(?:site|spot)\b|\btickets?\s+to\s+be\s+purchased\s+(?:locally|on\s+site)\b|\bticket\s+counter\b", source, flags=re.IGNORECASE):
         return []
 
     sections: list[str] = []
@@ -127,7 +131,7 @@ def _row_specific_not_included_items(row) -> list[str]:
     for match in re.finditer(r"\b([^\n.;|]*?\b(?:are\s+)?excluded)\b", source, flags=re.IGNORECASE):
         sections.append(match.group(1))
 
-    items: list[str] = []
+    items: list[str] = list(direct_items)
     for section in sections:
         for item in _split_exclusion_phrases(section):
             if item and item not in items:
@@ -185,6 +189,7 @@ def _is_cost_not_included_row(row):
         or "cost not included" in text
         or "price not included" in text
         or "not included" in text
+        or "without meal" in text
         or "to be bought on site" in text
         or "to be bought on spot" in text
         or "ticket counter" in text
