@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Any
 
 from place_aliases import canonicalize_place_name
@@ -70,23 +71,29 @@ _TYPO_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     (r"\badditonal\b", "additional"),
 )
 
+_COMPILED_TYPO_REPLACEMENTS = tuple((re.compile(pattern, flags=re.IGNORECASE), replacement) for pattern, replacement in _TYPO_REPLACEMENTS)
+
+
+@lru_cache(maxsize=8192)
+def _canonicalize_activity_text_cached(value: str) -> str:
+    text = value.replace("\xa0", " ")
+    for pattern, replacement in _COMPILED_TYPO_REPLACEMENTS:
+        text = pattern.sub(replacement, text)
+    return re.sub(r"\s+", " ", text).strip()
+
 
 def canonicalize_activity_text(value: str) -> str:
     """Apply shared activity typo/place cleanup to source/title fragments."""
 
-    text = str(value or "").replace("\xa0", " ")
-    for pattern, replacement in _TYPO_REPLACEMENTS:
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+    return _canonicalize_activity_text_cached(str(value or ""))
 
 
 def canonicalize_activity_route_source(value: str) -> str:
     """Canonicalize route text while preserving line boundaries for timetable parsers."""
 
     text = str(value or "").replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
-    for pattern, replacement in _TYPO_REPLACEMENTS:
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    for pattern, replacement in _COMPILED_TYPO_REPLACEMENTS:
+        text = pattern.sub(replacement, text)
     return "\n".join(re.sub(r"[ \t]+", " ", line).strip() for line in text.split("\n"))
 
 

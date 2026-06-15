@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from image_matcher import build_day_context, candidate_to_payload, scan_image_bank, score_image_for_day
+from image_matcher import build_day_context, candidate_to_payload, score_image_for_day
+from images.scanner import get_image_bank_index
 from images.image_bank import clean_space, image_bank_status_for_paths, normalize_path_key
 
 
@@ -22,7 +23,8 @@ def list_replacement_image_options(city, *, image_bank_scan_paths, allow_default
     city_options = []
     default_options = []
     seen = set()
-    for candidate in scan_image_bank(image_bank_scan_paths):
+    index = get_image_bank_index(image_bank_scan_paths)
+    for candidate in index.candidates_for_city(city, include_defaults=allow_default_options):
         path = Path(candidate.path)
         key = normalize_path_key(path)
         if key in seen:
@@ -47,10 +49,11 @@ def list_replacement_image_options_for_rows(day, rows, limit=30, *, image_bank_s
     status = image_bank_status_for_paths(image_bank_scan_paths)
     if status.get("missing_full_bank"):
         return []
-    candidates = scan_image_bank(image_bank_scan_paths)
-    if not candidates:
+    index = get_image_bank_index(image_bank_scan_paths)
+    if not index.candidates:
         return []
     context = build_day_context(day, rows or [])
+    candidates = index.candidates_for_context(context, include_defaults=allow_default_options)
     scored = []
     seen = set()
     for candidate in candidates:

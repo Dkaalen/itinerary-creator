@@ -45,6 +45,16 @@ _TOKEN_SYNONYMS = {
     "nutshelll": "nutshell",
 }
 
+_SYNONYM_PATTERNS = tuple(
+    (re.compile(rf"\b{re.escape(source)}\b", flags=re.IGNORECASE), replacement)
+    for source, replacement in _TOKEN_SYNONYMS.items()
+)
+_TIME_TOKEN_RE = re.compile(r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b", flags=re.IGNORECASE)
+_DURATION_TOKEN_RE = re.compile(r"\b\d+(?:\.\d+)?\s*(?:hrs?|hours?|minutes?|mins?)\b", flags=re.IGNORECASE)
+_NON_WORD_RE = re.compile(r"[^a-z0-9åäöøæéáíóúýþðàèìòùñçšžœßà-ÿ]+")
+_SPACE_RE = re.compile(r"\s+")
+
+
 
 @dataclass(frozen=True)
 class ActivityTrainingEntry:
@@ -84,23 +94,33 @@ class ActivityTrainingEntry:
         return "activity"
 
 
+@dataclass(frozen=True)
+class _IndexedActivityTrainingEntry:
+    entry: ActivityTrainingEntry
+    city_key: str
+    title_normalized: str
+    title_tokens: frozenset[str]
+
+
 def _ascii_key(value: str) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
     text = text.encode("ascii", "ignore").decode("ascii")
     return text.lower()
 
 
+@lru_cache(maxsize=16384)
 def _normalize_text(value: str) -> str:
     text = str(value or "").replace("\xa0", " ").lower()
-    for source, replacement in _TOKEN_SYNONYMS.items():
-        text = re.sub(rf"\b{re.escape(source)}\b", replacement, text, flags=re.I)
-    text = re.sub(r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b", " ", text, flags=re.I)
-    text = re.sub(r"\b\d+(?:\.\d+)?\s*(?:hrs?|hours?|minutes?|mins?)\b", " ", text, flags=re.I)
-    text = re.sub(r"[^a-z0-9åäöøæéáíóúýþðàèìòùñçšžœßà-ÿ]+", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    for pattern, replacement in _SYNONYM_PATTERNS:
+        text = pattern.sub(replacement, text)
+    text = _TIME_TOKEN_RE.sub(" ", text)
+    text = _DURATION_TOKEN_RE.sub(" ", text)
+    text = _NON_WORD_RE.sub(" ", text)
+    return _SPACE_RE.sub(" ", text).strip()
 
 
-def _tokens(value: str) -> set[str]:
+@lru_cache(maxsize=16384)
+def _tokens(value: str) -> frozenset[str]:
     normalized = _normalize_text(value)
     tokens = {token for token in normalized.split() if len(token) > 2 and token not in _STOPWORDS}
     # Keep multi-word synonym signal as individual tokens too.
@@ -108,7 +128,7 @@ def _tokens(value: str) -> set[str]:
         tokens.add("northern_lights")
     if "base" in tokens and "camp" in tokens:
         tokens.add("base_camp")
-    return tokens
+    return frozenset(tokens)
 
 
 def _field_from_details(details: str, label: str) -> str:
@@ -175,6 +195,54 @@ def activity_training_entries() -> tuple[ActivityTrainingEntry, ...]:
     return tuple(entries)
 
 
+@lru_cache(maxsize=1)
+def _activity_training_index() -> tuple[_IndexedActivityTrainingEntry, ...]:
+    return tuple(
+        _IndexedActivityTrainingEntry(
+            entry=entry,
+            city_key=_normalize_text(entry.city),
+            title_normalized=_normalize_text(entry.title),
+            title_tokens=_tokens(entry.title),
+        )
+        for entry in activity_training_entries()
+    )
+
+
+@lru_cache(maxsize=4096)
+def _match_activity_training_entry_cached(
+    source_text: str,
+    source_city_key: str,
+    source_title_text: str,
+    min_score: float,
+) -> ActivityTrainingEntry | None:
+    title_tokens = _tokens(source_title_text or source_text)
+    source_tokens = _tokens(source_text)
+    if not source_tokens:
+        return None
+
+    best: tuple[float, ActivityTrainingEntry] | None = None
+    for indexed in _activity_training_index():
+        entry = indexed.entry
+        if source_city_key and indexed.city_key and source_city_key != indexed.city_key:
+            continue
+        entry_tokens = indexed.title_tokens
+        if not entry_tokens:
+            continue
+        direct = bool(indexed.title_normalized and (indexed.title_normalized in source_text or source_text in indexed.title_normalized))
+        comparison_tokens = title_tokens or source_tokens
+        overlap = len(entry_tokens & comparison_tokens)
+        recall = overlap / max(len(entry_tokens), 1)
+        precision = overlap / max(len(comparison_tokens), 1)
+        score = 1.0 if direct else (0.72 * recall + 0.28 * precision)
+        # Require an identity anchor so generic labels such as "round-trip ticket"
+        # do not accidentally match a specific product in the same city.
+        has_anchor = bool(entry_tokens & source_tokens & {"northern_lights", "base_camp", "snowmobile", "reindeer", "husky", "santa", "suomenlinna", "fløibanen", "fjord", "cruise", "walking", "korouoma", "ranua", "tallinn", "nutshell"})
+        if score >= min_score and (direct or has_anchor):
+            if best is None or score > best[0]:
+                best = (score, entry)
+    return best[1] if best else None
+
+
 def match_activity_training_entry(
     source: str,
     *,
@@ -194,31 +262,22 @@ def match_activity_training_entry(
     if not source_text:
         return None
     source_city = canonicalize_place_name(city or "")
-    title_tokens = _tokens(source_title or source)
-    source_tokens = _tokens(source_text)
-    if not source_tokens:
-        return None
+    source_city_key = _normalize_text(source_city or city or "")
+    source_title_text = _normalize_text(source_title or source)
+    return _match_activity_training_entry_cached(
+        source_text,
+        source_city_key,
+        source_title_text,
+        float(min_score),
+    )
 
-    best: tuple[float, ActivityTrainingEntry] | None = None
-    for entry in activity_training_entries():
-        if source_city and entry.city and source_city.lower() != entry.city.lower():
-            continue
-        entry_title_norm = _normalize_text(entry.title)
-        entry_tokens = _tokens(entry.title)
-        if not entry_tokens:
-            continue
-        direct = entry_title_norm and (entry_title_norm in source_text or source_text in entry_title_norm)
-        overlap = len(entry_tokens & (title_tokens or source_tokens))
-        recall = overlap / max(len(entry_tokens), 1)
-        precision = overlap / max(len(title_tokens or source_tokens), 1)
-        score = 1.0 if direct else (0.72 * recall + 0.28 * precision)
-        # Require an identity anchor so generic labels such as "round-trip ticket"
-        # do not accidentally match a specific product in the same city.
-        has_anchor = bool(entry_tokens & source_tokens & {"northern_lights", "base_camp", "snowmobile", "reindeer", "husky", "santa", "suomenlinna", "fløibanen", "fjord", "cruise", "walking", "korouoma", "ranua", "tallinn", "nutshell"})
-        if score >= min_score and (direct or has_anchor):
-            if best is None or score > best[0]:
-                best = (score, entry)
-    return best[1] if best else None
+
+def clear_activity_training_cache() -> None:
+    activity_training_entries.cache_clear()
+    _activity_training_index.cache_clear()
+    _match_activity_training_entry_cached.cache_clear()
+    _normalize_text.cache_clear()
+    _tokens.cache_clear()
 
 
 def catalogue_description_for_row(row: dict) -> str:

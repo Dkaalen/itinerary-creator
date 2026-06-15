@@ -10,6 +10,7 @@ from pathlib import Path
 
 from text_polish import polish_title
 from images.image_bank import slugify_filename
+from images.scanner import invalidate_image_bank_cache
 
 
 def save_uploaded_day_image(uploaded_file, city, season, label="", *, image_bank_path, infer_country_for_city):
@@ -30,6 +31,7 @@ def save_uploaded_day_image(uploaded_file, city, season, label="", *, image_bank
         counter += 1
 
     target_path.write_bytes(uploaded_file.getbuffer())
+    invalidate_image_bank_cache(image_bank_path)
     return str(target_path)
 
 

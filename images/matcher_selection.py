@@ -13,7 +13,7 @@ from .matcher_scoring import (
     score_image_for_day,
     season_available_for_context,
 )
-from .scanner import scan_image_bank
+from .scanner import get_image_bank_index
 
 
 def _payload_priority_key(payload: dict | None) -> tuple:
@@ -184,10 +184,11 @@ def select_best_candidate_for_context(
 
 
 def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:
-    candidates = scan_image_bank(image_bank_path)
-    if not candidates:
+    index = get_image_bank_index(image_bank_path)
+    if not index.candidates:
         return None
     context = build_day_context(day, rows)
+    candidates = list(index.candidates_for_context(context))
     return select_best_candidate_for_context(day, context, candidates)
 
 
@@ -197,14 +198,15 @@ def select_day_images(
     used_paths: set[str] | None = None,
 ) -> dict:
     """Select at most one non-reused image for each day in itinerary order."""
-    candidates = scan_image_bank(image_bank_path)
-    if not candidates:
+    index = get_image_bank_index(image_bank_path)
+    if not index.candidates:
         return {day: None for day in (grouped_days or {})}
 
     matches = {}
     used_paths = {str(Path(path).resolve()) for path in (used_paths or set())}
     for day, rows in (grouped_days or {}).items():
         context = build_day_context(day, rows)
+        candidates = list(index.candidates_for_context(context))
         match = select_best_candidate_for_context(day, context, candidates, used_paths)
         matches[day] = match
         if match:

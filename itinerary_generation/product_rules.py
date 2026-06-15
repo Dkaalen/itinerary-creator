@@ -9,9 +9,11 @@ that must use a safe generic title and carry a warning).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import re
 from typing import Iterable, Literal
 
+from itinerary_generation.activity_cache import freeze_activity_row, freeze_activity_values, thaw_activity_row, thaw_activity_values
 from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
 from itinerary_generation.title_routes import _looks_like_norway_in_a_nutshell, _route_label_from_activity_text
 from itinerary_generation.activity_products import fingerprint_activity
@@ -213,9 +215,13 @@ def is_weak_tromso_viewpoint_ticket(row: dict | None = None, *values: object) ->
     return "round trip ticket" in lower and "trom" in lower and not has_explicit_fjellheisen_evidence(row, *values)
 
 
-def find_product_match(row: dict | None = None, *values: object) -> ProductRuleMatch | None:
-    """Return the highest-confidence product match for a row/source text."""
-
+@lru_cache(maxsize=4096)
+def _find_product_match_cached(
+    row_snapshot: tuple[tuple[str, object], ...],
+    values_snapshot: tuple[object, ...],
+) -> ProductRuleMatch | None:
+    row = thaw_activity_row(row_snapshot)
+    values = thaw_activity_values(values_snapshot)
     lower = product_context_lower(row, *values)
     if not lower.strip():
         return None
@@ -258,6 +264,20 @@ def find_product_match(row: dict | None = None, *values: object) -> ProductRuleM
         return _match("korouoma_canyon", title="")
 
     return None
+
+
+def find_product_match(row: dict | None = None, *values: object) -> ProductRuleMatch | None:
+    """Return the highest-confidence product match, cached by source content."""
+
+    return _find_product_match_cached(freeze_activity_row(row), freeze_activity_values(values))
+
+
+def clear_product_rule_cache() -> None:
+    _find_product_match_cached.cache_clear()
+
+
+def product_rule_cache_info():
+    return _find_product_match_cached.cache_info()
 
 
 def product_description(rule_id: str, *, confidence: ProductConfidence = "strong") -> str:

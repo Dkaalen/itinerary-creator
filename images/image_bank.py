@@ -13,7 +13,7 @@ import zipfile
 
 import diagnostics
 
-from images.scanner import coerce_image_bank_paths, scan_image_bank
+from images.scanner import coerce_image_bank_paths, get_image_bank_index, invalidate_image_bank_cache, scan_image_bank
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE_BANK_REPO_URL = "https://github.com/Dkaalen/itinerary-image-bank.git"
@@ -311,10 +311,12 @@ def ensure_runtime_image_bank_status(root: Path | str | None = None) -> dict:
 
     git_status = _fetch_image_bank_with_git(runtime_repo, runtime_bank)
     if git_status.get("ok"):
+        invalidate_image_bank_cache()
         return git_status
 
     zip_status = _fetch_image_bank_with_zip(runtime_repo, runtime_bank)
     if zip_status.get("ok"):
+        invalidate_image_bank_cache()
         zip_status["fallback_from"] = git_status.get("code")
         return zip_status
 
@@ -403,18 +405,14 @@ def image_bank_status_for_paths(paths) -> dict:
     """
 
     scan_paths = _dedupe_existing_paths(coerce_image_bank_paths(paths))
-    candidates = scan_image_bank(scan_paths)
-    destination_candidates = [candidate for candidate in candidates if not _is_default_city(candidate.city)]
-    default_candidates = [candidate for candidate in candidates if _is_default_city(candidate.city)]
+    index = get_image_bank_index(scan_paths)
+    candidates = index.candidates
+    destination_candidates = index.destination_candidates
+    default_candidates = index.defaults
+    destination_paths = list(index.destination_roots)
 
-    destination_paths: list[str] = []
-    for base in scan_paths:
-        base_candidates = scan_image_bank([base])
-        if any(not _is_default_city(candidate.city) for candidate in base_candidates):
-            destination_paths.append(str(base))
-
-    countries = sorted({clean_space(candidate.country) for candidate in destination_candidates if clean_space(candidate.country)})
-    destinations = sorted({clean_space(candidate.city) for candidate in destination_candidates if clean_space(candidate.city)})
+    countries = list(index.countries)
+    destinations = list(index.destinations)
     full_bank_found = bool(destination_candidates)
     default_only = bool(default_candidates) and not full_bank_found
     missing_full_bank = not full_bank_found
@@ -458,7 +456,8 @@ def image_bank_status(root=None) -> dict:
 
 def infer_country_for_city(city, root=None):
     city_key = clean_space(city).lower()
-    for candidate in scan_image_bank(get_image_bank_scan_paths(root)):
+    index = get_image_bank_index(get_image_bank_scan_paths(root))
+    for candidate in index.candidates_for_city(city, include_defaults=False):
         if clean_space(candidate.city).lower() == city_key and candidate.country:
             return candidate.country
     return "Custom"

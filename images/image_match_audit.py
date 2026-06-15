@@ -21,7 +21,7 @@ from images.matcher_scoring import (
     score_image_for_day,
 )
 from images.metadata import ImageCandidate, extract_image_metadata, infer_seasons, infer_themes, tokenize
-from images.scanner import coerce_image_bank_paths, scan_image_bank
+from images.scanner import ImageBankIndex, coerce_image_bank_paths, get_image_bank_index
 
 
 @dataclass(frozen=True)
@@ -90,11 +90,17 @@ def _fallback_candidate_from_path(path_text: str, image_bank_scan_paths) -> Imag
     )
 
 
-def _candidate_for_match(match: dict | None, candidates: list[ImageCandidate], image_bank_scan_paths) -> ImageCandidate | None:
+def _candidate_for_match(
+    match: dict | None,
+    candidates: list[ImageCandidate],
+    image_bank_scan_paths,
+    candidate_lookup: dict[str, ImageCandidate] | None = None,
+) -> ImageCandidate | None:
     path_text = _match_path(match)
     if not path_text:
         return None
-    candidate = _candidate_lookup(candidates).get(_normalize_path_key(path_text))
+    lookup = candidate_lookup if candidate_lookup is not None else _candidate_lookup(candidates)
+    candidate = lookup.get(_normalize_path_key(path_text))
     if candidate:
         return candidate
     return _fallback_candidate_from_path(path_text, image_bank_scan_paths)
@@ -127,6 +133,8 @@ def audit_day_image_match(
     *,
     output_edits: dict | None = None,
     image_bank_scan_paths="image_bank",
+    image_bank_index: ImageBankIndex | None = None,
+    candidate_lookup: dict[str, ImageCandidate] | None = None,
 ) -> tuple[ImageAuditWarning, ...]:
     """Return warnings for one day image selection.
 
@@ -145,8 +153,9 @@ def audit_day_image_match(
     if not path_text:
         return ()
 
-    candidates = scan_image_bank(image_bank_scan_paths)
-    candidate = _candidate_for_match(match, candidates, image_bank_scan_paths)
+    index = image_bank_index or get_image_bank_index(image_bank_scan_paths)
+    candidates = list(index.candidates)
+    candidate = _candidate_for_match(match, candidates, image_bank_scan_paths, candidate_lookup)
     if not candidate:
         if mode == "manual":
             return (
@@ -241,7 +250,9 @@ def audit_day_image_matches(
     image_bank_scan_paths="image_bank",
 ) -> tuple[ImageAuditWarning, ...]:
     warnings: list[ImageAuditWarning] = []
+    index = get_image_bank_index(image_bank_scan_paths)
     status = image_bank_status_for_paths(image_bank_scan_paths)
+    candidate_lookup = _candidate_lookup(list(index.candidates))
     image_matches = normalize_day_image_matches(image_matches, image_bank_status=status)
     if grouped_days and status.get("missing_full_bank"):
         warnings.append(ImageAuditWarning(
@@ -259,5 +270,7 @@ def audit_day_image_matches(
             (image_matches or {}).get(day),
             output_edits=output_edits,
             image_bank_scan_paths=image_bank_scan_paths,
+            image_bank_index=index,
+            candidate_lookup=candidate_lookup,
         ))
     return tuple(warnings)

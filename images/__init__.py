@@ -34,7 +34,14 @@ from .metadata import (
     normalize_keyword,
     tokenize,
 )
-from .scanner import _coerce_image_bank_paths, coerce_image_bank_paths, scan_image_bank
+from .scanner import (
+    ImageBankIndex,
+    _coerce_image_bank_paths,
+    coerce_image_bank_paths,
+    get_image_bank_index,
+    invalidate_image_bank_cache,
+    scan_image_bank,
+)
 from .preview_image_contract import day_image_matches_from_preview_html, merge_preview_image_contract
 
 __all__ = [
@@ -46,6 +53,7 @@ __all__ = [
     "WINTER_MONTHS",
     "ImageAuditWarning",
     "ImageCandidate",
+    "ImageBankIndex",
     "_candidate_destination_matches",
     "_candidate_to_payload",
     "_coerce_image_bank_paths",
@@ -70,6 +78,8 @@ __all__ = [
     "image_bank_status",
     "image_bank_status_for_paths",
     "image_bank_status_summary",
+    "get_image_bank_index",
+    "invalidate_image_bank_cache",
     "day_image_matches_from_preview_html",
     "merge_preview_image_contract",
     "infer_season_from_rows",
