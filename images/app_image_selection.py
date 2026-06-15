@@ -4,6 +4,7 @@ from images.image_bank import (
     APP_ROOT,
     clean_space,
     connect_remote_image_bank_if_missing as _connect_remote_image_bank_if_missing,
+    destination_requests_from_rows,
     esc,
     ensure_runtime_image_bank as _ensure_runtime_image_bank,
     ensure_runtime_image_bank_status as _ensure_runtime_image_bank_status,
@@ -13,6 +14,7 @@ from images.image_bank import (
     image_bank_status as _image_bank_status,
     infer_country_for_city as _infer_country_for_city,
     normalize_path_key,
+    prefetch_image_bank_for_rows as _prefetch_image_bank_for_rows,
     slugify_filename,
 )
 from images.image_overrides import (
@@ -46,20 +48,24 @@ from images.image_match_audit import audit_day_image_matches as _audit_day_image
 
 
 
-def ensure_runtime_image_bank():
-    return _ensure_runtime_image_bank(APP_ROOT)
+def ensure_runtime_image_bank(required_destinations=None):
+    return _ensure_runtime_image_bank(APP_ROOT, required_destinations=required_destinations)
 
 
-def ensure_runtime_image_bank_status():
-    return _ensure_runtime_image_bank_status(APP_ROOT)
+def ensure_runtime_image_bank_status(required_destinations=None):
+    return _ensure_runtime_image_bank_status(APP_ROOT, required_destinations=required_destinations)
 
 
-def connect_remote_image_bank_if_missing():
-    return _connect_remote_image_bank_if_missing(APP_ROOT)
+def connect_remote_image_bank_if_missing(required_destinations=None):
+    return _connect_remote_image_bank_if_missing(APP_ROOT, required_destinations=required_destinations)
 
 
-def image_bank_status():
-    return _image_bank_status(APP_ROOT)
+def image_bank_status(required_destinations=None):
+    return _image_bank_status(APP_ROOT, required_destinations=required_destinations)
+
+
+def prefetch_image_bank_for_rows(rows_or_grouped_days):
+    return _prefetch_image_bank_for_rows(rows_or_grouped_days, APP_ROOT)
 
 def get_image_bank_paths():
     return _get_image_bank_paths(APP_ROOT)

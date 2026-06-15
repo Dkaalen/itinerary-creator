@@ -13,8 +13,8 @@ from app_modules.export_actions import (
     visual_editor_export_commit_ready,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
-from app_modules.workflow_state import session_state_snapshot
-from images.app_image_selection import image_bank_status
+from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
+from images.app_image_selection import destination_requests_from_rows, image_bank_status
 from ui.picture_workflow import pictures_are_added
 from itinerary_generation.qa_report import (
     build_qa_report,
@@ -192,7 +192,8 @@ def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
         return
 
-    current_image_status = image_bank_status()
+    required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
+    current_image_status = image_bank_status(required_destinations)
     commit_ready = visual_editor_export_commit_ready()
     image_review_errors = _current_image_review_errors()
     snapshot = _session_state_snapshot()

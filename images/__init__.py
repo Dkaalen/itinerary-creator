@@ -1,7 +1,16 @@
 """Image helpers for the itinerary app."""
 
 from .diagnostics import format_match_for_debug, get_image_bank_diagnostics, image_bank_debug_payload, image_bank_status_summary
-from .image_bank import connect_remote_image_bank_if_missing, ensure_runtime_image_bank, ensure_runtime_image_bank_status, image_bank_status, image_bank_status_for_paths
+from .image_bank import (
+    connect_remote_image_bank_if_missing,
+    destination_requests_from_rows,
+    ensure_runtime_image_bank,
+    ensure_runtime_image_bank_status,
+    image_bank_status,
+    image_bank_status_for_paths,
+    prefetch_image_bank_for_rows,
+)
+from .remote_distribution import DestinationRequest, ensure_destination_packs, image_bank_manifest_url
 from .fallback import _is_global_default_candidate, _score_default_candidate, is_global_default_candidate, score_default_candidate
 from .matcher import (
     _candidate_destination_matches,
@@ -54,6 +63,7 @@ __all__ = [
     "ImageAuditWarning",
     "ImageCandidate",
     "ImageBankIndex",
+    "DestinationRequest",
     "_candidate_destination_matches",
     "_candidate_to_payload",
     "_coerce_image_bank_paths",
@@ -68,20 +78,24 @@ __all__ = [
     "candidate_to_payload",
     "city_variants",
     "connect_remote_image_bank_if_missing",
+    "destination_requests_from_rows",
     "coerce_image_bank_paths",
     "extract_image_metadata",
     "ensure_runtime_image_bank",
     "ensure_runtime_image_bank_status",
+    "ensure_destination_packs",
     "format_match_for_debug",
     "get_image_bank_diagnostics",
     "image_bank_debug_payload",
     "image_bank_status",
     "image_bank_status_for_paths",
     "image_bank_status_summary",
+    "image_bank_manifest_url",
     "get_image_bank_index",
     "invalidate_image_bank_cache",
     "day_image_matches_from_preview_html",
     "merge_preview_image_contract",
+    "prefetch_image_bank_for_rows",
     "infer_season_from_rows",
     "infer_seasons",
     "infer_themes",

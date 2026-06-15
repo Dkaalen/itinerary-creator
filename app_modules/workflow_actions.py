@@ -28,6 +28,7 @@ from app_modules.workflow_state import (
 )
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
+from images.image_bank import prefetch_image_bank_for_rows
 from images.day_image_selection import normalize_day_image_matches
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import (
@@ -85,6 +86,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     state["html_path"] = save_html_file(state["itinerary_html"])
     state["generation_duplicate_count"] = duplicate_count
     state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
+    state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
     stage = set_workflow_stage(state, "edit")
 
     return WorkflowActionResult(
@@ -148,6 +150,7 @@ def load_project(
     state["itinerary_html"] = build_itinerary_html(edited_rows, edited_grouped_days, loaded_edits)
     state["preview_signature"] = make_render_signature(parsed_rows, loaded_edits)
     state["html_path"] = save_html_file(state["itinerary_html"])
+    state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
     stage = set_workflow_stage(state, "pictures" if pictures_are_added(loaded_edits) else "edit")
 
     return WorkflowActionResult(

@@ -1,6 +1,6 @@
 """Image-bank path and filename helpers."""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import html
 import os
 import re
@@ -9,10 +9,19 @@ import subprocess
 import tempfile
 import urllib.error
 import urllib.request
+import uuid
 import zipfile
 
 import diagnostics
 
+from images.remote_distribution import (
+    DestinationRequest,
+    active_distribution_bank,
+    destination_requests_from_rows,
+    ensure_destination_packs,
+    image_bank_manifest_url,
+    schedule_destination_prefetch,
+)
 from images.scanner import coerce_image_bank_paths, get_image_bank_index, invalidate_image_bank_cache, scan_image_bank
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +58,12 @@ def _candidate_external_image_bank_paths(root: Path) -> list[Path]:
     env_value = clean_space(os.environ.get("ITINERARY_IMAGE_BANK_FULL", ""))
     if env_value:
         paths.append(Path(env_value).expanduser())
+
+    # Destination-specific release packs are the preferred runtime source.
+    # They are versioned and activated atomically by remote_distribution.py.
+    active_distribution = active_distribution_bank(root)
+    if active_distribution is not None:
+        paths.append(active_distribution)
 
     # GitHub/deployment submodule layout.
     paths.append(root / "itinerary-image-bank" / "image_bank_full")
@@ -141,6 +156,7 @@ def _setup_status(ok: bool, code: str, message: str, *, path: Path | None = None
         "repo_url": image_bank_repo_url(),
         "branch": image_bank_repo_branch(),
         "zip_url": _repo_zip_url(),
+        "manifest_url": image_bank_manifest_url(),
         "bootstrap_allowed": _runtime_bootstrap_allowed(),
         "method": method,
         "error": error,
@@ -197,14 +213,30 @@ def _fetch_image_bank_with_git(runtime_repo: Path, runtime_bank: Path) -> dict:
     )
 
 
-def _find_extracted_image_bank(extract_root: Path) -> Path | None:
-    direct = extract_root / "image_bank_full"
-    if _valid_image_bank(direct):
-        return direct
-    for candidate in extract_root.rglob("image_bank_full"):
-        if _valid_image_bank(candidate):
-            return candidate
-    return None
+def _extract_full_bank_archive(zip_path: Path, staging_repo: Path) -> int:
+    """Safely extract only image_bank_full files into a staged runtime repo."""
+
+    image_count = 0
+    with zipfile.ZipFile(zip_path) as archive:
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            member = PurePosixPath(info.filename.replace("\\", "/"))
+            if member.is_absolute() or ".." in member.parts:
+                raise RuntimeError(f"Unsafe path in full image-bank archive: {info.filename!r}")
+            try:
+                bank_index = member.parts.index("image_bank_full")
+            except ValueError:
+                continue
+            relative_parts = member.parts[bank_index:]
+            if Path(relative_parts[-1]).suffix.lower() not in {".webp", ".jpg", ".jpeg", ".png", ".avif"}:
+                continue
+            target = staging_repo.joinpath(*relative_parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(info, "r") as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output, length=1024 * 1024)
+            image_count += 1
+    return image_count
 
 
 def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
@@ -223,7 +255,6 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
     with tempfile.TemporaryDirectory(prefix="image-bank-zip-") as tmp_text:
         tmp = Path(tmp_text)
         zip_path = tmp / "image-bank.zip"
-        extract_root = tmp / "extract"
         try:
             urllib.request.urlretrieve(zip_url, zip_path)
         except (OSError, urllib.error.URLError, ValueError) as error:
@@ -235,41 +266,41 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
                 method="zip",
             )
 
+        staging_repo = Path(tempfile.mkdtemp(prefix=".image-bank-full-", dir=runtime_repo.parent))
         try:
-            extract_root.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(zip_path) as archive:
-                archive.extractall(extract_root)
+            image_count = _extract_full_bank_archive(zip_path, staging_repo)
+            staged_bank = staging_repo / "image_bank_full"
+            if image_count <= 0 or not _valid_image_bank(staged_bank):
+                return _setup_status(
+                    False,
+                    "zip_missing_image_bank_full",
+                    "Downloaded ZIP did not contain image_bank_full with supported images.",
+                    method="zip",
+                )
+
+            backup = runtime_repo.with_name(f".{runtime_repo.name}.backup-{uuid.uuid4().hex}")
+            if runtime_repo.exists():
+                os.replace(runtime_repo, backup)
+            try:
+                os.replace(staging_repo, runtime_repo)
+            except Exception:
+                if backup.exists() and not runtime_repo.exists():
+                    os.replace(backup, runtime_repo)
+                raise
+            finally:
+                if backup.exists():
+                    shutil.rmtree(backup, ignore_errors=True)
         except (OSError, zipfile.BadZipFile, RuntimeError) as error:
             return _setup_status(
                 False,
                 "zip_extract_failed",
-                "Could not extract the image bank ZIP from GitHub.",
+                "Could not safely extract and install the image bank ZIP from GitHub.",
                 error=f"{type(error).__name__}: {error}",
                 method="zip",
             )
-
-        extracted_bank = _find_extracted_image_bank(extract_root)
-        if extracted_bank is None:
-            return _setup_status(
-                False,
-                "zip_missing_image_bank_full",
-                "Downloaded ZIP did not contain image_bank_full with WebP images.",
-                method="zip",
-            )
-
-        try:
-            if runtime_repo.exists():
-                shutil.rmtree(runtime_repo)
-            runtime_repo.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(extracted_bank, runtime_bank)
-        except OSError as error:
-            return _setup_status(
-                False,
-                "zip_install_failed",
-                "Downloaded image bank could not be installed into runtime storage.",
-                error=f"{type(error).__name__}: {error}",
-                method="zip",
-            )
+        finally:
+            if staging_repo.exists():
+                shutil.rmtree(staging_repo, ignore_errors=True)
 
     if _valid_image_bank(runtime_bank):
         return _setup_status(True, "fetched_zip", "Image bank connected from GitHub using ZIP download.", path=runtime_bank, method="zip")
@@ -277,19 +308,24 @@ def _fetch_image_bank_with_zip(runtime_repo: Path, runtime_bank: Path) -> dict:
     return _setup_status(False, "zip_install_missing_after_copy", "ZIP image bank install finished, but image_bank_full is missing.", method="zip")
 
 
-def ensure_runtime_image_bank_status(root: Path | str | None = None) -> dict:
+def ensure_runtime_image_bank_status(
+    root: Path | str | None = None,
+    required_destinations=None,
+) -> dict:
     """Explicitly fetch/update the runtime image bank and return diagnostics.
 
     The image bank remains a separate repository.  This connector installs a
     runtime/cache copy of Dkaalen/itinerary-image-bank/image_bank_full when the
-    deployed app cannot see a mounted local copy.  It tries git first, then a
-    GitHub ZIP download fallback for environments where git is unavailable.
+    deployed app cannot see a mounted local copy. For a known itinerary it
+    prefers destination release packs, then keeps git and the full repository
+    ZIP as compatibility fallbacks.
     """
 
     root = Path(root) if root is not None else APP_ROOT
+    destination_requests = destination_requests_from_rows(required_destinations)
     runtime_repo, runtime_bank = _runtime_bank_paths(root)
 
-    if _valid_image_bank(runtime_bank):
+    if not destination_requests and _valid_image_bank(runtime_bank):
         return _setup_status(True, "already_available", "Runtime image bank is already connected.", path=runtime_bank, method="existing")
 
     if not _runtime_bootstrap_allowed():
@@ -309,23 +345,71 @@ def ensure_runtime_image_bank_status(root: Path | str | None = None) -> dict:
             error=f"{type(error).__name__}: {error}",
         )
 
+    # Preferred path: fetch only the destinations used by this itinerary from
+    # the release manifest.  The legacy full-repository path remains as a safe
+    # fallback for older deployments and manifest outages.
+    distribution_status = None
+    if destination_requests:
+        try:
+            distribution_status = ensure_destination_packs(root, destination_requests)
+            should_refresh_manifest = bool(
+                distribution_status.get("manifest_stale")
+                or distribution_status.get("unresolved_destinations")
+                or any(
+                    "checksum mismatch" in str(error).casefold()
+                    for error in (distribution_status.get("errors") or [])
+                )
+            )
+            if not distribution_status.get("ok") and should_refresh_manifest:
+                refreshed_status = ensure_destination_packs(
+                    root,
+                    destination_requests,
+                    force_manifest_refresh=True,
+                )
+                refreshed_status["initial_attempt"] = distribution_status
+                distribution_status = refreshed_status
+        except Exception as error:
+            distribution_status = {
+                "ok": False,
+                "code": "destination_pack_exception",
+                "message": "Destination image packs could not be prepared; full-bank fallback will be attempted.",
+                "method": "destination_packs",
+                "error": f"{type(error).__name__}: {error}",
+                "manifest_url": image_bank_manifest_url(),
+            }
+        if distribution_status.get("ok"):
+            invalidate_image_bank_cache()
+            return distribution_status
+
     git_status = _fetch_image_bank_with_git(runtime_repo, runtime_bank)
     if git_status.get("ok"):
         invalidate_image_bank_cache()
+        if distribution_status:
+            git_status["fallback_from"] = distribution_status.get("code")
+            git_status["distribution_error"] = distribution_status.get("error", "")
         return git_status
 
     zip_status = _fetch_image_bank_with_zip(runtime_repo, runtime_bank)
     if zip_status.get("ok"):
         invalidate_image_bank_cache()
         zip_status["fallback_from"] = git_status.get("code")
+        if distribution_status:
+            zip_status["distribution_fallback_from"] = distribution_status.get("code")
+            zip_status["distribution_error"] = distribution_status.get("error", "")
         return zip_status
 
     zip_status["fallback_from"] = git_status.get("code")
     zip_status["git_error"] = git_status.get("error", "")
+    if distribution_status:
+        zip_status["distribution_fallback_from"] = distribution_status.get("code")
+        zip_status["distribution_error"] = distribution_status.get("error", "")
     return zip_status
 
 
-def connect_remote_image_bank_if_missing(root: Path | str | None = None) -> dict:
+def connect_remote_image_bank_if_missing(
+    root: Path | str | None = None,
+    required_destinations=None,
+) -> dict:
     """Connect the separate remote image-bank repo when no full bank is visible.
 
     This is app-facing: it may perform network work, but only when called by an
@@ -334,21 +418,22 @@ def connect_remote_image_bank_if_missing(root: Path | str | None = None) -> dict
     """
 
     root = Path(root) if root is not None else APP_ROOT
-    current = image_bank_status(root)
-    if current.get("full_bank_found"):
+    requests = destination_requests_from_rows(required_destinations)
+    current = image_bank_status(root, required_destinations=requests)
+    if current.get("required_destinations_ready", current.get("full_bank_found")):
         current["setup_status"] = _setup_status(True, "already_connected", "Full destination image bank is already connected.", path=Path(current.get("source_path") or ""), method="existing")
         return current
 
-    setup = ensure_runtime_image_bank_status(root)
-    updated = image_bank_status(root)
+    setup = ensure_runtime_image_bank_status(root, required_destinations=requests)
+    updated = image_bank_status(root, required_destinations=requests)
     updated["setup_status"] = setup
     return updated
 
 
-def ensure_runtime_image_bank(root: Path | str | None = None) -> Path | None:
+def ensure_runtime_image_bank(root: Path | str | None = None, required_destinations=None) -> Path | None:
     """Compatibility wrapper returning only the fetched path when setup succeeds."""
 
-    status = ensure_runtime_image_bank_status(root)
+    status = ensure_runtime_image_bank_status(root, required_destinations=required_destinations)
     return Path(status["path"]) if status.get("ok") and status.get("path") else None
 
 
@@ -431,6 +516,7 @@ def image_bank_status_for_paths(paths) -> dict:
         "repo_url": image_bank_repo_url(),
         "branch": image_bank_repo_branch(),
         "zip_url": _repo_zip_url(),
+        "manifest_url": image_bank_manifest_url(),
         "full_bank_found": full_bank_found,
         "using_full_destination_bank": full_bank_found,
         "missing_full_bank": missing_full_bank,
@@ -447,11 +533,53 @@ def image_bank_status_for_paths(paths) -> dict:
     }
 
 
-def image_bank_status(root=None) -> dict:
+def _destination_coverage(index, requests: list[DestinationRequest]) -> tuple[list[str], list[str]]:
+    covered: list[str] = []
+    missing: list[str] = []
+    for request in requests:
+        candidates = list(index.candidates_for_city(request.destination, include_defaults=False))
+        if request.country:
+            country_key = clean_space(request.country).casefold()
+            candidates = [candidate for candidate in candidates if clean_space(candidate.country).casefold() == country_key]
+        (covered if candidates else missing).append(request.key)
+    return covered, missing
+
+
+def image_bank_status(root=None, required_destinations=None) -> dict:
     """Return operational image-bank status for diagnostics and quality gates."""
 
     root = Path(root) if root is not None else APP_ROOT
-    return image_bank_status_for_paths(get_image_bank_paths(root))
+    status = image_bank_status_for_paths(get_image_bank_paths(root))
+    requests = destination_requests_from_rows(required_destinations)
+    if not requests:
+        status["required_destinations_ready"] = bool(status.get("full_bank_found"))
+        status["required_destinations"] = []
+        status["covered_destinations"] = []
+        status["missing_destinations"] = []
+        return status
+
+    index = get_image_bank_index(get_image_bank_paths(root))
+    covered, missing = _destination_coverage(index, requests)
+    status["required_destinations"] = [request.key for request in requests]
+    status["covered_destinations"] = covered
+    status["missing_destinations"] = missing
+    status["required_destinations_ready"] = not missing
+    if missing:
+        status["blocking_message"] = (
+            "Destination pictures are not ready for: " + ", ".join(missing) + ". "
+            "The app will download only these destination packs from the separate image bank."
+        )
+        status["warnings"] = [status["blocking_message"]]
+    return status
+
+
+def prefetch_image_bank_for_rows(rows_or_grouped_days, root=None) -> bool:
+    """Start destination-pack prefetch after parsing without blocking the UI."""
+
+    root = Path(root) if root is not None else APP_ROOT
+    if not _runtime_bootstrap_allowed():
+        return False
+    return schedule_destination_prefetch(root, rows_or_grouped_days)
 
 
 def infer_country_for_city(city, root=None):

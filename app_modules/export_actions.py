@@ -18,6 +18,7 @@ from app_modules.validation_gate import block_generation, render_blocking_issues
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state
 from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
+    destination_requests_from_rows,
     get_day_image_crop_focus,
     image_bank_status,
     select_day_images_with_overrides,
@@ -114,9 +115,13 @@ def create_pdf_from_current_preview() -> bool:
         return False
 
     image_grouped_days = _image_grouped_days()
-    current_image_bank_status = image_bank_status()
-    if image_grouped_days and current_image_bank_status.get("missing_full_bank"):
-        current_image_bank_status = connect_remote_image_bank_if_missing()
+    required_destinations = destination_requests_from_rows(image_grouped_days)
+    current_image_bank_status = image_bank_status(required_destinations)
+    if image_grouped_days and not current_image_bank_status.get(
+        "required_destinations_ready",
+        not current_image_bank_status.get("missing_full_bank"),
+    ):
+        current_image_bank_status = connect_remote_image_bank_if_missing(required_destinations)
     if not image_bank_is_ready_for_client_pictures(current_image_bank_status):
         clear_pdf_artifact("Image bank missing")
         st.error(current_image_bank_status.get("blocking_message") or "PDF export stopped because the real destination image bank is missing.")
@@ -128,7 +133,7 @@ def create_pdf_from_current_preview() -> bool:
     )
     preview_image_matches = day_image_matches_from_preview_html(st.session_state.get("itinerary_html", ""))
     image_matches = merge_preview_image_contract(selected_image_matches, preview_image_matches)
-    current_image_bank_status = image_bank_status()
+    current_image_bank_status = image_bank_status(required_destinations)
 
     current_pdf_signature = st.session_state.get("preview_signature")
     pdf_is_current = bool(st.session_state.get("pdf_bytes")) and st.session_state.get("pdf_signature") == current_pdf_signature

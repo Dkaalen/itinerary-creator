@@ -40,12 +40,14 @@ from app_modules.workflow_actions import (
     retry_image_bank_connection,
 )
 from app_modules.workflow_state import (
+    image_grouped_days_from_state,
     session_stage_from_state,
     set_workflow_stage,
 )
 from images.app_image_selection import (
     audit_day_image_matches,
     connect_remote_image_bank_if_missing,
+    destination_requests_from_rows,
     image_bank_status,
     select_day_images_with_overrides,
 )
@@ -243,10 +245,25 @@ def _render_document_editor(*, pictures_active: bool) -> None:
 
 
 
+def _current_image_bank_requests():
+    return destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
+
+
+def _current_image_bank_status() -> dict:
+    return image_bank_status(_current_image_bank_requests())
+
+
+def _connect_current_image_bank() -> dict:
+    return connect_remote_image_bank_if_missing(_current_image_bank_requests())
+
+
 def _image_status_notice() -> None:
-    status = image_bank_status()
+    status = _current_image_bank_status()
     if status.get("full_bank_found"):
-        st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available.")
+        covered = len(status.get("covered_destinations", []))
+        required = len(status.get("required_destinations", []))
+        suffix = f" across {covered}/{required} itinerary destinations" if required else ""
+        st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}.")
     else:
         st.error(status.get("blocking_message") or "Full destination image bank is missing.")
         st.caption("Default pictures are fallback placeholders only. They are not approved for final client output unless explicitly allowed.")
@@ -258,7 +275,7 @@ def _image_bank_gateway_is_blocking(result: dict | None) -> bool:
 
 def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
     result = result or st.session_state.get("image_bank_gateway") or {}
-    status = result.get("status") if isinstance(result.get("status"), dict) else image_bank_status()
+    status = result.get("status") if isinstance(result.get("status"), dict) else _current_image_bank_status()
     setup_status = result.get("setup_status") if isinstance(result.get("setup_status"), dict) else status.get("setup_status", {})
     message = result.get("message") or status.get("blocking_message") or "Full destination image bank is missing."
 
@@ -277,15 +294,20 @@ def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
                 "code": setup_status.get("code", ""),
                 "method": setup_status.get("method", ""),
                 "repo_url": setup_status.get("repo_url", status.get("repo_url", "")),
+                "manifest_url": setup_status.get("manifest_url", status.get("manifest_url", "")),
                 "zip_url": setup_status.get("zip_url", status.get("zip_url", "")),
                 "error": setup_status.get("error", ""),
                 "git_error": setup_status.get("git_error", ""),
+                "requested_destinations": setup_status.get("requested_destinations", status.get("required_destinations", [])),
+                "installed_destinations": setup_status.get("installed_destinations", []),
+                "unresolved_destinations": setup_status.get("unresolved_destinations", []),
+                "download_errors": setup_status.get("errors", []),
                 "paths": status.get("paths", []),
             })
 
     if st.button("Retry image-bank connection", use_container_width=True):
-        with st.spinner("Connecting the separate itinerary-image-bank repository…"):
-            retry = retry_image_bank_connection(st.session_state, image_bank_status, connect_remote_image_bank_if_missing)
+        with st.spinner("Preparing the required destination image packs…"):
+            retry = retry_image_bank_connection(st.session_state, _current_image_bank_status, _connect_current_image_bank)
         if retry.ok:
             st.success("Image bank connected. Click Add pictures again to select destination images.")
         st.rerun()
@@ -294,8 +316,8 @@ def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
 def _activate_picture_stage() -> bool:
     result = enter_picture_stage(
         st.session_state,
-        status_func=image_bank_status,
-        connect_func=connect_remote_image_bank_if_missing,
+        status_func=_current_image_bank_status,
+        connect_func=_connect_current_image_bank,
         select_images_func=select_day_images_with_overrides,
         audit_images_func=audit_day_image_matches,
         rebuild_preview_func=rebuild_current_preview,
@@ -341,7 +363,7 @@ def render_edit_page(app_version: str) -> None:
                 st.rerun()
         with right:
             if st.button("Add pictures", type="primary", use_container_width=True):
-                with st.spinner("Finding best images…"):
+                with st.spinner("Preparing destination pictures and finding the best matches…"):
                     _activate_picture_stage()
                 st.rerun()
         return
@@ -367,8 +389,8 @@ def render_picture_page(app_version: str) -> None:
     _render_app_header(app_version, stage="pictures")
     _render_stage_actions("pictures")
     render_pdf_download_station(location="top")
-    status = image_bank_status()
-    if status.get("missing_full_bank"):
+    status = _current_image_bank_status()
+    if not status.get("required_destinations_ready", not status.get("missing_full_bank")):
         st.session_state["image_bank_gateway"] = {
             "ready": False,
             "status": status,
@@ -390,8 +412,8 @@ def render_export_page(app_version: str) -> None:
     _render_app_header(app_version, stage="export")
     _render_stage_actions("export")
     render_pdf_download_station(location="top")
-    status = image_bank_status()
-    if status.get("missing_full_bank"):
+    status = _current_image_bank_status()
+    if not status.get("required_destinations_ready", not status.get("missing_full_bank")):
         st.session_state["image_bank_gateway"] = {
             "ready": False,
             "status": status,

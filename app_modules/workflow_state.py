@@ -67,6 +67,7 @@ RESET_PROJECT_KEYS = (
     "app_stage",
     "image_bank_status",
     "image_bank_gateway",
+    "image_bank_prefetch_started",
     "image_review_warning_count",
     "image_review_error_count",
     "generation_duplicate_count",

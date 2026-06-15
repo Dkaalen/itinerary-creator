@@ -31,6 +31,8 @@ def image_bank_is_ready_for_client_pictures(status: Mapping[str, Any] | None) ->
     """Return True only when a real destination image bank is available."""
 
     status = status or {}
+    if "required_destinations_ready" in status:
+        return bool(status.get("required_destinations_ready"))
     return bool(status.get("full_bank_found") and not status.get("missing_full_bank"))
 
 
