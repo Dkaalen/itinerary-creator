@@ -46,9 +46,17 @@ def is_likely_service_text(value: str) -> bool:
 
 
 def normalize_place_text(value: str) -> str:
-    """Replace known place aliases inside free text while preserving other text."""
+    """Replace known place aliases inside free text while preserving other text.
 
-    text = str(value or "")
+    Keep this public wrapper permissive for legacy non-string callers. The
+    normalized string-only core is safe to cache.
+    """
+
+    return _normalize_place_text_cached(str(value or ""))
+
+
+@lru_cache(maxsize=8192)
+def _normalize_place_text_cached(text: str) -> str:
     if not text:
         return text
 

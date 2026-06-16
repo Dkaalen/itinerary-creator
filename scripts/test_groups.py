@@ -59,6 +59,7 @@ FAST_TESTS = (
     "tests/test_image_match_audit.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
+    "tests/test_patch_text_cleanup_caching.py",
 )
 
 PARSER_TESTS = (
@@ -72,6 +73,7 @@ PARSER_TESTS = (
     "tests/test_train_details.py",
     "tests/test_commercial_status_helpers.py",
     "tests/test_content_validator_scoping.py",
+    "tests/test_patch_text_cleanup_caching.py",
 )
 
 ACTIVITY_TESTS = (
@@ -132,6 +134,8 @@ ARCHITECTURE_TESTS = (
     "tests/test_patch_ih2_group_tour_domain.py",
     "tests/test_patch_ih3_iceland_group_tour_parsing.py",
     "tests/test_patch_ih4_group_tour_rendering.py",
+    "tests/test_patch_text_cleanup_caching.py",
+    "tests/test_patch_text_cleanup_performance.py",
 )
 
 EDITOR_TESTS = (

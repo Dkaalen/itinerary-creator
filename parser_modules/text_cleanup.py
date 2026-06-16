@@ -1,6 +1,7 @@
 """Shared parser text cleanup helpers."""
 
 import re
+from functools import lru_cache
 
 import diagnostics
 from place_aliases import normalize_place_text
@@ -102,6 +103,12 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\b4Star\b", "4 Star"),
     (r"\b3Star\b", "3 Star"),
 ]
+
+
+COMPILED_COMMON_TEXT_REPLACEMENTS = tuple(
+    (re.compile(pattern, re.IGNORECASE), replacement)
+    for pattern, replacement in COMMON_TEXT_REPLACEMENTS
+)
 
 
 SECTION_BOUNDARY_PATTERNS = (
@@ -220,12 +227,21 @@ SUSPICIOUS_FRAGMENTS = [
 
 
 def fix_common_text(value):
-    """Silently fixes small recurring spelling/capitalization issues in pasted itineraries."""
+    """Silently fix recurring spelling/capitalization issues in pasted itineraries.
 
-    text = repair_supplier_section_boundaries(str(value or ""))
+    The public wrapper remains permissive for legacy callers that pass values
+    other than strings. Only the canonical string pipeline is cached.
+    """
 
-    for pattern, replacement in COMMON_TEXT_REPLACEMENTS:
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    return _fix_common_text_cached(str(value or ""))
+
+
+@lru_cache(maxsize=8192)
+def _fix_common_text_cached(value: str) -> str:
+    text = repair_supplier_section_boundaries(value)
+
+    for pattern, replacement in COMPILED_COMMON_TEXT_REPLACEMENTS:
+        text = pattern.sub(replacement, text)
 
     text = normalize_place_text(text)
     text = polish_client_text(text)

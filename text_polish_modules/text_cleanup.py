@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 
 def clean_space(value: str) -> str:
@@ -58,9 +59,15 @@ CASE_REPLACEMENTS = [
 ]
 
 
+COMPILED_CASE_REPLACEMENTS = tuple(
+    (re.compile(pattern, re.IGNORECASE), replacement)
+    for pattern, replacement in (*CASE_REPLACEMENTS, *PROPER_NOUN_REPLACEMENTS)
+)
+
+
 def _apply_case_replacements(text: str) -> str:
-    for pattern, replacement in CASE_REPLACEMENTS + PROPER_NOUN_REPLACEMENTS:
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    for pattern, replacement in COMPILED_CASE_REPLACEMENTS:
+        text = pattern.sub(replacement, text)
     return text
 
 
@@ -96,6 +103,7 @@ def remove_duplicate_service_phrase(text: str) -> str:
     return clean_space(text)
 
 
+@lru_cache(maxsize=8192)
 def _polish_text_fragment(text: str) -> str:
     """Polish one text fragment without intentionally preserving line breaks."""
     text = _apply_case_replacements(text)
