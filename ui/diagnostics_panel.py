@@ -52,9 +52,10 @@ def render_itinerary_health_report_panel(parsed_rows=None, validation_report=Non
             "route coverage, and validation warnings before exporting."
         )
 
-        metric_a, metric_b, metric_c = st.columns(3)
+        metric_a, metric_b, metric_c, metric_d = st.columns(4)
         metric_a.metric("Input days", report.input_days)
         metric_b.metric("Generated days", report.generated_days)
         metric_c.metric("Status", report.status)
+        metric_d.metric("Health checks", f"{report.critical_issue_count}/{report.review_issue_count}")
 
         st.code(format_itinerary_health_report(report), language=None)

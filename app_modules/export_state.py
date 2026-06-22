@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
+from app_modules.pdf_preflight import build_pdf_preflight_report
 from ui.picture_workflow import pictures_are_added
 
 
@@ -22,6 +23,8 @@ class ExportReadiness:
     can_create_pdf: bool
     blocking_messages: tuple[str, ...]
     status_label: str
+    preflight_status: str = "Clear"
+    preflight_issues: tuple[str, ...] = field(default_factory=tuple)
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -34,6 +37,8 @@ class ExportReadiness:
             "can_create_pdf": self.can_create_pdf,
             "blocking_messages": list(self.blocking_messages),
             "status_label": self.status_label,
+            "preflight_status": self.preflight_status,
+            "preflight_issues": list(self.preflight_issues),
         }
 
 
@@ -74,7 +79,12 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     if pending_commit:
         blocking.append("Applying pending editor changes before PDF creation.")
 
-    can_create = has_document and pictures and image_ready and not pending_commit
+    preflight = build_pdf_preflight_report(state, image_status)
+    for issue in preflight.issues:
+        if issue.severity == "critical" and issue.message not in blocking:
+            blocking.append(issue.message)
+
+    can_create = has_document and pictures and image_ready and not pending_commit and preflight.can_export
     if pdf_ready:
         status = "PDF ready"
     elif blocking:
@@ -92,4 +102,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         can_create_pdf=can_create,
         blocking_messages=tuple(blocking),
         status_label=status,
+        preflight_status=preflight.status_label,
+        preflight_issues=tuple(issue.message for issue in preflight.issues),
     )

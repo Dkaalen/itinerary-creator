@@ -21,6 +21,11 @@ from itinerary_generation.quality_gate import (
 )
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
 from itinerary_generation.row_sequence import ordered_cities
+from itinerary_generation.itinerary_health_checks import (
+    ItineraryHealthIssue,
+    build_itinerary_health_issues,
+    summarize_itinerary_health_issues,
+)
 from itinerary_generation.structured_builder import build_itinerary_document
 
 
@@ -39,6 +44,7 @@ class ItineraryHealthReport:
     transfers_found: int
     route: tuple[str, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    issues: tuple[ItineraryHealthIssue, ...] = field(default_factory=tuple)
 
     @property
     def route_text(self) -> str:
@@ -50,11 +56,22 @@ class ItineraryHealthReport:
 
     @property
     def status(self) -> str:
+        issue_summary = summarize_itinerary_health_issues(self.issues)
+        if issue_summary.critical:
+            return "Needs review"
         if any("blocked" in warning.lower() or "input reaches" in warning.lower() for warning in self.warnings):
             return "Needs review"
-        if self.warnings:
+        if self.warnings or issue_summary.review:
             return "Review"
         return "Clear"
+
+    @property
+    def critical_issue_count(self) -> int:
+        return summarize_itinerary_health_issues(self.issues).critical
+
+    @property
+    def review_issue_count(self) -> int:
+        return summarize_itinerary_health_issues(self.issues).review
 
 
 def _as_rows(rows: Iterable[dict] | None) -> list[dict]:
@@ -121,7 +138,8 @@ def build_itinerary_health_report(
             f"Input reaches Day {snapshot.input_max_day}, but the generated non-optional itinerary reaches Day {snapshot.main_max_day}."
         )
 
-    parser_diagnostic_count = len(list(parser_diagnostics or []))
+    parser_diagnostics = list(parser_diagnostics or [])
+    parser_diagnostic_count = len(parser_diagnostics)
     if parser_diagnostic_count:
         warnings.append(f"Parser diagnostics recorded: {parser_diagnostic_count} notice(s).")
 
@@ -130,6 +148,8 @@ def build_itinerary_health_report(
         prefix = "Structured model"
         severity = str(model_warning.severity or "warning").title()
         warnings.append(f"{prefix} {severity}: {model_warning.message}")
+
+    issues = build_itinerary_health_issues(rows, parser_diagnostics=parser_diagnostics)
 
     return ItineraryHealthReport(
         input_days=snapshot.input_max_day,
@@ -143,6 +163,7 @@ def build_itinerary_health_report(
         transfers_found=len(transfer_rows),
         route=ordered_cities(commercial_main_rows) or snapshot.main_cities or snapshot.input_cities,
         warnings=tuple(dict.fromkeys(warnings)),
+        issues=issues,
     )
 
 
@@ -163,5 +184,9 @@ def format_itinerary_health_report(report: ItineraryHealthReport) -> str:
         f"Transfers found: {report.transfers_found}",
         f"Route: {report.route_text}",
         f"Warnings: {report.warnings_text}",
+        f"Health checks: {report.critical_issue_count} critical / {report.review_issue_count} review",
     ]
+    for issue in report.issues[:12]:
+        prefix = f"{issue.day}: " if issue.day else ""
+        lines.append(f"- [{issue.severity}] {prefix}{issue.message}")
     return "\n".join(lines)

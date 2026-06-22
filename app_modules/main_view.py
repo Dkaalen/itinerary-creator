@@ -5,6 +5,7 @@ from html import escape
 import streamlit as st
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
+from ui.input_review_panel import render_structured_input_review_panel
 from ui.export_files import save_html_file
 from ui.render_cache import make_render_signature
 from ui.output_edits import (
@@ -161,6 +162,11 @@ def _generate_itinerary(raw_text: str) -> bool:
 
 
 def _render_generation_messages() -> None:
+    render_structured_input_review_panel(
+        st.session_state.get("parsed_rows", []),
+        st.session_state.get("parser_diagnostics", []),
+        st.session_state.get("structured_input_review"),
+    )
     duplicate_count = st.session_state.get("generation_duplicate_count", 0)
     if duplicate_count:
         st.warning(f"Skipped approximately {duplicate_count} duplicate, continuation, or malformed row(s).")

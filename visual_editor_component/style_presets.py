@@ -53,6 +53,19 @@ def block_classes() -> tuple[str, ...]:
     return preset_classes("blocks")
 
 
+def theme_presets() -> tuple[dict[str, Any], ...]:
+    """Return available document theme presets without changing the active theme."""
+
+    return preset_group("themes")
+
+
+def default_theme_preset() -> dict[str, Any]:
+    """Return the first registered theme preset, or an empty mapping."""
+
+    presets = theme_presets()
+    return dict(presets[0]) if presets else {}
+
+
 def extra_allowed_classes() -> tuple[str, ...]:
     values = style_preset_registry().get("extra_allowed_classes", [])
     if not isinstance(values, list):

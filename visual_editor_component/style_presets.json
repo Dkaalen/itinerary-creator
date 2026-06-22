@@ -44,6 +44,14 @@
       "class_name": "ve-text-accent",
       "pdf_text_color": "accent",
       "pdf_suffix": "accent"
+    },
+    {
+      "id": "premium_callout",
+      "label": "Premium callout",
+      "class_name": "ve-text-premium-callout",
+      "pdf_base_style": "editor_large",
+      "pdf_text_color": "accent",
+      "pdf_suffix": "premiumcallout"
     }
   ],
   "colors": [
@@ -79,6 +87,20 @@
       "class_name": "ve-color-highlight",
       "pdf_back_color": "#eadfcf",
       "pdf_suffix": "highlight"
+    },
+    {
+      "id": "deep_teal",
+      "label": "Deep teal",
+      "class_name": "ve-color-deep-teal",
+      "pdf_text_color": "#005f5b",
+      "pdf_suffix": "deepteal"
+    },
+    {
+      "id": "soft_teal_highlight",
+      "label": "Soft teal highlight",
+      "class_name": "ve-color-soft-teal-highlight",
+      "pdf_back_color": "#dcefed",
+      "pdf_suffix": "tealhighlight"
     }
   ],
   "spacing": [
@@ -210,6 +232,24 @@
       "pdf_font_size": 18,
       "pdf_leading": 23.5,
       "pdf_suffix": "size18"
+    }
+  ],
+  "themes": [
+    {
+      "id": "nordic_luxury",
+      "label": "Nordic luxury",
+      "description": "Warm paper, deep ink, teal accents, and gold emphasis.",
+      "accent_color": "#006f6b",
+      "highlight_color": "#c58a24",
+      "default_font": "Georgia"
+    },
+    {
+      "id": "clean_proposal",
+      "label": "Clean proposal",
+      "description": "High-readability proposal styling for dense itineraries.",
+      "accent_color": "#1f3446",
+      "highlight_color": "#8a6d3b",
+      "default_font": "Arial"
     }
   ]
 }

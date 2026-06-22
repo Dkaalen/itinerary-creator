@@ -1,0 +1,98 @@
+"""Pure PDF preflight checks for the export workflow."""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from typing import Any, Mapping
+
+from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
+from itinerary_generation.itinerary_health_checks import build_itinerary_health_issues
+from ui.picture_workflow import pictures_are_added
+
+
+@dataclass(frozen=True)
+class PdfPreflightIssue:
+    code: str
+    severity: str
+    message: str
+
+    def as_dict(self) -> dict[str, str]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class PdfPreflightReport:
+    status_label: str
+    issues: tuple[PdfPreflightIssue, ...]
+
+    @property
+    def critical_count(self) -> int:
+        return sum(1 for issue in self.issues if issue.severity == "critical")
+
+    @property
+    def review_count(self) -> int:
+        return sum(1 for issue in self.issues if issue.severity == "review")
+
+    @property
+    def can_export(self) -> bool:
+        return self.critical_count == 0
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"status_label": self.status_label, "issues": [issue.as_dict() for issue in self.issues]}
+
+
+def _issue(code: str, severity: str, message: str) -> PdfPreflightIssue:
+    return PdfPreflightIssue(code=code, severity=severity, message=message)
+
+
+def build_pdf_preflight_report(
+    state: Mapping[str, Any],
+    image_status: Mapping[str, Any] | None = None,
+) -> PdfPreflightReport:
+    image_status = image_status or {}
+    issues: list[PdfPreflightIssue] = []
+
+    if not state.get("itinerary_html") or not state.get("parsed_rows"):
+        issues.append(_issue("missing_document", "critical", "Generate an itinerary before exporting."))
+
+    output_edits = state.get("output_edits") or {}
+    if not pictures_are_added(output_edits):
+        issues.append(_issue("missing_pictures", "critical", "Add and review destination pictures before creating the PDF."))
+
+    if not image_bank_is_ready_for_client_pictures(image_status):
+        issues.append(_issue("image_bank_missing", "critical", "Connect the real destination image bank before creating the PDF."))
+
+    if state.get("_pdf_after_visual_edit_commit_nonce") and not state.get("_visual_editor_export_commit_ready"):
+        issues.append(_issue("pending_editor_commit", "critical", "Applying pending editor changes before PDF creation."))
+
+    for health_issue in build_itinerary_health_issues(
+        state.get("parsed_rows", []) or [],
+        parser_diagnostics=state.get("parser_diagnostics", []) or [],
+    ):
+        if health_issue.severity == "critical":
+            issues.append(_issue(health_issue.code, "critical", health_issue.message))
+        elif health_issue.severity == "review":
+            issues.append(_issue(health_issue.code, "review", health_issue.message))
+
+    latest_warnings = (output_edits or {}).get("latest_client_output_warnings", []) if isinstance(output_edits, Mapping) else []
+    for warning in latest_warnings[:8]:
+        message = str(getattr(warning, "message", "") or (warning.get("message", "") if isinstance(warning, Mapping) else warning)).strip()
+        if message:
+            issues.append(_issue("client_output_warning", "review", message))
+
+    seen: set[tuple[str, str]] = set()
+    unique: list[PdfPreflightIssue] = []
+    for issue in issues:
+        key = (issue.code, issue.message)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(issue)
+
+    if any(issue.severity == "critical" for issue in unique):
+        status = "Needs review"
+    elif any(issue.severity == "review" for issue in unique):
+        status = "Review"
+    else:
+        status = "Clear"
+    return PdfPreflightReport(status_label=status, issues=tuple(unique))

@@ -469,6 +469,23 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
             border-radius: 3px;
         }}
 
+        .ve-text-premium-callout {{
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 16px;
+            line-height: 1.48;
+            color: var(--accent);
+            font-weight: 700;
+        }}
+
+        .ve-color-deep-teal {{
+            color: #005f5b;
+        }}
+
+        .ve-color-soft-teal-highlight {{
+            box-shadow: inset 0 -0.58em 0 rgba(0, 127, 121, .18);
+            border-radius: 3px;
+        }}
+
         .ve-font-georgia {{
             font-family: Georgia, 'Times New Roman', serif !important;
         }}

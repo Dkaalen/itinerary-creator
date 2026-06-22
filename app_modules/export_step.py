@@ -172,9 +172,10 @@ def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
         f'<div class="export-readiness-grid">{cards}</div>'
         '</div>'
     )
-    if readiness.blocking_messages and not readiness.pending_editor_commit:
-        with st.expander("What needs attention before PDF export?", expanded=False):
-            for message in readiness.blocking_messages:
+    attention_messages = readiness.blocking_messages or readiness.preflight_issues
+    if attention_messages and not readiness.pending_editor_commit:
+        with st.expander(f"PDF preflight — {readiness.preflight_status}", expanded=bool(readiness.blocking_messages)):
+            for message in attention_messages:
                 st.write(f"- {message}")
 
 

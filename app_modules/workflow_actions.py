@@ -29,9 +29,11 @@ from app_modules.workflow_state import (
     set_workflow_stage,
 )
 from itinerary_generation.common import group_rows_by_day
+from itinerary_generation.input_review import build_structured_input_review
 from ui.export_files import save_html_file
 from images.image_bank import prefetch_image_bank_for_rows
 from images.day_image_selection import normalize_day_image_matches
+from images.image_workflow_review import build_image_workflow_review
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import (
     apply_output_edits,
@@ -60,6 +62,10 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     parsed_rows = parse_and_normalize_itinerary(raw_text)
     validation_report = validate_for_generation(parsed_rows)
     state["parser_diagnostics"] = diagnostics.get_warnings()
+    state["structured_input_review"] = build_structured_input_review(
+        parsed_rows,
+        parser_diagnostics=state["parser_diagnostics"],
+    )
     state["itinerary_validation_report"] = validation_report
 
     if validation_report.is_blocked:
@@ -117,6 +123,10 @@ def load_project(
     parsed_rows = parse_and_normalize_itinerary(raw_text)
     validation_report = validate_for_generation(parsed_rows)
     state["parser_diagnostics"] = diagnostics.get_warnings()
+    state["structured_input_review"] = build_structured_input_review(
+        parsed_rows,
+        parser_diagnostics=state["parser_diagnostics"],
+    )
     state["itinerary_validation_report"] = validation_report
 
     if validation_report.is_blocked:
@@ -238,6 +248,9 @@ def enter_picture_stage(
         # Derived audit metadata only. Durable user choices live in day_images.
         output_edits["day_image_matches"] = dict(matches or {})
         output_edits["image_match_unmatched_days"] = unmatched_days
+        image_review = build_image_workflow_review(image_grouped_days, matches, ())
+        state["image_workflow_review"] = image_review.as_dict()
+        output_edits["image_workflow_review"] = image_review.as_dict()
         state["image_review_warning_count"] = max(1, len(unmatched_days))
         clear_pdf_artifacts(state, status="No destination pictures matched")
         stage = set_workflow_stage(state, "edit")
@@ -258,6 +271,9 @@ def enter_picture_stage(
         if isinstance(workflow, dict):
             workflow["pictures_added"] = True
     warnings = audit_images_func(image_grouped_days, matches, output_edits)
+    image_review = build_image_workflow_review(image_grouped_days, matches, warnings)
+    state["image_workflow_review"] = image_review.as_dict()
+    output_edits["image_workflow_review"] = image_review.as_dict()
     state["image_review_warning_count"] = len(
         [warning for warning in warnings if getattr(warning, "severity", "") == "error"]
     )
