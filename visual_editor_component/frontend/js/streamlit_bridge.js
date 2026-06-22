@@ -10,6 +10,13 @@ const Streamlit = {
   }
 };
 
+function syncEditorFrameHeight() {
+  const shell = document.querySelector('.editor-shell');
+  const measured = Math.ceil((shell?.getBoundingClientRect?.().height || document.body.scrollHeight || 900) + 24);
+  const bounded = Math.max(780, Math.min(1080, measured));
+  Streamlit.setFrameHeight(bounded);
+}
+
 function showEditorError(err) {
   const root = document.getElementById('root');
   const message = err && err.message ? err.message : String(err || 'Unknown rendering error');
@@ -31,4 +38,6 @@ window.addEventListener('message', (event) => {
   }
 });
 Streamlit.setComponentReady();
-Streamlit.setFrameHeight(1200);
+syncEditorFrameHeight();
+
+window.addEventListener('resize', () => requestAnimationFrame(syncEditorFrameHeight));

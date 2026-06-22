@@ -58,3 +58,29 @@ def test_ui19_removes_sidebar_metadata_bloat_and_uses_non_jitter_selection():
     assert ".right-inspector .page-context-card" in source
     assert ".selected-editor-block" in source
     assert "content: none !important" in source
+
+
+def test_ui20_preserves_canvas_selection_when_using_formatting_controls():
+    frontend = Path("visual_editor_component/frontend")
+    source = "\n".join(
+        (frontend / relative).read_text(encoding="utf-8")
+        for relative in (
+            "js/state.js",
+            "js/editor_text_tools.js",
+            "js/editor_inspector.js",
+            "js/editing.js",
+        )
+    )
+
+    assert "savedCanvasSelectionRange" in source
+    assert "rememberCanvasSelection" in source
+    assert "restoreCanvasSelection" in source
+    assert "selectionchange" in source
+    assert "mousedown', rememberCanvasSelection" in source
+
+
+def test_ui20_does_not_refresh_inspector_for_unchanged_selection():
+    source = Path("visual_editor_component/frontend/js/editor_document_model.js").read_text(encoding="utf-8")
+
+    assert "const changed = activePageId !== nextPageId" in source
+    assert "if (changed) updateRightInspector();" in source

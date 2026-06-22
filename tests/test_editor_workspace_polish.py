@@ -76,3 +76,27 @@ def test_ui18_inspector_keeps_word_style_formatting_tools_visible():
     assert "inspectorNormalSpacingBtn" in source
     assert "Formatting applies to the selected canvas text" in source
     assert "if (!canStyle) return '';" not in source
+
+
+def test_ui20_uses_internal_canvas_scroll_instead_of_expanding_iframe():
+    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    ui20 = css[css.index("UI20 editor foundation fix"):]
+
+    assert "body {" in ui20
+    assert "overflow: hidden" in ui20
+    assert ".page-stack" in ui20
+    assert "overflow-y: auto !important" in ui20
+    assert "height: 100% !important" in ui20
+    assert ".right-inspector" in ui20
+    assert "max-height: 100% !important" in ui20
+
+
+def test_ui20_selection_styles_do_not_change_layout_dimensions():
+    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    ui20 = css[css.index("UI20 editor foundation fix"):]
+
+    assert ".selected-editor-block" in ui20
+    assert "outline: 2px solid" in ui20
+    assert "border: 0 !important" in ui20
+    assert ".page-wrap.selected-page > .page-header-row" in ui20
+    assert "padding: 0 !important" in ui20

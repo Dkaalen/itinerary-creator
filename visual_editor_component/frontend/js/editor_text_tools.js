@@ -97,6 +97,67 @@ function notifyEditor(message) {
     note.classList.add('show');
   }
 }
+function editableFromSelectionNode(node) {
+  let candidate = node;
+  if (candidate && candidate.nodeType === Node.TEXT_NODE) candidate = candidate.parentElement;
+  return candidate?.closest?.('[data-edit-key]') || null;
+}
+function rememberCanvasSelection() {
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return false;
+  const range = selection.getRangeAt(0);
+  const editable = editableFromSelectionNode(range.commonAncestorContainer) || editableFromSelectionNode(selection.anchorNode);
+  if (!editable) return false;
+  savedCanvasSelectionRange = range.cloneRange();
+  activeEditKey = editable.getAttribute('data-edit-key') || activeEditKey;
+  activeFieldKey = activeEditKey || activeFieldKey;
+  return true;
+}
+function restoreCanvasSelection(editable = null) {
+  const target = editable || selectedTextToolEditable();
+  if (!target || !savedCanvasSelectionRange) return false;
+  try {
+    if (!target.contains(savedCanvasSelectionRange.startContainer) || !target.contains(savedCanvasSelectionRange.endContainer)) return false;
+    target.focus({preventScroll: true});
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedCanvasSelectionRange.cloneRange());
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+function selectionRangeInside(editable) {
+  const selection = window.getSelection();
+  if (!editable || !selection || !selection.rangeCount) return null;
+  const range = selection.getRangeAt(0);
+  if (!editable.contains(range.commonAncestorContainer)) return null;
+  return range;
+}
+function removeClassGroupDeep(root, classGroup) {
+  if (!root || !classGroup?.length) return;
+  if (root.classList) removeClassGroup(root, classGroup);
+  root.querySelectorAll?.('[class]')?.forEach(node => removeClassGroup(node, classGroup));
+}
+function styleSelectedRange(editable, className, classGroup) {
+  if (!isRichEditable(editable) || !className) return false;
+  restoreCanvasSelection(editable);
+  const selection = window.getSelection();
+  const range = selectionRangeInside(editable);
+  if (!range || range.collapsed) return false;
+  const wrapper = document.createElement('span');
+  wrapper.className = className;
+  const fragment = range.extractContents();
+  removeClassGroupDeep(fragment, classGroup);
+  wrapper.appendChild(fragment);
+  range.insertNode(wrapper);
+  const nextRange = document.createRange();
+  nextRange.selectNodeContents(wrapper);
+  selection.removeAllRanges();
+  selection.addRange(nextRange);
+  rememberCanvasSelection();
+  return true;
+}
 function closestEditableBlock() {
   const selection = window.getSelection();
   let node = selection?.anchorNode || document.activeElement;
@@ -162,15 +223,19 @@ function applyClassPreset(className, classGroup) {
     notifyEditor('Select text on the canvas first.');
     return;
   }
-  const target = selectedStyleTarget(editable);
-  if (!target) {
-    notifyEditor('Place the cursor in text first.');
-    return;
-  }
+  restoreCanvasSelection(editable);
   pushUndo(editable, editableValue(editable));
-  removeClassGroup(target, classGroup);
-  if (className) target.classList.add(className);
+  if (!styleSelectedRange(editable, className, classGroup)) {
+    const target = selectedStyleTarget(editable);
+    if (!target) {
+      notifyEditor('Place the cursor in text first.');
+      return;
+    }
+    removeClassGroup(target, classGroup);
+    if (className) target.classList.add(className);
+  }
   commitEditableDomChange(editable);
+  rememberCanvasSelection();
 }
 function applyTextStylePreset(preset) {
   const mapping = controlledPresetClassMap('text_styles');
@@ -215,18 +280,20 @@ function clearSelectedFormatting() {
     notifyEditor('Select text on the canvas first.');
     return;
   }
+  restoreCanvasSelection(editable);
   const target = selectedStyleTarget(editable);
   if (!target) {
     notifyEditor('Place the cursor in text first.');
     return;
   }
   pushUndo(editable, editableValue(editable));
-  removeClassGroup(target, CONTROLLED_TEXT_STYLE_CLASSES);
-  removeClassGroup(target, CONTROLLED_FONT_FAMILY_CLASSES);
-  removeClassGroup(target, CONTROLLED_FONT_SIZE_CLASSES);
-  removeClassGroup(target, CONTROLLED_COLOR_CLASSES);
-  removeClassGroup(target, CONTROLLED_SPACING_CLASSES);
+  removeClassGroupDeep(target, CONTROLLED_TEXT_STYLE_CLASSES);
+  removeClassGroupDeep(target, CONTROLLED_FONT_FAMILY_CLASSES);
+  removeClassGroupDeep(target, CONTROLLED_FONT_SIZE_CLASSES);
+  removeClassGroupDeep(target, CONTROLLED_COLOR_CLASSES);
+  removeClassGroupDeep(target, CONTROLLED_SPACING_CLASSES);
   commitEditableDomChange(editable);
+  rememberCanvasSelection();
   updateRightInspector();
 }
 function insertHtmlAtSelectionOrEnd(editable, html) {
@@ -308,3 +375,11 @@ function insertCleanClipboardHtml(event) {
   const html = sanitizeClipboardHtml(data?.getData('text/html') || '', data?.getData('text/plain') || '');
   document.execCommand('insertHTML', false, html);
 }
+
+
+document.addEventListener('selectionchange', () => {
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return;
+  const editable = editableFromSelectionNode(selection.anchorNode);
+  if (editable) rememberCanvasSelection();
+});

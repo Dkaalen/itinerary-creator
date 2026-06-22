@@ -1680,3 +1680,98 @@
     height: auto;
   }
 }
+
+
+/* UI20 editor foundation fix: one internal canvas scroll, stable inspector, no selection layout shift */
+html,
+body {
+  min-height: 0;
+  overflow: hidden;
+}
+.editor-shell {
+  min-height: 0;
+  overflow: hidden !important;
+  padding-bottom: 16px;
+}
+.editor-toolbar {
+  position: relative;
+  top: auto;
+  z-index: 30;
+  margin-bottom: 10px;
+}
+.editor-workspace {
+  display: grid;
+  grid-template-columns: minmax(var(--page-w), var(--page-w)) minmax(270px, 292px) !important;
+  grid-template-areas: "canvas inspector" !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  width: max-content !important;
+  max-width: calc(100vw - 28px) !important;
+  height: calc(100vh - 168px) !important;
+  min-height: 640px !important;
+  max-height: calc(100vh - 168px) !important;
+  margin: 10px auto 0 !important;
+  overflow: visible !important;
+}
+.page-stack {
+  grid-area: canvas !important;
+  width: var(--page-w) !important;
+  min-width: var(--page-w) !important;
+  max-width: var(--page-w) !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  padding: 8px 0 36px !important;
+  border-radius: 24px;
+}
+.right-inspector {
+  grid-area: inspector !important;
+  position: sticky !important;
+  top: 0 !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 10;
+}
+.page-wrap.selected-page > .page-header-row {
+  padding: 0 !important;
+  margin: 0 0 8px 2px !important;
+  border-radius: 12px;
+  background: rgba(0,111,107,.07) !important;
+  box-shadow: 0 0 0 1px rgba(0,111,107,.18) !important;
+}
+.selected-editor-block {
+  position: static !important;
+  border: 0 !important;
+  outline: 2px solid rgba(0,111,107,.56) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+  background: rgba(0,111,107,.035) !important;
+}
+.selected-editor-block::after {
+  content: none !important;
+  display: none !important;
+}
+.cover-page:not(.editor-text-cover) [contenteditable="true"]:focus {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+[contenteditable="true"] {
+  border: 0 !important;
+}
+@media (max-width: 1120px) {
+  .editor-workspace {
+    justify-content: start !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+    max-width: none !important;
+  }
+}

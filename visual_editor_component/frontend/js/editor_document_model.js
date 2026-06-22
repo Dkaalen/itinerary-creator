@@ -221,21 +221,27 @@ function editorBlockAttrs(key, label = '') {
   return ` data-editor-page-id="${escAttr(meta.page_id)}" data-editor-block-id="${escAttr(meta.block_id)}" data-editor-block-type="${escAttr(meta.block_type)}" data-editor-field-key="${escAttr(meta.field_key)}" data-editor-field-label="${escAttr(meta.field_label)}"`;
 }
 function selectEditorPage(pageId) {
-  activePageId = pageId;
+  const nextPageId = pageId;
+  const changed = activePageId !== nextPageId || activeBlockId !== null || activeFieldKey !== null;
+  activePageId = nextPageId;
   activeBlockId = null;
   activeFieldKey = null;
   updateSelectionUi();
-  updateRightInspector();
+  if (changed) updateRightInspector();
 }
 function selectEditorBlockFromElement(el) {
   const target = el?.closest?.('[data-editor-block-id]') || el?.closest?.('[data-edit-key]');
   if (!target) return;
   const meta = inferEditorBlockMetaForKey(target.getAttribute('data-editor-field-key') || target.getAttribute('data-edit-key') || '', target.getAttribute('data-editor-field-label') || '');
-  activePageId = target.getAttribute('data-editor-page-id') || meta.page_id || target.closest('[data-page-id]')?.getAttribute('data-page-id') || activePageId;
-  activeBlockId = target.getAttribute('data-editor-block-id') || meta.block_id || '';
-  activeFieldKey = target.getAttribute('data-editor-field-key') || target.getAttribute('data-edit-key') || '';
+  const nextPageId = target.getAttribute('data-editor-page-id') || meta.page_id || target.closest('[data-page-id]')?.getAttribute('data-page-id') || activePageId;
+  const nextBlockId = target.getAttribute('data-editor-block-id') || meta.block_id || '';
+  const nextFieldKey = target.getAttribute('data-editor-field-key') || target.getAttribute('data-edit-key') || '';
+  const changed = activePageId !== nextPageId || activeBlockId !== nextBlockId || activeFieldKey !== nextFieldKey;
+  activePageId = nextPageId;
+  activeBlockId = nextBlockId;
+  activeFieldKey = nextFieldKey;
   updateSelectionUi();
-  updateRightInspector();
+  if (changed) updateRightInspector();
 }
 function selectedEditorElement() {
   if (activeFieldKey) {

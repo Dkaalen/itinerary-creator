@@ -508,9 +508,13 @@ function updateRightInspector() {
   if (!inspector) return;
   inspector.outerHTML = renderRightInspector();
   attachInspectorHandlers();
-  requestAnimationFrame(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20));
+  requestAnimationFrame(() => syncEditorFrameHeight());
 }
 function attachInspectorHandlers() {
+  document.querySelectorAll('.text-tools-card select, .text-tools-card button').forEach(control => {
+    control.addEventListener('mousedown', rememberCanvasSelection, {capture: true});
+    control.addEventListener('focus', rememberCanvasSelection, {capture: true});
+  });
   document.getElementById('inspectorFontFamilyPreset')?.addEventListener('change', event => {
     if (event.target.value) applyFontFamilyPreset(event.target.value);
     event.target.value = '';

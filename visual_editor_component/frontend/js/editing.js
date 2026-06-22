@@ -219,7 +219,10 @@ function attachHandlers() {
       activeEditKey = key;
       selectEditorBlockFromElement(el);
       el.dataset.lastValue = editableValue(el);
+      rememberCanvasSelection();
     });
+    el.addEventListener('mouseup', rememberCanvasSelection);
+    el.addEventListener('keyup', rememberCanvasSelection);
     el.addEventListener('paste', insertCleanClipboardHtml);
     el.addEventListener('input', () => {
       const previous = el.dataset.lastValue || '';
@@ -230,6 +233,7 @@ function attachHandlers() {
       }
       markTouched(key);
       activeFieldKey = key;
+      rememberCanvasSelection();
       requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); });
     });
   });

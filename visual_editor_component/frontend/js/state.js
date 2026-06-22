@@ -9,6 +9,7 @@ let activeEditKey = null;
 let activePageId = null;
 let activeBlockId = null;
 let activeFieldKey = null;
+let savedCanvasSelectionRange = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
 let restoredLocalDraftInfo = null;
