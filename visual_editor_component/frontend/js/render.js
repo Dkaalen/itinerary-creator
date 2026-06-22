@@ -244,6 +244,24 @@ function pageTypeLabel(page) {
   if (type === 'summary') return 'Summary';
   return 'Page';
 }
+function editorStudioStats() {
+  const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model?.document_pages) ? model.document_pages : []);
+  const visible = pages.filter(page => !page?.is_hidden).length;
+  const hidden = pages.filter(page => page?.is_hidden).length;
+  const manual = pages.filter(page => page?.page_type === 'manual' && !page?.is_hidden).length;
+  const selection = activeBlockId ? 'Block selected' : (activePageId ? 'Page selected' : 'No selection');
+  return {visible, hidden, manual, selection};
+}
+function studioStatusStripHtml() {
+  const stats = editorStudioStats();
+  return `<div class="studio-status-strip" aria-label="Editor document status">
+    <span class="studio-metric"><b>${esc(stats.visible)}</b><small>Visible pages</small></span>
+    <span class="studio-metric ${stats.hidden ? 'review' : ''}"><b>${esc(stats.hidden)}</b><small>Hidden</small></span>
+    <span class="studio-metric"><b>${esc(stats.manual)}</b><small>Manual pages</small></span>
+    <span class="studio-metric selection"><b id="studioSelectionMetric">${esc(stats.selection)}</b><small>Selection</small></span>
+    <span class="studio-metric"><b id="studioEditsMetric">${esc(touchedKeys.size)}</b><small>Unsaved edits</small></span>
+  </div>`;
+}
 function renderDocumentOutline() {
   const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model.document_pages) ? model.document_pages : []);
   const rows = pages.map(page => {
@@ -318,7 +336,10 @@ function draw() {
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
-      <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page, then save before exporting the final PDF.' : 'Edit directly on the document pages. Changes autosave quietly while you work.'}</span></div>
+      <div class="toolbar-main">
+        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image inspector and page outline, then save before exporting the final PDF.' : 'Edit directly on the canvas. The outline, inspector, and autosave status stay in sync while you work.'}</span></div>
+        ${studioStatusStripHtml()}
+      </div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
           <span id="editCount" class="stat-pill">0 manual edits pending</span>

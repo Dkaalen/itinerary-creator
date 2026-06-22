@@ -1196,6 +1196,10 @@ function highlightWarnings() {
 function updateEditorStats() {
   const editCount = document.getElementById('editCount');
   if (editCount) editCount.textContent = `${touchedKeys.size} manual edits pending`;
+  const studioEdits = document.getElementById('studioEditsMetric');
+  if (studioEdits) studioEdits.textContent = String(touchedKeys.size);
+  const studioSelection = document.getElementById('studioSelectionMetric');
+  if (studioSelection) studioSelection.textContent = activeBlockId ? 'Block selected' : (activePageId ? 'Page selected' : 'No selection');
   const readinessBadge = document.getElementById('pdfReadinessBadge');
   if (readinessBadge) {
     const status = pdfReadinessStatus();
