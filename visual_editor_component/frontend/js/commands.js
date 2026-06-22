@@ -677,6 +677,195 @@ function selectedInspectorMeta() {
   const block = contractBlock(page, activeBlockId || meta.block_id) || {};
   return {el, fieldKey, meta, page, block};
 }
+function fieldKindForKey(key) {
+  const path = String(key || '');
+  if (/\.(?:cover_image|summary_image|image)$/.test(path)) return 'image';
+  if (isHtmlEditKey(path)) return 'html';
+  return 'text';
+}
+function inspectorFieldLabelFromKey(key, fallback = '') {
+  if (fallback) return fallback;
+  const parts = String(key || '').split('.').filter(Boolean);
+  const tail = parts[parts.length - 1] || key || 'field';
+  if (/^\d+$/.test(tail) && parts.length > 1) return humanizeEditorToken(parts[parts.length - 2]);
+  return humanizeEditorToken(tail);
+}
+function dayIndexForPageId(pageId) {
+  const id = String(pageId || '');
+  if (!Array.isArray(model?.days)) return -1;
+  return model.days.findIndex((day, index) => String(pageIdForDay(day, index)) === id);
+}
+function addInspectorFieldEntry(entries, key, label = '', kind = '') {
+  const path = String(key || '');
+  if (!path || entries.some(entry => entry.key === path)) return;
+  entries.push({
+    key: path,
+    label: inspectorFieldLabelFromKey(path, label),
+    kind: kind || fieldKindForKey(path),
+  });
+}
+function addInspectorObjectLeafEntries(entries, basePath, value, labelPrefix = '') {
+  if (value === null || value === undefined) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      if (item && typeof item === 'object') addInspectorObjectLeafEntries(entries, `${basePath}.${index}`, item, labelPrefix);
+      else addInspectorFieldEntry(entries, `${basePath}.${index}`, `${labelPrefix} ${index + 1}`.trim());
+    });
+    return;
+  }
+  if (typeof value === 'object') {
+    Object.keys(value).forEach(name => {
+      const child = value[name];
+      const childPath = `${basePath}.${name}`;
+      if (child && typeof child === 'object' && !Array.isArray(child)) addInspectorObjectLeafEntries(entries, childPath, child, labelPrefix);
+      else addInspectorFieldEntry(entries, childPath, `${labelPrefix} ${humanizeEditorToken(name)}`.trim());
+    });
+    return;
+  }
+  addInspectorFieldEntry(entries, basePath, labelPrefix);
+}
+function inspectorFieldEntriesForSelection(page, block, meta, currentFieldKey = '') {
+  const entries = [];
+  if (currentFieldKey) addInspectorFieldEntry(entries, currentFieldKey, meta?.field_label || '', fieldKindForKey(currentFieldKey));
+  const pageId = String(page?.page_id || meta?.page_id || activePageId || '');
+  if (pageId === 'cover') {
+    ['cover_kicker','trip_title','trip_subtitle','trip_dates','route_label','destinations_line'].forEach(name => addInspectorFieldEntry(entries, `cover.${name}`));
+    addInspectorFieldEntry(entries, 'cover.cover_image', 'Front cover image', 'image');
+  } else if (pageId === 'summary') {
+    addInspectorFieldEntry(entries, 'summary.trip_glance_title', 'Trip glance title');
+    addInspectorObjectLeafEntries(entries, 'summary.trip_glance', model?.summary?.trip_glance || {}, 'Trip glance');
+    addInspectorFieldEntry(entries, 'summary.journey_arc_title', 'Journey arc title');
+    addInspectorObjectLeafEntries(entries, 'summary.journey_arc_columns', model?.summary?.journey_arc_columns || {}, 'Column');
+    addInspectorObjectLeafEntries(entries, 'summary.journey_arc', model?.summary?.journey_arc || [], 'Journey row');
+    addInspectorFieldEntry(entries, 'cover.summary_image', 'Page 2 background image', 'image');
+  } else if (page?.page_type === 'generated_day' || pageId.startsWith('day-')) {
+    const index = dayIndexForPageId(pageId);
+    if (index >= 0) {
+      ['city','date','title','intro','blocks_html'].forEach(name => addInspectorFieldEntry(entries, `days.${index}.${name}`));
+      addInspectorFieldEntry(entries, `days.${index}.image`, 'Day image', 'image');
+    }
+  } else if (pageId === finalPageId('whats_included')) {
+    addInspectorFieldEntry(entries, 'final_pages.whats_included_title', 'Final page title');
+    const pages = Array.isArray(model?.final_pages?.whats_included_pages_html) ? model.final_pages.whats_included_pages_html : [];
+    if (pages.length) pages.forEach((_, index) => addInspectorFieldEntry(entries, `final_pages.whats_included_pages_html.${index}.html`, `Included page ${index + 1}`, 'html'));
+    else addInspectorFieldEntry(entries, 'final_pages.whats_included_html', 'Included content', 'html');
+  } else if (pageId === finalPageId('whats_not_included')) {
+    addInspectorFieldEntry(entries, 'final_pages.whats_not_included_title', 'Final page title');
+    addInspectorFieldEntry(entries, 'final_pages.whats_not_included_html', 'Excluded content', 'html');
+  } else if (pageId === finalPageId('important_travel_notes')) {
+    addInspectorFieldEntry(entries, 'final_pages.important_travel_notes_title', 'Final page title');
+    addInspectorFieldEntry(entries, 'final_pages.important_travel_notes_text', 'Travel notes');
+  }
+  if (page?.page_type === 'manual') {
+    const pageIndex = pageIndexById(page.page_id);
+    if (pageIndex >= 0) {
+      addInspectorFieldEntry(entries, `document_pages.${pageIndex}.title`, 'Manual page title');
+      (Array.isArray(page.manual_blocks) ? page.manual_blocks : []).forEach((manualBlock, blockIndex) => {
+        addInspectorFieldEntry(entries, `document_pages.${pageIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, manualBlock?.title || `Manual text ${blockIndex + 1}`, 'html');
+      });
+    }
+  }
+  Object.keys(block?.editable_fields || {}).forEach(field => {
+    const fieldKey = currentFieldKey && currentFieldKey.endsWith(`.${field}`) ? currentFieldKey : '';
+    if (fieldKey) addInspectorFieldEntry(entries, fieldKey, humanizeEditorToken(field));
+  });
+  return entries;
+}
+function inspectorFieldValue(key) {
+  const el = findEditableByKey(key);
+  if (el) return editableValue(el);
+  const value = getByPath(model, key);
+  if (value && typeof value === 'object' && 'html' in value) return String(value.html || '');
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
+function syncDocumentPageTitleForField(key, value) {
+  const path = String(key || '');
+  let page = null;
+  let match = path.match(/^days\.(\d+)\.title$/);
+  if (match) page = contractPage(safeDayPageId(Number(match[1])));
+  if (path === 'final_pages.whats_included_title') page = contractPage(finalPageId('whats_included'));
+  if (path === 'final_pages.whats_not_included_title') page = contractPage(finalPageId('whats_not_included'));
+  if (path === 'final_pages.important_travel_notes_title') page = contractPage(finalPageId('important_travel_notes'));
+  match = path.match(/^document_pages\.(\d+)\.title$/);
+  if (match) page = documentPages()[Number(match[1])] || page;
+  if (page) page.title = String(value || '');
+}
+function applyInspectorFieldEdit(key, value, options = {}) {
+  const path = String(key || '');
+  if (!path || fieldKindForKey(path) === 'image') return;
+  const el = findEditableByKey(path);
+  if (el) {
+    if (isHtmlEditKey(path)) el.innerHTML = value || '';
+    else el.innerText = value || '';
+  }
+  setByPath(model, path, el ? editableValue(el) : value);
+  syncDocumentPageTitleForField(path, el ? editableValue(el) : value);
+  const meta = inferEditorBlockMetaForKey(path, '');
+  activeFieldKey = path;
+  activePageId = meta.page_id || activePageId;
+  activeBlockId = meta.block_id || activeBlockId;
+  markTouched(path);
+  requestAnimationFrame(() => {
+    highlightWarnings();
+    adjustDayImages();
+    updateSelectionUi();
+    updateEditorStats();
+    if (options.refreshInspector) updateRightInspector();
+  });
+}
+function resetFieldByKey(key) {
+  const path = String(key || activeFieldKey || '');
+  if (!path || fieldKindForKey(path) === 'image') {
+    notifyEditor('Select a text field to reset. Images use the image tools.');
+    return;
+  }
+  const el = findEditableByKey(path);
+  if (el) pushUndo(el, editableValue(el));
+  const initial = initialValueForKey(path);
+  const resetValue = initial === undefined || initial === null ? '' : String(initial);
+  applyInspectorFieldEdit(path, resetValue, {refreshInspector: true});
+  notifyEditor('Field reset to generated value');
+}
+function selectInspectorField(key) {
+  const path = String(key || '');
+  if (!path) return;
+  const meta = inferEditorBlockMetaForKey(path, '');
+  activeFieldKey = path;
+  activePageId = meta.page_id || activePageId;
+  activeBlockId = meta.block_id || activeBlockId;
+  const el = findEditableByKey(path);
+  if (el) {
+    el.focus({preventScroll: true});
+  }
+  updateSelectionUi();
+  updateRightInspector();
+}
+function renderInspectorFieldList(entries, currentFieldKey) {
+  if (!entries.length) return '<li>No direct editable fields exposed yet</li>';
+  return entries.slice(0, 24).map(entry => {
+    const value = entry.kind === 'image' ? 'Image tools' : inspectorFieldValue(entry.key);
+    const selected = entry.key === currentFieldKey ? ' active' : '';
+    const reset = entry.kind === 'image' ? '' : `<button type="button" class="ghost mini" data-inspector-reset-field-key="${escAttr(entry.key)}">Reset</button>`;
+    return `<li class="inspector-field-row${selected}"><button type="button" class="field-select" data-inspector-field-key="${escAttr(entry.key)}"><strong>${esc(entry.label)}</strong><span>${esc(entry.kind === 'html' ? htmlTextContent(value).slice(0, 72) : String(value).slice(0, 72)) || 'Empty'}</span></button>${reset}</li>`;
+  }).join('');
+}
+function renderInspectorFieldEditor(fieldKey) {
+  const key = String(fieldKey || '');
+  if (!key) {
+    return `<div class="inspector-card field-editor-card empty"><div class="inspector-kicker">Field editor</div><p>Select a field from the canvas or the field list to edit it here.</p></div>`;
+  }
+  if (fieldKindForKey(key) === 'image') {
+    return `<div class="inspector-card field-editor-card"><div class="inspector-kicker">Field editor</div><strong>${esc(inspectorFieldLabelFromKey(key))}</strong><p>This is an image field. Use the image tools below so preview and PDF stay in sync.</p></div>`;
+  }
+  const value = inspectorFieldValue(key);
+  const rows = fieldKindForKey(key) === 'html' || value.length > 120 ? 6 : 3;
+  return `<div class="inspector-card field-editor-card"><div class="inspector-kicker">Field editor</div><label for="inspectorFieldEditor">${esc(inspectorFieldLabelFromKey(key))}</label><textarea id="inspectorFieldEditor" rows="${rows}" data-inspector-edit-key="${escAttr(key)}">${esc(value)}</textarea><div class="inspector-button-grid two"><button type="button" class="ghost" id="inspectorApplyFieldBtn">Apply field edit</button><button type="button" class="ghost" id="inspectorResetSingleFieldBtn">Reset field</button></div><p>Edit the selected field here or directly on the page. Rich content fields preserve controlled HTML/classes for PDF parity.</p></div>`;
+}
+function resetSelectedInspectorField() {
+  resetFieldByKey(activeFieldKey || selectedInspectorMeta().fieldKey);
+}
 function renderSourceRows(sourceRowIds) {
   const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
   if (!ids.length) return '<span class="empty-source">No source rows linked</span>';
@@ -907,22 +1096,21 @@ function renderRightInspector() {
   const pageType = pageTypeLabel(page || {page_type: meta.block_type});
   const hasBlock = !!(fieldKey || activeBlockId);
   const sourceRows = block?.source_row_ids || meta.source_row_ids || page?.source_row_ids || [];
-  const blockFields = Object.keys(block?.editable_fields || {});
+  const fieldEntries = inspectorFieldEntriesForSelection(page, block, meta, fieldKey);
   const selectedFieldHtml = hasBlock
     ? `<div class="inspector-card selected"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd></dl></div>`
     : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and text controls.</p></div>`;
-  const fieldList = blockFields.length
-    ? blockFields.map(field => `<li>${esc(humanizeEditorToken(field))}</li>`).join('')
-    : pageInspectorRows(page);
+  const fieldList = renderInspectorFieldList(fieldEntries, fieldKey);
   return `<aside class="right-inspector" aria-label="Selected block inspector">
     <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : 'Page'}</span></div>
     <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
     ${selectedFieldHtml}
+    ${renderInspectorFieldEditor(fieldKey)}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}
     <div class="inspector-card validation-card"><div class="inspector-kicker">Validation</div>${selectedPageValidationHtml(page)}</div>
-    <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
+    <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list field-list">${fieldList}</ul></div>
     <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
     <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
   </aside>`;
@@ -1004,7 +1192,30 @@ function attachInspectorHandlers() {
   document.getElementById('inspectorMoveBlockDownBtn')?.addEventListener('click', () => moveSelectedManualBlock(1));
   document.getElementById('inspectorDuplicateBlockBtn')?.addEventListener('click', duplicateSelectedManualBlock);
   document.getElementById('inspectorDeleteBlockBtn')?.addEventListener('click', deleteSelectedManualBlock);
-  document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedBlock);
+  document.querySelectorAll('[data-inspector-field-key]').forEach(btn => {
+    btn.addEventListener('click', () => selectInspectorField(btn.getAttribute('data-inspector-field-key')));
+  });
+  document.querySelectorAll('[data-inspector-reset-field-key]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      resetFieldByKey(btn.getAttribute('data-inspector-reset-field-key'));
+    });
+  });
+  document.getElementById('inspectorFieldEditor')?.addEventListener('input', event => {
+    applyInspectorFieldEdit(event.target.getAttribute('data-inspector-edit-key'), event.target.value);
+  });
+  document.getElementById('inspectorFieldEditor')?.addEventListener('blur', event => {
+    applyInspectorFieldEdit(event.target.getAttribute('data-inspector-edit-key'), event.target.value, {refreshInspector: false});
+  });
+  document.getElementById('inspectorApplyFieldBtn')?.addEventListener('click', () => {
+    const editor = document.getElementById('inspectorFieldEditor');
+    if (editor) {
+      applyInspectorFieldEdit(editor.getAttribute('data-inspector-edit-key'), editor.value, {refreshInspector: false});
+      draw();
+    }
+  });
+  document.getElementById('inspectorResetSingleFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
+  document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('inspectorClearSelectionBtn')?.addEventListener('click', () => {
     activeBlockId = null;
