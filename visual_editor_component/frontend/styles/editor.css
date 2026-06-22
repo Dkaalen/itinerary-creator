@@ -757,3 +757,76 @@
   left: -1.25rem;
   top: 0.55rem;
 }
+
+/* UI12 source, compare, and restore tools */
+.compare-card.changed {
+  border-color: rgba(184, 149, 85, 0.42);
+  background: linear-gradient(180deg, rgba(184, 149, 85, 0.08), #fff 52%);
+}
+.compare-card.clean {
+  border-color: rgba(0, 111, 107, 0.22);
+}
+.compare-grid {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.compare-column {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(17, 38, 63, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
+}
+.compare-column strong {
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.compare-column p,
+.compare-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.source-chip-list {
+  display: grid;
+  gap: 7px;
+}
+.source-row-detail {
+  padding: 7px 8px;
+  border: 1px solid rgba(17, 38, 63, 0.1);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.source-row-detail summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+.source-row-detail summary strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-row-detail p {
+  margin: 7px 0 0;
+  color: var(--body);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.source-row-meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}

@@ -42,6 +42,33 @@ function initialValueForKey(key) {
   if (value && typeof value === 'object' && 'html' in value) return value.html || '';
   return value ?? '';
 }
+function generatedValueForKey(key) {
+  const generated = model?.generated_values || initialPayload?.generated_values || {};
+  const value = getByPath(generated, key);
+  if (value && typeof value === 'object' && 'html' in value) return value.html || '';
+  return value;
+}
+function restoreValueForKey(key) {
+  const generated = generatedValueForKey(key);
+  if (generated !== undefined && generated !== null) return generated;
+  return initialValueForKey(key);
+}
+function compareTextForValue(value, kind = '') {
+  const raw = value === undefined || value === null ? '' : String(value);
+  return (kind === 'html' || isHtmlEditKey(kind) ? htmlTextContent(raw) : raw)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function fieldDiffState(key) {
+  const kind = fieldKindForKey(key);
+  if (!key || kind === 'image') return {hasGenerated: false, changed: false, current: '', generated: ''};
+  const generated = generatedValueForKey(key);
+  const hasGenerated = generated !== undefined && generated !== null;
+  const current = inspectorFieldValue(key);
+  const currentText = compareTextForValue(current, kind);
+  const generatedText = compareTextForValue(hasGenerated ? generated : '', kind);
+  return {hasGenerated, changed: hasGenerated && currentText !== generatedText, current, generated: hasGenerated ? generated : ''};
+}
 function pushUndo(el, previousValue) {
   const key = el?.getAttribute('data-edit-key');
   if (!key) return;
@@ -962,10 +989,10 @@ function resetFieldByKey(key) {
   }
   const el = findEditableByKey(path);
   if (el) pushUndo(el, editableValue(el));
-  const initial = initialValueForKey(path);
-  const resetValue = initial === undefined || initial === null ? '' : String(initial);
+  const restored = restoreValueForKey(path);
+  const resetValue = restored === undefined || restored === null ? '' : String(restored);
   applyInspectorFieldEdit(path, resetValue, {refreshInspector: true});
-  notifyEditor('Field reset to generated value');
+  notifyEditor(generatedValueForKey(path) !== undefined ? 'Field restored to generated value' : 'Field restored to original loaded value');
 }
 function selectInspectorField(key) {
   const path = String(key || '');
@@ -1005,10 +1032,57 @@ function renderInspectorFieldEditor(fieldKey) {
 function resetSelectedInspectorField() {
   resetFieldByKey(activeFieldKey || selectedInspectorMeta().fieldKey);
 }
-function renderSourceRows(sourceRowIds) {
+function resetSelectionFieldsToGenerated() {
+  const {fieldKey, meta, page, block} = selectedInspectorMeta();
+  const entries = inspectorFieldEntriesForSelection(page, block, meta, fieldKey).filter(entry => entry.kind !== 'image');
+  let count = 0;
+  entries.forEach(entry => {
+    const generated = generatedValueForKey(entry.key);
+    if (generated === undefined || generated === null) return;
+    applyInspectorFieldEdit(entry.key, String(generated), {refreshInspector: false});
+    count += 1;
+  });
+  if (count) {
+    notifyEditor(`${count} field(s) restored to generated values`);
+    draw();
+  } else {
+    notifyEditor('No generated values are available for this selection');
+  }
+}
+function renderInspectorCompareTools(fieldKey, fieldEntries = []) {
+  const key = String(fieldKey || '');
+  const entries = Array.isArray(fieldEntries) ? fieldEntries : [];
+  const changedEntries = entries.filter(entry => entry.kind !== 'image' && fieldDiffState(entry.key).changed);
+  if (!key || fieldKindForKey(key) === 'image') {
+    const summary = changedEntries.length ? `${changedEntries.length} edited field(s) differ from generated content.` : 'Select a text field to compare against generated content.';
+    return `<div class="inspector-card compare-card"><div class="inspector-kicker">Compare & restore</div><p>${esc(summary)}</p><button type="button" class="ghost full-width" id="inspectorRestoreSelectionGeneratedBtn" ${changedEntries.length ? '' : 'disabled'}>Restore changed fields on selection</button></div>`;
+  }
+  const diff = fieldDiffState(key);
+  const generatedLabel = diff.hasGenerated ? (diff.changed ? 'Edited' : 'Matches generated') : 'No generated snapshot';
+  const currentText = compareTextForValue(diff.current, fieldKindForKey(key)).slice(0, 420);
+  const generatedText = compareTextForValue(diff.generated, fieldKindForKey(key)).slice(0, 420);
+  const generatedBlock = diff.hasGenerated
+    ? `<div class="compare-column"><strong>Generated</strong><p>${esc(generatedText || 'Empty')}</p></div>`
+    : `<p class="compare-empty">Generated source is not available for this field, usually because it is a manual page or new custom block.</p>`;
+  return `<div class="inspector-card compare-card ${diff.changed ? 'changed' : 'clean'}"><div class="inspector-kicker">Compare & restore</div><strong>${esc(generatedLabel)}</strong><div class="compare-grid"><div class="compare-column"><strong>Current</strong><p>${esc(currentText || 'Empty')}</p></div>${generatedBlock}</div><div class="inspector-button-grid two"><button type="button" class="ghost" id="inspectorRestoreCurrentGeneratedBtn" ${diff.hasGenerated ? '' : 'disabled'}>Restore this field</button><button type="button" class="ghost" id="inspectorRestoreSelectionGeneratedBtn" ${changedEntries.length ? '' : 'disabled'}>Restore changed fields</button></div></div>`;
+}
+function sourceRowLookup() {
+  return model?.source_rows || initialPayload?.source_rows || {};
+}
+function renderSourceRowDetails(sourceRowIds) {
   const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
+  const lookup = sourceRowLookup();
   if (!ids.length) return '<span class="empty-source">No source rows linked</span>';
-  return ids.slice(0, 8).map(id => `<span class="source-chip">${esc(id)}</span>`).join('');
+  return ids.slice(0, 8).map(id => {
+    const row = lookup[String(id)] || {};
+    const title = row.title || row.source_text || id;
+    const meta = [row.day, row.city, row.type].filter(Boolean).join(' · ');
+    const details = row.source_text || [row.title, row.details].filter(Boolean).join(' | ') || 'No source text available in payload.';
+    return `<details class="source-row-detail"><summary><span class="source-chip">${esc(id)}</span><strong>${esc(String(title).slice(0, 90))}</strong></summary><div class="source-row-meta">${esc(meta || 'Source row')}</div><p>${esc(String(details).slice(0, 700))}</p></details>`;
+  }).join('');
+}
+function renderSourceRows(sourceRowIds) {
+  return renderSourceRowDetails(sourceRowIds);
 }
 function renderInspectorTextTools(hasBlock) {
   const canStyle = hasBlock && canUsePdfSafeTextTools();
@@ -1251,6 +1325,7 @@ function renderRightInspector() {
     <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
     ${selectedFieldHtml}
     ${renderInspectorFieldEditor(fieldKey)}
+    ${renderInspectorCompareTools(fieldKey, fieldEntries)}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}
@@ -1365,6 +1440,8 @@ function attachInspectorHandlers() {
       draw();
     }
   });
+  document.getElementById('inspectorRestoreCurrentGeneratedBtn')?.addEventListener('click', resetSelectedInspectorField);
+  document.getElementById('inspectorRestoreSelectionGeneratedBtn')?.addEventListener('click', resetSelectionFieldsToGenerated);
   document.getElementById('inspectorResetSingleFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);

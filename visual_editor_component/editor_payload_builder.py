@@ -49,6 +49,32 @@ from itinerary_generation.editable_draft import (
     section_by_id,
 )
 from itinerary_generation.editor_page_contract import build_editor_document_pages
+from shared.source_rows import source_row_id, source_text
+
+
+def _source_rows_payload(parsed_rows):
+    """Return compact source-row details for the visual editor source panel."""
+
+    rows = {}
+    for index, row in enumerate(parsed_rows or []):
+        if not isinstance(row, dict):
+            continue
+        row_id = source_row_id(row, index)
+        rows[row_id] = {
+            "row_id": row_id,
+            "day": str(row.get("day") or ""),
+            "date": str(row.get("date") or row.get("start_date") or ""),
+            "type": str(row.get("effective_type") or row.get("type") or ""),
+            "city": str(row.get("city") or row.get("destination") or ""),
+            "title": str(row.get("title") or row.get("original_title") or row.get("hotel_name") or ""),
+            "details": str(row.get("details") or row.get("description") or ""),
+            "source_text": source_text(row, separator=" | ", limit=700),
+        }
+    return rows
+
+
+def _generated_value_for_page_html(page):
+    return str(page.get("html", "") if isinstance(page, dict) else page or "")
 
 
 def _source_signature(parsed_rows, grouped_days):
@@ -239,6 +265,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "path": warning.path,
         })
     payload_days = []
+    generated_days_values = []
     stored_editor_draft = (output_edits or {}).get("editor_draft") if isinstance(output_edits, dict) else {}
     stored_editor_draft = stored_editor_draft if isinstance(stored_editor_draft, dict) else {}
 
@@ -249,7 +276,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         generated_group_tour_city = group_tour_day_city(rows) if group_tour_segment else ""
         generated_group_tour_title = group_tour_day_title(rows) if group_tour_segment else ""
         generated_group_tour_intro = group_tour_day_intro(rows) if group_tour_segment else ""
-        city = typed_day.get("city") or day_edits.get("city") or generated_group_tour_city or create_travel_route_label(rows) or get_primary_city(rows)
+        generated_city = generated_group_tour_city or create_travel_route_label(rows) or get_primary_city(rows)
+        generated_date = get_day_date_text(rows)
+        generated_title = generated_group_tour_title or create_day_title(rows)
+        generated_intro = generated_group_tour_intro or create_day_intro(rows, detail_level=get_detail_level_name(output_edits))
+        city = typed_day.get("city") or day_edits.get("city") or generated_city
         if pictures_added:
             match = image_matches.get(day)
             image_path = match.get("path") if match else ""
@@ -285,23 +316,33 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         # Presence matters here: an intentionally emptied visual-editor block
         # must stay empty instead of falling back to regenerated content.
         typed_blocks_html = first_block_html(typed_day)
+        generated_blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
         if typed_blocks_html is not None:
             blocks_html = typed_blocks_html
         elif "blocks_html" in day_edits:
             blocks_html = day_edits.get("blocks_html", "")
         else:
-            blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
+            blocks_html = generated_blocks_html
 
         payload_days.append({
             "day": day,
             "label": typed_day.get("label") or day,
-            "date": typed_day.get("date") or get_day_date_text(rows),
-            "title": typed_day.get("title") or day_edits.get("title") or generated_group_tour_title or create_day_title(rows),
+            "date": typed_day.get("date") or generated_date,
+            "title": typed_day.get("title") or day_edits.get("title") or generated_title,
             "city": city,
-            "intro": typed_day.get("intro") or day_edits.get("intro") or generated_group_tour_intro or create_day_intro(rows, detail_level=get_detail_level_name(output_edits)),
+            "intro": typed_day.get("intro") or day_edits.get("intro") or generated_intro,
             "blocks_html": blocks_html,
             "blocks": typed_day.get("blocks") or [{"block_id": "main", "kind": "day_content", "content_html": blocks_html}],
             "image": image_obj,
+        })
+        generated_days_values.append({
+            "day": day,
+            "label": day,
+            "date": generated_date,
+            "title": generated_title,
+            "city": generated_city,
+            "intro": generated_intro,
+            "blocks_html": generated_blocks_html,
         })
 
     structured_document = build_itinerary_document(parsed_rows, grouped_days)
@@ -397,6 +438,37 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
         "workflow": {"pictures_added": pictures_added},
         "model_warnings": model_warnings,
+    }
+    payload["source_rows"] = _source_rows_payload(parsed_rows)
+    payload["generated_values"] = {
+        "cover": {
+            "cover_kicker": "Travel Itinerary",
+            "route_label": "Route",
+            "trip_title": create_trip_title(parsed_rows, grouped_days),
+            "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
+            "trip_dates": get_trip_date_range_text(parsed_rows),
+            "destinations_line": clean_or_create_cover_route_line(parsed_rows, create_destinations_line(parsed_rows)),
+        },
+        "summary": {
+            "trip_glance_title": "Your Trip at a Glance",
+            "journey_arc_title": "Your Journey Arc",
+            "journey_arc_columns": {"chapter": "Chapter", "days": "Days", "experience": "What You’ll Experience"},
+            "trip_glance": create_trip_glance(parsed_rows, grouped_days),
+            "journey_arc": create_journey_arc(grouped_days),
+        },
+        "days": generated_days_values,
+        "final_pages": {
+            "whats_included_title": "What’s included",
+            "whats_not_included_title": "What’s not included",
+            "important_travel_notes_title": "Important travel notes",
+            "whats_included_html": generated_inclusions_html,
+            "whats_included_pages_html": [
+                {"html": _generated_value_for_page_html(page)} for page in generated_inclusion_page_htmls
+            ],
+            "whats_not_included_html": generated_whats_not_included_html,
+            "whats_not_included_text": generated_whats_not_included_text,
+            "important_travel_notes_text": "",
+        },
     }
     payload["document_pages"] = build_editor_document_pages(
         payload=payload,
