@@ -113,13 +113,10 @@ function attachHandlers() {
     updateSaveState('ready', {message: 'Draft reset', error: '', recovered: false});
     draw();
   });
-  document.getElementById('addManualPageBtn')?.addEventListener('click', () => {
-    addManualPage(document.getElementById('manualPageTemplateSelect')?.value || 'blank');
-  });
   document.querySelectorAll('[data-outline-page-id]').forEach(btn => {
     btn.addEventListener('click', event => {
       const pageId = btn.getAttribute('data-outline-page-id');
-      if (event.target?.closest?.('[data-doc-page-action], .outline-actions, .outline-drag-handle')) return;
+      if (event.target?.closest?.('[data-doc-page-action]')) return;
       if (pageId) scrollToPage(pageId);
     });
   });
@@ -132,6 +129,7 @@ function attachHandlers() {
       if (action === 'hide') hideDocumentPage(pageId);
       if (action === 'restore') restoreDocumentPage(pageId);
       if (action === 'duplicate') duplicateManualPage(pageId);
+      if (action === 'add-after') addManualPageAfter(pageId, 'blank');
       if (action === 'move-up') moveDocumentPage(pageId, -1);
       if (action === 'move-down') moveDocumentPage(pageId, 1);
     });

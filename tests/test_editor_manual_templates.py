@@ -26,14 +26,14 @@ def _frontend_source() -> str:
     )
 
 
-def test_manual_page_templates_are_available_from_outline_and_inspector():
+def test_manual_page_templates_are_available_from_inspector_and_page_headers():
     source = _frontend_source()
 
     assert "manualPageTemplateCatalog" in source
     assert "manualPageTemplateOptionsHtml" in source
-    assert "manualPageTemplateSelect" in source
     assert "inspectorManualPageTemplate" in source
     assert "inspectorAddTemplatePageBtn" in source
+    assert "addManualPageAfter" in source
     assert "Text page" in source
     assert "Image page" in source
     assert "Notes page" in source

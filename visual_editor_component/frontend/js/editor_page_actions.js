@@ -24,13 +24,35 @@ function restoreDocumentPage(pageId) {
   draw();
   scrollToPage(pageId);
 }
+function activateNewManualPage(page) {
+  activePageId = page.page_id;
+  activeBlockId = page.manual_blocks?.[0]?.block_id || null;
+  activeFieldKey = page.manual_blocks?.length ? `document_pages.${pageIndexById(page.page_id)}.manual_blocks.0.editable_fields.content_html` : `document_pages.${pageIndexById(page.page_id)}.title`;
+}
 function addManualPage(templateId = 'blank') {
   collect();
   const page = manualPageFromTemplate(templateId || 'blank');
   documentPages().push(page);
-  activePageId = page.page_id;
-  activeBlockId = page.manual_blocks?.[0]?.block_id || null;
-  activeFieldKey = page.manual_blocks?.length ? `document_pages.${pageIndexById(page.page_id)}.manual_blocks.0.editable_fields.content_html` : `document_pages.${pageIndexById(page.page_id)}.title`;
+  activateNewManualPage(page);
+  markDocumentPagesTouched(`${page.title || 'Manual page'} added`);
+  draw();
+  scrollToPage(page.page_id);
+}
+function addManualPageAfter(anchorPageId, templateId = 'blank') {
+  collect();
+  const page = manualPageFromTemplate(templateId || 'blank');
+  documentPages().push(page);
+  const allPages = sortedDocumentPages();
+  const visible = allPages.filter(item => !item?.is_hidden);
+  const hidden = allPages.filter(item => item?.is_hidden);
+  const currentIndex = visible.findIndex(item => item.page_id === page.page_id);
+  const anchorIndex = visible.findIndex(item => item.page_id === anchorPageId);
+  if (currentIndex >= 0 && anchorIndex >= 0) {
+    visible.splice(currentIndex, 1);
+    visible.splice(Math.min(anchorIndex + 1, visible.length), 0, page);
+    renumberDocumentPageOrders([...visible, ...hidden]);
+  }
+  activateNewManualPage(page);
   markDocumentPagesTouched(`${page.title || 'Manual page'} added`);
   draw();
   scrollToPage(page.page_id);
@@ -111,9 +133,9 @@ function pageChrome(pageId, label, bodyHtml, options = {}) {
   const page = ensureDocumentPage(pageId, options.pageType || 'generated', label, options.sortOrder || 999, options.extras || {});
   const isHidden = !!page.is_hidden;
   const canDuplicate = page.page_type === 'manual';
-  const moveControls = !isHidden ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">Move up</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">Move down</button>` : '';
-  const duplicateControl = canDuplicate && !isHidden ? `<button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Duplicate</button>` : '';
-  const controls = `<details class="page-controls"><summary>Page menu</summary><div class="page-action-menu"><button class="ghost" type="button" data-outline-page-id="${escAttr(pageId)}">Select page</button>${moveControls}${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete page</button>`}${duplicateControl}</div></details>`;
+  const moveControls = !isHidden ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}" title="Move page up">↑</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}" title="Move page down">↓</button>` : '';
+  const duplicateControl = canDuplicate && !isHidden ? `<button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}" title="Duplicate manual page">Copy</button>` : '';
+  const controls = `<div class="page-controls" aria-label="Page actions"><button class="ghost" type="button" data-doc-page-action="add-after" data-page-id-ref="${escAttr(pageId)}" title="Add blank page after this page">Add page</button>${moveControls}${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}" title="Hide this page from the itinerary">Delete</button>`}${duplicateControl}</div>`;
   if (isHidden) return '';
   return `<div class="page-wrap ${pageLayoutClasses(page)} ${activePageId === pageId ? 'selected-page' : ''}" data-page-id="${escAttr(pageId)}"><div class="page-header-row"><div class="page-label">${esc(label)}</div>${controls}</div>${bodyHtml}</div>`;
 }

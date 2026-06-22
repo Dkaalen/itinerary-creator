@@ -29,6 +29,7 @@ window.visualEditorCommands = Object.freeze({
   hideDocumentPage,
   restoreDocumentPage,
   addManualPage,
+  addManualPageAfter,
   duplicateManualPage,
   moveDocumentPage,
   moveDocumentPageToIndex,

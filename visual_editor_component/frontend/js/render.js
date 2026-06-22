@@ -284,30 +284,15 @@ function renderDocumentOutline() {
     const pageId = String(page?.page_id || '');
     const title = String(page?.title || pageId || 'Untitled page');
     const hidden = !!page?.is_hidden;
-    const isManual = page?.page_type === 'manual';
-    const visibleIndex = sortedDocumentPages().filter(item => !item?.is_hidden).findIndex(item => String(item?.page_id || '') === pageId);
-    const action = hidden
-      ? `<button type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>`
-      : `<button type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete</button>`;
-    const orderingActions = '';
-    const manualActions = isManual && !hidden
-      ? `<button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
-      : '';
-    const outlineActionMenu = `<details class="outline-actions"><summary>Actions</summary><div class="outline-action-menu">${action}${manualActions}</div></details>`;
-    const dragAttrs = hidden ? '' : ` draggable="true" data-page-drag-index="${visibleIndex}"`;
     const dirty = pageHasDirtyEdits(pageId);
-    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${dirty ? 'dirty' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}"${dragAttrs}>
-      <button class="outline-drag-handle" type="button" aria-label="Drag page to reorder" title="Drag page to reorder">⋮⋮</button>
-      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${dirty ? '<b class="dirty-dot" title="Unsaved edits"></b>' : ''}${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}${dirty ? ' · Unsaved' : ''}</em></button>
-      ${outlineActionMenu}
+    const badges = `${hidden ? '<b class="outline-status hidden">Hidden</b>' : ''}${dirty ? '<b class="outline-status dirty">Unsaved</b>' : ''}`;
+    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${dirty ? 'dirty' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}">
+      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${esc(title)}</span><em>${esc(pageTypeLabel(page))}</em>${badges ? `<span class="outline-status-row">${badges}</span>` : ''}</button>
     </li>`;
   }).join('');
-  const templatePicker = `<details class="outline-template-picker"><summary>Add blank page or template</summary><label for="manualPageTemplateSelect">Template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></details>`;
   return `<aside class="document-outline" aria-label="Document pages">
     <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
-    ${templatePicker}
     <ul>${rows}</ul>
-    <p class="outline-hint">Drag page handles to reorder. Use the page header or inspector for page actions.</p>
   </aside>`;
 }
 function renderManualPageHtml(page, fallbackIndex = 0) {

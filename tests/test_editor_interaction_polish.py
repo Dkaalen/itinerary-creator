@@ -26,27 +26,27 @@ def test_ui16_collapses_document_status_metrics_by_default():
     assert "studioEditsMetric" in source
 
 
-def test_ui16_moves_outline_page_actions_into_compact_menu():
+def test_ui17_outline_page_cards_are_navigation_not_action_menus():
+    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    editing_js = Path("visual_editor_component/frontend/js/editing.js").read_text(encoding="utf-8")
+
+    assert 'data-outline-page-id' in render_js
+    assert 'class="outline-jump"' in render_js
+    assert '<summary>Actions</summary>' not in render_js
+    assert 'class="outline-action-menu"' not in render_js
+    assert "event.target?.closest?.('[data-doc-page-action]')" in editing_js
+
+
+def test_ui17_restores_inline_page_header_controls():
     source = _frontend_source()
 
-    assert 'class="outline-actions"' in source
-    assert 'class="outline-action-menu"' in source
-    assert '<summary>Actions</summary>' in source
-    assert "event.target?.closest?.('[data-doc-page-action], .outline-actions, .outline-drag-handle')" in source
-    assert 'data-doc-page-action="hide"' in source
-    assert 'data-doc-page-action="duplicate"' in source
-
-
-def test_ui16_collapses_page_header_controls_into_page_menu():
-    source = _frontend_source()
-
-    assert 'class="page-controls"' in source
-    assert '<summary>Page menu</summary>' in source
-    assert 'class="page-action-menu"' in source
-    assert "Select page" in source
-    assert "Move up" in source
-    assert "Move down" in source
-    assert "Delete page" in source
+    assert 'class="page-controls" aria-label="Page actions"' in source
+    assert 'data-doc-page-action="add-after"' in source
+    assert "addManualPageAfter" in source
+    assert 'title="Move page up"' in source
+    assert 'title="Move page down"' in source
+    assert 'title="Hide this page from the itinerary"' in source
+    assert '<summary>Page menu</summary>' not in source
 
 
 def test_ui16_compacts_page_context_and_strengthens_selection_state():

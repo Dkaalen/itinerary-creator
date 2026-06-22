@@ -9,6 +9,7 @@ def _frontend_source() -> str:
             "styles/editor.css",
             "js/render.js",
             "js/editor_inspector.js",
+            "js/editor_page_actions.js",
         )
     )
 
@@ -25,46 +26,49 @@ def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
     assert "${reviewCenterHtml()}" in source
 
 
-def test_ui15_prevents_preview_from_sliding_under_sidebars():
+def test_ui17_protects_preview_canvas_from_sidebars():
     source = _frontend_source()
 
-    assert "max-width: 1460px" in source
-    assert "grid-template-columns: minmax(198px, 228px) minmax(0, 1fr) minmax(232px, 282px)" in source
-    assert ".page-stack" in source
-    assert "min-width: 0" in source
-    assert "overflow-x: auto" in source
+    assert "grid-template-columns: 184px minmax(var(--page-w), var(--page-w)) 240px" in source
+    assert "max-width: 1246px" in source
     assert ".page-stack .page-wrap" in source
+    assert "width: var(--page-w)" in source
+    assert "overflow-x: auto" in source
+    assert "justify-content: center" in source
 
 
-def test_ui15_keeps_sidebars_sticky_and_screen_fitted():
+def test_ui17_keeps_sidebars_sticky_without_overlaying_page_canvas():
     source = _frontend_source()
 
     assert ".document-outline," in source
     assert ".right-inspector" in source
-    assert "position: sticky" in source
-    assert "top: 94px" in source
-    assert "max-height: calc(100vh - 108px)" in source
-    assert "overscroll-behavior: contain" in source
+    assert "position: sticky !important" in source
+    assert "top: 112px" in source
+    assert "max-height: calc(100vh - 126px)" in source
+    assert "overflow-y: auto" in source
+    assert "align-self: start" in source
 
 
-def test_ui15_removes_redundant_outline_page_move_buttons():
+def test_ui17_left_outline_is_clean_navigation_only():
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
 
-    assert "const orderingActions = '';" in render_js
-    assert 'title="Move page up"' not in render_js
-    assert 'title="Move page down"' not in render_js
-    assert "Drag page handles to reorder" in render_js
-    assert "data-doc-page-action=\"hide\"" in render_js
-    assert "data-doc-page-action=\"duplicate\"" in render_js
+    assert 'class="outline-jump"' in render_js
+    assert 'class="outline-status' in render_js
+    assert 'class="outline-drag-handle"' not in render_js
+    assert 'class="outline-actions"' not in render_js
+    assert 'manualPageTemplateSelect' not in render_js
+    assert "Drag page handles to reorder" not in render_js
 
 
-def test_ui15_inspector_hides_irrelevant_default_sections():
+def test_ui17_inspector_keeps_core_editing_tools_visible():
     source = _frontend_source()
 
-    assert "if (!canStyle) return '';" in source
-    assert "inspector-empty-state" in source
-    assert "field-list-card" in source
-    assert "source-card" in source
-    assert "validation-card" in source
-    assert "actions-card" in source
-    assert "Click the canvas or page outline to show only the tools relevant" in source
+    assert "Style / size" in source
+    assert "inspectorTextStylePreset" in source
+    assert "inspectorColorPreset" in source
+    assert "inspectorCompactSpacingBtn" in source
+    assert "inspectorNormalSpacingBtn" in source
+    assert "inspectorAddNoteBlockBtn" in source
+    assert "inspectorAddDividerBtn" in source
+    assert "Select text or a rich text block" in source
+    assert "if (!canStyle) return '';" not in source

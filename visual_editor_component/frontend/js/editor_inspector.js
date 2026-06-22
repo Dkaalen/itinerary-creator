@@ -248,13 +248,14 @@ function renderSourceRows(sourceRowIds) {
   return renderSourceRowDetails(sourceRowIds);
 }
 function renderInspectorTextTools(hasBlock) {
-  const canStyle = hasBlock && canUsePdfSafeTextTools();
-  if (!canStyle) return '';
-  const disabled = '';
-  const hint = 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.';
+  const canStyle = !!(hasBlock && canUsePdfSafeTextTools());
+  const disabled = canStyle ? '' : 'disabled';
+  const hint = canStyle
+    ? 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.'
+    : 'Select text or a rich text block on the page to apply style, size, color, spacing, notes, or dividers.';
   return `<div class="inspector-card text-tools-card"><div class="inspector-kicker">Text tools</div>
-    <label class="inspector-control-label" for="inspectorTextStylePreset">Paragraph style</label>
-    <select id="inspectorTextStylePreset" ${disabled} aria-label="Inspector paragraph style">${controlledPresetOptionsHtml('text_styles', 'Choose style')}</select>
+    <label class="inspector-control-label" for="inspectorTextStylePreset">Style / size</label>
+    <select id="inspectorTextStylePreset" ${disabled} aria-label="Inspector paragraph style and size">${controlledPresetOptionsHtml('text_styles', 'Choose style or size')}</select>
     <label class="inspector-control-label" for="inspectorColorPreset">Color / highlight</label>
     <select id="inspectorColorPreset" ${disabled} aria-label="Inspector color preset">${controlledPresetOptionsHtml('colors', 'Choose color')}</select>
     <div class="inspector-button-grid">
@@ -417,6 +418,7 @@ function renderInspectorImageTools(fieldKey) {
 
 function renderInspectorLayoutTools(hasBlock, page, block) {
   const hasPage = !!(page && page.page_id);
+  if (!hasPage && !hasBlock) return '';
   const pageOverrides = page?.page_overrides || {};
   const blockOverrides = block?.style_overrides || {};
   const isManualPage = page?.page_type === 'manual';
@@ -455,32 +457,32 @@ function renderInspectorLayoutTools(hasBlock, page, block) {
       <button type="button" class="ghost" id="inspectorAddManualBlockBtn" ${manualDisabled}>Add text block</button>
     </div>
   </div>` : '';
-  return `<details class="inspector-card layout-tools-card" ${hasPage ? '' : 'open'}><summary><span>Page options</span><em>Layout tools</em></summary>
-    <label class="inspector-control-label" for="inspectorManualPageTemplate">Add page template</label>
+  const pageTools = hasPage ? `<div class="inspector-layout-section">
+    <label class="inspector-control-label" for="inspectorPageSpacing">Page spacing</label>
+    <select id="inspectorPageSpacing" ${pageDisabled} aria-label="Page spacing">
+      <option value="standard" ${spacing === 'standard' ? 'selected' : ''}>Standard</option>
+      <option value="compact" ${spacing === 'compact' ? 'selected' : ''}>Compact</option>
+      <option value="comfortable" ${spacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
+    </select>
+    <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepPageTogether" ${pageOverrides.keep_page_together ? 'checked' : ''} ${pageDisabled}> Keep page together</label>
+    <div class="inspector-button-grid">
+      <button type="button" class="ghost" id="inspectorHidePageBtn" ${hasPage && !pageHidden ? '' : 'disabled'}>Delete page</button>
+      <button type="button" class="ghost" id="inspectorRestorePageBtn" ${hasPage && pageHidden ? '' : 'disabled'}>Restore page</button>
+      <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
+    </div>
+  </div>` : '';
+  const manualTemplateTools = hasPage ? `<div class="inspector-layout-section">
+    <label class="inspector-control-label" for="inspectorManualPageTemplate">Manual page template</label>
     <select id="inspectorManualPageTemplate" aria-label="Manual page template">${manualPageTemplateOptionsHtml('blank')}</select>
-    <button type="button" class="ghost full-width" id="inspectorAddTemplatePageBtn">Add selected page</button>
-    ${hasPage ? `<div class="inspector-layout-section">
-      <label class="inspector-control-label" for="inspectorPageSpacing">Page spacing</label>
-      <select id="inspectorPageSpacing" ${pageDisabled} aria-label="Page spacing">
-        <option value="standard" ${spacing === 'standard' ? 'selected' : ''}>Standard</option>
-        <option value="compact" ${spacing === 'compact' ? 'selected' : ''}>Compact</option>
-        <option value="comfortable" ${spacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
-      </select>
-      <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepPageTogether" ${pageOverrides.keep_page_together ? 'checked' : ''} ${pageDisabled}> Keep page together</label>
-      <div class="inspector-button-grid">
-        <button type="button" class="ghost" id="inspectorHidePageBtn" ${hasPage && !pageHidden ? '' : 'disabled'}>Delete page</button>
-        <button type="button" class="ghost" id="inspectorRestorePageBtn" ${hasPage && pageHidden ? '' : 'disabled'}>Restore page</button>
-        <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
-      </div>
-      <div class="inspector-button-grid two">
-        <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${pageDisabled}>Move page up</button>
-        <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${pageDisabled}>Move page down</button>
-      </div>
-    </div>` : ''}
+    <button type="button" class="ghost full-width" id="inspectorAddTemplatePageBtn">Add template page</button>
+  </div>` : '';
+  return `<details class="inspector-card layout-tools-card"><summary><span>More page options</span><em>Layout tools</em></summary>
+    ${pageTools}
     ${manualPageTools}
     ${blockTools}
     ${manualBlockTools}
-    <p>Drag the outline for page order. Keep detailed options collapsed until needed.</p>
+    ${manualTemplateTools}
+    <p class="inspector-mini-note">Page move and delete shortcuts are also available above each itinerary page.</p>
   </details>`;
 }
 
@@ -495,7 +497,7 @@ function renderRightInspector() {
   const blockDirtyCount = activeBlockId ? dirtyKeysForBlock(activeBlockId).length : 0;
   const selectedFieldHtml = hasBlock
     ? `<div class="inspector-card selected ${blockDirtyCount ? 'dirty' : ''}"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Unsaved</dt><dd>${esc(blockDirtyCount ? `${blockDirtyCount} field(s)` : 'No')}</dd></dl></div>`
-    : `<div class="inspector-card empty inspector-empty-state"><strong>Select text, an image, or a page</strong><p>Click the canvas or page outline to show only the tools relevant to that selection.</p></div>`;
+    : `<div class="inspector-card empty inspector-empty-state"><strong>Select text, an image, or a page</strong><p>Click the canvas or page outline to select what you want to edit. Core text tools stay visible below.</p></div>`;
   const fieldList = fieldEntries.length ? renderInspectorFieldList(fieldEntries, fieldKey) : '';
   const pageDirtyCount = dirtyKeysForPage(page?.page_id || meta.page_id).length;
   const pageCard = hasPage ? `<details class="inspector-card page-context-card ${pageHasDirtyEdits(page?.page_id || meta.page_id) ? 'dirty' : ''}"><summary><span>Page</span><em>${esc(pageDirtyCount ? `${pageDirtyCount} edit(s)` : pageType)}</em></summary><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(pageDirtyCount ? `${pageDirtyCount} edit(s)` : 'No')}</dd></dl></details>` : '';
@@ -507,8 +509,8 @@ function renderRightInspector() {
     <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : (hasPage ? 'Page' : 'Ready')}</span></div>
     ${pageCard}
     ${selectedFieldHtml}
-    ${hasBlock ? renderInspectorFieldEditor(fieldKey) : ''}
-    ${hasBlock ? renderInspectorCompareTools(fieldKey, fieldEntries) : ''}
+    ${renderInspectorFieldEditor(fieldKey)}
+    ${renderInspectorCompareTools(fieldKey, fieldEntries)}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}

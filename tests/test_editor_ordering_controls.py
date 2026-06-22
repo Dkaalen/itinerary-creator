@@ -24,17 +24,19 @@ def _frontend_source() -> str:
     )
 
 
-def test_outline_exposes_drag_style_page_ordering_controls():
+def test_page_headers_expose_page_ordering_controls():
     source = _frontend_source()
+    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
 
     assert "moveDocumentPage" in source
     assert "moveDocumentPageToIndex" in source
     assert "renumberDocumentPageOrders" in source
     assert "data-outline-row-page-id" in source
-    assert "data-page-drag-index" in source
-    assert "outline-drag-handle" in source
-    assert "Drag page to reorder" in source
+    assert 'data-doc-page-action="move-up"' in source
+    assert 'data-doc-page-action="move-down"' in source
     assert "Page order updated" in source
+    assert "outline-drag-handle" not in render_js
+    assert "data-page-drag-index" not in render_js
 
 
 def test_manual_blocks_expose_drag_style_ordering_controls():
