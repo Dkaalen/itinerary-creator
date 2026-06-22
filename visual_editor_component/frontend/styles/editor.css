@@ -429,6 +429,32 @@
     .outline-title strong { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; color: var(--ink); }
     .outline-title span { color: var(--muted); font-size: 11px; font-weight: 850; }
     .outline-add { width: 100%; justify-content: center; margin-bottom: 12px; }
+    .outline-template-picker {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid rgba(17,38,63,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.76);
+    }
+    .outline-template-picker label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+    .outline-template-picker select {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid rgba(17,38,63,.16);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--body);
+      font-size: 12px;
+    }
+    .outline-template-picker .outline-add { margin-bottom: 0; }
     .document-outline ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
     .outline-row {
       border: 1px solid rgba(17,38,63,.10);
@@ -524,6 +550,11 @@
       border-radius: 10px;
       border-color: rgba(17,38,63,.16);
       background: #fff;
+    }
+    .layout-tools-card .full-width {
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 8px;
     }
     .layout-tools-card select:disabled,
     .layout-tools-card button:disabled,

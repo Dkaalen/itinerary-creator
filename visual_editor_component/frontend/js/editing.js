@@ -97,7 +97,9 @@ function attachHandlers() {
     touchedKeys = new Set();
     draw();
   });
-  document.getElementById('addManualPageBtn')?.addEventListener('click', addManualPage);
+  document.getElementById('addManualPageBtn')?.addEventListener('click', () => {
+    addManualPage(document.getElementById('manualPageTemplateSelect')?.value || 'blank');
+  });
   document.querySelectorAll('[data-outline-page-id]').forEach(btn => {
     btn.addEventListener('click', event => {
       const pageId = btn.getAttribute('data-outline-page-id');

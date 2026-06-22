@@ -281,9 +281,10 @@ function renderDocumentOutline() {
       <div class="outline-actions">${action}${manualActions}</div>
     </li>`;
   }).join('');
+  const templatePicker = `<div class="outline-template-picker"><label for="manualPageTemplateSelect">Add blank page or template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></div>`;
   return `<aside class="document-outline" aria-label="Document pages">
     <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
-    <button class="primary outline-add" id="addManualPageBtn" type="button">Add blank page</button>
+    ${templatePicker}
     <ul>${rows}</ul>
     <p class="outline-hint">Generated pages are hidden when deleted and can be restored. Manual pages stay fully editable.</p>
   </aside>`;
@@ -298,7 +299,8 @@ function renderManualPages() {
     const body = blocks.map((block, blockIndex) => {
       const html = block?.editable_fields?.content_html || '';
       const blockId = block?.block_id || `${page.page_id}__manual-${blockIndex + 1}`;
-      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="Manual text block">${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', 'Manual text block')}</div>`;
+      const label = block?.title || humanizeEditorToken(block?.block_type || 'Manual block');
+      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="${escAttr(label)}">${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', label)}</div>`;
     }).join('');
     return pageChrome(page.page_id, page.title || 'Blank page', `<div class="a4-page manual-page"><div class="page-content"><div class="final-title">${editableText(page.title || 'Blank page', `document_pages.${realIndex}.title`, 'manual-page-title')}</div>${body}</div></div>`, {pageType: 'manual', sortOrder: page.sort_order || 999});
   }).join('');
