@@ -250,8 +250,9 @@ function editorStudioStats() {
   const visible = pages.filter(page => !page?.is_hidden).length;
   const hidden = pages.filter(page => page?.is_hidden).length;
   const manual = pages.filter(page => page?.page_type === 'manual' && !page?.is_hidden).length;
+  const dirtyPages = pages.filter(page => pageHasDirtyEdits(page?.page_id)).length;
   const selection = activeBlockId ? 'Block selected' : (activePageId ? 'Page selected' : 'No selection');
-  return {visible, hidden, manual, selection};
+  return {visible, hidden, manual, dirtyPages, selection};
 }
 function studioStatusStripHtml() {
   const stats = editorStudioStats();
@@ -259,6 +260,7 @@ function studioStatusStripHtml() {
     <span class="studio-metric"><b>${esc(stats.visible)}</b><small>Visible pages</small></span>
     <span class="studio-metric ${stats.hidden ? 'review' : ''}"><b>${esc(stats.hidden)}</b><small>Hidden</small></span>
     <span class="studio-metric"><b>${esc(stats.manual)}</b><small>Manual pages</small></span>
+    <span class="studio-metric ${stats.dirtyPages ? 'review' : ''}"><b id="studioDirtyPagesMetric">${esc(stats.dirtyPages)}</b><small>Dirty pages</small></span>
     <span class="studio-metric selection"><b id="studioSelectionMetric">${esc(stats.selection)}</b><small>Selection</small></span>
     <span class="studio-metric"><b id="studioEditsMetric">${esc(touchedKeys.size)}</b><small>Unsaved edits</small></span>
   </div>`;
@@ -281,9 +283,10 @@ function renderDocumentOutline() {
       ? `<button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
       : '';
     const dragAttrs = hidden ? '' : ` draggable="true" data-page-drag-index="${visibleIndex}"`;
-    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}"${dragAttrs}>
+    const dirty = pageHasDirtyEdits(pageId);
+    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${dirty ? 'dirty' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}"${dragAttrs}>
       <button class="outline-drag-handle" type="button" aria-label="Drag page to reorder" title="Drag page to reorder">⋮⋮</button>
-      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}</em></button>
+      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${dirty ? '<b class="dirty-dot" title="Unsaved edits"></b>' : ''}${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}${dirty ? ' · Unsaved' : ''}</em></button>
       <div class="outline-actions">${orderingActions}${action}${manualActions}</div>
     </li>`;
   }).join('');
@@ -325,6 +328,7 @@ function render(payload, commitNonce = null) {
     return;
   }
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
+  hydrateSaveStateFromPayload(initialPayload);
   const incomingPicturesAdded = !!initialPayload?.workflow?.pictures_added;
   const currentPicturesAdded = !!model?.workflow?.pictures_added;
   const workflowPromotedToPictures = incomingPicturesAdded && !currentPicturesAdded;
@@ -359,6 +363,7 @@ function draw() {
           <span id="savedNote" class="saved-note">Autosave ready</span>
           <button class="primary" id="saveBtn" type="button">Save changes</button>
         </div>
+        ${saveRecoveryPanelHtml()}
         <div class="toolbar-tools style-tools">
           <select id="textStylePreset" aria-label="Text style preset">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
           <select id="colorPreset" aria-label="Color preset">${controlledPresetOptionsHtml('colors', 'Color')}</select>

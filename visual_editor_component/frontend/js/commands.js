@@ -1,13 +1,38 @@
 function markTouched(key) {
   if (key) touchedKeys.add(key);
-  const note = document.getElementById('savedNote');
-  if (note) {
-    note.textContent = 'Unsaved edits';
-    note.classList.add('show');
-  }
   persistLocalDraft();
+  updateSaveState('dirty', {message: 'Unsaved edits', error: ''});
   scheduleServerAutosave();
   updateEditorStats();
+}
+function dirtyKeysForPage(pageId) {
+  const id = String(pageId || '');
+  if (!id) return [];
+  return Array.from(touchedKeys || []).filter(key => {
+    if (key === 'document_pages') return true;
+    const meta = inferEditorBlockMetaForKey(key, '');
+    return String(meta?.page_id || '') === id;
+  });
+}
+function dirtyKeysForBlock(blockId) {
+  const id = String(blockId || '');
+  if (!id) return [];
+  return Array.from(touchedKeys || []).filter(key => {
+    const meta = inferEditorBlockMetaForKey(key, '');
+    return String(meta?.block_id || '') === id;
+  });
+}
+function pageHasDirtyEdits(pageId) {
+  return dirtyKeysForPage(pageId).length > 0;
+}
+function blockHasDirtyEdits(blockId) {
+  return dirtyKeysForBlock(blockId).length > 0;
+}
+function saveRecoveryPanelHtml() {
+  return `<div id="saveRecoveryCard" class="save-recovery-card ${escAttr(saveState.state)}">
+    <div><strong id="saveStatusLabel">${esc(saveStatusLabel())}</strong><span id="saveStatusDetail">${esc(saveStatusDetail())}</span></div>
+    <em id="saveServerStatus">${esc(saveState.serverSavedAt ? `Server autosaved ${humanTime(saveState.serverSavedAt)}` : 'Server autosave ready')}</em>
+  </div>`;
 }
 function isHtmlEditKey(key) {
   return key && (key.endsWith('.blocks_html') || key.endsWith('.content_html') || key.endsWith('.whats_included_html') || key.endsWith('.whats_not_included_html') || key.includes('.editable_fields.content_html') || key.includes('.whats_included_pages_html.'));
@@ -1316,13 +1341,14 @@ function renderRightInspector() {
   const hasBlock = !!(fieldKey || activeBlockId);
   const sourceRows = block?.source_row_ids || meta.source_row_ids || page?.source_row_ids || [];
   const fieldEntries = inspectorFieldEntriesForSelection(page, block, meta, fieldKey);
+  const blockDirtyCount = activeBlockId ? dirtyKeysForBlock(activeBlockId).length : 0;
   const selectedFieldHtml = hasBlock
-    ? `<div class="inspector-card selected"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd></dl></div>`
+    ? `<div class="inspector-card selected ${blockDirtyCount ? 'dirty' : ''}"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(blockDirtyCount ? `${blockDirtyCount} field(s)` : 'No')}</dd></dl></div>`
     : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and text controls.</p></div>`;
   const fieldList = renderInspectorFieldList(fieldEntries, fieldKey);
   return `<aside class="right-inspector" aria-label="Selected block inspector">
     <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : 'Page'}</span></div>
-    <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
+    <div class="inspector-card ${pageHasDirtyEdits(page?.page_id || meta.page_id) ? 'dirty' : ''}"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(dirtyKeysForPage(page?.page_id || meta.page_id).length ? `${dirtyKeysForPage(page?.page_id || meta.page_id).length} edit(s)` : 'No')}</dd></dl></div>
     ${selectedFieldHtml}
     ${renderInspectorFieldEditor(fieldKey)}
     ${renderInspectorCompareTools(fieldKey, fieldEntries)}
@@ -1643,6 +1669,11 @@ function updateEditorStats() {
   if (editCount) editCount.textContent = `${touchedKeys.size} manual edits pending`;
   const studioEdits = document.getElementById('studioEditsMetric');
   if (studioEdits) studioEdits.textContent = String(touchedKeys.size);
+  const studioDirtyPages = document.getElementById('studioDirtyPagesMetric');
+  if (studioDirtyPages) {
+    const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : [];
+    studioDirtyPages.textContent = String(pages.filter(page => pageHasDirtyEdits(page?.page_id)).length);
+  }
   const studioSelection = document.getElementById('studioSelectionMetric');
   if (studioSelection) studioSelection.textContent = activeBlockId ? 'Block selected' : (activePageId ? 'Page selected' : 'No selection');
   const readinessBadge = document.getElementById('pdfReadinessBadge');
@@ -1651,6 +1682,7 @@ function updateEditorStats() {
     readinessBadge.textContent = status.label;
     readinessBadge.className = `stat-pill pdf-readiness ${status.level}`;
   }
+  updateSaveStatusUi();
   highlightWarnings();
 }
 

@@ -49,6 +49,7 @@ from itinerary_generation.editable_draft import (
     section_by_id,
 )
 from itinerary_generation.editor_page_contract import build_editor_document_pages
+from visual_editor_component.editor_status import persistent_draft_status
 from shared.source_rows import source_row_id, source_text
 
 
@@ -438,6 +439,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
         "workflow": {"pictures_added": pictures_added},
         "model_warnings": model_warnings,
+        "autosave_status": persistent_draft_status(),
     }
     payload["source_rows"] = _source_rows_payload(parsed_rows)
     payload["generated_values"] = {

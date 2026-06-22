@@ -11,12 +11,98 @@ let activeBlockId = null;
 let activeFieldKey = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
+let restoredLocalDraftInfo = null;
 let serverAutosaveTimer = null;
 let serverAutosaveInFlight = false;
 let lastServerAutosavePayload = "";
 let lastServerAutosaveAt = 0;
 const SERVER_AUTOSAVE_DELAY_MS = 12000;
 const SERVER_AUTOSAVE_MIN_INTERVAL_MS = 9000;
+const SAVE_STATUS_STALE_MS = 20000;
+let saveState = {
+  state: 'ready',
+  message: 'Autosave ready',
+  lastSavedAt: 0,
+  lastAttemptAt: 0,
+  localDraftAt: 0,
+  serverSavedAt: '',
+  serverOk: null,
+  serverReason: '',
+  recovered: false,
+  error: ''
+};
+function humanTime(value) {
+  if (!value) return '';
+  try {
+    const date = typeof value === 'number' ? new Date(value) : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  } catch (err) { return ''; }
+}
+function saveStatusLabel() {
+  if (saveState.state === 'dirty') return 'Unsaved edits';
+  if (saveState.state === 'saving') return 'Saving…';
+  if (saveState.state === 'autosaving') return 'Autosaving…';
+  if (saveState.state === 'recovered') return 'Recovered draft';
+  if (saveState.state === 'local_draft') return 'Saved locally';
+  if (saveState.state === 'failed') return 'Save needs attention';
+  if (saveState.state === 'exporting') return 'Applying changes…';
+  if (saveState.lastSavedAt) return `Saved ${humanTime(saveState.lastSavedAt)}`;
+  if (saveState.serverSavedAt) return `Server saved ${humanTime(saveState.serverSavedAt)}`;
+  return saveState.message || 'Autosave ready';
+}
+function saveStatusDetail() {
+  if (saveState.error) return saveState.error;
+  if (saveState.state === 'dirty') return 'Browser recovery draft is saved locally. Server autosave will run shortly.';
+  if (saveState.state === 'saving' || saveState.state === 'autosaving') return 'Sending a compact editor delta to the app.';
+  if (saveState.state === 'recovered') return 'A matching browser draft was restored and queued for server autosave.';
+  if (saveState.state === 'local_draft') return 'The browser has a local recovery copy. Keep this tab open until saving succeeds.';
+  if (saveState.state === 'failed') return 'Your local recovery draft is still kept in this browser.';
+  if (saveState.serverOk === false) return saveState.serverReason || 'Last server autosave was rejected.';
+  const savedAt = humanTime(saveState.lastSavedAt || saveState.serverSavedAt || saveState.localDraftAt);
+  return savedAt ? `Last recovery snapshot: ${savedAt}` : 'Local recovery is ready.';
+}
+function updateSaveState(state, extras = {}) {
+  saveState = Object.assign({}, saveState, extras, {state});
+  const note = document.getElementById('savedNote');
+  if (note) {
+    note.textContent = saveStatusLabel();
+    note.className = `saved-note show ${state}`;
+  }
+  updateSaveStatusUi();
+}
+function updateSaveStatusUi() {
+  const label = document.getElementById('saveStatusLabel');
+  if (label) label.textContent = saveStatusLabel();
+  const detail = document.getElementById('saveStatusDetail');
+  if (detail) detail.textContent = saveStatusDetail();
+  const card = document.getElementById('saveRecoveryCard');
+  if (card) card.className = `save-recovery-card ${saveState.state}`;
+  const server = document.getElementById('saveServerStatus');
+  if (server) {
+    const ok = saveState.serverOk;
+    server.textContent = ok === false ? `Server issue: ${saveState.serverReason || 'check autosave'}` : (saveState.serverSavedAt ? `Server autosaved ${humanTime(saveState.serverSavedAt)}` : 'Server autosave ready');
+  }
+}
+function hydrateSaveStateFromPayload(payload) {
+  const status = payload?.autosave_status || {};
+  if (!status || typeof status !== 'object') return;
+  saveState.serverSavedAt = status.saved_at || saveState.serverSavedAt || '';
+  saveState.serverOk = Object.prototype.hasOwnProperty.call(status, 'ok') ? !!status.ok : saveState.serverOk;
+  saveState.serverReason = status.reason || '';
+  if (status.recovered) {
+    saveState.recovered = true;
+    saveState.state = 'recovered';
+    saveState.message = 'Recovered server draft';
+  } else if (status.ok && status.saved_at) {
+    saveState.state = 'saved';
+    saveState.lastSavedAt = Date.now();
+    saveState.message = 'Autosaved';
+  } else if (status.ok === false) {
+    saveState.state = 'failed';
+    saveState.error = status.reason || 'Server autosave failed';
+  }
+}
 const WARNING_PATTERNS = [
   /\bPls\b/i, /\bplz\b/i, /\baddon cost\b/i, /\bpaid on ground\b/i,
   /\btranfers\b/i, /\bDate dependant\b/i, /\bFight\s*:/i,
@@ -51,6 +137,7 @@ function persistLocalDraft() {
       draft_schema_version: initialPayload?.meta?.draft_schema_version || 1,
       model: snapshot
     }));
+    saveState.localDraftAt = Date.now();
   } catch (err) {}
 }
 function sameDraftDay(a, b, fallbackIndex) {
@@ -135,6 +222,8 @@ function restoreLocalDraftIfAvailable() {
     if (serverSnapshot === localSnapshot) return false;
     model = merged;
     restoredLocalDraftPendingSave = true;
+    restoredLocalDraftInfo = {saved_at: parsed.saved_at || 0, source_signature: savedSourceSignature};
+    updateSaveState('recovered', {recovered: true, localDraftAt: parsed.saved_at || 0, message: 'Recovered browser draft'});
     return true;
   } catch (err) {
     return false;

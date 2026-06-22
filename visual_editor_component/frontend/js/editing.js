@@ -4,6 +4,19 @@ function updateAutosaveNote(message) {
   note.textContent = message;
   note.classList.add('show');
 }
+function safeSendComponentValue(serialized, stateName = 'saving') {
+  try {
+    Streamlit.setComponentValue(serialized);
+    return true;
+  } catch (err) {
+    persistLocalDraft();
+    updateSaveState('failed', {
+      error: `Could not send save to app: ${err?.message || err || 'unknown error'}`,
+      lastAttemptAt: Date.now()
+    });
+    return false;
+  }
+}
 
 function sendServerAutosaveNow() {
   if (!model || serverAutosaveInFlight) return;
@@ -19,9 +32,14 @@ function sendServerAutosaveNow() {
   lastServerAutosaveAt = now;
   lastServerAutosavePayload = serialized;
   persistLocalDraft();
-  updateAutosaveNote('Autosaving…');
-  Streamlit.setComponentValue(serialized);
+  updateSaveState('autosaving', {message: 'Autosaving…', lastAttemptAt: now, error: ''});
+  safeSendComponentValue(serialized, 'autosaving');
   setTimeout(() => { serverAutosaveInFlight = false; }, 4000);
+  setTimeout(() => {
+    if (saveState.state === 'autosaving' && saveState.lastAttemptAt === now) {
+      updateSaveState('local_draft', {message: 'Autosave sent; local recovery kept'});
+    }
+  }, SAVE_STATUS_STALE_MS);
 }
 
 function scheduleServerAutosave(delayMs = SERVER_AUTOSAVE_DELAY_MS) {
@@ -36,18 +54,19 @@ function saveRestoredLocalDraftToServer() {
   if (!restoredLocalDraftPendingSave) return;
   restoredLocalDraftPendingSave = false;
   collect();
-  const serialized = buildServerAutosaveEnvelope();
+  const payload = compactFullPayloadForCommit(model);
+  payload.draft_id = model.draft_id || '';
+  payload.meta = model.meta || {};
+  payload.workflow = model.workflow || {};
+  payload.save_mode = 'recovered_full';
+  const serialized = JSON.stringify({autosave: true, recovered: true, payload});
   if (serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
   lastServerAutosavePayload = serialized;
   lastServerAutosaveAt = Date.now();
   persistLocalDraft();
-  Streamlit.setComponentValue(serialized);
-  const note = document.getElementById('savedNote');
-  if (note) {
-    note.textContent = 'Recovered browser draft and saved it';
-    note.classList.add('show');
-    setTimeout(() => note.classList.remove('show'), 2200);
+  if (safeSendComponentValue(serialized, 'recovered')) {
+    updateSaveState('recovered', {message: 'Recovered browser draft and saved it', lastAttemptAt: Date.now(), recovered: true});
   }
   updateEditorStats();
 }
@@ -60,14 +79,10 @@ function saveChanges(commitNonce = null) {
   lastSavedPayload = serialized;
   lastServerAutosavePayload = serialized;
   persistLocalDraft();
-  Streamlit.setComponentValue(serialized);
+  updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Saving…', lastAttemptAt: Date.now(), error: ''});
+  if (!safeSendComponentValue(serialized, commitNonce ? 'exporting' : 'saving')) return;
   touchedKeys = new Set();
-  const note = document.getElementById('savedNote');
-  if (note) {
-    note.textContent = commitNonce ? 'Applying changes…' : 'Saved';
-    note.classList.add('show');
-    if (!commitNonce) setTimeout(() => note.classList.remove('show'), 1500);
-  }
+  updateSaveState('saved', {message: commitNonce ? 'Applying changes…' : 'Saved', lastSavedAt: Date.now(), error: ''});
   updateEditorStats();
 }
 
@@ -95,6 +110,7 @@ function attachHandlers() {
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
     touchedKeys = new Set();
+    updateSaveState('ready', {message: 'Draft reset', error: '', recovered: false});
     draw();
   });
   document.getElementById('addManualPageBtn')?.addEventListener('click', () => {
