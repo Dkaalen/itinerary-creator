@@ -7,8 +7,9 @@ picture review, or PDF export.
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
+import re
 from typing import Any, Iterable, Mapping
 
 from itinerary_generation.common import group_rows_by_day
@@ -30,7 +31,10 @@ _CONTENT_TYPES = {
     "Train",
     "Transfer",
 }
-_TRANSFER_TYPES = {"Transfer", "Flight", "Train", "Ferry", "Cruise", "Rental Car", "Self Drive"}
+_TRANSFER_TYPES = {"Transfer", "Flight", "Train", "Ferry", "Cruise", "Rental Car", "Self Drive", "Transport"}
+_DAY_OVERFLOW_TEXT_LIMIT = 2600
+_DAY_OVERFLOW_SERVICE_LIMIT = 6
+_HEAVY_ACTIVITY_LIMIT = 4
 
 
 @dataclass(frozen=True)
@@ -104,6 +108,76 @@ def _has_transfer_endpoint(row: Mapping[str, Any], keys: tuple[str, ...]) -> boo
     return bool(_text(row, *keys))
 
 
+
+def _normalise_fingerprint(value: str) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").lower()).strip()
+    text = re.sub(r"[^a-z0-9à-ÿøåäö .'-]", "", text)
+    return text[:160]
+
+
+def _row_fingerprint(row: Mapping[str, Any]) -> str:
+    row_type = get_row_type(row)
+    title = _text(row, "title", "original_title", "hotel_name", "name")
+    details = _text(row, "details", "description")
+    city = _city(row)
+    return "|".join([
+        row_type,
+        _normalise_fingerprint(city),
+        _normalise_fingerprint(title or details),
+    ])
+
+
+def _route_endpoint(row: Mapping[str, Any], *, destination: bool) -> str:
+    keys = (
+        ("route_destination", "destination", "to", "to_city", "dropoff", "dropoff_place", "end_location")
+        if destination
+        else ("route_origin", "origin", "from", "from_city", "pickup", "pickup_place", "start_location")
+    )
+    value = _text(row, *keys)
+    if value:
+        return value
+
+    source = " - ".join(_text(row, key) for key in ("title", "details", "description", "route", "original_title") if _text(row, key))
+    match = re.search(r"\bfrom\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})(?:\s+-\s+|\s+\||,|$)", source, flags=re.IGNORECASE)
+    if not match:
+        match = re.search(r"\b(?:train|flight|coach|bus|ferry|cruise|transfer|private\s+transfer)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})(?:\s+-\s+|\s+\||,|$)", source, flags=re.IGNORECASE)
+    if not match:
+        match = re.search(r"\b([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45})(?:\s+-\s+|\s+\||,|$)", source, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    raw = match.group(2 if destination else 1)
+    raw = re.sub(r"^(?:train|flight|coach|bus|ferry|cruise|transfer|private\s+transfer)\s+", "", raw, flags=re.IGNORECASE)
+    raw = re.split(r"\b(?:hotel|station|airport|time|departure|arrival|onboard|included)\b", raw, maxsplit=1, flags=re.IGNORECASE)[0]
+    return raw.strip(" -:|.,")
+
+
+def _day_text_weight(day_rows: Iterable[Mapping[str, Any]]) -> int:
+    total = 0
+    for row in day_rows:
+        for key in ("title", "details", "description", "client_description"):
+            total += len(str(row.get(key, "") or ""))
+        for key in ("includes", "notable_sights"):
+            value = row.get(key)
+            if isinstance(value, (list, tuple)):
+                total += sum(len(str(item or "")) for item in value)
+    return total
+
+
+def _primary_day_city(day_rows: Iterable[Mapping[str, Any]]) -> str:
+    rows = list(day_rows)
+    for row in rows:
+        if get_row_type(row) == "Hotel" and _city(row):
+            return _city(row)
+    for row in rows:
+        if get_row_type(row) in _TRANSFER_TYPES:
+            destination = _route_endpoint(row, destination=True)
+            if destination:
+                return destination
+    for row in rows:
+        if _city(row):
+            return _city(row)
+    return ""
+
 def _issue(code: str, severity: str, message: str, row: Mapping[str, Any] | None = None) -> ItineraryHealthIssue:
     row = row or {}
     return ItineraryHealthIssue(
@@ -139,10 +213,10 @@ def build_itinerary_health_issues(
                 row,
             ))
         if row_type in _TRANSFER_TYPES:
-            has_origin = _has_transfer_endpoint(row, ("origin", "from", "from_city", "pickup", "pickup_place", "start_location"))
-            has_destination = _has_transfer_endpoint(row, ("destination", "to", "to_city", "dropoff", "dropoff_place", "end_location"))
+            has_origin = bool(_route_endpoint(row, destination=False))
+            has_destination = bool(_route_endpoint(row, destination=True))
             has_details = bool(_text(row, "details", "description", "route", "title", "original_title"))
-            if not has_details and not (has_origin and has_destination):
+            if not has_details or not (has_origin and has_destination):
                 issues.append(_issue(
                     "missing_transfer_route",
                     REVIEW,
@@ -158,17 +232,72 @@ def build_itinerary_health_issues(
             ))
 
     grouped = group_rows_by_day(main_rows)
+    duplicate_rows: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in main_rows:
+        fingerprint = _row_fingerprint(row)
+        if fingerprint and fingerprint.count("|") == 2:
+            duplicate_rows[(str(_day(row)), fingerprint)].append(row)
+
+    for (_day_key, _fingerprint), duplicate_group in duplicate_rows.items():
+        if len(duplicate_group) < 2:
+            continue
+        sample = duplicate_group[0]
+        issues.append(_issue(
+            "duplicate_service",
+            REVIEW,
+            f"{_day(sample) or 'Unknown day'}: possible duplicate {get_row_type(sample).lower()} service detected.",
+            sample,
+        ))
+
+    ordered_day_cities: list[tuple[str, str]] = []
     for day, day_rows in grouped.items():
         counts = Counter(get_row_type(row) for row in day_rows)
         total = sum(1 for row in day_rows if get_row_type(row) in _CONTENT_TYPES)
-        if total >= 7 or counts.get("Activity", 0) >= 4:
+        text_weight = _day_text_weight(day_rows)
+        if total >= _DAY_OVERFLOW_SERVICE_LIMIT or counts.get("Activity", 0) >= _HEAVY_ACTIVITY_LIMIT or text_weight >= _DAY_OVERFLOW_TEXT_LIMIT:
             issues.append(ItineraryHealthIssue(
                 code="busy_day_pdf_risk",
                 severity=REVIEW,
-                message=f"{day}: many services may overflow one A4 page; review layout before export.",
+                message=f"{day}: many services or long descriptions may overflow one A4 page; review layout before export.",
                 day=str(day),
                 row_type="Day",
                 source="layout_preflight",
+            ))
+        if counts.get("Hotel", 0) > 1:
+            issues.append(ItineraryHealthIssue(
+                code="multiple_hotels_same_day",
+                severity=REVIEW,
+                message=f"{day}: multiple hotel rows appear on the same day; confirm this is intentional.",
+                day=str(day),
+                row_type="Hotel",
+                source="day_structure",
+            ))
+        if sum(counts.get(kind, 0) for kind in _TRANSFER_TYPES) >= 3 and counts.get("Activity", 0) >= 1:
+            issues.append(ItineraryHealthIssue(
+                code="transport_heavy_day",
+                severity=REVIEW,
+                message=f"{day}: several transfers plus activities may be unrealistic for one day.",
+                day=str(day),
+                row_type="Day",
+                source="route_sanity",
+            ))
+        primary_city = _primary_day_city(day_rows)
+        if primary_city:
+            ordered_day_cities.append((str(day), primary_city))
+
+    city_positions: defaultdict[str, list[int]] = defaultdict(list)
+    for index, (_day_label, city) in enumerate(ordered_day_cities):
+        city_positions[_normalise_fingerprint(city)].append(index)
+    for city_key, positions in city_positions.items():
+        if len(positions) >= 2 and any((b - a) > 1 for a, b in zip(positions, positions[1:])):
+            city = ordered_day_cities[positions[0]][1]
+            issues.append(ItineraryHealthIssue(
+                code="route_backtrack",
+                severity=INFO,
+                message=f"Route returns to {city} after other destinations; confirm the routing is intentional.",
+                city=city,
+                row_type="Route",
+                source="route_sanity",
             ))
 
     day_numbers = sorted({get_day_number(row.get("day", "")) for row in main_rows if get_day_number(row.get("day", ""))})

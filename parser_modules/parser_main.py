@@ -24,6 +24,7 @@ from parser_modules.commercial_status import (
     mark_optional_row,
     REASON_OPTIONAL_TEXT_PREFIX,
 )
+from parser_modules.row_quality import annotate_parser_quality
 from parser_modules.rows import (
     find_city_cell,
     find_day_index,
@@ -276,7 +277,15 @@ def parse_itinerary(raw_text):
             row["details"],
         )
 
+        if row["effective_type"] in {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}:
+            route_origin, route_destination = extract_route_points(" ".join(part for part in [row.get("title", ""), row.get("details", "")] if part))
+            if route_origin:
+                row["route_origin"] = route_origin
+            if route_destination:
+                row["route_destination"] = route_destination
+
         row = standardize_row_text(row)
+        row = annotate_parser_quality(row)
 
         status, reason = infer_commercial_status(row.get("is_optional"), item_type, row.get("title", ""), row.get("details", ""))
         row["commercial_status"] = status

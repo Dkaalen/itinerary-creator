@@ -25,6 +25,7 @@ except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallb
     st = _NoStreamlit()
 
 from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
+from pdf_exporter_modules.export_profiles import pdf_filename, resolve_pdf_export_profile
 
 
 def build_full_html_document(itinerary_html):
@@ -73,7 +74,8 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
         outputs_folder = Path("outputs")
         outputs_folder.mkdir(exist_ok=True)
 
-        pdf_path = outputs_folder / "itinerary_preview.pdf"
+        profile = resolve_pdf_export_profile(output_edits or None)
+        pdf_path = outputs_folder / pdf_filename(profile=profile.as_dict())
         if render_document is not None and not render_document_requires_html_fallback(render_document, output_edits):
             export_render_document_to_pdf(
                 render_document,
@@ -81,6 +83,7 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
                 color_data=color_data,
                 day_images=day_images,
                 day_image_crop_focus=day_image_crop_focus,
+                export_profile=profile.as_dict(),
             )
         else:
             export_html_to_pdf(html_path, pdf_path)

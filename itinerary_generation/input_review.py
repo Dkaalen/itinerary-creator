@@ -27,7 +27,9 @@ class StructuredInputReview:
     critical_issue_count: int
     review_issue_count: int
     status_label: str
-    issues: tuple[ItineraryHealthIssue, ...]
+    average_confidence: int = 100
+    review_flags: dict[str, int] | None = None
+    issues: tuple[ItineraryHealthIssue, ...] = ()
 
     @property
     def route_text(self) -> str:
@@ -60,6 +62,14 @@ def build_structured_input_review(
 
     issues = build_itinerary_health_issues(rows, parser_diagnostics=parser_diagnostics)
     summary = summarize_itinerary_health_issues(issues)
+    confidences = [int(row.get("parser_confidence", 100)) for row in rows if str(row.get("parser_confidence", "")).isdigit()]
+    average_confidence = round(sum(confidences) / len(confidences)) if confidences else 100
+    review_flags = Counter(
+        flag
+        for row in rows
+        for flag in (row.get("parser_review_flags") or [])
+        if str(flag or "").strip()
+    )
 
     return StructuredInputReview(
         row_count=len(rows),
@@ -71,6 +81,8 @@ def build_structured_input_review(
         critical_issue_count=summary.critical,
         review_issue_count=summary.review,
         status_label=summary.status_label,
+        average_confidence=average_confidence,
+        review_flags=dict(sorted(review_flags.items())),
         issues=issues,
     )
 
@@ -84,8 +96,12 @@ def format_structured_input_review(review: StructuredInputReview) -> str:
         f"Days: {review.day_count}",
         f"Route: {review.route_text}",
         f"Services: {counts}",
+        f"Parser confidence: {review.average_confidence}%",
         f"Issues: {review.critical_issue_count} critical / {review.review_issue_count} review / {review.issue_count} total",
     ]
+    if review.review_flags:
+        flags = ", ".join(f"{label}: {count}" for label, count in review.review_flags.items())
+        lines.append(f"Review flags: {flags}")
     for issue in review.issues[:12]:
         prefix = f"{issue.day}: " if issue.day else ""
         lines.append(f"- [{issue.severity}] {prefix}{issue.message}")

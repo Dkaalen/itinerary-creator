@@ -33,6 +33,7 @@ from pdf_exporter_modules.render_text import li_text_with_line_breaks
 from pdf_exporter_modules.story import add_bullets, add_paragraph, make_table
 from pdf_exporter_modules import styles as pdf_styles
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
+from pdf_exporter_modules.export_profiles import DEFAULT_PDF_EXPORT_PROFILE, resolve_pdf_export_profile
 
 
 _SUPPORTED_FINAL_HTML_TAGS = {
@@ -435,7 +436,7 @@ def _render_day_image_flowable(image_match, crop_focus, temp_dir, doc):
     )
 
 
-def _build_one_page_day_flowable(day: RenderDay, styles, *, image_match=None, crop_focus="top", temp_dir=None, doc=None):
+def _build_one_page_day_flowable(day: RenderDay, styles, *, image_match=None, crop_focus="top", temp_dir=None, doc=None, min_compact_level: int = 0):
     """Return a guarded one-page flowable for a day.
 
     Order of operations:
@@ -446,7 +447,7 @@ def _build_one_page_day_flowable(day: RenderDay, styles, *, image_match=None, cr
 
     image_flowable = _render_day_image_flowable(image_match, crop_focus, temp_dir, doc)
     last_story = []
-    for compact_level in range(0, 4):
+    for compact_level in range(max(0, int(min_compact_level or 0)), 4):
         candidate = _render_day_story(day, styles, compact_level=compact_level)
         last_story = candidate
         if doc and image_flowable and _day_image_has_layout_budget(candidate, doc):
@@ -483,6 +484,18 @@ def _render_final_section(section: RenderFinalSection, story, styles):
         _render_final_page(section.title, page, story, styles, continued=index > 0)
 
 
+def _render_internal_review_appendix(render_document: RenderDocument, story, styles):
+    add_paragraph(story, "Internal Review Notes", styles["page_title"])
+    add_premium_rule(story)
+    day_count = len(render_document.days or [])
+    final_count = len(render_document.final_sections or [])
+    add_paragraph(story, f"Days: {day_count}", styles["body"])
+    add_paragraph(story, f"Final sections: {final_count}", styles["body"])
+    if render_document.route:
+        add_paragraph(story, f"Route: {render_document.route}", styles["body"])
+    add_paragraph(story, "Use this copy for internal review only. Confirm pictures, inclusions, exclusions, travel notes, and page breaks before sending the client PDF.", styles["editor_note"])
+
+
 def export_render_document_to_pdf(
     render_document: RenderDocument,
     pdf_path,
@@ -490,21 +503,23 @@ def export_render_document_to_pdf(
     color_data: Mapping | None = None,
     day_images: Mapping[str, Mapping | None] | None = None,
     day_image_crop_focus: Mapping[str, str] | None = None,
+    export_profile: str | Mapping | None = None,
 ):
     """Export a typed RenderDocument to PDF without parsing generated HTML."""
 
     pdf_path = Path(pdf_path).resolve()
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     apply_pdf_palette(color_data or None)
+    profile = resolve_pdf_export_profile(export_profile) if export_profile is not None else DEFAULT_PDF_EXPORT_PROFILE
     styles = make_styles()
     doc = SimpleDocTemplate(
         str(pdf_path),
         pagesize=A4,
-        rightMargin=22 * mm,
-        leftMargin=22 * mm,
-        topMargin=24 * mm,
-        bottomMargin=22 * mm,
-        title="Itinerary Preview",
+        rightMargin=profile.margin_mm * mm,
+        leftMargin=profile.margin_mm * mm,
+        topMargin=profile.top_margin_mm * mm,
+        bottomMargin=profile.bottom_margin_mm * mm,
+        title=profile.label,
         author="Itinerary Creator",
     )
     doc.allowSplitting = 1
@@ -531,6 +546,7 @@ def export_render_document_to_pdf(
                         crop_focus=(day_image_crop_focus or {}).get(day.day, "top") if day_image_crop_focus else "top",
                         temp_dir=image_temp_dir,
                         doc=doc,
+                        min_compact_level=profile.min_compact_level,
                     )
                 )
 
@@ -540,6 +556,9 @@ def export_render_document_to_pdf(
             section_id = str(getattr(section, "section_id", "") or "")
             page_id = final_section_page_id(section_id) if section_id in {"whats_included", "whats_not_included", "important_travel_notes"} else section_id
             page_renderers.append((page_id, lambda section=section: _render_final_section(section, story, styles)))
+
+        if profile.include_internal_notes:
+            page_renderers.append(("internal_review", lambda: _render_internal_review_appendix(render_document, story, styles)))
 
         renderer_by_id = {page_id: renderer for page_id, renderer in page_renderers}
 

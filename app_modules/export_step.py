@@ -16,6 +16,7 @@ from app_modules.export_state import ExportReadiness, export_readiness_from_stat
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
 from ui.picture_workflow import pictures_are_added
+from pdf_exporter_modules.export_profiles import pdf_export_profile_options
 from itinerary_generation.qa_report import (
     build_qa_report,
     persist_qa_report,
@@ -41,7 +42,7 @@ def render_pdf_download_station(*, location: str = "bottom") -> None:
     st.download_button(
         label="Download PDF",
         data=pdf_bytes,
-        file_name="itinerary_preview.pdf",
+        file_name=st.session_state.get("pdf_filename", "itinerary_preview.pdf"),
         mime="application/pdf",
         type="primary",
         use_container_width=True,
@@ -183,6 +184,26 @@ def _session_state_snapshot() -> dict:
     return session_state_snapshot(st.session_state)
 
 
+def _render_pdf_profile_selector() -> None:
+    output_edits = st.session_state.setdefault("output_edits", {})
+    profiles = list(pdf_export_profile_options())
+    profile_ids = [profile["id"] for profile in profiles]
+    labels = {profile["id"]: profile["label"] for profile in profiles}
+    current_id = str(output_edits.get("pdf_export_profile") or profile_ids[0])
+    if current_id not in profile_ids:
+        current_id = profile_ids[0]
+    selected = st.selectbox(
+        "PDF version",
+        profile_ids,
+        index=profile_ids.index(current_id),
+        format_func=lambda value: labels.get(value, value),
+        help="Choose client, compact, or internal review export before creating the PDF.",
+    )
+    if selected != output_edits.get("pdf_export_profile"):
+        output_edits["pdf_export_profile"] = selected
+        clear_pdf_artifact("PDF version changed")
+
+
 def _current_image_review_errors() -> tuple:
     """Compatibility hook: picture review no longer blocks PDF export."""
 
@@ -197,6 +218,7 @@ def render_export_step(app_version: str) -> None:
     current_image_status = image_bank_status(required_destinations)
     commit_ready = visual_editor_export_commit_ready()
     image_review_errors = _current_image_review_errors()
+    _render_pdf_profile_selector()
     snapshot = _session_state_snapshot()
     snapshot["image_review_error_count"] = len(image_review_errors)
     readiness = export_readiness_from_state(snapshot, current_image_status)

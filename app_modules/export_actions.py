@@ -64,12 +64,13 @@ def current_pdf_bytes() -> bytes | None:
     return None
 
 
-def store_current_pdf_bytes(pdf_bytes: bytes, signature: str | None) -> None:
+def store_current_pdf_bytes(pdf_bytes: bytes, signature: str | None, *, filename: str = "itinerary_preview.pdf") -> None:
     st.session_state.pdf_bytes = pdf_bytes
     st.session_state.pdf_signature = signature
     st.session_state.export_pdf_bytes = pdf_bytes
     st.session_state.export_pdf_signature = signature
     st.session_state.pdf_status = "Ready"
+    st.session_state.pdf_filename = filename
     st.session_state["export_last_error"] = ""
 
 
@@ -186,5 +187,5 @@ def create_pdf_from_current_preview() -> bool:
         clear_pdf_artifact("PDF failed")
         return False
 
-    store_current_pdf_bytes(Path(pdf_path).read_bytes(), current_pdf_signature)
+    store_current_pdf_bytes(Path(pdf_path).read_bytes(), current_pdf_signature, filename=Path(pdf_path).name)
     return True
