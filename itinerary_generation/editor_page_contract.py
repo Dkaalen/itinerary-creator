@@ -229,20 +229,23 @@ def build_editor_document_pages(
     order = len(pages) + 1
     final_pages = payload.get("final_pages") if isinstance(payload.get("final_pages"), Mapping) else {}
     if any(key in final_pages for key in ("whats_included_html", "whats_included_pages_html", "whats_included_text")):
-        pages.append(_simple_page("final-whats-included", "final_section", "What’s included", order, section_id="whats_included", editable_fields={
+        pages.append(_simple_page("final-whats-included", "final_section", str(final_pages.get("whats_included_title") or "What’s included"), order, section_id="whats_included", editable_fields={
+            "whats_included_title": final_pages.get("whats_included_title", "What’s included"),
             "whats_included_html": final_pages.get("whats_included_html", ""),
             "whats_included_pages_html": final_pages.get("whats_included_pages_html", []),
             "whats_included_text": final_pages.get("whats_included_text", ""),
         }))
         order += 1
     if any(key in final_pages for key in ("whats_not_included_html", "whats_not_included_text")):
-        pages.append(_simple_page("final-whats-not-included", "final_section", "What’s not included", order, section_id="whats_not_included", editable_fields={
+        pages.append(_simple_page("final-whats-not-included", "final_section", str(final_pages.get("whats_not_included_title") or "What’s not included"), order, section_id="whats_not_included", editable_fields={
+            "whats_not_included_title": final_pages.get("whats_not_included_title", "What’s not included"),
             "whats_not_included_html": final_pages.get("whats_not_included_html", ""),
             "whats_not_included_text": final_pages.get("whats_not_included_text", ""),
         }))
         order += 1
     if "important_travel_notes_text" in final_pages:
-        pages.append(_simple_page("final-important-travel-notes", "final_section", "Important travel notes", order, section_id="important_travel_notes", editable_fields={
+        pages.append(_simple_page("final-important-travel-notes", "final_section", str(final_pages.get("important_travel_notes_title") or "Important travel notes"), order, section_id="important_travel_notes", editable_fields={
+            "important_travel_notes_title": final_pages.get("important_travel_notes_title", "Important travel notes"),
             "important_travel_notes_text": final_pages.get("important_travel_notes_text", ""),
         }))
         order += 1

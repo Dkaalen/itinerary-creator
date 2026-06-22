@@ -362,7 +362,7 @@ def _output_edits_with_typed_day_overrides(output_edits: dict | None, day: str) 
         return output_edits
     direct_fields = {
         field: str(typed_day.get(field, "")).strip()
-        for field in ("title", "city", "intro")
+        for field in ("title", "city", "intro", "date")
         if field in typed_day and str(typed_day.get(field, "")).strip()
     }
     if not direct_fields:
@@ -402,13 +402,15 @@ def build_render_day_from_document(
     warnings = list(day_shell.warnings)
     if day_document:
         warnings.extend(warning.message for warning in day_document.warnings)
+    day_edits = (effective_output_edits or {}).get("days", {}).get(day, {}) if isinstance(effective_output_edits, dict) else {}
+    edited_date = str(day_edits.get("date") or "").strip() if isinstance(day_edits, dict) else ""
     return RenderDay(
         day=day_shell.day,
         number=day_document.number if day_document and day_document.number else day_shell.number,
         city=day_shell.city,
         title=day_shell.title,
         intro=day_shell.intro,
-        date=day_document.date if day_document and day_document.date else "",
+        date=edited_date or (day_document.date if day_document and day_document.date else ""),
         blocks=build_day_render_blocks(ordered_rows, _travel_sequences_for_day(document, day)),
         source_row_ids=source_ids,
         warnings=list(dict.fromkeys(warnings)),

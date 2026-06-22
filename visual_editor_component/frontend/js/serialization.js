@@ -76,14 +76,14 @@ function buildEditableDraftFromPayload(value) {
     const pages = Array.isArray(finalPages.whats_included_pages_html)
       ? finalPages.whats_included_pages_html.map((page, index) => ({page_id: `page-${index + 1}`, content_html: String(typeof page === 'string' ? page : (page?.html ?? page?.content_html ?? ''))}))
       : (finalPages.whats_included_html ? [{page_id: 'page-1', content_html: String(finalPages.whats_included_html || '')}] : []);
-    draft.final_sections.push({section_id: 'whats_included', title: "What's included", pages, text: String(finalPages.whats_included_text || ''), content_html: String(finalPages.whats_included_html || '')});
+    draft.final_sections.push({section_id: 'whats_included', title: String(finalPages.whats_included_title || "What's included"), pages, text: String(finalPages.whats_included_text || ''), content_html: String(finalPages.whats_included_html || '')});
   }
   if ('whats_not_included_html' in finalPages || 'whats_not_included_text' in finalPages) {
     const html = String(finalPages.whats_not_included_html || '');
-    draft.final_sections.push({section_id: 'whats_not_included', title: "What's not included", pages: html ? [{page_id: 'page-1', content_html: html}] : [], text: String(finalPages.whats_not_included_text || ''), content_html: html});
+    draft.final_sections.push({section_id: 'whats_not_included', title: String(finalPages.whats_not_included_title || "What's not included"), pages: html ? [{page_id: 'page-1', content_html: html}] : [], text: String(finalPages.whats_not_included_text || ''), content_html: html});
   }
   if ('important_travel_notes_text' in finalPages) {
-    draft.final_sections.push({section_id: 'important_travel_notes', title: 'Important travel notes', pages: [], text: String(finalPages.important_travel_notes_text || ''), content_html: ''});
+    draft.final_sections.push({section_id: 'important_travel_notes', title: String(finalPages.important_travel_notes_title || 'Important travel notes'), pages: [], text: String(finalPages.important_travel_notes_text || ''), content_html: ''});
   }
   return draft;
 }
@@ -119,6 +119,9 @@ function pruneForSave(value) {
       payload.summary.trip_glance = full.summary?.trip_glance || {};
     } else if (key.startsWith('summary.journey_arc.')) {
       payload.summary.journey_arc = full.summary?.journey_arc || [];
+    } else if (key.startsWith('summary.')) {
+      const name = key.slice('summary.'.length);
+      setByPath(payload.summary, name, getByPath(full, key) ?? '');
     } else if (key.startsWith('days.')) {
       const parts = key.split('.');
       const index = Number(parts[1]);

@@ -71,12 +71,16 @@ def build_itinerary_html_from_context(context):
             trip_subtitle_html=context.trip_subtitle_html,
             trip_dates=context.trip_dates,
             destinations_line_html=context.destinations_line_html,
+            route_label=context.cover_route_label,
         )
     if not _page_is_hidden(context, "summary"):
         html_text += render_summary_page(
             cover_theme=context.cover_theme,
             trip_glance=context.trip_glance,
             journey_arc=context.journey_arc,
+            trip_glance_title=context.trip_glance_title,
+            journey_arc_title=context.journey_arc_title,
+            journey_arc_columns=context.journey_arc_columns,
             summary_background_data_uri=context.summary_background_data_uri,
             summary_background_path=context.summary_background_path,
             summary_crop_focus=context.summary_crop_focus,
@@ -87,28 +91,28 @@ def build_itinerary_html_from_context(context):
     if not _final_section_is_hidden(context, "whats_included"):
         if context.typed_inclusions_owned:
             if context.typed_inclusion_pages:
-                html_text += render_custom_html_final_pages("What’s included", context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
+                html_text += render_custom_html_final_pages(context.final_section_titles.get("whats_included", "What’s included"), context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
         elif context.output_edits.get("whats_included_pages_html"):
-            html_text += render_custom_html_final_pages("What’s included", context.output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
+            html_text += render_custom_html_final_pages(context.final_section_titles.get("whats_included", "What’s included"), context.output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
         elif context.output_edits.get("whats_included_html"):
-            html_text += render_custom_html_final_page("What’s included", context.output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
+            html_text += render_custom_html_final_page(context.final_section_titles.get("whats_included", "What’s included"), context.output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
         elif context.manual_whats_included:
-            html_text += render_split_list_pages("What’s included", context.whats_included)
+            html_text += render_split_list_pages(context.final_section_titles.get("whats_included", "What’s included"), context.whats_included)
         else:
-            html_text += render_categorized_inclusions_pages("What’s included", context.categorized_inclusions)
+            html_text += render_categorized_inclusions_pages(context.final_section_titles.get("whats_included", "What’s included"), context.categorized_inclusions)
     html_text += render_optional_addons_pages(context.optional_addons)
     if not _final_section_is_hidden(context, "whats_not_included"):
         if context.typed_exclusions_owned:
             if context.typed_exclusion_html:
-                html_text += render_custom_html_final_page("What’s not included", context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
+                html_text += render_custom_html_final_page(context.final_section_titles.get("whats_not_included", "What’s not included"), context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
         elif context.output_edits.get("whats_not_included_html"):
-            html_text += render_custom_html_final_page("What’s not included", context.output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
+            html_text += render_custom_html_final_page(context.final_section_titles.get("whats_not_included", "What’s not included"), context.output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
         elif context.output_edits.get("whats_not_included_text"):
-            html_text += render_split_list_pages("What’s not included", context.whats_not_included)
+            html_text += render_split_list_pages(context.final_section_titles.get("whats_not_included", "What’s not included"), context.whats_not_included)
         else:
-            html_text += render_categorized_inclusions_pages("What’s not included", context.structured_whats_not_included, "final-list-page categorized-exclusions-page")
+            html_text += render_categorized_inclusions_pages(context.final_section_titles.get("whats_not_included", "What’s not included"), context.structured_whats_not_included, "final-list-page categorized-exclusions-page")
     if not _final_section_is_hidden(context, "important_travel_notes"):
-        html_text += render_text_paragraph_page("Important travel notes", context.important_travel_notes)
+        html_text += render_text_paragraph_page(context.final_section_titles.get("important_travel_notes", "Important travel notes"), context.important_travel_notes)
     for page in getattr(context, "manual_pages", []) or []:
         content_html = str(page.get("content_html") or "").strip()
         if content_html:

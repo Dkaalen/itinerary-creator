@@ -122,7 +122,7 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         autosave_status(saved_info)
 
     cover = data.get("cover", {}) or {}
-    for key in ["cover_kicker", "trip_title", "trip_subtitle", "trip_dates", "destinations_line"]:
+    for key in ["cover_kicker", "trip_title", "trip_subtitle", "trip_dates", "destinations_line", "route_label"]:
         if key in cover:
             value = str(cover.get(key, "")).strip()
             output_edits[key] = _normalize_route_edit(value) if key == "destinations_line" else value
@@ -163,7 +163,7 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
         if not day:
             continue
         day_edits = output_edits.setdefault("days", {}).setdefault(day, {})
-        for key in ["title", "city", "intro"]:
+        for key in ["title", "city", "intro", "date"]:
             if key in day_payload:
                 day_edits[key] = str(day_payload.get(key, "")).strip()
         if "blocks_html" in day_payload:

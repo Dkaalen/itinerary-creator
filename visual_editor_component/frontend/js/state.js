@@ -144,13 +144,13 @@ function clearLocalDraft() {
   try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
 }
 function editableText(value, key, cls='', label='') {
-  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${esc(value)}</div>`;
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}" data-empty-label="${escAttr(label || 'Edit text')}"${editorBlockAttrs(key, label)}>${esc(value)}</div>`;
 }
 function editableSpan(value, key, cls='', label='') {
-  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${esc(value)}</span>`;
+  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}" data-empty-label="${escAttr(label || 'Edit text')}"${editorBlockAttrs(key, label)}>${esc(value)}</span>`;
 }
 function editableHtml(value, key, cls='', label='') {
-  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${value || ''}</div>`;
+  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}" data-empty-label="${escAttr(label || 'Edit text')}"${editorBlockAttrs(key, label)}>${value || ''}</div>`;
 }
 function splitRouteParts(value) {
   return String(value || '').replace(/\s*\n+\s*/g, ' · ').split('·').map(p => p.trim()).filter(Boolean);
@@ -163,5 +163,5 @@ function routeHtml(value) {
   return `<span class="cover-route-line">${first}</span><span class="cover-route-line">${pair}</span>`;
 }
 function editableRoute(value, key, cls='', label='Route') {
-  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${routeHtml(value)}</div>`;
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}" data-empty-label="${escAttr(label || 'Edit text')}"${editorBlockAttrs(key, label)}>${routeHtml(value)}</div>`;
 }

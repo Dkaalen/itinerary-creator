@@ -22,21 +22,22 @@ function coverImageControls(key, label, image) {
 function summaryPage(summary) {
   const glance = summary?.trip_glance || {};
   const arc = summary?.journey_arc || [];
-  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value')}</div>`).join('');
+  const columns = summary?.journey_arc_columns || {};
+  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value', `Trip glance ${key}`)}</div>`).join('');
   const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
   const bg = picturesAdded() ? (model.cover?.summary_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const summaryFocus = model.cover?.summary_image?.crop_focus || 'top';
   const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)};` : '';
   return `<div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
     ${coverImageControls('summary_image', 'Page 2 background image', model.cover?.summary_image)}
-    <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
-    <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
+    <div class="summary-card">${editableText(summary?.trip_glance_title || 'Your Trip at a Glance', 'summary.trip_glance_title', 'summary-title', 'Trip glance title')}${glanceRows}</div>
+    <div class="summary-card">${editableText(summary?.journey_arc_title || 'Your Journey Arc', 'summary.journey_arc_title', 'summary-title', 'Journey arc title')}<table class="journey-table"><thead><tr><th>${editableSpan(columns.chapter || 'Chapter', 'summary.journey_arc_columns.chapter', 'table-header-edit', 'Chapter column')}</th><th>${editableSpan(columns.days || 'Days', 'summary.journey_arc_columns.days', 'table-header-edit', 'Days column')}</th><th>${editableSpan(columns.experience || 'What You’ll Experience', 'summary.journey_arc_columns.experience', 'table-header-edit', 'Experience column')}</th></tr></thead><tbody>${arcRows}</tbody></table></div>
   </div></div>`;
 }
-function finalTextPage(label, title, key, text) {
+function finalTextPage(label, title, key, text, titleKey) {
   const pageId = finalPageId(key === 'important_travel_notes_text' ? 'important_travel_notes' : key);
   return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
-    <div class="final-title">${esc(title)}</div>
+    ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
     ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
   </div></div>`, {pageType: 'final_section', sortOrder: 900});
 }
@@ -45,16 +46,16 @@ function listTextToHtml(text) {
   if (!items.length) return '';
   return `<ul class="final-list">${items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 }
-function finalHtmlPage(label, title, key, html) {
+function finalHtmlPage(label, title, key, html, titleKey) {
   const sectionId = key === 'whats_not_included_html' ? 'whats_not_included' : key;
   const pageId = finalPageId(sectionId);
   return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
-    <div class="final-title">${esc(title)}</div>
+    ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
     ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
   </div></div>`, {pageType: 'final_section', sortOrder: 899});
 }
 
-function finalHtmlPages(label, title, key, pages) {
+function finalHtmlPages(label, title, key, pages, titleKey) {
   const pageId = finalPageId('whats_included');
   if (typeof pageIsHidden === 'function' && pageIsHidden(pageId)) return '';
   const cleanPages = (Array.isArray(pages) && pages.length ? pages : [{html: ''}]).map(page => {
@@ -67,7 +68,7 @@ function finalHtmlPages(label, title, key, pages) {
     const pageLabel = label;
     const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Move content up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Remove empty page</button></div>`;
     const body = `<div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
-      <div class="final-title">${esc(title)}</div>
+      ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
       ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
     </div></div>`;
     return idx === 0 ? pageChrome(pageId, pageLabel, `<div class="page-controls local-page-controls">${controls}</div>${body}`, {pageType: 'final_section', sortOrder: 898}) : `<div class="page-wrap" data-page-id="${escAttr(pageId)}-part-${idx}"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div>${body}</div>`;
@@ -337,7 +338,7 @@ function draw() {
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image inspector and page outline, then save before exporting the final PDF.' : 'Edit directly on the canvas. The outline, inspector, and autosave status stay in sync while you work.'}</span></div>
+        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page or in the inspector, then save before exporting the final PDF.' : 'Edit directly on the canvas. Changes autosave quietly while you work, and the outline, inspector, and status stay in sync.'}</span></div>
         ${studioStatusStripHtml()}
       </div>
       <div class="toolbar-stack">
@@ -391,7 +392,7 @@ function draw() {
         ${model.cover?.trip_dates ? editableText(model.cover.trip_dates, 'cover.trip_dates', 'cover-dates') : ''}
         <div class="cover-rule"></div>
         <div class="cover-destination-card">
-          <div class="cover-destination-label">Route</div>
+          ${editableText(model.cover?.route_label || 'Route', 'cover.route_label', 'cover-destination-label', 'Route label')}
           ${editableRoute(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
         </div>
       </div>
@@ -401,15 +402,15 @@ function draw() {
     const dayNumber = String(day.day || '').replace(/^Day\s*/i, '').trim() || String(i + 1);
     const pageId = pageIdForDay(day, i);
     h += pageChrome(pageId, day.day || `Day ${i + 1}`, `<div class="a4-page day-page"><div class="page-content">
-      <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')}${day.date ? ` <span class="day-kicker-symbol">✦</span> ${esc(day.date)}` : ''}</div>
+      <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.date || '', `days.${i}.date`, 'day-kicker-date', 'Date')}</div>
       ${editableText(day.title, `days.${i}.title`, 'day-title')}
       ${editableText(day.intro, `days.${i}.intro`, 'intro')}
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
     </div>${imageHtml(day, i)}</div>`, {pageType: 'generated_day', sortOrder: i + 3, extras: {source_day_id: String(day.day || day.label || '')}});
   });
-  h += finalHtmlPages('Included', "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}]);
-  h += finalHtmlPage('Excluded', "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''));
-  h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
+  h += finalHtmlPages('Included', model.final_pages?.whats_included_title || "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}], 'whats_included_title');
+  h += finalHtmlPage('Excluded', model.final_pages?.whats_not_included_title || "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''), 'whats_not_included_title');
+  h += finalTextPage('Notes', model.final_pages?.important_travel_notes_title || 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '', 'important_travel_notes_title');
   h += renderManualPages();
   h += `</div>${renderRightInspector()}</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;

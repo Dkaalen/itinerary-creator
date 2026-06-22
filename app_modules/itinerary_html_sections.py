@@ -57,6 +57,7 @@ def render_cover_page(
     trip_subtitle_html: str,
     trip_dates: str,
     destinations_line_html: str,
+    route_label: str = "Route",
 ) -> str:
     """Render the cover page section for the itinerary preview/PDF HTML."""
     background_position = cover_focus_css_position(cover_crop_focus)
@@ -69,7 +70,7 @@ def render_cover_page(
                 {f'<div class="cover-dates">{esc(trip_dates)}</div>' if trip_dates else ''}
                 <div class="cover-rule"></div>
                 <div class="cover-destination-card">
-                    <div class="cover-destination-label">Route</div>
+                    <div class="cover-destination-label">{esc(route_label or "Route")}</div>
                     <div class="cover-destinations">{destinations_line_html}</div>
                 </div>
             </div>
@@ -83,6 +84,9 @@ def render_summary_page(
     cover_theme: dict,
     trip_glance: dict,
     journey_arc: list[dict],
+    trip_glance_title: str = "Your Trip at a Glance",
+    journey_arc_title: str = "Your Journey Arc",
+    journey_arc_columns: dict | None = None,
     summary_background_data_uri: str = "",
     summary_background_path: str = "",
     summary_crop_focus: str = "top",
@@ -97,7 +101,7 @@ def render_summary_page(
     )
     html_text = f"""        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(summary_background_path)}" data-cover-crop-focus="{esc(summary_crop_focus)}" style="{background_style}">
             <div class="glance-card">
-                <div class="glance-title">Your Trip at a Glance</div>
+                <div class="glance-title">{esc(trip_glance_title or "Your Trip at a Glance")}</div>
     """
 
     for label, value in trip_glance.items():
@@ -108,17 +112,22 @@ def render_summary_page(
                 </div>
         """
 
-    html_text += """
+    columns = journey_arc_columns or {}
+    chapter_label = str(columns.get("chapter") or "Chapter")
+    days_label = str(columns.get("days") or "Days")
+    experience_label = str(columns.get("experience") or "What You’ll Experience")
+
+    html_text += f"""
             </div>
 
             <div class="journey-arc">
-                <div class="journey-title">Your Journey Arc</div>
+                <div class="journey-title">{esc(journey_arc_title or "Your Journey Arc")}</div>
                 <table class="journey-table">
                     <thead>
                         <tr>
-                            <th>Chapter</th>
-                            <th>Days</th>
-                            <th>What You’ll Experience</th>
+                            <th>{esc(chapter_label)}</th>
+                            <th>{esc(days_label)}</th>
+                            <th>{esc(experience_label)}</th>
                         </tr>
                     </thead>
                     <tbody>

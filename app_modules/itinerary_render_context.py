@@ -60,6 +60,7 @@ class ItineraryRenderContext:
     colors_json: str
     cover_theme: dict[str, Any]
     cover_kicker: str
+    cover_route_label: str
     cover_title_class: str
     trip_title: str
     trip_subtitle: str
@@ -73,7 +74,10 @@ class ItineraryRenderContext:
     summary_crop_focus: str
     destinations_line: str
     destinations_line_html: str
+    trip_glance_title: str
     trip_glance: dict[str, str]
+    journey_arc_title: str
+    journey_arc_columns: dict[str, str]
     journey_arc: list[dict[str, str]]
     categorized_inclusions: Any
     manual_whats_included: list[str]
@@ -86,6 +90,7 @@ class ItineraryRenderContext:
     typed_exclusion_html: str
     typed_exclusions_owned: bool
     important_travel_notes: list[str] | str
+    final_section_titles: dict[str, str]
     manual_pages: list[dict[str, Any]]
     hidden_page_ids: set[str]
 
@@ -165,20 +170,29 @@ def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str])
     return sorted(pages, key=lambda page: int(page.get("sort_order") or 0))
 
 
+
+def _safe_label(value: Any, fallback: str) -> str:
+    text = str(value or "").strip()
+    return text or fallback
+
+
+def _final_section_title(context: ItineraryRenderContext, section_id: str, fallback: str) -> str:
+    return _safe_label((context.final_section_titles or {}).get(section_id), fallback)
+
 def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[RenderFinalSection]:
     sections: list[RenderFinalSection] = []
 
     if not _final_section_is_hidden(context, "whats_included") and context.typed_inclusions_owned:
         if context.typed_inclusion_pages:
-            sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
+            sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
     elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_pages_html"):
-        sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
+        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
     elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_html"):
-        sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))
+        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))
     elif not _final_section_is_hidden(context, "whats_included") and context.manual_whats_included:
-        sections.append(RenderFinalSection("whats_included", "What’s included", pages=_split_list_final_pages(context.whats_included)))
+        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_split_list_final_pages(context.whats_included)))
     elif not _final_section_is_hidden(context, "whats_included"):
-        sections.append(RenderFinalSection("whats_included", "What’s included", pages=_paginated_structured_final_pages(context.categorized_inclusions), css_class="categorized-inclusions-page"))
+        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_paginated_structured_final_pages(context.categorized_inclusions), css_class="categorized-inclusions-page"))
 
     if context.optional_addons:
         optional_pages = []
@@ -206,21 +220,21 @@ def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[Rende
             if page_items:
                 optional_pages.append(RenderFinalPage(items=page_items))
         if optional_pages:
-            sections.append(RenderFinalSection("optional_experiences", "Optional Experiences", pages=optional_pages, css_class="optional-addons-page"))
+            sections.append(RenderFinalSection("optional_experiences", _final_section_title(context, "optional_experiences", "Optional Experiences"), pages=optional_pages, css_class="optional-addons-page"))
 
     if not _final_section_is_hidden(context, "whats_not_included") and context.typed_exclusions_owned:
         if context.typed_exclusion_html:
-            sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
+            sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
     elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_html"):
-        sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
+        sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
     elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_text"):
-        sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_split_list_final_pages(context.whats_not_included)))
+        sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_split_list_final_pages(context.whats_not_included)))
     elif not _final_section_is_hidden(context, "whats_not_included"):
-        sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_paginated_structured_final_pages(context.structured_whats_not_included), css_class="categorized-exclusions-page"))
+        sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_paginated_structured_final_pages(context.structured_whats_not_included), css_class="categorized-exclusions-page"))
 
     notes_pages = _paragraph_final_pages(context.important_travel_notes)
     if notes_pages and not _final_section_is_hidden(context, "important_travel_notes"):
-        sections.append(RenderFinalSection("important_travel_notes", "Important travel notes", pages=notes_pages, css_class="important-notes-page"))
+        sections.append(RenderFinalSection("important_travel_notes", _final_section_title(context, "important_travel_notes", "Important travel notes"), pages=notes_pages, css_class="important-notes-page"))
 
     for page in context.manual_pages:
         html = str(page.get("content_html") or "").strip()
@@ -238,6 +252,7 @@ def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[Rende
 def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     cover = RenderCover(
         kicker=context.cover_kicker,
+        route_label=context.cover_route_label,
         title=context.trip_title,
         subtitle=context.trip_subtitle,
         dates=context.trip_dates,
@@ -250,7 +265,10 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
         season=str(context.cover_theme.get("season", "")),
     )
     summary = RenderSummary(
+        trip_glance_title=context.trip_glance_title,
         trip_glance=[RenderMetaLine(str(label), str(value)) for label, value in context.trip_glance.items()],
+        journey_arc_title=context.journey_arc_title,
+        journey_arc_columns=dict(context.journey_arc_columns or {}),
         journey_arc=[
             {
                 "chapter": str(row.get("chapter", "")).strip(),
@@ -305,6 +323,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     typed_summary = editor_draft.get("summary", {}) if isinstance(editor_draft.get("summary"), dict) else {}
 
     cover_kicker = typed_cover.get("cover_kicker") or output_edits.get("cover_kicker") or "Travel Itinerary"
+    cover_route_label = _safe_label(typed_cover.get("route_label") or output_edits.get("route_label"), "Route")
     trip_title = typed_cover.get("trip_title") or output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
     cover_title_class = "cover-title"
     if len(str(trip_title)) <= 24:
@@ -323,6 +342,16 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     saved_destinations_line = typed_cover.get("destinations_line") or output_edits.get("destinations_line")
     destinations_line = clean_or_create_cover_route_line(parsed_rows, saved_destinations_line or create_destinations_line(parsed_rows))
     destinations_line_html = cover_route_html(destinations_line)
+
+    trip_glance_title = _safe_label(typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title"), "Your Trip at a Glance")
+    journey_arc_title = _safe_label(typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title"), "Your Journey Arc")
+    raw_arc_columns = typed_summary.get("journey_arc_columns") if isinstance(typed_summary.get("journey_arc_columns"), dict) else output_edits.get("journey_arc_columns")
+    raw_arc_columns = raw_arc_columns if isinstance(raw_arc_columns, dict) else {}
+    journey_arc_columns = {
+        "chapter": _safe_label(raw_arc_columns.get("chapter"), "Chapter"),
+        "days": _safe_label(raw_arc_columns.get("days"), "Days"),
+        "experience": _safe_label(raw_arc_columns.get("experience"), "What You’ll Experience"),
+    }
 
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
     saved_trip_glance = typed_summary.get("trip_glance") or output_edits.get("trip_glance") or {}
@@ -369,6 +398,12 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     typed_inclusions = section_by_id(editor_draft, "whats_included")
     typed_exclusions = section_by_id(editor_draft, "whats_not_included")
     typed_notes = section_by_id(editor_draft, "important_travel_notes")
+    final_section_titles = {
+        "whats_included": _safe_label(typed_inclusions.get("title") if typed_inclusions else output_edits.get("whats_included_title"), "What’s included"),
+        "whats_not_included": _safe_label(typed_exclusions.get("title") if typed_exclusions else output_edits.get("whats_not_included_title"), "What’s not included"),
+        "important_travel_notes": _safe_label(typed_notes.get("title") if typed_notes else output_edits.get("important_travel_notes_title"), "Important travel notes"),
+        "optional_experiences": _safe_label(output_edits.get("optional_experiences_title"), "Optional Experiences"),
+    }
     typed_inclusions_owned = bool(typed_inclusions)
     typed_exclusions_owned = bool(typed_exclusions)
     typed_inclusion_pages = [page.get("content_html", "") for page in typed_inclusions.get("pages", []) if isinstance(page, dict)] if typed_inclusions else []
@@ -392,6 +427,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         colors_json="",
         cover_theme=cover_theme,
         cover_kicker=cover_kicker,
+        cover_route_label=cover_route_label,
         cover_title_class=cover_title_class,
         trip_title=trip_title,
         trip_subtitle=trip_subtitle,
@@ -405,7 +441,10 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         summary_crop_focus=summary_crop_focus,
         destinations_line=destinations_line,
         destinations_line_html=destinations_line_html,
+        trip_glance_title=trip_glance_title,
         trip_glance=trip_glance,
+        journey_arc_title=journey_arc_title,
+        journey_arc_columns=journey_arc_columns,
         journey_arc=journey_arc,
         categorized_inclusions=categorized_inclusions,
         manual_whats_included=manual_whats_included,
@@ -418,6 +457,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         typed_exclusion_html=typed_exclusion_html,
         typed_exclusions_owned=typed_exclusions_owned,
         important_travel_notes=important_travel_notes,
+        final_section_titles=final_section_titles,
         manual_pages=manual_pages,
         hidden_page_ids=page_hidden_ids,
     )

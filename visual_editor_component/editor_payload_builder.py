@@ -354,6 +354,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         },
         "cover": {
             "cover_kicker": typed_cover.get("cover_kicker") or output_edits.get("cover_kicker", "Travel Itinerary"),
+            "route_label": typed_cover.get("route_label") or output_edits.get("route_label", "Route"),
             "cover_season": cover_theme.get("season", "summer"),
             "cover_background_data_uri": cover_theme.get("background_data_uri", ""),
             "cover_image": cover_image,
@@ -367,6 +368,9 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
             "destinations_line": clean_or_create_cover_route_line(parsed_rows, typed_cover.get("destinations_line") or output_edits.get("destinations_line") or create_destinations_line(parsed_rows)),
         },
         "summary": {
+            "trip_glance_title": typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title", "Your Trip at a Glance"),
+            "journey_arc_title": typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title", "Your Journey Arc"),
+            "journey_arc_columns": typed_summary.get("journey_arc_columns") or output_edits.get("journey_arc_columns") or {"chapter": "Chapter", "days": "Days", "experience": "What You’ll Experience"},
             "trip_glance": _merge_trip_glance(
                 parsed_rows,
                 grouped_days,
@@ -380,6 +384,9 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         },
         "days": payload_days,
         "final_pages": {
+            "whats_included_title": typed_inclusions.get("title") if typed_inclusions else output_edits.get("whats_included_title", "What’s included"),
+            "whats_not_included_title": typed_exclusions.get("title") if typed_exclusions else output_edits.get("whats_not_included_title", "What’s not included"),
+            "important_travel_notes_title": typed_notes.get("title") if typed_notes else output_edits.get("important_travel_notes_title", "Important travel notes"),
             "whats_included_html": output_edits.get("whats_included_html") or generated_inclusions_html,
             "whats_included_pages_html": effective_inclusion_page_htmls,
             "whats_included_text": output_edits.get("whats_included_text", ""),

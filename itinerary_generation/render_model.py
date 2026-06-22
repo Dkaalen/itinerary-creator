@@ -26,6 +26,7 @@ class RenderSection:
 @dataclass(slots=True)
 class RenderCover:
     kicker: str = "Travel Itinerary"
+    route_label: str = "Route"
     title: str = ""
     subtitle: str = ""
     dates: str = ""
@@ -40,7 +41,10 @@ class RenderCover:
 
 @dataclass(slots=True)
 class RenderSummary:
+    trip_glance_title: str = "Your Trip at a Glance"
     trip_glance: list[RenderMetaLine] = field(default_factory=list)
+    journey_arc_title: str = "Your Journey Arc"
+    journey_arc_columns: dict[str, str] = field(default_factory=dict)
     journey_arc: list[dict[str, str]] = field(default_factory=list)
     background_path: str = ""
     crop_focus: str = "top"

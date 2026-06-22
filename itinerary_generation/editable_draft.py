@@ -151,7 +151,8 @@ def _normalise_final_sections(data: Mapping[str, Any]) -> tuple[EditableFinalSec
     sections: dict[str, EditableFinalSection] = {}
 
     if "whats_included_pages_html" in final_pages:
-        section_id, title = _FIELD_TO_SECTION["whats_included_pages_html"]
+        section_id, default_title = _FIELD_TO_SECTION["whats_included_pages_html"]
+        title = _as_text(final_pages.get("whats_included_title") or default_title)
         sections[section_id] = EditableFinalSection(
             section_id=section_id,
             title=title,
@@ -160,7 +161,8 @@ def _normalise_final_sections(data: Mapping[str, Any]) -> tuple[EditableFinalSec
             content_html=_as_text(final_pages.get("whats_included_html", "")),
         )
     elif "whats_included_html" in final_pages or "whats_included_text" in final_pages:
-        section_id, title = _FIELD_TO_SECTION["whats_included_html"]
+        section_id, default_title = _FIELD_TO_SECTION["whats_included_html"]
+        title = _as_text(final_pages.get("whats_included_title") or default_title)
         content_html = _as_text(final_pages.get("whats_included_html", ""))
         sections[section_id] = EditableFinalSection(
             section_id=section_id,
@@ -171,7 +173,8 @@ def _normalise_final_sections(data: Mapping[str, Any]) -> tuple[EditableFinalSec
         )
 
     if "whats_not_included_html" in final_pages or "whats_not_included_text" in final_pages:
-        section_id, title = _FIELD_TO_SECTION["whats_not_included_html"]
+        section_id, default_title = _FIELD_TO_SECTION["whats_not_included_html"]
+        title = _as_text(final_pages.get("whats_not_included_title") or default_title)
         content_html = _as_text(final_pages.get("whats_not_included_html", ""))
         sections[section_id] = EditableFinalSection(
             section_id=section_id,
@@ -182,7 +185,8 @@ def _normalise_final_sections(data: Mapping[str, Any]) -> tuple[EditableFinalSec
         )
 
     if "important_travel_notes_text" in final_pages:
-        section_id, title = _FIELD_TO_SECTION["important_travel_notes_text"]
+        section_id, default_title = _FIELD_TO_SECTION["important_travel_notes_text"]
+        title = _as_text(final_pages.get("important_travel_notes_title") or default_title)
         sections[section_id] = EditableFinalSection(
             section_id=section_id,
             title=title,
@@ -399,7 +403,7 @@ def mirror_draft_to_legacy_output_edits(output_edits: dict[str, Any], editor_dra
         if not day_id:
             continue
         day_edits = days.setdefault(day_id, {})
-        for field in ("title", "city", "intro"):
+        for field in ("title", "city", "intro", "date"):
             if field in draft_day:
                 day_edits[field] = _as_text(draft_day.get(field, "")).strip()
         block_html = first_block_html(draft_day)

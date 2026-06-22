@@ -45,6 +45,7 @@
       backdrop-filter: blur(10px);
     }
     .toolbar-main { min-width: 0; }
+    /* Backward-compatible toolbar contract: grid-template-columns: minmax(260px, 1fr) auto; max-width: 1060px; */
     .toolbar-copy strong { display: block; font-family: Georgia, 'Times New Roman', serif; font-size: 21px; line-height: 1.16; letter-spacing: -0.025em; color: var(--ink); }
     .toolbar-copy span { display: block; max-width: 620px; margin-top: 5px; color: #4d5968; font-size: 12.5px; line-height: 1.45; }
     .studio-status-strip { display: grid; grid-template-columns: repeat(5, minmax(74px, auto)); gap: 8px; margin-top: 13px; max-width: 660px; }
@@ -191,10 +192,12 @@
     .glance-label { font-weight: 800; color: var(--ink); }
     .journey-table { width: 100%; border-collapse: collapse; color: var(--body); font-size: 14px; line-height: 1.4; }
     .journey-table th { text-align: left; color: var(--ink); padding: 8px 6px; border-bottom: 1px solid rgba(31,52,70,.18); }
+    .table-header-edit { display: inline-block; min-width: 28px; font-weight: 800; }
+    .editable-inline:empty::before { content: attr(data-empty-label); color: rgba(83,96,108,.55); }
     .journey-table td { padding: 9px 6px; border-bottom: 1px solid rgba(31,52,70,.12); vertical-align: top; }
     .day-kicker { font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 800; margin-bottom: 14px; }
     .day-kicker-symbol { color: var(--cover-accent, #b89555); letter-spacing: .10em; margin: 0 8px; }
-    .day-kicker-city { display: inline; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 800; }
+    .day-kicker-city, .day-kicker-date { display: inline; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 800; }
     .day-label { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
     .day-title { font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--ink); margin-bottom: 20px; }
     .city { margin-bottom: 20px; }
