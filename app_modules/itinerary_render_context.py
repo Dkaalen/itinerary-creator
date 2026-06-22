@@ -17,7 +17,14 @@ from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.date_resolver import get_trip_date_range_text
 from itinerary_generation.editable_draft import section_by_id
-from itinerary_generation.editor_page_contract import final_section_page_id, hidden_page_ids, stable_page_id
+from itinerary_generation.editor_page_contract import (
+    final_section_is_hidden as contract_final_section_is_hidden,
+    hidden_page_ids,
+    manual_pages_from_draft as contract_manual_pages_from_draft,
+    page_is_hidden as contract_page_is_hidden,
+    page_order_from_draft as contract_page_order_from_draft,
+    stable_page_id,
+)
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from itinerary_generation.render_document_builder import build_render_document_from_document, grouped_days_with_day_optional_rows
 from itinerary_generation.render_model import (
@@ -134,59 +141,23 @@ def _html_final_pages(page_htmls: list[str] | str) -> list[RenderFinalPage]:
 
 
 def _page_is_hidden(context: ItineraryRenderContext, page_id: str) -> bool:
-    return str(page_id or "") in (context.hidden_page_ids or set())
+    return contract_page_is_hidden(context.hidden_page_ids, page_id)
 
 
 def _final_section_is_hidden(context: ItineraryRenderContext, section_id: str) -> bool:
-    return _page_is_hidden(context, final_section_page_id(section_id))
+    return contract_final_section_is_hidden(context.hidden_page_ids, section_id)
 
 
 def _page_order_from_draft(editor_draft: dict[str, Any]) -> list[str]:
-    raw_pages = editor_draft.get("document_pages") if isinstance(editor_draft, dict) else []
-    if not isinstance(raw_pages, (list, tuple)):
-        return []
-    ordered: list[tuple[float, str]] = []
-    for index, page in enumerate(raw_pages):
-        if not isinstance(page, dict):
-            continue
-        page_id = str(page.get("page_id") or "").strip()
-        if not page_id:
-            continue
-        try:
-            order = float(page.get("sort_order") or index + 1)
-        except (TypeError, ValueError):
-            order = float(index + 1)
-        ordered.append((order, page_id))
-    return [page_id for _, page_id in sorted(ordered, key=lambda item: item[0])]
+    """Compatibility wrapper for older tests/imports."""
+
+    return contract_page_order_from_draft(editor_draft)
 
 
 def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str]) -> list[dict[str, Any]]:
-    pages: list[dict[str, Any]] = []
-    raw_pages = editor_draft.get("document_pages") if isinstance(editor_draft, dict) else []
-    if not isinstance(raw_pages, (list, tuple)):
-        return pages
-    for page in raw_pages:
-        if not isinstance(page, dict) or page.get("page_type") != "manual":
-            continue
-        page_id = str(page.get("page_id") or "").strip()
-        if page_id in hidden_ids:
-            continue
-        blocks = page.get("manual_blocks") if isinstance(page.get("manual_blocks"), (list, tuple)) else []
-        content_parts: list[str] = []
-        for block in blocks:
-            if not isinstance(block, dict):
-                continue
-            fields = block.get("editable_fields") if isinstance(block.get("editable_fields"), dict) else {}
-            html = str(fields.get("content_html") or "").strip()
-            if html:
-                content_parts.append(html)
-        pages.append({
-            "page_id": page_id,
-            "title": str(page.get("title") or "Custom page").strip() or "Custom page",
-            "content_html": "".join(content_parts),
-            "sort_order": int(page.get("sort_order") or 0),
-        })
-    return sorted(pages, key=lambda page: int(page.get("sort_order") or 0))
+    """Compatibility wrapper for older tests/imports."""
+
+    return contract_manual_pages_from_draft(editor_draft, hidden_ids)
 
 
 
@@ -304,7 +275,7 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     context.render_document.summary = None if _page_is_hidden(context, "summary") else summary
     context.render_document.final_sections = _build_final_sections_for_pdf(context)
     context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
-    context.render_document.page_order = _page_order_from_draft(context.editor_draft)
+    context.render_document.page_order = contract_page_order_from_draft(context.editor_draft)
 
 
 def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None) -> ItineraryRenderContext:
@@ -332,7 +303,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         if stable_page_id("day", getattr(day, "day", "")) not in page_hidden_ids
     ]
     render_document.hidden_page_ids = sorted(page_hidden_ids)
-    render_document.page_order = _page_order_from_draft(editor_draft)
+    render_document.page_order = contract_page_order_from_draft(editor_draft)
 
     preset_name = get_color_preset_name(output_edits)
     colors = get_color_preset(output_edits)
@@ -433,7 +404,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         first_page = typed_exclusions.get("pages", [{}])[0]
         typed_exclusion_html = first_page.get("content_html", "") if isinstance(first_page, dict) else ""
     important_travel_notes = normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits))
-    manual_pages = _manual_pages_from_draft(editor_draft, page_hidden_ids)
+    manual_pages = contract_manual_pages_from_draft(editor_draft, page_hidden_ids)
 
     context = ItineraryRenderContext(
         parsed_rows=list(parsed_rows or []),

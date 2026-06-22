@@ -18,7 +18,7 @@ from ui.day_pages import (
 )
 from ui.final_pages import render_optional_addons_pages
 from ui.render_helpers import esc
-from itinerary_generation.editor_page_contract import final_section_page_id
+from itinerary_generation.editor_page_contract import final_section_is_hidden as contract_final_section_is_hidden, page_is_hidden as contract_page_is_hidden
 
 
 def _balanced_cover_subtitle_html(subtitle: str) -> str:
@@ -43,11 +43,11 @@ def _raise_for_blocking_client_output(context) -> None:
 
 
 def _page_is_hidden(context, page_id: str) -> bool:
-    return str(page_id or "") in (getattr(context, "hidden_page_ids", set()) or set())
+    return contract_page_is_hidden(getattr(context, "hidden_page_ids", set()) or set(), page_id)
 
 
 def _final_section_is_hidden(context, section_id: str) -> bool:
-    return _page_is_hidden(context, final_section_page_id(section_id))
+    return contract_final_section_is_hidden(getattr(context, "hidden_page_ids", set()) or set(), section_id)
 
 
 def build_itinerary_html_from_context(context):

@@ -41,15 +41,15 @@ def test_patch_bq_controlled_classes_have_single_registry_source():
 def test_patch_bq_frontend_uses_registry_for_toolbar_and_sanitizer():
     index_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    commands_js = Path("visual_editor_component/frontend/js/commands.js").read_text(encoding="utf-8")
+    text_tools_js = Path("visual_editor_component/frontend/js/editor_text_tools.js").read_text(encoding="utf-8")
 
     assert '<script src="js/style_presets.js"></script>' in index_html
     assert "controlledPresetOptionsHtml('text_styles'" in render_js
     assert "controlledPresetOptionsHtml('colors'" in render_js
-    assert "controlledPresetClassMap('text_styles')" in commands_js
-    assert "controlledEditorAllowedClasses()" in commands_js
-    assert "controlledBlockTemplate('note')" in commands_js
-    assert "controlledBlockTemplate('divider')" in commands_js
+    assert "controlledPresetClassMap('text_styles')" in text_tools_js
+    assert "controlledEditorAllowedClasses()" in text_tools_js
+    assert "controlledBlockTemplate('note')" in text_tools_js
+    assert "controlledBlockTemplate('divider')" in text_tools_js
 
 
 def test_patch_bq_pdf_uses_registry_for_controlled_classes():

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from shared.commercial_markers import has_self_arranged_marker
+
 
 def get_row_type(row):
     return row.get("effective_type") or row.get("type", "")
@@ -82,46 +84,4 @@ def is_self_arranged(row):
     if row_type == "Activity":
         return False
 
-    compact = " ".join(text.replace("-", " ").replace(",", " ").split())
-    squashed = compact.replace(" ", "")
-    markers = [
-        "self arranged",
-        "self arrnaged",
-        "self arrnage",
-        "own arrangement",
-        "cost not included",
-        "cost not inclueded",
-        "price not included",
-        "flight cost not",
-        "ticket to be bought on spot",
-        "ticket to be bought on site",
-        "tickets to be bought on spot",
-        "tickets to be bought on site",
-        "ticket to be purchased locally",
-        "tickets to be purchased locally",
-        "ticket to be purchased on site",
-        "tickets to be purchased on site",
-        "to be paid locally",
-        "ticket counter",
-        "on spot",
-        "on site",
-    ]
-
-    return any(marker in compact for marker in markers) or any(
-        marker in squashed
-        for marker in [
-            "selfarranged",
-            "selfarrnaged",
-            "selfarrnage",
-            "costnotincluded",
-            "pricenotincluded",
-            "tickettobeboughtonspot",
-            "tickettobeboughtonsite",
-            "ticketstobeboughtonspot",
-            "ticketstobeboughtonsite",
-            "tobepaidlocally",
-            "ticketcounter",
-            "onspot",
-            "onsite",
-        ]
-    )
+    return has_self_arranged_marker(text)

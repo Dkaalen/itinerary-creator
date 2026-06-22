@@ -5,6 +5,12 @@ state is commercial metadata, separate from operational type detection, and must
 not leak across rows.
 """
 
+from shared.commercial_markers import (
+    SELF_ARRANGED_MARKERS,
+    has_self_arranged_marker,
+    normalize_commercial_text,
+)
+
 OPTIONAL = "optional"
 INCLUDED = "included"
 SELF_ARRANGED = "self_arranged"
@@ -16,36 +22,6 @@ REASON_DEFAULT_INCLUDED = "default_included"
 REASON_SELF_TRANSFER = "self_transfer"
 REASON_COST_NOT_INCLUDED = "cost_not_included"
 REASON_NOT_INCLUDED_MARKER = "not_included_marker"
-
-
-SELF_ARRANGED_MARKERS = [
-    "self arranged",
-    "self arrnaged",
-    "self arrange",
-    "own arrangement",
-    "cost not included",
-    "cost not inclueded",
-    "price not included",
-    "flight cost not",
-    "ticket to be bought on spot",
-    "ticket to be bought on site",
-    "tickets to be bought on spot",
-    "tickets to be bought on site",
-    "ticket to be purchased locally",
-    "tickets to be purchased locally",
-    "ticket to be purchased on site",
-    "tickets to be purchased on site",
-    "to be paid locally",
-    "ticket counter",
-    "on spot",
-    "on site",
-]
-
-
-def normalize_commercial_text(*values):
-    """Return compact lower-case text for commercial-status matching."""
-    text = " ".join(str(value or "") for value in values).lower().replace("-", " ")
-    return " ".join(text.replace(",", " ").split())
 
 
 def initial_commercial_state(is_optional):
@@ -62,7 +38,7 @@ def infer_commercial_status(is_optional, item_type, title, details):
         return OPTIONAL, REASON_EXPLICIT_OPTIONAL
     if "self transfer" in text:
         return SELF_ARRANGED, REASON_SELF_TRANSFER
-    if any(marker in text for marker in SELF_ARRANGED_MARKERS):
+    if has_self_arranged_marker(text):
         return SELF_ARRANGED, REASON_COST_NOT_INCLUDED
     # Rental-car rows often include both the included rental package and a
     # small excluded commercial note such as "Not included: safety deposit".

@@ -119,6 +119,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_structured_html_source_identity.py",
     "tests/test_transport_model_architecture.py",
     "tests/test_wrapper_exports.py",
+    "tests/test_compatibility_facade_audit.py",
     "tests/test_test_runner_groups.py",
     "tests/test_patch_bp_editor_workflow_split.py",
     "tests/test_patch_bq_style_registry.py",

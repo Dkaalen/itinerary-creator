@@ -8,8 +8,6 @@ contract is expanded.
 
 from __future__ import annotations
 
-from copy import copy
-
 from bs4 import BeautifulSoup, NavigableString
 from pathlib import Path
 import base64
@@ -19,21 +17,22 @@ from typing import Mapping
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocument, RenderFinalPage, RenderFinalSection
-from itinerary_generation.editor_page_contract import final_section_page_id, stable_page_id
+from itinerary_generation.editor_page_contract import final_section_page_id, ordered_page_ids, stable_page_id
 from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_flowable
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint, SamePageDayImage
 from pdf_exporter_modules.image_layout import normalize_crop_focus
-from pdf_exporter_modules.render_flowables import CoverEmblem, add_cover_rule, add_premium_rule, boxed_story_table
+from pdf_exporter_modules.render_flowables import add_premium_rule, boxed_story_table
 from pdf_exporter_modules.html_utils import clean_text, para_text
+from pdf_exporter_modules.cover_page import CoverPageContent, normalize_cover_route_text, render_cover_content
 from pdf_exporter_modules.render_content import render_content_blocks
 from pdf_exporter_modules.render_text import li_text_with_line_breaks
 from pdf_exporter_modules.story import add_bullets, add_paragraph, make_table
 from pdf_exporter_modules import styles as pdf_styles
-from pdf_exporter_modules.styles import apply_pdf_palette, hex_to_color, make_styles, page_background
+from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
 
 
 _SUPPORTED_FINAL_HTML_TAGS = {
@@ -207,79 +206,31 @@ def _render_supported_final_html(html_fragment: str, story, styles) -> None:
     render_children(soup)
 
 
-def _cover_color(value, fallback):
-    return hex_to_color(value, fallback)
+def _cover_content(render_document: RenderDocument) -> CoverPageContent:
+    cover = render_document.cover
+    if not cover:
+        return CoverPageContent(
+            title=render_document.title or "Itinerary",
+            subtitle=render_document.subtitle or "",
+            route=normalize_cover_route_text(render_document.route),
+        )
 
-
-def _cover_styles(cover, styles):
-    cover_styles = dict(styles)
-    ink = _cover_color(getattr(cover, "ink", ""), pdf_styles.INK)
-    muted = _cover_color(getattr(cover, "muted", ""), pdf_styles.MUTED)
-    body = _cover_color(getattr(cover, "ink", ""), pdf_styles.BODY)
-    for name, color in {
-        "cover_kicker": muted,
-        "cover_title": ink,
-        "cover_subtitle": ink,
-        "cover_dates": muted,
-        "cover_route_label": muted,
-        "cover_destinations": body,
-    }.items():
-        if name in cover_styles:
-            style = copy(cover_styles[name])
-            style.textColor = color
-            cover_styles[name] = style
-    return cover_styles
-
-
-def _route_text(value: str) -> str:
-    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
-    parts = [" ".join(part.split()) for part in text.replace(" · ", "\n").split("\n") if " ".join(part.split())]
-    return " · ".join(parts)
+    return CoverPageContent(
+        kicker=getattr(cover, "kicker", "") or "Travel Itinerary",
+        title=getattr(cover, "title", "") or render_document.title or "Itinerary",
+        subtitle=getattr(cover, "subtitle", "") or render_document.subtitle or "",
+        dates=getattr(cover, "dates", "") or "",
+        route_label=getattr(cover, "route_label", "") or "Route",
+        route=normalize_cover_route_text(getattr(cover, "route", "") or render_document.route),
+        background_path=getattr(cover, "background_path", "") or "",
+        crop_focus=getattr(cover, "crop_focus", "") or "top",
+        ink=getattr(cover, "ink", "") or "",
+        muted=getattr(cover, "muted", "") or "",
+    )
 
 
 def _render_cover(render_document: RenderDocument, story, styles, temp_dir):
-    cover = render_document.cover
-    if not cover:
-        cover = type("Cover", (), {})()
-        cover.kicker = "Travel Itinerary"
-        cover.title = render_document.title or "Itinerary"
-        cover.subtitle = render_document.subtitle or ""
-        cover.dates = ""
-        cover.route = render_document.route or ""
-        cover.background_path = ""
-        cover.ink = ""
-        cover.muted = ""
-
-    cover_styles = _cover_styles(cover, styles)
-    muted = _cover_color(getattr(cover, "muted", ""), pdf_styles.MUTED)
-    background_path = Path(str(getattr(cover, "background_path", "") or ""))
-    if background_path.exists() and background_path.is_file():
-        story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=getattr(cover, "crop_focus", "top")))
-
-    story.append(Spacer(1, 9 * mm))
-    emblem = Table([[CoverEmblem(color=muted)]], colWidths=[15 * mm], hAlign="CENTER")
-    emblem.setStyle(
-        TableStyle(
-            [
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    story.append(emblem)
-    story.append(Spacer(1, 6 * mm))
-    add_paragraph(story, getattr(cover, "kicker", "") or "Travel Itinerary", cover_styles["cover_kicker"])
-    add_cover_rule(story, width=50 * mm, space_after=4, color=muted)
-    add_paragraph(story, getattr(cover, "title", "") or render_document.title or "Itinerary", cover_styles["cover_title"])
-    add_cover_rule(story, width=42 * mm, space_after=3, color=muted)
-    add_paragraph(story, getattr(cover, "subtitle", "") or render_document.subtitle or "", cover_styles["cover_subtitle"])
-    if getattr(cover, "dates", ""):
-        add_paragraph(story, getattr(cover, "dates", ""), cover_styles["cover_dates"])
-    story.append(Spacer(1, 4 * mm))
-    add_paragraph(story, getattr(cover, "route_label", "") or "Route", cover_styles["cover_route_label"])
-    add_paragraph(story, _route_text(getattr(cover, "route", "") or render_document.route).upper(), cover_styles["cover_destinations"])
+    render_cover_content(_cover_content(render_document), story, styles, temp_dir=temp_dir)
 
 
 def _render_summary(render_document: RenderDocument, story, styles, temp_dir):
@@ -590,12 +541,9 @@ def export_render_document_to_pdf(
             page_id = final_section_page_id(section_id) if section_id in {"whats_included", "whats_not_included", "important_travel_notes"} else section_id
             page_renderers.append((page_id, lambda section=section: _render_final_section(section, story, styles)))
 
-        default_ids = [page_id for page_id, _ in page_renderers]
-        ordered_ids = [page_id for page_id in getattr(render_document, "page_order", []) or [] if page_id in default_ids]
-        ordered_ids.extend(page_id for page_id in default_ids if page_id not in ordered_ids)
         renderer_by_id = {page_id: renderer for page_id, renderer in page_renderers}
 
-        for page_id in ordered_ids:
+        for page_id in ordered_page_ids([page_id for page_id, _ in page_renderers], getattr(render_document, "page_order", []) or []):
             if story:
                 story.append(PageBreak())
             renderer_by_id[page_id]()

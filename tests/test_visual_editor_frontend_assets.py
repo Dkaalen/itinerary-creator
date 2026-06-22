@@ -11,6 +11,12 @@ def test_visual_editor_index_is_thin_asset_shell():
     assert '<script src="js/images.js"></script>' in index
     assert '<script src="js/render.js"></script>' in index
     assert '<script src="js/serialization.js"></script>' in index
+    assert '<script src="js/editor_dirty_state.js"></script>' in index
+    assert '<script src="js/editor_text_tools.js"></script>' in index
+    assert '<script src="js/editor_document_model.js"></script>' in index
+    assert '<script src="js/editor_inspector.js"></script>' in index
+    assert '<script src="js/editor_page_actions.js"></script>' in index
+    assert '<script src="js/editor_warnings.js"></script>' in index
     assert '<script src="js/commands.js"></script>' in index
     assert '<script src="js/editing.js"></script>' in index
     assert '<script src="js/streamlit_bridge.js"></script>' in index
@@ -26,7 +32,13 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/render.js": ["function render(", "function draw()"],
         "js/serialization.js": ["function collect()", "function buildEditableDraftFromPayload", "function buildSaveEnvelope"],
-        "js/commands.js": ["function markTouched", "function insertCleanClipboardHtml", "function mergeInclusionPageUp"],
+        "js/editor_dirty_state.js": ["function markTouched", "function saveRecoveryPanelHtml"],
+        "js/editor_text_tools.js": ["function insertCleanClipboardHtml", "function applyTextStylePreset"],
+        "js/editor_document_model.js": ["function documentPages", "function manualPageFromTemplate"],
+        "js/editor_inspector.js": ["function renderRightInspector", "function renderInspectorTextTools"],
+        "js/editor_page_actions.js": ["function mergeInclusionPageUp", "function addManualPage"],
+        "js/editor_warnings.js": ["function highlightWarnings", "function updateEditorStats"],
+        "js/commands.js": ["window.visualEditorCommands", "Public command facade"],
         "js/editing.js": ["function saveChanges", "function attachHandlers"],
         "js/streamlit_bridge.js": ["const Streamlit", "streamlit:render"],
     }

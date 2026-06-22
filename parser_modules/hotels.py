@@ -48,6 +48,78 @@ def clean_room_category(value):
     return clean_space(room)
 
 
+_MEAL_PLAN_MARKERS = (
+    "breakfast",
+    "brekafast",
+    "meal",
+    "dinner",
+    "half board",
+    "full board",
+    "room only",
+    "self catering",
+    "self-catering",
+)
+
+_COMMA_MEAL_PLAN_MARKERS = ("incl", *_MEAL_PLAN_MARKERS)
+
+_ROOM_TYPE_MARKERS = ("room", "suite", "cabin")
+_EXTENDED_LODGING_MARKERS = ("apartment", "villa", "cottage")
+_ROOM_QUALIFIER_RE = re.compile(r"\b(premium|standard|aurora|glass|\d+\s*x)", re.IGNORECASE)
+_BEDROOM_QUALIFIER_RE = re.compile(r"\b(\d+\s*x|one|two|three|four|five|bedroom)", re.IGNORECASE)
+_ROOM_QUANTITY_RE = re.compile(r"\b\d+\s*x\s+", re.IGNORECASE)
+_NIGHT_COUNT_RE = re.compile(r"(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", re.IGNORECASE)
+_STAR_RATING_RE = re.compile(r"\b([2-5])\s*[- ]?star\b", re.IGNORECASE)
+
+
+def _contains_any_marker(text, markers):
+    return any(marker in text for marker in markers)
+
+
+def _is_meal_plan_part(part_lower, *, comma_format=False):
+    markers = _COMMA_MEAL_PLAN_MARKERS if comma_format else _MEAL_PLAN_MARKERS
+    return _contains_any_marker(part_lower, markers)
+
+
+def _is_room_like_part(part_lower):
+    if _contains_any_marker(part_lower, _ROOM_TYPE_MARKERS):
+        return True
+
+    if "igloo" in part_lower and _ROOM_QUALIFIER_RE.search(part_lower):
+        return True
+
+    has_extended_lodging = _contains_any_marker(part_lower, _EXTENDED_LODGING_MARKERS)
+    return bool(has_extended_lodging and _BEDROOM_QUALIFIER_RE.search(part_lower))
+
+
+def _apply_room_part(part, hotel_name, room_category):
+    quantity_match = _ROOM_QUANTITY_RE.search(part)
+    if quantity_match and quantity_match.start() > 0 and not hotel_name:
+        hotel_name = clean_space(part[:quantity_match.start()])
+        room_category = room_category or clean_room_category(part[quantity_match.start():])
+    else:
+        room_category = room_category or clean_room_category(part)
+    return hotel_name, room_category
+
+
+def _split_embedded_room_quantity(hotel_name, room_category):
+    split_match = _ROOM_QUANTITY_RE.search(hotel_name or "")
+    if not split_match:
+        return hotel_name, room_category
+
+    before = clean_space(hotel_name[:split_match.start()])
+    after = clean_space(hotel_name[split_match.start():])
+    if before and after:
+        return before, room_category or clean_room_category(after)
+
+    return hotel_name, room_category
+
+
+def _strip_hotel_prefix_from_room_category(hotel_name, room_category):
+    if room_category and hotel_name and room_category.lower().startswith(hotel_name.lower()):
+        return clean_room_category(clean_space(room_category[len(hotel_name):].strip(" ,-"))) or room_category
+    return room_category
+
+
 def parse_hotel_details(row, main_text, night_count_hint=""):
     """
     Parses accommodation details from both supported formats.
@@ -74,7 +146,7 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     meal_plan = ""
     star_rating = ""
 
-    star_match = re.search(r"\b([2-5])\s*[- ]?star\b", text, flags=re.IGNORECASE)
+    star_match = _STAR_RATING_RE.search(text)
     if star_match:
         star_rating = star_match.group(1)
 
@@ -85,7 +157,7 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     if match:
         nights = match.group(1)
 
-    match = re.search(r"(\d+)\s*(?:x\s*)?(?:night|nite|nt)s?", lower)
+    match = _NIGHT_COUNT_RE.search(lower)
     if match and not nights:
         nights = match.group(1)
 
@@ -99,22 +171,12 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
             if "check in" in part_lower or "night stay" in part_lower:
                 continue
 
-            if any(marker in part_lower for marker in ["breakfast", "brekafast", "meal", "dinner", "half board", "full board", "room only", "self catering", "self-catering"]):
+            if _is_meal_plan_part(part_lower):
                 meal_plan = parse_meal_plan(part)
                 continue
 
-            room_like = (
-                "room" in part_lower or "suite" in part_lower or "cabin" in part_lower
-                or ("igloo" in part_lower and re.search(r"\b(premium|standard|aurora|glass|\d+\s*x)", part_lower))
-                or (("apartment" in part_lower or "villa" in part_lower or "cottage" in part_lower) and re.search(r"\b(\d+\s*x|one|two|three|four|five|bedroom)", part_lower))
-            )
-            if room_like:
-                quantity_match = re.search(r"\b\d+\s*x\s+", part, flags=re.IGNORECASE)
-                if quantity_match and quantity_match.start() > 0 and not hotel_name:
-                    hotel_name = clean_space(part[:quantity_match.start()])
-                    room_category = room_category or clean_room_category(part[quantity_match.start():])
-                else:
-                    room_category = room_category or clean_room_category(part)
+            if _is_room_like_part(part_lower):
+                hotel_name, room_category = _apply_room_part(part, hotel_name, room_category)
                 continue
 
             if not hotel_name:
@@ -129,33 +191,23 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
         for part in comma_parts:
             part_lower = part.lower()
 
-            if re.search(r"\d+\s*(?:x\s*)?(?:night|nite|nt)s?", part_lower):
+            if _NIGHT_COUNT_RE.search(part_lower):
                 continue
 
-            if re.search(r"\d+\s*[- ]?star", part_lower):
+            if _STAR_RATING_RE.search(part_lower):
                 # Keep the property name when a star rating is prefixed, e.g.
                 # "3-star Hotel Arthur". Only the rating itself is metadata.
-                cleaned_part = clean_space(re.sub(r"\b\d+\s*[- ]?star\b", "", part, flags=re.IGNORECASE))
+                cleaned_part = clean_space(_STAR_RATING_RE.sub("", part))
                 if cleaned_part and not hotel_name:
                     hotel_name = cleaned_part
                 continue
 
-            if any(marker in part_lower for marker in ["incl", "breakfast", "brekafast", "dinner", "half board", "full board", "room only", "self catering", "self-catering"]):
+            if _is_meal_plan_part(part_lower, comma_format=True):
                 meal_plan = meal_plan or parse_meal_plan(part)
                 continue
 
-            room_like = (
-                "room" in part_lower or "suite" in part_lower or "cabin" in part_lower
-                or ("igloo" in part_lower and re.search(r"\b(premium|standard|aurora|glass|\d+\s*x)", part_lower))
-                or (("apartment" in part_lower or "villa" in part_lower or "cottage" in part_lower) and re.search(r"\b(\d+\s*x|one|two|three|four|five|bedroom)", part_lower))
-            )
-            if room_like:
-                quantity_match = re.search(r"\b\d+\s*x\s+", part, flags=re.IGNORECASE)
-                if quantity_match and quantity_match.start() > 0 and not hotel_name:
-                    hotel_name = clean_space(part[:quantity_match.start()])
-                    room_category = room_category or clean_room_category(part[quantity_match.start():])
-                else:
-                    room_category = room_category or clean_room_category(part)
+            if _is_room_like_part(part_lower):
+                hotel_name, room_category = _apply_room_part(part, hotel_name, room_category)
                 continue
 
             if not hotel_name:
@@ -167,16 +219,8 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     # before the first room/count marker as the hotel name and the remainder as
     # the room category. This is a general hotel-pattern rule, not tied to one
     # specific property.
-    if hotel_name and re.search(r"\b\d+\s*x\s+", hotel_name, flags=re.IGNORECASE):
-        split_match = re.search(r"\b\d+\s*x\s+", hotel_name, flags=re.IGNORECASE)
-        before = clean_space(hotel_name[:split_match.start()])
-        after = clean_space(hotel_name[split_match.start():])
-        if before and after:
-            hotel_name = before
-            room_category = room_category or clean_room_category(after)
-
-    if room_category and hotel_name and room_category.lower().startswith(hotel_name.lower()):
-        room_category = clean_room_category(clean_space(room_category[len(hotel_name):].strip(" ,-"))) or room_category
+    hotel_name, room_category = _split_embedded_room_quantity(hotel_name, room_category)
+    room_category = _strip_hotel_prefix_from_room_category(hotel_name, room_category)
 
     # If hotel name is missing in the text, avoid using the whole raw line.
     if hotel_name and any(marker in hotel_name.lower() for marker in ["check in", "night stay", "incl"]):

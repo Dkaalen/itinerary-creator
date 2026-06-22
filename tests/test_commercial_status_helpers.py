@@ -92,3 +92,36 @@ def test_common_text_cleanup_conservatively_fixes_commercial_and_place_typos():
     assert "Roskilde" in cleaned
     assert "St Nicholas" in cleaned
 
+
+
+def test_self_arranged_markers_are_shared_between_parser_and_generation_filters():
+    from itinerary_generation.row_filters import is_self_arranged
+
+    marker_cases = [
+        "self arranged",
+        "self-arranged",
+        "self arrange",
+        "self arrnage",
+        "own arrangement",
+        "cost not included",
+        "price not included",
+        "ticket to be bought on site",
+        "ticket to be bought on spot",
+        "to be paid locally",
+        "CostNot Included",
+    ]
+
+    for marker in marker_cases:
+        parser_status = infer_commercial_status(False, "Flight", "Flight Oslo to Bergen", marker)
+        generator_row = {"type": "Flight", "title": f"Flight Oslo to Bergen {marker}", "details": ""}
+
+        assert parser_status == (SELF_ARRANGED, "cost_not_included")
+        assert is_self_arranged(generator_row)
+
+
+def test_activity_exclusion_text_stays_included_in_generation_filter():
+    from itinerary_generation.row_filters import is_self_arranged
+
+    row = {"type": "Activity", "title": "Food tour", "details": "drinks cost not included"}
+
+    assert not is_self_arranged(row)

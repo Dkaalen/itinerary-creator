@@ -3,7 +3,15 @@ from pathlib import Path
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from itinerary_generation.editable_draft import normalise_editable_draft
-from itinerary_generation.editor_page_contract import build_editor_document_pages, hidden_page_ids
+from itinerary_generation.editor_page_contract import (
+    build_editor_document_pages,
+    final_section_is_hidden,
+    hidden_page_ids,
+    manual_pages_from_draft,
+    ordered_page_ids,
+    page_is_hidden,
+    page_order_from_draft,
+)
 
 
 def _frontend_source() -> str:
@@ -14,7 +22,13 @@ def _frontend_source() -> str:
         "js/state.js",
         "js/render.js",
         "js/serialization.js",
-        "js/commands.js",
+        "js/editor_dirty_state.js",
+            "js/editor_text_tools.js",
+            "js/editor_document_model.js",
+            "js/editor_inspector.js",
+            "js/editor_page_actions.js",
+            "js/editor_warnings.js",
+            "js/commands.js",
         "js/editing.js",
     ):
         parts.append((frontend / relative).read_text(encoding="utf-8"))
@@ -98,6 +112,51 @@ def test_hidden_page_ids_drive_preview_and_pdf_render_contract():
     assert [day.day for day in context.render_document.days] == ["Day 1"]
     assert "day-day-2" in context.render_document.hidden_page_ids
     assert not any(section.section_id == "whats_not_included" for section in context.render_document.final_sections)
+
+
+
+
+def test_page_visibility_order_and_manual_page_helpers_share_contract_logic():
+    editor_draft = {
+        "document_pages": [
+            {"page_id": "summary", "page_type": "summary", "sort_order": 20},
+            {"page_id": "cover", "page_type": "cover", "sort_order": 10, "is_hidden": True},
+            {"page_id": "final-whats-not-included", "page_type": "final_section", "sort_order": 30, "is_hidden": True},
+            {
+                "page_id": "manual-1",
+                "page_type": "manual",
+                "title": "Client note",
+                "sort_order": 40,
+                "manual_blocks": [
+                    {"editable_fields": {"content_html": "<p>First</p>"}},
+                    {"editable_fields": {"content_html": "<p>Second</p>"}},
+                ],
+            },
+            {
+                "page_id": "manual-hidden",
+                "page_type": "manual",
+                "title": "Hidden note",
+                "sort_order": 50,
+                "is_hidden": True,
+                "manual_blocks": [{"editable_fields": {"content_html": "<p>Hidden</p>"}}],
+            },
+        ]
+    }
+
+    hidden = hidden_page_ids(editor_draft["document_pages"])
+
+    assert page_is_hidden(hidden, "cover")
+    assert final_section_is_hidden(hidden, "whats_not_included")
+    assert page_order_from_draft(editor_draft) == ["cover", "summary", "final-whats-not-included", "manual-1", "manual-hidden"]
+    assert ordered_page_ids(["cover", "summary", "day-day-1"], ["summary", "missing", "cover"]) == ["summary", "cover", "day-day-1"]
+    assert manual_pages_from_draft(editor_draft, hidden) == [
+        {
+            "page_id": "manual-1",
+            "title": "Client note",
+            "content_html": "<p>First</p><p>Second</p>",
+            "sort_order": 40,
+        }
+    ]
 
 
 def test_frontend_exposes_document_outline_and_page_actions():

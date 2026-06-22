@@ -10,6 +10,12 @@ def _frontend_source() -> str:
             "js/state.js",
             "js/render.js",
             "js/serialization.js",
+            "js/editor_dirty_state.js",
+            "js/editor_text_tools.js",
+            "js/editor_document_model.js",
+            "js/editor_inspector.js",
+            "js/editor_page_actions.js",
+            "js/editor_warnings.js",
             "js/commands.js",
             "js/editing.js",
         )
