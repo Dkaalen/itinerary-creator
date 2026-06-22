@@ -249,10 +249,9 @@ function renderSourceRows(sourceRowIds) {
 }
 function renderInspectorTextTools(hasBlock) {
   const canStyle = hasBlock && canUsePdfSafeTextTools();
-  const disabled = canStyle ? '' : 'disabled';
-  const hint = canStyle
-    ? 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.'
-    : 'Select a day content, final-section, or manual-page rich text block. Fixed fields stay editable, but keep their locked PDF styles for now.';
+  if (!canStyle) return '';
+  const disabled = '';
+  const hint = 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.';
   return `<div class="inspector-card text-tools-card"><div class="inspector-kicker">Text tools</div>
     <label class="inspector-control-label" for="inspectorTextStylePreset">Paragraph style</label>
     <select id="inspectorTextStylePreset" ${disabled} aria-label="Inspector paragraph style">${controlledPresetOptionsHtml('text_styles', 'Choose style')}</select>
@@ -429,31 +428,7 @@ function renderInspectorLayoutTools(hasBlock, page, block) {
   const manualDisabled = isManualPage ? '' : 'disabled';
   const blockDisabled = hasBlock ? '' : 'disabled';
   const manualBlockDisabled = selectedManualBlock ? '' : 'disabled';
-  return `<div class="inspector-card layout-tools-card"><div class="inspector-kicker">Layout tools</div>
-    <label class="inspector-control-label" for="inspectorManualPageTemplate">Add page template</label>
-    <select id="inspectorManualPageTemplate" aria-label="Manual page template">${manualPageTemplateOptionsHtml('blank')}</select>
-    <button type="button" class="ghost full-width" id="inspectorAddTemplatePageBtn">Add selected page</button>
-    <label class="inspector-control-label" for="inspectorManualBlockTemplate">Insert block on manual page</label>
-    <select id="inspectorManualBlockTemplate" ${manualDisabled} aria-label="Manual block template">${manualBlockTemplateOptionsHtml('text')}</select>
-    <button type="button" class="ghost full-width" id="inspectorInsertManualBlockBtn" ${manualDisabled}>Insert selected block</button>
-    <label class="inspector-control-label" for="inspectorPageSpacing">Page spacing</label>
-    <select id="inspectorPageSpacing" ${pageDisabled} aria-label="Page spacing">
-      <option value="standard" ${spacing === 'standard' ? 'selected' : ''}>Standard</option>
-      <option value="compact" ${spacing === 'compact' ? 'selected' : ''}>Compact</option>
-      <option value="comfortable" ${spacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
-    </select>
-    <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepPageTogether" ${pageOverrides.keep_page_together ? 'checked' : ''} ${pageDisabled}> Keep page together</label>
-    <div class="inspector-button-grid">
-      <button type="button" class="ghost" id="inspectorHidePageBtn" ${hasPage && !pageHidden ? '' : 'disabled'}>Delete page</button>
-      <button type="button" class="ghost" id="inspectorRestorePageBtn" ${hasPage && pageHidden ? '' : 'disabled'}>Restore page</button>
-      <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
-    </div>
-    <div class="inspector-button-grid two">
-      <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${pageDisabled}>Move page up</button>
-      <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${pageDisabled}>Move page down</button>
-      <button type="button" class="ghost" id="inspectorDuplicatePageBtn" ${manualDisabled}>Duplicate page</button>
-      <button type="button" class="ghost" id="inspectorAddManualBlockBtn" ${manualDisabled}>Add text block</button>
-    </div>
+  const blockTools = hasBlock ? `<div class="inspector-layout-section">
     <label class="inspector-control-label" for="inspectorBlockSpacing">Selected block spacing</label>
     <select id="inspectorBlockSpacing" ${blockDisabled} aria-label="Selected block spacing">
       <option value="inherit" ${blockSpacing === 'inherit' ? 'selected' : ''}>Inherit page spacing</option>
@@ -462,14 +437,51 @@ function renderInspectorLayoutTools(hasBlock, page, block) {
       <option value="comfortable" ${blockSpacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
     </select>
     <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepBlockTogether" ${blockOverrides.keep_block_together ? 'checked' : ''} ${blockDisabled}> Keep selected block together</label>
+  </div>` : '';
+  const manualBlockTools = selectedManualBlock ? `<div class="inspector-layout-section">
     <div class="inspector-button-grid two">
       <button type="button" class="ghost" id="inspectorMoveBlockUpBtn" ${manualBlockDisabled}>Move block up</button>
       <button type="button" class="ghost" id="inspectorMoveBlockDownBtn" ${manualBlockDisabled}>Move block down</button>
       <button type="button" class="ghost" id="inspectorDuplicateBlockBtn" ${manualBlockDisabled}>Duplicate block</button>
       <button type="button" class="danger" id="inspectorDeleteBlockBtn" ${manualBlockDisabled}>Delete block</button>
     </div>
-    <p>Page ordering is stored in document_pages.sort_order. Drag the outline or use move controls; manual pages also support safe block movement and duplication.</p>
-  </div>`;
+  </div>` : '';
+  const manualPageTools = isManualPage ? `<div class="inspector-layout-section">
+    <label class="inspector-control-label" for="inspectorManualBlockTemplate">Insert block on manual page</label>
+    <select id="inspectorManualBlockTemplate" ${manualDisabled} aria-label="Manual block template">${manualBlockTemplateOptionsHtml('text')}</select>
+    <button type="button" class="ghost full-width" id="inspectorInsertManualBlockBtn" ${manualDisabled}>Insert selected block</button>
+    <div class="inspector-button-grid two">
+      <button type="button" class="ghost" id="inspectorDuplicatePageBtn" ${manualDisabled}>Duplicate page</button>
+      <button type="button" class="ghost" id="inspectorAddManualBlockBtn" ${manualDisabled}>Add text block</button>
+    </div>
+  </div>` : '';
+  return `<details class="inspector-card layout-tools-card" ${hasPage ? '' : 'open'}><summary><span>Page options</span><em>Layout tools</em></summary>
+    <label class="inspector-control-label" for="inspectorManualPageTemplate">Add page template</label>
+    <select id="inspectorManualPageTemplate" aria-label="Manual page template">${manualPageTemplateOptionsHtml('blank')}</select>
+    <button type="button" class="ghost full-width" id="inspectorAddTemplatePageBtn">Add selected page</button>
+    ${hasPage ? `<div class="inspector-layout-section">
+      <label class="inspector-control-label" for="inspectorPageSpacing">Page spacing</label>
+      <select id="inspectorPageSpacing" ${pageDisabled} aria-label="Page spacing">
+        <option value="standard" ${spacing === 'standard' ? 'selected' : ''}>Standard</option>
+        <option value="compact" ${spacing === 'compact' ? 'selected' : ''}>Compact</option>
+        <option value="comfortable" ${spacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
+      </select>
+      <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepPageTogether" ${pageOverrides.keep_page_together ? 'checked' : ''} ${pageDisabled}> Keep page together</label>
+      <div class="inspector-button-grid">
+        <button type="button" class="ghost" id="inspectorHidePageBtn" ${hasPage && !pageHidden ? '' : 'disabled'}>Delete page</button>
+        <button type="button" class="ghost" id="inspectorRestorePageBtn" ${hasPage && pageHidden ? '' : 'disabled'}>Restore page</button>
+        <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
+      </div>
+      <div class="inspector-button-grid two">
+        <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${pageDisabled}>Move page up</button>
+        <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${pageDisabled}>Move page down</button>
+      </div>
+    </div>` : ''}
+    ${manualPageTools}
+    ${blockTools}
+    ${manualBlockTools}
+    <p>Drag the outline for page order. Keep detailed options collapsed until needed.</p>
+  </details>`;
 }
 
 function renderRightInspector() {
@@ -477,26 +489,32 @@ function renderRightInspector() {
   const pageTitle = page?.title || meta.page_title || 'No page selected';
   const pageType = pageTypeLabel(page || {page_type: meta.block_type});
   const hasBlock = !!(fieldKey || activeBlockId);
+  const hasPage = !!(page?.page_id || meta.page_id || activePageId);
   const sourceRows = block?.source_row_ids || meta.source_row_ids || page?.source_row_ids || [];
   const fieldEntries = inspectorFieldEntriesForSelection(page, block, meta, fieldKey);
   const blockDirtyCount = activeBlockId ? dirtyKeysForBlock(activeBlockId).length : 0;
   const selectedFieldHtml = hasBlock
-    ? `<div class="inspector-card selected ${blockDirtyCount ? 'dirty' : ''}"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(blockDirtyCount ? `${blockDirtyCount} field(s)` : 'No')}</dd></dl></div>`
-    : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and text controls.</p></div>`;
-  const fieldList = renderInspectorFieldList(fieldEntries, fieldKey);
+    ? `<div class="inspector-card selected ${blockDirtyCount ? 'dirty' : ''}"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Unsaved</dt><dd>${esc(blockDirtyCount ? `${blockDirtyCount} field(s)` : 'No')}</dd></dl></div>`
+    : `<div class="inspector-card empty inspector-empty-state"><strong>Select text, an image, or a page</strong><p>Click the canvas or page outline to show only the tools relevant to that selection.</p></div>`;
+  const fieldList = fieldEntries.length ? renderInspectorFieldList(fieldEntries, fieldKey) : '';
+  const pageCard = hasPage ? `<div class="inspector-card ${pageHasDirtyEdits(page?.page_id || meta.page_id) ? 'dirty' : ''}"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(dirtyKeysForPage(page?.page_id || meta.page_id).length ? `${dirtyKeysForPage(page?.page_id || meta.page_id).length} edit(s)` : 'No')}</dd></dl></div>` : '';
+  const fieldListCard = fieldList ? `<details class="inspector-card field-list-card"><summary><span>Editable fields</span></summary><ul class="inspector-list field-list">${fieldList}</ul></details>` : '';
+  const sourceCard = sourceRows.length ? `<details class="inspector-card source-card"><summary><span>Source rows</span></summary><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></details>` : '';
+  const validationCard = hasPage ? `<details class="inspector-card validation-card"><summary><span>Validation</span></summary>${selectedPageValidationHtml(page)}</details>` : '';
+  const actionCard = (hasBlock || activePageId) ? `<details class="inspector-card actions-card"><summary><span>Actions</span></summary><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn">Clear selection</button></div></details>` : '';
   return `<aside class="right-inspector" aria-label="Selected block inspector">
-    <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : 'Page'}</span></div>
-    <div class="inspector-card ${pageHasDirtyEdits(page?.page_id || meta.page_id) ? 'dirty' : ''}"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(dirtyKeysForPage(page?.page_id || meta.page_id).length ? `${dirtyKeysForPage(page?.page_id || meta.page_id).length} edit(s)` : 'No')}</dd></dl></div>
+    <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : (hasPage ? 'Page' : 'Ready')}</span></div>
+    ${pageCard}
     ${selectedFieldHtml}
-    ${renderInspectorFieldEditor(fieldKey)}
-    ${renderInspectorCompareTools(fieldKey, fieldEntries)}
+    ${hasBlock ? renderInspectorFieldEditor(fieldKey) : ''}
+    ${hasBlock ? renderInspectorCompareTools(fieldKey, fieldEntries) : ''}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}
-    <div class="inspector-card validation-card"><div class="inspector-kicker">Validation</div>${selectedPageValidationHtml(page)}</div>
-    <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list field-list">${fieldList}</ul></div>
-    <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
-    <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
+    ${validationCard}
+    ${fieldListCard}
+    ${sourceCard}
+    ${actionCard}
   </aside>`;
 }
 function updateRightInspector() {

@@ -183,7 +183,7 @@ function pdfReadinessPanelHtml() {
     return `<li class="readiness-item ${escAttr(issue.kind)}"><strong>${esc(humanizeEditorToken(issue.kind))}</strong><span>${esc(readinessIssueText(issue))}</span><em>${esc(issue.label || 'Review item')}</em>${action}</li>`;
   }).join('') : '<li class="readiness-empty">No visible readiness issues. Still compare preview and PDF after export.</li>';
   const hidden = status.issues.length > issues.length ? `<div class="readiness-more">${status.issues.length - issues.length} more item(s) hidden here.</div>` : '';
-  return `<details class="pdf-readiness-panel ${escAttr(status.level)}" ${status.level === 'ready' ? '' : 'open'}><summary>PDF readiness · ${esc(status.label)}</summary><ul>${rows}</ul>${hidden}</details>`;
+  return `<details class="pdf-readiness-panel ${escAttr(status.level)}"><summary>PDF readiness · ${esc(status.label)}</summary><ul>${rows}</ul>${hidden}</details>`;
 }
 function selectedPageWarnings(pageId) {
   const id = String(pageId || '');
@@ -223,7 +223,7 @@ function warningExplanation(warning) {
 }
 function warningPanelHtml() {
   const warnings = editorClientWarnings();
-  if (!warnings.length) return '';
+  if (!warnings.length) return '<p class="review-empty">No client-output warnings in this draft.</p>';
   const rows = warnings.slice(0, 12).map((warning, idx) => {
     const location = warningLocationLabel(warning);
     const excerpt = String(warning?.excerpt || warning?.message || warning?.code || 'Review warning');
@@ -232,7 +232,16 @@ function warningPanelHtml() {
     return `<li><strong>${esc(location)}</strong><span>${esc(warningExplanation(warning))}</span><em>${esc(excerpt)}</em>${action}</li>`;
   }).join('');
   const hidden = warnings.length > 12 ? `<div class="warning-panel-more">${warnings.length - 12} more warning(s) hidden here. Use the page highlights and final PDF check as well.</div>` : '';
-  return `<details class="warning-panel" ${warnings.length <= 8 ? 'open' : ''}><summary>${warnings.length} warning(s) to review</summary><ul>${rows}</ul>${hidden}</details>`;
+  return `<details class="warning-panel"><summary>${warnings.length} warning(s) to review</summary><ul>${rows}</ul>${hidden}</details>`;
+}
+function reviewCenterHtml() {
+  const warnings = editorClientWarnings();
+  const status = pdfReadinessStatus();
+  const warningText = warnings.length ? `${warnings.length} warning(s)` : 'No warnings';
+  return `<details class="review-center">
+    <summary><strong>Review center</strong><span>${esc(warningText)} · ${esc(status.label)}</span></summary>
+    <div class="review-center-grid">${warningPanelHtml()}${pdfReadinessPanelHtml()}</div>
+  </details>`;
 }
 
 
@@ -276,9 +285,7 @@ function renderDocumentOutline() {
     const action = hidden
       ? `<button type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>`
       : `<button type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete</button>`;
-    const orderingActions = !hidden
-      ? `<button type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}" title="Move page up">↑</button><button type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}" title="Move page down">↓</button>`
-      : '';
+    const orderingActions = '';
     const manualActions = isManual && !hidden
       ? `<button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
       : '';
@@ -290,12 +297,12 @@ function renderDocumentOutline() {
       <div class="outline-actions">${orderingActions}${action}${manualActions}</div>
     </li>`;
   }).join('');
-  const templatePicker = `<div class="outline-template-picker"><label for="manualPageTemplateSelect">Add blank page or template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></div>`;
+  const templatePicker = `<details class="outline-template-picker"><summary>Add page or template</summary><label for="manualPageTemplateSelect">Template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></details>`;
   return `<aside class="document-outline" aria-label="Document pages">
     <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
     ${templatePicker}
     <ul>${rows}</ul>
-    <p class="outline-hint">Drag pages or use ↑/↓ to reorder. Generated pages can be hidden/restored; manual pages can also be duplicated.</p>
+    <p class="outline-hint">Drag page handles to reorder. Use the page header or inspector for page actions.</p>
   </aside>`;
 }
 function renderManualPageHtml(page, fallbackIndex = 0) {
@@ -389,8 +396,7 @@ function draw() {
           </div>
         </details>
       </div>
-      ${warningPanelHtml()}
-      ${pdfReadinessPanelHtml()}
+      ${reviewCenterHtml()}
     </div>
     <div class="editor-workspace">
       ${renderDocumentOutline()}
