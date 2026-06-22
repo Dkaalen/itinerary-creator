@@ -364,14 +364,18 @@ function draw() {
           <button class="primary" id="saveBtn" type="button">Save changes</button>
         </div>
         ${saveRecoveryPanelHtml()}
-        <div class="toolbar-tools style-tools">
-          <select id="textStylePreset" aria-label="Text style preset">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
-          <select id="colorPreset" aria-label="Color preset">${controlledPresetOptionsHtml('colors', 'Color')}</select>
-          <button class="ghost" id="addNoteBlockBtn" type="button">Add note block</button>
-          <button class="ghost" id="addDividerBtn" type="button">Add divider</button>
-          <button class="ghost" id="compactSpacingBtn" type="button">Compact spacing</button>
-          <button class="ghost" id="normalSpacingBtn" type="button">Normal spacing</button>
-        </div>
+        <details class="quick-tools">
+          <summary>Quick formatting</summary>
+          <div class="toolbar-tools style-tools" aria-label="Quick formatting shortcuts">
+            <span class="toolbar-hint">Inspector is primary; these are shortcuts for the selected block.</span>
+            <select id="textStylePreset" aria-label="Text style preset" title="Shortcut for the Inspector text style tool">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
+            <select id="colorPreset" aria-label="Color preset" title="Shortcut for the Inspector color tool">${controlledPresetOptionsHtml('colors', 'Color')}</select>
+            <button class="ghost" id="addNoteBlockBtn" type="button" title="Shortcut for Inspector → Add note">Add note block</button>
+            <button class="ghost" id="addDividerBtn" type="button" title="Shortcut for Inspector → Add divider">Add divider</button>
+            <button class="ghost" id="compactSpacingBtn" type="button" title="Shortcut for Inspector → Compact spacing">Compact spacing</button>
+            <button class="ghost" id="normalSpacingBtn" type="button" title="Shortcut for Inspector → Normal spacing">Normal spacing</button>
+          </div>
+        </details>
         <details class="advanced-tools">
           <summary>Advanced tools</summary>
           <div class="toolbar-tools">

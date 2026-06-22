@@ -38,3 +38,29 @@ def test_editor_design_polish_keeps_professional_panel_and_focus_styles():
     assert ".outline-row:hover" in source
     assert ".document-outline::-webkit-scrollbar" in source
     assert "grid-template-columns: minmax(220px, 260px)" in source
+
+
+def test_ui14_collapses_duplicate_toolbar_shortcuts_behind_quick_formatting_panel():
+    source = _frontend_source()
+
+    assert '<details class="quick-tools">' in source
+    assert '<summary>Quick formatting</summary>' in source
+    assert 'aria-label="Quick formatting shortcuts"' in source
+    assert 'Inspector is primary; these are shortcuts for the selected block.' in source
+    assert 'Shortcut for the Inspector text style tool' in source
+    assert 'Shortcut for Inspector → Add note' in source
+    assert '.quick-tools summary' in source
+    assert '.toolbar-hint' in source
+
+
+def test_ui14_keeps_quick_formatting_separate_from_advanced_tools():
+    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+
+    quick_position = render_js.index('class="quick-tools"')
+    style_tools_position = render_js.index('class="toolbar-tools style-tools"')
+    advanced_position = render_js.index('class="advanced-tools"')
+    assert quick_position < style_tools_position < advanced_position
+    assert 'id="textStylePreset"' in render_js
+    assert 'id="colorPreset"' in render_js
+    assert 'id="compactSpacingBtn"' in render_js
+    assert 'id="normalSpacingBtn"' in render_js

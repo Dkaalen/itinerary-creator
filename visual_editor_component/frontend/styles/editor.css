@@ -59,10 +59,14 @@
     .toolbar-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 320px; }
     .toolbar-tools input[type="text"] { width: 132px; font-weight: 650; }
     .style-tools { max-width: 760px; padding: 8px 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
-    .advanced-tools { width: 100%; text-align: right; }
-    .advanced-tools summary { display: inline-flex; min-height: 32px; align-items: center; padding: 6px 11px; border: 1px solid rgba(17,38,63,.18); border-radius: 999px; background: #ffffff; color: #253041; font-size: 11px; font-weight: 850; cursor: pointer; user-select: none; }
-    .advanced-tools[open] summary { margin-bottom: 8px; }
-    .advanced-tools .toolbar-tools { max-width: 760px; padding: 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
+    .quick-tools, .advanced-tools { width: 100%; text-align: right; }
+    .quick-tools summary, .advanced-tools summary { display: inline-flex; min-height: 32px; align-items: center; padding: 6px 11px; border: 1px solid rgba(17,38,63,.18); border-radius: 999px; background: #ffffff; color: #253041; font-size: 11px; font-weight: 850; cursor: pointer; user-select: none; }
+    .quick-tools summary::after, .advanced-tools summary::after { content: '▾'; margin-left: 7px; color: #6b7280; font-size: 10px; }
+    .quick-tools[open] summary, .advanced-tools[open] summary { margin-bottom: 8px; }
+    .quick-tools[open] summary::after, .advanced-tools[open] summary::after { content: '▴'; }
+    .quick-tools .toolbar-tools, .advanced-tools .toolbar-tools { max-width: 760px; padding: 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
+    .quick-tools .style-tools { justify-content: flex-end; }
+    .toolbar-hint { flex: 1 1 100%; color: #526070; font-size: 11px; line-height: 1.3; font-weight: 750; text-align: right; }
     .stat-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border-radius: 999px; border: 1px solid rgba(17,38,63,.14); color: #253041; background: #f8fafc; font-size: 11px; font-weight: 850; }
     .stat-pill.warn { color: #6d4200; border-color: rgba(197,138,36,.50); background: rgba(197,138,36,.16); }
 
