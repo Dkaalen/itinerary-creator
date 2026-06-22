@@ -453,6 +453,13 @@
     .empty-source { color: var(--muted); font-size: 11px; }
     .inspector-actions { display: grid; gap: 7px; margin-top: 8px; }
     .inspector-actions button { justify-content: center; }
+    .text-tools-card select { width: 100%; min-height: 34px; margin: 5px 0 9px; border-radius: 10px; border-color: rgba(17,38,63,.16); background: #fff; }
+    .text-tools-card select:disabled, .text-tools-card button:disabled { opacity: .52; cursor: not-allowed; }
+    .inspector-control-label { display: block; margin-top: 8px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
+    .inspector-button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
+    .inspector-button-grid.two { grid-template-columns: 1fr 1fr; }
+    .inspector-button-grid button { justify-content: center; min-height: 31px; padding-inline: 8px; font-size: 11px; }
+    .inspector-button-grid button:nth-child(3) { grid-column: 1 / -1; }
     .inspector-hint { margin: 10px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
     .selected-editor-block {
       box-shadow: 0 0 0 2px rgba(0,111,107,.46), 0 8px 24px rgba(0,111,107,.11) !important;

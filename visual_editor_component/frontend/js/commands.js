@@ -163,6 +163,39 @@ function applySpacingPreset(preset) {
   const mapping = controlledPresetClassMap('spacing');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_SPACING_CLASSES);
 }
+function selectedTextToolEditable() {
+  const el = selectedEditorElement() || selectedEditable();
+  if (isRichEditable(el)) return el;
+  const nested = el?.querySelector?.('[data-edit-key]');
+  if (isRichEditable(nested)) return nested;
+  return null;
+}
+function selectedTextToolTarget() {
+  const editable = selectedTextToolEditable();
+  if (!editable) return null;
+  return selectedStyleTarget(editable);
+}
+function canUsePdfSafeTextTools() {
+  return !!selectedTextToolEditable();
+}
+function clearSelectedFormatting() {
+  const editable = selectedTextToolEditable();
+  if (!editable) {
+    notifyEditor('Select a rich text content block first. This keeps fixed cover/day-title PDF styles safe.');
+    return;
+  }
+  const target = selectedStyleTarget(editable);
+  if (!target) {
+    notifyEditor('Place the cursor in a text line first.');
+    return;
+  }
+  pushUndo(editable, editableValue(editable));
+  removeClassGroup(target, CONTROLLED_TEXT_STYLE_CLASSES);
+  removeClassGroup(target, CONTROLLED_COLOR_CLASSES);
+  removeClassGroup(target, CONTROLLED_SPACING_CLASSES);
+  commitEditableDomChange(editable);
+  updateRightInspector();
+}
 function insertHtmlAtSelectionOrEnd(editable, html) {
   editable.focus();
   const selection = window.getSelection();
@@ -503,6 +536,29 @@ function renderSourceRows(sourceRowIds) {
   if (!ids.length) return '<span class="empty-source">No source rows linked</span>';
   return ids.slice(0, 8).map(id => `<span class="source-chip">${esc(id)}</span>`).join('');
 }
+function renderInspectorTextTools(hasBlock) {
+  const canStyle = hasBlock && canUsePdfSafeTextTools();
+  const disabled = canStyle ? '' : 'disabled';
+  const hint = canStyle
+    ? 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.'
+    : 'Select a day content, final-section, or manual-page rich text block. Fixed fields stay editable, but keep their locked PDF styles for now.';
+  return `<div class="inspector-card text-tools-card"><div class="inspector-kicker">Text tools</div>
+    <label class="inspector-control-label" for="inspectorTextStylePreset">Paragraph style</label>
+    <select id="inspectorTextStylePreset" ${disabled} aria-label="Inspector paragraph style">${controlledPresetOptionsHtml('text_styles', 'Choose style')}</select>
+    <label class="inspector-control-label" for="inspectorColorPreset">Color / highlight</label>
+    <select id="inspectorColorPreset" ${disabled} aria-label="Inspector color preset">${controlledPresetOptionsHtml('colors', 'Choose color')}</select>
+    <div class="inspector-button-grid">
+      <button type="button" class="ghost" id="inspectorCompactSpacingBtn" ${disabled}>Compact</button>
+      <button type="button" class="ghost" id="inspectorNormalSpacingBtn" ${disabled}>Normal spacing</button>
+      <button type="button" class="ghost" id="inspectorClearFormattingBtn" ${disabled}>Clear formatting</button>
+    </div>
+    <div class="inspector-button-grid two">
+      <button type="button" class="ghost" id="inspectorAddNoteBlockBtn" ${disabled}>Add note</button>
+      <button type="button" class="ghost" id="inspectorAddDividerBtn" ${disabled}>Add divider</button>
+    </div>
+    <p>${esc(hint)}</p>
+  </div>`;
+}
 function renderRightInspector() {
   const {fieldKey, meta, page, block} = selectedInspectorMeta();
   const pageTitle = page?.title || meta.page_title || 'No page selected';
@@ -512,7 +568,7 @@ function renderRightInspector() {
   const blockFields = Object.keys(block?.editable_fields || {});
   const selectedFieldHtml = hasBlock
     ? `<div class="inspector-card selected"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd></dl></div>`
-    : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and future formatting controls.</p></div>`;
+    : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and text controls.</p></div>`;
   const fieldList = blockFields.length
     ? blockFields.map(field => `<li>${esc(humanizeEditorToken(field))}</li>`).join('')
     : pageInspectorRows(page);
@@ -520,10 +576,11 @@ function renderRightInspector() {
     <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : 'Page'}</span></div>
     <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
     ${selectedFieldHtml}
+    ${renderInspectorTextTools(hasBlock)}
     <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
     <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
     <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
-    <p class="inspector-hint">Next patches will plug text, layout, and image controls into this same selected block contract.</p>
+    <p class="inspector-hint">Image and layout controls will plug into this same selected block contract next.</p>
   </aside>`;
 }
 function updateRightInspector() {
@@ -534,6 +591,21 @@ function updateRightInspector() {
   requestAnimationFrame(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20));
 }
 function attachInspectorHandlers() {
+  document.getElementById('inspectorTextStylePreset')?.addEventListener('change', event => {
+    if (event.target.value) applyTextStylePreset(event.target.value);
+    event.target.value = '';
+    updateRightInspector();
+  });
+  document.getElementById('inspectorColorPreset')?.addEventListener('change', event => {
+    if (event.target.value) applyColorPreset(event.target.value);
+    event.target.value = '';
+    updateRightInspector();
+  });
+  document.getElementById('inspectorCompactSpacingBtn')?.addEventListener('click', () => { applySpacingPreset('compact'); updateRightInspector(); });
+  document.getElementById('inspectorNormalSpacingBtn')?.addEventListener('click', () => { applySpacingPreset('normal'); updateRightInspector(); });
+  document.getElementById('inspectorClearFormattingBtn')?.addEventListener('click', clearSelectedFormatting);
+  document.getElementById('inspectorAddNoteBlockBtn')?.addEventListener('click', () => { addNoteBlock(); updateRightInspector(); });
+  document.getElementById('inspectorAddDividerBtn')?.addEventListener('click', () => { addDividerBlock(); updateRightInspector(); });
   document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('inspectorClearSelectionBtn')?.addEventListener('click', () => {

@@ -50,7 +50,8 @@ def test_frontend_exposes_block_selection_and_right_inspector_foundation():
     assert "Selected block" in source
     assert "Source" in source
     assert "Reset selected field" in source
-    assert "Next patches will plug text, layout, and image controls" in source
+    assert "Text tools" in source
+    assert "Image and layout controls will plug into this same selected block contract next" in source
 
 
 def test_frontend_marks_images_as_selectable_editor_blocks():
@@ -59,3 +60,18 @@ def test_frontend_marks_images_as_selectable_editor_blocks():
     assert "data-editor-block-type=\"image\"" in source
     assert "data-editor-field-key=\"days.${dayIndex}.image\"" in source
     assert "data-editor-field-key=\"cover.${escAttr(key)}\"" in source
+
+
+def test_right_inspector_exposes_pdf_safe_text_tools():
+    source = _frontend_source()
+
+    assert "renderInspectorTextTools" in source
+    assert "inspectorTextStylePreset" in source
+    assert "inspectorColorPreset" in source
+    assert "inspectorClearFormattingBtn" in source
+    assert "inspectorAddNoteBlockBtn" in source
+    assert "inspectorAddDividerBtn" in source
+    assert "canUsePdfSafeTextTools" in source
+    assert "These controls write controlled classes" in source
+    assert "Clear formatting" in source
+    assert "text-tools-card" in source
