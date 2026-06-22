@@ -51,7 +51,7 @@ def test_frontend_exposes_block_selection_and_right_inspector_foundation():
     assert "Source" in source
     assert "Reset selected field" in source
     assert "Text tools" in source
-    assert "Image and layout controls will plug into this same selected block contract next" in source
+    assert "Layout controls will plug into this same selected block contract next" in source
 
 
 def test_frontend_marks_images_as_selectable_editor_blocks():
@@ -75,3 +75,20 @@ def test_right_inspector_exposes_pdf_safe_text_tools():
     assert "These controls write controlled classes" in source
     assert "Clear formatting" in source
     assert "text-tools-card" in source
+
+
+
+def test_right_inspector_exposes_image_tools():
+    source = _frontend_source()
+
+    assert "renderInspectorImageTools" in source
+    assert "selectedImageContext" in source
+    assert "inspectorImageFocus" in source
+    assert "inspectorImageBank" in source
+    assert "inspectorImageAutomaticBtn" in source
+    assert "inspectorImageManualBtn" in source
+    assert "inspectorImageRemoveBtn" in source
+    assert "inspectorImageUploadInput" in source
+    assert "Why this image" in source
+    assert "Quality warnings" in source
+    assert "image-tools-card" in source

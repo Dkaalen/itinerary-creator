@@ -559,6 +559,152 @@ function renderInspectorTextTools(hasBlock) {
     <p>${esc(hint)}</p>
   </div>`;
 }
+
+function selectedImageContextFromField(fieldKey) {
+  const key = String(fieldKey || '');
+  let match = key.match(/^days\.(\d+)\.image$/);
+  if (match) {
+    const dayIndex = Number(match[1]);
+    const day = Array.isArray(model.days) ? model.days[dayIndex] : null;
+    if (!day) return null;
+    if (!day.image) day.image = {mode: 'auto', path: '', crop_focus: 'top', options: []};
+    return {
+      kind: 'day',
+      label: day.day || `Day ${dayIndex + 1}`,
+      fieldKey: key,
+      dayIndex,
+      coverKey: '',
+      image: day.image,
+      supportsUpload: true,
+    };
+  }
+  match = key.match(/^cover\.(cover_image|summary_image)$/);
+  if (match) {
+    const coverKey = match[1];
+    if (!model.cover) model.cover = {};
+    if (!model.cover[coverKey]) model.cover[coverKey] = {mode: 'auto', path: '', crop_focus: 'top', options: []};
+    return {
+      kind: 'cover',
+      label: coverKey === 'summary_image' ? 'Page 2 background image' : 'Front cover image',
+      fieldKey: key,
+      dayIndex: null,
+      coverKey,
+      image: model.cover[coverKey],
+      supportsUpload: false,
+    };
+  }
+  return null;
+}
+function selectedImageContext() {
+  const {fieldKey} = selectedInspectorMeta();
+  return selectedImageContextFromField(fieldKey);
+}
+function imageOptionReason(image) {
+  const path = String(image?.path || '');
+  if (!path) return image?.reason || image?.auto_reason || '';
+  const option = (Array.isArray(image?.options) ? image.options : []).find(opt => String(opt?.path || '') === path);
+  return option?.reason || image?.reason || image?.auto_reason || '';
+}
+function imageOptionsHtml(image) {
+  const options = Array.isArray(image?.options) ? image.options : [];
+  return options.map((opt, idx) => `<option value="${escAttr(opt.path || '')}" data-option-index="${idx}" title="${escAttr(opt.reason || '')}" ${opt.path === image?.path ? 'selected' : ''}>${esc(opt.name || opt.path || `Option ${idx + 1}`)}</option>`).join('');
+}
+function imageWarningsHtml(image) {
+  const warnings = Array.isArray(image?.warnings) ? image.warnings : [];
+  if (!warnings.length) return '<span class="empty-source">No image warnings</span>';
+  return `<ul class="inspector-warning-list">${warnings.slice(0, 4).map(warning => `<li>${esc(warning?.message || warning?.code || 'Review image')}</li>`).join('')}</ul>`;
+}
+function imageModeLabel(image) {
+  const mode = String(image?.mode || 'auto');
+  if (mode === 'manual') return 'Manual replacement';
+  if (mode === 'none') return 'Removed';
+  return 'Automatic';
+}
+function setImageAutomatic(ctx) {
+  if (!ctx?.image) return;
+  ctx.image.mode = 'auto';
+  ctx.image.path = '';
+  ctx.image.data_uri = ctx.image.auto_data_uri || ctx.image.data_uri || '';
+  ctx.image.name = ctx.image.auto_name || ctx.image.name || '';
+  ctx.image.pending_preview = false;
+  markTouched(ctx.fieldKey);
+}
+function setImageRemoved(ctx) {
+  if (!ctx?.image) return;
+  ctx.image.mode = 'none';
+  ctx.image.path = '';
+  ctx.image.data_uri = '';
+  ctx.image.name = '';
+  ctx.image.pending_preview = false;
+  markTouched(ctx.fieldKey);
+}
+function setImageManualPath(ctx, path) {
+  if (!ctx?.image || !path) return false;
+  const selected = (Array.isArray(ctx.image.options) ? ctx.image.options : []).find(opt => opt.path === path) || {};
+  ctx.image.mode = 'manual';
+  ctx.image.path = path;
+  ctx.image.data_uri = '';
+  ctx.image.name = selected.name || path.split('/').pop() || '';
+  ctx.image.pending_preview = true;
+  markTouched(ctx.fieldKey);
+  return true;
+}
+function setImageCropFocus(ctx, focus) {
+  if (!ctx?.image) return;
+  ctx.image.crop_focus = focus || 'top';
+  markTouched(ctx.fieldKey);
+}
+function applyImageContextAction(ctx, action, value = '') {
+  if (!ctx) {
+    notifyEditor('Select an image first.');
+    return;
+  }
+  collect();
+  if (action === 'auto') setImageAutomatic(ctx);
+  if (action === 'none') setImageRemoved(ctx);
+  if (action === 'manual') {
+    if (!setImageManualPath(ctx, value)) {
+      notifyEditor('Choose an image replacement first.');
+      return;
+    }
+  }
+  if (action === 'focus') setImageCropFocus(ctx, value);
+  notifyEditor(action === 'focus' ? 'Image crop updated' : 'Image selection updated');
+  draw();
+}
+function renderInspectorImageTools(fieldKey) {
+  const ctx = selectedImageContextFromField(fieldKey);
+  if (!ctx || !picturesAdded()) return '';
+  const image = ctx.image || {};
+  const focus = image.crop_focus || 'top';
+  const reason = imageOptionReason(image);
+  const options = imageOptionsHtml(image);
+  const hasOptions = !!options;
+  const upload = ctx.supportsUpload
+    ? `<label class="upload-label inspector-upload-label">Upload<input type="file" accept="image/png,image/jpeg,image/webp" id="inspectorImageUploadInput"></label>`
+    : '<p class="inspector-mini-note">Upload is currently available on day images. Cover/page-2 images can use the curated replacement list.</p>';
+  return `<div class="inspector-card image-tools-card"><div class="inspector-kicker">Image tools</div>
+    <strong>${esc(ctx.label)}</strong>
+    <dl><dt>Mode</dt><dd>${esc(imageModeLabel(image))}</dd><dt>Name</dt><dd>${esc(image.name || image.auto_name || '—')}</dd><dt>Path</dt><dd>${esc(image.path || 'Automatic/default')}</dd></dl>
+    <label class="inspector-control-label" for="inspectorImageFocus">Crop position</label>
+    <select id="inspectorImageFocus" aria-label="Image crop position">
+      <option value="top" ${focus === 'top' ? 'selected' : ''}>Sky / upper crop</option>
+      <option value="center" ${focus === 'center' ? 'selected' : ''}>Center crop</option>
+      <option value="bottom" ${focus === 'bottom' ? 'selected' : ''}>Lower crop</option>
+    </select>
+    <label class="inspector-control-label" for="inspectorImageBank">Replacement image</label>
+    <select id="inspectorImageBank" ${hasOptions ? '' : 'disabled'} aria-label="Replacement image"><option value="">Choose replacement…</option>${options}</select>
+    <div class="inspector-button-grid">
+      <button type="button" class="ghost" id="inspectorImageAutomaticBtn">Automatic</button>
+      <button type="button" class="ghost" id="inspectorImageManualBtn" ${hasOptions ? '' : 'disabled'}>Use selected</button>
+      <button type="button" class="danger" id="inspectorImageRemoveBtn">Remove image</button>
+    </div>
+    ${upload}
+    <div class="inspector-image-meta"><div class="inspector-kicker">Why this image</div><p>${esc(reason || 'No selection reason available yet.')}</p></div>
+    <div class="inspector-image-meta"><div class="inspector-kicker">Quality warnings</div>${imageWarningsHtml(image)}</div>
+  </div>`;
+}
+
 function renderRightInspector() {
   const {fieldKey, meta, page, block} = selectedInspectorMeta();
   const pageTitle = page?.title || meta.page_title || 'No page selected';
@@ -577,10 +723,11 @@ function renderRightInspector() {
     <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
     ${selectedFieldHtml}
     ${renderInspectorTextTools(hasBlock)}
+    ${renderInspectorImageTools(fieldKey)}
     <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
     <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
     <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
-    <p class="inspector-hint">Image and layout controls will plug into this same selected block contract next.</p>
+    <p class="inspector-hint">Layout controls will plug into this same selected block contract next.</p>
   </aside>`;
 }
 function updateRightInspector() {
@@ -606,6 +753,37 @@ function attachInspectorHandlers() {
   document.getElementById('inspectorClearFormattingBtn')?.addEventListener('click', clearSelectedFormatting);
   document.getElementById('inspectorAddNoteBlockBtn')?.addEventListener('click', () => { addNoteBlock(); updateRightInspector(); });
   document.getElementById('inspectorAddDividerBtn')?.addEventListener('click', () => { addDividerBlock(); updateRightInspector(); });
+  document.getElementById('inspectorImageFocus')?.addEventListener('change', event => {
+    applyImageContextAction(selectedImageContext(), 'focus', event.target.value);
+  });
+  document.getElementById('inspectorImageAutomaticBtn')?.addEventListener('click', () => {
+    applyImageContextAction(selectedImageContext(), 'auto');
+  });
+  document.getElementById('inspectorImageRemoveBtn')?.addEventListener('click', () => {
+    applyImageContextAction(selectedImageContext(), 'none');
+  });
+  document.getElementById('inspectorImageManualBtn')?.addEventListener('click', () => {
+    const value = document.getElementById('inspectorImageBank')?.value || '';
+    applyImageContextAction(selectedImageContext(), 'manual', value);
+  });
+  document.getElementById('inspectorImageUploadInput')?.addEventListener('change', event => {
+    const ctx = selectedImageContext();
+    const file = event.target.files && event.target.files[0];
+    if (!ctx || ctx.kind !== 'day' || !file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadedImages[ctx.dayIndex] = {filename: file.name, data_uri: reader.result, season: 'Summer', label: file.name.replace(/\.[^.]+$/, '')};
+      ctx.image.mode = 'manual';
+      ctx.image.path = '';
+      ctx.image.data_uri = reader.result;
+      ctx.image.name = file.name.replace(/\.[^.]+$/, '');
+      ctx.image.pending_preview = false;
+      markTouched(ctx.fieldKey);
+      notifyEditor('Uploaded image selected');
+      draw();
+    };
+    reader.readAsDataURL(file);
+  });
   document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('inspectorClearSelectionBtn')?.addEventListener('click', () => {

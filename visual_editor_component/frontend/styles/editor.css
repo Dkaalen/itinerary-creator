@@ -461,6 +461,15 @@
     .inspector-button-grid button { justify-content: center; min-height: 31px; padding-inline: 8px; font-size: 11px; }
     .inspector-button-grid button:nth-child(3) { grid-column: 1 / -1; }
     .inspector-hint { margin: 10px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+    .image-tools-card select { width: 100%; min-height: 34px; margin: 5px 0 9px; border-radius: 10px; border-color: rgba(17,38,63,.16); background: #fff; }
+    .image-tools-card select:disabled, .image-tools-card button:disabled { opacity: .52; cursor: not-allowed; }
+    .image-tools-card .inspector-button-grid .danger { grid-column: 1 / -1; justify-content: center; }
+    .inspector-image-meta { margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(17,38,63,.10); }
+    .inspector-warning-list { margin: 7px 0 0; padding-left: 17px; color: #7a3f00; font-size: 11px; line-height: 1.35; }
+    .inspector-mini-note { color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .inspector-upload-label { display: flex; justify-content: center; margin-top: 8px; width: 100%; }
+
     .selected-editor-block {
       box-shadow: 0 0 0 2px rgba(0,111,107,.46), 0 8px 24px rgba(0,111,107,.11) !important;
       background: rgba(0,111,107,.08) !important;
