@@ -6,6 +6,8 @@ from visual_editor_component.style_presets import (
     ALLOWED_STYLE_CLASSES,
     COLOR_STYLE_CLASSES,
     CONTROLLED_STYLE_CLASSES,
+    FONT_FAMILY_STYLE_CLASSES,
+    FONT_SIZE_STYLE_CLASSES,
     SPACING_STYLE_CLASSES,
     TEXT_STYLE_CLASSES,
     block_html,
@@ -33,19 +35,29 @@ def test_patch_bq_controlled_classes_have_single_registry_source():
     assert preset_class_map("text_styles")["heading"] == "ve-text-heading"
     assert preset_class_map("colors")["accent_gold"] == "ve-color-accent"
     assert preset_class_map("spacing")["compact"] == "ve-spacing-compact"
+    assert preset_class_map("font_families")["georgia"] == "ve-font-georgia"
+    assert preset_class_map("font_sizes")["size_12"] == "ve-size-12"
     assert "ve-note-block" in ALLOWED_STYLE_CLASSES
     assert "ve-divider" in ALLOWED_STYLE_CLASSES
-    assert set(CONTROLLED_STYLE_CLASSES) == set(TEXT_STYLE_CLASSES) | set(COLOR_STYLE_CLASSES) | set(SPACING_STYLE_CLASSES)
+    assert set(CONTROLLED_STYLE_CLASSES) == (
+        set(TEXT_STYLE_CLASSES)
+        | set(FONT_FAMILY_STYLE_CLASSES)
+        | set(FONT_SIZE_STYLE_CLASSES)
+        | set(COLOR_STYLE_CLASSES)
+        | set(SPACING_STYLE_CLASSES)
+    )
 
 
 def test_patch_bq_frontend_uses_registry_for_toolbar_and_sanitizer():
     index_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    inspector_js = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
     text_tools_js = Path("visual_editor_component/frontend/js/editor_text_tools.js").read_text(encoding="utf-8")
 
     assert '<script src="js/style_presets.js"></script>' in index_html
-    assert "controlledPresetOptionsHtml('text_styles'" in render_js
-    assert "controlledPresetOptionsHtml('colors'" in render_js
+    assert "controlledPresetOptionsHtml('font_families'" in inspector_js
+    assert "controlledPresetOptionsHtml('font_sizes'" in inspector_js
+    assert "controlledPresetOptionsHtml('text_styles'" in inspector_js
+    assert "controlledPresetOptionsHtml('colors'" in inspector_js
     assert "controlledPresetClassMap('text_styles')" in text_tools_js
     assert "controlledEditorAllowedClasses()" in text_tools_js
     assert "controlledBlockTemplate('note')" in text_tools_js

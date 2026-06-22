@@ -251,25 +251,26 @@ function renderInspectorTextTools(hasBlock) {
   const canStyle = !!(hasBlock && canUsePdfSafeTextTools());
   const disabled = canStyle ? '' : 'disabled';
   const hint = canStyle
-    ? 'These controls write controlled classes into the selected rich text block, so preview and PDF stay aligned.'
-    : 'Select text or a rich text block on the page to apply style, size, color, spacing, notes, or dividers.';
-  return `<div class="inspector-card text-tools-card"><div class="inspector-kicker">Text tools</div>
-    <label class="inspector-control-label" for="inspectorTextStylePreset">Style / size</label>
-    <select id="inspectorTextStylePreset" ${disabled} aria-label="Inspector paragraph style and size">${controlledPresetOptionsHtml('text_styles', 'Choose style or size')}</select>
-    <label class="inspector-control-label" for="inspectorColorPreset">Color / highlight</label>
-    <select id="inspectorColorPreset" ${disabled} aria-label="Inspector color preset">${controlledPresetOptionsHtml('colors', 'Choose color')}</select>
+    ? 'Select text or place the cursor in a rich text line. Font, size, and color apply on the canvas and are kept for what you type next in that line.'
+    : 'Select a rich text block on the canvas to enable Word-style formatting controls.';
+  return `<div class="inspector-card text-tools-card"><div class="inspector-kicker">Formatting</div>
+    <label class="inspector-control-label" for="inspectorFontFamilyPreset">Font</label>
+    <select id="inspectorFontFamilyPreset" ${disabled} aria-label="Font family">${controlledPresetOptionsHtml('font_families', 'Choose font')}</select>
+    <label class="inspector-control-label" for="inspectorFontSizePreset">Size</label>
+    <select id="inspectorFontSizePreset" ${disabled} aria-label="Font size">${controlledPresetOptionsHtml('font_sizes', 'Choose size')}</select>
+    <label class="inspector-control-label" for="inspectorTextStylePreset">Paragraph style</label>
+    <select id="inspectorTextStylePreset" ${disabled} aria-label="Paragraph style">${controlledPresetOptionsHtml('text_styles', 'Choose style')}</select>
+    <label class="inspector-control-label" for="inspectorColorPreset">Text color / highlight</label>
+    <select id="inspectorColorPreset" ${disabled} aria-label="Text color and highlight">${controlledPresetOptionsHtml('colors', 'Choose color')}</select>
     <div class="inspector-button-grid">
       <button type="button" class="ghost" id="inspectorCompactSpacingBtn" ${disabled}>Compact</button>
       <button type="button" class="ghost" id="inspectorNormalSpacingBtn" ${disabled}>Normal spacing</button>
       <button type="button" class="ghost" id="inspectorClearFormattingBtn" ${disabled}>Clear formatting</button>
     </div>
-    <div class="inspector-button-grid two">
-      <button type="button" class="ghost" id="inspectorAddNoteBlockBtn" ${disabled}>Add note</button>
-      <button type="button" class="ghost" id="inspectorAddDividerBtn" ${disabled}>Add divider</button>
-    </div>
     <p>${esc(hint)}</p>
   </div>`;
 }
+
 
 function selectedImageContextFromField(fieldKey) {
   const key = String(fieldKey || '');
@@ -497,23 +498,21 @@ function renderRightInspector() {
   const blockDirtyCount = activeBlockId ? dirtyKeysForBlock(activeBlockId).length : 0;
   const selectedFieldHtml = hasBlock
     ? `<div class="inspector-card selected ${blockDirtyCount ? 'dirty' : ''}"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Unsaved</dt><dd>${esc(blockDirtyCount ? `${blockDirtyCount} field(s)` : 'No')}</dd></dl></div>`
-    : `<div class="inspector-card empty inspector-empty-state"><strong>Select text, an image, or a page</strong><p>Click the canvas or page outline to select what you want to edit. Core text tools stay visible below.</p></div>`;
+    : `<div class="inspector-card empty inspector-empty-state"><strong>Select text, an image, or a page</strong><p>Click the canvas to select text, an image, or a page. Formatting tools stay visible below.</p></div>`;
   const fieldList = fieldEntries.length ? renderInspectorFieldList(fieldEntries, fieldKey) : '';
   const pageDirtyCount = dirtyKeysForPage(page?.page_id || meta.page_id).length;
   const pageCard = hasPage ? `<details class="inspector-card page-context-card ${pageHasDirtyEdits(page?.page_id || meta.page_id) ? 'dirty' : ''}"><summary><span>Page</span><em>${esc(pageDirtyCount ? `${pageDirtyCount} edit(s)` : pageType)}</em></summary><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd><dt>Unsaved</dt><dd>${esc(pageDirtyCount ? `${pageDirtyCount} edit(s)` : 'No')}</dd></dl></details>` : '';
-  const fieldListCard = fieldList ? `<details class="inspector-card field-list-card"><summary><span>Editable fields</span></summary><ul class="inspector-list field-list">${fieldList}</ul></details>` : '';
-  const sourceCard = sourceRows.length ? `<details class="inspector-card source-card"><summary><span>Source rows</span></summary><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></details>` : '';
-  const validationCard = hasPage ? `<details class="inspector-card validation-card"><summary><span>Validation</span></summary>${selectedPageValidationHtml(page)}</details>` : '';
-  const actionCard = (hasBlock || activePageId) ? `<details class="inspector-card actions-card"><summary><span>Actions</span></summary><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn">Clear selection</button></div></details>` : '';
-  return `<aside class="right-inspector" aria-label="Selected block inspector">
-    <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : (hasPage ? 'Page' : 'Ready')}</span></div>
-    ${pageCard}
+  const fieldListCard = fieldList ? `<details class="inspector-card field-list-card"><summary><span>Editable fields</span><em>Advanced</em></summary><ul class="inspector-list field-list">${fieldList}</ul></details>` : '';
+  const sourceCard = sourceRows.length ? `<details class="inspector-card source-card"><summary><span>Source rows</span><em>Advanced</em></summary><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></details>` : '';
+  const validationCard = hasPage ? `<details class="inspector-card validation-card"><summary><span>Validation</span><em>Review</em></summary>${selectedPageValidationHtml(page)}</details>` : '';
+  const actionCard = (hasBlock || activePageId) ? `<details class="inspector-card actions-card"><summary><span>Advanced actions</span><em>Tools</em></summary><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn">Clear selection</button></div></details>` : '';
+  return `<aside class="right-inspector" aria-label="Formatting and selected-item properties">
+    <div class="inspector-title"><strong>Formatting</strong><span>${hasBlock ? 'Selection' : (hasPage ? 'Page' : 'Ready')}</span></div>
     ${selectedFieldHtml}
-    ${renderInspectorFieldEditor(fieldKey)}
-    ${renderInspectorCompareTools(fieldKey, fieldEntries)}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}
+    ${pageCard}
     ${validationCard}
     ${fieldListCard}
     ${sourceCard}
@@ -528,6 +527,16 @@ function updateRightInspector() {
   requestAnimationFrame(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20));
 }
 function attachInspectorHandlers() {
+  document.getElementById('inspectorFontFamilyPreset')?.addEventListener('change', event => {
+    if (event.target.value) applyFontFamilyPreset(event.target.value);
+    event.target.value = '';
+    updateRightInspector();
+  });
+  document.getElementById('inspectorFontSizePreset')?.addEventListener('change', event => {
+    if (event.target.value) applyFontSizePreset(event.target.value);
+    event.target.value = '';
+    updateRightInspector();
+  });
   document.getElementById('inspectorTextStylePreset')?.addEventListener('change', event => {
     if (event.target.value) applyTextStylePreset(event.target.value);
     event.target.value = '';
@@ -541,8 +550,6 @@ function attachInspectorHandlers() {
   document.getElementById('inspectorCompactSpacingBtn')?.addEventListener('click', () => { applySpacingPreset('compact'); updateRightInspector(); });
   document.getElementById('inspectorNormalSpacingBtn')?.addEventListener('click', () => { applySpacingPreset('normal'); updateRightInspector(); });
   document.getElementById('inspectorClearFormattingBtn')?.addEventListener('click', clearSelectedFormatting);
-  document.getElementById('inspectorAddNoteBlockBtn')?.addEventListener('click', () => { addNoteBlock(); updateRightInspector(); });
-  document.getElementById('inspectorAddDividerBtn')?.addEventListener('click', () => { addDividerBlock(); updateRightInspector(); });
   document.getElementById('inspectorImageFocus')?.addEventListener('change', event => {
     applyImageContextAction(selectedImageContext(), 'focus', event.target.value);
   });

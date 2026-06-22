@@ -93,18 +93,6 @@ function attachHandlers() {
   document.getElementById('replaceBtn')?.addEventListener('click', replaceAllText);
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
 
-  document.getElementById('textStylePreset')?.addEventListener('change', event => {
-    if (event.target.value) applyTextStylePreset(event.target.value);
-    event.target.value = '';
-  });
-  document.getElementById('colorPreset')?.addEventListener('change', event => {
-    if (event.target.value) applyColorPreset(event.target.value);
-    event.target.value = '';
-  });
-  document.getElementById('compactSpacingBtn')?.addEventListener('click', () => applySpacingPreset('compact'));
-  document.getElementById('normalSpacingBtn')?.addEventListener('click', () => applySpacingPreset('normal'));
-  document.getElementById('addNoteBlockBtn')?.addEventListener('click', addNoteBlock);
-  document.getElementById('addDividerBtn')?.addEventListener('click', addDividerBlock);
   document.getElementById('resetBtn')?.addEventListener('click', () => {
     clearLocalDraft();
     model = JSON.parse(JSON.stringify(initialPayload));

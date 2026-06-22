@@ -108,6 +108,8 @@ function closestEditableBlock() {
   return candidate === editable ? editable : candidate;
 }
 const CONTROLLED_TEXT_STYLE_CLASSES = controlledPresetClassNames('text_styles');
+const CONTROLLED_FONT_FAMILY_CLASSES = controlledPresetClassNames('font_families');
+const CONTROLLED_FONT_SIZE_CLASSES = controlledPresetClassNames('font_sizes');
 const CONTROLLED_COLOR_CLASSES = controlledPresetClassNames('colors');
 const CONTROLLED_SPACING_CLASSES = controlledPresetClassNames('spacing');
 
@@ -171,6 +173,14 @@ function applyTextStylePreset(preset) {
   const mapping = controlledPresetClassMap('text_styles');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_TEXT_STYLE_CLASSES);
 }
+function applyFontFamilyPreset(preset) {
+  const mapping = controlledPresetClassMap('font_families');
+  applyClassPreset(mapping[preset] ?? '', CONTROLLED_FONT_FAMILY_CLASSES);
+}
+function applyFontSizePreset(preset) {
+  const mapping = controlledPresetClassMap('font_sizes');
+  applyClassPreset(mapping[preset] ?? '', CONTROLLED_FONT_SIZE_CLASSES);
+}
 function applyColorPreset(preset) {
   const mapping = controlledPresetClassMap('colors');
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_COLOR_CLASSES);
@@ -207,6 +217,8 @@ function clearSelectedFormatting() {
   }
   pushUndo(editable, editableValue(editable));
   removeClassGroup(target, CONTROLLED_TEXT_STYLE_CLASSES);
+  removeClassGroup(target, CONTROLLED_FONT_FAMILY_CLASSES);
+  removeClassGroup(target, CONTROLLED_FONT_SIZE_CLASSES);
   removeClassGroup(target, CONTROLLED_COLOR_CLASSES);
   removeClassGroup(target, CONTROLLED_SPACING_CLASSES);
   commitEditableDomChange(editable);

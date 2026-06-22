@@ -112,18 +112,18 @@ def test_patch_bt_cover_image_edits_are_persisted(monkeypatch) -> None:
     assert output_edits["summary_image"] == {"mode": "manual", "path": "assets/cover_backgrounds/winter.webp", "crop_focus": "center"}
 
 
-def test_patch_bt_text_toolbar_is_visible_and_wired() -> None:
+def test_patch_bt_text_formatting_sidebar_is_visible_and_wired() -> None:
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    editing_js = Path("visual_editor_component/frontend/js/editing.js").read_text(encoding="utf-8")
+    inspector_js = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
     serialization_js = Path("visual_editor_component/frontend/js/serialization.js").read_text(encoding="utf-8")
 
-    style_tools_position = render_js.index('class="toolbar-tools style-tools"')
     advanced_position = render_js.index('class="advanced-tools"')
-    assert style_tools_position < advanced_position
-    assert "textStylePreset')?.addEventListener" in editing_js
-    assert "applyTextStylePreset" in editing_js
-    assert "applyColorPreset" in editing_js
-    assert "addNoteBlock" in editing_js
-    assert "addDividerBlock" in editing_js
+    pages_position = render_js.index('class="pages-menu"')
+    assert pages_position < advanced_position
+    assert "inspectorFontFamilyPreset')?.addEventListener" in inspector_js
+    assert "inspectorFontSizePreset')?.addEventListener" in inspector_js
+    assert "applyFontFamilyPreset" in inspector_js
+    assert "applyFontSizePreset" in inspector_js
+    assert "applyColorPreset" in inspector_js
     assert "cover_image" in serialization_js
     assert "summary_image" in serialization_js

@@ -63,8 +63,16 @@ def extra_allowed_classes() -> tuple[str, ...]:
 TEXT_STYLE_CLASSES = preset_classes("text_styles")
 COLOR_STYLE_CLASSES = preset_classes("colors")
 SPACING_STYLE_CLASSES = preset_classes("spacing")
+FONT_FAMILY_STYLE_CLASSES = preset_classes("font_families")
+FONT_SIZE_STYLE_CLASSES = preset_classes("font_sizes")
 BLOCK_STYLE_CLASSES = block_classes()
-CONTROLLED_STYLE_CLASSES = TEXT_STYLE_CLASSES + COLOR_STYLE_CLASSES + SPACING_STYLE_CLASSES
+CONTROLLED_STYLE_CLASSES = (
+    TEXT_STYLE_CLASSES
+    + FONT_FAMILY_STYLE_CLASSES
+    + FONT_SIZE_STYLE_CLASSES
+    + COLOR_STYLE_CLASSES
+    + SPACING_STYLE_CLASSES
+)
 ALLOWED_STYLE_CLASSES = CONTROLLED_STYLE_CLASSES + BLOCK_STYLE_CLASSES + extra_allowed_classes()
 
 
@@ -80,7 +88,7 @@ def pdf_effects_for_classes(classes: set[str]) -> list[dict[str, Any]]:
     """Return PDF color/spacing effects in registry order for CSS classes."""
 
     effects: list[dict[str, Any]] = []
-    for group_name in ("text_styles", "colors", "spacing"):
+    for group_name in ("text_styles", "font_families", "font_sizes", "colors", "spacing"):
         for item in preset_group(group_name):
             class_name = str(item.get("class_name") or "")
             if class_name and class_name in classes:

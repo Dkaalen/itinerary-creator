@@ -57,7 +57,9 @@ def test_editor_toolbar_keeps_daily_surface_simple_with_advanced_tools_hidden():
     assert "Advanced tools" in html
     assert "<details class=\"advanced-tools\">" in html
     assert "Save changes" in html
-    assert "Text style" in html
+    assert "Font" in html
+    assert "Size" in html
+    assert "Text color / highlight" in html
     assert "Normal text" in html
     assert "Add note block" in html
     assert "Add divider" in html

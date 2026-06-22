@@ -26,49 +26,53 @@ def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
     assert "${reviewCenterHtml()}" in source
 
 
-def test_ui17_protects_preview_canvas_from_sidebars():
+def test_ui18_protects_canvas_with_internal_workspace_scroll():
     source = _frontend_source()
 
-    assert "grid-template-columns: 184px minmax(var(--page-w), var(--page-w)) 240px" in source
-    assert "max-width: 1246px" in source
+    assert "grid-template-columns: minmax(var(--page-w), var(--page-w)) minmax(270px, 292px)" in source
+    assert 'grid-template-areas: "canvas inspector"' in source
+    assert "height: calc(100vh - 164px)" in source
     assert ".page-stack .page-wrap" in source
     assert "width: var(--page-w)" in source
-    assert "overflow-x: auto" in source
-    assert "justify-content: center" in source
+    assert "overflow-y: auto" in source
+    assert "overflow-x: hidden" in source
 
 
-def test_ui17_keeps_sidebars_sticky_without_overlaying_page_canvas():
+def test_ui18_keeps_formatting_sidebar_visible_while_canvas_scrolls():
     source = _frontend_source()
 
-    assert ".document-outline," in source
     assert ".right-inspector" in source
     assert "position: sticky !important" in source
-    assert "top: 112px" in source
-    assert "max-height: calc(100vh - 126px)" in source
+    assert "height: 100%" in source
+    assert "max-height: 100%" in source
     assert "overflow-y: auto" in source
-    assert "align-self: start" in source
+    assert "grid-area: inspector" in source
 
 
-def test_ui17_left_outline_is_clean_navigation_only():
+def test_ui18_page_navigation_is_collapsed_not_a_permanent_left_sidebar():
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
 
-    assert 'class="outline-jump"' in render_js
-    assert 'class="outline-status' in render_js
+    assert 'class="pages-menu"' in render_js
+    assert '${renderDocumentOutline()}' in render_js
+    assert '${renderDocumentOutline()}\n      <div class="page-stack">' not in render_js
+    assert '.editor-workspace > .document-outline {' in css
+    assert 'display: none !important;' in css
     assert 'class="outline-drag-handle"' not in render_js
     assert 'class="outline-actions"' not in render_js
-    assert 'manualPageTemplateSelect' not in render_js
-    assert "Drag page handles to reorder" not in render_js
 
 
-def test_ui17_inspector_keeps_core_editing_tools_visible():
+def test_ui18_inspector_keeps_word_style_formatting_tools_visible():
     source = _frontend_source()
 
-    assert "Style / size" in source
+    assert "Font" in source
+    assert "Size" in source
+    assert "Text color / highlight" in source
+    assert "inspectorFontFamilyPreset" in source
+    assert "inspectorFontSizePreset" in source
     assert "inspectorTextStylePreset" in source
     assert "inspectorColorPreset" in source
     assert "inspectorCompactSpacingBtn" in source
     assert "inspectorNormalSpacingBtn" in source
-    assert "inspectorAddNoteBlockBtn" in source
-    assert "inspectorAddDividerBtn" in source
-    assert "Select text or a rich text block" in source
+    assert "Font, size, and color apply on the canvas" in source
     assert "if (!canStyle) return '';" not in source

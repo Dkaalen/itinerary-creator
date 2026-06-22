@@ -60,6 +60,9 @@ def _controlled_style(styles, classes, default_style_name="body"):
     text_color = None
     back_color = None
     space_after = None
+    font_name = None
+    font_size = None
+    leading = None
     suffix = []
 
     for effect in pdf_effects_for_classes(classes):
@@ -71,15 +74,25 @@ def _controlled_style(styles, classes, default_style_name="body"):
             back_color = effect_back_color
         if effect.get("pdf_space_after") is not None:
             space_after = effect.get("pdf_space_after")
+        if effect.get("pdf_font_name"):
+            font_name = str(effect["pdf_font_name"])
+        if effect.get("pdf_font_size") is not None:
+            font_size = float(effect["pdf_font_size"])
+        if effect.get("pdf_leading") is not None:
+            leading = float(effect["pdf_leading"])
         if effect.get("pdf_suffix"):
             suffix.append(str(effect["pdf_suffix"]))
 
     if not suffix:
         return style
 
+    resolved_font_size = font_size or getattr(style, "fontSize", 10)
     kwargs = {
         "parent": style,
         "textColor": text_color or getattr(style, "textColor", pdf_styles.BODY),
+        "fontName": font_name or getattr(style, "fontName", "Times-Roman"),
+        "fontSize": resolved_font_size,
+        "leading": leading or getattr(style, "leading", resolved_font_size * 1.35),
     }
     if back_color is not None:
         kwargs["backColor"] = back_color

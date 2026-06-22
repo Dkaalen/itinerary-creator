@@ -7,19 +7,20 @@ from pdf_exporter_modules.styles import make_styles
 from ui.editor_sanitizer import clean_visual_editor_html
 
 
-def test_patch_bl_toolbar_exposes_controlled_presets_not_freeform_styles():
-    render_js = open("visual_editor_component/frontend/js/render.js", encoding="utf-8").read()
+def test_patch_bl_sidebar_exposes_controlled_presets_not_freeform_styles():
+    inspector_js = open("visual_editor_component/frontend/js/editor_inspector.js", encoding="utf-8").read()
     style_presets_js = open("visual_editor_component/frontend/js/style_presets.js", encoding="utf-8").read()
     commands_js = open("visual_editor_component/frontend/js/commands.js", encoding="utf-8").read()
 
-    assert "Text style" in render_js
+    assert "Font" in inspector_js
+    assert "Size" in inspector_js
+    assert "Text color / highlight" in inspector_js
     assert "Small note" in style_presets_js
     assert "Accent gold" in style_presets_js
-    assert "Add note block" in render_js
-    assert "Add divider" in render_js
-    assert "Compact spacing" in render_js
-    assert 'input type="color"' not in render_js
-    assert "fontSize" not in commands_js
+    assert "Georgia" in style_presets_js
+    assert "12 pt" in style_presets_js
+    assert 'input type="color"' not in inspector_js
+    assert "style.fontSize" not in commands_js
     assert "style.color" not in commands_js
 
 
@@ -70,3 +71,21 @@ def test_patch_bl_pdf_renders_note_and_divider_blocks():
 
     assert any(isinstance(item, KeepTogether) for item in story)
     assert any(isinstance(item, Table) for item in story)
+
+
+def test_ui18_pdf_renders_controlled_font_and_size_presets():
+    soup = BeautifulSoup(
+        '<div class="content-block">'
+        '<div class="body-text ve-font-arial ve-size-14 ve-color-warning">Styled copy</div>'
+        '</div>',
+        "html.parser",
+    )
+    story = []
+
+    render_content_blocks(soup, story, make_styles())
+
+    paragraphs = [item for item in story if isinstance(item, Paragraph)]
+    assert len(paragraphs) == 1
+    assert paragraphs[0].style.fontName == "Helvetica"
+    assert paragraphs[0].style.fontSize == 14
+    assert paragraphs[0].style.textColor == colors.HexColor("#7a1c1c")

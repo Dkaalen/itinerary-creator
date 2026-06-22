@@ -295,6 +295,12 @@ function renderDocumentOutline() {
     <ul>${rows}</ul>
   </aside>`;
 }
+function pagesMenuHtml() {
+  return `<details class="pages-menu">
+    <summary>Pages</summary>
+    ${renderDocumentOutline()}
+  </details>`;
+}
 function renderManualPageHtml(page, fallbackIndex = 0) {
   if (!page || page.page_type !== 'manual') return '';
   const realIndex = typeof pageIndexById === 'function' ? pageIndexById(page.page_id) : fallbackIndex;
@@ -349,7 +355,7 @@ function draw() {
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page or in the inspector, then save before exporting the final PDF.' : 'Edit directly on the canvas. Changes autosave quietly while you work, and the outline, inspector, and status stay in sync.'}</span></div>
+        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page or in the inspector, then save before exporting the final PDF.' : 'Edit directly on the canvas. Use the formatting sidebar for font, size, and color. Changes autosave quietly while you work.'}</span></div>
         ${studioStatusStripHtml()}
       </div>
       <div class="toolbar-stack">
@@ -358,21 +364,10 @@ function draw() {
           <span id="warningCount" class="stat-pill warn">0 warnings</span>
           ${pdfReadinessBadgeHtml()}
           <span id="savedNote" class="saved-note">Autosave ready</span>
+          ${pagesMenuHtml()}
           <button class="primary" id="saveBtn" type="button">Save changes</button>
         </div>
         ${saveRecoveryPanelHtml()}
-        <details class="quick-tools">
-          <summary>Quick formatting</summary>
-          <div class="toolbar-tools style-tools" aria-label="Quick formatting shortcuts">
-            <span class="toolbar-hint">Inspector is primary; these are shortcuts for the selected block.</span>
-            <select id="textStylePreset" aria-label="Text style preset" title="Shortcut for the Inspector text style tool">${controlledPresetOptionsHtml('text_styles', 'Text style')}</select>
-            <select id="colorPreset" aria-label="Color preset" title="Shortcut for the Inspector color tool">${controlledPresetOptionsHtml('colors', 'Color')}</select>
-            <button class="ghost" id="addNoteBlockBtn" type="button" title="Shortcut for Inspector → Add note">Add note block</button>
-            <button class="ghost" id="addDividerBtn" type="button" title="Shortcut for Inspector → Add divider">Add divider</button>
-            <button class="ghost" id="compactSpacingBtn" type="button" title="Shortcut for Inspector → Compact spacing">Compact spacing</button>
-            <button class="ghost" id="normalSpacingBtn" type="button" title="Shortcut for Inspector → Normal spacing">Normal spacing</button>
-          </div>
-        </details>
         <details class="advanced-tools">
           <summary>Advanced tools</summary>
           <div class="toolbar-tools">
@@ -389,7 +384,6 @@ function draw() {
       ${reviewCenterHtml()}
     </div>
     <div class="editor-workspace">
-      ${renderDocumentOutline()}
       <div class="page-stack">`;
   const coverBg = picturesAdded() ? (model.cover?.cover_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';

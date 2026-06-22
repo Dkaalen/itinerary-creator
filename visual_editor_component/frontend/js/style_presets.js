@@ -115,6 +115,104 @@ window.CONTROLLED_EDITOR_STYLE_REGISTRY = {
   ],
   "extra_allowed_classes": [
     "ve-divider"
+  ],
+  "font_families": [
+    {
+      "id": "default",
+      "label": "Default font",
+      "class_name": ""
+    },
+    {
+      "id": "georgia",
+      "label": "Georgia",
+      "class_name": "ve-font-georgia",
+      "pdf_font_name": "Times-Roman",
+      "pdf_suffix": "georgia"
+    },
+    {
+      "id": "arial",
+      "label": "Arial",
+      "class_name": "ve-font-arial",
+      "pdf_font_name": "Helvetica",
+      "pdf_suffix": "arial"
+    },
+    {
+      "id": "times",
+      "label": "Times New Roman",
+      "class_name": "ve-font-times",
+      "pdf_font_name": "Times-Roman",
+      "pdf_suffix": "times"
+    },
+    {
+      "id": "courier",
+      "label": "Courier New",
+      "class_name": "ve-font-courier",
+      "pdf_font_name": "Courier",
+      "pdf_suffix": "courier"
+    }
+  ],
+  "font_sizes": [
+    {
+      "id": "default",
+      "label": "Default size",
+      "class_name": ""
+    },
+    {
+      "id": "size_9",
+      "label": "9 pt",
+      "class_name": "ve-size-9",
+      "pdf_font_size": 9,
+      "pdf_leading": 12,
+      "pdf_suffix": "size9"
+    },
+    {
+      "id": "size_10",
+      "label": "10 pt",
+      "class_name": "ve-size-10",
+      "pdf_font_size": 10,
+      "pdf_leading": 13.5,
+      "pdf_suffix": "size10"
+    },
+    {
+      "id": "size_11",
+      "label": "11 pt",
+      "class_name": "ve-size-11",
+      "pdf_font_size": 11,
+      "pdf_leading": 14.8,
+      "pdf_suffix": "size11"
+    },
+    {
+      "id": "size_12",
+      "label": "12 pt",
+      "class_name": "ve-size-12",
+      "pdf_font_size": 12,
+      "pdf_leading": 16,
+      "pdf_suffix": "size12"
+    },
+    {
+      "id": "size_14",
+      "label": "14 pt",
+      "class_name": "ve-size-14",
+      "pdf_font_size": 14,
+      "pdf_leading": 18.5,
+      "pdf_suffix": "size14"
+    },
+    {
+      "id": "size_16",
+      "label": "16 pt",
+      "class_name": "ve-size-16",
+      "pdf_font_size": 16,
+      "pdf_leading": 21,
+      "pdf_suffix": "size16"
+    },
+    {
+      "id": "size_18",
+      "label": "18 pt",
+      "class_name": "ve-size-18",
+      "pdf_font_size": 18,
+      "pdf_leading": 23.5,
+      "pdf_suffix": "size18"
+    }
   ]
 };
 
@@ -137,6 +235,8 @@ function controlledEditorAllowedClasses() {
   const extra = Array.isArray(registry.extra_allowed_classes) ? registry.extra_allowed_classes : [];
   return [
     ...controlledPresetClassNames('text_styles'),
+    ...controlledPresetClassNames('font_families'),
+    ...controlledPresetClassNames('font_sizes'),
     ...controlledPresetClassNames('colors'),
     ...controlledPresetClassNames('spacing'),
     ...controlledPresetClassNames('blocks'),

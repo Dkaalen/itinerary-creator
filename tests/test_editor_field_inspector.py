@@ -22,15 +22,17 @@ def _frontend_source() -> str:
     )
 
 
-def test_right_inspector_exposes_direct_field_editor():
+def test_right_inspector_does_not_render_text_content_editor_by_default():
     source = _frontend_source()
+    render_right = source[source.index("function renderRightInspector"):]
 
     assert "renderInspectorFieldEditor" in source
     assert "inspectorFieldEditor" in source
     assert "applyInspectorFieldEdit" in source
     assert "data-inspector-edit-key" in source
-    assert "Field editor" in source
-    assert "Apply field edit" in source
+    assert "${renderInspectorFieldEditor(fieldKey)}" not in render_right
+    assert "${renderInspectorCompareTools(fieldKey, fieldEntries)}" not in render_right
+    assert "Font, size, and color apply on the canvas" in source
 
 
 def test_right_inspector_lists_and_selects_editable_fields():
@@ -51,7 +53,7 @@ def test_field_reset_controls_are_available_per_selected_field():
     assert "resetSelectedInspectorField" in source
     assert "data-inspector-reset-field-key" in source
     assert "inspectorResetSingleFieldBtn" in source
-    assert "Reset field" in source
+    assert "Reset selected field" in source
 
 
 def test_field_inspector_covers_core_page_types():

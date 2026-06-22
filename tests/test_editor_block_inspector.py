@@ -56,7 +56,7 @@ def test_frontend_exposes_block_selection_and_right_inspector_foundation():
     assert "Selected block" in source
     assert "Source" in source
     assert "Reset selected field" in source
-    assert "Text tools" in source
+    assert "Formatting" in source
     assert "Layout tools" in source
     assert "renderInspectorLayoutTools" in source
 
@@ -73,13 +73,15 @@ def test_right_inspector_exposes_pdf_safe_text_tools():
     source = _frontend_source()
 
     assert "renderInspectorTextTools" in source
+    assert "inspectorFontFamilyPreset" in source
+    assert "inspectorFontSizePreset" in source
     assert "inspectorTextStylePreset" in source
     assert "inspectorColorPreset" in source
     assert "inspectorClearFormattingBtn" in source
-    assert "inspectorAddNoteBlockBtn" in source
-    assert "inspectorAddDividerBtn" in source
+    assert "applyFontFamilyPreset" in source
+    assert "applyFontSizePreset" in source
     assert "canUsePdfSafeTextTools" in source
-    assert "These controls write controlled classes" in source
+    assert "Font, size, and color apply on the canvas" in source
     assert "Clear formatting" in source
     assert "text-tools-card" in source
 
