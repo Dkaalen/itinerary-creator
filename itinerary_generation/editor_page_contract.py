@@ -184,7 +184,7 @@ def _day_page(day: Mapping[str, Any], rows: Sequence[Mapping[str, Any]] | None, 
         sort_order=order,
         editable_fields={"title": title, "source_day_id": day_id},
         generated_blocks=tuple(blocks),
-        page_actions={"hide": True, "restore": True, "move": False, "duplicate": False, "reset": True},
+        page_actions={"hide": True, "restore": True, "move": True, "duplicate": False, "reset": True},
     )
 
 
@@ -203,7 +203,7 @@ def _simple_page(page_id: str, page_type: str, title: str, order: int, *, sectio
                 editable_fields=_as_dict(editable_fields),
             ),
         ),
-        page_actions={"hide": True, "restore": True, "move": False, "duplicate": False, "reset": True},
+        page_actions={"hide": True, "restore": True, "move": True, "duplicate": False, "reset": True},
     )
 
 

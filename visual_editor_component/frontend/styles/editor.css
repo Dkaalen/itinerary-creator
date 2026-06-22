@@ -724,3 +724,36 @@
       padding-inline: 7px;
       font-size: 10px;
     }
+
+/* UI11 ordering affordances */
+.outline-row[draggable="true"] {
+  cursor: grab;
+}
+.outline-row.dragging,
+.manual-block-shell.dragging {
+  opacity: 0.55;
+}
+.outline-row.drag-over,
+.manual-block-shell.drag-over {
+  outline: 2px dashed rgba(31, 52, 70, 0.35);
+  outline-offset: 2px;
+}
+.outline-drag-handle,
+.manual-block-drag-handle {
+  align-self: center;
+  border: 0;
+  background: transparent;
+  color: #7b746c;
+  cursor: grab;
+  font-weight: 700;
+  letter-spacing: -0.14em;
+  padding: 0.15rem 0.25rem;
+}
+.manual-block-shell {
+  position: relative;
+}
+.manual-block-drag-handle {
+  position: absolute;
+  left: -1.25rem;
+  top: 0.55rem;
+}

@@ -112,3 +112,4 @@ class RenderDocument:
     summary: RenderSummary | None = None
     final_sections: list[RenderFinalSection] = field(default_factory=list)
     hidden_page_ids: list[str] = field(default_factory=list)
+    page_order: list[str] = field(default_factory=list)

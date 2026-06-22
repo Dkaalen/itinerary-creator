@@ -310,6 +310,19 @@ function documentPages() {
 function sortedDocumentPages() {
   return documentPages().slice().sort((a, b) => Number(a?.sort_order || 0) - Number(b?.sort_order || 0));
 }
+function renumberDocumentPageOrders(orderedPages = null) {
+  const ordered = orderedPages || sortedDocumentPages();
+  ordered.forEach((page, index) => {
+    if (page) page.sort_order = index + 1;
+  });
+  return ordered;
+}
+function documentPageCanMove(page) {
+  return !!page && page.is_hidden !== true;
+}
+function documentPageCanDuplicate(page) {
+  return !!page && page.page_type === 'manual' && page.is_hidden !== true;
+}
 function documentPageById(pageId) {
   return documentPages().find(page => String(page?.page_id || '') === String(pageId || '')) || null;
 }
@@ -334,14 +347,14 @@ function ensureDocumentPage(pageId, pageType, title, sortOrder, extras = {}) {
       editable_fields: {},
       style_overrides: {},
       page_overrides: {},
-      page_actions: {hide: true, restore: true, move: pageType === 'manual', duplicate: pageType === 'manual', reset: pageType !== 'manual'}
+      page_actions: {hide: true, restore: true, move: true, duplicate: pageType === 'manual', reset: pageType !== 'manual'}
     }, extras || {});
     pages.push(page);
   } else {
     if (!page.title && title) page.title = title;
     if (!page.page_type && pageType) page.page_type = pageType;
     if (!page.sort_order) page.sort_order = sortOrder;
-    if (!page.page_actions) page.page_actions = {hide: true, restore: true, move: pageType === 'manual', duplicate: pageType === 'manual', reset: pageType !== 'manual'};
+    if (!page.page_actions) page.page_actions = {hide: true, restore: true, move: true, duplicate: pageType === 'manual', reset: pageType !== 'manual'};
   }
   return page;
 }
@@ -759,6 +772,24 @@ function moveSelectedManualBlock(direction) {
   draw();
   scrollToPage(ctx.page.page_id);
 }
+function moveManualBlockToIndex(pageId, fromIndex, targetIndex) {
+  collect();
+  const page = documentPageById(pageId);
+  if (!page || page.page_type !== 'manual' || !Array.isArray(page.manual_blocks)) return;
+  const from = Number(fromIndex);
+  const to = Math.max(0, Math.min(Number(targetIndex), page.manual_blocks.length - 1));
+  if (!Number.isFinite(from) || from < 0 || from >= page.manual_blocks.length || from === to) return;
+  const [block] = page.manual_blocks.splice(from, 1);
+  page.manual_blocks.splice(to, 0, block);
+  activePageId = page.page_id;
+  activeBlockId = block.block_id || '';
+  const pageIndex = pageIndexById(page.page_id);
+  activeFieldKey = `document_pages.${pageIndex}.manual_blocks.${to}.editable_fields.content_html`;
+  markDocumentPagesTouched('Manual block order updated');
+  draw();
+  scrollToPage(page.page_id);
+}
+
 function deleteSelectedManualBlock() {
   const ctx = manualBlockContextFromSelection();
   if (!ctx) { notifyEditor('Select a manual text block first.'); return; }
@@ -1181,8 +1212,8 @@ function renderInspectorLayoutTools(hasBlock, page, block) {
       <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
     </div>
     <div class="inspector-button-grid two">
-      <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${manualDisabled}>Move page up</button>
-      <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${manualDisabled}>Move page down</button>
+      <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${pageDisabled}>Move page up</button>
+      <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${pageDisabled}>Move page down</button>
       <button type="button" class="ghost" id="inspectorDuplicatePageBtn" ${manualDisabled}>Duplicate page</button>
       <button type="button" class="ghost" id="inspectorAddManualBlockBtn" ${manualDisabled}>Add text block</button>
     </div>
@@ -1200,7 +1231,7 @@ function renderInspectorLayoutTools(hasBlock, page, block) {
       <button type="button" class="ghost" id="inspectorDuplicateBlockBtn" ${manualBlockDisabled}>Duplicate block</button>
       <button type="button" class="danger" id="inspectorDeleteBlockBtn" ${manualBlockDisabled}>Delete block</button>
     </div>
-    <p>Generated page actions are stored as hide/restore and layout metadata. Manual pages also support safe block movement and duplication.</p>
+    <p>Page ordering is stored in document_pages.sort_order. Drag the outline or use move controls; manual pages also support safe block movement and duplication.</p>
   </div>`;
 }
 
@@ -1298,8 +1329,8 @@ function attachInspectorHandlers() {
   document.getElementById('inspectorHidePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) hideDocumentPage(page.page_id); });
   document.getElementById('inspectorRestorePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) restoreDocumentPage(page.page_id); });
   document.getElementById('inspectorResetPageLayoutBtn')?.addEventListener('click', resetSelectedPageLayout);
-  document.getElementById('inspectorMovePageUpBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveManualPage(page.page_id, -1); });
-  document.getElementById('inspectorMovePageDownBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveManualPage(page.page_id, 1); });
+  document.getElementById('inspectorMovePageUpBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveDocumentPage(page.page_id, -1); });
+  document.getElementById('inspectorMovePageDownBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveDocumentPage(page.page_id, 1); });
   document.getElementById('inspectorDuplicatePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) duplicateManualPage(page.page_id); });
   document.getElementById('inspectorAddManualBlockBtn')?.addEventListener('click', addManualTextBlockToSelectedPage);
   document.getElementById('inspectorAddTemplatePageBtn')?.addEventListener('click', () => {
@@ -1398,22 +1429,52 @@ function duplicateManualPage(pageId) {
   draw();
   scrollToPage(newId);
 }
-function moveManualPage(pageId, direction) {
+function moveDocumentPage(pageId, direction) {
   collect();
-  const pages = sortedDocumentPages();
-  const current = pages.find(page => page.page_id === pageId);
-  if (!current || current.page_type !== 'manual') return;
+  const pages = sortedDocumentPages().filter(page => !page?.is_hidden);
   const currentIndex = pages.findIndex(page => page.page_id === pageId);
+  if (currentIndex < 0) return;
+  const current = pages[currentIndex];
+  if (!documentPageCanMove(current)) return;
   const targetIndex = currentIndex + direction;
   if (targetIndex < 0 || targetIndex >= pages.length) return;
   const target = pages[targetIndex];
-  const currentOrder = Number(current.sort_order || currentIndex + 1);
-  current.sort_order = Number(target.sort_order || targetIndex + 1);
-  target.sort_order = currentOrder;
+  const allPages = sortedDocumentPages();
+  const currentAllIndex = allPages.findIndex(page => page.page_id === pageId);
+  const targetAllIndex = allPages.findIndex(page => page.page_id === target.page_id);
+  if (currentAllIndex < 0 || targetAllIndex < 0) return;
+  [allPages[currentAllIndex], allPages[targetAllIndex]] = [allPages[targetAllIndex], allPages[currentAllIndex]];
+  renumberDocumentPageOrders(allPages);
   activePageId = pageId;
-  markDocumentPagesTouched('Manual page moved');
+  markDocumentPagesTouched(current.page_type === 'manual' ? 'Manual page moved' : 'Page order updated');
   draw();
   scrollToPage(pageId);
+}
+function moveDocumentPageToIndex(pageId, targetVisibleIndex) {
+  collect();
+  const allPages = sortedDocumentPages();
+  const moving = allPages.find(page => page.page_id === pageId);
+  if (!documentPageCanMove(moving)) return;
+  const visible = allPages.filter(page => !page?.is_hidden);
+  const fromVisibleIndex = visible.findIndex(page => page.page_id === pageId);
+  if (fromVisibleIndex < 0) return;
+  const boundedTarget = Math.max(0, Math.min(Number(targetVisibleIndex || 0), visible.length - 1));
+  if (boundedTarget === fromVisibleIndex) return;
+  visible.splice(fromVisibleIndex, 1);
+  visible.splice(boundedTarget, 0, moving);
+  const hidden = allPages.filter(page => page?.is_hidden);
+  renumberDocumentPageOrders([...visible, ...hidden]);
+  activePageId = pageId;
+  markDocumentPagesTouched('Page order updated');
+  draw();
+  scrollToPage(pageId);
+}
+function moveDocumentPageToEdge(pageId, edge) {
+  const visible = sortedDocumentPages().filter(page => !page?.is_hidden);
+  moveDocumentPageToIndex(pageId, edge === 'bottom' ? visible.length - 1 : 0);
+}
+function moveManualPage(pageId, direction) {
+  moveDocumentPage(pageId, direction);
 }
 function scrollToPage(pageId) {
   selectEditorPage(pageId);
@@ -1426,8 +1487,10 @@ function scrollToPage(pageId) {
 function pageChrome(pageId, label, bodyHtml, options = {}) {
   const page = ensureDocumentPage(pageId, options.pageType || 'generated', label, options.sortOrder || 999, options.extras || {});
   const isHidden = !!page.is_hidden;
-  const canMove = page.page_type === 'manual';
-  const controls = `<div class="page-controls"><button class="ghost" type="button" data-outline-page-id="${escAttr(pageId)}">Select</button>${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete page</button>`}${canMove ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">Move up</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">Move down</button><button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Duplicate</button>` : ''}</div>`;
+  const canDuplicate = page.page_type === 'manual';
+  const moveControls = !isHidden ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">Move up</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">Move down</button>` : '';
+  const duplicateControl = canDuplicate && !isHidden ? `<button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Duplicate</button>` : '';
+  const controls = `<div class="page-controls"><button class="ghost" type="button" data-outline-page-id="${escAttr(pageId)}">Select</button>${moveControls}${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete page</button>`}${duplicateControl}</div>`;
   if (isHidden) return '';
   return `<div class="page-wrap ${pageLayoutClasses(page)} ${activePageId === pageId ? 'selected-page' : ''}" data-page-id="${escAttr(pageId)}"><div class="page-header-row"><div class="page-label">${esc(label)}</div>${controls}</div>${bodyHtml}</div>`;
 }

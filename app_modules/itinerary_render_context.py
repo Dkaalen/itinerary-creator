@@ -141,6 +141,25 @@ def _final_section_is_hidden(context: ItineraryRenderContext, section_id: str) -
     return _page_is_hidden(context, final_section_page_id(section_id))
 
 
+def _page_order_from_draft(editor_draft: dict[str, Any]) -> list[str]:
+    raw_pages = editor_draft.get("document_pages") if isinstance(editor_draft, dict) else []
+    if not isinstance(raw_pages, (list, tuple)):
+        return []
+    ordered: list[tuple[float, str]] = []
+    for index, page in enumerate(raw_pages):
+        if not isinstance(page, dict):
+            continue
+        page_id = str(page.get("page_id") or "").strip()
+        if not page_id:
+            continue
+        try:
+            order = float(page.get("sort_order") or index + 1)
+        except (TypeError, ValueError):
+            order = float(index + 1)
+        ordered.append((order, page_id))
+    return [page_id for _, page_id in sorted(ordered, key=lambda item: item[0])]
+
+
 def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str]) -> list[dict[str, Any]]:
     pages: list[dict[str, Any]] = []
     raw_pages = editor_draft.get("document_pages") if isinstance(editor_draft, dict) else []
@@ -285,6 +304,7 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     context.render_document.summary = None if _page_is_hidden(context, "summary") else summary
     context.render_document.final_sections = _build_final_sections_for_pdf(context)
     context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
+    context.render_document.page_order = _page_order_from_draft(context.editor_draft)
 
 
 def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None) -> ItineraryRenderContext:
@@ -312,6 +332,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         if stable_page_id("day", getattr(day, "day", "")) not in page_hidden_ids
     ]
     render_document.hidden_page_ids = sorted(page_hidden_ids)
+    render_document.page_order = _page_order_from_draft(editor_draft)
 
     preset_name = get_color_preset_name(output_edits)
     colors = get_color_preset(output_edits)

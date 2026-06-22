@@ -270,15 +270,21 @@ function renderDocumentOutline() {
     const title = String(page?.title || pageId || 'Untitled page');
     const hidden = !!page?.is_hidden;
     const isManual = page?.page_type === 'manual';
+    const visibleIndex = sortedDocumentPages().filter(item => !item?.is_hidden).findIndex(item => String(item?.page_id || '') === pageId);
     const action = hidden
       ? `<button type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>`
       : `<button type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete</button>`;
-    const manualActions = isManual && !hidden
-      ? `<button type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">↑</button><button type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">↓</button><button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
+    const orderingActions = !hidden
+      ? `<button type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}" title="Move page up">↑</button><button type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}" title="Move page down">↓</button>`
       : '';
-    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}">
+    const manualActions = isManual && !hidden
+      ? `<button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
+      : '';
+    const dragAttrs = hidden ? '' : ` draggable="true" data-page-drag-index="${visibleIndex}"`;
+    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}"${dragAttrs}>
+      <button class="outline-drag-handle" type="button" aria-label="Drag page to reorder" title="Drag page to reorder">⋮⋮</button>
       <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}</em></button>
-      <div class="outline-actions">${action}${manualActions}</div>
+      <div class="outline-actions">${orderingActions}${action}${manualActions}</div>
     </li>`;
   }).join('');
   const templatePicker = `<div class="outline-template-picker"><label for="manualPageTemplateSelect">Add blank page or template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></div>`;
@@ -286,13 +292,12 @@ function renderDocumentOutline() {
     <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
     ${templatePicker}
     <ul>${rows}</ul>
-    <p class="outline-hint">Generated pages are hidden when deleted and can be restored. Manual pages stay fully editable.</p>
+    <p class="outline-hint">Drag pages or use ↑/↓ to reorder. Generated pages can be hidden/restored; manual pages can also be duplicated.</p>
   </aside>`;
 }
-function renderManualPages() {
-  if (typeof sortedDocumentPages !== 'function') return '';
-  return sortedDocumentPages().filter(page => page?.page_type === 'manual').map((page, pageIndex) => {
-    const realIndex = typeof pageIndexById === 'function' ? pageIndexById(page.page_id) : pageIndex;
+function renderManualPageHtml(page, fallbackIndex = 0) {
+  if (!page || page.page_type !== 'manual') return '';
+  const realIndex = typeof pageIndexById === 'function' ? pageIndexById(page.page_id) : fallbackIndex;
     const blocks = Array.isArray(page.manual_blocks) && page.manual_blocks.length
       ? page.manual_blocks
       : [{editable_fields: {content_html: '<div class="body-text">New page text</div>'}}];
@@ -300,10 +305,13 @@ function renderManualPages() {
       const html = block?.editable_fields?.content_html || '';
       const blockId = block?.block_id || `${page.page_id}__manual-${blockIndex + 1}`;
       const label = block?.title || humanizeEditorToken(block?.block_type || 'Manual block');
-      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="${escAttr(label)}">${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', label)}</div>`;
+      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" draggable="true" data-manual-block-page-id="${escAttr(page.page_id)}" data-manual-block-index="${blockIndex}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="${escAttr(label)}"><div class="manual-block-drag-handle" aria-hidden="true" title="Drag block to reorder">⋮⋮</div>${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', label)}</div>`;
     }).join('');
     return pageChrome(page.page_id, page.title || 'Blank page', `<div class="a4-page manual-page"><div class="page-content"><div class="final-title">${editableText(page.title || 'Blank page', `document_pages.${realIndex}.title`, 'manual-page-title')}</div>${body}</div></div>`, {pageType: 'manual', sortOrder: page.sort_order || 999});
-  }).join('');
+}
+function renderManualPages() {
+  if (typeof sortedDocumentPages !== 'function') return '';
+  return sortedDocumentPages().filter(page => page?.page_type === 'manual').map((page, pageIndex) => renderManualPageHtml(page, pageIndex)).join('');
 }
 
 function render(payload, commitNonce = null) {
@@ -384,7 +392,9 @@ function draw() {
   const coverAccent = picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555';
   const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
   const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)};` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
-  h += pageChrome('cover', 'Cover page', `<div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
+  const pageHtmlById = {};
+  const addPageHtml = (pageId, html) => { pageHtmlById[pageId] = (pageHtmlById[pageId] || '') + (html || ''); };
+  addPageHtml('cover', pageChrome('cover', 'Cover page', `<div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
       ${coverImageControls('cover_image', 'Front cover image', model.cover?.cover_image)}
       <div class="cover-main">
         <div class="cover-emblem" aria-hidden="true"></div>
@@ -398,22 +408,36 @@ function draw() {
           ${editableRoute(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
         </div>
       </div>
-    </div></div>`, {pageType: 'cover', sortOrder: 1});
-  h += pageChrome('summary', 'Summary page', summaryPage(model.summary || {}), {pageType: 'summary', sortOrder: 2});
+    </div></div>`, {pageType: 'cover', sortOrder: 1}));
+  addPageHtml('summary', pageChrome('summary', 'Summary page', summaryPage(model.summary || {}), {pageType: 'summary', sortOrder: 2}));
   (model.days || []).forEach((day, i) => {
     const dayNumber = String(day.day || '').replace(/^Day\s*/i, '').trim() || String(i + 1);
     const pageId = pageIdForDay(day, i);
-    h += pageChrome(pageId, day.day || `Day ${i + 1}`, `<div class="a4-page day-page"><div class="page-content">
+    addPageHtml(pageId, pageChrome(pageId, day.day || `Day ${i + 1}`, `<div class="a4-page day-page"><div class="page-content">
       <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.date || '', `days.${i}.date`, 'day-kicker-date', 'Date')}</div>
       ${editableText(day.title, `days.${i}.title`, 'day-title')}
       ${editableText(day.intro, `days.${i}.intro`, 'intro')}
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
-    </div>${imageHtml(day, i)}</div>`, {pageType: 'generated_day', sortOrder: i + 3, extras: {source_day_id: String(day.day || day.label || '')}});
+    </div>${imageHtml(day, i)}</div>`, {pageType: 'generated_day', sortOrder: i + 3, extras: {source_day_id: String(day.day || day.label || '')}}));
   });
-  h += finalHtmlPages('Included', model.final_pages?.whats_included_title || "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}], 'whats_included_title');
-  h += finalHtmlPage('Excluded', model.final_pages?.whats_not_included_title || "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''), 'whats_not_included_title');
-  h += finalTextPage('Notes', model.final_pages?.important_travel_notes_title || 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '', 'important_travel_notes_title');
-  h += renderManualPages();
+  addPageHtml(finalPageId('whats_included'), finalHtmlPages('Included', model.final_pages?.whats_included_title || "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}], 'whats_included_title'));
+  addPageHtml(finalPageId('whats_not_included'), finalHtmlPage('Excluded', model.final_pages?.whats_not_included_title || "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''), 'whats_not_included_title'));
+  addPageHtml(finalPageId('important_travel_notes'), finalTextPage('Notes', model.final_pages?.important_travel_notes_title || 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '', 'important_travel_notes_title'));
+  sortedDocumentPages().filter(page => page?.page_type === 'manual').forEach(page => {
+    const html = renderManualPageHtml(page);
+    if (html) addPageHtml(page.page_id, html);
+  });
+  const renderedPageIds = new Set();
+  sortedDocumentPages().forEach(page => {
+    const pageId = String(page?.page_id || '');
+    if (pageHtmlById[pageId]) {
+      h += pageHtmlById[pageId];
+      renderedPageIds.add(pageId);
+    }
+  });
+  Object.keys(pageHtmlById).forEach(pageId => {
+    if (!renderedPageIds.has(pageId)) h += pageHtmlById[pageId];
+  });
   h += `</div>${renderRightInspector()}</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();

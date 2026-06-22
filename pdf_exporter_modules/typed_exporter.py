@@ -22,6 +22,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocument, RenderFinalPage, RenderFinalSection
+from itinerary_generation.editor_page_contract import final_section_page_id, stable_page_id
 from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_flowable
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint, SamePageDayImage
@@ -560,31 +561,44 @@ def export_render_document_to_pdf(
 
     with tempfile.TemporaryDirectory(prefix="itinerary_render_document_images_") as image_temp_dir:
         hidden_page_ids = set(getattr(render_document, "hidden_page_ids", []) or [])
+        page_renderers = []
+
         if "cover" not in hidden_page_ids:
-            _render_cover(render_document, story, styles, image_temp_dir)
+            page_renderers.append(("cover", lambda: _render_cover(render_document, story, styles, image_temp_dir)))
         if render_document.summary and "summary" not in hidden_page_ids:
-            if story:
-                story.append(PageBreak())
-            _render_summary(render_document, story, styles, image_temp_dir)
+            page_renderers.append(("summary", lambda: _render_summary(render_document, story, styles, image_temp_dir)))
 
         for day in render_document.days or []:
-            if story:
-                story.append(PageBreak())
-            story.append(
-                _build_one_page_day_flowable(
-                    day,
-                    styles,
-                    image_match=(day_images or {}).get(day.day) if day_images else None,
-                    crop_focus=(day_image_crop_focus or {}).get(day.day, "top") if day_image_crop_focus else "top",
-                    temp_dir=image_temp_dir,
-                    doc=doc,
+            page_id = stable_page_id("day", getattr(day, "day", ""))
+
+            def _make_day_renderer(day=day):
+                return lambda: story.append(
+                    _build_one_page_day_flowable(
+                        day,
+                        styles,
+                        image_match=(day_images or {}).get(day.day) if day_images else None,
+                        crop_focus=(day_image_crop_focus or {}).get(day.day, "top") if day_image_crop_focus else "top",
+                        temp_dir=image_temp_dir,
+                        doc=doc,
+                    )
                 )
-            )
+
+            page_renderers.append((page_id, _make_day_renderer()))
 
         for section in render_document.final_sections or []:
+            section_id = str(getattr(section, "section_id", "") or "")
+            page_id = final_section_page_id(section_id) if section_id in {"whats_included", "whats_not_included", "important_travel_notes"} else section_id
+            page_renderers.append((page_id, lambda section=section: _render_final_section(section, story, styles)))
+
+        default_ids = [page_id for page_id, _ in page_renderers]
+        ordered_ids = [page_id for page_id in getattr(render_document, "page_order", []) or [] if page_id in default_ids]
+        ordered_ids.extend(page_id for page_id in default_ids if page_id not in ordered_ids)
+        renderer_by_id = {page_id: renderer for page_id, renderer in page_renderers}
+
+        for page_id in ordered_ids:
             if story:
                 story.append(PageBreak())
-            _render_final_section(section, story, styles)
+            renderer_by_id[page_id]()
 
         if not story:
             story.append(Paragraph("Itinerary preview", styles["page_title"]))
