@@ -97,6 +97,27 @@ function attachHandlers() {
     touchedKeys = new Set();
     draw();
   });
+  document.getElementById('addManualPageBtn')?.addEventListener('click', addManualPage);
+  document.querySelectorAll('[data-outline-page-id]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      const pageId = btn.getAttribute('data-outline-page-id');
+      if (event.target?.closest?.('[data-doc-page-action]')) return;
+      if (pageId) scrollToPage(pageId);
+    });
+  });
+  document.querySelectorAll('[data-doc-page-action]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      const pageId = btn.getAttribute('data-page-id-ref');
+      const action = btn.getAttribute('data-doc-page-action');
+      if (!pageId) return;
+      if (action === 'hide') hideDocumentPage(pageId);
+      if (action === 'restore') restoreDocumentPage(pageId);
+      if (action === 'duplicate') duplicateManualPage(pageId);
+      if (action === 'move-up') moveManualPage(pageId, -1);
+      if (action === 'move-down') moveManualPage(pageId, 1);
+    });
+  });
   document.querySelectorAll('[data-page-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.getAttribute('data-page-index'));

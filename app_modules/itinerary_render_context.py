@@ -17,6 +17,7 @@ from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.date_resolver import get_trip_date_range_text
 from itinerary_generation.editable_draft import section_by_id
+from itinerary_generation.editor_page_contract import final_section_page_id, hidden_page_ids, stable_page_id
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from itinerary_generation.render_document_builder import build_render_document_from_document, grouped_days_with_day_optional_rows
 from itinerary_generation.render_model import (
@@ -85,6 +86,8 @@ class ItineraryRenderContext:
     typed_exclusion_html: str
     typed_exclusions_owned: bool
     important_travel_notes: list[str] | str
+    manual_pages: list[dict[str, Any]]
+    hidden_page_ids: set[str]
 
 
 def _structured_sections_to_render_sections(sections: Any) -> list[RenderSection]:
@@ -125,19 +128,56 @@ def _html_final_pages(page_htmls: list[str] | str) -> list[RenderFinalPage]:
     return [RenderFinalPage(content_html=str(value or "")) for value in values if str(value or "").strip()]
 
 
+def _page_is_hidden(context: ItineraryRenderContext, page_id: str) -> bool:
+    return str(page_id or "") in (context.hidden_page_ids or set())
+
+
+def _final_section_is_hidden(context: ItineraryRenderContext, section_id: str) -> bool:
+    return _page_is_hidden(context, final_section_page_id(section_id))
+
+
+def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str]) -> list[dict[str, Any]]:
+    pages: list[dict[str, Any]] = []
+    raw_pages = editor_draft.get("document_pages") if isinstance(editor_draft, dict) else []
+    if not isinstance(raw_pages, (list, tuple)):
+        return pages
+    for page in raw_pages:
+        if not isinstance(page, dict) or page.get("page_type") != "manual":
+            continue
+        page_id = str(page.get("page_id") or "").strip()
+        if page_id in hidden_ids:
+            continue
+        blocks = page.get("manual_blocks") if isinstance(page.get("manual_blocks"), (list, tuple)) else []
+        content_parts: list[str] = []
+        for block in blocks:
+            if not isinstance(block, dict):
+                continue
+            fields = block.get("editable_fields") if isinstance(block.get("editable_fields"), dict) else {}
+            html = str(fields.get("content_html") or "").strip()
+            if html:
+                content_parts.append(html)
+        pages.append({
+            "page_id": page_id,
+            "title": str(page.get("title") or "Custom page").strip() or "Custom page",
+            "content_html": "".join(content_parts),
+            "sort_order": int(page.get("sort_order") or 0),
+        })
+    return sorted(pages, key=lambda page: int(page.get("sort_order") or 0))
+
+
 def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[RenderFinalSection]:
     sections: list[RenderFinalSection] = []
 
-    if context.typed_inclusions_owned:
+    if not _final_section_is_hidden(context, "whats_included") and context.typed_inclusions_owned:
         if context.typed_inclusion_pages:
             sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
-    elif context.output_edits.get("whats_included_pages_html"):
+    elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_pages_html"):
         sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
-    elif context.output_edits.get("whats_included_html"):
+    elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_html"):
         sections.append(RenderFinalSection("whats_included", "What’s included", pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))
-    elif context.manual_whats_included:
+    elif not _final_section_is_hidden(context, "whats_included") and context.manual_whats_included:
         sections.append(RenderFinalSection("whats_included", "What’s included", pages=_split_list_final_pages(context.whats_included)))
-    else:
+    elif not _final_section_is_hidden(context, "whats_included"):
         sections.append(RenderFinalSection("whats_included", "What’s included", pages=_paginated_structured_final_pages(context.categorized_inclusions), css_class="categorized-inclusions-page"))
 
     if context.optional_addons:
@@ -168,19 +208,29 @@ def _build_final_sections_for_pdf(context: ItineraryRenderContext) -> list[Rende
         if optional_pages:
             sections.append(RenderFinalSection("optional_experiences", "Optional Experiences", pages=optional_pages, css_class="optional-addons-page"))
 
-    if context.typed_exclusions_owned:
+    if not _final_section_is_hidden(context, "whats_not_included") and context.typed_exclusions_owned:
         if context.typed_exclusion_html:
             sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
-    elif context.output_edits.get("whats_not_included_html"):
+    elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_html"):
         sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
-    elif context.output_edits.get("whats_not_included_text"):
+    elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_text"):
         sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_split_list_final_pages(context.whats_not_included)))
-    else:
+    elif not _final_section_is_hidden(context, "whats_not_included"):
         sections.append(RenderFinalSection("whats_not_included", "What’s not included", pages=_paginated_structured_final_pages(context.structured_whats_not_included), css_class="categorized-exclusions-page"))
 
     notes_pages = _paragraph_final_pages(context.important_travel_notes)
-    if notes_pages:
+    if notes_pages and not _final_section_is_hidden(context, "important_travel_notes"):
         sections.append(RenderFinalSection("important_travel_notes", "Important travel notes", pages=notes_pages, css_class="important-notes-page"))
+
+    for page in context.manual_pages:
+        html = str(page.get("content_html") or "").strip()
+        if html:
+            sections.append(RenderFinalSection(
+                str(page.get("page_id") or "manual_page"),
+                str(page.get("title") or "Custom page"),
+                pages=_html_final_pages(html),
+                css_class="manual-page",
+            ))
 
     return [section for section in sections if section.pages or section.sections or section.items or section.paragraphs or section.content_html]
 
@@ -213,24 +263,37 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
         background_path=context.summary_background_path,
         crop_focus=context.summary_crop_focus,
     )
-    context.render_document.cover = cover
-    context.render_document.summary = summary
+    context.render_document.cover = None if _page_is_hidden(context, "cover") else cover
+    context.render_document.summary = None if _page_is_hidden(context, "summary") else summary
     context.render_document.final_sections = _build_final_sections_for_pdf(context)
+    context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
 
 
 def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None) -> ItineraryRenderContext:
     output_edits = output_edits or {}
     editor_draft = output_edits.get("editor_draft") if isinstance(output_edits, dict) else {}
     editor_draft = editor_draft if isinstance(editor_draft, dict) else {}
+    page_hidden_ids = hidden_page_ids(editor_draft.get("document_pages") if isinstance(editor_draft, dict) else [])
 
     structured_document = build_itinerary_document(parsed_rows, grouped_days)
     render_grouped_days = grouped_days_with_day_optional_rows(grouped_days, parsed_rows)
+    render_grouped_days = {
+        str(day): rows
+        for day, rows in (render_grouped_days or {}).items()
+        if stable_page_id("day", day) not in page_hidden_ids
+    }
     render_document = build_render_document_from_document(
         structured_document,
         parsed_rows,
         grouped_days,
         output_edits=output_edits,
     )
+    render_document.days = [
+        day
+        for day in (render_document.days or [])
+        if stable_page_id("day", getattr(day, "day", "")) not in page_hidden_ids
+    ]
+    render_document.hidden_page_ids = sorted(page_hidden_ids)
 
     preset_name = get_color_preset_name(output_edits)
     colors = get_color_preset(output_edits)
@@ -314,6 +377,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         first_page = typed_exclusions.get("pages", [{}])[0]
         typed_exclusion_html = first_page.get("content_html", "") if isinstance(first_page, dict) else ""
     important_travel_notes = normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits))
+    manual_pages = _manual_pages_from_draft(editor_draft, page_hidden_ids)
 
     context = ItineraryRenderContext(
         parsed_rows=list(parsed_rows or []),
@@ -354,6 +418,8 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         typed_exclusion_html=typed_exclusion_html,
         typed_exclusions_owned=typed_exclusions_owned,
         important_travel_notes=important_travel_notes,
+        manual_pages=manual_pages,
+        hidden_page_ids=page_hidden_ids,
     )
     _attach_pdf_contract(context)
     sanitize_render_document_client_output(context.render_document)

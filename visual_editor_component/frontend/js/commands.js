@@ -10,7 +10,7 @@ function markTouched(key) {
   updateEditorStats();
 }
 function isHtmlEditKey(key) {
-  return key && (key.endsWith('.blocks_html') || key.endsWith('.whats_included_html') || key.endsWith('.whats_not_included_html') || key.includes('.whats_included_pages_html.'));
+  return key && (key.endsWith('.blocks_html') || key.endsWith('.content_html') || key.endsWith('.whats_included_html') || key.endsWith('.whats_not_included_html') || key.includes('.editable_fields.content_html') || key.includes('.whats_included_pages_html.'));
 }
 function editableValue(el) {
   if (!el) return '';
@@ -265,6 +265,184 @@ function stripEditorArtifactsFromHtml(html) {
   });
   return box.innerHTML;
 }
+
+function editorSlug(value) {
+  const slug = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug || 'page';
+}
+function documentPages() {
+  if (!Array.isArray(model.document_pages)) model.document_pages = [];
+  return model.document_pages;
+}
+function sortedDocumentPages() {
+  return documentPages().slice().sort((a, b) => Number(a?.sort_order || 0) - Number(b?.sort_order || 0));
+}
+function documentPageById(pageId) {
+  return documentPages().find(page => String(page?.page_id || '') === String(pageId || '')) || null;
+}
+function pageIndexById(pageId) {
+  return documentPages().findIndex(page => String(page?.page_id || '') === String(pageId || ''));
+}
+function pageIsHidden(pageId) {
+  return !!documentPageById(pageId)?.is_hidden;
+}
+function ensureDocumentPage(pageId, pageType, title, sortOrder, extras = {}) {
+  const pages = documentPages();
+  let page = documentPageById(pageId);
+  if (!page) {
+    page = Object.assign({
+      page_id: pageId,
+      page_type: pageType,
+      title,
+      sort_order: sortOrder,
+      is_hidden: false,
+      generated_blocks: [],
+      manual_blocks: [],
+      editable_fields: {},
+      style_overrides: {},
+      page_overrides: {},
+      page_actions: {hide: true, restore: true, move: pageType === 'manual', duplicate: pageType === 'manual', reset: pageType !== 'manual'}
+    }, extras || {});
+    pages.push(page);
+  } else {
+    if (!page.title && title) page.title = title;
+    if (!page.page_type && pageType) page.page_type = pageType;
+    if (!page.sort_order) page.sort_order = sortOrder;
+    if (!page.page_actions) page.page_actions = {hide: true, restore: true, move: pageType === 'manual', duplicate: pageType === 'manual', reset: pageType !== 'manual'};
+  }
+  return page;
+}
+function pageIdForDay(day, index) {
+  const identity = String(day?.day || day?.day_id || day?.label || '').trim();
+  const page = documentPages().find(page => {
+    if (page?.page_type !== 'generated_day') return false;
+    if (identity && String(page?.source_day_id || '') === identity) return true;
+    if (identity && String(page?.title || '') === identity) return true;
+    return Number(page?.sort_order || 0) === index + 3;
+  });
+  return page?.page_id || `day-${editorSlug(identity || `Day ${index + 1}`)}`;
+}
+function finalPageId(sectionId) {
+  if (sectionId === 'whats_included') return 'final-whats-included';
+  if (sectionId === 'whats_not_included') return 'final-whats-not-included';
+  if (sectionId === 'important_travel_notes') return 'final-important-travel-notes';
+  return `final-${editorSlug(sectionId)}`;
+}
+function maxDocumentPageOrder() {
+  return sortedDocumentPages().reduce((max, page) => Math.max(max, Number(page?.sort_order || 0)), 0);
+}
+function markDocumentPagesTouched(message = 'Page list updated') {
+  markTouched('document_pages');
+  notifyEditor(message);
+}
+function hideDocumentPage(pageId) {
+  collect();
+  const page = documentPageById(pageId);
+  if (!page) return;
+  page.is_hidden = true;
+  if (activePageId === pageId) activePageId = null;
+  markDocumentPagesTouched(page.page_type === 'manual' ? 'Manual page hidden' : 'Page hidden from itinerary');
+  draw();
+}
+function restoreDocumentPage(pageId) {
+  collect();
+  const page = documentPageById(pageId);
+  if (!page) return;
+  page.is_hidden = false;
+  activePageId = pageId;
+  markDocumentPagesTouched('Page restored');
+  draw();
+  scrollToPage(pageId);
+}
+function addManualPage() {
+  collect();
+  const pageId = `manual-${Date.now()}`;
+  const blockId = `${pageId}__main`;
+  const page = {
+    page_id: pageId,
+    page_type: 'manual',
+    title: 'Blank page',
+    sort_order: maxDocumentPageOrder() + 1,
+    is_hidden: false,
+    source_day_id: '',
+    source_section_id: '',
+    source_row_ids: [],
+    editable_fields: {title: 'Blank page'},
+    generated_blocks: [],
+    manual_blocks: [{
+      block_id: blockId,
+      block_type: 'manual_text',
+      title: 'Manual text',
+      editable_fields: {content_html: '<div class="body-text">New page text</div>'},
+      style_overrides: {},
+      image_binding: {},
+      source_row_ids: [],
+      dirty_state: 'dirty',
+      validation_status: 'unknown'
+    }],
+    style_overrides: {},
+    page_overrides: {},
+    page_actions: {hide: true, restore: true, move: true, duplicate: true, reset: false},
+    validation_status: 'unknown'
+  };
+  documentPages().push(page);
+  activePageId = pageId;
+  markDocumentPagesTouched('Blank page added');
+  draw();
+  scrollToPage(pageId);
+}
+function duplicateManualPage(pageId) {
+  collect();
+  const original = documentPageById(pageId);
+  if (!original || original.page_type !== 'manual') return;
+  const clone = JSON.parse(JSON.stringify(original));
+  const newId = `manual-${Date.now()}`;
+  clone.page_id = newId;
+  clone.title = `${original.title || 'Blank page'} copy`;
+  clone.sort_order = Number(original.sort_order || maxDocumentPageOrder()) + 0.5;
+  clone.is_hidden = false;
+  (clone.manual_blocks || []).forEach((block, idx) => { block.block_id = `${newId}__manual-${idx + 1}`; });
+  documentPages().push(clone);
+  activePageId = newId;
+  markDocumentPagesTouched('Manual page duplicated');
+  draw();
+  scrollToPage(newId);
+}
+function moveManualPage(pageId, direction) {
+  collect();
+  const pages = sortedDocumentPages();
+  const current = pages.find(page => page.page_id === pageId);
+  if (!current || current.page_type !== 'manual') return;
+  const currentIndex = pages.findIndex(page => page.page_id === pageId);
+  const targetIndex = currentIndex + direction;
+  if (targetIndex < 0 || targetIndex >= pages.length) return;
+  const target = pages[targetIndex];
+  const currentOrder = Number(current.sort_order || currentIndex + 1);
+  current.sort_order = Number(target.sort_order || targetIndex + 1);
+  target.sort_order = currentOrder;
+  activePageId = pageId;
+  markDocumentPagesTouched('Manual page moved');
+  draw();
+  scrollToPage(pageId);
+}
+function scrollToPage(pageId) {
+  activePageId = pageId;
+  requestAnimationFrame(() => {
+    const target = document.querySelector(`[data-page-id="${CSS.escape(pageId)}"]`);
+    if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+    document.querySelectorAll('[data-page-id]').forEach(el => el.classList.toggle('selected-page', el.getAttribute('data-page-id') === pageId));
+    document.querySelectorAll('[data-outline-page-id]').forEach(el => el.classList.toggle('active', el.getAttribute('data-outline-page-id') === pageId));
+  });
+}
+function pageChrome(pageId, label, bodyHtml, options = {}) {
+  const page = ensureDocumentPage(pageId, options.pageType || 'generated', label, options.sortOrder || 999, options.extras || {});
+  const isHidden = !!page.is_hidden;
+  const canMove = page.page_type === 'manual';
+  const controls = `<div class="page-controls"><button class="ghost" type="button" data-outline-page-id="${escAttr(pageId)}">Select</button>${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete page</button>`}${canMove ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">Move up</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">Move down</button><button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Duplicate</button>` : ''}</div>`;
+  if (isHidden) return '';
+  return `<div class="page-wrap ${activePageId === pageId ? 'selected-page' : ''}" data-page-id="${escAttr(pageId)}"><div class="page-header-row"><div class="page-label">${esc(label)}</div>${controls}</div>${bodyHtml}</div>`;
+}
+
 function deleteInclusionPage(index) {
   collect();
   if (!model.final_pages) model.final_pages = {};

@@ -25,17 +25,18 @@ function summaryPage(summary) {
   const bg = picturesAdded() ? (model.cover?.summary_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const summaryFocus = model.cover?.summary_image?.crop_focus || 'top';
   const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)};` : '';
-  return `<div class="page-wrap"><div class="page-label">Summary page</div><div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
+  return `<div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
     ${coverImageControls('summary_image', 'Page 2 background image', model.cover?.summary_image)}
     <div class="summary-card"><div class="summary-title">Your Trip at a Glance</div>${glanceRows}</div>
     <div class="summary-card"><div class="summary-title">Your Journey Arc</div><table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead><tbody>${arcRows}</tbody></table></div>
-  </div></div></div>`;
+  </div></div>`;
 }
 function finalTextPage(label, title, key, text) {
-  return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
+  const pageId = finalPageId(key === 'important_travel_notes_text' ? 'important_travel_notes' : key);
+  return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
     <div class="final-title">${esc(title)}</div>
     ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
-  </div></div></div>`;
+  </div></div>`, {pageType: 'final_section', sortOrder: 900});
 }
 function listTextToHtml(text) {
   const items = String(text || '').split(/\n+/).map(item => item.trim()).filter(Boolean);
@@ -43,13 +44,17 @@ function listTextToHtml(text) {
   return `<ul class="final-list">${items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 }
 function finalHtmlPage(label, title, key, html) {
-  return `<div class="page-wrap"><div class="page-label">${esc(label)}</div><div class="a4-page final-page"><div class="page-content">
+  const sectionId = key === 'whats_not_included_html' ? 'whats_not_included' : key;
+  const pageId = finalPageId(sectionId);
+  return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
     <div class="final-title">${esc(title)}</div>
     ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
-  </div></div></div>`;
+  </div></div>`, {pageType: 'final_section', sortOrder: 899});
 }
 
 function finalHtmlPages(label, title, key, pages) {
+  const pageId = finalPageId('whats_included');
+  if (typeof pageIsHidden === 'function' && pageIsHidden(pageId)) return '';
   const cleanPages = (Array.isArray(pages) && pages.length ? pages : [{html: ''}]).map(page => {
     return typeof page === 'string' ? {html: page} : (page || {html: ''});
   });
@@ -59,10 +64,11 @@ function finalHtmlPages(label, title, key, pages) {
     const html = typeof page === 'string' ? page : (page?.html || '');
     const pageLabel = label;
     const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Move content up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Remove empty page</button></div>`;
-    return `<div class="page-wrap"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div><div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
+    const body = `<div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
       <div class="final-title">${esc(title)}</div>
       ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
-    </div></div></div>`;
+    </div></div>`;
+    return idx === 0 ? pageChrome(pageId, pageLabel, `<div class="page-controls local-page-controls">${controls}</div>${body}`, {pageType: 'final_section', sortOrder: 898}) : `<div class="page-wrap" data-page-id="${escAttr(pageId)}-part-${idx}"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div>${body}</div>`;
   }).join('');
 }
 
@@ -99,6 +105,56 @@ function warningPanelHtml() {
   }).join('');
   const hidden = warnings.length > 12 ? `<div class="warning-panel-more">${warnings.length - 12} more warning(s) hidden here. Use the page highlights and final PDF check as well.</div>` : '';
   return `<details class="warning-panel" ${warnings.length <= 8 ? 'open' : ''}><summary>${warnings.length} warning(s) to review</summary><ul>${rows}</ul>${hidden}</details>`;
+}
+
+
+function pageTypeLabel(page) {
+  const type = String(page?.page_type || 'page');
+  if (type === 'generated_day') return 'Day';
+  if (type === 'final_section') return 'Final';
+  if (type === 'manual') return 'Manual';
+  if (type === 'cover') return 'Cover';
+  if (type === 'summary') return 'Summary';
+  return 'Page';
+}
+function renderDocumentOutline() {
+  const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model.document_pages) ? model.document_pages : []);
+  const rows = pages.map(page => {
+    const pageId = String(page?.page_id || '');
+    const title = String(page?.title || pageId || 'Untitled page');
+    const hidden = !!page?.is_hidden;
+    const isManual = page?.page_type === 'manual';
+    const action = hidden
+      ? `<button type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>`
+      : `<button type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete</button>`;
+    const manualActions = isManual && !hidden
+      ? `<button type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">↑</button><button type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">↓</button><button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
+      : '';
+    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}">
+      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}</em></button>
+      <div class="outline-actions">${action}${manualActions}</div>
+    </li>`;
+  }).join('');
+  return `<aside class="document-outline" aria-label="Document pages">
+    <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
+    <button class="primary outline-add" id="addManualPageBtn" type="button">Add blank page</button>
+    <ul>${rows}</ul>
+    <p class="outline-hint">Generated pages are hidden when deleted and can be restored. Manual pages stay fully editable.</p>
+  </aside>`;
+}
+function renderManualPages() {
+  if (typeof sortedDocumentPages !== 'function') return '';
+  return sortedDocumentPages().filter(page => page?.page_type === 'manual').map((page, pageIndex) => {
+    const realIndex = typeof pageIndexById === 'function' ? pageIndexById(page.page_id) : pageIndex;
+    const blocks = Array.isArray(page.manual_blocks) && page.manual_blocks.length
+      ? page.manual_blocks
+      : [{editable_fields: {content_html: '<div class="body-text">New page text</div>'}}];
+    const body = blocks.map((block, blockIndex) => {
+      const html = block?.editable_fields?.content_html || '';
+      return editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box');
+    }).join('');
+    return pageChrome(page.page_id, page.title || 'Blank page', `<div class="a4-page manual-page"><div class="page-content"><div class="final-title">${editableText(page.title || 'Blank page', `document_pages.${realIndex}.title`, 'manual-page-title')}</div>${body}</div></div>`, {pageType: 'manual', sortOrder: page.sort_order || 999});
+  }).join('');
 }
 
 function render(payload, commitNonce = null) {
@@ -165,14 +221,16 @@ function draw() {
       </div>
       ${warningPanelHtml()}
     </div>
-    <div class="page-stack">`;
+    <div class="editor-workspace">
+      ${renderDocumentOutline()}
+      <div class="page-stack">`;
   const coverBg = picturesAdded() ? (model.cover?.cover_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';
   const coverMuted = picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c';
   const coverAccent = picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555';
   const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
   const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)};` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
-  h += `<div class="page-wrap"><div class="page-label">Cover page</div><div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
+  h += pageChrome('cover', 'Cover page', `<div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">
       ${coverImageControls('cover_image', 'Front cover image', model.cover?.cover_image)}
       <div class="cover-main">
         <div class="cover-emblem" aria-hidden="true"></div>
@@ -186,21 +244,23 @@ function draw() {
           ${editableRoute(model.cover?.destinations_line, 'cover.destinations_line', 'cover-destinations')}
         </div>
       </div>
-    </div></div></div>`;
-  h += summaryPage(model.summary || {});
+    </div></div>`, {pageType: 'cover', sortOrder: 1});
+  h += pageChrome('summary', 'Summary page', summaryPage(model.summary || {}), {pageType: 'summary', sortOrder: 2});
   (model.days || []).forEach((day, i) => {
     const dayNumber = String(day.day || '').replace(/^Day\s*/i, '').trim() || String(i + 1);
-    h += `<div class="page-wrap"><div class="page-label">${esc(day.day)}</div><div class="a4-page day-page"><div class="page-content">
+    const pageId = pageIdForDay(day, i);
+    h += pageChrome(pageId, day.day || `Day ${i + 1}`, `<div class="a4-page day-page"><div class="page-content">
       <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')}${day.date ? ` <span class="day-kicker-symbol">✦</span> ${esc(day.date)}` : ''}</div>
       ${editableText(day.title, `days.${i}.title`, 'day-title')}
       ${editableText(day.intro, `days.${i}.intro`, 'intro')}
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}
-    </div>${imageHtml(day, i)}</div></div>`;
+    </div>${imageHtml(day, i)}</div>`, {pageType: 'generated_day', sortOrder: i + 3, extras: {source_day_id: String(day.day || day.label || '')}});
   });
   h += finalHtmlPages('Included', "What's included", 'whats_included_pages_html', model.final_pages?.whats_included_pages_html || [{html: model.final_pages?.whats_included_html || model.final_pages?.whats_included_text || ''}]);
   h += finalHtmlPage('Excluded', "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''));
   h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
-  h += `</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
+  h += renderManualPages();
+  h += `</div></div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
   requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });

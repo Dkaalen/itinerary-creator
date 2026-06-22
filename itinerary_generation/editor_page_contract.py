@@ -41,8 +41,10 @@ class EditorPageContract:
     source_row_ids: tuple[str, ...] = ()
     is_hidden: bool = False
     sort_order: int = 0
+    editable_fields: dict[str, Any] = field(default_factory=dict)
     generated_blocks: tuple[EditorBlockContract, ...] = ()
     manual_blocks: tuple[EditorBlockContract, ...] = ()
+    page_actions: dict[str, bool] = field(default_factory=dict)
     style_overrides: dict[str, Any] = field(default_factory=dict)
     page_overrides: dict[str, Any] = field(default_factory=dict)
     validation_status: str = "unknown"
@@ -122,10 +124,12 @@ def _merge_page_overrides(page: EditorPageContract, existing: Mapping[str, Any] 
         source_row_ids=page.source_row_ids,
         is_hidden=bool(existing.get("is_hidden", page.is_hidden)),
         sort_order=int(existing.get("sort_order", page.sort_order) or 0),
+        editable_fields=_as_dict(existing.get("editable_fields")) or page.editable_fields,
         generated_blocks=page.generated_blocks,
         manual_blocks=manual_blocks or page.manual_blocks,
         style_overrides=_as_dict(existing.get("style_overrides")) or page.style_overrides,
         page_overrides=_as_dict(existing.get("page_overrides")) or page.page_overrides,
+        page_actions=_as_dict(existing.get("page_actions")) or page.page_actions,
         validation_status=str(existing.get("validation_status") or page.validation_status),
     )
 
@@ -178,24 +182,28 @@ def _day_page(day: Mapping[str, Any], rows: Sequence[Mapping[str, Any]] | None, 
         source_day_id=day_id,
         source_row_ids=source_ids,
         sort_order=order,
+        editable_fields={"title": title, "source_day_id": day_id},
         generated_blocks=tuple(blocks),
+        page_actions={"hide": True, "restore": True, "move": False, "duplicate": False, "reset": True},
     )
 
 
-def _simple_page(page_id: str, page_type: str, title: str, order: int, *, section_id: str = "") -> EditorPageContract:
+def _simple_page(page_id: str, page_type: str, title: str, order: int, *, section_id: str = "", editable_fields: Mapping[str, Any] | None = None) -> EditorPageContract:
     return EditorPageContract(
         page_id=page_id,
         page_type=page_type,
         title=title,
         source_section_id=section_id,
         sort_order=order,
+        editable_fields=_as_dict(editable_fields),
         generated_blocks=(
             EditorBlockContract(
                 block_id=f"{page_id}__main",
                 block_type=page_type,
-                editable_fields={},
+                editable_fields=_as_dict(editable_fields),
             ),
         ),
+        page_actions={"hide": True, "restore": True, "move": False, "duplicate": False, "reset": True},
     )
 
 
@@ -209,8 +217,8 @@ def build_editor_document_pages(
 
     existing = _normalise_existing_pages(existing_pages)
     pages: list[EditorPageContract] = [
-        _simple_page("cover", "cover", "Cover", 1),
-        _simple_page("summary", "summary", "Trip summary", 2),
+        _simple_page("cover", "cover", "Cover", 1, editable_fields=_as_dict(payload.get("cover"))),
+        _simple_page("summary", "summary", "Trip summary", 2, editable_fields=_as_dict(payload.get("summary"))),
     ]
     grouped_days = grouped_days or {}
     for index, day in enumerate(payload.get("days") or [], start=3):
@@ -221,13 +229,22 @@ def build_editor_document_pages(
     order = len(pages) + 1
     final_pages = payload.get("final_pages") if isinstance(payload.get("final_pages"), Mapping) else {}
     if any(key in final_pages for key in ("whats_included_html", "whats_included_pages_html", "whats_included_text")):
-        pages.append(_simple_page("final-whats-included", "final_section", "What’s included", order, section_id="whats_included"))
+        pages.append(_simple_page("final-whats-included", "final_section", "What’s included", order, section_id="whats_included", editable_fields={
+            "whats_included_html": final_pages.get("whats_included_html", ""),
+            "whats_included_pages_html": final_pages.get("whats_included_pages_html", []),
+            "whats_included_text": final_pages.get("whats_included_text", ""),
+        }))
         order += 1
     if any(key in final_pages for key in ("whats_not_included_html", "whats_not_included_text")):
-        pages.append(_simple_page("final-whats-not-included", "final_section", "What’s not included", order, section_id="whats_not_included"))
+        pages.append(_simple_page("final-whats-not-included", "final_section", "What’s not included", order, section_id="whats_not_included", editable_fields={
+            "whats_not_included_html": final_pages.get("whats_not_included_html", ""),
+            "whats_not_included_text": final_pages.get("whats_not_included_text", ""),
+        }))
         order += 1
     if "important_travel_notes_text" in final_pages:
-        pages.append(_simple_page("final-important-travel-notes", "final_section", "Important travel notes", order, section_id="important_travel_notes"))
+        pages.append(_simple_page("final-important-travel-notes", "final_section", "Important travel notes", order, section_id="important_travel_notes", editable_fields={
+            "important_travel_notes_text": final_pages.get("important_travel_notes_text", ""),
+        }))
         order += 1
 
     merged = [_merge_page_overrides(page, existing.get(page.page_id)).to_dict() for page in pages]
@@ -235,9 +252,35 @@ def build_editor_document_pages(
         if page.get("page_type") == "manual" and page.get("page_id") not in {item["page_id"] for item in merged}:
             copied = dict(page)
             copied.setdefault("sort_order", order)
+            copied.setdefault("page_actions", {"hide": True, "restore": True, "move": True, "duplicate": True, "reset": False})
+            copied.setdefault("manual_blocks", [])
             merged.append(copied)
             order += 1
     return sorted(merged, key=lambda page: int(page.get("sort_order") or 0))
+
+
+def hidden_page_ids(document_pages: Any) -> set[str]:
+    """Return page IDs explicitly hidden/deleted in the editor page contract."""
+
+    ids: set[str] = set()
+    if not isinstance(document_pages, (list, tuple)):
+        return ids
+    for page in document_pages:
+        if not isinstance(page, Mapping):
+            continue
+        page_id = str(page.get("page_id") or "").strip()
+        if page_id and bool(page.get("is_hidden")):
+            ids.add(page_id)
+    return ids
+
+
+def final_section_page_id(section_id: str) -> str:
+    mapping = {
+        "whats_included": "final-whats-included",
+        "whats_not_included": "final-whats-not-included",
+        "important_travel_notes": "final-important-travel-notes",
+    }
+    return mapping.get(str(section_id or ""), stable_page_id("final", section_id))
 
 
 def build_document_pages_from_editor_payload(payload: Mapping[str, Any]) -> list[dict[str, Any]]:

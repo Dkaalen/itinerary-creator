@@ -558,13 +558,17 @@ def export_render_document_to_pdf(
     story = []
 
     with tempfile.TemporaryDirectory(prefix="itinerary_render_document_images_") as image_temp_dir:
-        _render_cover(render_document, story, styles, image_temp_dir)
-        if render_document.summary:
-            story.append(PageBreak())
+        hidden_page_ids = set(getattr(render_document, "hidden_page_ids", []) or [])
+        if "cover" not in hidden_page_ids:
+            _render_cover(render_document, story, styles, image_temp_dir)
+        if render_document.summary and "summary" not in hidden_page_ids:
+            if story:
+                story.append(PageBreak())
             _render_summary(render_document, story, styles, image_temp_dir)
 
         for day in render_document.days or []:
-            story.append(PageBreak())
+            if story:
+                story.append(PageBreak())
             story.append(
                 _build_one_page_day_flowable(
                     day,
@@ -577,7 +581,8 @@ def export_render_document_to_pdf(
             )
 
         for section in render_document.final_sections or []:
-            story.append(PageBreak())
+            if story:
+                story.append(PageBreak())
             _render_final_section(section, story, styles)
 
         if not story:

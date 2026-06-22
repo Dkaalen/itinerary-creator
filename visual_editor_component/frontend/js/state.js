@@ -6,6 +6,7 @@ let lastCommitNonce = null;
 let lastSavedPayload = '';
 // Browser-local autosave is immediate; server-side autosave is debounced and quiet.
 let activeEditKey = null;
+let activePageId = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
 let serverAutosaveTimer = null;
@@ -100,6 +101,11 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
     }
   });
   if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
+  if (Array.isArray(localDraft.document_pages)) {
+    merged.document_pages = JSON.parse(JSON.stringify(localDraft.document_pages));
+  } else if (Array.isArray(localDraft.editor_draft?.document_pages)) {
+    merged.document_pages = JSON.parse(JSON.stringify(localDraft.editor_draft.document_pages));
+  }
   if (localDraft.editor_draft) merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
   merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
