@@ -328,6 +328,221 @@ function finalPageId(sectionId) {
   if (sectionId === 'important_travel_notes') return 'final-important-travel-notes';
   return `final-${editorSlug(sectionId)}`;
 }
+
+function humanizeEditorToken(value) {
+  return String(value || '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/\b\w/g, ch => ch.toUpperCase())
+    .trim();
+}
+function contractPage(pageId) {
+  return documentPages().find(page => String(page?.page_id || '') === String(pageId || '')) || null;
+}
+function contractBlock(page, blockId) {
+  if (!page || !blockId) return null;
+  const blocks = [...(page.generated_blocks || []), ...(page.manual_blocks || [])];
+  return blocks.find(block => String(block?.block_id || '') === String(blockId || '')) || null;
+}
+function safeDayPageId(dayIndex) {
+  const index = Number(dayIndex || 0);
+  const day = Array.isArray(model?.days) ? model.days[index] : null;
+  if (typeof pageIdForDay === 'function') return pageIdForDay(day || {}, index);
+  return `day-${editorSlug(day?.day || day?.label || `Day ${index + 1}`)}`;
+}
+function finalPageIdForEditKey(key) {
+  if (key.includes('whats_included')) return finalPageId('whats_included');
+  if (key.includes('whats_not_included')) return finalPageId('whats_not_included');
+  if (key.includes('important_travel_notes')) return finalPageId('important_travel_notes');
+  return finalPageId('final');
+}
+function editorFieldLabel(key, explicitLabel = '') {
+  if (explicitLabel) return explicitLabel;
+  const tail = String(key || '').split('.').pop() || 'field';
+  return humanizeEditorToken(tail);
+}
+function inferEditorBlockMetaForKey(key, label = '') {
+  const editKey = String(key || '');
+  const meta = {
+    page_id: '',
+    page_title: '',
+    block_id: '',
+    block_type: 'text',
+    field_key: editKey,
+    field_label: editorFieldLabel(editKey, label),
+    source_row_ids: [],
+    validation_status: 'unknown',
+  };
+  let match = editKey.match(/^document_pages\.(\d+)\.manual_blocks\.(\d+)\.editable_fields\.(.+)$/);
+  if (match) {
+    const page = documentPages()[Number(match[1])] || {};
+    const block = (page.manual_blocks || [])[Number(match[2])] || {};
+    meta.page_id = page.page_id || '';
+    meta.page_title = page.title || 'Manual page';
+    meta.block_id = block.block_id || `${meta.page_id}__manual-${Number(match[2]) + 1}`;
+    meta.block_type = block.block_type || 'manual_text';
+    meta.source_row_ids = block.source_row_ids || [];
+    meta.validation_status = block.validation_status || page.validation_status || 'unknown';
+    return meta;
+  }
+  match = editKey.match(/^document_pages\.(\d+)\.title$/);
+  if (match) {
+    const page = documentPages()[Number(match[1])] || {};
+    meta.page_id = page.page_id || '';
+    meta.page_title = page.title || 'Manual page';
+    meta.block_id = `${meta.page_id || 'manual'}__title`;
+    meta.block_type = 'page_title';
+    meta.source_row_ids = page.source_row_ids || [];
+    meta.validation_status = page.validation_status || 'unknown';
+    return meta;
+  }
+  match = editKey.match(/^days\.(\d+)\.(.+)$/);
+  if (match) {
+    const dayIndex = Number(match[1]);
+    const field = match[2];
+    const pageId = safeDayPageId(dayIndex);
+    const page = contractPage(pageId) || {};
+    const blockId = field === 'blocks_html' ? `${pageId}__main` : `${pageId}__${editorSlug(field)}`;
+    const block = contractBlock(page, blockId) || contractBlock(page, `${pageId}__main`) || {};
+    meta.page_id = pageId;
+    meta.page_title = page.title || model?.days?.[dayIndex]?.day || `Day ${dayIndex + 1}`;
+    meta.block_id = blockId;
+    meta.block_type = field === 'blocks_html' ? (block.block_type || 'day_content') : 'day_field';
+    meta.source_row_ids = block.source_row_ids || page.source_row_ids || [];
+    meta.validation_status = block.validation_status || page.validation_status || 'unknown';
+    return meta;
+  }
+  if (editKey.startsWith('cover.')) {
+    const field = editKey.slice('cover.'.length);
+    const page = contractPage('cover') || {};
+    meta.page_id = 'cover';
+    meta.page_title = page.title || 'Cover';
+    meta.block_id = `cover__${editorSlug(field)}`;
+    meta.block_type = field.includes('image') ? 'image' : 'cover_field';
+    meta.source_row_ids = page.source_row_ids || [];
+    meta.validation_status = page.validation_status || 'unknown';
+    return meta;
+  }
+  if (editKey.startsWith('summary.')) {
+    const page = contractPage('summary') || {};
+    const field = editKey.slice('summary.'.length);
+    meta.page_id = 'summary';
+    meta.page_title = page.title || 'Trip summary';
+    meta.block_id = `summary__${editorSlug(field)}`;
+    meta.block_type = 'summary_field';
+    meta.source_row_ids = page.source_row_ids || [];
+    meta.validation_status = page.validation_status || 'unknown';
+    return meta;
+  }
+  if (editKey.startsWith('final_pages.')) {
+    const pageId = finalPageIdForEditKey(editKey);
+    const page = contractPage(pageId) || {};
+    const block = contractBlock(page, `${pageId}__main`) || {};
+    meta.page_id = pageId;
+    meta.page_title = page.title || 'Final section';
+    meta.block_id = `${pageId}__main`;
+    meta.block_type = block.block_type || 'final_section';
+    meta.source_row_ids = block.source_row_ids || page.source_row_ids || [];
+    meta.validation_status = block.validation_status || page.validation_status || 'unknown';
+    return meta;
+  }
+  return meta;
+}
+function editorBlockAttrs(key, label = '') {
+  const meta = inferEditorBlockMetaForKey(key, label);
+  return ` data-editor-page-id="${escAttr(meta.page_id)}" data-editor-block-id="${escAttr(meta.block_id)}" data-editor-block-type="${escAttr(meta.block_type)}" data-editor-field-key="${escAttr(meta.field_key)}" data-editor-field-label="${escAttr(meta.field_label)}"`;
+}
+function selectEditorPage(pageId) {
+  activePageId = pageId;
+  activeBlockId = null;
+  activeFieldKey = null;
+  updateSelectionUi();
+  updateRightInspector();
+}
+function selectEditorBlockFromElement(el) {
+  const target = el?.closest?.('[data-editor-block-id]') || el?.closest?.('[data-edit-key]');
+  if (!target) return;
+  const meta = inferEditorBlockMetaForKey(target.getAttribute('data-editor-field-key') || target.getAttribute('data-edit-key') || '', target.getAttribute('data-editor-field-label') || '');
+  activePageId = target.getAttribute('data-editor-page-id') || meta.page_id || target.closest('[data-page-id]')?.getAttribute('data-page-id') || activePageId;
+  activeBlockId = target.getAttribute('data-editor-block-id') || meta.block_id || '';
+  activeFieldKey = target.getAttribute('data-editor-field-key') || target.getAttribute('data-edit-key') || '';
+  updateSelectionUi();
+  updateRightInspector();
+}
+function selectedEditorElement() {
+  if (activeFieldKey) {
+    const byField = document.querySelector(`[data-editor-field-key="${CSS.escape(activeFieldKey)}"]`) || document.querySelector(`[data-edit-key="${CSS.escape(activeFieldKey)}"]`);
+    if (byField) return byField;
+  }
+  if (activeBlockId) return document.querySelector(`[data-editor-block-id="${CSS.escape(activeBlockId)}"]`);
+  return selectedEditable();
+}
+function updateSelectionUi() {
+  document.querySelectorAll('[data-page-id]').forEach(el => el.classList.toggle('selected-page', el.getAttribute('data-page-id') === activePageId));
+  document.querySelectorAll('[data-outline-page-id]').forEach(el => el.classList.toggle('active', el.getAttribute('data-outline-page-id') === activePageId));
+  document.querySelectorAll('[data-editor-block-id]').forEach(el => {
+    const blockMatch = activeBlockId && el.getAttribute('data-editor-block-id') === activeBlockId;
+    const fieldMatch = activeFieldKey && (el.getAttribute('data-editor-field-key') === activeFieldKey || el.getAttribute('data-edit-key') === activeFieldKey);
+    el.classList.toggle('selected-editor-block', !!(blockMatch && (!activeFieldKey || fieldMatch)));
+  });
+}
+function pageInspectorRows(page) {
+  const fields = Object.keys(page?.editable_fields || {});
+  const rows = fields.slice(0, 10).map(field => `<li>${esc(humanizeEditorToken(field))}</li>`).join('');
+  return rows || '<li>No direct editable fields exposed yet</li>';
+}
+function selectedInspectorMeta() {
+  const el = selectedEditorElement();
+  const fieldKey = activeFieldKey || el?.getAttribute?.('data-editor-field-key') || el?.getAttribute?.('data-edit-key') || '';
+  const meta = inferEditorBlockMetaForKey(fieldKey, el?.getAttribute?.('data-editor-field-label') || '');
+  const page = contractPage(activePageId || meta.page_id) || {};
+  const block = contractBlock(page, activeBlockId || meta.block_id) || {};
+  return {el, fieldKey, meta, page, block};
+}
+function renderSourceRows(sourceRowIds) {
+  const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
+  if (!ids.length) return '<span class="empty-source">No source rows linked</span>';
+  return ids.slice(0, 8).map(id => `<span class="source-chip">${esc(id)}</span>`).join('');
+}
+function renderRightInspector() {
+  const {fieldKey, meta, page, block} = selectedInspectorMeta();
+  const pageTitle = page?.title || meta.page_title || 'No page selected';
+  const pageType = pageTypeLabel(page || {page_type: meta.block_type});
+  const hasBlock = !!(fieldKey || activeBlockId);
+  const sourceRows = block?.source_row_ids || meta.source_row_ids || page?.source_row_ids || [];
+  const blockFields = Object.keys(block?.editable_fields || {});
+  const selectedFieldHtml = hasBlock
+    ? `<div class="inspector-card selected"><div class="inspector-kicker">Selected block</div><strong>${esc(meta.field_label || block.title || 'Editable field')}</strong><dl><dt>Type</dt><dd>${esc(humanizeEditorToken(block.block_type || meta.block_type))}</dd><dt>Field</dt><dd>${esc(fieldKey || '—')}</dd><dt>Block ID</dt><dd>${esc(activeBlockId || meta.block_id || '—')}</dd></dl></div>`
+    : `<div class="inspector-card empty"><strong>Select text, an image, or a page</strong><p>Click any editable block on the canvas to inspect its source, page, and future formatting controls.</p></div>`;
+  const fieldList = blockFields.length
+    ? blockFields.map(field => `<li>${esc(humanizeEditorToken(field))}</li>`).join('')
+    : pageInspectorRows(page);
+  return `<aside class="right-inspector" aria-label="Selected block inspector">
+    <div class="inspector-title"><strong>Inspector</strong><span>${hasBlock ? 'Block' : 'Page'}</span></div>
+    <div class="inspector-card"><div class="inspector-kicker">Page</div><strong>${esc(pageTitle)}</strong><dl><dt>Type</dt><dd>${esc(pageType)}</dd><dt>Page ID</dt><dd>${esc(page?.page_id || meta.page_id || '—')}</dd></dl></div>
+    ${selectedFieldHtml}
+    <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
+    <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
+    <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
+    <p class="inspector-hint">Next patches will plug text, layout, and image controls into this same selected block contract.</p>
+  </aside>`;
+}
+function updateRightInspector() {
+  const inspector = document.querySelector('.right-inspector');
+  if (!inspector) return;
+  inspector.outerHTML = renderRightInspector();
+  attachInspectorHandlers();
+  requestAnimationFrame(() => Streamlit.setFrameHeight(document.body.scrollHeight + 20));
+}
+function attachInspectorHandlers() {
+  document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedBlock);
+  document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);
+  document.getElementById('inspectorClearSelectionBtn')?.addEventListener('click', () => {
+    activeBlockId = null;
+    activeFieldKey = null;
+    updateSelectionUi();
+    updateRightInspector();
+  });
+}
 function maxDocumentPageOrder() {
   return sortedDocumentPages().reduce((max, page) => Math.max(max, Number(page?.sort_order || 0)), 0);
 }
@@ -426,12 +641,11 @@ function moveManualPage(pageId, direction) {
   scrollToPage(pageId);
 }
 function scrollToPage(pageId) {
-  activePageId = pageId;
+  selectEditorPage(pageId);
   requestAnimationFrame(() => {
     const target = document.querySelector(`[data-page-id="${CSS.escape(pageId)}"]`);
     if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
-    document.querySelectorAll('[data-page-id]').forEach(el => el.classList.toggle('selected-page', el.getAttribute('data-page-id') === pageId));
-    document.querySelectorAll('[data-outline-page-id]').forEach(el => el.classList.toggle('active', el.getAttribute('data-outline-page-id') === pageId));
+    updateSelectionUi();
   });
 }
 function pageChrome(pageId, label, bodyHtml, options = {}) {

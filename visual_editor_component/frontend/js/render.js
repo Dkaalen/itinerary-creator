@@ -1,9 +1,11 @@
 function coverImageControls(key, label, image) {
   if (!picturesAdded()) return '';
   const img = image || {};
+  const imagePageId = key === 'summary_image' ? 'summary' : 'cover';
+  const imageBlockAttrs = ` data-editor-page-id="${escAttr(imagePageId)}" data-editor-block-id="${escAttr(imagePageId)}__${escAttr(editorSlug(key))}" data-editor-block-type="image" data-editor-field-key="cover.${escAttr(key)}" data-editor-field-label="${escAttr(label)}"`;
   const options = img.options || [];
   const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
-  return `<div class="cover-image-panel" data-cover-image-key="${esc(key)}">
+  return `<div class="cover-image-panel" data-cover-image-key="${esc(key)}"${imageBlockAttrs}>
     <strong>${esc(label)}</strong>
     <button type="button" data-cover-img-action="auto" data-cover-img-key="${esc(key)}">Automatic</button>
     <button type="button" class="danger" data-cover-img-action="none" data-cover-img-key="${esc(key)}">Remove</button>
@@ -260,7 +262,7 @@ function draw() {
   h += finalHtmlPage('Excluded', "What's not included", 'whats_not_included_html', model.final_pages?.whats_not_included_html || listTextToHtml(model.final_pages?.whats_not_included_text || ''));
   h += finalTextPage('Notes', 'Important travel notes', 'important_travel_notes_text', model.final_pages?.important_travel_notes_text || '');
   h += renderManualPages();
-  h += `</div></div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
+  h += `</div>${renderRightInspector()}</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
   requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); Streamlit.setFrameHeight(document.body.scrollHeight + 20); });

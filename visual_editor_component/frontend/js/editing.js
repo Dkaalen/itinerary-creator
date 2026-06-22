@@ -126,11 +126,25 @@ function attachHandlers() {
       if (action === 'delete') deleteInclusionPage(idx);
     });
   });
+  document.querySelectorAll('[data-page-id]').forEach(pageEl => {
+    pageEl.addEventListener('click', event => {
+      if (event.target?.closest?.('button,select,input,label,[data-editor-block-id],[data-edit-key]')) return;
+      selectEditorPage(pageEl.getAttribute('data-page-id'));
+    });
+  });
+  document.querySelectorAll('[data-editor-block-id]').forEach(el => {
+    el.addEventListener('click', event => {
+      if (event.target?.closest?.('button,select,input,label')) return;
+      selectEditorBlockFromElement(el);
+    });
+  });
+  attachInspectorHandlers();
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
     el.dataset.lastValue = editableValue(el);
     el.addEventListener('focus', () => {
       activeEditKey = key;
+      selectEditorBlockFromElement(el);
       el.dataset.lastValue = editableValue(el);
     });
     el.addEventListener('paste', insertCleanClipboardHtml);
@@ -142,10 +156,12 @@ function attachHandlers() {
         el.dataset.lastValue = current;
       }
       markTouched(key);
-      requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); });
+      activeFieldKey = key;
+      requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateRightInspector(); });
     });
   });
   updateEditorStats();
+  updateSelectionUi();
 
   document.querySelectorAll('[data-cover-img-action]').forEach(btn => {
     btn.addEventListener('click', () => {

@@ -7,6 +7,8 @@ let lastSavedPayload = '';
 // Browser-local autosave is immediate; server-side autosave is debounced and quiet.
 let activeEditKey = null;
 let activePageId = null;
+let activeBlockId = null;
+let activeFieldKey = null;
 let undoStack = [];
 let restoredLocalDraftPendingSave = false;
 let serverAutosaveTimer = null;
@@ -141,14 +143,14 @@ function restoreLocalDraftIfAvailable() {
 function clearLocalDraft() {
   try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
 }
-function editableText(value, key, cls='') {
-  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</div>`;
+function editableText(value, key, cls='', label='') {
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${esc(value)}</div>`;
 }
-function editableSpan(value, key, cls='') {
-  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${esc(value)}</span>`;
+function editableSpan(value, key, cls='', label='') {
+  return `<span class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${esc(value)}</span>`;
 }
-function editableHtml(value, key, cls='') {
-  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}">${value || ''}</div>`;
+function editableHtml(value, key, cls='', label='') {
+  return `<div class="${cls}" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${value || ''}</div>`;
 }
 function splitRouteParts(value) {
   return String(value || '').replace(/\s*\n+\s*/g, ' · ').split('·').map(p => p.trim()).filter(Boolean);
@@ -160,6 +162,6 @@ function routeHtml(value) {
   const pair = `<span class="cover-destination-pair">${esc(parts[parts.length - 2])}&nbsp;·&nbsp;${esc(parts[parts.length - 1])}</span>`;
   return `<span class="cover-route-line">${first}</span><span class="cover-route-line">${pair}</span>`;
 }
-function editableRoute(value, key, cls='') {
-  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}">${routeHtml(value)}</div>`;
+function editableRoute(value, key, cls='', label='Route') {
+  return `<div class="${cls} editable-inline" contenteditable="true" data-edit-key="${esc(key)}"${editorBlockAttrs(key, label)}>${routeHtml(value)}</div>`;
 }
