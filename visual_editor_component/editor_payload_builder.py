@@ -48,6 +48,7 @@ from itinerary_generation.editable_draft import (
     normalise_editable_draft,
     section_by_id,
 )
+from itinerary_generation.editor_page_contract import build_editor_document_pages
 
 
 def _source_signature(parsed_rows, grouped_days):
@@ -390,6 +391,11 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         "workflow": {"pictures_added": pictures_added},
         "model_warnings": model_warnings,
     }
+    payload["document_pages"] = build_editor_document_pages(
+        payload=payload,
+        grouped_days=grouped_days,
+        existing_pages=stored_editor_draft.get("document_pages"),
+    )
     payload["editor_draft"] = normalise_editable_draft(payload)
     output_warnings = _client_output_warnings_for_payload(payload)
     for warning in model_warnings:

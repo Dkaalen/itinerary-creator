@@ -115,3 +115,62 @@ def test_frontend_contains_quiet_server_autosave_contract():
     assert "sendServerAutosaveNow" in source
     assert "Changes autosave quietly while you work" in source
     assert "Autosaving…" in source
+
+
+def test_server_autosave_uses_delta_payload_not_full_commit_model():
+    source = _frontend_source()
+    start = source.index("function buildServerAutosaveEnvelope")
+    body = source[start:source.index("}", start) + 1]
+
+    assert "const payload = pruneForSave(model);" in body
+    assert "compactFullPayloadForCommit(model)" not in body
+    assert "save_mode = 'delta'" in source
+    assert "delta: true" in source
+
+
+def test_autosaved_delta_payload_merges_with_existing_editor_state(tmp_path, monkeypatch):
+    editor_workflow.st.session_state = {}
+    monkeypatch.setenv("ITINERARY_DRAFT_AUTOSAVE_DIR", str(tmp_path))
+    output_edits = {
+        "draft_id": "delta-draft",
+        "days": {"Day 1": {"title": "Old title", "blocks_html": "<div>Old block</div>"}},
+        "editor_draft": {
+            "schema_version": 3,
+            "days": [
+                {
+                    "day_id": "Day 1",
+                    "title": "Old title",
+                    "blocks": [{"block_id": "main", "kind": "day_content", "content_html": "<div>Old block</div>"}],
+                }
+            ],
+            "final_sections": [],
+            "document_pages": [],
+            "workflow": {},
+            "issue_flags": [],
+        },
+    }
+    result = json.dumps({
+        "autosave": True,
+        "delta": True,
+        "payload": {
+            "draft_id": "delta-draft",
+            "meta": {"source_signature": "sig-delta"},
+            "save_mode": "delta",
+            "days": [{"day": "Day 1", "title": "New title"}],
+            "editor_draft": {
+                "schema_version": 3,
+                "days": [{"day_id": "Day 1", "title": "New title"}],
+                "final_sections": [],
+                "document_pages": [],
+                "workflow": {},
+                "issue_flags": [],
+            },
+        },
+    })
+
+    assert apply_visual_editor_result(result, output_edits)
+
+    assert output_edits["days"]["Day 1"]["title"] == "New title"
+    assert output_edits["days"]["Day 1"]["blocks_html"] == "<div>Old block</div>"
+    saved = load_autosave_payload("delta-draft", source_signature="sig-delta", base_dir=tmp_path)
+    assert saved["save_mode"] == "delta"

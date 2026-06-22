@@ -12,7 +12,9 @@ from app_modules.workflow_state import (
     reset_workflow_state,
 )
 from app_modules.workflow_actions import load_project
-from app_modules.itinerary_html import build_itinerary_html
+from app_modules.itinerary_html import build_itinerary_html_from_context
+from app_modules.itinerary_render_context import build_itinerary_render_context
+from app_modules.render_context_cache import store_render_context
 from app_modules.validation_gate import (
     block_generation,
     render_blocking_issues,
@@ -74,11 +76,13 @@ def rebuild_current_preview(mark_pdf_dirty=True, force=False, save_html=True):
 
     edited_rows = apply_output_edits(parsed_rows, output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
-    rebuilt_html = build_itinerary_html(edited_rows, edited_grouped_days, output_edits)
+    render_context = build_itinerary_render_context(edited_rows, edited_grouped_days, output_edits)
+    rebuilt_html = build_itinerary_html_from_context(render_context)
 
     html_changed = rebuilt_html != st.session_state.get("itinerary_html", "")
     st.session_state.itinerary_html = rebuilt_html
     st.session_state.preview_signature = render_signature
+    store_render_context(st.session_state, signature=render_signature, context=render_context)
 
     if mark_pdf_dirty and html_changed:
         mark_pdf_dirty_state(st.session_state, status="Needs refresh")

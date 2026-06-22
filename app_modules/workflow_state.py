@@ -53,6 +53,8 @@ RESET_PROJECT_KEYS = (
     "last_generated_raw_text",
     "parser_diagnostics",
     "preview_signature",
+    "_preview_render_context",
+    "_preview_render_context_signature",
     "pdf_signature",
     "export_pdf_signature",
     "_last_visual_editor_result",

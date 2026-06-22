@@ -41,8 +41,9 @@ def _raise_for_blocking_client_output(context) -> None:
         raise ValueError(f"Client output quality gate blocked itinerary generation: {details}")
 
 
-def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
-    context = build_itinerary_render_context(parsed_rows, grouped_days, output_edits or {})
+def build_itinerary_html_from_context(context):
+    """Render preview HTML from an already-built itinerary render context."""
+
     _raise_for_blocking_client_output(context)
     colors_json = esc(json.dumps(context.colors))
 
@@ -98,3 +99,8 @@ def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
     html_text += "</div>"
 
     return html_text
+
+
+def build_itinerary_html(parsed_rows, grouped_days, output_edits=None):
+    context = build_itinerary_render_context(parsed_rows, grouped_days, output_edits or {})
+    return build_itinerary_html_from_context(context)

@@ -17,7 +17,9 @@ from app_modules.editor_commit import (
     clear_add_pictures_editor_commit_request,
 )
 from app_modules.image_gateway import connect_image_bank_for_picture_stage
-from app_modules.itinerary_html import build_itinerary_html
+from app_modules.itinerary_html import build_itinerary_html_from_context
+from app_modules.itinerary_render_context import build_itinerary_render_context
+from app_modules.render_context_cache import store_render_context
 from app_modules.parse_workflow import get_duplicate_count, get_overflow_warnings, parse_and_normalize_itinerary
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_state import (
@@ -81,8 +83,10 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
 
     edited_rows = apply_output_edits(parsed_rows, output_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
-    state["itinerary_html"] = build_itinerary_html(edited_rows, edited_grouped_days, output_edits)
+    render_context = build_itinerary_render_context(edited_rows, edited_grouped_days, output_edits)
+    state["itinerary_html"] = build_itinerary_html_from_context(render_context)
     state["preview_signature"] = make_render_signature(parsed_rows, output_edits)
+    store_render_context(state, signature=state["preview_signature"], context=render_context)
     state["html_path"] = save_html_file(state["itinerary_html"])
     state["generation_duplicate_count"] = duplicate_count
     state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
@@ -147,8 +151,10 @@ def load_project(
 
     edited_rows = apply_output_edits(parsed_rows, loaded_edits)
     edited_grouped_days = group_rows_by_day(edited_rows)
-    state["itinerary_html"] = build_itinerary_html(edited_rows, edited_grouped_days, loaded_edits)
+    render_context = build_itinerary_render_context(edited_rows, edited_grouped_days, loaded_edits)
+    state["itinerary_html"] = build_itinerary_html_from_context(render_context)
     state["preview_signature"] = make_render_signature(parsed_rows, loaded_edits)
+    store_render_context(state, signature=state["preview_signature"], context=render_context)
     state["html_path"] = save_html_file(state["itinerary_html"])
     state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
     stage = set_workflow_stage(state, "pictures" if pictures_are_added(loaded_edits) else "edit")

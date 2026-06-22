@@ -13,6 +13,7 @@ import streamlit as st
 
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.itinerary_render_context import build_itinerary_render_context
+from app_modules.render_context_cache import get_cached_render_context, store_render_context
 from app_modules.project_io import rebuild_current_preview
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state
@@ -141,16 +142,23 @@ def create_pdf_from_current_preview() -> bool:
         st.session_state.pdf_status = "Ready"
         return True
 
-    edited_rows_for_pdf = apply_output_edits(
-        st.session_state.get("parsed_rows", []) or [],
-        st.session_state.get("output_edits", {}) or {},
+    pdf_render_context = get_cached_render_context(
+        st.session_state,
+        signature=current_pdf_signature,
     )
-    grouped_days_for_pdf = group_rows_by_day(edited_rows_for_pdf)
-    pdf_render_context = build_itinerary_render_context(
-        edited_rows_for_pdf,
-        grouped_days_for_pdf,
-        st.session_state.get("output_edits", {}) or {},
-    )
+    if pdf_render_context is None:
+        edited_rows_for_pdf = apply_output_edits(
+            st.session_state.get("parsed_rows", []) or [],
+            st.session_state.get("output_edits", {}) or {},
+        )
+        grouped_days_for_pdf = group_rows_by_day(edited_rows_for_pdf)
+        pdf_render_context = build_itinerary_render_context(
+            edited_rows_for_pdf,
+            grouped_days_for_pdf,
+            st.session_state.get("output_edits", {}) or {},
+        )
+        store_render_context(st.session_state, signature=current_pdf_signature, context=pdf_render_context)
+    grouped_days_for_pdf = pdf_render_context.grouped_days
     day_image_crop_focus = {
         day: get_day_image_crop_focus(st.session_state.get("output_edits", {}) or {}, day)
         for day in grouped_days_for_pdf

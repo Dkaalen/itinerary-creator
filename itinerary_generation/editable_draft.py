@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping
 
+from itinerary_generation.editor_page_contract import build_document_pages_from_editor_payload
+
 
 DRAFT_SCHEMA_VERSION = 3
 
@@ -68,6 +70,7 @@ class EditableDraft:
     summary: dict[str, Any] = field(default_factory=dict)
     days: tuple[EditableDay, ...] = ()
     final_sections: tuple[EditableFinalSection, ...] = ()
+    document_pages: tuple[dict[str, Any], ...] = ()
     workflow: dict[str, Any] = field(default_factory=dict)
     issue_flags: tuple[dict[str, Any], ...] = ()
 
@@ -224,6 +227,7 @@ def normalise_editable_draft(data: Mapping[str, Any]) -> dict[str, Any]:
         summary=_as_dict(source.get("summary")),
         days=days,
         final_sections=_normalise_final_sections(source),
+        document_pages=tuple(page for page in build_document_pages_from_editor_payload(source) if isinstance(page, Mapping)),
         workflow=_as_dict(source.get("workflow")),
         issue_flags=issue_flags,
     )
@@ -306,6 +310,7 @@ def merge_editable_drafts(existing: Mapping[str, Any] | None, incoming: Mapping[
         "summary": _merge_mapping(existing_draft.get("summary"), incoming_draft.get("summary")),
         "days": [],
         "final_sections": [],
+        "document_pages": [],
         "workflow": _merge_mapping(existing_draft.get("workflow"), incoming_draft.get("workflow")),
         "issue_flags": [],
     }
@@ -339,6 +344,10 @@ def merge_editable_drafts(existing: Mapping[str, Any] | None, incoming: Mapping[
             section_indexes[section_id] = len(sections)
             sections.append(copied)
     merged["final_sections"] = sections
+
+    incoming_pages = incoming_draft.get("document_pages") if isinstance(incoming_draft.get("document_pages"), (list, tuple)) else []
+    existing_pages = existing_draft.get("document_pages") if isinstance(existing_draft.get("document_pages"), (list, tuple)) else []
+    merged["document_pages"] = list(incoming_pages or existing_pages or [])
 
     seen_flags: set[tuple[str, str, str]] = set()
     flags: list[dict[str, Any]] = []

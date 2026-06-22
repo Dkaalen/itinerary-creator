@@ -43,6 +43,7 @@ function buildEditableDraftFromPayload(value) {
     summary: source.summary || {},
     days: [],
     final_sections: [],
+    document_pages: Array.isArray(source.document_pages) ? JSON.parse(JSON.stringify(source.document_pages)) : [],
     workflow: source.workflow || {},
     issue_flags: Array.isArray(source.issue_flags) ? source.issue_flags : []
   };
@@ -136,7 +137,10 @@ function pruneForSave(value) {
     }
   });
 
-  if (touchedKeys.size) payload.editor_draft = buildEditableDraftFromPayload(payload);
+  if (touchedKeys.size) {
+    payload.document_pages = Array.isArray(full.document_pages) ? JSON.parse(JSON.stringify(full.document_pages)) : [];
+    payload.editor_draft = buildEditableDraftFromPayload(payload);
+  }
   return payload;
 }
 
@@ -147,6 +151,7 @@ function compactFullPayloadForCommit(value) {
   (full.days || []).forEach(day => {
     if (day.image) day.image = compactImage(day.image);
   });
+  full.document_pages = Array.isArray(full.document_pages) ? full.document_pages : [];
   full.editor_draft = buildEditableDraftFromPayload(full);
   return full;
 }
@@ -165,6 +170,14 @@ function buildSaveEnvelope(commitNonce = null) {
 
 function buildServerAutosaveEnvelope() {
   collect();
-  const payload = compactFullPayloadForCommit(model);
-  return JSON.stringify({autosave: true, payload});
+  const payload = pruneForSave(model);
+  // Server autosave is intentionally delta-based. Keep only changed fields plus
+  // the small identity metadata needed for safe recovery/merge. PDF export still
+  // sends the full visible model through compactFullPayloadForCommit().
+  payload.draft_id = model.draft_id || '';
+  payload.meta = model.meta || {};
+  payload.workflow = model.workflow || {};
+  payload.save_mode = 'delta';
+  if (!payload.editor_draft) payload.editor_draft = buildEditableDraftFromPayload(payload);
+  return JSON.stringify({autosave: true, delta: true, payload});
 }
