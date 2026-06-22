@@ -62,6 +62,26 @@
     .warning-panel li span { display: block; color: #2f3b4a; }
     .warning-panel li em { display: block; color: #6b7280; font-style: normal; margin-top: 2px; }
     .warning-panel-more { padding: 0 12px 10px 30px; color: #6d4200; font-size: 11.5px; font-weight: 800; }
+    .stat-pill.pdf-readiness { border-color: rgba(31,52,70,.18); background: rgba(31,52,70,.06); color: #1f3446; }
+    .stat-pill.pdf-readiness.ready { border-color: rgba(46,125,50,.22); background: rgba(46,125,50,.10); color: #245c2a; }
+    .stat-pill.pdf-readiness.review { border-color: rgba(173,52,52,.28); background: rgba(173,52,52,.10); color: #7a1c1c; }
+    .stat-pill.pdf-readiness.info { border-color: rgba(62,94,140,.22); background: rgba(62,94,140,.10); color: #28496c; }
+    .pdf-readiness-panel { grid-column: 1 / -1; width: 100%; margin-top: 2px; border: 1px solid rgba(31,52,70,.14); border-radius: 16px; background: rgba(31,52,70,.045); text-align: left; }
+    .pdf-readiness-panel.review { border-color: rgba(173,52,52,.28); background: rgba(173,52,52,.075); }
+    .pdf-readiness-panel.ready { border-color: rgba(46,125,50,.22); background: rgba(46,125,50,.075); }
+    .pdf-readiness-panel.info { border-color: rgba(62,94,140,.22); background: rgba(62,94,140,.075); }
+    .pdf-readiness-panel summary { padding: 9px 12px; cursor: pointer; color: #1f3446; font-size: 12px; font-weight: 900; }
+    .pdf-readiness-panel ul { margin: 0; padding: 0 12px 10px 30px; }
+    .pdf-readiness-panel li { margin: 7px 0; color: #263241; font-size: 12px; line-height: 1.35; }
+    .pdf-readiness-panel li strong { display: inline-block; margin-right: 7px; color: #1f3446; }
+    .pdf-readiness-panel li span { display: block; color: #2f3b4a; }
+    .pdf-readiness-panel li em { display: block; color: #6b7280; font-style: normal; margin-top: 2px; }
+    .readiness-empty { list-style: none; margin-left: -18px; color: #245c2a; font-weight: 800; }
+    .readiness-more { padding: 0 12px 10px 30px; color: #28496c; font-size: 11.5px; font-weight: 800; }
+    button.mini { padding: 4px 8px; border-radius: 999px; font-size: 11px; margin-top: 6px; }
+    .validation-card p { margin: 0; color: #526070; font-size: 12px; line-height: 1.35; }
+    .validation-card .inspector-warning-list li strong { display: block; color: #7a3f00; }
+    .validation-card .inspector-warning-list li span { display: block; color: #526070; }
     button, select, input[type="text"] {
       border: 1px solid var(--border);
       border-radius: 999px;

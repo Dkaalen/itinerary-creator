@@ -118,6 +118,13 @@ function attachHandlers() {
       if (action === 'move-down') moveManualPage(pageId, 1);
     });
   });
+  document.querySelectorAll('[data-warning-page-id], [data-readiness-page-id]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      const pageId = btn.getAttribute('data-warning-page-id') || btn.getAttribute('data-readiness-page-id');
+      if (pageId) scrollToPage(pageId);
+    });
+  });
   document.querySelectorAll('[data-page-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.getAttribute('data-page-index'));

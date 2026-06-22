@@ -921,6 +921,7 @@ function renderRightInspector() {
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
     ${renderInspectorLayoutTools(hasBlock, page, block)}
+    <div class="inspector-card validation-card"><div class="inspector-kicker">Validation</div>${selectedPageValidationHtml(page)}</div>
     <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
     <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
     <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
@@ -1195,6 +1196,12 @@ function highlightWarnings() {
 function updateEditorStats() {
   const editCount = document.getElementById('editCount');
   if (editCount) editCount.textContent = `${touchedKeys.size} manual edits pending`;
+  const readinessBadge = document.getElementById('pdfReadinessBadge');
+  if (readinessBadge) {
+    const status = pdfReadinessStatus();
+    readinessBadge.textContent = status.label;
+    readinessBadge.className = `stat-pill pdf-readiness ${status.level}`;
+  }
   highlightWarnings();
 }
 
