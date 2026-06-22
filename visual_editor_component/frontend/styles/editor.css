@@ -1588,3 +1588,95 @@
     overflow-x: auto;
   }
 }
+
+/* UI19 usability correction: canvas-first layout with a lean formatting sidebar */
+.editor-shell {
+  overflow: visible;
+}
+.editor-workspace {
+  grid-template-columns: minmax(var(--page-w), var(--page-w)) minmax(248px, 276px);
+  grid-template-areas: "canvas inspector";
+  align-items: start;
+  width: max-content;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+.page-stack {
+  grid-area: canvas;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+.right-inspector {
+  grid-area: inspector;
+  position: sticky !important;
+  top: 96px;
+  align-self: start;
+  height: auto;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+}
+.right-inspector .inspector-card.selected,
+.right-inspector .page-context-card,
+.right-inspector .field-list-card,
+.right-inspector .source-card,
+.right-inspector .validation-card,
+.right-inspector .actions-card,
+.right-inspector .layout-tools-card,
+.right-inspector .field-editor-card,
+.right-inspector .compare-card {
+  display: none !important;
+}
+.right-inspector .text-tools-card {
+  margin-bottom: 0;
+}
+.selected-editor-block {
+  position: static !important;
+  box-shadow: none !important;
+  outline: 2px solid rgba(0,111,107,.56);
+  outline-offset: 2px;
+  background: rgba(0,111,107,.045) !important;
+}
+.selected-editor-block::after {
+  content: none !important;
+  display: none !important;
+}
+.text-tools-card select:not(:disabled),
+.text-tools-card button:not(:disabled) {
+  cursor: pointer;
+}
+.text-tools-card p {
+  color: var(--muted);
+}
+@media (max-width: 1120px) {
+  .editor-workspace {
+    width: max-content;
+    max-width: none;
+    overflow: visible;
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+}
+@media (max-width: 860px) {
+  .editor-workspace {
+    grid-template-columns: minmax(var(--page-w), var(--page-w)) minmax(236px, 260px);
+    grid-template-areas: "canvas inspector";
+    width: max-content;
+    max-width: none;
+  }
+  .right-inspector {
+    top: 82px;
+    max-height: calc(100vh - 96px);
+  }
+  .page-stack {
+    width: var(--page-w);
+    min-width: var(--page-w);
+    max-width: var(--page-w);
+    height: auto;
+  }
+}

@@ -31,10 +31,10 @@ def test_ui18_protects_canvas_with_internal_workspace_scroll():
 
     assert "grid-template-columns: minmax(var(--page-w), var(--page-w)) minmax(270px, 292px)" in source
     assert 'grid-template-areas: "canvas inspector"' in source
-    assert "height: calc(100vh - 164px)" in source
+    assert "height: auto" in source
     assert ".page-stack .page-wrap" in source
     assert "width: var(--page-w)" in source
-    assert "overflow-y: auto" in source
+    assert "overflow: visible" in source
     assert "overflow-x: hidden" in source
 
 
@@ -43,8 +43,8 @@ def test_ui18_keeps_formatting_sidebar_visible_while_canvas_scrolls():
 
     assert ".right-inspector" in source
     assert "position: sticky !important" in source
-    assert "height: 100%" in source
-    assert "max-height: 100%" in source
+    assert "height: auto" in source
+    assert "max-height: calc(100vh - 112px)" in source
     assert "overflow-y: auto" in source
     assert "grid-area: inspector" in source
 
@@ -74,5 +74,5 @@ def test_ui18_inspector_keeps_word_style_formatting_tools_visible():
     assert "inspectorColorPreset" in source
     assert "inspectorCompactSpacingBtn" in source
     assert "inspectorNormalSpacingBtn" in source
-    assert "Font, size, and color apply on the canvas" in source
+    assert "Formatting applies to the selected canvas text" in source
     assert "if (!canStyle) return '';" not in source

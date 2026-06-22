@@ -119,7 +119,7 @@ function isRichEditable(el) {
 function richEditableContext() {
   const editable = selectedEditable();
   if (!isRichEditable(editable)) {
-    notifyEditor('Select a day or final-page content block first. Cover and title fields keep their fixed PDF styles.');
+    notifyEditor('Select a rich day, final-page, or manual content block first.');
     return null;
   }
   return editable;
@@ -142,6 +142,7 @@ function selectedNodeInside(editable) {
   return null;
 }
 function selectedStyleTarget(editable) {
+  if (!editable) return null;
   let node = selectedNodeInside(editable);
   let candidate = node?.closest?.('li,.body-text,.section-title,.row-type,.meta-line,p,span');
   if (candidate && candidate !== editable && editable.contains(candidate) && !candidate.classList.contains('source-row-marker')) return candidate;
@@ -149,19 +150,21 @@ function selectedStyleTarget(editable) {
   candidate = editable.querySelector('li,.body-text,.section-title,.row-type,.meta-line,p,span');
   if (candidate && !candidate.classList.contains('source-row-marker')) return candidate;
 
-  const text = editable.textContent || '';
-  if (text.trim() && !editable.children.length) {
-    editable.innerHTML = `<div class="body-text">${esc(text.trim())}</div>`;
-    return editable.querySelector('.body-text');
-  }
-  return null;
+  // Plain title/cover/summary fields are already editable on the canvas.
+  // Do not wrap or rewrite their DOM just to apply formatting; that caused
+  // selection jitter and made typing unreliable. Apply the class to the
+  // editable element itself so the current text and future typing inherit it.
+  return editable;
 }
 function applyClassPreset(className, classGroup) {
-  const editable = richEditableContext();
-  if (!editable) return;
+  const editable = selectedTextToolEditable();
+  if (!editable) {
+    notifyEditor('Select text on the canvas first.');
+    return;
+  }
   const target = selectedStyleTarget(editable);
   if (!target) {
-    notifyEditor('Place the cursor in a text line first.');
+    notifyEditor('Place the cursor in text first.');
     return;
   }
   pushUndo(editable, editableValue(editable));
@@ -190,10 +193,12 @@ function applySpacingPreset(preset) {
   applyClassPreset(mapping[preset] ?? '', CONTROLLED_SPACING_CLASSES);
 }
 function selectedTextToolEditable() {
-  const el = selectedEditorElement() || selectedEditable();
-  if (isRichEditable(el)) return el;
+  const focused = selectedEditable();
+  if (focused?.matches?.('[data-edit-key]')) return focused;
+  const el = selectedEditorElement();
+  if (el?.matches?.('[data-edit-key]')) return el;
   const nested = el?.querySelector?.('[data-edit-key]');
-  if (isRichEditable(nested)) return nested;
+  if (nested?.matches?.('[data-edit-key]')) return nested;
   return null;
 }
 function selectedTextToolTarget() {
@@ -207,12 +212,12 @@ function canUsePdfSafeTextTools() {
 function clearSelectedFormatting() {
   const editable = selectedTextToolEditable();
   if (!editable) {
-    notifyEditor('Select a rich text content block first. This keeps fixed cover/day-title PDF styles safe.');
+    notifyEditor('Select text on the canvas first.');
     return;
   }
   const target = selectedStyleTarget(editable);
   if (!target) {
-    notifyEditor('Place the cursor in a text line first.');
+    notifyEditor('Place the cursor in text first.');
     return;
   }
   pushUndo(editable, editableValue(editable));

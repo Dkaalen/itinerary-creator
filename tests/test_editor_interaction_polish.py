@@ -49,11 +49,12 @@ def test_ui17_restores_inline_page_header_controls():
     assert '<summary>Page menu</summary>' not in source
 
 
-def test_ui16_compacts_page_context_and_strengthens_selection_state():
+def test_ui19_removes_sidebar_metadata_bloat_and_uses_non_jitter_selection():
     source = _frontend_source()
+    render_right = source[source.index("function renderRightInspector"):]
 
     assert "page-context-card" in source
-    assert '<details class="inspector-card page-context-card' in source
-    assert ".page-context-card:not([open])" in source
+    assert '<details class="inspector-card page-context-card' not in render_right
+    assert ".right-inspector .page-context-card" in source
     assert ".selected-editor-block" in source
-    assert 'content: "Selected"' in source
+    assert "content: none !important" in source

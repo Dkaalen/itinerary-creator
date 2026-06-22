@@ -32,7 +32,7 @@ def test_right_inspector_does_not_render_text_content_editor_by_default():
     assert "data-inspector-edit-key" in source
     assert "${renderInspectorFieldEditor(fieldKey)}" not in render_right
     assert "${renderInspectorCompareTools(fieldKey, fieldEntries)}" not in render_right
-    assert "Font, size, and color apply on the canvas" in source
+    assert "Formatting applies to the selected canvas text" in source
 
 
 def test_right_inspector_lists_and_selects_editable_fields():
@@ -46,14 +46,15 @@ def test_right_inspector_lists_and_selects_editable_fields():
     assert "inspector-field-row" in source
 
 
-def test_field_reset_controls_are_available_per_selected_field():
+def test_field_reset_controls_are_kept_out_of_default_sidebar():
     source = _frontend_source()
+    render_right = source[source.index("function renderRightInspector"):]
 
     assert "resetFieldByKey" in source
     assert "resetSelectedInspectorField" in source
     assert "data-inspector-reset-field-key" in source
     assert "inspectorResetSingleFieldBtn" in source
-    assert "Reset selected field" in source
+    assert "Reset selected field" not in render_right
 
 
 def test_field_inspector_covers_core_page_types():

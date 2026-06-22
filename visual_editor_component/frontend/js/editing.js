@@ -230,7 +230,7 @@ function attachHandlers() {
       }
       markTouched(key);
       activeFieldKey = key;
-      requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateRightInspector(); });
+      requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); });
     });
   });
   updateEditorStats();

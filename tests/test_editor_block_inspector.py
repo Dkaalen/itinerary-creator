@@ -53,12 +53,14 @@ def test_frontend_exposes_block_selection_and_right_inspector_foundation():
     assert "selectEditorBlockFromElement" in source
     assert "renderRightInspector" in source
     assert "right-inspector" in source
-    assert "Selected block" in source
+    assert "Selected block" in source  # legacy helper remains available outside default sidebar
     assert "Source" in source
-    assert "Reset selected field" in source
+    assert "renderInspectorTextTools" in source
     assert "Formatting" in source
-    assert "Layout tools" in source
     assert "renderInspectorLayoutTools" in source
+    render_right = source[source.index("function renderRightInspector"):]
+    assert "Selected block" not in render_right
+    assert "Reset selected field" not in render_right
 
 
 def test_frontend_marks_images_as_selectable_editor_blocks():
@@ -81,7 +83,7 @@ def test_right_inspector_exposes_pdf_safe_text_tools():
     assert "applyFontFamilyPreset" in source
     assert "applyFontSizePreset" in source
     assert "canUsePdfSafeTextTools" in source
-    assert "Font, size, and color apply on the canvas" in source
+    assert "Formatting applies to the selected canvas text" in source
     assert "Clear formatting" in source
     assert "text-tools-card" in source
 
