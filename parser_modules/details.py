@@ -60,6 +60,59 @@ def standardize_row_text(row):
     return row
 
 
+def _looks_like_cruise_experience_text(text: str) -> bool:
+    """Return True when cruise wording describes a bookable experience.
+
+    Supplier activity rows often contain route-shaped wording such as
+    ``fjord cruise to Mostraumen``.  That should stay an Activity unless the
+    row is clearly an overnight/point-to-point cruise or ferry transfer.
+    """
+
+    lower = str(text or "").lower()
+    if not lower or "cruise" not in lower:
+        return False
+
+    if re.search(r"\b(?:overnight|night|coastal|atlantic ocean)\s+cruise\b", lower):
+        return False
+    if re.search(r"\bcruise\s+(?:from\s+)?[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\b", lower) and not any(
+        marker in lower
+        for marker in ["round-trip", "round trip", "return", "day trip", "sightseeing", "fjord", "canal", "archipelago"]
+    ):
+        return False
+
+    experience_markers = [
+        "fjord cruise",
+        "sightseeing cruise",
+        "cruise day trip",
+        "day cruise",
+        "canal cruise",
+        "archipelago cruise",
+        "wildlife cruise",
+        "northern lights cruise",
+        "icebreaker cruise",
+        "dinner cruise",
+        "private cruise",
+        "boat tour",
+        "catamaran",
+        "rib safari",
+        "sea eagle",
+        "oslofjord",
+        "oslo fjord",
+        "nærøyfjord",
+        "naeroyfjord",
+        "mostraumen",
+        "geirangerfjord",
+        "geiranger fjord",
+        "trollfjord",
+    ]
+    if any(marker in lower for marker in experience_markers):
+        return True
+
+    # Labelled activity metadata strongly implies the cruise is an excursion,
+    # not a location-changing transport row.
+    return bool(re.search(r"\b(?:time|duration|meeting point|includes?|description)\s*:", lower))
+
+
 def extract_detail(text, label):
     """Extract a labelled detail section, matching labels case-insensitively.
 
@@ -318,6 +371,9 @@ def detect_effective_type(item_type, title, details):
 
     if "norway in a nutshell" in combined:
         return "Transport"
+
+    if normalized_item_type == "Activity" and _looks_like_cruise_experience_text(combined):
+        return "Activity"
 
     route_mode_match = re.search(r"\b[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\s+(train|flight|cruise|ferry|coach|bus)\b", combined)
     if route_mode_match and normalized_item_type in {"Transfer", "Transport", "Activity"} and "private" not in combined:

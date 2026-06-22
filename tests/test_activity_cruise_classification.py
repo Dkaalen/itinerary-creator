@@ -2,6 +2,7 @@ from generator import group_rows_by_day
 from itinerary_generation.content_validator import compact_html
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.inclusion_sections import create_categorized_inclusions
+from itinerary_generation.row_filters import get_row_type
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from ui.day_blocks import build_day_blocks
@@ -69,3 +70,44 @@ def test_icebreaker_inclusions_are_activity_inclusions_not_ferry_transport():
     assert "ExplorerThe" not in section_text
     assert "suitsWalk" not in section_text
     assert "drinkCruise" not in section_text
+
+
+def test_fjord_cruise_to_destination_stays_activity_not_cruise_transfer():
+    rows = normalize_itinerary_rows(parse_itinerary("""
+Day 1	Activity	01.01.2027		Bergen: Fjord cruise to Mostraumen - Duration: 3.5 hr
+Day 2	Activity	02.01.2027		Bergen to Mostraumen Fjord Cruise Day Trip 3-4 Hrs
+Day 3	Activity	03.01.2027		Bergen: Sightseeing cruise to Mostraumen - Time: 10:00 am - Duration: 3.5 hr
+"""))
+
+    assert [get_row_type(row) for row in rows] == ["Activity", "Activity", "Activity"]
+    assert all(row["title"] == "Mostraumen Fjord Cruise" for row in rows)
+
+    day_html = compact_html("\n".join(block["html"] for block in build_day_blocks(rows) if block))
+    assert "Featured experience Mostraumen Fjord Cruise" in day_html
+    assert "Travel Arrangements Coastal Cruise to Mostraumen" not in day_html
+
+
+def test_standalone_naeroyfjord_sightseeing_cruise_is_not_nutshell_transport():
+    rows = normalize_itinerary_rows(parse_itinerary("""
+Day 1	Activity	01.01.2027		Flåm: Nærøyfjord sightseeing cruise - Time: 10:00 am - Duration: 2 hr
+"""))
+    row = rows[0]
+
+    assert get_row_type(row) == "Activity"
+    assert row["title"] == "Nærøyfjord Sightseeing Cruise"
+    assert row.get("activity_product", {}).get("product_type") == "fjord_cruise"
+
+    day_html = compact_html("\n".join(block["html"] for block in build_day_blocks(rows) if block))
+    assert "Nærøyfjord Sightseeing Cruise" in day_html
+    assert "Norway in a Nutshell" not in day_html
+
+
+def test_overnight_and_route_package_cruises_still_remain_transport():
+    rows = normalize_itinerary_rows(parse_itinerary("""
+Day 1	Activity	01.01.2027		Overnight cruise from Stockholm to Helsinki - Time: 5:00 pm - 10:00 am
+Day 2	Activity	02.01.2027		Bergen to Oslo: Day Tour incl. the Flåm Train, Nærøyfjord Cruise & Luggage Transfer - Time: 08:00 am - 08:00 pm - Meeting point: Bergen Central Station - Includes: E-tickets for fjord cruise: Gudvangen to Flåm, E-tickets for Flåm railway: Flåm to Myrdal, E-tickets for Bergen railway: Myrdal to Oslo, Luggage transfer
+"""))
+
+    assert get_row_type(rows[0]) == "Cruise"
+    assert get_row_type(rows[1]) == "Train"
+    assert rows[1]["title"] == "Norway in a Nutshell from Bergen to Oslo"

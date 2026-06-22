@@ -73,6 +73,23 @@ def _is_rail_or_fjord_route_activity(row: dict) -> bool:
     product = fingerprint_activity(row)
     if product and product.canonical_family in {"bergen_guided_flam_day_tour"}:
         return False
+    if _is_sightseeing_cruise_activity(text) and not any(
+        marker in text
+        for marker in [
+            "norway in a nutshell",
+            "luggage transfer",
+            "flåm railway",
+            "flam railway",
+            "flåm train",
+            "flam train",
+            "train transfer",
+            "bergen railway",
+            "myrdal",
+            "voss to",
+            "gudvangen to",
+        ]
+    ):
+        return False
     return (
         _is_norway_in_a_nutshell_text(text)
         or re.search(r"\btrain\s*[:|]", text)
@@ -91,9 +108,20 @@ def _is_sightseeing_cruise_activity(text: str) -> bool:
             "private fjord cruise",
             "fjord cruise |",
             "fjord tour",
+            "sightseeing cruise",
+            "day cruise",
+            "canal cruise",
+            "archipelago cruise",
+            "wildlife cruise",
             "silent electric ship",
             "cruise on the oslofjord",
             "mostraumen fjord cruise",
+            "mostraumen",
+            "geirangerfjord",
+            "geiranger fjord",
+            "trollfjord",
+            "nærøyfjord sightseeing cruise",
+            "naeroyfjord sightseeing cruise",
             "icebreaker cruise",
             "arctic explorer icebreaker",
             "polar explorer icebreaker",

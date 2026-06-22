@@ -59,6 +59,35 @@ def _is_explicit_floibanen_product(source_lower: str, source_title: str) -> bool
     return explicit_title or explicit_ticket_line
 
 
+def _is_standalone_naeroyfjord_cruise(source_lower: str) -> bool:
+    """True for a Nærøyfjord cruise sold as an activity, not a route package."""
+
+    has_naeroyfjord = "nærøyfjord" in source_lower or "naeroyfjord" in source_lower
+    has_cruise_experience = "cruise" in source_lower and any(
+        marker in source_lower
+        for marker in ("sightseeing", "fjord cruise", "day trip", "round-trip", "round trip", "duration", "meeting point")
+    )
+    has_route_package_marker = any(
+        marker in source_lower
+        for marker in (
+            "norway in a nutshell",
+            "flåm railway",
+            "flam railway",
+            "flåm train",
+            "flam train",
+            "bergen railway",
+            "luggage transfer",
+            "coach bergen to",
+            "panorama coach",
+            "gudvangen to flåm",
+            "gudvangen to flam",
+            "flåm to myrdal",
+            "flam to myrdal",
+        )
+    )
+    return has_naeroyfjord and has_cruise_experience and not has_route_package_marker
+
+
 def match_norway_activity(
     row: dict[str, Any] | None,
     source: str,
@@ -75,6 +104,9 @@ def match_norway_activity(
             source_title=source_title,
             variant_tags=("flam_railway", "fjord_cruise", "coach", "guided"),
         )
+
+    if _is_standalone_naeroyfjord_cruise(source_lower):
+        return match_product("naeroyfjord_sightseeing_cruise", "fjord_cruise", "Nærøyfjord Sightseeing Cruise", source_title=source_title)
 
     if _is_norway_in_a_nutshell_text(source_lower):
         if row:
