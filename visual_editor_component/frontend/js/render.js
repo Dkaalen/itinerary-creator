@@ -153,7 +153,8 @@ function renderManualPages() {
       : [{editable_fields: {content_html: '<div class="body-text">New page text</div>'}}];
     const body = blocks.map((block, blockIndex) => {
       const html = block?.editable_fields?.content_html || '';
-      return editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box');
+      const blockId = block?.block_id || `${page.page_id}__manual-${blockIndex + 1}`;
+      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="Manual text block">${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', 'Manual text block')}</div>`;
     }).join('');
     return pageChrome(page.page_id, page.title || 'Blank page', `<div class="a4-page manual-page"><div class="page-content"><div class="final-title">${editableText(page.title || 'Blank page', `document_pages.${realIndex}.title`, 'manual-page-title')}</div>${body}</div></div>`, {pageType: 'manual', sortOrder: page.sort_order || 999});
   }).join('');

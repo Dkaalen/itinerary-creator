@@ -523,6 +523,152 @@ function pageInspectorRows(page) {
   const rows = fields.slice(0, 10).map(field => `<li>${esc(humanizeEditorToken(field))}</li>`).join('');
   return rows || '<li>No direct editable fields exposed yet</li>';
 }
+function ensurePageOverrides(page) {
+  if (!page.page_overrides || typeof page.page_overrides !== 'object') page.page_overrides = {};
+  return page.page_overrides;
+}
+function ensureBlockStyleOverrides(block) {
+  if (!block.style_overrides || typeof block.style_overrides !== 'object') block.style_overrides = {};
+  return block.style_overrides;
+}
+function selectedPageContract() {
+  const {meta} = selectedInspectorMeta();
+  return contractPage(activePageId || meta.page_id) || null;
+}
+function selectedBlockContract() {
+  const {meta, page} = selectedInspectorMeta();
+  return contractBlock(page, activeBlockId || meta.block_id) || null;
+}
+function manualBlockContextFromSelection() {
+  const {fieldKey} = selectedInspectorMeta();
+  const match = String(fieldKey || '').match(/^document_pages\.(\d+)\.manual_blocks\.(\d+)\./);
+  if (!match) return null;
+  const pageIndex = Number(match[1]);
+  const blockIndex = Number(match[2]);
+  const page = documentPages()[pageIndex];
+  if (!page || page.page_type !== 'manual') return null;
+  const block = Array.isArray(page.manual_blocks) ? page.manual_blocks[blockIndex] : null;
+  if (!block) return null;
+  return {page, pageIndex, block, blockIndex};
+}
+function pageLayoutClasses(page) {
+  const overrides = page?.page_overrides || {};
+  const density = String(overrides.spacing_density || 'standard').replace(/[^a-z0-9_-]/gi, '') || 'standard';
+  const classes = [`layout-density-${density}`];
+  if (overrides.keep_page_together) classes.push('layout-keep-page-together');
+  return classes.join(' ');
+}
+function blockLayoutClasses(block) {
+  const overrides = block?.style_overrides || {};
+  const density = String(overrides.spacing_density || '').replace(/[^a-z0-9_-]/gi, '');
+  const classes = [];
+  if (density) classes.push(`layout-density-${density}`);
+  if (overrides.keep_block_together) classes.push('layout-keep-block-together');
+  return classes.join(' ');
+}
+function setSelectedPageOverride(name, value) {
+  const page = selectedPageContract();
+  if (!page) { notifyEditor('Select a page first.'); return; }
+  collect();
+  const overrides = ensurePageOverrides(page);
+  if (value === '' || value === null || value === undefined || value === false) delete overrides[name];
+  else overrides[name] = value;
+  markDocumentPagesTouched('Page layout updated');
+  draw();
+  scrollToPage(page.page_id);
+}
+function resetSelectedPageLayout() {
+  const page = selectedPageContract();
+  if (!page) { notifyEditor('Select a page first.'); return; }
+  collect();
+  page.page_overrides = {};
+  markDocumentPagesTouched('Page layout reset');
+  draw();
+  scrollToPage(page.page_id);
+}
+function setSelectedBlockOverride(name, value) {
+  const page = selectedPageContract();
+  const block = selectedBlockContract();
+  if (!page || !block) { notifyEditor('Select a block first.'); return; }
+  collect();
+  const overrides = ensureBlockStyleOverrides(block);
+  if (value === '' || value === null || value === undefined || value === false) delete overrides[name];
+  else overrides[name] = value;
+  markDocumentPagesTouched('Block layout updated');
+  draw();
+  scrollToPage(page.page_id);
+}
+function addManualTextBlockToSelectedPage() {
+  const page = selectedPageContract();
+  if (!page || page.page_type !== 'manual') { notifyEditor('Select a manual page first.'); return; }
+  collect();
+  if (!Array.isArray(page.manual_blocks)) page.manual_blocks = [];
+  const blockIndex = page.manual_blocks.length;
+  const blockId = `${page.page_id}__manual-${Date.now()}`;
+  page.manual_blocks.push({
+    block_id: blockId,
+    block_type: 'manual_text',
+    title: `Manual text ${blockIndex + 1}`,
+    editable_fields: {content_html: '<div class="body-text">New text block</div>'},
+    style_overrides: {},
+    image_binding: {},
+    source_row_ids: [],
+    dirty_state: 'dirty',
+    validation_status: 'unknown'
+  });
+  activePageId = page.page_id;
+  activeBlockId = blockId;
+  activeFieldKey = `document_pages.${pageIndexById(page.page_id)}.manual_blocks.${blockIndex}.editable_fields.content_html`;
+  markDocumentPagesTouched('Manual text block added');
+  draw();
+  scrollToPage(page.page_id);
+}
+function duplicateSelectedManualBlock() {
+  const ctx = manualBlockContextFromSelection();
+  if (!ctx) { notifyEditor('Select a manual text block first.'); return; }
+  collect();
+  const clone = JSON.parse(JSON.stringify(ctx.block));
+  clone.block_id = `${ctx.page.page_id}__manual-${Date.now()}`;
+  clone.title = `${ctx.block.title || 'Manual text'} copy`;
+  ctx.page.manual_blocks.splice(ctx.blockIndex + 1, 0, clone);
+  activeBlockId = clone.block_id;
+  activeFieldKey = `document_pages.${ctx.pageIndex}.manual_blocks.${ctx.blockIndex + 1}.editable_fields.content_html`;
+  markDocumentPagesTouched('Manual text block duplicated');
+  draw();
+  scrollToPage(ctx.page.page_id);
+}
+function moveSelectedManualBlock(direction) {
+  const ctx = manualBlockContextFromSelection();
+  if (!ctx) { notifyEditor('Select a manual text block first.'); return; }
+  collect();
+  const targetIndex = ctx.blockIndex + direction;
+  if (targetIndex < 0 || targetIndex >= ctx.page.manual_blocks.length) return;
+  const blocks = ctx.page.manual_blocks;
+  [blocks[ctx.blockIndex], blocks[targetIndex]] = [blocks[targetIndex], blocks[ctx.blockIndex]];
+  activeBlockId = blocks[targetIndex].block_id;
+  activeFieldKey = `document_pages.${ctx.pageIndex}.manual_blocks.${targetIndex}.editable_fields.content_html`;
+  markDocumentPagesTouched('Manual text block moved');
+  draw();
+  scrollToPage(ctx.page.page_id);
+}
+function deleteSelectedManualBlock() {
+  const ctx = manualBlockContextFromSelection();
+  if (!ctx) { notifyEditor('Select a manual text block first.'); return; }
+  collect();
+  if (ctx.page.manual_blocks.length <= 1) {
+    ctx.block.editable_fields = {content_html: ''};
+    notifyEditor('Last manual text block cleared');
+  } else {
+    ctx.page.manual_blocks.splice(ctx.blockIndex, 1);
+    notifyEditor('Manual text block removed');
+  }
+  activeBlockId = null;
+  activeFieldKey = null;
+  activePageId = ctx.page.page_id;
+  markTouched('document_pages');
+  draw();
+  scrollToPage(ctx.page.page_id);
+}
 function selectedInspectorMeta() {
   const el = selectedEditorElement();
   const fieldKey = activeFieldKey || el?.getAttribute?.('data-editor-field-key') || el?.getAttribute?.('data-edit-key') || '';
@@ -705,6 +851,56 @@ function renderInspectorImageTools(fieldKey) {
   </div>`;
 }
 
+function renderInspectorLayoutTools(hasBlock, page, block) {
+  const hasPage = !!(page && page.page_id);
+  const pageOverrides = page?.page_overrides || {};
+  const blockOverrides = block?.style_overrides || {};
+  const isManualPage = page?.page_type === 'manual';
+  const selectedManualBlock = !!manualBlockContextFromSelection();
+  const pageHidden = !!page?.is_hidden;
+  const spacing = String(pageOverrides.spacing_density || 'standard');
+  const blockSpacing = String(blockOverrides.spacing_density || 'inherit');
+  const pageDisabled = hasPage ? '' : 'disabled';
+  const manualDisabled = isManualPage ? '' : 'disabled';
+  const blockDisabled = hasBlock ? '' : 'disabled';
+  const manualBlockDisabled = selectedManualBlock ? '' : 'disabled';
+  return `<div class="inspector-card layout-tools-card"><div class="inspector-kicker">Layout tools</div>
+    <label class="inspector-control-label" for="inspectorPageSpacing">Page spacing</label>
+    <select id="inspectorPageSpacing" ${pageDisabled} aria-label="Page spacing">
+      <option value="standard" ${spacing === 'standard' ? 'selected' : ''}>Standard</option>
+      <option value="compact" ${spacing === 'compact' ? 'selected' : ''}>Compact</option>
+      <option value="comfortable" ${spacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
+    </select>
+    <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepPageTogether" ${pageOverrides.keep_page_together ? 'checked' : ''} ${pageDisabled}> Keep page together</label>
+    <div class="inspector-button-grid">
+      <button type="button" class="ghost" id="inspectorHidePageBtn" ${hasPage && !pageHidden ? '' : 'disabled'}>Delete page</button>
+      <button type="button" class="ghost" id="inspectorRestorePageBtn" ${hasPage && pageHidden ? '' : 'disabled'}>Restore page</button>
+      <button type="button" class="ghost" id="inspectorResetPageLayoutBtn" ${pageDisabled}>Reset layout</button>
+    </div>
+    <div class="inspector-button-grid two">
+      <button type="button" class="ghost" id="inspectorMovePageUpBtn" ${manualDisabled}>Move page up</button>
+      <button type="button" class="ghost" id="inspectorMovePageDownBtn" ${manualDisabled}>Move page down</button>
+      <button type="button" class="ghost" id="inspectorDuplicatePageBtn" ${manualDisabled}>Duplicate page</button>
+      <button type="button" class="ghost" id="inspectorAddManualBlockBtn" ${manualDisabled}>Add text block</button>
+    </div>
+    <label class="inspector-control-label" for="inspectorBlockSpacing">Selected block spacing</label>
+    <select id="inspectorBlockSpacing" ${blockDisabled} aria-label="Selected block spacing">
+      <option value="inherit" ${blockSpacing === 'inherit' ? 'selected' : ''}>Inherit page spacing</option>
+      <option value="compact" ${blockSpacing === 'compact' ? 'selected' : ''}>Compact</option>
+      <option value="standard" ${blockSpacing === 'standard' ? 'selected' : ''}>Standard</option>
+      <option value="comfortable" ${blockSpacing === 'comfortable' ? 'selected' : ''}>Comfortable</option>
+    </select>
+    <label class="inspector-checkbox"><input type="checkbox" id="inspectorKeepBlockTogether" ${blockOverrides.keep_block_together ? 'checked' : ''} ${blockDisabled}> Keep selected block together</label>
+    <div class="inspector-button-grid two">
+      <button type="button" class="ghost" id="inspectorMoveBlockUpBtn" ${manualBlockDisabled}>Move block up</button>
+      <button type="button" class="ghost" id="inspectorMoveBlockDownBtn" ${manualBlockDisabled}>Move block down</button>
+      <button type="button" class="ghost" id="inspectorDuplicateBlockBtn" ${manualBlockDisabled}>Duplicate block</button>
+      <button type="button" class="danger" id="inspectorDeleteBlockBtn" ${manualBlockDisabled}>Delete block</button>
+    </div>
+    <p>Generated page actions are stored as hide/restore and layout metadata. Manual pages also support safe block movement and duplication.</p>
+  </div>`;
+}
+
 function renderRightInspector() {
   const {fieldKey, meta, page, block} = selectedInspectorMeta();
   const pageTitle = page?.title || meta.page_title || 'No page selected';
@@ -724,10 +920,10 @@ function renderRightInspector() {
     ${selectedFieldHtml}
     ${renderInspectorTextTools(hasBlock)}
     ${renderInspectorImageTools(fieldKey)}
+    ${renderInspectorLayoutTools(hasBlock, page, block)}
     <div class="inspector-card"><div class="inspector-kicker">Editable fields</div><ul class="inspector-list">${fieldList}</ul></div>
     <div class="inspector-card"><div class="inspector-kicker">Source</div><div class="source-chip-list">${renderSourceRows(sourceRows)}</div></div>
     <div class="inspector-card"><div class="inspector-kicker">Actions</div><div class="inspector-actions"><button type="button" class="ghost" id="inspectorResetFieldBtn" ${hasBlock ? '' : 'disabled'}>Reset selected field</button><button type="button" class="ghost" id="inspectorFlagIssueBtn" ${hasBlock ? '' : 'disabled'}>Flag issue</button><button type="button" class="ghost" id="inspectorClearSelectionBtn" ${hasBlock || activePageId ? '' : 'disabled'}>Clear selection</button></div></div>
-    <p class="inspector-hint">Layout controls will plug into this same selected block contract next.</p>
   </aside>`;
 }
 function updateRightInspector() {
@@ -784,6 +980,29 @@ function attachInspectorHandlers() {
     };
     reader.readAsDataURL(file);
   });
+  document.getElementById('inspectorPageSpacing')?.addEventListener('change', event => {
+    setSelectedPageOverride('spacing_density', event.target.value === 'standard' ? '' : event.target.value);
+  });
+  document.getElementById('inspectorKeepPageTogether')?.addEventListener('change', event => {
+    setSelectedPageOverride('keep_page_together', !!event.target.checked);
+  });
+  document.getElementById('inspectorBlockSpacing')?.addEventListener('change', event => {
+    setSelectedBlockOverride('spacing_density', event.target.value === 'inherit' ? '' : event.target.value);
+  });
+  document.getElementById('inspectorKeepBlockTogether')?.addEventListener('change', event => {
+    setSelectedBlockOverride('keep_block_together', !!event.target.checked);
+  });
+  document.getElementById('inspectorHidePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) hideDocumentPage(page.page_id); });
+  document.getElementById('inspectorRestorePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) restoreDocumentPage(page.page_id); });
+  document.getElementById('inspectorResetPageLayoutBtn')?.addEventListener('click', resetSelectedPageLayout);
+  document.getElementById('inspectorMovePageUpBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveManualPage(page.page_id, -1); });
+  document.getElementById('inspectorMovePageDownBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) moveManualPage(page.page_id, 1); });
+  document.getElementById('inspectorDuplicatePageBtn')?.addEventListener('click', () => { const page = selectedPageContract(); if (page) duplicateManualPage(page.page_id); });
+  document.getElementById('inspectorAddManualBlockBtn')?.addEventListener('click', addManualTextBlockToSelectedPage);
+  document.getElementById('inspectorMoveBlockUpBtn')?.addEventListener('click', () => moveSelectedManualBlock(-1));
+  document.getElementById('inspectorMoveBlockDownBtn')?.addEventListener('click', () => moveSelectedManualBlock(1));
+  document.getElementById('inspectorDuplicateBlockBtn')?.addEventListener('click', duplicateSelectedManualBlock);
+  document.getElementById('inspectorDeleteBlockBtn')?.addEventListener('click', deleteSelectedManualBlock);
   document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedBlock);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);
   document.getElementById('inspectorClearSelectionBtn')?.addEventListener('click', () => {
@@ -904,7 +1123,7 @@ function pageChrome(pageId, label, bodyHtml, options = {}) {
   const canMove = page.page_type === 'manual';
   const controls = `<div class="page-controls"><button class="ghost" type="button" data-outline-page-id="${escAttr(pageId)}">Select</button>${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}">Delete page</button>`}${canMove ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}">Move up</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}">Move down</button><button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Duplicate</button>` : ''}</div>`;
   if (isHidden) return '';
-  return `<div class="page-wrap ${activePageId === pageId ? 'selected-page' : ''}" data-page-id="${escAttr(pageId)}"><div class="page-header-row"><div class="page-label">${esc(label)}</div>${controls}</div>${bodyHtml}</div>`;
+  return `<div class="page-wrap ${pageLayoutClasses(page)} ${activePageId === pageId ? 'selected-page' : ''}" data-page-id="${escAttr(pageId)}"><div class="page-header-row"><div class="page-label">${esc(label)}</div>${controls}</div>${bodyHtml}</div>`;
 }
 
 function deleteInclusionPage(index) {

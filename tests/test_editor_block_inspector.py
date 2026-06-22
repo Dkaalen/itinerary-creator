@@ -51,7 +51,8 @@ def test_frontend_exposes_block_selection_and_right_inspector_foundation():
     assert "Source" in source
     assert "Reset selected field" in source
     assert "Text tools" in source
-    assert "Layout controls will plug into this same selected block contract next" in source
+    assert "Layout tools" in source
+    assert "renderInspectorLayoutTools" in source
 
 
 def test_frontend_marks_images_as_selectable_editor_blocks():

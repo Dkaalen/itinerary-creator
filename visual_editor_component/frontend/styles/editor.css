@@ -470,6 +470,76 @@
     .inspector-mini-note { color: var(--muted); font-size: 11px; line-height: 1.35; }
     .inspector-upload-label { display: flex; justify-content: center; margin-top: 8px; width: 100%; }
 
+
+    .layout-tools-card select {
+      width: 100%;
+      min-height: 34px;
+      margin: 5px 0 9px;
+      border-radius: 10px;
+      border-color: rgba(17,38,63,.16);
+      background: #fff;
+    }
+    .layout-tools-card select:disabled,
+    .layout-tools-card button:disabled,
+    .layout-tools-card input:disabled {
+      opacity: .52;
+      cursor: not-allowed;
+    }
+    .inspector-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 7px 0 9px;
+      color: var(--body);
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+    .inspector-checkbox input { margin: 0; }
+    .page-wrap.layout-density-compact .a4-page .page-content { padding-top: 64px; }
+    .page-wrap.layout-density-compact .content-block,
+    .page-wrap.layout-density-compact .inclusion-entry,
+    .page-wrap.layout-density-compact .manual-block-shell { margin-bottom: 8px; }
+    .page-wrap.layout-density-compact .body-text,
+    .page-wrap.layout-density-compact .editable-list,
+    .page-wrap.layout-density-compact .detail-list,
+    .page-wrap.layout-density-compact .final-list,
+    .manual-block-shell.layout-density-compact .body-text { line-height: 1.28; margin-bottom: 3px; }
+    .page-wrap.layout-density-comfortable .content-block,
+    .page-wrap.layout-density-comfortable .inclusion-entry,
+    .page-wrap.layout-density-comfortable .manual-block-shell { margin-bottom: 20px; }
+    .page-wrap.layout-density-comfortable .body-text,
+    .page-wrap.layout-density-comfortable .editable-list,
+    .page-wrap.layout-density-comfortable .detail-list,
+    .page-wrap.layout-density-comfortable .final-list,
+    .manual-block-shell.layout-density-comfortable .body-text { line-height: 1.55; margin-bottom: 9px; }
+    .layout-keep-page-together > .page-header-row .page-label::after,
+    .layout-keep-block-together::after {
+      content: "Keep together";
+      display: inline-flex;
+      margin-left: 8px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0,111,107,.10);
+      color: #006f6b;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .manual-block-shell {
+      position: relative;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      padding: 2px;
+    }
+    .manual-block-shell:hover {
+      box-shadow: inset 0 0 0 1px rgba(0,111,107,.18);
+      background: rgba(0,111,107,.035);
+    }
+
     .selected-editor-block {
       box-shadow: 0 0 0 2px rgba(0,111,107,.46), 0 8px 24px rgba(0,111,107,.11) !important;
       background: rgba(0,111,107,.08) !important;
