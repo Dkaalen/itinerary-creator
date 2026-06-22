@@ -265,14 +265,18 @@ function editorStudioStats() {
 }
 function studioStatusStripHtml() {
   const stats = editorStudioStats();
-  return `<div class="studio-status-strip" aria-label="Editor document status">
-    <span class="studio-metric"><b>${esc(stats.visible)}</b><small>Visible pages</small></span>
-    <span class="studio-metric ${stats.hidden ? 'review' : ''}"><b>${esc(stats.hidden)}</b><small>Hidden</small></span>
-    <span class="studio-metric"><b>${esc(stats.manual)}</b><small>Manual pages</small></span>
-    <span class="studio-metric ${stats.dirtyPages ? 'review' : ''}"><b id="studioDirtyPagesMetric">${esc(stats.dirtyPages)}</b><small>Dirty pages</small></span>
-    <span class="studio-metric selection"><b id="studioSelectionMetric">${esc(stats.selection)}</b><small>Selection</small></span>
-    <span class="studio-metric"><b id="studioEditsMetric">${esc(touchedKeys.size)}</b><small>Unsaved edits</small></span>
-  </div>`;
+  const summary = `${stats.visible} visible · ${stats.selection} · ${touchedKeys.size} unsaved`;
+  return `<details class="studio-status-panel">
+    <summary><strong>Document status</strong><span>${esc(summary)}</span></summary>
+    <div class="studio-status-strip" aria-label="Editor document status">
+      <span class="studio-metric"><b>${esc(stats.visible)}</b><small>Visible pages</small></span>
+      <span class="studio-metric ${stats.hidden ? 'review' : ''}"><b>${esc(stats.hidden)}</b><small>Hidden</small></span>
+      <span class="studio-metric"><b>${esc(stats.manual)}</b><small>Manual pages</small></span>
+      <span class="studio-metric ${stats.dirtyPages ? 'review' : ''}"><b id="studioDirtyPagesMetric">${esc(stats.dirtyPages)}</b><small>Dirty pages</small></span>
+      <span class="studio-metric selection"><b id="studioSelectionMetric">${esc(stats.selection)}</b><small>Selection</small></span>
+      <span class="studio-metric"><b id="studioEditsMetric">${esc(touchedKeys.size)}</b><small>Unsaved edits</small></span>
+    </div>
+  </details>`;
 }
 function renderDocumentOutline() {
   const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model.document_pages) ? model.document_pages : []);
@@ -289,15 +293,16 @@ function renderDocumentOutline() {
     const manualActions = isManual && !hidden
       ? `<button type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}">Copy</button>`
       : '';
+    const outlineActionMenu = `<details class="outline-actions"><summary>Actions</summary><div class="outline-action-menu">${action}${manualActions}</div></details>`;
     const dragAttrs = hidden ? '' : ` draggable="true" data-page-drag-index="${visibleIndex}"`;
     const dirty = pageHasDirtyEdits(pageId);
     return `<li class="outline-row ${hidden ? 'hidden' : ''} ${dirty ? 'dirty' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}"${dragAttrs}>
       <button class="outline-drag-handle" type="button" aria-label="Drag page to reorder" title="Drag page to reorder">⋮⋮</button>
       <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${dirty ? '<b class="dirty-dot" title="Unsaved edits"></b>' : ''}${esc(title)}</span><em>${esc(pageTypeLabel(page))}${hidden ? ' · Hidden' : ''}${dirty ? ' · Unsaved' : ''}</em></button>
-      <div class="outline-actions">${orderingActions}${action}${manualActions}</div>
+      ${outlineActionMenu}
     </li>`;
   }).join('');
-  const templatePicker = `<details class="outline-template-picker"><summary>Add page or template</summary><label for="manualPageTemplateSelect">Template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></details>`;
+  const templatePicker = `<details class="outline-template-picker"><summary>Add blank page or template</summary><label for="manualPageTemplateSelect">Template</label><select id="manualPageTemplateSelect">${manualPageTemplateOptionsHtml('blank')}</select><button class="primary outline-add" id="addManualPageBtn" type="button">Add page</button></details>`;
   return `<aside class="document-outline" aria-label="Document pages">
     <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
     ${templatePicker}

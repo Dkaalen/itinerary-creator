@@ -119,7 +119,7 @@ function attachHandlers() {
   document.querySelectorAll('[data-outline-page-id]').forEach(btn => {
     btn.addEventListener('click', event => {
       const pageId = btn.getAttribute('data-outline-page-id');
-      if (event.target?.closest?.('[data-doc-page-action]')) return;
+      if (event.target?.closest?.('[data-doc-page-action], .outline-actions, .outline-drag-handle')) return;
       if (pageId) scrollToPage(pageId);
     });
   });

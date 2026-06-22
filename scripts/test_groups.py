@@ -189,6 +189,7 @@ UI_TESTS = (
     "tests/test_ui_workflow_state_actions.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_editor_workspace_polish.py",
+    "tests/test_editor_interaction_polish.py",
 )
 
 QUALITY_TESTS = (
