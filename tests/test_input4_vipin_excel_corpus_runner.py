@@ -33,8 +33,8 @@ def test_input4_detects_overlong_supplier_activity_title_from_vipin_pattern():
     summary = evaluate_excel_corpus([item])
 
     assert summary["parse_errors"] == 0
-    assert summary["bad_output_counts"]["overlong_title"] == 1
-    assert summary["bad_output_counts"]["activity_text_used_as_title"] == 1
+    assert "overlong_title" not in summary["bad_output_counts"]
+    assert "activity_text_used_as_title" not in summary["bad_output_counts"]
 
 
 def test_input4_detects_missing_city_even_when_activity_title_is_present():
@@ -50,8 +50,8 @@ def test_input4_detects_missing_city_even_when_activity_title_is_present():
 
     assert summary["parse_errors"] == 0
     assert summary["bad_output_counts"]["missing_source_city"] == 1
-    assert summary["bad_output_counts"]["missing_parsed_city"] == 1
-    assert summary["parser_flag_counts"]["missing_city"] == 1
+    assert "missing_parsed_city" not in summary["bad_output_counts"]
+    assert "missing_city" not in summary["parser_flag_counts"]
 
 
 def test_input4_logs_blank_type_rows_and_calculator_cost_rows():
@@ -75,9 +75,9 @@ def test_input4_logs_blank_type_rows_and_calculator_cost_rows():
 def test_input4_writes_machine_log_and_human_report(tmp_path):
     item = _item(
         "Activity",
-        "2H Reindeer Safari 2 Hours, Shared, includes hot drink, Transfers, thermal clothing, "
-        "winter boots and gloves are provided.",
-        city="Kakslauttanen",
+        "A Finntastic Walking Tour in Helsinki | 10:30 AM | 2. 15 Hr | "
+        "Professional authorised Helsinki Guide meeting Point: Senate Square",
+        city="",
     )
     summary = evaluate_excel_corpus([item])
     jsonl_path = tmp_path / "bad.jsonl"
@@ -87,7 +87,7 @@ def test_input4_writes_machine_log_and_human_report(tmp_path):
     write_markdown_report(summary, report_path, bad_jsonl_path=jsonl_path)
 
     lines = jsonl_path.read_text(encoding="utf-8").splitlines()
-    assert any(json.loads(line)["category"] == "activity_text_used_as_title" for line in lines)
+    assert any(json.loads(line)["category"] == "missing_source_city" for line in lines)
     report = report_path.read_text(encoding="utf-8")
     assert "INPUT4 Vipin Excel Corpus Regression Report" in report
-    assert "activity_text_used_as_title" in report
+    assert "missing_source_city" in report

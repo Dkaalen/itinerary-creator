@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
@@ -430,6 +430,7 @@ def _parse_rows_chunked(
     workers: int = 1,
     progress: bool = False,
 ) -> list[tuple[ExcelCorpusItem, dict[str, Any]]]:
+    chunk_size = max(1, int(chunk_size or 5))
     chunks = [(start, items[start:start + chunk_size]) for start in range(0, len(items), chunk_size)]
     parsed: list[tuple[ExcelCorpusItem, dict[str, Any]]] = []
 
@@ -439,17 +440,32 @@ def _parse_rows_chunked(
                 print(f"parsed chunks: {index}/{len(chunks)}", file=sys.stderr, flush=True)
             parsed.extend(_worker_parse_chunk(payload))
     else:
-        with ProcessPoolExecutor(max_workers=workers) as executor:
-            futures = [executor.submit(_worker_parse_chunk, payload) for payload in chunks]
-            for index, future in enumerate(as_completed(futures), start=1):
-                parsed.extend(future.result())
-                if progress and index % 100 == 0:
-                    print(f"parsed chunks: {index}/{len(chunks)}", file=sys.stderr, flush=True)
+        # Use small, restarted process pools instead of one long-lived pool.
+        # The real Excel corpus contains many high-cardinality supplier strings;
+        # restarting workers every few hundred chunks keeps caches and regex state
+        # bounded and makes the full-corpus check reliably finish locally.
+        map_chunksize = max(1, min(16, len(chunks) // max(1, workers * 8) or 1))
+        batch_size = max(100, workers * 60)
+        completed = 0
+        for batch_start in range(0, len(chunks), batch_size):
+            batch = chunks[batch_start:batch_start + batch_size]
+            with ProcessPoolExecutor(max_workers=workers) as executor:
+                for result in executor.map(_worker_parse_chunk, batch, chunksize=map_chunksize):
+                    parsed.extend(result)
+                    completed += 1
+                    if progress and completed % 100 == 0:
+                        print(f"parsed chunks: {completed}/{len(chunks)}", file=sys.stderr, flush=True)
 
     return sorted(parsed, key=lambda pair: (pair[0].file, pair[0].sheet, pair[0].row, str(pair[1].get("row_id", ""))))
 
 
-def evaluate_excel_corpus(items: Iterable[ExcelCorpusItem], *, workers: int = 1, progress: bool = False) -> dict[str, Any]:
+def evaluate_excel_corpus(
+    items: Iterable[ExcelCorpusItem],
+    *,
+    workers: int = 1,
+    progress: bool = False,
+    chunk_size: int = 5,
+) -> dict[str, Any]:
     """Parse and generate editable titles for every extracted corpus row."""
 
     item_list = list(items)
@@ -465,7 +481,7 @@ def evaluate_excel_corpus(items: Iterable[ExcelCorpusItem], *, workers: int = 1,
         bad_outputs.extend(_source_missing_categories(item))
 
     try:
-        parsed_pairs = _parse_rows_chunked(item_list, workers=workers, progress=progress)
+        parsed_pairs = _parse_rows_chunked(item_list, workers=workers, progress=progress, chunk_size=chunk_size)
     except Exception as exc:  # pragma: no cover - exercised by real corpus runner
         parsed_pairs = []
         parse_errors += 1
@@ -552,8 +568,9 @@ def write_markdown_report(summary: Mapping[str, Any], path: str | Path, *, bad_j
         category = bad_output.category if isinstance(bad_output, BadOutput) else str(dict(bad_output).get("category", ""))
         if len(sample_by_category[category]) < 6:
             sample_by_category[category].append(bad_output)
+    report_label = "INPUT5" if "input5" in output_path.name.lower() else "INPUT4"
     lines = [
-        "# INPUT4 Vipin Excel Corpus Regression Report",
+        f"# {report_label} Vipin Excel Corpus Regression Report",
         "",
         "Purpose: run the real messy Nordic calculator corpus through parser and editable-title generation, then log risky outputs for regression hardening.",
         "",
@@ -608,11 +625,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", default="docs/reports/input4_vipin_excel_corpus_report.md")
     parser.add_argument("--bad-jsonl", default="docs/reports/input4_vipin_excel_bad_outputs.jsonl")
     parser.add_argument("--workers", type=int, default=1, help="Parallel parser workers. Use 4-8 for the full Vipin corpus.")
+    parser.add_argument("--chunk-size", type=int, default=5, help="Parser rows per isolated chunk. Keep low for strict regression checks; raise for quick smoke runs.")
     parser.add_argument("--progress", action="store_true", help="Print progress to stderr while parsing chunks.")
     args = parser.parse_args(argv)
 
     items = collect_excel_corpus_items(args.workbooks)
-    summary = evaluate_excel_corpus(items, workers=max(1, args.workers), progress=args.progress)
+    summary = evaluate_excel_corpus(items, workers=max(1, args.workers), progress=args.progress, chunk_size=max(1, args.chunk_size))
     write_bad_outputs_jsonl(summary["bad_outputs"], args.bad_jsonl)
     write_markdown_report(summary, args.report, bad_jsonl_path=args.bad_jsonl)
     print(json.dumps({key: value for key, value in summary.items() if key != "bad_outputs"}, indent=2, ensure_ascii=False))

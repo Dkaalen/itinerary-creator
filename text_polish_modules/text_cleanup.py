@@ -39,6 +39,7 @@ PROPER_NOUN_REPLACEMENTS = [
     (r"\bwhale\s+watching\b", "Whale Watching"),
     (r"\bice\s+cave\b", "Ice Cave"),
     (r"\bglacier\s+lagoon\b", "Glacier Lagoon"),
+    (r"\bfjellheisen\b", "Fjellheisen"),
 ]
 
 CASE_REPLACEMENTS = [

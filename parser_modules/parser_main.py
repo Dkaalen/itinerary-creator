@@ -1,5 +1,5 @@
 import diagnostics
-from place_aliases import canonicalize_place_name
+from place_aliases import canonicalize_place_name, is_known_place
 
 from parser_modules.common import *  # noqa: F401,F403
 from parser_modules.details import (
@@ -44,6 +44,67 @@ def _fix_common_text_for_row(value, item_type):
     protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", str(value or ""), flags=re.IGNORECASE)
     cleaned = fix_common_text(protected)
     return cleaned.replace("__HOTEL_AURORA__", "Aurora")
+
+
+def _excel_serial_date(value):
+    """Return True for Excel serial dates commonly pasted from calculator rows."""
+
+    text = clean_space(value)
+    return bool(re.fullmatch(r"4\d{4}(?:\.0)?", text))
+
+
+def _fixed_format_city_only_description(parts, description_index, item_type):
+    """Detect the app's fixed Excel paste shape when Details is blank.
+
+    The canonical row has City at index 9 and Details at index 10. If Details is
+    empty, the old rightmost-cell heuristic used City as the description and
+    then lost the city. Preserve the city and create a safe fallback title so
+    the row does not break generation.
+    """
+
+    if len(parts) <= 10 or description_index != 9:
+        return "", ""
+    city = clean_space(parts[9]).strip('"')
+    trailing_details = clean_space(parts[10]).strip('"')
+    if trailing_details or not is_valid_city_value(city):
+        return "", ""
+
+    normalized_type = normalize_type(item_type)
+    fallback_titles = {
+        "Activity": f"Time in {city}",
+        "Transfer": f"Transfer in {city}",
+        "Transport": f"Transport in {city}",
+        "Train": f"Train in {city}",
+        "Flight": f"Flight in {city}",
+        "Cruise": f"Cruise in {city}",
+        "Ferry": f"Ferry in {city}",
+        "Hotel": f"Accommodation in {city}",
+        "Leisure": f"Leisure time in {city}",
+    }
+    return city, fallback_titles.get(normalized_type, city)
+
+
+def _infer_city_from_text(text):
+    """Infer obvious Nordic city mentions from otherwise city-less titles."""
+
+    source = clean_space(text)
+    if not source:
+        return ""
+    patterns = [
+        r"\bin\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s*$)",
+        r"\b(?:from|to)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s*$)",
+        r"^([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})\s+(?:Hop|Walking|City|Sightseeing|Private|Shuttle|Airport|Leisure)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, source)
+        if not match:
+            continue
+        candidate = clean_space(match.group(1)).strip(" .,-|:")
+        # Trim common trailing service nouns that can be captured after "in".
+        candidate = re.split(r"\s+(?:Guide|Ticket|Tour|Walk|Bus|Boat|Cruise|Safari|Transfer)\b", candidate, maxsplit=1, flags=re.IGNORECASE)[0].strip(" .,-|:")
+        if candidate and is_valid_city_value(candidate) and is_known_place(candidate):
+            return canonicalize_place_name(candidate)
+    return ""
 
 
 def parse_itinerary(raw_text):
@@ -141,13 +202,17 @@ def parse_itinerary(raw_text):
                 night_count_hint = value
                 continue
 
-            if looks_like_date(value):
+            if looks_like_date(value) or _excel_serial_date(value):
                 date_values.append(value)
 
         start_date = date_values[0] if len(date_values) >= 1 else ""
         end_date = date_values[1] if len(date_values) >= 2 else ""
 
         separate_city = find_city_cell(parts, description_index)
+        city_only_cell, city_only_description = _fixed_format_city_only_description(parts, description_index, item_type)
+        if city_only_cell and city_only_description:
+            separate_city = city_only_cell
+            description = city_only_description
 
         row_id = make_row_id(current_day, item_type, start_date, end_date, description)
         if is_optional:
@@ -249,6 +314,8 @@ def parse_itinerary(raw_text):
         row["details"] = _fix_common_text_for_row(description, item_type)
         check_for_unknown_typos(row["details"], context=current_day)
         row["city"] = canonicalize_place_name(fix_common_text(row.get("city", "")))
+        if not row["city"]:
+            row["city"] = _infer_city_from_text(" ".join(part for part in [main_text, description] if part))
 
         important_types_for_city = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
         if not is_optional and normalize_type(item_type) in important_types_for_city and not row["city"]:
