@@ -42,6 +42,7 @@ KNOWN_TYPES = {
     "optional",
     "day overview",
     "group tour",
+    "notes",
     "activity upgrade",
     "transfer package",
     "single supplement fee",
@@ -63,6 +64,33 @@ def looks_like_date(value):
 
 def looks_like_known_type(value):
     return clean_space(value).lower() in KNOWN_TYPES
+
+
+_NON_ITINERARY_TYPE_PATTERNS = (
+    r"^per\s+pax$",
+    r"^one\s+pax$",
+    r"^single\s+room\s+cost$",
+    r"^total$",
+    r"^subtotal$",
+    r"^sub\s+total$",
+    r"^margin$",
+    r"^gross$",
+    r"^net$",
+    r"^adult$",
+    r"^child$",
+    r"^\d+(?:\.\d+)?$",
+)
+
+
+def looks_like_non_itinerary_type(value):
+    """Return True for calculator/costing rows that should not become itinerary rows."""
+
+    text = clean_space(value).lower().strip(" :,-")
+    if not text:
+        return False
+    if looks_like_day(text) or looks_like_date(text):
+        return True
+    return any(re.match(pattern, text) for pattern in _NON_ITINERARY_TYPE_PATTERNS)
 
 
 def _normalized_optional_text(value):

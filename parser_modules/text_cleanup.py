@@ -15,6 +15,8 @@ def clean_space(value):
 COMMON_TEXT_REPLACEMENTS = [
     # Multi-word commercial markers first, before individual typo cleanup.
     (r"\bself\s+arrnaged\b", "self-arranged"),
+    (r"\bself\s+arrnage\b", "self-arranged"),
+    (r"\bself\s+arrange\b", "self-arranged"),
     (r"\bself\s+arranged\b", "self-arranged"),
     (r"\bcost\s+not\s+inclueded\b", "cost not included"),
     (r"\bcost\s+not\s+inclued\b", "cost not included"),
@@ -77,6 +79,8 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bOptinal\b", "Optional"),
     (r"\bUpgradesd\b", "Upgrades"),
     (r"\bavaiable\b", "available"),
+    (r"\bavaialble\b", "available"),
+    (r"\bteminal\b", "terminal"),
     (r"\barrivak\b", "arrival"),
     (r"\btickert\b", "ticket"),
     (r"\bPirvate\b", "Private"),
@@ -205,6 +209,9 @@ SUSPICIOUS_FRAGMENTS = [
     "brekafast",
     "brekfast",
     "arrnaged",
+    "arrnage",
+    "avaialble",
+    "teminal",
     "inclueded",
     "inclued",
     "doubel",

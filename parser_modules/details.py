@@ -198,21 +198,89 @@ def extract_between_markers(text, start_patterns, stop_patterns):
     return section.strip(" :|-\n\r\t")
 
 
+def _best_title_source(text):
+    """Return the most title-like part of messy supplier text.
+
+    Large calculator cells often paste a compact title on the first line and the
+    full supplier description below it.  Using the whole cell as the title makes
+    activity headings explode in the itinerary and PDF.
+    """
+
+    source = str(text or "").strip()
+    lines = [clean_space(line) for line in source.replace("\r", "\n").split("\n") if clean_space(line)]
+    if not lines:
+        return clean_space(source)
+
+    first = lines[0]
+    first_lower = first.lower().strip(" :-")
+    if first_lower not in {
+        "overview",
+        "what's included",
+        "what’s included",
+        "what to expect",
+        "meeting point",
+        "pick up / meeting point",
+    } and len(first) <= 160:
+        return first
+
+    return clean_space(source)
+
+
+def _strip_admin_title_prefixes(title):
+    title = re.sub(r"^\s*(?:optional|optinal|optional\s*/\s*recommended|optional\s+recommended|add[-\s]*on\s+optional)\s*[:,-]\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"^\s*day\s+\d+\s*[:,-]\s*", "", title, flags=re.IGNORECASE)
+    return title.strip()
+
+
+def _strip_repeated_city_prefix(title):
+    # Remove one or two leading city prefixes, e.g.
+    # "Stockholm: Stockholm Archipelago Dinner Cruise".
+    for _ in range(2):
+        if ":" not in title:
+            break
+        possible_city, rest = title.split(":", 1)
+        if re.search(r"\b\d{1,2}:\d{2}\b", possible_city):
+            break
+        possible_city_clean = clean_space(possible_city)
+        rest_clean = clean_space(rest)
+        if "|" in possible_city_clean or re.search(r"\d", possible_city_clean):
+            break
+        if len(possible_city_clean) <= 35 and rest_clean and is_valid_city_value(possible_city_clean):
+            title = rest_clean
+            continue
+        break
+    return title
+
+
 def clean_title(text):
     """
     Removes labelled detail sections and long supplier text from a title.
     """
 
-    title = clean_space(text)
+    title = clean_space(_best_title_source(text))
+    had_day_heading = bool(re.search(r"(?:^|:\s*)day\s+\d+\s*[:,-]", title, flags=re.IGNORECASE))
+    title = _strip_admin_title_prefixes(title)
+    title = _strip_repeated_city_prefix(title)
+    title = _strip_admin_title_prefixes(title)
+
+    # Rows such as "Rovaniemi: | Lakeside Sauna Experience | 10:00..." become
+    # leading-pipe titles after the city prefix is removed.  Pick the first
+    # non-empty pipe segment instead of returning a blank title.
+    if "|" in title:
+        pipe_parts = [clean_space(part) for part in title.split("|") if clean_space(part)]
+        if pipe_parts:
+            title = pipe_parts[0]
+
+    # Supplier rows sometimes append a clock range and then prose to the product
+    # heading: "Dinner Cruise (19:00 - 22:00) incl. dinner...". Keep the product
+    # name as the title; time extraction handles the clock separately.
+    title = re.split(r"\s*\(\s*\d{1,2}[:.]\s*\d{2}\s*(?:-|–|—|to)\s*\d{1,2}[:.]\s*\d{2}.*$", title, maxsplit=1, flags=re.IGNORECASE)[0]
+    title = re.split(r"\s+\d{1,2}[:.]\s*\d{2}\s*(?:-|–|—|to)\s*\d{1,2}[:.]\s*\d{2}\b.*$", title, maxsplit=1, flags=re.IGNORECASE)[0]
 
     # Standard format: "Title - Time: ... - Includes: ..."
     for marker in DETAIL_MARKERS:
         if marker in title:
             title = title.split(marker, 1)[0]
-
-    # Colleague format: "Title | 20:00 | 5 Hrs | Overview..."
-    if "|" in title:
-        title = title.split("|", 1)[0]
 
     # Prevent long supplier sections from becoming titles. These markers may
     # appear with or without a preceding dash in real pasted supplier cells.
@@ -224,20 +292,19 @@ def clean_title(text):
         "Overview",
         "What to expect",
         "Pick up / meeting point",
+        "Pick-up / meeting point",
         "Meeting point",
     ]:
         index = title.lower().find(marker.lower())
         if index > 0:
             title = title[:index]
 
-    title = title.strip(" -:|")
+    title = _strip_admin_title_prefixes(title.strip(" -:|"))
+    title = _strip_repeated_city_prefix(title)
+    title = _strip_admin_title_prefixes(title)
 
-    # Remove duplicated city prefix only when the colon is clearly a city prefix.
-    # Do not split clock times such as "04:30 PM" in arrival rows.
-    if ":" in title and not re.search(r"\b\d{1,2}:\d{2}\b", title):
-        possible_city, rest = title.split(":", 1)
-        if len(possible_city.strip()) <= 25 and rest.strip() and is_valid_city_value(possible_city):
-            title = rest.strip()
+    if had_day_heading and " - " in title:
+        title = title.split(" - ", 1)[0]
 
     return polish_title(clean_space(title))
 
@@ -385,6 +452,12 @@ def detect_effective_type(item_type, title, details):
         if mode in {"cruise", "ferry"}:
             return "Cruise" if mode == "cruise" else "Ferry"
         return "Transport"
+
+    if re.search(r"\b(?:day\s+|overnight\s+)?train\b[^\n|]{0,40}\b[a-zà-ÿøåäö .'-]+\s+-\s+[a-zà-ÿøåäö .'-]+", combined, flags=re.IGNORECASE):
+        return "Train"
+
+    if re.search(r"\bflight\b[^\n|]{0,40}\b[a-zà-ÿøåäö .'-]+\s+-\s+[a-zà-ÿøåäö .'-]+", combined, flags=re.IGNORECASE):
+        return "Flight"
 
     if (
         "flight to" in combined

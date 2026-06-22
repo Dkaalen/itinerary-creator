@@ -107,6 +107,13 @@ def parse_itinerary(raw_text):
             is_optional = True
 
         if item_type.lower() not in KNOWN_TYPES:
+            if looks_like_non_itinerary_type(item_type):
+                diagnostics.warn(
+                    "skipped_non_itinerary_row",
+                    f"Skipped non-itinerary calculator row type '{item_type}'",
+                    raw_value=raw_line,
+                )
+                continue
             diagnostics.warn(
                 "unknown_type",
                 f"Unrecognised row type '{item_type}' — treated as-is",

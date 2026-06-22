@@ -68,6 +68,15 @@ def extract_route_points(text):
 
     source = fix_common_text(text)
     source = source.replace("–", "-")
+    # Real calculator rows occasionally miss the ``t`` in ``to``:
+    # ``Flight Bergen o Svolvær self-arranged``. Repair only when a transport
+    # mode and two capitalized place-looking tokens are present.
+    source = re.sub(
+        r"\b(Flight|Train|Coach|Bus|Cruise|Ferry)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,35}?)\s+o\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,35}?)(?=\s+(?:self[-\s]*arranged|cost|price)|\s*$)",
+        r"\1 \2 to \3",
+        source,
+        flags=re.IGNORECASE,
+    )
 
     # Trim supplier schedule/details so they do not become part of the city.
     route_source = re.split(
@@ -86,6 +95,19 @@ def extract_route_points(text):
     route_source = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", route_source, flags=re.IGNORECASE)
     route_source = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", route_source, flags=re.IGNORECASE)
 
+    # Hyphen-format transport rows from calculator exports, e.g.
+    # ``Day train, Rovaniemi - Helsinki`` or ``Flight, Bergen - Svolvær``.
+    dash_route = re.search(
+        r"\b(?:day\s+|overnight\s+)?(?:train|flight|coach|bus|cruise|ferry)\b[^\n|,;:]{0,20}[,:]?\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s*-\s*(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\n|\s+(?:intercity|ic|train|flight|coach|bus|cruise|ferry|self[-\s]*arranged|cost|price)\b|\s+\d{1,2}:\d{2}|$)",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if dash_route:
+        origin = normalize_place_name(dash_route.group("origin"))
+        destination = normalize_place_name(dash_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+
     # Explicit transport route with one or more "to" segments. Use the final
     # segment as destination, not an intermediate change point such as Malmö.
     transport_route = re.search(
@@ -100,7 +122,7 @@ def extract_route_points(text):
         pieces = [clean_space(part).strip(" -:|.") for part in re.split(r"\s+to\s+", route_text, flags=re.IGNORECASE) if clean_space(part).strip(" -:|.")]
         if len(pieces) >= 2:
             origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", pieces[0], flags=re.IGNORECASE).strip(" -:|.")
-            destination_raw = re.split(r"\s+-\s+(?:bus|coach|flight|train)\b|\s+bus\s+\d+\b|\s+time\b|\s+departure\b|\s+arrival\b|\s*\|", pieces[-1], maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+            destination_raw = re.split(r"\s+part\s+\d+\b|\s+\d{1,2}:\d{2}|\s+-\s+(?:bus|coach|flight|train)\b|\s+bus\s+\d+\b|\s+time\b|\s+departure\b|\s+arrival\b|\s*\|", pieces[-1], maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
             origin = normalize_place_name(origin_raw)
             if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
                 origin = prefix_origin
@@ -121,7 +143,7 @@ def extract_route_points(text):
             continue
 
         origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", match.group(1), flags=re.IGNORECASE).strip(" -:|.")
-        destination_raw = re.split(r"\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}|\s*\|", match.group(2), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
+        destination_raw = re.split(r"\s+part\s+\d+\b|\s+\d{1,2}:\d{2}|\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}|\s*\|", match.group(2), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
         origin = normalize_place_name(origin_raw)
         if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
             origin = prefix_origin
