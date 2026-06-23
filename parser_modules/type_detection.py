@@ -50,8 +50,21 @@ KNOWN_TYPES = {
 }
 
 
+TYPE_ALIASES = {
+    "bus": "Transport",
+    "coach": "Transport",
+    "criuse": "Cruise",
+    "cruies": "Cruise",
+    "cruize": "Cruise",
+    "ferrry": "Ferry",
+    "fery": "Ferry",
+}
+
+
 def normalize_type(value):
-    return clean_space(value).title()
+    text = clean_space(value)
+    normalized = re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+    return TYPE_ALIASES.get(normalized, text.title())
 
 
 def looks_like_day(value):
@@ -63,7 +76,7 @@ def looks_like_date(value):
 
 
 def looks_like_known_type(value):
-    return clean_space(value).lower() in KNOWN_TYPES
+    return normalize_type(value).lower() in KNOWN_TYPES
 
 
 _NON_ITINERARY_TYPE_PATTERNS = (

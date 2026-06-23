@@ -30,6 +30,7 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bTrasnfer\b", "Transfer"),
     (r"\bFlgiht\b", "Flight"),
     (r"\bfeeding\s+the\s+her\b", "feeding the herd"),
+    (r"\bcrusie\s+port\b", "Cruise Port"),
     (r"\bcrusie\b", "cruise"),
     (r"\bCrusie\b", "Cruise"),
     (r"\bMeeteing\b", "Meeting"),

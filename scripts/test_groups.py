@@ -70,6 +70,7 @@ PARSER_TESTS = (
     "tests/test_patch_ih3_iceland_group_tour_parsing.py",
     "tests/test_normalizer_context_architecture.py",
     "tests/test_patch_bf_parser_extractor_architecture.py",
+    "tests/test_norway_coastal_cruise_transfer_regression.py",
     "tests/test_train_details.py",
     "tests/test_commercial_status_helpers.py",
     "tests/test_content_validator_scoping.py",

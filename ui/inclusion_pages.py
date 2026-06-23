@@ -181,7 +181,9 @@ def paginate_categorized_inclusions(sections):
 
         for candidate in candidate_sections:
             section_units = _estimate_inclusion_section_units(candidate)
-            if current and current_units + section_units > max_units:
+            section_title = str(candidate.get("title") or "").strip().lower()
+            keep_off_bottom = section_title == "private transfers" and current_units >= 55
+            if current and (current_units + section_units > max_units or keep_off_bottom):
                 pages.append(current)
                 current = []
                 current_units = 7

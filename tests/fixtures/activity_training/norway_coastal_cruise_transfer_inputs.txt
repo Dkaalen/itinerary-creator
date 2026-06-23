@@ -1,0 +1,116 @@
+### INPUT 1
+Day 1	Arrival	18.09.2026		Oslo: Welcome to Norway
+Day 1	Transfer	18.09.2026		Oslo: Self transfer to your accommodation
+Day 1	Hotel	18.09.2026	20.09.2026	Oslo: Check in to your accommodation for a 2 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 1	Leisure	18.09.2026		Oslo: Spend time at leisure
+				
+Day 2	Activity	19.09.2026		Oslo: Fjord Sightseeing Cruise onboard Electric Boat - Time: 11:00 am - 01:00 pm - Meeting point: Platform E, behind Fisketorget by ‘’TROLLCRUISE’’ sign - Includes: Electric fjord cruise with audio guidance, Access to outdoor deck and blankets, Charging ports and free Wi-FI, Comfortable seating, Panoramic windows, Accessibility features, Onboard toilets - Description: Embark on a 2-hr Oslofjord Sightseeing Cruise, where history, culture, and natural beauty intertwine. As you sail, discover fortresses, lighthouses, and coastal villages that echo with centuries-old tales. Audio guides available to enhance your experience.
+Day 2	Leisure	19.09.2026		Oslo: Spend time at leisure
+				
+Day 3	Transfer	20.09.2026		Oslo: Self transfer to Oslo Central Station
+Day 3	Coach	20.09.2026		Oslo: Scenic Coach Transfer to Kristiansand - Time: 10:30 am - 2:48 pm - Meeting point: Oslo Bus Terminal - Includes: Tickets
+Day 3	Transfer	20.09.2026		Kristiansand: Self transfer to your accommodation
+Day 3	Hotel	20.09.2026	22.09.2026	Kristiansand: Check in to your accommodation for a 2 night stay - Clarion Hotel Ernst - Standard Room - Breakfast included
+Day 3	Leisure	20.09.2026		Kristiansand: Spend time at leisure
+				
+Day 4	Activity	21.09.2026		Kristiansand: Guided Kayaking on the Otra River - Time: 11:00 am - 2:00 pm - Meeting point: Odderøyveien 5 - Includes: Pick-up from meeting point to starting point, Professional, English-speaking guide, All equipment is included - Description: This is a peaceful, beautiful and safe tour that takes you through some of the most beautiful scenery Kristiansand has to offer.
+Day 4	Leisure	21.09.2026		Kristiansand: Spend time at leisure
+				
+Day 5	Transfer	22.09.2026		Kristiansand: Self transfer to Kristinsand Station
+Day 5	Train	22.09.2026		Kristiansand: Scenic train transfer to Stavanger - Time: 12:00 pm - 3:18 pm - Meeting point: Kristiansand Station - Includes: Tickets
+Day 5	Transfer	22.09.2026		Stavanger: Self transfer to your accommodation
+Day 5	Hotel	22.09.2026	24.09.2026	Stavanger: Check in to your accommodation for a 2 night stay - Thon Hotel Maritim - Standard Room - Breakfast included
+Day 5	Leisure	22.09.2026		Stavanger: Spend time at leisure
+				
+Day 6	Activity	23.09.2026		Stavanger: Lysefjord & Preikestolen Fjord Cruise - Time: 12:30 pm - 4:30 pm - Meeteing point: Strandkaien - Includes: Sustainable, quiet & scenic fjord cruise, Boat tour aboard & luxurious catamaran, Spacious cabin with comfortable leather seats, Panoramic windows & large viewing decks, Audio guiding & free Wi-Fi on board, Licensed café serving snacks & drinks - Description: Discover magical Lysefjord - one of the most breathtaking fjords in Norway! Our electric, luxurious boat lets you enjoy this tranquil fjord landscape in silence. Gaze up at spectacular Preikestolen (Pulpit Rock), majestic waterfalls and amazing mountains on our half-day fjord cruise!
+Day 6	Leisure	23.09.2026		Stavanger: Spend time at leisure
+				
+Day 7	Transfer	24.09.2026		Stavanger: Private transfer to Stavanger Cruise Port
+Day 7	Criuse	24.09.2026		Stavanger: Atlantic Coastal Cruise Transfer to Bergen - Time: 07:30 am - 1:00 pm - Meeting point: Stavanger Crusie Port - Includes: Tickets, Fjord Lounge 
+Day 7	Transfer	24.09.2026		Bergen: Private transfer to your accommodation
+Day 7	Hotel	24.09.2026	26.09.2026	Bergen: Check in to your accommodation for a 2 night stay - Clarion Hotel Admiral - Standard Room - Breakfast included
+Day 7	Leisure	24.09.2026		Bergen: Spend time at leisure
+				
+Day 8	Activity	25.09.2026		Bergen: Guided Walking Tour of Bergen Past & Present - Time: 10:00 am - 12:00 pm - Meeting point: Bradbenken 1 - Includes: Profesional Guide - Description: Discover the stories, landscapes and local life that shaped Bergen from the Middle Ages to today. This relaxed, friendly walk takes you through historic streets, colourful neighbourhoods and lesser-known spots that most visitors miss.
+Day 8	Activity	25.09.2026		Bergen: Fløybanen Funicluar Experience - Time: Flexible - Meeting point: Fløybanen - Includes: Tickets valid for the day - Description: Take the funicular Fløibanen to the top of Mount Fløyen and experience spectacular views of the city, the fjord and the surrounding mountains.
+Day 8	Leisure	25.09.2026		Bergen: Spend time at leisure
+				
+Day 9	Transfer	26.09.2026		Bergen: Self transfer to Bergen Train Station
+Day 9	Activity	26.09.2026		Bergen: Norway in a Nutshell to Oslo - Time: 08:29 am - 10:27 pm - Meeting point: Bergen Train Station - Includes: Train transfer Bergen to Voss (08:29 am - 09:41 am), Coach transfer Voss to Gudvangen (10:10 am - 11:10 am), Fjord Cruise Gudvangen to Flåm (12:10 am - 2:10 pm), Train transfer Flåm to Myrdal (4:00 pm - 4:57 pm), Train Transfer Myrdal to Oslo (5:40 pm - 10:27 pm)
+Day 9	Transfer	26.09.2026		Oslo: Self transfer to your accommodation
+Day 9	Hotel	26.09.2026	27.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 9	Leisure	26.09.2026		Oslo: Spend time at leisure
+				
+Day 10	Transfer	27.09.2026		Oslo: Self transfer to Oslo Airport
+Day 10	Departure	27.09.2026		Oslo: Departure home
+
+### INPUT 2
+Day 1	Arrival	18.09.2026		Oslo: Welcome to Norway
+Day 1	Transfer	18.09.2026		Oslo: Self transfer to your accommodation
+Day 1	Hotel	18.09.2026	19.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 1	Leisure	18.09.2026		Oslo: Spend time at leisure
+				
+Day 2	Transfer	19.09.2026		Oslo: Self transfer to Oslo Central Station
+Day 2	Coach	19.09.2026		Oslo: Scenic Coach Transfer to Kristiansand - Time: 10:30 am - 2:48 pm - Meeting point: Oslo Bus Terminal - Includes: Tickets
+Day 2	Transfer	19.09.2026		Kristiansand: Self transfer to your accommodation
+Day 2	Hotel	19.09.2026	20.09.2026	Kristiansand: Check in to your accommodation for a 1 night stay - Clarion Hotel Ernst - Standard Room - Breakfast included
+Day 2	Leisure	19.09.2026		Kristiansand: Spend time at leisure
+				
+Day 3	Transfer	20.09.2026		Kristiansand: Self transfer to Kristinsand Station
+Day 3	Train	20.09.2026		Kristiansand: Scenic train transfer to Stavanger - Time: 12:00 pm - 3:18 pm - Meeting point: Kristiansand Station - Includes: Tickets
+Day 3	Transfer	20.09.2026		Stavanger: Self transfer to your accommodation
+Day 3	Hotel	20.09.2026	22.09.2026	Stavanger: Check in to your accommodation for a 2 night stay - Thon Hotel Maritim - Standard Room - Breakfast included
+Day 3	Leisure	20.09.2026		Stavanger: Spend time at leisure
+				
+Day 4	Activity	21.09.2026		Stavanger: Lysefjord & Preikestolen Fjord Cruise - Time: 12:30 pm - 4:30 pm - Meeteing point: Strandkaien - Includes: Sustainable, quiet & scenic fjord cruise, Boat tour aboard & luxurious catamaran, Spacious cabin with comfortable leather seats, Panoramic windows & large viewing decks, Audio guiding & free Wi-Fi on board, Licensed café serving snacks & drinks - Description: Discover magical Lysefjord - one of the most breathtaking fjords in Norway! Our electric, luxurious boat lets you enjoy this tranquil fjord landscape in silence. Gaze up at spectacular Preikestolen (Pulpit Rock), majestic waterfalls and amazing mountains on our half-day fjord cruise!
+Day 4	Leisure	21.09.2026		Stavanger: Spend time at leisure
+				
+Day 5	Transfer	22.09.2026		Stavanger: Private transfer to Stavanger Cruise Port
+Day 5	Criuse	22.09.2026		Stavanger: Atlantic Coastal Cruise Transfer to Bergen - Time: 07:30 am - 1:00 pm - Meeting point: Stavanger Crusie Port - Includes: Tickets, Fjord Lounge 
+Day 5	Transfer	22.09.2026		Bergen: Private transfer to your accommodation
+Day 5	Hotel	22.09.2026	24.09.2026	Bergen: Check in to your accommodation for a 2 night stay - Clarion Hotel Admiral - Standard Room - Breakfast included
+Day 5	Leisure	22.09.2026		Bergen: Spend time at leisure
+				
+Day 6	Activity	23.09.2026		Bergen: Guided Walking Tour of Bergen Past & Present - Time: 10:00 am - 12:00 pm - Meeting point: Bradbenken 1 - Includes: Profesional Guide - Description: Discover the stories, landscapes and local life that shaped Bergen from the Middle Ages to today. This relaxed, friendly walk takes you through historic streets, colourful neighbourhoods and lesser-known spots that most visitors miss.
+Day 6	Activity	23.09.2026		Bergen: Fløybanen Funicluar Experience - Time: Flexible - Meeting point: Fløybanen - Includes: Tickets valid for the day - Description: Take the funicular Fløibanen to the top of Mount Fløyen and experience spectacular views of the city, the fjord and the surrounding mountains.
+Day 6	Leisure	23.09.2026		Bergen: Spend time at leisure
+				
+Day 7	Transfer	24.09.2026		Bergen: Self transfer to Bergen Train Station
+Day 7	Activity	24.09.2026		Bergen: Norway in a Nutshell to Oslo - Time: 08:29 am - 10:27 pm - Meeting point: Bergen Train Station - Includes: Train transfer Bergen to Voss (08:29 am - 09:41 am), Coach transfer Voss to Gudvangen (10:10 am - 11:10 am), Fjord Cruise Gudvangen to Flåm (12:10 am - 2:10 pm), Train transfer Flåm to Myrdal (4:00 pm - 4:57 pm), Train Transfer Myrdal to Oslo (5:40 pm - 10:27 pm)
+Day 7	Transfer	24.09.2026		Oslo: Self transfer to your accommodation
+Day 7	Hotel	24.09.2026	25.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 7	Leisure	24.09.2026		Oslo: Spend time at leisure
+				
+Day 8	Transfer	25.09.2026		Oslo: Self transfer to Oslo Airport
+Day 8	Departure	25.09.2026		Oslo: Departure home
+
+### INPUT 3
+Day 1	Arrival	18.09.2026		Oslo: Welcome to Norway
+Day 1	Transfer	18.09.2026		Oslo: Self transfer to your accommodation
+Day 1	Hotel	18.09.2026	19.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 1	Leisure	18.09.2026		Oslo: Spend time at leisure
+				
+Day 2	Transfer	19.09.2026		Oslo: Self transfer to Oslo Central Station
+Day 2	Coach	19.09.2026		Oslo: Scenic Coach Transfer to Stavanger - Time: 10:30 am - 6:47 pm - Meeting point: Oslo Bus Terminal - Includes: Tickets
+Day 2	Transfer	19.09.2026		Stavanger: Self transfer to your accommodation
+Day 2	Hotel	19.09.2026	21.09.2026	Stavanger: Check in to your accommodation for a 2 night stay - Thon Hotel Maritim - Standard Room - Breakfast included
+Day 2	Leisure	19.09.2026		Stavanger: Spend time at leisure
+				
+Day 3	Activity	20.09.2026		Stavanger: Lysefjord & Preikestolen Fjord Cruise - Time: 12:30 pm - 4:30 pm - Meeteing point: Strandkaien - Includes: Sustainable, quiet & scenic fjord cruise, Boat tour aboard & luxurious catamaran, Spacious cabin with comfortable leather seats, Panoramic windows & large viewing decks, Audio guiding & free Wi-Fi on board, Licensed café serving snacks & drinks - Description: Discover magical Lysefjord - one of the most breathtaking fjords in Norway! Our electric, luxurious boat lets you enjoy this tranquil fjord landscape in silence. Gaze up at spectacular Preikestolen (Pulpit Rock), majestic waterfalls and amazing mountains on our half-day fjord cruise!
+Day 3	Leisure	20.09.2026		Stavanger: Spend time at leisure
+				
+Day 4	Transfer	21.09.2026		Stavanger: Private transfer to Stavanger Cruise Port
+Day 4	Criuse	21.09.2026		Stavanger: Atlantic Coastal Cruise Transfer to Bergen - Time: 07:30 am - 1:00 pm - Meeting point: Stavanger Crusie Port - Includes: Tickets, Fjord Lounge 
+Day 4	Transfer	21.09.2026		Bergen: Private transfer to your accommodation
+Day 4	Hotel	21.09.2026	22.09.2026	Bergen: Check in to your accommodation for a 1 night stay - Clarion Hotel Admiral - Standard Room - Breakfast included
+Day 4	Leisure	21.09.2026		Bergen: Spend time at leisure
+Day 4	Activity	21.09.2026		Bergen: Fløybanen Funicluar Experience - Time: Flexible - Meeting point: Fløybanen - Includes: Tickets valid for the day - Description: Take the funicular Fløibanen to the top of Mount Fløyen and experience spectacular views of the city, the fjord and the surrounding mountains.
+				
+Day 5	Transfer	22.09.2026		Bergen: Self transfer to Bergen Train Station
+Day 5	Activity	22.09.2026		Bergen: Norway in a Nutshell to Oslo - Time: 08:29 am - 10:27 pm - Meeting point: Bergen Train Station - Includes: Train transfer Bergen to Voss (08:29 am - 09:41 am), Coach transfer Voss to Gudvangen (10:10 am - 11:10 am), Fjord Cruise Gudvangen to Flåm (12:10 am - 2:10 pm), Train transfer Flåm to Myrdal (4:00 pm - 4:57 pm), Train Transfer Myrdal to Oslo (5:40 pm - 10:27 pm)
+Day 5	Transfer	22.09.2026		Oslo: Self transfer to your accommodation
+Day 5	Hotel	22.09.2026	23.09.2026	Oslo: Check in to your accommodation for a 1 night stay - Clarion Hotel The Hub - Standard Double Room - Breakfast included
+Day 5	Leisure	22.09.2026		Oslo: Spend time at leisure
+				
+Day 6	Transfer	23.09.2026		Oslo: Self transfer to Oslo Airport
+Day 6	Departure	23.09.2026		Oslo: Departure home

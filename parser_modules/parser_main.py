@@ -394,7 +394,10 @@ def parse_itinerary(raw_text):
         )
 
         if row["effective_type"] in {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}:
-            route_origin, route_destination = extract_route_points(" ".join(part for part in [row.get("title", ""), row.get("details", "")] if part))
+            route_source = row.get("details", "") or " ".join(part for part in [row.get("title", ""), row.get("details", "")] if part)
+            route_origin, route_destination = extract_route_points(route_source)
+            if route_destination and not route_origin and row.get("city"):
+                route_origin = row.get("city", "")
             if route_origin:
                 row["route_origin"] = route_origin
             if route_destination:
