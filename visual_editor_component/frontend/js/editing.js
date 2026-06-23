@@ -5,6 +5,7 @@ function updateAutosaveNote(message) {
   note.classList.add('show');
 }
 function safeSendComponentValue(serialized, stateName = 'saving') {
+  captureEditorScrollState(stateName);
   try {
     Streamlit.setComponentValue(serialized);
     return true;
@@ -94,6 +95,7 @@ function attachHandlers() {
   document.getElementById('flagIssueBtn')?.addEventListener('click', flagSelectedIssue);
 
   document.getElementById('resetBtn')?.addEventListener('click', () => {
+    allowNextDrawToResetScroll();
     clearLocalDraft();
     model = JSON.parse(JSON.stringify(initialPayload));
     uploadedImages = {};
@@ -271,6 +273,7 @@ function attachHandlers() {
           image.pending_preview = true;
         }
       }
+      captureEditorScrollState(`cover-image-${action}`);
       draw();
     });
   });
@@ -316,6 +319,7 @@ function attachHandlers() {
           day.image.pending_preview = true;
         }
       }
+      captureEditorScrollState(`day-image-${idx}-${action}`);
       draw();
       
     });

@@ -354,7 +354,9 @@ def _split_long_title_from_prose(title):
     )[0]
 
     # As a last resort, stop after the first sentence when the rest is prose.
-    sentence = re.split(r"(?<=[.!?])\s+", source, maxsplit=1)[0]
+    # Keep product abbreviations such as "incl. Lunch" intact.
+    protected_source = re.sub(r"\bincl\.", "incl§", source, flags=re.IGNORECASE)
+    sentence = re.split(r"(?<=[.!?])\s+", protected_source, maxsplit=1)[0].replace("incl§", "incl.")
     if len(sentence) >= 8 and len(sentence) < len(source):
         return sentence.strip(" -:|,.")
 

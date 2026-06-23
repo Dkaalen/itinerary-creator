@@ -351,6 +351,7 @@ function render(payload, commitNonce = null) {
   }
 }
 function draw() {
+  captureEditorScrollState('draw');
   const root = document.getElementById('root');
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
@@ -440,5 +441,6 @@ function draw() {
   h += `</div>${renderRightInspector()}</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
   root.innerHTML = h;
   attachHandlers();
-  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); syncEditorFrameHeight(); });
+  restoreEditorScrollState();
+  requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); syncEditorFrameHeight(); restoreEditorScrollState(); });
 }

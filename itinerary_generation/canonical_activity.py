@@ -116,7 +116,10 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
             included_items = [item for item in included_items if item != "Guided experience"]
     included_items = [re.sub(r"\b(Admission|Ticket|Tour|Transfer)\s+\1\b", r"\1", item, flags=re.IGNORECASE) for item in included_items]
     included_items = list(dict.fromkeys(included_items))
-    included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=6)
+    # Keep ordinary supplier inclusions complete on day pages. Seven/eight
+    # short bullets are still readable and avoid source/output mismatches where
+    # the day page drops items that later appear in the inclusion summary.
+    included_items = prioritize_inline_inclusions(merge_compound_inclusions(included_items), max_items=8)
 
     meta: list[CanonicalMetaLine] = []
     if is_tallinn_ferry:

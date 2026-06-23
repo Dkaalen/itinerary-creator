@@ -64,6 +64,15 @@ def _normalize_place_text_cached(text: str) -> str:
 
     for pattern, canonical, suffix_key in ALIAS_PATTERNS:
         def replace_alias(match, canonical=canonical, suffix_key=suffix_key):
+            # Preserve meaningful supplier aliases when they are already shown
+            # as explanatory parentheticals after the canonical name, e.g.
+            # "Preikestolen (Pulpit Rock)" must not become
+            # "Preikestolen (Preikestolen)".
+            preceding = text[max(0, match.start() - len(canonical) - 12): match.start()]
+            if canonical.lower().startswith("mount ") and re.search(r"\bMount\s+$", preceding, flags=re.IGNORECASE):
+                return match.group(0)
+            if re.search(rf"{re.escape(canonical)}\s*\(\s*$", preceding, flags=re.IGNORECASE):
+                return match.group(0)
             if suffix_key:
                 following = text[match.end(): match.end() + len(suffix_key) + 8]
                 if _key(following).startswith(suffix_key):

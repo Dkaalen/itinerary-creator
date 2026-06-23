@@ -1,4 +1,5 @@
 import diagnostics
+from datetime import datetime, timedelta
 from place_aliases import canonicalize_place_name, is_known_place
 
 from parser_modules.common import *  # noqa: F401,F403
@@ -34,6 +35,35 @@ from parser_modules.rows import (
     preprocess_raw_rows,
 )
 
+
+
+def _parse_itinerary_date(value):
+    text = clean_space(value)
+    if not text:
+        return None
+    serial = _excel_serial_date(text)
+    if serial:
+        try:
+            return datetime(1899, 12, 30) + timedelta(days=int(float(text)))
+        except Exception:
+            return None
+    for fmt in ("%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%d.%m.%y", "%d/%m/%y"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _date_derived_hotel_nights(start_date, end_date):
+    start = _parse_itinerary_date(start_date)
+    end = _parse_itinerary_date(end_date)
+    if not start or not end:
+        return ""
+    nights = (end.date() - start.date()).days
+    if 0 < nights <= 60:
+        return str(nights)
+    return ""
 
 def _fix_common_text_for_row(value, item_type):
     """Apply broad cleanup without rewriting supplier-owned hotel names."""
@@ -341,6 +371,18 @@ def parse_itinerary(raw_text):
 
         if normalize_type(item_type) == "Hotel":
             hotel_details = parse_hotel_details(row, main_text, night_count_hint=night_count_hint)
+            date_derived_nights = _date_derived_hotel_nights(start_date, end_date)
+            if date_derived_nights:
+                parsed_nights = clean_space(hotel_details.get("hotel_nights", ""))
+                if parsed_nights and parsed_nights != date_derived_nights:
+                    hotel_details["source_hotel_nights"] = parsed_nights
+                    hotel_details["hotel_night_mismatch"] = f"source={parsed_nights}; dates={date_derived_nights}"
+                    diagnostics.warn(
+                        "hotel_night_date_mismatch",
+                        f"Hotel stay dates imply {date_derived_nights} nights but the text says {parsed_nights} nights",
+                        raw_value=main_text,
+                    )
+                hotel_details["hotel_nights"] = date_derived_nights
             row.update(hotel_details)
             if row.get("hotel_name"):
                 row["title"] = row["hotel_name"]

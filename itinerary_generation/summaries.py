@@ -166,7 +166,27 @@ def describe_city_experience(rows):
         row for row in rows
         if get_row_type(row) == "Activity" and (row.get("effective_type") or row.get("type")) == "Activity"
     ]
-    text_rows = primary_experience_rows or rows
+    signature_route_rows = [
+        row for row in rows
+        if has_nutshell_journey([row])
+        or _has(
+            " ".join(str(row.get(key, "")) for key in ("title", "original_title", "details")).lower(),
+            "norway in a nutshell",
+            "flåm",
+            "flam railway",
+            "nærøyfjord",
+            "naeroyfjord",
+        )
+    ]
+    text_rows = []
+    seen_text_row_ids = set()
+    for candidate_row in [*primary_experience_rows, *signature_route_rows]:
+        identity = id(candidate_row)
+        if identity in seen_text_row_ids:
+            continue
+        seen_text_row_ids.add(identity)
+        text_rows.append(candidate_row)
+    text_rows = text_rows or rows
     text = " ".join(
         " ".join([
             str(row.get("city", "")),
@@ -248,6 +268,17 @@ def describe_city_experience(rows):
         candidates.append("North Iceland waterfalls and Mývatn")
     if has_whale and _has(text, "hauganes", "return to reykjavík", "return to reykjavik"):
         candidates.append("Whale watching and return to Reykjavík")
+
+    if _has(text, "oslofjord", "oslo fjord"):
+        candidates.append("Oslofjord cruise and capital welcome" if has_arrival else "City sights and Oslofjord cruising")
+    if _has(text, "otra river", "kayaking", "kayak"):
+        candidates.append("Otra River kayaking and southern coast")
+    if _has(text, "lysefjord", "preikestolen", "pulpit rock"):
+        candidates.append("Lysefjord and Preikestolen cruise")
+    if _has(text, "guided walking tour of bergen", "bergen past & present") and has_cable:
+        candidates.append("Historic Bergen and Fløibanen views")
+    if has_nutshell and has_food:
+        candidates.append("Norway in a Nutshell and Oslo food tour")
 
     if _has(text, "spend time at leisure onboard the cruise") and row_types == {"Cruise"}:
         candidates.append("Coastal cruise at leisure")

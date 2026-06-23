@@ -207,10 +207,52 @@ def _validate_snapshot(snapshot: ItineraryQualitySnapshot) -> list[ItineraryVali
     return issues
 
 
+
+def _source_fidelity_issues(rows: Iterable[dict]) -> list[ItineraryValidationIssue]:
+    issues: list[ItineraryValidationIssue] = []
+    suspicious_time_re = re.compile(
+        r"\b12:[0-5]\d\s*a\.?m\.?\s*[-–—]\s*(?:1[0-2]|0?[1-9]):[0-5]\d\s*p\.?m\.?\b",
+        flags=re.IGNORECASE,
+    )
+    typo_re = re.compile(r"\b(?:Meeteing|Funicluar|Funicual|Profesional|athmosphere|Kristinsand|Crusie)\b", flags=re.IGNORECASE)
+    for row in rows:
+        row_type = get_row_type(row)
+        context = " | ".join(str(row.get(key, "")) for key in ("day", "type", "city", "title") if row.get(key))
+        if row_type == "Hotel" and row.get("hotel_night_mismatch"):
+            issues.append(
+                ItineraryValidationIssue(
+                    WARNING,
+                    "hotel_nights_date_mismatch",
+                    "Hotel night count in the source text conflicts with the start/end dates; the date-derived stay length was used.",
+                    context=context or str(row.get("hotel_night_mismatch", "")),
+                )
+            )
+        raw_text = " ".join(str(row.get(key, "")) for key in ("raw", "details", "original_title", "title"))
+        if suspicious_time_re.search(raw_text):
+            issues.append(
+                ItineraryValidationIssue(
+                    WARNING,
+                    "suspicious_am_pm_time_range",
+                    "A source time range crosses AM to PM and may be a supplier typo. Review before sending to the client.",
+                    context=context,
+                )
+            )
+        if typo_re.search(raw_text):
+            issues.append(
+                ItineraryValidationIssue(
+                    WARNING,
+                    "source_typo_corrected",
+                    "Source row contained a known typo that was corrected during parsing. Review the generated output for fidelity.",
+                    context=context,
+                )
+            )
+    return issues
+
 def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:
     """Run the structural itinerary safety gate."""
-    snapshot = build_quality_snapshot(parsed_rows)
-    issues = tuple(_validate_snapshot(snapshot))
+    rows = _as_rows(parsed_rows)
+    snapshot = build_quality_snapshot(rows)
+    issues = tuple(_validate_snapshot(snapshot) + _source_fidelity_issues(rows))
     return ItineraryQualityGateReport(snapshot=snapshot, issues=issues)
 
 
