@@ -1,0 +1,126 @@
+"""Shared resolver for preview/PDF day text ownership."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Mapping, Sequence
+
+from itinerary_generation.common import get_primary_city, get_row_type
+from itinerary_generation.content_engine import is_group_tour_overview
+from itinerary_generation.date_resolver import get_day_date_text
+from itinerary_generation.day_text import create_day_intro
+from itinerary_generation.day_planner import plan_day
+from itinerary_generation.generated_ownership import ResolvedIntro, day_source_signature, resolve_intro
+from itinerary_generation.group_tour_rendering import (
+    group_tour_day_city,
+    group_tour_day_from_rows,
+    group_tour_day_intro,
+    group_tour_day_title,
+)
+from itinerary_generation.titles import create_day_title
+
+
+@dataclass(frozen=True)
+class ResolvedDayContent:
+    day: str
+    label: str
+    date: str
+    title: str
+    city: str
+    intro: str
+    generated_title: str
+    generated_city: str
+    generated_date: str
+    generated_intro: str
+    intro_ownership: ResolvedIntro
+    source_signature: str
+
+    @property
+    def intro_metadata(self) -> dict[str, Any]:
+        return self.intro_ownership.metadata()
+
+
+def _text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _typed_day(output_edits: Mapping[str, Any] | None, day: str) -> dict[str, Any]:
+    draft = output_edits.get("editor_draft") if isinstance(output_edits, Mapping) else None
+    if not isinstance(draft, Mapping):
+        return {}
+    for candidate in draft.get("days") or []:
+        if isinstance(candidate, Mapping) and str(candidate.get("day_id") or candidate.get("day") or "") == str(day):
+            return dict(candidate)
+    return {}
+
+
+def generated_day_values(day: str, rows: Sequence[dict], *, detail_level: str = "Rich descriptive") -> dict[str, str]:
+    group_tour_segment = group_tour_day_from_rows(rows)
+    group_city = group_tour_day_city(rows) if group_tour_segment else ""
+    group_title = group_tour_day_title(rows) if group_tour_segment else ""
+    group_intro = group_tour_day_intro(rows) if group_tour_segment else ""
+    plan = plan_day(list(rows))
+    has_group_tour_overview = any(is_group_tour_overview(row) for row in rows or [])
+    if group_intro:
+        intro = group_intro
+    elif has_group_tour_overview:
+        intro = create_day_intro(rows, detail_level=detail_level)
+    else:
+        intro = plan.intro or create_day_intro(rows, detail_level=detail_level)
+    city = group_city or get_primary_city(rows)
+    if not city and any(get_row_type(row) == "Cruise" for row in rows or []):
+        city = "Cruise"
+    return {
+        "label": str(day),
+        "date": get_day_date_text(rows),
+        "title": group_title or plan.title or create_day_title(rows),
+        "city": city,
+        "intro": intro,
+    }
+
+
+def resolve_day_content(
+    day: str,
+    rows: Sequence[dict],
+    *,
+    output_edits: Mapping[str, Any] | None = None,
+    typed_day: Mapping[str, Any] | None = None,
+    detail_level: str = "Rich descriptive",
+) -> ResolvedDayContent:
+    day_edits = (output_edits or {}).get("days", {}).get(day, {}) if isinstance(output_edits, Mapping) else {}
+    if typed_day is None:
+        typed_day = _typed_day(output_edits, day)
+    generated = generated_day_values(day, rows, detail_level=detail_level)
+    signature = day_source_signature(rows)
+    intro = resolve_intro(
+        day_edits=day_edits if isinstance(day_edits, Mapping) else {},
+        typed_day=typed_day if isinstance(typed_day, Mapping) else {},
+        generated_intro=generated["intro"],
+        source_signature=signature,
+    )
+
+    def first_text(field: str, generated_value: str) -> str:
+        # Title/city/date are deterministic fields but still valid manual editor
+        # fields. Intro is resolved separately because generated defaults need
+        # refresh ownership.
+        for owner in (typed_day, day_edits):
+            if isinstance(owner, Mapping) and field in owner:
+                value = _text(owner.get(field, ""))
+                if value:
+                    return value
+        return _text(generated_value)
+
+    return ResolvedDayContent(
+        day=str(day),
+        label=first_text("label", generated["label"]),
+        date=first_text("date", generated["date"]),
+        title=first_text("title", generated["title"]),
+        city=first_text("city", generated["city"]),
+        intro=intro.intro,
+        generated_title=generated["title"],
+        generated_city=generated["city"],
+        generated_date=generated["date"],
+        generated_intro=generated["intro"],
+        intro_ownership=intro,
+        source_signature=signature,
+    )

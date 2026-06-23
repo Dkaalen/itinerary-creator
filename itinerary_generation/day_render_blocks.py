@@ -12,6 +12,7 @@ from itinerary_generation.common import get_primary_city, get_row_type, is_optio
 from itinerary_generation.content_engine import clean_client_title, group_tour_pickup_window_from_overview, is_group_tour_overview
 from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.day_overview_blocks import build_day_overview_render_block
+from itinerary_generation.day_content_resolver import resolve_day_content
 from itinerary_generation.day_planner import plan_day
 from itinerary_generation.canonical_render_adapter import render_block_from_canonical
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine
@@ -362,9 +363,11 @@ def _output_edits_with_typed_day_overrides(output_edits: dict | None, day: str) 
         return output_edits
     direct_fields = {
         field: str(typed_day.get(field, "")).strip()
-        for field in ("title", "city", "intro", "date")
+        for field in ("title", "city", "date")
         if field in typed_day and str(typed_day.get(field, "")).strip()
     }
+    if typed_day.get("intro_manual_override") and str(typed_day.get("intro", "")).strip():
+        direct_fields["intro"] = str(typed_day.get("intro", "")).strip()
     if not direct_fields:
         return output_edits
     merged = dict(output_edits)
@@ -402,8 +405,8 @@ def build_render_day_from_document(
     warnings = list(day_shell.warnings)
     if day_document:
         warnings.extend(warning.message for warning in day_document.warnings)
-    day_edits = (effective_output_edits or {}).get("days", {}).get(day, {}) if isinstance(effective_output_edits, dict) else {}
-    edited_date = str(day_edits.get("date") or "").strip() if isinstance(day_edits, dict) else ""
+    resolved_day_content = resolve_day_content(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level)
+    edited_date = str(resolved_day_content.date or "").strip()
     return RenderDay(
         day=day_shell.day,
         number=day_document.number if day_document and day_document.number else day_shell.number,

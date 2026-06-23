@@ -342,6 +342,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         return f"Welcome to {destination}. {transfer_phrase} After check-in, enjoy time to settle in."
 
     if has_departure and city:
+        departure_text = " ".join(f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}' for row in day_rows).lower()
+        if any(marker in departure_text for marker in ("self transfer", "self-arranged", "self arranged", "own way")):
+            airport = _explicit_transfer_airport(day_rows) or f"{city} Airport"
+            return f"After check-out, please make your own way to {airport} for your onward journey."
         if detail_level == "Elegant concise":
             return f"After check-out, your final arrangements in {city} are kept simple."
         if detail_level == "Rich descriptive":
@@ -391,9 +395,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     if (transports or route_transfers) and city:
         transport_context = " ".join(f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}' for row in transports + route_transfers).lower()
         if ("norway in a nutshell" in transport_context or "nærøyfjord" in transport_context or "naeroyfjord" in transport_context or "flåm train" in transport_context or "flam train" in transport_context):
-            if detail_level == "Rich descriptive":
-                return f"The journey continues towards {city}, with the Norway in a Nutshell route arranged as a clear and scenic travel day."
-            return f"Continue your Norway in a Nutshell journey towards {city}."
+            premium_route_intro = route_intro_for_day(day_rows, detail_level)
+            if premium_route_intro:
+                return premium_route_intro
+            return f"Follow the Norway in a Nutshell route towards {city}, with the rail, fjord and road segments presented together as one signature scenic journey."
 
         has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
         if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):

@@ -43,12 +43,12 @@ def _contains(text: str, *markers: str) -> bool:
 
 ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     TextRule(
-        ("oslofjord", "electric boat", "trollcruise"),
-        lambda title, city: f"Begin with Oslo from the water, where {title} adds harbour views, island scenery and an easy fjord perspective to the capital stay.",
-    ),
-    TextRule(
         ("lysefjord", "preikestolen", "pulpit rock"),
         lambda title, city: f"The day centres on Lysefjord, with {title} carrying you from Stavanger beneath steep mountain walls, waterfalls and the viewpoint of Preikestolen.",
+    ),
+    TextRule(
+        ("oslofjord", "trollcruise"),
+        lambda title, city: f"Begin with Oslo from the water, where {title} adds harbour views, island scenery and an easy fjord perspective to the capital stay.",
     ),
     TextRule(
         ("otra river",),
@@ -164,7 +164,11 @@ def client_activity_intro(activity_title: str, city: str, source_text: str = "",
 
     title = _normalise_text(activity_title) or "the arranged experience"
     city_text = _normalise_text(city) or "the destination"
-    searchable = f"{title} {source_text}".lower()
+    searchable = f"{title} {city_text} {source_text}".lower()
+    if any(marker in searchable for marker in ("lysefjord", "preikestolen", "pulpit rock")):
+        return f"The day centres on Lysefjord, with {title} carrying you from Stavanger beneath steep mountain walls, waterfalls and the viewpoint of Preikestolen."
+    if "electric boat" in searchable and any(marker in searchable for marker in ("oslo", "oslofjord", "trollcruise")):
+        return f"Begin with Oslo from the water, where {title} adds harbour views, island scenery and an easy fjord perspective to the capital stay."
     for rule in ACTIVITY_INTRO_RULES:
         if rule.matches(searchable):
             return rule.render(title, city_text)

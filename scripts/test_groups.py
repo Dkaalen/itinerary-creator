@@ -15,6 +15,7 @@ REMAINING_STAGE_SIZE = 8
 TIERED_STAGE_SIZE = 4
 
 FAST_TESTS = (
+    "tests/test_sync_regression_suite1.py",
     "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
@@ -168,6 +169,7 @@ ARCHITECTURE_TESTS = (
 )
 
 EDITOR_TESTS = (
+    "tests/test_sync_regression_suite1.py",
     "tests/test_review3_ready_for_client_workflow.py",
     "tests/test_editor3_image_inspector_workflow.py",
     "tests/test_cleanup1_editor_review_contract.py",
@@ -223,6 +225,7 @@ IMAGE_TESTS = (
 )
 
 UI_TESTS = (
+    "tests/test_sync_regression_suite1.py",
     "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_review3_ready_for_client_workflow.py",
     "tests/test_editor3_image_inspector_workflow.py",
@@ -290,6 +293,7 @@ QUALITY_TESTS = (
 )
 
 PDF_TESTS = (
+    "tests/test_sync_regression_suite1.py",
     "tests/test_patch_aj_pdf_render_model.py",
     "tests/test_pdf.py",
     "tests/test_pdf6_luxury_proposal.py",

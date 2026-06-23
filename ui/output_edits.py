@@ -20,6 +20,7 @@ except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallb
 
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro, create_travel_route_label
+from itinerary_generation.generated_ownership import INTRO_GENERATOR_VERSION, day_source_signature
 from itinerary_generation.inclusions import create_whats_included
 from itinerary_generation.titles import (
     create_client_activity_title,
@@ -55,8 +56,12 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
         old_intro = create_day_intro(rows, detail_level=old_detail)
         new_intro = create_day_intro(rows, detail_level=new_detail)
         current_intro = day_edit.get("intro", "")
-        if not current_intro or current_intro == old_intro:
+        if not current_intro or current_intro == old_intro or day_edit.get("intro_manual_override") is False:
             day_edit["intro"] = new_intro
+            day_edit["intro_generated_value"] = new_intro
+            day_edit["intro_generator_version"] = INTRO_GENERATOR_VERSION
+            day_edit["intro_source_signature"] = day_source_signature(rows)
+            day_edit["intro_manual_override"] = False
 
         for row in rows:
             row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
@@ -88,7 +93,12 @@ def apply_rich_writing_to_day(day, rows, output_edits):
 
     output_edits = output_edits or {}
     day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-    day_edit["intro"] = create_day_intro(rows, detail_level="Rich descriptive")
+    intro = create_day_intro(rows, detail_level="Rich descriptive")
+    day_edit["intro"] = intro
+    day_edit["intro_generated_value"] = intro
+    day_edit["intro_generator_version"] = INTRO_GENERATOR_VERSION
+    day_edit["intro_source_signature"] = day_source_signature(rows)
+    day_edit["intro_manual_override"] = False
 
     for row in rows:
         row_id = row.get("row_id") or f'line_{row.get("line_number", "")}'
@@ -140,9 +150,14 @@ def make_output_edit_state(parsed_rows, grouped_days):
     }
 
     for day, rows in grouped_days.items():
+        intro = create_day_intro(rows, detail_level=edits["detail_level"])
         edits["days"][day] = {
             "title": create_day_title(rows),
-            "intro": create_day_intro(rows, detail_level=edits["detail_level"]),
+            "intro": intro,
+            "intro_generated_value": intro,
+            "intro_generator_version": INTRO_GENERATOR_VERSION,
+            "intro_source_signature": day_source_signature(rows),
+            "intro_manual_override": False,
             "city": create_travel_route_label(rows) or get_primary_city(rows),
         }
 

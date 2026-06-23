@@ -35,6 +35,7 @@ from pdf_exporter_modules import styles as pdf_styles
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
 from pdf_exporter_modules.export_profiles import DEFAULT_PDF_EXPORT_PROFILE, resolve_pdf_export_profile
 from ui.premium_final_notes import premium_note_cards
+from itinerary_generation.generated_ownership import blocks_html_is_manual
 
 
 _SUPPORTED_FINAL_HTML_TAGS = {
@@ -132,17 +133,14 @@ def render_document_requires_html_fallback(render_document: RenderDocument | Non
 
     edits = output_edits or {}
     for day_edit in (edits.get("days") or {}).values() if isinstance(edits, Mapping) else []:
-        if isinstance(day_edit, Mapping) and "blocks_html" in day_edit:
+        if isinstance(day_edit, Mapping) and blocks_html_is_manual(day_edit):
             return True
 
     draft = edits.get("editor_draft") if isinstance(edits, Mapping) else None
     if isinstance(draft, Mapping):
         for day in draft.get("days") or []:
-            if not isinstance(day, Mapping):
-                continue
-            for block in day.get("blocks") or []:
-                if isinstance(block, Mapping) and str(block.get("content_html") or block.get("html") or "").strip():
-                    return True
+            if isinstance(day, Mapping) and blocks_html_is_manual(day):
+                return True
         for section in draft.get("final_sections") or []:
             if not isinstance(section, Mapping):
                 continue

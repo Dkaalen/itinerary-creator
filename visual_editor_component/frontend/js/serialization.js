@@ -49,25 +49,36 @@ function buildEditableDraftFromPayload(value) {
   };
   (Array.isArray(source.days) ? source.days : []).forEach((day, index) => {
     const dayId = String(day?.day || day?.day_id || day?.label || `Day ${index + 1}`);
-    const blocks = Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html')
-      ? [{block_id: 'main', kind: 'day_content', title: '', content_html: String(day?.blocks_html ?? '')}]
-      : (Array.isArray(day?.blocks) && day.blocks.length
-        ? day.blocks.map((block, blockIndex) => ({
-            block_id: String(block?.block_id || `main-${blockIndex + 1}`),
-            kind: String(block?.kind || 'day_content'),
-            title: String(block?.title || ''),
-            content_html: String(block?.content_html ?? block?.html ?? '')
-          }))
-        : [{block_id: 'main', kind: 'day_content', title: '', content_html: ''}]);
-    const draftDay = {
-      day_id: dayId,
-      label: String(day?.label || dayId),
-      date: String(day?.date || ''),
-      title: String(day?.title || ''),
-      city: String(day?.city || ''),
-      intro: String(day?.intro || ''),
-      blocks
-    };
+    const touched = new Set(Array.isArray(day?.touched_fields) ? day.touched_fields : []);
+    ['label', 'date', 'title', 'city', 'intro', 'intro_generated_value', 'intro_generator_version', 'intro_source_signature', 'intro_manual_override', 'blocks_html_generated_value', 'blocks_html_generator_version', 'blocks_manual_override', 'image'].forEach(field => {
+      if (Object.prototype.hasOwnProperty.call(day || {}, field)) touched.add(field);
+    });
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html') || Object.prototype.hasOwnProperty.call(day || {}, 'blocks')) touched.add('blocks');
+    const draftDay = {day_id: dayId, touched_fields: Array.from(touched)};
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'label')) draftDay.label = String(day?.label || dayId);
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'date')) draftDay.date = String(day?.date || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'title')) draftDay.title = String(day?.title || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'city')) draftDay.city = String(day?.city || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'intro')) draftDay.intro = String(day?.intro || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'intro_generated_value')) draftDay.intro_generated_value = String(day?.intro_generated_value || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'intro_generator_version')) draftDay.intro_generator_version = String(day?.intro_generator_version || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'intro_source_signature')) draftDay.intro_source_signature = String(day?.intro_source_signature || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'intro_manual_override')) draftDay.intro_manual_override = !!day?.intro_manual_override;
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html_generated_value')) draftDay.blocks_html_generated_value = String(day?.blocks_html_generated_value || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html_generator_version')) draftDay.blocks_html_generator_version = String(day?.blocks_html_generator_version || '');
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'blocks_manual_override')) draftDay.blocks_manual_override = !!day?.blocks_manual_override;
+    if (Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html') || Object.prototype.hasOwnProperty.call(day || {}, 'blocks')) {
+      draftDay.blocks = Object.prototype.hasOwnProperty.call(day || {}, 'blocks_html')
+        ? [{block_id: 'main', kind: 'day_content', title: '', content_html: String(day?.blocks_html ?? '')}]
+        : (Array.isArray(day?.blocks) && day.blocks.length
+          ? day.blocks.map((block, blockIndex) => ({
+              block_id: String(block?.block_id || `main-${blockIndex + 1}`),
+              kind: String(block?.kind || 'day_content'),
+              title: String(block?.title || ''),
+              content_html: String(block?.content_html ?? block?.html ?? '')
+            }))
+          : [{block_id: 'main', kind: 'day_content', title: '', content_html: ''}]);
+    }
     if (day?.image) draftDay.image = compactImage(day.image);
     draft.days.push(draftDay);
   });
@@ -129,7 +140,11 @@ function pruneForSave(value) {
       if (!Number.isFinite(index) || !field) return;
       const day = dayPayload(index);
       if (field === 'image') day.image = compactImage(full.days?.[index]?.image || {});
-      else day[field] = getByPath(full, key) ?? '';
+      else {
+        day[field] = getByPath(full, key) ?? '';
+        if (field === 'intro') day.intro_manual_override = true;
+        if (field === 'blocks_html') day.blocks_manual_override = true;
+      }
     } else if (key.startsWith('final_pages.whats_included_pages_html.')) {
       payload.final_pages.whats_included_pages_html = full.final_pages?.whats_included_pages_html || [];
     } else if (key === 'issue_flags') {
@@ -151,8 +166,10 @@ function compactFullPayloadForCommit(value) {
   const full = JSON.parse(JSON.stringify(value || {}));
   if (full.cover?.cover_image) full.cover.cover_image = compactImage(full.cover.cover_image);
   if (full.cover?.summary_image) full.cover.summary_image = compactImage(full.cover.summary_image);
-  (full.days || []).forEach(day => {
+  (full.days || []).forEach((day, index) => {
     if (day.image) day.image = compactImage(day.image);
+    if (touchedKeys.has(`days.${index}.intro`)) day.intro_manual_override = true;
+    if (touchedKeys.has(`days.${index}.blocks_html`)) day.blocks_manual_override = true;
   });
   full.document_pages = Array.isArray(full.document_pages) ? full.document_pages : [];
   full.editor_draft = buildEditableDraftFromPayload(full);

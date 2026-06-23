@@ -38,6 +38,14 @@ class EditableDay:
     title: str = ""
     city: str = ""
     intro: str = ""
+    intro_generated_value: str = ""
+    intro_generator_version: str = ""
+    intro_source_signature: str = ""
+    intro_manual_override: bool = False
+    blocks_html_generated_value: str = ""
+    blocks_html_generator_version: str = ""
+    blocks_manual_override: bool = False
+    touched_fields: tuple[str, ...] = ()
     blocks: tuple[EditableBlock, ...] = ()
     image: dict[str, Any] = field(default_factory=dict)
 
@@ -94,6 +102,14 @@ def _as_text(value: Any) -> str:
     return str(value) if value is not None else ""
 
 
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y"}
+    return bool(value)
+
+
 def _page_html(value: Any) -> str:
     if isinstance(value, Mapping):
         return _as_text(value.get("content_html", value.get("html", "")))
@@ -114,6 +130,32 @@ def _normalise_day(value: Any, index: int) -> EditableDay | None:
     day_id = _as_text(value.get("day") or value.get("day_id") or value.get("label") or f"Day {index + 1}").strip()
     if not day_id:
         return None
+
+    raw_touched = value.get("touched_fields")
+    if isinstance(raw_touched, (list, tuple)):
+        touched_fields = tuple(str(item) for item in raw_touched if str(item))
+    else:
+        touched_fields = tuple(
+            field
+            for field in (
+                "label",
+                "date",
+                "title",
+                "city",
+                "intro",
+                "intro_generated_value",
+                "intro_generator_version",
+                "intro_source_signature",
+                "intro_manual_override",
+                "blocks",
+                "blocks_html",
+                "blocks_html_generated_value",
+                "blocks_html_generator_version",
+                "blocks_manual_override",
+                "image",
+            )
+            if field in value
+        )
 
     raw_blocks = value.get("blocks")
     blocks: list[EditableBlock] = []
@@ -141,6 +183,14 @@ def _normalise_day(value: Any, index: int) -> EditableDay | None:
         title=_as_text(value.get("title", "")),
         city=_as_text(value.get("city", "")),
         intro=_as_text(value.get("intro", "")),
+        intro_generated_value=_as_text(value.get("intro_generated_value", "")),
+        intro_generator_version=_as_text(value.get("intro_generator_version", "")),
+        intro_source_signature=_as_text(value.get("intro_source_signature", "")),
+        intro_manual_override=_as_bool(value.get("intro_manual_override", ("intro" in value and "intro_generated_value" not in value))),
+        blocks_html_generated_value=_as_text(value.get("blocks_html_generated_value", "")),
+        blocks_html_generator_version=_as_text(value.get("blocks_html_generator_version", "")),
+        blocks_manual_override=_as_bool(value.get("blocks_manual_override", (("blocks_html" in value or "blocks" in value) and "blocks_html_generated_value" not in value))),
+        touched_fields=touched_fields,
         blocks=tuple(blocks),
         image=_as_dict(value.get("image")),
     )
@@ -326,10 +376,37 @@ def merge_editable_drafts(existing: Mapping[str, Any] | None, incoming: Mapping[
         day_id = _as_text(incoming_day.get("day_id") or incoming_day.get("day") or incoming_day.get("label", "")).strip()
         if not day_id:
             continue
-        copied = dict(incoming_day)
+        touched = set(incoming_day.get("touched_fields") or [])
+        # Full drafts from older callers may not include touched_fields. Treat a
+        # missing list as a complete day, but use the key-aware list for compact
+        # autosave deltas so image-only saves do not blank text/body fields.
+        full_day = not touched
+        fields = (
+            "label",
+            "date",
+            "title",
+            "city",
+            "intro",
+            "intro_generated_value",
+            "intro_generator_version",
+            "intro_source_signature",
+            "intro_manual_override",
+            "blocks_html_generated_value",
+            "blocks_html_generator_version",
+            "blocks_manual_override",
+            "image",
+        )
         if day_id in day_indexes:
+            copied = dict(days[day_indexes[day_id]])
+            for field in fields:
+                if full_day or field in touched:
+                    copied[field] = incoming_day.get(field, copied.get(field, {} if field == "image" else ""))
+            if full_day or "blocks" in touched or "blocks_html" in touched:
+                copied["blocks"] = list(incoming_day.get("blocks") or [])
+            copied["touched_fields"] = tuple(sorted(set(copied.get("touched_fields") or ()) | touched))
             days[day_indexes[day_id]] = copied
         else:
+            copied = dict(incoming_day)
             day_indexes[day_id] = len(days)
             days.append(copied)
     merged["days"] = days
@@ -406,6 +483,18 @@ def mirror_draft_to_legacy_output_edits(output_edits: dict[str, Any], editor_dra
         for field in ("title", "city", "intro", "date"):
             if field in draft_day:
                 day_edits[field] = _as_text(draft_day.get(field, "")).strip()
+        for field in (
+            "intro_generated_value",
+            "intro_generator_version",
+            "intro_source_signature",
+            "blocks_html_generated_value",
+            "blocks_html_generator_version",
+        ):
+            if field in draft_day:
+                day_edits[field] = _as_text(draft_day.get(field, ""))
+        for field in ("intro_manual_override", "blocks_manual_override"):
+            if field in draft_day:
+                day_edits[field] = _as_bool(draft_day.get(field, False))
         block_html = first_block_html(draft_day)
         if block_html is not None:
             day_edits["blocks_html"] = block_html
