@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itinerary_generation.destination_registry import destination_country_for_alias
+
 from .metadata import CITY_ALIASES, city_variants, infer_primary_month_from_rows, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
 
 CITY_TO_COUNTRY = {
@@ -45,7 +47,7 @@ CITY_TO_COUNTRY = {
 def _country_variants_for_city(city: str) -> set[str]:
     variants = set()
     for city_variant in city_variants(city):
-        country = CITY_TO_COUNTRY.get(normalize_keyword(city_variant), "")
+        country = destination_country_for_alias(city_variant) or CITY_TO_COUNTRY.get(normalize_keyword(city_variant), "")
         if country:
             variants.add(country)
     return variants

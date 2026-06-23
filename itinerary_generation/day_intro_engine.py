@@ -30,7 +30,7 @@ from itinerary_generation.day_group_tour_text import (
     _natural_group_tour_focus,
 )
 from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
-from itinerary_generation.destination_copy import leisure_description
+from itinerary_generation.destination_copy import leisure_description, travel_day_intro
 from parser_modules.common import extract_route_points
 from text_polish import polish_title
 from itinerary_generation.transport_model import get_transport_source_text
@@ -159,6 +159,9 @@ def _premium_route_intro(origin: str, destination: str, mode: str, detail_level:
         if origin:
             return f"Travel from {origin} to Bergen by coastal cruise, with the day arranged as a coordinated port-to-hotel journey."
         return "Travel to Bergen by coastal cruise, with the day arranged as a coordinated port-to-hotel journey."
+    generic_intro = travel_day_intro(origin, destination, mode)
+    if generic_intro:
+        return generic_intro
     if origin:
         connector = f" by {mode}" if mode in {"train", "coach", "ferry", "cruise", "flight"} else ""
         return f"Travel from {origin} to {destination}{connector}, with the day’s route and arrival arrangements grouped clearly below."

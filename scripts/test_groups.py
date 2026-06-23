@@ -120,6 +120,13 @@ ARCHITECTURE_TESTS = (
     "tests/test_structured_html_source_identity.py",
     "tests/test_transport_model_architecture.py",
     "tests/test_wrapper_exports.py",
+    "tests/test_dest1_destination_registry.py",
+    "tests/test_dest2_norway_destination_expansion.py",
+    "tests/test_dest2_sweden_destination_expansion.py",
+    "tests/test_dest2_finland_destination_expansion.py",
+    "tests/test_dest2_denmark_destination_expansion.py",
+    "tests/test_dest2_iceland_destination_expansion.py",
+    "tests/test_content1_destination_copy_library.py",
     "tests/test_compatibility_facade_audit.py",
     "tests/test_test_runner_groups.py",
     "tests/test_patch_bp_editor_workflow_split.py",
@@ -176,6 +183,13 @@ IMAGE_TESTS = (
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_southern_coastal_image_season_policy.py",
+    "tests/test_dest1_destination_registry.py",
+    "tests/test_dest2_norway_destination_expansion.py",
+    "tests/test_dest2_sweden_destination_expansion.py",
+    "tests/test_dest2_finland_destination_expansion.py",
+    "tests/test_dest2_denmark_destination_expansion.py",
+    "tests/test_dest2_iceland_destination_expansion.py",
+    "tests/test_content1_destination_copy_library.py",
 )
 
 UI_TESTS = (
@@ -225,6 +239,7 @@ QUALITY_TESTS = (
     "tests/test_patch_bz1g_finland_source_fidelity.py",
     "tests/test_patch_ih1_reference_corpus.py",
     "tests/test_patch_ih4_group_tour_rendering.py",
+    "tests/test_content1_destination_copy_library.py",
 )
 
 PDF_TESTS = (

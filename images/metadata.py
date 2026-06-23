@@ -63,6 +63,15 @@ CITY_ALIASES = {
     "åre": {"are", "åre"},
 }
 
+try:
+    from itinerary_generation.destination_registry import registry_city_aliases
+
+    for _canonical, _aliases in registry_city_aliases().items():
+        CITY_ALIASES.setdefault(_canonical, set()).update(_aliases)
+except Exception:
+    # Image metadata must remain import-safe for isolated tooling.
+    pass
+
 THEME_ALIASES = {
     "northern lights": {"northern", "lights", "northernlights", "aurora", "basecamp", "chase", "hunt"},
     "fjord": {"fjord", "fjords", "kvaloya", "kvaløya", "sommaroy", "sommarøy", "cruise", "boat", "lake", "waterfall"},

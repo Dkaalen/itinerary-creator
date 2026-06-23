@@ -8,21 +8,9 @@ leaving Arctic/Northern destinations free to use winter imagery when it fits.
 
 from __future__ import annotations
 
-from .metadata import ImageCandidate, city_variants, normalize_keyword
+from itinerary_generation.destination_registry import is_southern_coastal_destination
 
-SOUTHERN_COASTAL_CITY_ALIASES = {
-    "bergen",
-    "kristiansand",
-    "stavanger",
-    "oslo",
-    "copenhagen",
-    "kobenhavn",
-    "københavn",
-    "stockholm",
-    "gothenburg",
-    "goteborg",
-    "göteborg",
-}
+from .metadata import ImageCandidate, city_variants, normalize_keyword
 
 WINTER_VISUAL_TOKENS = {
     "aurora",
@@ -57,11 +45,12 @@ def _normalized_city_variants(value: str) -> set[str]:
 
 
 def is_southern_coastal_city_context(day_context: dict) -> bool:
-    variants = {normalize_keyword(item) for item in day_context.get("city_variants", set()) if normalize_keyword(item)}
-    city = normalize_keyword(day_context.get("city", ""))
+    variants = {str(item) for item in day_context.get("city_variants", set()) if str(item).strip()}
+    city = str(day_context.get("city", "") or "").strip()
     if city:
         variants.update(_normalized_city_variants(city))
-    return bool(variants & {normalize_keyword(item) for item in SOUTHERN_COASTAL_CITY_ALIASES})
+        variants.add(city)
+    return any(is_southern_coastal_destination(item) for item in variants)
 
 
 def _candidate_has_winter_visual(candidate: ImageCandidate) -> bool:
