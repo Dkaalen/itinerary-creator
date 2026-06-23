@@ -134,7 +134,26 @@
     }
   ],
   "extra_allowed_classes": [
-    "ve-divider"
+    "ve-divider",
+    "premium-travel-card",
+    "featured-journey-block",
+    "coastal-cruise-card",
+    "premium-travel-kicker",
+    "premium-travel-title",
+    "premium-travel-description",
+    "premium-travel-badges",
+    "premium-travel-badge",
+    "premium-route-ribbon",
+    "premium-travel-timeline",
+    "premium-travel-timeline-item",
+    "premium-travel-chips",
+    "premium-travel-chip",
+    "premium-travel-chip-muted",
+    "premium-linked-transfers",
+    "premium-notes-page",
+    "premium-notes-grid",
+    "premium-note-card",
+    "premium-note-card-title"
   ],
   "font_families": [
     {

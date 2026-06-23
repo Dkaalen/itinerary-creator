@@ -15,6 +15,7 @@ CITY_ALIASES = {
     "tromsø": {"tromso", "tromsø", "tromsoe"},
     "oslo": {"oslo"},
     "bergen": {"bergen"},
+    "kristiansand": {"kristiansand", "christiansand"},
     "voss": {"voss"},
     "stavanger": {"stavanger", "preikestolen", "lysefjord"},
     "helsinki": {"helsinki"},
@@ -159,8 +160,8 @@ def infer_seasons(tokens: set[str]) -> set[str]:
     return seasons
 
 
-def infer_season_from_rows(rows: list[dict]) -> str:
-    """Infer the itinerary season from day dates when available."""
+def infer_primary_month_from_rows(rows: list[dict]) -> int | None:
+    """Infer the primary itinerary month from day dates when available."""
     for row in rows or []:
         for key in ("date", "start_date", "from_date", "check_in", "checkin"):
             value = str(row.get(key, "") or "").strip()
@@ -179,14 +180,22 @@ def infer_season_from_rows(rows: list[dict]) -> str:
                     month = int(match.group(1))
                 except Exception:
                     continue
-                if month in WINTER_MONTHS:
-                    return "winter"
-                if month in SPRING_MONTHS:
-                    return "spring"
-                if month in SUMMER_MONTHS:
-                    return "summer"
-                if month in AUTUMN_MONTHS:
-                    return "autumn"
+                if 1 <= month <= 12:
+                    return month
+    return None
+
+
+def infer_season_from_rows(rows: list[dict]) -> str:
+    """Infer the itinerary season from day dates when available."""
+    month = infer_primary_month_from_rows(rows)
+    if month in WINTER_MONTHS:
+        return "winter"
+    if month in SPRING_MONTHS:
+        return "spring"
+    if month in SUMMER_MONTHS:
+        return "summer"
+    if month in AUTUMN_MONTHS:
+        return "autumn"
     return ""
 
 

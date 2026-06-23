@@ -386,6 +386,102 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
             page-break-inside: avoid;
         }}
 
+        .premium-travel-card {{
+            border: 1px solid rgba(31, 52, 70, 0.16);
+            background: rgba(255, 255, 255, 0.34);
+            border-radius: 16px;
+            padding: 16px 18px 15px;
+            margin: 18px 0 20px;
+            box-shadow: 0 10px 24px rgba(31, 52, 70, 0.04);
+        }}
+
+        .premium-travel-kicker {{
+            margin-top: 0;
+            margin-bottom: 7px;
+            color: var(--accent);
+        }}
+
+        .premium-travel-title {{
+            font-size: 19px;
+            line-height: 1.24;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 7px;
+        }}
+
+        .premium-travel-description {{
+            color: var(--body);
+            margin-bottom: 10px;
+        }}
+
+        .premium-travel-badges,
+        .premium-travel-chips {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin: 7px 0 10px;
+        }}
+
+        .premium-travel-badge,
+        .premium-travel-chip {{
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(31, 52, 70, 0.14);
+            border-radius: 999px;
+            padding: 3px 9px 4px;
+            font-family: Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.25;
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.48);
+        }}
+
+        .premium-travel-chip-muted {{
+            color: var(--muted);
+        }}
+
+        .premium-route-ribbon {{
+            margin: 9px 0 12px;
+            padding: 9px 11px;
+            border-left: 3px solid var(--accent);
+            background: rgba(31, 52, 70, 0.045);
+            font-family: Arial, sans-serif;
+            font-size: 12.2px;
+            line-height: 1.35;
+            letter-spacing: 0.01em;
+            color: var(--ink);
+        }}
+
+        .premium-travel-timeline {{
+            margin: 10px 0 11px;
+        }}
+
+        .premium-travel-timeline-item {{
+            display: grid;
+            grid-template-columns: 14px 1fr;
+            column-gap: 8px;
+            align-items: start;
+            font-size: 12.8px;
+            line-height: 1.35;
+            color: var(--body);
+            margin-bottom: 5px;
+        }}
+
+        .premium-travel-timeline-item span {{
+            width: 7px;
+            height: 7px;
+            margin-top: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.82;
+        }}
+
+        .premium-linked-transfers {{
+            margin-top: 8px;
+            padding-top: 4px;
+            border-top: 1px solid rgba(31, 52, 70, 0.12);
+        }}
+
         .section-title {{
             font-family: Arial, sans-serif;
             font-size: 11px;
@@ -637,13 +733,42 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
         }}
 
         .important-notes-page .note-paragraph {{
-            font-size: 14px;
-            line-height: 1.55;
-            margin-bottom: 14px;
+            font-size: 13.2px;
+            line-height: 1.48;
+            margin-bottom: 0;
         }}
 
         .notes-block {{
             margin-top: 8px;
+        }}
+
+        .premium-notes-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: transparent;
+            border: 0;
+            padding: 0;
+        }}
+
+        .premium-note-card {{
+            border: 1px solid rgba(31, 52, 70, 0.15);
+            background: rgba(255, 255, 255, 0.36);
+            border-radius: 14px;
+            padding: 13px 14px 12px;
+            min-height: 82px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+
+        .premium-note-card-title {{
+            font-family: Arial, sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 6px;
         }}
 
         @media print {{

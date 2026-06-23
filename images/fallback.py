@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .metadata import ImageCandidate, normalize_keyword
+from .seasonal_policy import should_block_southern_coastal_winter_image, shoulder_season_image_bonus
 
 
 def is_global_default_candidate(candidate: ImageCandidate) -> bool:
@@ -108,6 +109,9 @@ def _mismatch_penalty(candidate_themes: set[str], day_themes: set[str], day_toke
 
 
 def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:
+    if should_block_southern_coastal_winter_image(candidate, day_context):
+        return 0, ["southern coastal Sep/Oct context blocks winter default image"]
+
     score = 8
     reasons = ["global default fallback"]
     candidate_tokens = set(candidate.tokens)
@@ -139,6 +143,11 @@ def score_default_candidate(candidate: ImageCandidate, day_context: dict) -> tup
     if day_season and day_season in candidate_seasons:
         score += 8
         reasons.append(f"fallback season match: {day_season}")
+
+    shoulder_bonus, shoulder_reasons = shoulder_season_image_bonus(candidate, day_context)
+    if shoulder_bonus:
+        score += shoulder_bonus
+        reasons.extend(shoulder_reasons)
 
     token_matches = (candidate_tokens & day_tokens) - {"default", "summer", "winter", "unknown"}
     if token_matches:

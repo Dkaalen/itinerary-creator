@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from .metadata import CITY_ALIASES, city_variants, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
+from .metadata import CITY_ALIASES, city_variants, infer_primary_month_from_rows, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
 
 CITY_TO_COUNTRY = {
     "oslo": "norway",
     "bergen": "norway",
+    "kristiansand": "norway",
+    "stavanger": "norway",
     "tromso": "norway",
     "tromsø": "norway",
     "flam": "norway",
@@ -200,5 +202,6 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
         "themes": themes,
         "primary_themes": primary_themes,
         "season": infer_season_from_rows(rows),
+        "month": infer_primary_month_from_rows(rows),
         "text": normalize_keyword(text),
     }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .fallback import is_global_default_candidate, score_default_candidate, _conflict_penalty
 from .metadata import ImageCandidate, SEASON_ALIASES, city_variants, normalize_keyword
+from .seasonal_policy import should_block_southern_coastal_winter_image, shoulder_season_image_bonus
 
 DESTINATION_FOLDER_MATCH_SCORE = 60
 DESTINATION_FILENAME_MATCH_SCORE = 20
@@ -50,6 +51,8 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, day_context)
     if not allowed:
         return 0, [blocked_reason]
+    if should_block_southern_coastal_winter_image(candidate, day_context):
+        return 0, ["southern coastal Sep/Oct context blocks winter image"]
 
     candidate_tokens = set(candidate.tokens)
     candidate_themes = set(candidate.themes)
@@ -98,6 +101,11 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
         score += min(KEYWORD_MATCH_SCORE_CAP, KEYWORD_MATCH_SCORE_PER_TOKEN * len(token_matches))
         reasons.append("keyword match: " + ", ".join(sorted(list(token_matches))[:5]))
 
+    shoulder_bonus, shoulder_reasons = shoulder_season_image_bonus(candidate, day_context)
+    if shoulder_bonus:
+        score += shoulder_bonus
+        reasons.extend(shoulder_reasons)
+
     penalty, penalty_reasons = _conflict_penalty(candidate_themes, day_themes, day_tokens)
     if penalty:
         score -= penalty
@@ -112,6 +120,8 @@ def season_available_for_context(candidates: list[ImageCandidate], context: dict
         return False
 
     for candidate in candidates:
+        if should_block_southern_coastal_winter_image(candidate, context):
+            continue
         if day_season not in set(candidate.seasons):
             continue
         if candidate_destination_matches(candidate, context) or is_global_default_candidate(candidate):
