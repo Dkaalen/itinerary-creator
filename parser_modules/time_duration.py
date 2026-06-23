@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from time_utils import format_duration_display
+from time_duration import format_duration_display
 from parser_modules.common import clean_space
 from parser_modules.time_normalize import normalize_time_text
 

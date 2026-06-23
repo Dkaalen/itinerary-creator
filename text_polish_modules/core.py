@@ -18,11 +18,11 @@ from text_polish_modules.inclusions import (
 )
 
 # Shared time/duration helpers are re-exported here for backward compatibility.
-# The implementation lives in time_utils.py so parser, normalizer, preview and
-# PDF export all use the same formatting rules.
-from time_utils import (
+# Import from the focused implementation modules directly so retired top-level
+# compatibility facades do not remain in the core parser/normalizer path.
+from time_duration import (
     parse_duration_minutes,
-    expand_time_with_duration,
     format_duration_display,
     format_duration_minutes,
 )
+from time_clock import expand_time_with_duration
