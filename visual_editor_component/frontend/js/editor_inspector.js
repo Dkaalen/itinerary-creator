@@ -254,7 +254,28 @@ function renderInspectorSelectionCard(fieldKey, page, block, meta) {
   const title = key ? inspectorFieldLabelFromKey(key, meta?.field_label || '') : (page?.title || 'Page');
   const pageLabel = page?.title || meta?.page_title || activePageId || 'Current page';
   const blockLabel = block?.title || humanizeEditorToken(block?.block_type || meta?.block_type || (isImage ? 'Image' : 'Text'));
-  return `<div class="inspector-card selection-card ${isImage ? 'image' : 'text'}"><div class="inspector-kicker">Selection</div><strong>${esc(title)}</strong><dl><dt>Page</dt><dd>${esc(pageLabel)}</dd><dt>Type</dt><dd>${esc(blockLabel)}</dd></dl></div>`;
+  return `<div class="inspector-card selection-card ${isImage ? 'image' : 'text'}"><div class="inspector-kicker">Selection</div><strong>${esc(title)}</strong><dl><dt>Page</dt><dd>${esc(pageLabel)}</dd><dt>Type</dt><dd>${esc(blockLabel)}</dd></dl><div class="selection-actions"><button type="button" class="ghost mini" id="inspectorRevealSelectionBtn">Reveal on page</button><button type="button" class="ghost mini" id="inspectorClearSelectionBtn">Clear selection</button></div></div>`;
+}
+
+function revealSelectedInspectorTarget() {
+  const {el, meta, page, block} = selectedInspectorMeta();
+  const pageId = String(page?.page_id || meta?.page_id || activePageId || '');
+  const blockId = String(block?.block_id || meta?.block_id || activeBlockId || '');
+  let target = el || null;
+  if (!target && blockId) target = document.querySelector(`[data-editor-block-id="${CSS.escape(blockId)}"]`);
+  if (!target && pageId) target = document.querySelector(`[data-page-id="${CSS.escape(pageId)}"]`);
+  if (pageId) activePageId = pageId;
+  if (blockId) activeBlockId = blockId;
+  if (target) {
+    target.scrollIntoView({behavior: 'smooth', block: 'center'});
+    target.classList.add('selection-reveal-pulse');
+    setTimeout(() => target.classList.remove('selection-reveal-pulse'), 900);
+    notifyEditor('Selection revealed on page');
+  } else {
+    notifyEditor('Select a page or block to reveal.');
+  }
+  updateSelectionUi();
+  syncEditorFrameHeight();
 }
 
 function renderInspectorTextTools(hasBlock) {
@@ -658,6 +679,7 @@ function attachInspectorHandlers() {
   });
   document.getElementById('inspectorRestoreCurrentGeneratedBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorRestoreSelectionGeneratedBtn')?.addEventListener('click', resetSelectionFieldsToGenerated);
+  document.getElementById('inspectorRevealSelectionBtn')?.addEventListener('click', revealSelectedInspectorTarget);
   document.getElementById('inspectorResetSingleFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorResetFieldBtn')?.addEventListener('click', resetSelectedInspectorField);
   document.getElementById('inspectorFlagIssueBtn')?.addEventListener('click', flagSelectedIssue);

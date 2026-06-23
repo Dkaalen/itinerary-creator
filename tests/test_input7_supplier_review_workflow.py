@@ -42,16 +42,23 @@ def test_input7_structured_review_builds_row_level_confidence_and_suggestions():
     assert review.low_confidence_count == 2
     assert review.suggested_fix_count == 2
     assert review.row_reviews[0].status == "Check before generation"
+    assert review.row_reviews[0].confidence_label == "Low"
+    assert review.row_reviews[0].review_priority == "Blocker"
+    assert review.row_reviews[0].destination_status == "Known destination"
+    assert review.row_reviews[0].next_action == "Fill required field"
     assert review.row_reviews[0].missing_fields == ("Hotel name", "Room category")
     assert "Add the hotel name" in review.row_reviews[0].suggested_fixes[0]
     assert review.row_reviews[1].status == "Needs review"
+    assert review.row_reviews[1].confidence_label == "Medium"
+    assert review.row_reviews[1].next_action == "Accept type: Cruise"
     assert "Criuse → Cruise" in review.row_reviews[1].suggested_fixes[0]
     assert review.row_reviews[2].status == "Ready"
 
     text = format_structured_input_review(review)
     assert "Rows needing review: 2" in text
     assert "Suggested fixes: 2" in text
-    assert "Row 1 [Check before generation]" in text
+    assert "Correction queue: blockers first" in text
+    assert "Row 1 [Fill required field]" in text
 
 
 def test_input7_streamlit_review_table_is_import_review_not_debug_code():
@@ -77,10 +84,14 @@ def test_input7_streamlit_review_table_is_import_review_not_debug_code():
             "Type": "Transfer",
             "City / route": "Not detected",
             "Title": "Private transfer",
-            "Confidence": "40%",
+            "Confidence": "40% · Low",
+            "Priority": "Blocker",
             "Status": "Check before generation",
+            "Destination": "Not detected",
+            "Next action": "Fill required field",
+            "Primary fix": "Confirm from/to points for this transport row.",
+            "Missing fields": "Route destination",
             "Review flags": "missing_route_destination",
-            "Suggested fixes": "Confirm from/to points for this transport row.",
         }
     ]
 
@@ -97,3 +108,5 @@ def test_input7_ui_sources_expose_review_table_and_metrics():
     assert "StructuredInputRowReview" in model_source
     assert "build_input_row_reviews" in model_source
     assert "suggested_fixes" in model_source
+    assert "review_priority" in model_source
+    assert "Correction queue" in source

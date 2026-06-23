@@ -27,10 +27,14 @@ def _review_table_rows(review: StructuredInputReview) -> list[dict[str, Any]]:
             "Type": row.service_type,
             "City / route": row.city,
             "Title": row.title,
-            "Confidence": f"{row.confidence}%",
+            "Confidence": f"{row.confidence}% · {row.confidence_label}",
+            "Priority": row.review_priority,
             "Status": row.status,
+            "Destination": row.destination_status,
+            "Next action": row.next_action,
+            "Primary fix": row.primary_fix,
+            "Missing fields": ", ".join(row.missing_fields),
             "Review flags": ", ".join(row.flags),
-            "Suggested fixes": "; ".join(row.suggested_fixes),
         }
         for row in review.row_reviews
     ]
@@ -55,6 +59,8 @@ def render_structured_input_review_panel(
         col_d.metric("Rows to review", resolved.low_confidence_count)
 
         st.caption(f"Route: {resolved.route_text}")
+        if resolved.low_confidence_count:
+            st.caption("Correction queue: handle blocker rows first, then review medium-confidence rows before final polishing.")
         st.dataframe(_review_table_rows(resolved), hide_index=True, use_container_width=True)
 
         st.caption("Review summary")

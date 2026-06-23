@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Iterable, Mapping
 
 from itinerary_generation.common import group_rows_by_day
+from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.itinerary_health_checks import (
     ItineraryHealthIssue,
     build_itinerary_health_issues,
@@ -24,7 +25,12 @@ class StructuredInputRowReview:
     city: str
     title: str
     confidence: int
+    confidence_label: str
     status: str
+    review_priority: str
+    destination_status: str
+    primary_fix: str
+    next_action: str
     flags: tuple[str, ...] = ()
     missing_fields: tuple[str, ...] = ()
     suggested_fixes: tuple[str, ...] = ()
@@ -100,7 +106,24 @@ def _missing_fields(flags: Iterable[str]) -> tuple[str, ...]:
     return tuple(labels[flag] for flag in flags if flag in labels)
 
 
-def _suggested_fixes(row: Mapping[str, Any], flags: tuple[str, ...]) -> tuple[str, ...]:
+def _destination_status(city: str) -> str:
+    text = str(city or "").strip()
+    if not text or text == "Not detected":
+        return "Not detected"
+    if destination_for_alias(text) is not None:
+        return "Known destination"
+    return "Confirm destination"
+
+
+def _confidence_label(confidence: int) -> str:
+    if confidence < 70:
+        return "Low"
+    if confidence < 90:
+        return "Medium"
+    return "High"
+
+
+def _suggested_fixes(row: Mapping[str, Any], flags: tuple[str, ...], destination_status: str = "") -> tuple[str, ...]:
     fixes: list[str] = []
     service_type = get_row_type(row) or "Other"
     declared_type = _text(row, "type")
@@ -109,6 +132,8 @@ def _suggested_fixes(row: Mapping[str, Any], flags: tuple[str, ...]) -> tuple[st
         fixes.append(f"Review row type correction: {declared_type} → {effective_type}.")
     if "missing_city" in flags:
         fixes.append("Confirm the destination before generation.")
+    if destination_status == "Confirm destination":
+        fixes.append("Confirm destination spelling or add it to the registry.")
     if "missing_hotel_name" in flags:
         fixes.append("Add the hotel name or mark the row as accommodation TBD.")
     if "missing_hotel_nights" in flags:
@@ -131,7 +156,33 @@ def _suggested_fixes(row: Mapping[str, Any], flags: tuple[str, ...]) -> tuple[st
     return tuple(unique)
 
 
-def _status(confidence: int, flags: tuple[str, ...]) -> str:
+def _primary_fix(fixes: tuple[str, ...]) -> str:
+    return fixes[0] if fixes else "No action needed"
+
+
+def _review_priority(status: str, confidence: int) -> str:
+    if status == "Check before generation":
+        return "Blocker"
+    if status == "Needs review" or confidence < 90:
+        return "Review"
+    return "Ready"
+
+
+def _next_action(row: Mapping[str, Any], status: str, fixes: tuple[str, ...], destination_status: str) -> str:
+    declared_type = _text(row, "type")
+    effective_type = _text(row, "effective_type")
+    if declared_type and effective_type and declared_type != effective_type:
+        return f"Accept type: {effective_type}"
+    if destination_status == "Confirm destination":
+        return "Confirm destination"
+    if status == "Check before generation":
+        return "Fill required field"
+    if fixes:
+        return "Review suggestion"
+    return "No action"
+
+
+def _status(confidence: int, flags: tuple[str, ...], destination_status: str = "") -> str:
     critical_flags = {
         "missing_hotel_name",
         "missing_route_destination",
@@ -139,7 +190,7 @@ def _status(confidence: int, flags: tuple[str, ...]) -> str:
     }
     if confidence < 70 or any(flag in critical_flags for flag in flags):
         return "Check before generation"
-    if confidence < 90 or flags:
+    if confidence < 90 or flags or destination_status == "Confirm destination":
         return "Needs review"
     return "Ready"
 
@@ -155,18 +206,27 @@ def build_input_row_reviews(rows: Iterable[Mapping[str, Any]] | None) -> tuple[S
     for index, row in enumerate(_rows(rows), start=1):
         flags = tuple(str(flag) for flag in (row.get("parser_review_flags") or []) if str(flag or "").strip())
         confidence = _confidence(row)
+        city = _text(row, "city", "destination", "route_destination", "to") or "Not detected"
+        destination_status = _destination_status(city)
+        fixes = _suggested_fixes(row, flags, destination_status)
+        status = _status(confidence, flags, destination_status)
         reviews.append(
             StructuredInputRowReview(
                 row_number=index,
                 day=_text(row, "day") or "Unassigned",
                 service_type=get_row_type(row) or "Other",
-                city=_text(row, "city", "destination", "route_destination", "to") or "Not detected",
+                city=city,
                 title=_row_title(row),
                 confidence=confidence,
-                status=_status(confidence, flags),
+                confidence_label=_confidence_label(confidence),
+                status=status,
+                review_priority=_review_priority(status, confidence),
+                destination_status=destination_status,
+                primary_fix=_primary_fix(fixes),
+                next_action=_next_action(row, status, fixes, destination_status),
                 flags=flags,
                 missing_fields=_missing_fields(flags),
-                suggested_fixes=_suggested_fixes(row, flags),
+                suggested_fixes=fixes,
             )
         )
     return tuple(reviews)
@@ -236,11 +296,16 @@ def format_structured_input_review(review: StructuredInputReview) -> str:
     if review.review_flags:
         flags = ", ".join(f"{label}: {count}" for label, count in review.review_flags.items())
         lines.append(f"Review flags: {flags}")
-    for row in review.row_reviews[:8]:
-        if row.status == "Ready":
-            continue
-        fixes = "; ".join(row.suggested_fixes) if row.suggested_fixes else "Review parsed fields"
-        lines.append(f"- Row {row.row_number} [{row.status}] {row.day} · {row.service_type}: {fixes}")
+    blockers = [row for row in review.row_reviews if row.review_priority == "Blocker"]
+    needs_review = [row for row in review.row_reviews if row.review_priority == "Review"]
+    if blockers:
+        lines.append("Correction queue: blockers first")
+        for row in blockers[:5]:
+            lines.append(f"- Row {row.row_number} [{row.next_action}] {row.day} · {row.service_type}: {row.primary_fix}")
+    if needs_review:
+        lines.append("Review queue: confirm before polishing")
+        for row in needs_review[:5]:
+            lines.append(f"- Row {row.row_number} [{row.next_action}] {row.day} · {row.service_type}: {row.primary_fix}")
     for issue in review.issues[:12]:
         prefix = f"{issue.day}: " if issue.day else ""
         lines.append(f"- [{issue.severity}] {prefix}{issue.message}")

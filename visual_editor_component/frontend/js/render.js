@@ -165,7 +165,7 @@ function emptyManualPageIssues() {
 function editorReadinessIssues() {
   const issues = [];
   if (touchedKeys.size) issues.push({kind: 'unsaved_edits', severity: 'review', label: `${touchedKeys.size} unsaved edit(s)`, pageId: activePageId || ''});
-  editorClientWarnings().forEach((warning, index) => issues.push({kind: 'client_warning', severity: warningSeverityLabel(warning), label: warning.excerpt || warning.message || warning.code || 'Review warning', pageId: warningTargetPageId(warning), index}));
+  editorClientWarnings().forEach((warning, index) => issues.push({kind: 'client_warning', severity: warningSeverityLabel(warning), label: warning.excerpt || warning.message || warning.code || 'Review warning', pageId: warningTargetPageId(warning), sourceRowIds: warning.source_row_ids || [], index}));
   editorImageWarnings().forEach(item => issues.push({kind: 'image_warning', severity: 'review', label: item.warning?.message || item.warning?.code || 'Review image quality', pageId: item.pageId}));
   pendingImagePreviewIssues().forEach(item => issues.push({kind: 'pending_image', severity: 'review', label: `${item.label || 'Image'} replacement needs save to refresh preview`, pageId: item.pageId}));
   hiddenPageIssues().forEach(item => issues.push({kind: 'hidden_page', severity: item.generated ? 'review' : 'info', label: `${item.label} is hidden from PDF`, pageId: item.pageId}));
@@ -200,7 +200,7 @@ function pdfReadinessPanelHtml() {
   const issues = status.issues.slice(0, 8);
   const rows = issues.length ? issues.map((issue, idx) => {
     const pageId = issue.pageId || '';
-    const action = pageId ? `<button type="button" class="ghost mini" data-readiness-page-id="${escAttr(pageId)}">Go to page</button>` : '';
+    const action = pageId ? `<button type="button" class="ghost mini" data-readiness-page-id="${escAttr(pageId)}">${esc(warningActionLabel(pageId))}</button>` : '';
     return `<li class="readiness-item ${escAttr(issue.kind)}"><strong>${esc(humanizeEditorToken(issue.kind))}</strong><span>${esc(readinessIssueText(issue))}</span><em>${esc(issue.label || 'Review item')}</em>${action}</li>`;
   }).join('') : '<li class="readiness-empty">No visible readiness issues. Still compare preview and PDF after export.</li>';
   const hidden = status.issues.length > issues.length ? `<div class="readiness-more">${status.issues.length - issues.length} more item(s) hidden here.</div>` : '';
@@ -216,7 +216,7 @@ function selectedPageValidationHtml(page) {
   const issues = selectedPageWarnings(pageId);
   if (!pageId) return '<p>Select a page or block to see validation details.</p>';
   if (!issues.length) return '<p>No warnings linked to the selected page.</p>';
-  return `<ul class="inspector-warning-list">${issues.slice(0, 6).map(issue => `<li><strong>${esc(humanizeEditorToken(issue.kind))}</strong><span>${esc(issue.label || 'Review item')}</span></li>`).join('')}</ul>`;
+  return `<ul class="inspector-warning-list">${issues.slice(0, 6).map(issue => `<li><strong>${esc(humanizeEditorToken(issue.kind))}</strong><span>${esc(readinessIssueText(issue))}</span><em>${esc(issue.label || 'Review item')}</em>${warningSourceChipsHtml(issue.sourceRowIds || [])}</li>`).join('')}</ul>`;
 }
 
 function warningLocationLabel(warning) {
@@ -242,14 +242,27 @@ function warningExplanation(warning) {
   if (code.includes('optional')) return 'Optional or excluded wording may need review so it does not look confirmed.';
   return 'Review this item before exporting the final PDF.';
 }
+function warningActionLabel(pageId) {
+  const id = String(pageId || '');
+  if (id.startsWith('day-')) return 'Open day page';
+  if (id.startsWith('final-')) return 'Open final page';
+  if (id === 'cover') return 'Open cover';
+  if (id === 'summary') return 'Open summary';
+  return 'Open page';
+}
+function warningSourceChipsHtml(sourceRowIds) {
+  const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
+  if (!ids.length) return '';
+  return `<div class="warning-source-row">Source row: ${ids.slice(0, 3).map(id => `<span class="source-chip">${esc(String(id))}</span>`).join('')}</div>`;
+}
 function warningGroupRowsHtml(warnings) {
   return warnings.slice(0, 8).map((warning) => {
     const location = warningLocationLabel(warning);
     const excerpt = String(warning?.excerpt || warning?.message || warning?.code || 'Review warning');
     const pageId = warningTargetPageId(warning);
     const index = Number.isInteger(warning.warning_index) ? warning.warning_index : 0;
-    const action = pageId ? `<button type="button" class="ghost mini" data-warning-page-id="${escAttr(pageId)}" data-warning-index="${index}">Review page</button>` : '';
-    return `<li><strong>${esc(location)}</strong><span>${esc(warningExplanation(warning))}</span><em>${esc(excerpt)}</em>${action}</li>`;
+    const action = pageId ? `<button type="button" class="ghost mini" data-warning-page-id="${escAttr(pageId)}" data-warning-index="${index}">${esc(warningActionLabel(pageId))}</button>` : '';
+    return `<li><strong>${esc(location)}</strong><span>${esc(warningExplanation(warning))}</span><em>${esc(excerpt)}</em>${warningSourceChipsHtml(warning.source_row_ids || [])}${action}</li>`;
   }).join('');
 }
 function warningGroupPanelHtml(label, warnings, className, options = {}) {

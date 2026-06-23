@@ -61,6 +61,10 @@ FAST_TESTS = (
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_text_cleanup_caching.py",
     "tests/test_input7_supplier_review_workflow.py",
+    "tests/test_input8_supplier_correction_workflow.py",
+    "tests/test_editor4_selection_refinement.py",
+    "tests/test_review4_actionable_review_center.py",
+    "tests/test_cleanup1_editor_review_contract.py",
 )
 
 PARSER_TESTS = (
@@ -77,6 +81,7 @@ PARSER_TESTS = (
     "tests/test_content_validator_scoping.py",
     "tests/test_patch_text_cleanup_caching.py",
     "tests/test_input7_supplier_review_workflow.py",
+    "tests/test_input8_supplier_correction_workflow.py",
 )
 
 ACTIVITY_TESTS = (
@@ -155,6 +160,9 @@ ARCHITECTURE_TESTS = (
 EDITOR_TESTS = (
     "tests/test_review3_ready_for_client_workflow.py",
     "tests/test_editor3_image_inspector_workflow.py",
+    "tests/test_cleanup1_editor_review_contract.py",
+    "tests/test_review4_actionable_review_center.py",
+    "tests/test_editor4_selection_refinement.py",
     "tests/test_patch_al_editor_preview_ownership.py",
     "tests/test_patch_n_editor_image_safety.py",
     "tests/test_patch_o_editor_section_safety.py",
@@ -205,6 +213,9 @@ IMAGE_TESTS = (
 UI_TESTS = (
     "tests/test_review3_ready_for_client_workflow.py",
     "tests/test_editor3_image_inspector_workflow.py",
+    "tests/test_cleanup1_editor_review_contract.py",
+    "tests/test_review4_actionable_review_center.py",
+    "tests/test_editor4_selection_refinement.py",
     "tests/test_legacy_ui_cleanup.py",
     "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_regressions_ui_boundaries.py",
@@ -219,6 +230,7 @@ UI_TESTS = (
     "tests/test_editor_workspace_polish.py",
     "tests/test_editor_interaction_polish.py",
     "tests/test_input7_supplier_review_workflow.py",
+    "tests/test_input8_supplier_correction_workflow.py",
     "tests/test_premium_output_regression_followup.py",
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
@@ -264,6 +276,7 @@ PDF_TESTS = (
     "tests/test_patch_aj_pdf_render_model.py",
     "tests/test_pdf.py",
     "tests/test_pdf6_luxury_proposal.py",
+    "tests/test_pdf7_proposal_footer.py",
     "tests/test_preview_pdf_parity.py",
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_rendered_pdf_quality.py",

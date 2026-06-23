@@ -587,6 +587,9 @@
     }
     .selection-card dl { grid-template-columns: 48px minmax(0, 1fr); }
     .selection-card.image { border-color: rgba(0,111,107,.24); background: linear-gradient(180deg, rgba(0,111,107,.055), #fff); }
+    .selection-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 9px; }
+    .selection-actions .mini { min-height: 29px; justify-content: center; }
+    .selection-reveal-pulse { outline: 2px solid rgba(184,149,85,.44); outline-offset: 5px; transition: outline-color .5s ease; }
     .pending-preview-note { color: #7a3f00; font-weight: 750; }
 
 

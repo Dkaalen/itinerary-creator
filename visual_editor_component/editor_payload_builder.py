@@ -64,6 +64,7 @@ def _append_payload_warnings(payload, model_warnings, image_warnings):
             "excerpt": warning.get("message", "Structured model warning"),
             "message": warning.get("message", "Structured model warning"),
             "page_label": warning.get("page_label", "Structured itinerary"),
+            "page_id": warning.get("page_id", ""),
             "source_row_ids": warning.get("source_row_ids", []),
         })
     for warning in image_warnings:

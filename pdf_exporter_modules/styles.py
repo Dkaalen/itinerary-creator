@@ -5,6 +5,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
 
 PAGE_BACKGROUND = colors.HexColor("#f4efe8")
 INK = colors.HexColor("#1f3446")
@@ -67,11 +68,47 @@ def extract_pdf_palette(soup):
     return DEFAULT_PDF_COLORS
 
 
+def _footer_label(doc) -> str:
+    title = str(getattr(doc, "title", "") or "").strip().upper()
+    if title in {"", "CLIENT PDF", "COMPACT CLIENT PDF", "INTERNAL REVIEW PDF"}:
+        return "TRAVEL ITINERARY"
+    return title
+
+
+def draw_proposal_footer(canvas, doc):
+    """Draw a quiet proposal footer on non-cover pages.
+
+    The footer is deliberately understated: it gives the exported PDF a more
+    finished proposal feel without competing with the itinerary content, cover
+    image, or page-level artwork.
+    """
+
+    if int(getattr(doc, "page", 1) or 1) <= 1:
+        return
+
+    page_width, _page_height = getattr(doc, "pagesize", A4)
+    left = float(getattr(doc, "leftMargin", 22 * mm) or 22 * mm)
+    right = float(page_width) - float(getattr(doc, "rightMargin", 22 * mm) or 22 * mm)
+    y = max(8 * mm, float(getattr(doc, "bottomMargin", 22 * mm) or 22 * mm) * 0.42)
+    rule_y = y + 5.8 * mm
+
+    canvas.saveState()
+    canvas.setStrokeColor(LINE)
+    canvas.setFillColor(MUTED)
+    canvas.setLineWidth(0.25)
+    canvas.line(left, rule_y, right, rule_y)
+    canvas.setFont("Helvetica", 6.6)
+    canvas.drawString(left, y, _footer_label(doc))
+    canvas.drawRightString(right, y, f"{int(getattr(doc, 'page', 1) or 1):02d}")
+    canvas.restoreState()
+
+
 def page_background(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(PAGE_BACKGROUND)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
     canvas.restoreState()
+    draw_proposal_footer(canvas, doc)
 
 
 def make_styles():

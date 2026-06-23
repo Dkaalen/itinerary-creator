@@ -1,5 +1,6 @@
 """Warning payload helpers for the visual editor."""
 
+from itinerary_generation.editor_page_contract import stable_page_id
 from itinerary_generation.transport_safety import scan_client_output
 
 
@@ -15,12 +16,15 @@ def _compact_model_warnings(structured_document, parsed_rows=None):
         source_ids = list(warning.source_row_ids)
         source_row = next((row_lookup.get(str(row_id)) for row_id in source_ids if row_lookup.get(str(row_id))), None)
         page_label = ""
+        page_id = ""
         if source_row:
             day = str(source_row.get("day") or "").strip()
             title = str(source_row.get("title") or source_row.get("original_title") or "").strip()
-            city = str(source_row.get("city") or "").strip()
+            city = str(source_row.get("city") or source_row.get("destination") or "").strip()
             bits = [bit for bit in (day, city, title) if bit]
             page_label = " · ".join(bits[:3])
+            if day:
+                page_id = stable_page_id("day", day)
         severity = str(warning.severity or "review").lower()
         warnings.append({
             "code": warning.code,
@@ -29,6 +33,7 @@ def _compact_model_warnings(structured_document, parsed_rows=None):
             "message": warning.message,
             "excerpt": warning.message,
             "page_label": page_label or "Structured itinerary",
+            "page_id": page_id,
             "source_row_ids": source_ids,
         })
     return warnings[:30]
