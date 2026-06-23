@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.destination_registry import destination_country_for_alias
+from itinerary_generation.destination_registry import destination_country_for_alias, destination_for_alias
 
 from .metadata import CITY_ALIASES, city_variants, infer_primary_month_from_rows, infer_season_from_rows, infer_themes, normalize_keyword, tokenize
 
@@ -52,6 +52,20 @@ def _country_variants_for_city(city: str) -> set[str]:
             variants.add(country)
     return variants
 
+
+
+def _destination_profiles_for_city(city: str) -> tuple[set[str], set[str]]:
+    image_profiles: set[str] = set()
+    season_profiles: set[str] = set()
+    for city_variant in city_variants(city):
+        record = destination_for_alias(city_variant)
+        if record is None:
+            continue
+        if record.image_profile:
+            image_profiles.add(record.image_profile)
+        if record.season_profile:
+            season_profiles.add(record.season_profile)
+    return image_profiles, season_profiles
 
 def _row_type(row: dict) -> str:
     return normalize_keyword(row.get("effective_type") or row.get("type") or "")
@@ -191,9 +205,13 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
     primary_themes = _themes_for_rows(primary_rows)
     city_variant_values = _all_city_variants(rows or [], city)
     country_variants = _country_variants_for_city(city)
+    image_profiles, season_profiles = _destination_profiles_for_city(city)
     for row in rows or []:
         row_city = str(row.get("city", "") or "").strip()
         country_variants.update(_country_variants_for_city(row_city))
+        row_image_profiles, row_season_profiles = _destination_profiles_for_city(row_city)
+        image_profiles.update(row_image_profiles)
+        season_profiles.update(row_season_profiles)
 
     return {
         "day": day,
@@ -205,5 +223,7 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
         "primary_themes": primary_themes,
         "season": infer_season_from_rows(rows),
         "month": infer_primary_month_from_rows(rows),
+        "image_profiles": image_profiles,
+        "season_profiles": season_profiles,
         "text": normalize_keyword(text),
     }

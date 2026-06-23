@@ -35,6 +35,7 @@ from parser_modules.common import extract_route_points
 from text_polish import polish_title
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_safety import base_destination_from_terminal, normalize_transport_place
+from itinerary_generation.route_intelligence import route_intro_for_day, route_profile_for_places
 
 
 
@@ -146,6 +147,13 @@ def _premium_route_intro(origin: str, destination: str, mode: str, detail_level:
         return ""
     if origin and origin.lower() == destination.lower():
         origin = ""
+    if mode == "nutshell" and not origin:
+        return ""
+
+    profile_mode = "norway_in_a_nutshell" if mode == "nutshell" else "coastal_cruise" if mode == "coastal_cruise" else mode
+    profile = route_profile_for_places(origin, destination, profile_mode)
+    if profile:
+        return profile.intro
 
     if destination.lower() == "kristiansand":
         if origin:
@@ -176,6 +184,9 @@ def _title_route_points(title: str, city: str = "") -> tuple[str, str]:
     if re.search(r"^travel\s+to\s+", text, flags=re.IGNORECASE):
         destination = re.sub(r"^travel\s+to\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
         return "", polish_title(destination)
+    nutshell_to = re.search(r"^norway\s+in\s+a\s+nutshell\s+to\s+(.+)$", text, flags=re.IGNORECASE)
+    if nutshell_to:
+        return "", polish_title(nutshell_to.group(1).strip(" -:|"))
 
     match = re.search(r"\bfrom\s+(.+?)\s+to\s+(.+)$", text, flags=re.IGNORECASE)
     if not match:
@@ -224,6 +235,9 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
         mode = _travel_mode_from_title(title)
         origin, destination = _title_route_points(title, city)
         destination = destination or polish_title(city)
+        premium_intro = _premium_route_intro(origin, destination, mode)
+        if premium_intro:
+            return premium_intro
         if mode == "nutshell":
             return f"Follow the Norway in a Nutshell route towards {destination}, with the rail, fjord and road segments presented together as one signature scenic journey." if destination else "Follow the Norway in a Nutshell route today, with the rail, fjord and road segments presented together as one signature scenic journey."
         if mode == "coastal_cruise":
@@ -232,9 +246,6 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
             if destination:
                 return f"Travel to {destination} by coastal cruise, with the port transfers and sailing arranged as one coordinated door-to-door journey."
             return "Travel by coastal cruise today, with the port transfers and sailing arranged as one coordinated door-to-door journey."
-        premium_intro = _premium_route_intro(origin, destination, mode)
-        if premium_intro:
-            return premium_intro
         return f"Travel to {destination}, with the route and arrival arrangements grouped clearly below." if destination else "Today is arranged as a clear travel day, with the route and arrival details grouped below."
     if pattern == "self_drive_route_day":
         return "Today’s self-drive route is arranged to keep the journey clear and scenic, with suggested stops and overnight plans laid out in a simple way."
@@ -378,6 +389,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
         if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):
             return _welcome_arrival_intro(city, detail_level)
+
+        premium_route_intro = route_intro_for_day(day_rows, detail_level)
+        if premium_route_intro:
+            return premium_route_intro
 
         route_label = create_travel_route_label(day_rows)
         if route_label:

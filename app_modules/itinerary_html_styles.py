@@ -387,12 +387,13 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
         }}
 
         .premium-travel-card {{
-            border: 1px solid rgba(31, 52, 70, 0.16);
-            background: rgba(255, 255, 255, 0.34);
-            border-radius: 16px;
-            padding: 16px 18px 15px;
-            margin: 18px 0 20px;
-            box-shadow: 0 10px 24px rgba(31, 52, 70, 0.04);
+            border-top: 1px solid rgba(31, 52, 70, 0.18);
+            border-bottom: 1px solid rgba(31, 52, 70, 0.12);
+            background: transparent;
+            border-radius: 0;
+            padding: 13px 0 14px;
+            margin: 18px 0 22px;
+            box-shadow: none;
         }}
 
         .premium-travel-kicker {{
@@ -426,14 +427,14 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
         .premium-travel-chip {{
             display: inline-flex;
             align-items: center;
-            border: 1px solid rgba(31, 52, 70, 0.14);
+            border: 1px solid rgba(31, 52, 70, 0.12);
             border-radius: 999px;
-            padding: 3px 9px 4px;
+            padding: 2px 8px 3px;
             font-family: Arial, sans-serif;
-            font-size: 10.5px;
+            font-size: 10.2px;
             line-height: 1.25;
             color: var(--ink);
-            background: rgba(255, 255, 255, 0.48);
+            background: rgba(255, 255, 255, 0.28);
         }}
 
         .premium-travel-chip-muted {{
@@ -441,10 +442,10 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
         }}
 
         .premium-route-ribbon {{
-            margin: 9px 0 12px;
-            padding: 9px 11px;
-            border-left: 3px solid var(--accent);
-            background: rgba(31, 52, 70, 0.045);
+            margin: 10px 0 12px;
+            padding: 7px 0 7px 12px;
+            border-left: 2px solid var(--accent);
+            background: transparent;
             font-family: Arial, sans-serif;
             font-size: 12.2px;
             line-height: 1.35;
@@ -454,26 +455,24 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
 
         .premium-travel-timeline {{
             margin: 10px 0 11px;
+            border-top: 1px solid rgba(31, 52, 70, 0.10);
         }}
 
         .premium-travel-timeline-item {{
             display: grid;
-            grid-template-columns: 14px 1fr;
-            column-gap: 8px;
+            grid-template-columns: 82px 1fr;
+            column-gap: 13px;
             align-items: start;
             font-size: 12.8px;
             line-height: 1.35;
             color: var(--body);
-            margin-bottom: 5px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(31, 52, 70, 0.08);
+            margin-bottom: 0;
         }}
 
-        .premium-travel-timeline-item span {{
-            width: 7px;
-            height: 7px;
-            margin-top: 5px;
-            border-radius: 50%;
-            background: var(--accent);
-            opacity: 0.82;
+        .premium-travel-timeline-item > span {{
+            display: none;
         }}
 
         .premium-travel-timeline-label {{
@@ -494,8 +493,8 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
         }}
 
         .premium-linked-transfers {{
-            margin-top: 8px;
-            padding-top: 4px;
+            margin-top: 10px;
+            padding-top: 8px;
             border-top: 1px solid rgba(31, 52, 70, 0.12);
         }}
 

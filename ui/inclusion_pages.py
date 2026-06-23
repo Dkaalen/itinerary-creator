@@ -157,6 +157,20 @@ def _split_oversized_inclusion_section(section, page_body_units):
     return chunks or [section]
 
 
+_SECTION_BOTTOM_GUARDS = {
+    "rail journeys": 20,
+    "private transfers": 24,
+    "ferries & cruises": 22,
+    "coach transfers": 18,
+    "transport": 20,
+    "travel arrangements": 20,
+}
+
+
+def _section_bottom_guard_units(section_title: str) -> int:
+    return _SECTION_BOTTOM_GUARDS.get(str(section_title or "").strip().lower(), 12)
+
+
 def paginate_categorized_inclusions(sections):
     """Return inclusion page sections using the PDF category-splitting rules."""
 
@@ -182,7 +196,22 @@ def paginate_categorized_inclusions(sections):
         for candidate in candidate_sections:
             section_units = _estimate_inclusion_section_units(candidate)
             section_title = str(candidate.get("title") or "").strip().lower()
-            keep_off_bottom = section_title == "private transfers" and current_units >= 55
+            remaining_after_section = max_units - (current_units + section_units)
+            bottom_guard = _section_bottom_guard_units(section_title)
+            current_titles = {str(existing.get("title") or "").strip().lower() for existing in current}
+            current_has_transport_category = bool(current_titles & {"rail journeys", "ferries & cruises", "coach transfers", "transport", "travel arrangements"})
+            if section_title == "private transfers":
+                keep_off_bottom = bool(
+                    current
+                    and current_has_transport_category
+                    and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
+                )
+            else:
+                keep_off_bottom = (
+                    current
+                    and section_title in _SECTION_BOTTOM_GUARDS
+                    and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
+                )
             if current and (current_units + section_units > max_units or keep_off_bottom):
                 pages.append(current)
                 current = []

@@ -233,26 +233,27 @@
     .ve-divider { height: 1px; line-height: 1px; border-top: 1px solid rgba(31,52,70,.20); background: transparent; overflow: hidden; }
 
     .premium-travel-card {
-      border: 1px solid rgba(31,52,70,.16);
-      background: rgba(255,255,255,.36);
-      border-radius: 16px;
-      padding: 16px 18px 15px;
-      margin: 18px 0 20px;
-      box-shadow: 0 10px 24px rgba(31,52,70,.04);
+      border-top: 1px solid rgba(31,52,70,.18);
+      border-bottom: 1px solid rgba(31,52,70,.12);
+      background: transparent;
+      border-radius: 0;
+      padding: 13px 0 14px;
+      margin: 18px 0 22px;
+      box-shadow: none;
     }
     .premium-travel-kicker { margin-top: 0; margin-bottom: 7px; color: var(--accent); }
     .premium-travel-title { font-family: Georgia, 'Times New Roman', serif; font-size: 19px; line-height: 1.24; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
     .premium-travel-description { color: var(--body); margin-bottom: 10px; }
     .premium-travel-badges, .premium-travel-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 7px 0 10px; }
-    .premium-travel-badge, .premium-travel-chip { display: inline-flex; align-items: center; border: 1px solid rgba(31,52,70,.14); border-radius: 999px; padding: 3px 9px 4px; font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; line-height: 1.25; color: var(--ink); background: rgba(255,255,255,.48); }
+    .premium-travel-badge, .premium-travel-chip { display: inline-flex; align-items: center; border: 1px solid rgba(31,52,70,.12); border-radius: 999px; padding: 2px 8px 3px; font-family: Arial, Helvetica, sans-serif; font-size: 10.2px; line-height: 1.25; color: var(--ink); background: rgba(255,255,255,.28); }
     .premium-travel-chip-muted { color: var(--muted); }
-    .premium-route-ribbon { margin: 9px 0 12px; padding: 9px 11px; border-left: 3px solid var(--accent); background: rgba(31,52,70,.045); font-family: Arial, Helvetica, sans-serif; font-size: 12.2px; line-height: 1.35; letter-spacing: .01em; color: var(--ink); }
-    .premium-travel-timeline { margin: 10px 0 11px; display: grid; gap: 7px; }
-    .premium-travel-timeline-item { display: grid; grid-template-columns: 14px 1fr; column-gap: 8px; align-items: start; font-size: 12.8px; line-height: 1.35; color: var(--body); }
-    .premium-travel-timeline-item > span { width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--accent); opacity: .82; }
+    .premium-route-ribbon { margin: 10px 0 12px; padding: 7px 0 7px 12px; border-left: 2px solid var(--accent); background: transparent; font-family: Arial, Helvetica, sans-serif; font-size: 12.2px; line-height: 1.35; letter-spacing: .01em; color: var(--ink); }
+    .premium-travel-timeline { margin: 10px 0 11px; display: grid; gap: 0; border-top: 1px solid rgba(31,52,70,.10); }
+    .premium-travel-timeline-item { display: grid; grid-template-columns: 82px 1fr; column-gap: 13px; align-items: start; font-size: 12.8px; line-height: 1.35; color: var(--body); padding: 6px 0; border-bottom: 1px solid rgba(31,52,70,.08); }
+    .premium-travel-timeline-item > span { display: none; }
     .premium-travel-timeline-label { display: block; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.25; letter-spacing: .045em; text-transform: uppercase; color: var(--ink); margin-bottom: 1px; }
     .premium-travel-timeline-detail { display: block; font-style: normal; color: var(--body); }
-    .premium-linked-transfers { margin-top: 8px; padding-top: 4px; border-top: 1px solid rgba(31,52,70,.12); }
+    .premium-linked-transfers { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(31,52,70,.12); }
     .premium-notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: transparent; border: 0; padding: 0; }
     .premium-note-card { border: 1px solid rgba(31,52,70,.15); background: rgba(255,255,255,.36); border-radius: 14px; padding: 13px 14px 12px; min-height: 82px; }
     .premium-note-card-title { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }

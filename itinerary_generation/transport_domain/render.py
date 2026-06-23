@@ -15,6 +15,7 @@ from itinerary_generation.transport_domain.titles import get_transfer_travel_tit
 from itinerary_generation.transport_details import get_transport_detail_items
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
+from itinerary_generation.route_intelligence import premium_mode_label, route_profile_for_places, route_profile_for_row
 from itinerary_generation.transport_norway import format_norway_nutshell_route
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
 from itinerary_generation.transport_safety import (
@@ -211,7 +212,8 @@ def _nutshell_leg_line(leg) -> str:
         line = f"{origin} - {arrival} {destination}"
     else:
         line = f"{origin} to {destination}"
-    return f"{line} — {leg.mode}" if leg.mode else line
+    label = premium_mode_label(leg.mode, leg.source_text) if leg.mode else "Journey leg"
+    return f"{label} — {line}"
 
 
 def _norway_nutshell_lines(row):
@@ -338,13 +340,7 @@ def _timed_leg_label(leg) -> str:
 def _normalise_transport_mode(value: str) -> str:
     text = polish_title(clean_space(value))
     text = re.sub(r"\s+transfer\b", "", text, flags=re.IGNORECASE).strip()
-    if text.lower() == "fjord cruise":
-        return "Fjord cruise"
-    if text.lower() == "coach":
-        return "Coach"
-    if text.lower() == "train":
-        return "Train"
-    return text or "Journey leg"
+    return premium_mode_label(text)
 
 
 def _timeline_time_display(value: str) -> str:
@@ -440,14 +436,21 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     if not leg_lines and route_text:
         leg_lines = [route_text]
 
-    highlights = []
+    profile = route_profile_for_places(
+        journey.origin or (route_points[0] if route_points else ""),
+        journey.destination or (route_points[-1] if route_points else ""),
+        "norway_in_a_nutshell",
+        get_transport_source_text(nutshell_row),
+    )
+    highlights = list(profile.highlights) if profile else []
     combined_route = " ".join(route_points).lower()
-    if "bergen" in combined_route:
-        highlights.append("Bergen Railway")
-    if "flåm" in combined_route or "flam" in combined_route:
-        highlights.append("Flåm Railway")
-    if "gudvangen" in combined_route or "nærøyfjord" in combined_route or "naeroyfjord" in combined_route:
-        highlights.append("Nærøyfjord cruise")
+    if not highlights:
+        if "bergen" in combined_route:
+            highlights.append("Bergen Railway")
+        if "flåm" in combined_route or "flam" in combined_route:
+            highlights.append("Flåm Railway")
+        if "gudvangen" in combined_route or "nærøyfjord" in combined_route or "naeroyfjord" in combined_route:
+            highlights.append("Nærøyfjord cruise")
     if not highlights:
         highlights = ["Scenic rail", "Fjord landscape", "Self-guided route"]
 
@@ -466,18 +469,18 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     meta = []
     if time_value:
         meta.append(RenderMetaLine("Time", time_value))
-    meta.append(RenderMetaLine("Style", "Self-guided scenic journey"))
+    meta.append(RenderMetaLine("Style", profile.style if profile else "Self-guided scenic journey"))
 
     return RenderBlock(
         kind="travel_sequence",
         row_id="travel-arrangements",
         section_title="Featured Scenic Journey",
-        title=journey.client_title,
+        title=profile.title if profile else journey.client_title,
         meta=meta,
-        description=(
+        description=(profile.description if profile else (
             "A signature Norway rail-and-fjord journey, combining mountain railway scenery, "
             "fjord villages and scheduled connections in one carefully sequenced route."
-        ),
+        )),
         lines=legacy_lines,
         extra_sections=extra_sections,
         css_class="travel-sequence-block premium-travel-card featured-journey-block",
@@ -514,6 +517,7 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
     destination = _transport_place_from_title(route_phrase or get_transport_source_text(cruise_row), "")
     route_title = f"{origin} → {destination}" if origin and destination and origin.lower() != destination.lower() else route_phrase or "Coastal Cruise Transfer"
     time_value = display_time(get_transport_time_text(cruise_row))
+    profile = route_profile_for_row(cruise_row) or route_profile_for_places(origin, destination, "coastal_cruise", get_transport_source_text(cruise_row))
 
     flow_items: list[str] = []
     for row in travel_rows:
@@ -533,24 +537,26 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
 
     includes = polish_inclusion_items([clean_include_item(item, route_phrase) for item in (cruise_row.get("includes") or [])])
     extra_sections = [RenderSection("Coordinated day flow", flow_items)]
+    if profile and profile.highlights:
+        extra_sections.append(RenderSection("Highlights", list(profile.highlights)))
     if includes:
         extra_sections.append(RenderSection("Cruise inclusions", includes[:6]))
 
     meta = []
     if time_value:
         meta.append(RenderMetaLine("Time", time_value))
-    meta.append(RenderMetaLine("Style", "Coordinated port-to-hotel transfer"))
+    meta.append(RenderMetaLine("Style", profile.style if profile else "Coordinated port-to-hotel transfer"))
 
     return RenderBlock(
         kind="travel_sequence",
         row_id="travel-arrangements",
         section_title="Travel Arrangements",
-        title=route_title,
+        title=profile.title if profile else route_title,
         meta=meta,
-        description=(
+        description=(profile.description if profile else (
             "A coordinated coastal transfer day, pairing private port transfers with the scenic cruise leg "
             "as one clear door-to-door arrangement."
-        ),
+        )),
         lines=legacy_lines,
         extra_sections=extra_sections,
         css_class="travel-sequence-block premium-travel-card coastal-cruise-card",

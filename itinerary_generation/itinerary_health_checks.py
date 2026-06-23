@@ -14,7 +14,9 @@ from typing import Any, Iterable, Mapping
 
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.day_grouping_utils import get_day_number
+from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.row_filters import get_row_type, is_optional_row
+from itinerary_generation.transport_safety import base_destination_from_terminal, normalize_transport_place
 
 CRITICAL = "critical"
 REVIEW = "review"
@@ -36,6 +38,66 @@ _DAY_OVERFLOW_TEXT_LIMIT = 2600
 _DAY_OVERFLOW_SERVICE_LIMIT = 6
 _HEAVY_ACTIVITY_LIMIT = 4
 
+_DESTINATION_FIELD_TYPES = {"Activity", "Cruise", "Ferry", "Flight", "Hotel", "Train", "Transfer", "Transport", "Self Drive", "Rental Car"}
+_DESTINATION_REVIEW_IGNORE = {
+    "",
+    "airport",
+    "bus terminal",
+    "cruise port",
+    "hotel",
+    "railway station",
+    "station",
+    "the accommodation",
+    "your accommodation",
+    "self transfer",
+    "private transfer",
+}
+
+
+def _clean_destination_for_registry(value: object, *, strip_terminal: bool = True) -> str:
+    text = normalize_transport_place(str(value or "").strip())
+    text = re.sub(r"^(?:to|from|in|at)\s+", "", text, flags=re.IGNORECASE).strip(" -:|.,")
+    text = re.sub(r"^(?:self|private)\s+transfer(?:\s+to)?\s*", "", text, flags=re.IGNORECASE).strip(" -:|.,")
+    if strip_terminal:
+        text = base_destination_from_terminal(text) or text
+        text = re.sub(r"\b(?:train|rail|railway|bus|coach|cruise|ferry|airport)\s*$", "", text, flags=re.IGNORECASE).strip(" -:|.,")
+    text = re.sub(r"\b(?:your|the)\s+accommodation\b", "", text, flags=re.IGNORECASE).strip(" -:|.,")
+    return text
+
+
+def _is_reviewable_destination(value: str) -> bool:
+    text = str(value or "").strip()
+    if len(text) < 3 or text.lower() in _DESTINATION_REVIEW_IGNORE:
+        return False
+    if not re.search(r"[A-Za-zÀ-ÿøØåÅäÄöÖðÐþÞ]", text):
+        return False
+    if re.search(r"\b(?:self transfer|private transfer|meeting point|platform|tickets?|breakfast|standard room|double room|fjord lounge)\b", text, flags=re.IGNORECASE):
+        return False
+    return True
+
+
+def _destination_review_values(row: Mapping[str, Any]) -> list[tuple[str, str]]:
+    row_type = get_row_type(row)
+    values: list[tuple[str, str]] = []
+    city = _city(row)
+    if row_type in _DESTINATION_FIELD_TYPES and city:
+        values.append(("city", city))
+    if row_type in _TRANSFER_TYPES:
+        origin = _route_endpoint(row, destination=False)
+        destination = _route_endpoint(row, destination=True)
+        if origin:
+            values.append(("route origin", origin))
+        if destination:
+            values.append(("route destination", destination))
+    clean: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for label, value in values:
+        candidate = _clean_destination_for_registry(value, strip_terminal=label != "city")
+        key = (label, candidate.lower())
+        if candidate and key not in seen:
+            seen.add(key)
+            clean.append((label, candidate))
+    return clean
 
 @dataclass(frozen=True)
 class ItineraryHealthIssue:
@@ -205,6 +267,17 @@ def build_itinerary_health_issues(
         row_type = get_row_type(row)
         day = _day(row) or "Unknown day"
         city = _city(row)
+        for value_label, destination_value in _destination_review_values(row):
+            if not _is_reviewable_destination(destination_value):
+                continue
+            if destination_for_alias(destination_value) is None:
+                issues.append(_issue(
+                    "unknown_destination",
+                    REVIEW,
+                    f"{day}: {destination_value} is not in the Nordic destination registry; confirm spelling or add this destination before final output.",
+                    row,
+                ))
+                break
         if row_type == "Hotel" and not _has_hotel_name(row):
             issues.append(_issue(
                 "missing_hotel_name",

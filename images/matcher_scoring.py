@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from .fallback import is_global_default_candidate, score_default_candidate, _conflict_penalty
 from .metadata import ImageCandidate, SEASON_ALIASES, city_variants, normalize_keyword
-from .seasonal_policy import should_block_southern_coastal_winter_image, shoulder_season_image_bonus
+from .seasonal_policy import (
+    destination_profile_image_bonus,
+    should_block_southern_coastal_winter_image,
+    shoulder_season_image_bonus,
+)
 
 DESTINATION_FOLDER_MATCH_SCORE = 60
 DESTINATION_FILENAME_MATCH_SCORE = 20
@@ -105,6 +109,12 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     if shoulder_bonus:
         score += shoulder_bonus
         reasons.extend(shoulder_reasons)
+
+    profile_bonus, profile_reasons = destination_profile_image_bonus(candidate, day_context)
+    if profile_bonus:
+        score += profile_bonus
+    if profile_reasons:
+        reasons.extend(profile_reasons)
 
     penalty, penalty_reasons = _conflict_penalty(candidate_themes, day_themes, day_tokens)
     if penalty:
