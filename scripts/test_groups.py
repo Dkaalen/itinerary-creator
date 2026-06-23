@@ -16,6 +16,7 @@ TIERED_STAGE_SIZE = 4
 
 FAST_TESTS = (
     "tests/test_sync_regression_suite1.py",
+    "tests/test_destination_copy_profiles3_regression.py",
     "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
@@ -145,6 +146,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_dest2_denmark_destination_expansion.py",
     "tests/test_dest2_iceland_destination_expansion.py",
     "tests/test_content1_destination_copy_library.py",
+    "tests/test_destination_copy_profiles3_regression.py",
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
@@ -218,6 +220,7 @@ IMAGE_TESTS = (
     "tests/test_dest2_denmark_destination_expansion.py",
     "tests/test_dest2_iceland_destination_expansion.py",
     "tests/test_content1_destination_copy_library.py",
+    "tests/test_destination_copy_profiles3_regression.py",
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
@@ -288,6 +291,7 @@ QUALITY_TESTS = (
     "tests/test_patch_ih1_reference_corpus.py",
     "tests/test_patch_ih4_group_tour_rendering.py",
     "tests/test_content1_destination_copy_library.py",
+    "tests/test_destination_copy_profiles3_regression.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
 )
@@ -314,6 +318,7 @@ PDF_TESTS = (
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
     "tests/test_pdf8_luxury_day_layout.py",
+    "tests/test_destination_copy_profiles3_regression.py",
     "tests/test_brand1_proposal_profiles.py",
 )
 

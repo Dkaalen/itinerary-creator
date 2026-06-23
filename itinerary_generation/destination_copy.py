@@ -16,10 +16,22 @@ from itinerary_generation.destination_content import (
     leisure_description,
     travel_day_intro,
 )
+from itinerary_generation.destination_profiles import (
+    destination_arrival_intro,
+    destination_identity,
+    destination_profile_for,
+    destination_profiles,
+    destination_stay_intro,
+)
 
 __all__ = [
     "destination_arc_fallback",
+    "destination_arrival_intro",
     "destination_copy",
+    "destination_identity",
+    "destination_profile_for",
+    "destination_profiles",
+    "destination_stay_intro",
     "leisure_description",
     "travel_day_intro",
 ]

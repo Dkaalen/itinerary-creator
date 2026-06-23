@@ -30,7 +30,12 @@ from itinerary_generation.day_group_tour_text import (
     _natural_group_tour_focus,
 )
 from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
-from itinerary_generation.destination_copy import leisure_description, travel_day_intro
+from itinerary_generation.destination_copy import (
+    destination_arrival_intro,
+    destination_stay_intro,
+    leisure_description,
+    travel_day_intro,
+)
 from parser_modules.common import extract_route_points
 from text_polish import polish_title
 from itinerary_generation.transport_model import get_transport_source_text
@@ -92,11 +97,7 @@ def _welcome_arrival_intro(city: str, detail_level: str, *, with_activity: bool 
     destination = _arrival_display_destination(city)
     if with_activity:
         return f"Welcome to {destination}."
-    if detail_level == "Elegant concise":
-        return f"Welcome to {destination}. Time is kept relaxed after arrival so you can settle in."
-    if detail_level == "Rich descriptive":
-        return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and get your first impression of the destination."
-    return f"Welcome to {destination}. After arrival, enjoy time to settle in."
+    return destination_stay_intro(city, detail_level)
 
 
 def _has_destination_hotel(day_rows: list[dict], city: str) -> bool:
@@ -226,7 +227,9 @@ def _travel_mode_from_title(title: str) -> str:
 
 def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
-        return leisure_description(city, []) if city else "Use the day at your own pace, with time to relax, explore independently or settle into the destination."
+        return leisure_description(city, []) if city else "Use the day at your own pace, with time to relax, explore independently, or settle into the area."
+    if pattern == "stay_day":
+        return destination_stay_intro(city, "Rich descriptive") if city else "Use the day at your own pace, with time to relax, explore independently, or settle into the area."
     if pattern == "multi_activity_day":
         title_text = str(title or "").lower()
         if "tallinn" in title_text:
@@ -326,20 +329,24 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             city_for_activity = activity_city or city_text
             activity_intro = _activity_day_intro(activity_title, city_for_activity, activity_text, detail_level)
             return f"Welcome to {destination}. {transfer_phrase} {activity_intro}"
-        if detail_level == "Elegant concise":
-            return f"Welcome to {destination}. {transfer_phrase}"
-        if detail_level == "Rich descriptive":
-            return f"Welcome to {destination}. {transfer_phrase} After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impression of the destination."
-        return f"Welcome to {destination}. {transfer_phrase} After check-in, enjoy time to settle in."
+        return destination_arrival_intro(
+            city,
+            transfer_phrase,
+            detail_level,
+            display_destination=destination,
+            rows=day_rows,
+        )
 
     if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
         destination = _arrival_display_destination(city)
         transfer_phrase = _arrival_transfer_phrase(day_rows)
-        if detail_level == "Elegant concise":
-            return f"Welcome to {destination}. {transfer_phrase}"
-        if detail_level == "Rich descriptive":
-            return f"Welcome to {destination}. {transfer_phrase} After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impression of the destination."
-        return f"Welcome to {destination}. {transfer_phrase} After check-in, enjoy time to settle in."
+        return destination_arrival_intro(
+            city,
+            transfer_phrase,
+            detail_level,
+            display_destination=destination,
+            rows=day_rows,
+        )
 
     if has_departure and city:
         departure_text = " ".join(f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}' for row in day_rows).lower()
@@ -473,11 +480,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     if city:
         if has_hotel(day_rows):
             destination = _arrival_display_destination(city)
-            if detail_level == "Elegant concise":
-                return f"Welcome to {destination}. Time is kept relaxed after arrival so you can settle into your accommodation."
-            if detail_level == "Rich descriptive":
-                return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination."
-            return f"Welcome to {destination}. After arrival, enjoy time to settle into your accommodation."
+            return destination_stay_intro(city, detail_level, rows=day_rows)
         if detail_level == "Elegant concise":
             return f"This is part of your stay in {city}, with arrangements listed below."
         if detail_level == "Rich descriptive":

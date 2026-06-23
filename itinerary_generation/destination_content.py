@@ -14,6 +14,7 @@ import re
 from typing import Iterable, Sequence
 
 from itinerary_generation.destination_registry import NordicDestination, destination_for_alias
+from itinerary_generation.destination_profiles import destination_leisure_sentence
 from text_polish import polish_title
 
 
@@ -119,23 +120,23 @@ ARRIVAL_FOCUS_BY_PROFILE: dict[str, str] = {
 LEISURE_OVERRIDES: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
     "Oslo": (
         ("waterfront neighbourhoods", ("fjord sightseeing", "oslofjord", "fjord cruise")),
-        ("museums, galleries and capital-city streets", ("museum", "gallery", "city tour")),
-        ("local cafés and neighbourhood life", ("food tour", "culinary", "tasting")),
+        ("museums, galleries and modern Nordic architecture", ("museum", "gallery", "city tour")),
+        ("capital streets, green city spaces and fjordside cafés", ("food tour", "culinary", "tasting")),
     ),
     "Kristiansand": (
-        ("the harbourfront", ("harbour", "harbor")),
-        ("southern coastal streets", ("walking tour", "city walk")),
-        ("local cafés and time by the sea", ("kayak", "kayaking", "otra river")),
+        ("the harbourfront and southern coastal streets", ("harbour", "harbor")),
+        ("time by the sea", ("walking tour", "city walk")),
+        ("local cafés in Southern Norway’s coastal city", ("kayak", "kayaking", "otra river")),
     ),
     "Stavanger": (
-        ("the harbourfront", ("harbour", "harbor", "cruise")),
-        ("old wooden streets", ("walking tour", "city walk")),
+        ("the harbourfront and old wooden streets", ("harbour", "harbor", "cruise")),
+        ("an easy evening in Norway’s fjord gateway", ("walking tour", "city walk")),
         ("local cafés around the centre", ("food", "culinary", "tasting")),
     ),
     "Bergen": (
-        ("the harbourfront", ("harbour", "harbor", "cruise")),
-        ("colourful lanes around the centre", ("walking tour", "bergen past")),
-        ("mountain viewpoints and local cafés", ("fløy", "floy", "funicular", "fløibanen", "floibanen")),
+        ("Bryggen and the harbourfront", ("harbour", "harbor", "cruise")),
+        ("colourful wooden streets and hillside viewpoints", ("walking tour", "bergen past")),
+        ("Fløyen views, local cafés and fjord-gateway atmosphere", ("fløy", "floy", "funicular", "fløibanen", "floibanen")),
     ),
     "Flåm": (
         ("fjordside paths", ("fjord cruise", "boat")),
@@ -239,7 +240,7 @@ def _rows_text(rows: Iterable[dict] | None) -> str:
     return " ".join(
         " ".join(
             str(row.get(key, "") or "")
-            for key in ("city", "title", "original_title", "details", "description")
+            for key in ("day", "city", "title", "original_title", "details", "description")
         )
         for row in rows or []
         if isinstance(row, dict)
@@ -323,22 +324,16 @@ def _choose_leisure_options(options: Sequence[tuple[str, tuple[str, ...]]], cont
 
 
 def leisure_description(value: object, rows: Sequence[dict] | Iterable[dict] | None = None) -> str:
-    """Return city-aware free-time copy without repeating covered activities."""
+    """Return destination-aware free-time copy without repeating covered activities."""
 
     record = _record_for(value)
     name = _display_name(value, record)
     if not name:
-        return "Use the remaining time at your own pace, with room to relax, explore independently or settle into the day."
+        return "Use the remaining time at your own pace, with room to relax, explore independently, or settle into the day."
 
     context = _rows_text(rows)
     options = _choose_leisure_options(destination_copy(name).leisure_options, context)
-    if len(options) == 1:
-        focus = options[0]
-    elif len(options) == 2:
-        focus = f"{options[0]} and {options[1]}"
-    else:
-        focus = f"{options[0]}, {options[1]} or {options[2]}"
-    return f"Use the remaining time in {name} at your own pace, with room for {focus}."
+    return destination_leisure_sentence(name, rows, options)
 
 
 def _mode_label(mode: object) -> str:

@@ -185,7 +185,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
 
     if has_hotel(rows) and city:
         title = _accommodation_led_title(rows, city) or f"Welcome to {city}"
-        intro = _intro_for_title(title, city, "stay_day") if not title.startswith("Welcome to") else f"Welcome to {city}. After arrival, the day is kept relaxed so you can check in, settle into your accommodation and enjoy your first impression of the destination."
+        intro = _intro_for_title(title, city, "stay_day")
         return DayPlan("stay_day", title, intro)
 
     title = _leisure_title(city)

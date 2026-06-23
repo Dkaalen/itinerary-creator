@@ -13,7 +13,7 @@ def test_pdf8_day_opener_rule_adds_subtle_rule():
     assert any(isinstance(item, Table) for item in story)
 
 
-def test_pdf8_day_section_places_rule_after_intro_before_blocks():
+def test_pdf8_day_section_does_not_add_rule_after_intro():
     html = """
     <section class="day-section">
       <div class="day-kicker">DAY 1 ✦ OSLO</div>
@@ -27,4 +27,4 @@ def test_pdf8_day_section_places_rule_after_intro_before_blocks():
 
     render_day_section_pdf(soup.select_one(".day-section"), story, make_styles())
 
-    assert any(isinstance(item, Table) for item in story)
+    assert not any(isinstance(item, Table) for item in story)

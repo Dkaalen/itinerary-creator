@@ -72,7 +72,7 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     ),
     TextRule(
         ("walking", "city highlights", "suomenlinna"),
-        lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and lesser-known corners to give the destination more context.",
+        lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and lesser-known corners to give the place more context.",
     ),
     TextRule(
         ("northern lights", "aurora"),
@@ -163,7 +163,7 @@ def client_activity_intro(activity_title: str, city: str, source_text: str = "",
     """Return one shared activity-day intro used by all day-intro paths."""
 
     title = _normalise_text(activity_title) or "the arranged experience"
-    city_text = _normalise_text(city) or "the destination"
+    city_text = _normalise_text(city) or "the experience area"
     searchable = f"{title} {city_text} {source_text}".lower()
     if any(marker in searchable for marker in ("lysefjord", "preikestolen", "pulpit rock")):
         return f"The day centres on Lysefjord, with {title} carrying you from Stavanger beneath steep mountain walls, waterfalls and the viewpoint of Preikestolen."

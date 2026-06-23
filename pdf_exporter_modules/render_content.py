@@ -12,7 +12,7 @@ from text_polish import expand_time_with_duration
 from . import styles as pdf_styles
 from .day_images import add_day_image_if_possible
 from .html_utils import clean_text
-from .render_flowables import add_day_opener_rule, add_premium_rule
+from .render_flowables import add_premium_rule
 from .render_text import li_text_with_line_breaks
 from .story import add_bullets, add_paragraph
 from visual_editor_component.style_presets import (
@@ -290,16 +290,10 @@ def render_day_section_pdf(section, story, styles):
     if not kicker:
         selector_styles.insert(1, (".city", "city"))
 
-    rendered_intro = False
     for selector, style_name in selector_styles:
         tag = section.select_one(selector)
         if tag:
             add_paragraph(story, tag.get_text(" "), styles[style_name])
-            if selector == ".intro":
-                rendered_intro = True
-
-    if rendered_intro:
-        add_day_opener_rule(story)
 
     render_content_blocks(section, story, styles)
 
