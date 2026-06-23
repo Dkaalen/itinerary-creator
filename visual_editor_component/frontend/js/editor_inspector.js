@@ -247,6 +247,16 @@ function renderSourceRowDetails(sourceRowIds) {
 function renderSourceRows(sourceRowIds) {
   return renderSourceRowDetails(sourceRowIds);
 }
+function renderInspectorSelectionCard(fieldKey, page, block, meta) {
+  const key = String(fieldKey || '');
+  if (!key && !activePageId) return '';
+  const isImage = fieldKindForKey(key) === 'image';
+  const title = key ? inspectorFieldLabelFromKey(key, meta?.field_label || '') : (page?.title || 'Page');
+  const pageLabel = page?.title || meta?.page_title || activePageId || 'Current page';
+  const blockLabel = block?.title || humanizeEditorToken(block?.block_type || meta?.block_type || (isImage ? 'Image' : 'Text'));
+  return `<div class="inspector-card selection-card ${isImage ? 'image' : 'text'}"><div class="inspector-kicker">Selection</div><strong>${esc(title)}</strong><dl><dt>Page</dt><dd>${esc(pageLabel)}</dd><dt>Type</dt><dd>${esc(blockLabel)}</dd></dl></div>`;
+}
+
 function renderInspectorTextTools(hasBlock) {
   const canStyle = !!canUsePdfSafeTextTools();
   const disabled = canStyle ? '' : 'disabled';
@@ -366,6 +376,21 @@ function setImageCropFocus(ctx, focus) {
   ctx.image.crop_focus = focus || 'top';
   markTouched(ctx.fieldKey);
 }
+function updateImagePreviewForContext(ctx) {
+  if (!ctx?.fieldKey) return;
+  if (ctx.kind === 'day') {
+    const img = document.querySelector(`[data-editor-field-key="${CSS.escape(ctx.fieldKey)}"] img`);
+    if (img) img.style.objectPosition = focusPos(ctx.image?.crop_focus || 'top');
+    const chip = document.querySelector(`[data-editor-field-key="${CSS.escape(ctx.fieldKey)}"] .image-crop-chip`);
+    if (chip) chip.textContent = imageFocusLabel(ctx.image?.crop_focus || 'top');
+  }
+  if (ctx.kind === 'cover') {
+    const page = document.querySelector(`[data-page-id="${CSS.escape(ctx.coverKey === 'summary_image' ? 'summary' : 'cover')}"] .a4-page`);
+    if (page) page.style.backgroundPosition = focusPos(ctx.image?.crop_focus || 'top');
+    const chip = document.querySelector(`[data-editor-field-key="${CSS.escape(ctx.fieldKey)}"] .image-crop-chip`);
+    if (chip) chip.textContent = imageFocusLabel(ctx.image?.crop_focus || 'top');
+  }
+}
 function applyImageContextAction(ctx, action, value = '') {
   if (!ctx) {
     notifyEditor('Select an image first.');
@@ -381,7 +406,14 @@ function applyImageContextAction(ctx, action, value = '') {
     }
   }
   if (action === 'focus') setImageCropFocus(ctx, value);
+  activeFieldKey = ctx.fieldKey || activeFieldKey;
   notifyEditor(action === 'focus' ? 'Image crop updated' : 'Image selection updated');
+  if (action === 'focus') {
+    updateImagePreviewForContext(ctx);
+    updateRightInspector();
+    updateEditorStats();
+    return;
+  }
   draw();
 }
 function renderInspectorImageTools(fieldKey) {
@@ -395,9 +427,11 @@ function renderInspectorImageTools(fieldKey) {
   const upload = ctx.supportsUpload
     ? `<label class="upload-label inspector-upload-label">Upload<input type="file" accept="image/png,image/jpeg,image/webp" id="inspectorImageUploadInput"></label>`
     : '<p class="inspector-mini-note">Upload is currently available on day images. Cover/page-2 images can use the curated replacement list.</p>';
+  const pending = image.pending_preview ? '<p class="inspector-mini-note pending-preview-note">Replacement selected. Save changes to refresh the preview image.</p>' : '';
   return `<div class="inspector-card image-tools-card"><div class="inspector-kicker">Image tools</div>
     <strong>${esc(ctx.label)}</strong>
-    <dl><dt>Mode</dt><dd>${esc(imageModeLabel(image))}</dd><dt>Name</dt><dd>${esc(image.name || image.auto_name || '—')}</dd><dt>Path</dt><dd>${esc(image.path || 'Automatic/default')}</dd></dl>
+    <dl><dt>Mode</dt><dd>${esc(imageModeLabel(image))}</dd><dt>Crop</dt><dd>${esc(imageFocusLabel(focus))}</dd><dt>Name</dt><dd>${esc(image.name || image.auto_name || '—')}</dd></dl>
+    ${pending}
     <label class="inspector-control-label" for="inspectorImageFocus">Crop position</label>
     <select id="inspectorImageFocus" aria-label="Image crop position">
       <option value="top" ${focus === 'top' ? 'selected' : ''}>Sky / upper crop</option>
@@ -495,9 +529,11 @@ function renderRightInspector() {
     ? ''
     : `<div class="inspector-card empty inspector-empty-state"><strong>Select text on the itinerary</strong><p>Use the canvas for text editing. Use these controls only for font, size, color, spacing, and selected-item properties.</p></div>`;
   const imageTools = hasImage ? renderInspectorImageTools(fieldKey) : '';
+  const selectionCard = hasBlock ? renderInspectorSelectionCard(fieldKey, page, block, meta) : '';
   return `<aside class="right-inspector" aria-label="Formatting and selected-item properties">
     <div class="inspector-title"><strong>Formatting</strong><span>${hasImage ? 'Image' : (canUsePdfSafeTextTools() ? 'Text' : 'Ready')}</span></div>
     ${emptyState}
+    ${selectionCard}
     ${renderInspectorTextTools(hasBlock)}
     ${imageTools}
   </aside>`;

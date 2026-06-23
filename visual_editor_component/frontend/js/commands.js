@@ -27,6 +27,7 @@ window.visualEditorCommands = Object.freeze({
   applyColorPreset,
   selectEditorPage,
   selectEditorBlockFromElement,
+  selectEditorFieldByKey,
   renderRightInspector,
   attachInspectorHandlers,
   hideDocumentPage,

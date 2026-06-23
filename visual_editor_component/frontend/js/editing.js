@@ -213,6 +213,13 @@ function attachHandlers() {
       selectEditorBlockFromElement(el);
     });
   });
+  document.querySelectorAll('[data-select-image-field]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      selectEditorFieldByKey(btn.getAttribute('data-select-image-field') || '');
+    });
+  });
   attachInspectorHandlers();
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
     const key = el.getAttribute('data-edit-key');

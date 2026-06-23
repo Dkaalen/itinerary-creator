@@ -68,7 +68,8 @@ def test_frontend_marks_images_as_selectable_editor_blocks():
 
     assert "data-editor-block-type=\"image\"" in source
     assert "data-editor-field-key=\"days.${dayIndex}.image\"" in source
-    assert "data-editor-field-key=\"cover.${escAttr(key)}\"" in source
+    assert "const fieldKey = `cover.${key}`" in source
+    assert "data-editor-field-key=\"${escAttr(fieldKey)}\"" in source
 
 
 def test_right_inspector_exposes_pdf_safe_text_tools():

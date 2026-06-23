@@ -561,6 +561,35 @@
     .inspector-mini-note { color: var(--muted); font-size: 11px; line-height: 1.35; }
     .inspector-upload-label { display: flex; justify-content: center; margin-top: 8px; width: 100%; }
 
+    .canvas-image-tools {
+      gap: 8px;
+      align-items: center;
+      max-width: min(520px, calc(100% - 24px));
+    }
+    .canvas-image-tools .image-crop-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.24);
+      background: rgba(255,255,255,.15);
+      color: #fff7ec;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .image-actions.canvas-image-tools select,
+    .image-actions.canvas-image-tools label,
+    .cover-image-panel.canvas-image-tools select {
+      display: none;
+    }
+    .selection-card dl { grid-template-columns: 48px minmax(0, 1fr); }
+    .selection-card.image { border-color: rgba(0,111,107,.24); background: linear-gradient(180deg, rgba(0,111,107,.055), #fff); }
+    .pending-preview-note { color: #7a3f00; font-weight: 750; }
+
+
 
     .layout-tools-card select {
       width: 100%;
@@ -1870,4 +1899,30 @@ body {
   .page-header-row .page-controls {
     max-width: calc(var(--page-w) - 170px) !important;
   }
+}
+
+/* REVIEW3 grouped client-readiness workflow */
+.warning-panel-stack {
+  display: grid;
+  gap: 8px;
+}
+.warning-panel.warning-group {
+  border-color: rgba(17, 38, 63, 0.11);
+  background: rgba(255, 255, 255, 0.76);
+}
+.warning-panel.warning-group.critical {
+  border-color: rgba(138, 40, 40, 0.28);
+  background: rgba(138, 40, 40, 0.06);
+}
+.warning-panel.warning-group.review {
+  border-color: rgba(197, 138, 36, 0.28);
+  background: rgba(197, 138, 36, 0.06);
+}
+.warning-panel.warning-group.info,
+.warning-panel.warning-group.auto-fixes {
+  border-color: rgba(17, 38, 63, 0.08);
+  background: rgba(247, 249, 251, 0.86);
+}
+.warning-panel.warning-group.auto-fixes summary {
+  color: #647082;
 }

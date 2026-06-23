@@ -99,18 +99,23 @@ def add_bullets(story, items, styles, *, spacer_after=7):
 
 
 def make_table(data, widths, styles):
+    """Render premium proposal tables without spreadsheet-style boxing.
+
+    Summary/Journey tables are client-facing itinerary content, not raw data
+    grids.  Keep the structure readable, but use whitespace and fine horizontal
+    rules instead of heavy cell boxes.
+    """
+
     table = Table(data, colWidths=widths, hAlign="LEFT")
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), pdf_styles.CARD),
-                ("BOX", (0, 0), (-1, -1), 0.5, pdf_styles.LINE),
-                ("INNERGRID", (0, 0), (-1, -1), 0.35, pdf_styles.LINE),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 7),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("LINEBELOW", (0, 0), (-1, -1), 0.25, pdf_styles.LINE),
             ]
         )
     )

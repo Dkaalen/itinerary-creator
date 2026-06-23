@@ -229,6 +229,21 @@ function selectEditorPage(pageId) {
   updateSelectionUi();
   if (changed) updateRightInspector();
 }
+function selectEditorFieldByKey(fieldKey) {
+  const key = String(fieldKey || '');
+  if (!key) return;
+  const target = document.querySelector(`[data-editor-field-key="${CSS.escape(key)}"]`) || document.querySelector(`[data-edit-key="${CSS.escape(key)}"]`);
+  if (target) {
+    selectEditorBlockFromElement(target);
+    return;
+  }
+  const meta = inferEditorBlockMetaForKey(key, '');
+  activePageId = meta.page_id || activePageId;
+  activeBlockId = meta.block_id || activeBlockId;
+  activeFieldKey = key;
+  updateSelectionUi();
+  updateRightInspector();
+}
 function selectEditorBlockFromElement(el) {
   const target = el?.closest?.('[data-editor-block-id]') || el?.closest?.('[data-edit-key]');
   if (!target) return;

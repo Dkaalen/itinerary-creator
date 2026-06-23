@@ -59,6 +59,8 @@ def _append_payload_warnings(payload, model_warnings, image_warnings):
     for warning in model_warnings:
         output_warnings.append({
             "code": warning.get("code", "model_warning"),
+            "severity": warning.get("severity", "review"),
+            "category": warning.get("category", "model"),
             "excerpt": warning.get("message", "Structured model warning"),
             "message": warning.get("message", "Structured model warning"),
             "page_label": warning.get("page_label", "Structured itinerary"),
@@ -67,7 +69,11 @@ def _append_payload_warnings(payload, model_warnings, image_warnings):
     for warning in image_warnings:
         output_warnings.append({
             "code": warning.code,
+            "severity": "critical" if getattr(warning, "severity", "") == "error" else "review",
+            "category": "image",
+            "message": warning.message,
             "excerpt": warning.message,
+            "page_label": getattr(warning, "day", "Image review"),
         })
     payload["client_output_warnings"] = output_warnings[:30]
     return payload

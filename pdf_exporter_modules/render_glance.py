@@ -24,7 +24,7 @@ def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
 
     glance_story = []
     title = page.select_one(".glance-title")
-    add_paragraph(glance_story, title.get_text(" ") if title else "Your Trip at a Glance", styles["page_title"], spacer_after=6)
+    add_paragraph(glance_story, title.get_text(" ") if title else "Your Trip at a Glance", styles["summary_title"], spacer_after=5)
 
     rows = []
     for row in page.select(".glance-row"):
@@ -32,29 +32,29 @@ def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
         value = row.select_one(".glance-value")
         if label and value:
             rows.append([
-                Paragraph(para_text(label.get_text(" ")), styles["table_header"]),
-                Paragraph(para_text(value.get_text(" ")), styles["table_cell"]),
+                Paragraph(para_text(label.get_text(" ")), styles["summary_header"]),
+                Paragraph(para_text(value.get_text(" ")), styles["summary_cell"]),
             ])
 
     if rows:
         glance_story.append(make_table(rows, [34 * mm, 104 * mm], styles))
 
     story.append(boxed_story_table(glance_story, background=pdf_styles.SUMMARY_CARD))
-    story.append(Spacer(1, 16 * mm))
+    story.append(Spacer(1, 12 * mm))
 
     journey_story = []
     journey_title = page.select_one(".journey-title")
-    add_paragraph(journey_story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["page_title"], spacer_after=6)
+    add_paragraph(journey_story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["summary_title"], spacer_after=5)
 
     table_rows = []
     header_cells = [clean_text(th.get_text(" ")) for th in page.select(".journey-table th")]
     if header_cells:
-        table_rows.append([Paragraph(para_text(cell), styles["table_header"]) for cell in header_cells])
+        table_rows.append([Paragraph(para_text(cell), styles["summary_header"]) for cell in header_cells])
 
     for tr in page.select(".journey-table tbody tr"):
         cells = [clean_text(td.get_text(" ")) for td in tr.select("td")]
         if cells:
-            table_rows.append([Paragraph(para_text(cell), styles["table_cell"]) for cell in cells])
+            table_rows.append([Paragraph(para_text(cell), styles["summary_cell"]) for cell in cells])
 
     if table_rows:
         journey_story.append(make_table(table_rows, [34 * mm, 16 * mm, 90 * mm], styles))

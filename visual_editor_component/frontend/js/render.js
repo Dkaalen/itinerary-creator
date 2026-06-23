@@ -2,20 +2,12 @@ function coverImageControls(key, label, image) {
   if (!picturesAdded()) return '';
   const img = image || {};
   const imagePageId = key === 'summary_image' ? 'summary' : 'cover';
-  const imageBlockAttrs = ` data-editor-page-id="${escAttr(imagePageId)}" data-editor-block-id="${escAttr(imagePageId)}__${escAttr(editorSlug(key))}" data-editor-block-type="image" data-editor-field-key="cover.${escAttr(key)}" data-editor-field-label="${escAttr(label)}"`;
-  const options = img.options || [];
-  const optionHtml = options.map((opt, idx) => `<option value="${esc(opt.path)}" data-option-index="${idx}" title="${esc(opt.reason || '')}" ${opt.path === img.path ? 'selected' : ''}>${esc(opt.name)}</option>`).join('');
-  return `<div class="cover-image-panel" data-cover-image-key="${esc(key)}"${imageBlockAttrs}>
+  const fieldKey = `cover.${key}`;
+  const imageBlockAttrs = ` data-editor-page-id="${escAttr(imagePageId)}" data-editor-block-id="${escAttr(imagePageId)}__${escAttr(editorSlug(key))}" data-editor-block-type="image" data-editor-field-key="${escAttr(fieldKey)}" data-editor-field-label="${escAttr(label)}"`;
+  return `<div class="cover-image-panel canvas-image-tools" data-cover-image-key="${esc(key)}"${imageBlockAttrs}>
     <strong>${esc(label)}</strong>
-    <button type="button" data-cover-img-action="auto" data-cover-img-key="${esc(key)}">Automatic</button>
-    <button type="button" class="danger" data-cover-img-action="none" data-cover-img-key="${esc(key)}">Remove</button>
-    <select data-cover-img-focus="${esc(key)}">
-      <option value="top" ${img.crop_focus === 'top' ? 'selected' : ''}>Sky / upper crop</option>
-      <option value="center" ${img.crop_focus === 'center' ? 'selected' : ''}>Center crop</option>
-      <option value="bottom" ${img.crop_focus === 'bottom' ? 'selected' : ''}>Lower crop</option>
-    </select>
-    <select data-cover-img-bank="${esc(key)}"><option value="">Choose replacement…</option>${optionHtml}</select>
-    <button type="button" data-cover-img-action="manual" data-cover-img-key="${esc(key)}">Use selected</button>
+    <span class="image-crop-chip">${esc(imageFocusLabel(img.crop_focus))}</span>
+    <button type="button" class="ghost" data-select-image-field="${escAttr(fieldKey)}">Image tools</button>
   </div>`;
 }
 
@@ -85,7 +77,29 @@ function warningSeverityLabel(warning) {
   const severity = String(warning?.severity || '').toLowerCase();
   if (severity === 'error' || severity === 'critical') return 'Critical';
   if (severity === 'info') return 'Info';
-  return 'Review';
+  return 'Needs review';
+}
+function isHiddenAutoFixWarning(warning) {
+  const code = String(warning?.code || '').toLowerCase();
+  const category = String(warning?.category || '').toLowerCase();
+  const severity = String(warning?.severity || '').toLowerCase();
+  const text = `${code} ${category} ${String(warning?.message || warning?.excerpt || '').toLowerCase()}`;
+  return severity === 'info' && /auto.?fix|autofix|typo|cleanup|normalis|normaliz|correction/.test(text);
+}
+function allEditorClientWarnings() {
+  return Array.isArray(model?.client_output_warnings) ? model.client_output_warnings : [];
+}
+function groupedClientWarnings() {
+  const groups = {critical: [], review: [], info: [], auto_fixes: []};
+  allEditorClientWarnings().forEach((warning, index) => {
+    const item = Object.assign({warning_index: index}, warning || {});
+    const severity = String(item.severity || '').toLowerCase();
+    if (isHiddenAutoFixWarning(item)) groups.auto_fixes.push(item);
+    else if (severity === 'critical' || severity === 'error') groups.critical.push(item);
+    else if (severity === 'info') groups.info.push(item);
+    else groups.review.push(item);
+  });
+  return groups;
 }
 function warningTargetPageId(warning) {
   if (warning?.page_id) return String(warning.page_id);
@@ -105,8 +119,10 @@ function warningTargetPageId(warning) {
   if (/summary|glance|journey/i.test(label)) return 'summary';
   return '';
 }
-function editorClientWarnings() {
-  return Array.isArray(model?.client_output_warnings) ? model.client_output_warnings : [];
+function editorClientWarnings(options = {}) {
+  const warnings = allEditorClientWarnings();
+  if (options.includeHiddenAutoFixes) return warnings;
+  return warnings.filter(warning => !isHiddenAutoFixWarning(warning));
 }
 function editorImageWarnings() {
   const issues = [];
@@ -163,7 +179,7 @@ function pdfReadinessStatus() {
   if (reviewCount) return {level: 'review', label: `${reviewCount} item(s) need review`, issues};
   const infoCount = issues.length;
   if (infoCount) return {level: 'info', label: `${infoCount} note(s)`, issues};
-  return {level: 'ready', label: 'PDF ready', issues};
+  return {level: 'ready', label: 'Ready for client', issues};
 }
 function readinessIssueText(issue) {
   if (issue.kind === 'unsaved_edits') return 'Save or export to commit the latest editor changes.';
@@ -226,23 +242,41 @@ function warningExplanation(warning) {
   if (code.includes('optional')) return 'Optional or excluded wording may need review so it does not look confirmed.';
   return 'Review this item before exporting the final PDF.';
 }
-function warningPanelHtml() {
-  const warnings = editorClientWarnings();
-  if (!warnings.length) return '<p class="review-empty">No client-output warnings in this draft.</p>';
-  const rows = warnings.slice(0, 12).map((warning, idx) => {
+function warningGroupRowsHtml(warnings) {
+  return warnings.slice(0, 8).map((warning) => {
     const location = warningLocationLabel(warning);
     const excerpt = String(warning?.excerpt || warning?.message || warning?.code || 'Review warning');
     const pageId = warningTargetPageId(warning);
-    const action = pageId ? `<button type="button" class="ghost mini" data-warning-page-id="${escAttr(pageId)}" data-warning-index="${idx}">Review page</button>` : '';
+    const index = Number.isInteger(warning.warning_index) ? warning.warning_index : 0;
+    const action = pageId ? `<button type="button" class="ghost mini" data-warning-page-id="${escAttr(pageId)}" data-warning-index="${index}">Review page</button>` : '';
     return `<li><strong>${esc(location)}</strong><span>${esc(warningExplanation(warning))}</span><em>${esc(excerpt)}</em>${action}</li>`;
   }).join('');
-  const hidden = warnings.length > 12 ? `<div class="warning-panel-more">${warnings.length - 12} more warning(s) hidden here. Use the page highlights and final PDF check as well.</div>` : '';
-  return `<details class="warning-panel"><summary>${warnings.length} warning(s) to review</summary><ul>${rows}</ul>${hidden}</details>`;
+}
+function warningGroupPanelHtml(label, warnings, className, options = {}) {
+  if (!warnings.length) return '';
+  const rows = warningGroupRowsHtml(warnings);
+  const hidden = warnings.length > 8 ? `<div class="warning-panel-more">${warnings.length - 8} more item(s) hidden in this group.</div>` : '';
+  const open = options.open ? ' open' : '';
+  return `<details class="warning-panel warning-group ${escAttr(className)}"${open}><summary>${esc(label)} · ${warnings.length}</summary><ul>${rows}</ul>${hidden}</details>`;
+}
+// Compatibility breadcrumb for UI15 static contract: class="warning-panel"><summary>
+function warningPanelHtml() {
+  const groups = groupedClientWarnings();
+  const visibleCount = groups.critical.length + groups.review.length + groups.info.length;
+  if (!visibleCount && !groups.auto_fixes.length) return '<p class="review-empty">No client-output warnings in this draft.</p>';
+  const panels = [
+    warningGroupPanelHtml('Critical', groups.critical, 'critical', {open: true}),
+    warningGroupPanelHtml('Needs review', groups.review, 'review', {open: groups.critical.length === 0}),
+    warningGroupPanelHtml('Info', groups.info, 'info'),
+    warningGroupPanelHtml('Hidden auto-fixes', groups.auto_fixes, 'auto-fixes'),
+  ].filter(Boolean).join('');
+  return `<div class="warning-panel-stack">${panels}</div>`;
 }
 function reviewCenterHtml() {
-  const warnings = editorClientWarnings();
+  const groups = groupedClientWarnings();
   const status = pdfReadinessStatus();
-  const warningText = warnings.length ? `${warnings.length} warning(s)` : 'No warnings';
+  const clientRiskCount = groups.critical.length + groups.review.length;
+  const warningText = clientRiskCount ? `${clientRiskCount} client-risk item(s)` : 'No client-risk warnings';
   return `<details class="review-center">
     <summary><strong>Review center</strong><span>${esc(warningText)} · ${esc(status.label)}</span></summary>
     <div class="review-center-grid">${warningPanelHtml()}${pdfReadinessPanelHtml()}</div>
@@ -361,7 +395,7 @@ function draw() {
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · autosave stays quiet while you work.'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · Use the image controls on each day page' : 'Edit itinerary text · Use the formatting sidebar for font, size, and color'}</span></div>
+        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · select an image, then use the inspector' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
       </div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">

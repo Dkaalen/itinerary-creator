@@ -6,7 +6,7 @@ function highlightWarnings() {
     el.classList.toggle('warning-hit', hit);
     if (hit) count += 1;
   });
-  const serverWarnings = Array.isArray(model.client_output_warnings) ? model.client_output_warnings.length : 0;
+  const serverWarnings = typeof editorClientWarnings === 'function' ? editorClientWarnings().length : (Array.isArray(model.client_output_warnings) ? model.client_output_warnings.length : 0);
   const warningCount = document.getElementById('warningCount');
   if (warningCount) warningCount.textContent = `${Math.max(count, serverWarnings)} warnings`;
 }

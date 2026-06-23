@@ -248,25 +248,25 @@ def _render_summary(render_document: RenderDocument, story, styles, temp_dir):
         story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.38))
 
     glance_story = []
-    add_paragraph(glance_story, getattr(summary, "trip_glance_title", "") or "Your Trip at a Glance", styles["page_title"], spacer_after=6)
+    add_paragraph(glance_story, getattr(summary, "trip_glance_title", "") or "Your Trip at a Glance", styles["summary_title"], spacer_after=5)
     rows = []
     for line in getattr(summary, "trip_glance", []) or []:
         if line.label and line.value:
-            rows.append([Paragraph(para_text(line.label), styles["table_header"]), Paragraph(para_text(str(line.value)), styles["table_cell"])])
+            rows.append([Paragraph(para_text(line.label), styles["summary_header"]), Paragraph(para_text(str(line.value)), styles["summary_cell"])])
     if rows:
         glance_story.append(make_table(rows, [34 * mm, 104 * mm], styles))
     story.append(boxed_story_table(glance_story, background=pdf_styles.SUMMARY_CARD))
-    story.append(Spacer(1, 16 * mm))
+    story.append(Spacer(1, 12 * mm))
 
     journey_story = []
-    add_paragraph(journey_story, getattr(summary, "journey_arc_title", "") or "Your Journey Arc", styles["page_title"], spacer_after=6)
+    add_paragraph(journey_story, getattr(summary, "journey_arc_title", "") or "Your Journey Arc", styles["summary_title"], spacer_after=5)
     columns = getattr(summary, "journey_arc_columns", {}) or {}
-    table_rows = [[Paragraph(para_text(str(columns.get("chapter") or "Chapter")), styles["table_header"]), Paragraph(para_text(str(columns.get("days") or "Days")), styles["table_header"]), Paragraph(para_text(str(columns.get("experience") or "What You’ll Experience")), styles["table_header"])]]
+    table_rows = [[Paragraph(para_text(str(columns.get("chapter") or "Chapter")), styles["summary_header"]), Paragraph(para_text(str(columns.get("days") or "Days")), styles["summary_header"]), Paragraph(para_text(str(columns.get("experience") or "What You’ll Experience")), styles["summary_header"])]]
     for row in getattr(summary, "journey_arc", []) or []:
         table_rows.append([
-            Paragraph(para_text(str(row.get("chapter", ""))), styles["table_cell"]),
-            Paragraph(para_text(str(row.get("days", ""))), styles["table_cell"]),
-            Paragraph(para_text(str(row.get("experience", ""))), styles["table_cell"]),
+            Paragraph(para_text(str(row.get("chapter", ""))), styles["summary_cell"]),
+            Paragraph(para_text(str(row.get("days", ""))), styles["summary_cell"]),
+            Paragraph(para_text(str(row.get("experience", ""))), styles["summary_cell"]),
         ])
     if len(table_rows) > 1:
         journey_story.append(make_table(table_rows, [34 * mm, 16 * mm, 90 * mm], styles))

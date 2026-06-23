@@ -21,9 +21,11 @@ def _compact_model_warnings(structured_document, parsed_rows=None):
             city = str(source_row.get("city") or "").strip()
             bits = [bit for bit in (day, city, title) if bit]
             page_label = " · ".join(bits[:3])
+        severity = str(warning.severity or "review").lower()
         warnings.append({
             "code": warning.code,
-            "severity": warning.severity,
+            "severity": "critical" if severity in {"critical", "error"} else "info" if severity == "info" else "review",
+            "category": "model",
             "message": warning.message,
             "excerpt": warning.message,
             "page_label": page_label or "Structured itinerary",
@@ -55,5 +57,11 @@ def _client_output_warnings_for_payload(payload):
         if key in seen:
             continue
         seen.add(key)
-        compact.append({"code": finding.code, "excerpt": finding.excerpt})
+        compact.append({
+            "code": finding.code,
+            "severity": "review",
+            "category": "client_output",
+            "message": finding.excerpt,
+            "excerpt": finding.excerpt,
+        })
     return compact[:20]
