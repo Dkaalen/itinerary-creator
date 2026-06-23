@@ -44,18 +44,19 @@ def test_patch_bt_norway_nutshell_titles_preserve_supplier_destination() -> None
 def test_patch_bt_norway_nutshell_supplier_legs_are_rendered() -> None:
     rows, grouped = _rows_and_grouped()
     context = build_itinerary_render_context(rows, grouped, {})
-    rendered_text = "\n".join(
-        line
-        for day in context.render_document.days
-        for block in day.blocks
-        for line in block.lines
-    )
+    rendered_bits = []
+    for day in context.render_document.days:
+        for block in day.blocks:
+            rendered_bits.extend(block.lines)
+            for section in block.extra_sections:
+                rendered_bits.extend(section.items)
+    rendered_text = "\n".join(rendered_bits)
 
-    assert "Train transfer Oslo to Myrdal" in rendered_text
-    assert "Train transfer Myrdal to Flåm" in rendered_text
-    assert "Fjord Cruise Flåm to Gudvangen" in rendered_text
-    assert "Coach Transfer Gudvangen to Voss" in rendered_text
-    assert "Train transfer Voss to Bergen" in rendered_text
+    assert "Oslo → Myrdal" in rendered_text or "Train transfer Oslo to Myrdal" in rendered_text
+    assert "Myrdal → Flåm" in rendered_text or "Train transfer Myrdal to Flåm" in rendered_text
+    assert "Flåm → Gudvangen" in rendered_text or "Fjord Cruise Flåm to Gudvangen" in rendered_text
+    assert "Gudvangen → Voss" in rendered_text or "Coach Transfer Gudvangen to Voss" in rendered_text
+    assert "Voss → Bergen" in rendered_text or "Train transfer Voss to Bergen" in rendered_text
     assert "Bergen Railway, Flåm Railway, Fjord cruise, Scenic bus journey" not in rendered_text
 
 

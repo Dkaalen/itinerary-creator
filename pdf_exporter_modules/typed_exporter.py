@@ -63,22 +63,9 @@ _SUPPORTED_FINAL_HTML_CLASSES = {
     "inclusion-entry-title",
     "section-title",
     "strong-line",
-    "premium-linked-transfers",
     "premium-note-card",
     "premium-note-card-title",
     "premium-notes-grid",
-    "premium-route-ribbon",
-    "premium-travel-badge",
-    "premium-travel-badges",
-    "premium-travel-card",
-    "premium-travel-chip",
-    "premium-travel-chip-muted",
-    "premium-travel-chips",
-    "premium-travel-description",
-    "premium-travel-kicker",
-    "premium-travel-title",
-    "premium-travel-timeline",
-    "premium-travel-timeline-item",
 }
 
 
@@ -307,56 +294,6 @@ def _compact_items(items, limit: int, item_limit: int) -> list[str]:
 
 
 
-def _section_by_title(block: RenderBlock, title: str):
-    target = str(title or "").strip().lower()
-    for section in block.extra_sections or []:
-        if str(section.title or "").strip().lower() == target:
-            return section
-    return None
-
-
-def _render_premium_travel_block_story(block: RenderBlock, styles) -> list:
-    block_story = []
-    if block.section_title:
-        add_paragraph(block_story, block.section_title, styles["section"])
-    if block.title:
-        add_paragraph(block_story, block.title, styles["activity_title"])
-    add_premium_rule(block_story, width=38 * mm, space_after=5)
-    if block.description:
-        add_paragraph(block_story, block.description, styles["body"], spacer_after=2)
-
-    meta_values = [f"{meta.label}: {meta.value}" if meta.label else str(meta.value) for meta in (block.meta or []) if meta.value]
-    if meta_values:
-        add_paragraph(block_story, " · ".join(meta_values), styles["editor_small_note"], spacer_after=3)
-
-    route = _section_by_title(block, "Route")
-    if route and route.items:
-        add_paragraph(block_story, route.items[0], styles["body_bold"], spacer_after=3)
-
-    timeline = _section_by_title(block, "Journey timeline") or _section_by_title(block, "Coordinated day flow")
-    if timeline and timeline.items:
-        add_paragraph(block_story, timeline.title, styles["section"])
-        for item in timeline.items:
-            add_paragraph(block_story, item, styles["body"], spacer_after=1.5)
-
-    highlights = _section_by_title(block, "Highlights")
-    if highlights and highlights.items:
-        add_paragraph(block_story, "Highlights: " + " · ".join(highlights.items), styles["editor_small_note"], spacer_after=3)
-
-    inclusions = _section_by_title(block, "Included journey") or _section_by_title(block, "Cruise inclusions")
-    if inclusions and inclusions.items:
-        add_paragraph(block_story, inclusions.title, styles["section"])
-        add_paragraph(block_story, " · ".join(inclusions.items), styles["editor_small_note"], spacer_after=3)
-
-    linked = _section_by_title(block, "Linked transfers")
-    if linked and linked.items:
-        add_paragraph(block_story, "Linked transfers", styles["section"])
-        for item in linked.items:
-            add_paragraph(block_story, item, styles["body"], spacer_after=1.5)
-
-    if block_story:
-        block_story.append(Spacer(1, 3))
-    return [KeepTogether(block_story)] if block_story else []
 
 def _block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
     """Build flowables for one block.
@@ -366,9 +303,6 @@ def _block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
     wrapping the activity alone is what caused activities to jump to a new blank
     continuation page.
     """
-
-    if "premium-travel-card" in str(block.css_class or "").split():
-        return _render_premium_travel_block_story(block, styles)
 
     block_story = []
     if block.section_title:

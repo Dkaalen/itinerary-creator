@@ -9,7 +9,7 @@ from images.matcher import select_day_image
 from images.matcher_context import build_day_context
 from itinerary_generation.transport_domain.render import build_travel_arrangements_render_block
 from pdf_exporter_modules.styles import make_styles
-from pdf_exporter_modules.typed_exporter import _render_premium_travel_block_story
+from pdf_exporter_modules.typed_exporter import _block_story
 
 
 def _save_jpg(path: Path) -> None:
@@ -62,18 +62,7 @@ def test_registry_image_profile_bonus_prefers_mountain_resort_visuals(tmp_path):
     assert "destination image profile" in match["reason"]
 
 
-def test_premium_travel_modules_use_native_proposal_style_not_floating_cards():
-    preview_css = Path("app_modules/itinerary_html_styles.py").read_text(encoding="utf-8")
-    editor_css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
-
-    for css in (preview_css, editor_css):
-        assert "background: transparent" in css
-        assert "border-radius: 0" in css
-        assert "box-shadow: none" in css
-        assert "grid-template-columns: 82px 1fr" in css
-
-
-def test_typed_pdf_premium_travel_module_is_not_boxed_table():
+def test_special_travel_modules_use_native_proposal_rendering():
     rows = [
         {
             "type": "Cruise",
@@ -87,7 +76,26 @@ def test_typed_pdf_premium_travel_module_is_not_boxed_table():
     ]
     block = build_travel_arrangements_render_block(rows)
 
-    story = _render_premium_travel_block_story(block, make_styles())
+    assert block.css_class == "travel-sequence-block"
+    assert "premium-travel-card" not in block.css_class
+    assert block.lines == []
+
+
+def test_typed_pdf_special_travel_module_uses_native_block_story():
+    rows = [
+        {
+            "type": "Cruise",
+            "effective_type": "Cruise",
+            "city": "Stavanger",
+            "title": "Atlantic Coastal Cruise Transfer to Bergen",
+            "details": "Stavanger: Atlantic Coastal Cruise Transfer to Bergen - Time: 07:30 am - 1:00 pm - Meeting point: Stavanger Cruise Port - Includes: Tickets, Fjord Lounge",
+            "time": "07:30 am - 1:00 pm",
+            "includes": ["Tickets", "Fjord Lounge"],
+        }
+    ]
+    block = build_travel_arrangements_render_block(rows)
+
+    story = _block_story(block, make_styles())
 
     assert story
     assert not any(isinstance(flowable, Table) for flowable in story)

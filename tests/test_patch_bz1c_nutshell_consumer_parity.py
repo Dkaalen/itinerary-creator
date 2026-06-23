@@ -39,7 +39,14 @@ def _real_state() -> tuple[list[dict], dict[str, list[dict]], dict]:
 
 def _day_lines(render_document, day: str) -> list[str]:
     render_day = next(item for item in render_document.days if item.day == day)
-    return [line for block in render_day.blocks for line in block.lines]
+    lines: list[str] = []
+    for block in render_day.blocks:
+        if block.title:
+            lines.append(block.title)
+        lines.extend(block.lines)
+        for section in block.extra_sections:
+            lines.extend(section.items)
+    return lines
 
 
 def test_bz1c_preview_editor_and_pdf_contract_share_canonical_product_title() -> None:
@@ -111,7 +118,7 @@ def test_bz1c_normalized_timetable_contract_drives_route_highlights_without_repa
     assert journey.route_points == ("Bergen", "Voss", "Gudvangen", "Flåm", "Myrdal", "Oslo")
     assert journey.warnings == ()
     assert _CANONICAL_TITLE in day_html
-    assert "Route highlights: Bergen, Voss, Gudvangen, Flåm, Myrdal and Oslo" in day_html
+    assert "Bergen → Voss → Gudvangen → Flåm → Myrdal → Oslo" in day_html
 
 
 def test_bz1c_generic_travel_renderer_no_longer_owns_nutshell_product_copy() -> None:

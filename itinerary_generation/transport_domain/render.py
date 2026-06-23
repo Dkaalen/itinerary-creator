@@ -180,8 +180,43 @@ def _coach_terminal_transfer_lines(row):
     return lines
 
 
+def _self_transfer_source_text(row) -> str:
+    """Return the cleanest source field for self-transfer rows.
+
+    Supplier rows often repeat the same sentence in both title and details
+    (for example ``Self transfer to station`` plus ``City: Self transfer to
+    station``).  Feeding the combined title+details string into the self-transfer
+    cleaner produces duplicated client copy in journey modules.  Prefer the
+    title when it already contains the self-transfer instruction, otherwise use
+    details as the authoritative supplier sentence.
+    """
+
+    title = clean_space(row.get("title", ""))
+    details = clean_space(row.get("details", ""))
+    original_title = clean_space(row.get("original_title", ""))
+
+    self_transfer_marker = re.compile(r"\bself[-\s]*(?:transfer|arranged\s+transfer)\b", re.IGNORECASE)
+    if title and self_transfer_marker.search(title):
+        source = title
+    elif details and self_transfer_marker.search(details):
+        source = details
+    elif original_title and self_transfer_marker.search(original_title):
+        source = original_title
+    else:
+        source = get_transport_source_text(row)
+
+    # Preserve occasional add-on/private-transfer notes that only appear in the
+    # details field, without duplicating the core transfer instruction.
+    source_lower = source.lower()
+    if details and details.lower() != source_lower:
+        details_lower = details.lower()
+        if ("private transfer may" in details_lower or "additional cost" in details_lower) and details_lower not in source_lower:
+            source = f"{source}. {details}"
+    return clean_space(source)
+
+
 def _self_transfer_lines(row):
-    text = get_transport_source_text(row)
+    text = _self_transfer_source_text(row)
     lower = text.lower()
     if "self transfer" not in lower and "self-arranged transfer" not in lower:
         return []
@@ -401,7 +436,7 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     time_value = display_time(journey.journey_time) or display_time(get_transport_time_text(nutshell_row))
     transfer_lines: list[str] = []
     for row in travel_rows:
-        if row is nutshell_row:
+        if row is nutshell_row or get_row_type(row) != "Transfer":
             continue
         for line in _travel_row_lines(row):
             if line and line not in transfer_lines:
@@ -429,7 +464,8 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
 
     route_text = _route_arrow_text(route_points)
     supplier_items = polish_inclusion_items(list(journey.supplier_includes or []))
-    leg_lines = _supplier_leg_timeline_items(supplier_items)
+    supplier_leg_lines = _supplier_leg_timeline_items(supplier_items)
+    leg_lines = list(supplier_leg_lines)
     if not leg_lines:
         leg_lines = [_timed_leg_label(leg) for leg in journey.legs if leg.departure_time or leg.arrival_time]
         leg_lines = [line for line in leg_lines if line]
@@ -462,28 +498,28 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     if highlights:
         extra_sections.append(RenderSection("Highlights", highlights))
     if supplier_items:
-        extra_sections.append(RenderSection("Included journey", ["Scheduled rail, coach and fjord-cruise tickets as listed"]))
+        included_items = ["Scheduled rail, coach and fjord-cruise tickets as listed"] if supplier_leg_lines else supplier_items
+        extra_sections.append(RenderSection("Included journey", included_items))
     if transfer_lines:
         extra_sections.append(RenderSection("Linked transfers", transfer_lines))
 
     meta = []
     if time_value:
         meta.append(RenderMetaLine("Time", time_value))
-    meta.append(RenderMetaLine("Style", profile.style if profile else "Self-guided scenic journey"))
 
     return RenderBlock(
         kind="travel_sequence",
         row_id="travel-arrangements",
         section_title="Featured Scenic Journey",
-        title=profile.title if profile else journey.client_title,
+        title=journey.client_title or (profile.title if profile else "Norway in a Nutshell"),
         meta=meta,
         description=(profile.description if profile else (
             "A signature Norway rail-and-fjord journey, combining mountain railway scenery, "
             "fjord villages and scheduled connections in one carefully sequenced route."
         )),
-        lines=legacy_lines,
+        lines=[],
         extra_sections=extra_sections,
-        css_class="travel-sequence-block premium-travel-card featured-journey-block",
+        css_class="travel-sequence-block",
         source_row_ids=[str(row.get("row_id") or "") for row in travel_rows if row.get("row_id")],
     )
 
@@ -527,6 +563,8 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
             detail = f"{cruise_route} · {time_value}" if time_value else cruise_route
             flow_items.append(f"Coastal cruise — {detail}")
             continue
+        if row_type != "Transfer":
+            continue
         line = get_travel_arrangement_line(row)
         if row_type == "Transfer":
             line = re.sub(r"^Private transfer\s+", "", line, flags=re.IGNORECASE).strip(" :-")
@@ -536,7 +574,7 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
             flow_items.append(line)
 
     includes = polish_inclusion_items([clean_include_item(item, route_phrase) for item in (cruise_row.get("includes") or [])])
-    extra_sections = [RenderSection("Coordinated day flow", flow_items)]
+    extra_sections = [RenderSection("Journey sequence", flow_items)]
     if profile and profile.highlights:
         extra_sections.append(RenderSection("Highlights", list(profile.highlights)))
     if includes:
@@ -545,7 +583,6 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
     meta = []
     if time_value:
         meta.append(RenderMetaLine("Time", time_value))
-    meta.append(RenderMetaLine("Style", profile.style if profile else "Coordinated port-to-hotel transfer"))
 
     return RenderBlock(
         kind="travel_sequence",
@@ -557,9 +594,9 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
             "A coordinated coastal transfer day, pairing private port transfers with the scenic cruise leg "
             "as one clear door-to-door arrangement."
         )),
-        lines=legacy_lines,
+        lines=[],
         extra_sections=extra_sections,
-        css_class="travel-sequence-block premium-travel-card coastal-cruise-card",
+        css_class="travel-sequence-block",
         source_row_ids=[str(row.get("row_id") or "") for row in travel_rows if row.get("row_id")],
     )
 

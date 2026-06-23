@@ -22,7 +22,7 @@ def test_important_travel_notes_render_as_premium_guidance_cards():
     assert html.count("premium-note-card") >= len(DEFAULT_IMPORTANT_TRAVEL_NOTES)
 
 
-def test_coastal_cruise_transfer_renders_as_premium_arrangement_card():
+def test_coastal_cruise_transfer_renders_as_native_travel_arrangement():
     rows = [
         {
             "type": "Transfer",
@@ -52,16 +52,18 @@ def test_coastal_cruise_transfer_renders_as_premium_arrangement_card():
     block = build_travel_arrangements_render_block(rows)
 
     assert block is not None
-    assert "coastal-cruise-card" in block.css_class
+    assert block.css_class == "travel-sequence-block"
+    assert "premium-travel-card" not in block.css_class
     assert block.title == "Stavanger → Bergen"
     assert any(meta.label == "Time" and "7:30 AM - 1:00 PM" in meta.value for meta in block.meta)
 
     html = render_block_to_html(block)["html"]
     assert "Coastal cruise" in html
     assert "Stavanger → Bergen · 7:30 AM - 1:00 PM" in html
-    assert "premium-travel-timeline" in html
-    assert "Coordinated day flow" not in html  # timeline replaces debug-style section labels
-    assert "premium-travel-timeline-label" in html
+    assert "premium-travel-timeline" not in html
+    assert "premium-travel-card" not in html
+    assert "Journey sequence" in html
+    assert "Style:" not in html
     assert "Fjord Lounge" in html
     assert "Stavanger → Bergen" in html
 
@@ -103,17 +105,75 @@ def test_norway_in_a_nutshell_renders_as_featured_scenic_journey():
 
     assert block is not None
     assert block.section_title == "Featured Scenic Journey"
-    assert "featured-journey-block" in block.css_class
+    assert block.css_class == "travel-sequence-block"
+    assert "premium-travel-card" not in block.css_class
     assert block.title == "Norway in a Nutshell to Oslo"
-    assert any("Norway in a Nutshell to Oslo" in line and "8:29 AM - 10:27 PM" in line for line in block.lines)
+    assert block.lines == []
 
     html = render_block_to_html(block)["html"]
-    assert "premium-route-ribbon" in html
+    assert "premium-route-ribbon" not in html
+    assert "premium-travel-card" not in html
     assert "Bergen → Voss → Gudvangen → Flåm → Myrdal → Oslo" in html
-    assert "Self-guided scenic journey" in html
+    assert "Style:" not in html
     assert "Bergen Railway" in html
     assert "Flåm Railway" in html
     assert "Nærøyfjord cruise" in html
-    assert "premium-travel-timeline-label" in html
-    assert "Train" in html
+    assert "premium-travel-timeline-label" not in html
+    assert "Rail segment" in html
     assert "Scheduled rail, coach and fjord-cruise tickets as listed" in html
+
+    linked = next(section for section in block.extra_sections if section.title == "Linked transfers")
+    linked_text = "\n".join(linked.items)
+    assert "Bergen: Self-arranged" not in linked_text
+    assert "Oslo: Self-arranged" not in linked_text
+    assert linked.items == [
+        "Self-arranged transfer to Bergen Railway Station",
+        "Self-arranged transfer to your accommodation",
+    ]
+
+
+def test_self_transfer_rows_do_not_duplicate_title_and_details_in_native_travel_blocks():
+    rows = [
+        {
+            "type": "Transfer",
+            "effective_type": "Transfer",
+            "city": "Oslo",
+            "title": "Self transfer to Oslo Central Station",
+            "details": "Oslo: Self transfer to Oslo Central Station",
+        }
+    ]
+
+    block = build_travel_arrangements_render_block(rows)
+    html = render_block_to_html(block)["html"]
+
+    assert "Self-arranged transfer to Oslo Central Station" in html
+    assert "Oslo: Self-arranged transfer" not in html
+    assert html.count("Self-arranged transfer") == 1
+
+
+def test_retired_special_travel_widget_classes_are_not_in_runtime_contracts():
+    from pathlib import Path
+    from visual_editor_component.style_presets import extra_allowed_classes
+
+    retired = {
+        "premium-travel-card",
+        "premium-travel-timeline",
+        "premium-travel-title",
+        "premium-route-ribbon",
+        "premium-linked-transfers",
+        "featured-journey-block",
+        "coastal-cruise-card",
+    }
+
+    assert retired.isdisjoint(set(extra_allowed_classes()))
+    runtime_files = [
+        Path("app_modules/itinerary_html_styles.py"),
+        Path("visual_editor_component/frontend/styles/editor.css"),
+        Path("visual_editor_component/frontend/js/style_presets.js"),
+        Path("pdf_exporter_modules/render_content.py"),
+        Path("pdf_exporter_modules/typed_exporter.py"),
+        Path("ui/render_blocks.py"),
+    ]
+    runtime_text = "\n".join(path.read_text(encoding="utf-8") for path in runtime_files)
+    for class_name in retired:
+        assert class_name not in runtime_text

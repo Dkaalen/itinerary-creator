@@ -255,26 +255,6 @@ def render_content_blocks(container, story, styles):
                     _render_controlled_note_block(element, block_story, styles)
                 elif "section-title" in element_classes:
                     _add_controlled_paragraph(block_story, element, styles, "section")
-                elif "premium-travel-title" in element_class_set:
-                    _add_controlled_paragraph(block_story, element, styles, "activity_title")
-                elif "premium-route-ribbon" in element_class_set:
-                    _add_controlled_paragraph(block_story, element, styles, "body_bold")
-                elif "premium-travel-description" in element_class_set:
-                    _add_controlled_paragraph(block_story, element, styles, "body")
-                elif "premium-travel-badges" in element_class_set or "premium-travel-chips" in element_class_set:
-                    text = clean_text(element.get_text(" | "))
-                    if text:
-                        add_paragraph(block_story, text, styles["editor_small_note"])
-                elif "premium-travel-timeline" in element_class_set:
-                    items = [clean_text(item.get_text(" ")) for item in element.select(".premium-travel-timeline-item")]
-                    add_bullets(block_story, [item for item in items if item], styles)
-                elif "premium-linked-transfers" in element_class_set:
-                    for nested in element.find_all(recursive=False):
-                        nested_classes = nested.get("class") or []
-                        if "section-title" in nested_classes:
-                            _add_controlled_paragraph(block_story, nested, styles, "section")
-                        else:
-                            _add_controlled_paragraph(block_story, nested, styles, "body")
                 elif "premium-note-card" in element_class_set:
                     for nested in element.find_all(recursive=False):
                         nested_classes = nested.get("class") or []

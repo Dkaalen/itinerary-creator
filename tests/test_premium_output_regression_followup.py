@@ -62,14 +62,28 @@ def test_route_day_intros_are_not_generic_logistics_fillers():
     assert "coordinated door-to-door journey" in day5.intro
 
 
-def test_premium_travel_cards_have_editor_css_and_no_inline_collapse_risk():
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
-    registry = Path("visual_editor_component/style_presets.json").read_text(encoding="utf-8")
+def test_special_travel_modules_render_with_native_itinerary_html():
+    from itinerary_generation.transport_domain.render import build_travel_arrangements_render_block
+    from ui.render_blocks import render_block_to_html
 
-    assert ".premium-travel-card" in css
-    assert ".premium-travel-badges" in css and "display: flex" in css
-    assert ".premium-travel-timeline-label" in css
-    assert "premium-travel-timeline-detail" in registry
+    block = build_travel_arrangements_render_block([
+        {
+            "type": "Cruise",
+            "effective_type": "Cruise",
+            "city": "Stavanger",
+            "title": "Atlantic Coastal Cruise Transfer to Bergen",
+            "details": "Stavanger: Atlantic Coastal Cruise Transfer to Bergen - Time: 07:30 am - 1:00 pm - Meeting point: Stavanger Cruise Port - Includes: Tickets, Fjord Lounge",
+            "time": "07:30 am - 1:00 pm",
+            "includes": ["Tickets", "Fjord Lounge"],
+        }
+    ])
+    html = render_block_to_html(block)["html"]
+
+    assert "premium-travel-card" not in html
+    assert "premium-travel-timeline" not in html
+    assert "content-block travel-sequence-block" in html
+    assert "Journey sequence" in html
+    assert "Style:" not in html
 
 
 def test_visual_editor_payload_uses_premium_note_cards_for_important_notes():

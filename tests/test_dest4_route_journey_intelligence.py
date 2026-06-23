@@ -91,7 +91,7 @@ def test_nutshell_timeline_uses_client_facing_segment_labels():
     assert "Rail segment" in html
     assert "Coach connection" in html
     assert "Fjord cruise" in html
-    assert "Self-guided scenic journey" in html
+    assert "Style:" not in html
 
 
 def test_coastal_cruise_card_uses_route_profile_highlights_and_style():
@@ -124,14 +124,14 @@ def test_coastal_cruise_card_uses_route_profile_highlights_and_style():
     block = build_travel_arrangements_render_block(rows)
 
     assert block.description == "A coordinated coastal transfer day, combining private port transfers with the scenic cruise leg to Bergen."
-    assert any(meta.label == "Style" and meta.value == "Coastal cruise transfer" for meta in block.meta)
+    assert not any(meta.label == "Style" for meta in block.meta)
     highlights = next(section for section in block.extra_sections if section.title == "Highlights")
     assert "Coastal sailing" in highlights.items
 
     html = render_block_to_html(block)["html"]
     assert "Coastal sailing" in html
     assert "Port-to-hotel coordination" in html
-    assert "Coastal cruise transfer" in html
+    assert "Style:" not in html
 
 
 def test_premium_mode_labels_replace_raw_transport_modes():
