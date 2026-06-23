@@ -356,8 +356,7 @@ function draw() {
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy"><strong>${picturesAdded() ? 'Review itinerary with pictures' : 'Edit itinerary text'}</strong><span>${picturesAdded() ? 'Use the image controls on each day page or in the inspector, then save before exporting the final PDF.' : 'Edit directly on the canvas. Use the formatting sidebar for font, size, and color. Changes autosave quietly while you work.'}</span></div>
-        ${studioStatusStripHtml()}
+        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · autosave stays quiet while you work.'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · Use the image controls on each day page' : 'Edit itinerary text · Use the formatting sidebar for font, size, and color'}</span></div>
       </div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
@@ -371,6 +370,7 @@ function draw() {
         ${saveRecoveryPanelHtml()}
         <details class="advanced-tools">
           <summary>Advanced tools</summary>
+          ${studioStatusStripHtml()}
           <div class="toolbar-tools">
             <button class="ghost" id="undoBtn" type="button">Undo</button>
             <button class="ghost" id="resetBlockBtn" type="button">Reset section</button>

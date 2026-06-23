@@ -528,6 +528,21 @@ def detect_effective_type(item_type, title, details):
     if normalized_item_type == "Activity" and "stegastein" in combined and any(marker in combined for marker in ["electric minibus", "electric bus", "viewpoint", "sightseeing tour"]):
         return "Activity"
 
+    # Local/private/self transfers must stay transfers even when the terminal
+    # contains words like Train Station. Run this before generic train/flight
+    # detection so "Self transfer to Bergen Train Station" cannot become a
+    # fake train route such as "Train to Bergen".
+    if normalized_item_type == "Transfer" and any(
+        marker in combined
+        for marker in [
+            "self transfer", "self-arranged transfer", "self-guided transfer", "private",
+            "hotel to", "airport to", "station to", "to hotel", "to airport",
+            "to station", "to railway station", "to train station", "accommodation",
+            "bus station", "bustation",
+        ]
+    ) and "coach transfer to" not in combined and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+        return "Transfer"
+
     # Accommodation-relocation rows occasionally land in the Activity column.
     # Treat explicit transfer-to-igloo/stay snippets as transfer logistics so
     # the accommodation can lead the day title instead of becoming an activity.

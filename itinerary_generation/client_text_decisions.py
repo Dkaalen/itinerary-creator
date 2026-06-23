@@ -47,8 +47,16 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
         lambda title, city: f"Today includes a distinctive Arctic sea experience, with {title} arranged from {city} and time on the frozen water built into the day.",
     ),
     TextRule(
+        ("kayak", "kayaking", "paddle"),
+        lambda title, city: f"Today you explore {city} from the water on {title}, with peaceful scenery and local guidance shaping the experience.",
+    ),
+    TextRule(
+        ("food tour", "cuisine", "culinary", "taste"),
+        lambda title, city: f"Taste your way through {city} on {title}, combining local food stops with hidden city corners and stories from your guide.",
+    ),
+    TextRule(
         ("walking", "city highlights", "suomenlinna"),
-        lambda title, city: f"Spend time getting oriented in {city}, with {title} introducing key sights, local stories and practical context for the rest of your stay.",
+        lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and lesser-known corners to give the destination more context.",
     ),
     TextRule(
         ("northern lights", "aurora"),
@@ -56,7 +64,7 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     ),
     TextRule(
         ("fjord", "cruise", "boat", "silent electric ship"),
-        lambda title, city: f"Today brings you closer to the water, with {title} adding fjord scenery, coastal views or a different perspective on {city}.",
+        lambda title, city: f"Sail from {city} on {title}, with fjord scenery, coastal landmarks and time on the water shaping the day.",
     ),
     TextRule(
         ("funicular", "cable car", "fjellheisen", "fløibanen", "floibanen"),

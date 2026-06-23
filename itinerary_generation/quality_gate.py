@@ -237,15 +237,12 @@ def _source_fidelity_issues(rows: Iterable[dict]) -> list[ItineraryValidationIss
                     context=context,
                 )
             )
+        # Known typo corrections are intentionally silent in the default review UI.
+        # They are deterministic cleanup events, not client-risk issues. Keep
+        # parser diagnostics/advanced logs for audit trails instead of showing
+        # repetitive yellow review cards to the user.
         if typo_re.search(raw_text):
-            issues.append(
-                ItineraryValidationIssue(
-                    WARNING,
-                    "source_typo_corrected",
-                    "Source row contained a known typo that was corrected during parsing. Review the generated output for fidelity.",
-                    context=context,
-                )
-            )
+            continue
     return issues
 
 def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:

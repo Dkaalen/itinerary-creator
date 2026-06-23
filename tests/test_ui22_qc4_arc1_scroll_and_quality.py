@@ -107,3 +107,54 @@ def test_arc1_journey_arc_uses_real_highlights_not_generic_destination_fillers()
         "Norway in a Nutshell and Oslo food tour",
     ]
     assert not any("Capital and fjords" in value or "coastal charm" in value for value in experiences)
+
+
+def test_ui23_quiet_known_typo_corrections_and_better_activity_intros():
+    rows, context = _render_context()
+    report = evaluate_itinerary_quality(rows)
+    codes = {issue.code for issue in report.issues}
+    day4 = next(day for day in context.render_document.days if day.day == "Day 4")
+    day6 = next(day for day in context.render_document.days if day.day == "Day 6")
+    day10 = next(day for day in context.render_document.days if day.day == "Day 10")
+
+    assert "source_typo_corrected" not in codes
+    assert "known typo" not in "\n".join(issue.message for issue in report.issues).lower()
+    assert "explore Kristiansand from the water" in day4.intro
+    assert "main arranged experience" not in day4.intro
+    assert "Sail from Stavanger" in day6.intro
+    assert "Today brings you closer" not in day6.intro
+    assert "Taste your way through Oslo" in day10.intro
+
+
+def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
+    rows, context = _render_context()
+    self_transfer = next(row for row in rows if row.get("day") == "Day 9" and row.get("type") == "Transfer" and row.get("city") == "Bergen")
+    day9 = next(day for day in context.render_document.days if day.day == "Day 9")
+    travel_lines = [line for block in day9.blocks if block.kind == "travel_sequence" for line in block.lines]
+    joined = "\n".join(travel_lines)
+
+    assert self_transfer["effective_type"] == "Transfer"
+    assert self_transfer["title"].startswith("Bergen: Self-arranged transfer")
+    assert "Train to Bergen Bergen" not in joined
+    assert "Bergen: Self-arranged transfer to Bergen Railway Station" in joined
+    assert "Norway in a Nutshell to Oslo" in joined
+
+
+def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():
+    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    assert "UI23: compact editor chrome and centered page actions" in css
+    assert "grid-template-columns: 1fr auto 1fr" in css
+    assert ".page-header-row .page-controls" in css
+    assert "justify-self: center" in css
+    assert "max-width: calc(var(--page-w) - 260px)" in css
+
+
+def test_ui23_editor_toolbar_is_compact_but_keeps_advanced_status_available():
+    source = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+
+    assert "toolbar-copy compact" in source
+    assert "toolbar-legacy-label" in source
+    assert "${studioStatusStripHtml()}" in source
+    assert "Advanced tools" in source
+    assert "grid-template-columns: minmax(180px, 1fr) auto" in css
