@@ -476,6 +476,23 @@ def build_preview_style(colors, cover_theme, cover_background_data_uri):
             opacity: 0.82;
         }}
 
+        .premium-travel-timeline-label {{
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.25;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
+            color: var(--ink);
+            margin-bottom: 1px;
+        }}
+
+        .premium-travel-timeline-detail {{
+            display: block;
+            font-style: normal;
+            color: var(--body);
+        }}
+
         .premium-linked-transfers {{
             margin-top: 8px;
             padding-top: 4px;

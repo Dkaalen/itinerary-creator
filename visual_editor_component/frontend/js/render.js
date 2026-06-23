@@ -36,9 +36,14 @@ function summaryPage(summary) {
 }
 function finalTextPage(label, title, key, text, titleKey) {
   const pageId = finalPageId(key === 'important_travel_notes_text' ? 'important_travel_notes' : key);
-  return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
+  const isImportantNotes = key === 'important_travel_notes_text';
+  const notesHtml = isImportantNotes ? (model.final_pages?.important_travel_notes_html || '') : '';
+  const body = notesHtml
+    ? `<div class="final-html-box readonly-premium-notes" data-editor-field-key="final_pages.${escAttr(key)}">${notesHtml}</div>`
+    : editableText(text || '', `final_pages.${key}`, 'final-edit-box');
+  return pageChrome(pageId, label, `<div class="a4-page final-page ${isImportantNotes ? 'important-notes-page premium-notes-page' : ''}"><div class="page-content">
     ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
-    ${editableText(text || '', `final_pages.${key}`, 'final-edit-box')}
+    ${body}
   </div></div>`, {pageType: 'final_section', sortOrder: 900});
 }
 function listTextToHtml(text) {

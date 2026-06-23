@@ -47,7 +47,11 @@ def travel_sequence_title(rows: list[dict], city: str) -> str:
         if get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transport"}
     ]
     if len(main_route_rows) == 1:
-        _, route_destination = get_route_points_for_transport(main_route_rows[0])
+        main_row = main_route_rows[0]
+        main_text = _text(main_row).lower()
+        _, route_destination = get_route_points_for_transport(main_row)
+        if re.search(r"\b(?:coastal\s+cruise|cruise\s+transfer|fjord\s+lounge)\b", main_text):
+            return _transport_title(main_route_rows)
         if route_destination and polish_title(route_destination).lower() != polish_title(city).lower():
             return _transport_title(main_route_rows)
     first_destination = _destination_from_transport([travel_rows[0]])

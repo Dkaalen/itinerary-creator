@@ -64,13 +64,31 @@ def _chips_html(items, class_name="premium-travel-chip") -> str:
     return f'<div class="premium-travel-chips">{"".join(chips)}</div>' if chips else ""
 
 
+def _premium_timeline_item_html(item: str) -> str:
+    text = str(item or "").strip()
+    label = ""
+    detail = text
+    if " — " in text:
+        label, detail = text.split(" — ", 1)
+    elif ": " in text and not text.lower().startswith(("time:", "meeting point:")):
+        label, detail = text.split(": ", 1)
+    if label:
+        return (
+            '<div class="premium-travel-timeline-item"><span></span><div>'
+            f'<strong class="premium-travel-timeline-label">{esc(label)}</strong>'
+            f'<em class="premium-travel-timeline-detail">{esc(detail)}</em>'
+            '</div></div>'
+        )
+    return f'<div class="premium-travel-timeline-item"><span></span><div>{esc(text)}</div></div>'
+
+
 def _premium_timeline_html(items) -> str:
     clean_items = [item for item in (items or []) if item]
     if not clean_items:
         return ""
     html_text = '<div class="premium-travel-timeline">'
     for item in clean_items:
-        html_text += f'<div class="premium-travel-timeline-item"><span></span><div>{esc(item)}</div></div>'
+        html_text += _premium_timeline_item_html(str(item))
     html_text += '</div>'
     return html_text
 

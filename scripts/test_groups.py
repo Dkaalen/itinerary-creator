@@ -192,6 +192,7 @@ UI_TESTS = (
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_editor_workspace_polish.py",
     "tests/test_editor_interaction_polish.py",
+    "tests/test_premium_output_regression_followup.py",
 )
 
 QUALITY_TESTS = (
@@ -240,6 +241,7 @@ PDF_TESTS = (
     "tests/test_patch_bz1g_finland_source_fidelity.py",
     "tests/test_patch_ih4_group_tour_rendering.py",
     "tests/test_premium_output_upgrade.py",
+    "tests/test_premium_output_regression_followup.py",
 )
 
 SLOW_TESTS = (

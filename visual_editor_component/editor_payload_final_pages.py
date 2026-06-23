@@ -5,7 +5,8 @@ from itinerary_generation.inclusions import create_whats_not_included
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 from ui.day_pages import render_inclusion_page_inner_htmls, render_inclusion_sections_inner_html
-from ui.render_helpers import list_to_text
+from ui.render_helpers import list_to_text, text_to_list
+from ui.premium_final_notes import render_premium_notes_inner_html
 from visual_editor_component.editor_payload_sources import _generated_value_for_page_html, _page_html_payload
 
 
@@ -61,6 +62,9 @@ def build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_ed
         ),
     )
     structured_document.warnings = tuple((*structured_document.warnings, *final_page_source_warnings))
+    important_notes_text = typed_notes.get("text") if typed_notes else output_edits.get("important_travel_notes_text", "")
+    important_notes_html = render_premium_notes_inner_html(text_to_list(important_notes_text))
+
     return {
         "structured_document": structured_document,
         "typed_inclusions": typed_inclusions,
@@ -75,7 +79,8 @@ def build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_ed
             "whats_included_text": output_edits.get("whats_included_text", ""),
             "whats_not_included_html": effective_exclusions_html,
             "whats_not_included_text": output_edits.get("whats_not_included_text") or generated_whats_not_included_text,
-            "important_travel_notes_text": typed_notes.get("text") if typed_notes else output_edits.get("important_travel_notes_text", ""),
+            "important_travel_notes_text": important_notes_text,
+            "important_travel_notes_html": important_notes_html,
         },
         "generated_values": {
             "whats_included_title": "What’s included",
@@ -88,5 +93,6 @@ def build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_ed
             "whats_not_included_html": generated_whats_not_included_html,
             "whats_not_included_text": generated_whats_not_included_text,
             "important_travel_notes_text": "",
+            "important_travel_notes_html": "",
         },
     }

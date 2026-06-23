@@ -15,6 +15,7 @@ from itinerary_generation.transport import has_glass_igloo_or_arctic_resort
 from itinerary_generation.nutshell_domain import has_nutshell_journey
 from itinerary_generation.group_tours import is_group_tour_overview
 from itinerary_generation.group_tour_rendering import group_tour_package_from_rows
+from itinerary_generation.destination_copy import destination_arc_fallback
 from itinerary_generation.client_text_decisions import (
     WEAK_JOURNEY_ARC_RE,
     choose_journey_arc_phrase,
@@ -246,7 +247,7 @@ def describe_city_experience(rows):
             return "Cruise departure towards Bergen"
         if _has(text, "cruise arrival to bergen", "arrival to bergen"):
             return "Cruise arrival and Bergen stay"
-        return destination_logistics_phrase(rows, chapter=chapter_city)
+        return destination_arc_fallback(chapter_city) if has_leisure and chapter_city else destination_logistics_phrase(rows, chapter=chapter_city)
 
     candidates = []
 
@@ -360,7 +361,7 @@ def describe_city_experience(rows):
     if has_nature and not any(marker in " ".join(candidates).lower() for marker in ["nature", "lofoten", "arctic fjords", "south coast"]):
         candidates.append("Scenic nature experiences")
     if has_leisure and len(candidates) < 2:
-        candidates.append("Time at leisure")
+        candidates.append(destination_arc_fallback(chapter_city))
 
     if not candidates and _has(text, "coach transfer", "bus 150", "long distance panorama coach") and has_aurora:
         candidates.append("Coach journey and Northern Lights")
@@ -385,7 +386,7 @@ def describe_city_experience(rows):
         elif row_types.intersection({"Train", "Transport", "Cruise", "Ferry"}):
             candidates.append("Scenic route day")
         else:
-            candidates.append("Time to explore at your own pace")
+            candidates.append(destination_arc_fallback(chapter_city))
 
     # Prefer the most distinctive compact phrase, then add at most one short
     # secondary theme if the phrase remains safely one-line in the summary table.

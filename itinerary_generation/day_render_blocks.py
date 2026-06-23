@@ -19,6 +19,7 @@ from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import DayDocument, ItineraryDocument, TravelSequence
 from shared.source_rows import source_row_id, rows_by_source_id
 from itinerary_generation.render_text_helpers import normalize_list
+from itinerary_generation.destination_copy import leisure_description
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.title_safety import is_forbidden_client_title
 from itinerary_generation.group_tour_rendering import (
@@ -74,15 +75,14 @@ def _is_blank_activity_row(row):
     return bool(city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", lower))
 
 
-def build_leisure_render_block(row=None):
+def build_leisure_render_block(row=None, day_rows=None):
+    row = row or {}
+    city = row.get("city") or get_primary_city(day_rows or [])
     return RenderBlock(
         kind="leisure",
-        row_id=str((row or {}).get("row_id") or ""),
+        row_id=str(row.get("row_id") or ""),
         section_title="Your Free Time",
-        description=(
-            "Enjoy the remaining time at your own pace, whether you prefer a relaxed meal, "
-            "a quiet walk nearby or simply settling into the destination."
-        ),
+        description=leisure_description(city, day_rows or [row]),
         css_class="leisure-block",
     )
 
@@ -289,7 +289,7 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
         elif row_type == "Leisure":
             if day_plan.suppress_free_time or (travel_group and len(rows) > 3):
                 continue
-            blocks.append(build_leisure_render_block(row))
+            blocks.append(build_leisure_render_block(row, main_rows))
         elif row_type in {"Notes", "Note"}:
             if should_hide_note_row(row):
                 continue

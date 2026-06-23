@@ -57,9 +57,11 @@ def test_coastal_cruise_transfer_renders_as_premium_arrangement_card():
     assert any(meta.label == "Time" and "7:30 AM - 1:00 PM" in meta.value for meta in block.meta)
 
     html = render_block_to_html(block)["html"]
-    assert "Atlantic Coastal Cruise Transfer to Bergen" in html
+    assert "Coastal cruise" in html
+    assert "Stavanger → Bergen · 7:30 AM - 1:00 PM" in html
     assert "premium-travel-timeline" in html
     assert "Coordinated day flow" not in html  # timeline replaces debug-style section labels
+    assert "premium-travel-timeline-label" in html
     assert "Fjord Lounge" in html
     assert "Stavanger → Bergen" in html
 
@@ -112,3 +114,6 @@ def test_norway_in_a_nutshell_renders_as_featured_scenic_journey():
     assert "Bergen Railway" in html
     assert "Flåm Railway" in html
     assert "Nærøyfjord cruise" in html
+    assert "premium-travel-timeline-label" in html
+    assert "Train" in html
+    assert "Scheduled rail, coach and fjord-cruise tickets as listed" in html

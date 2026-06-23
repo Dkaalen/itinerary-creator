@@ -184,7 +184,11 @@ def _self_transfer_lines(row):
     lower = text.lower()
     if "self transfer" not in lower and "self-arranged transfer" not in lower:
         return []
-    return split_self_transfer_notes(text)
+    notes = split_self_transfer_notes(text)
+    city = clean_space(row.get("city", ""))
+    if city:
+        notes = [re.sub(rf"^{re.escape(city)}\s*:\s*", "", note, flags=re.IGNORECASE).strip() for note in notes]
+    return notes
 
 
 def _line_with_time_value(label: str, time_value: str, row: dict) -> str:
@@ -331,6 +335,62 @@ def _timed_leg_label(leg) -> str:
     return line.replace(" - ", " → ", 1) if line else ""
 
 
+def _normalise_transport_mode(value: str) -> str:
+    text = polish_title(clean_space(value))
+    text = re.sub(r"\s+transfer\b", "", text, flags=re.IGNORECASE).strip()
+    if text.lower() == "fjord cruise":
+        return "Fjord cruise"
+    if text.lower() == "coach":
+        return "Coach"
+    if text.lower() == "train":
+        return "Train"
+    return text or "Journey leg"
+
+
+def _timeline_time_display(value: str) -> str:
+    time_text = display_time(value)
+    if time_text:
+        return time_text
+    match = re.match(
+        r"\s*(\d{1,2}:\d{2}\s*(?:am|pm)?)\s*[-–—]+\s*(\d{1,2}:\d{2}\s*(?:am|pm)?)\s*$",
+        str(value or ""),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return clean_space(value)
+    start = display_time(match.group(1)) or clean_space(match.group(1))
+    end = display_time(match.group(2)) or clean_space(match.group(2))
+    return f"{start} - {end}" if start and end else clean_space(value)
+
+
+def _supplier_leg_timeline_items(items: list[str] | tuple[str, ...]) -> list[str]:
+    timeline: list[str] = []
+    leg_pattern = re.compile(
+        r"^\s*(?P<mode>train\s+transfer|coach\s+transfer|bus\s+transfer|fjord\s+cruise|cruise|train|coach|bus)\s+"
+        r"(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s+to\s+"
+        r"(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)"
+        r"(?:\s*\((?P<time>[^)]+)\))?\s*$",
+        flags=re.IGNORECASE,
+    )
+    for item in items or []:
+        clean_item = polish_title(clean_space(item).strip(" -:|.,"))
+        match = leg_pattern.match(clean_item)
+        if not match:
+            continue
+        mode = _normalise_transport_mode(match.group("mode"))
+        origin = polish_title(clean_space(match.group("origin")))
+        destination = polish_title(clean_space(match.group("destination")))
+        if not origin or not destination:
+            continue
+        route = f"{origin} → {destination}"
+        time_value = _timeline_time_display(match.group("time") or "")
+        detail = f"{route} · {time_value}" if time_value else route
+        line = f"{mode} — {detail}"
+        if line not in timeline:
+            timeline.append(line)
+    return timeline
+
+
 def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> RenderBlock | None:
     nutshell_row = None
     journey = None
@@ -372,8 +432,11 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
             route_points = fallback_points
 
     route_text = _route_arrow_text(route_points)
-    leg_lines = [_timed_leg_label(leg) for leg in journey.legs if leg.departure_time or leg.arrival_time]
-    leg_lines = [line for line in leg_lines if line]
+    supplier_items = polish_inclusion_items(list(journey.supplier_includes or []))
+    leg_lines = _supplier_leg_timeline_items(supplier_items)
+    if not leg_lines:
+        leg_lines = [_timed_leg_label(leg) for leg in journey.legs if leg.departure_time or leg.arrival_time]
+        leg_lines = [line for line in leg_lines if line]
     if not leg_lines and route_text:
         leg_lines = [route_text]
 
@@ -388,7 +451,6 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     if not highlights:
         highlights = ["Scenic rail", "Fjord landscape", "Self-guided route"]
 
-    supplier_items = polish_inclusion_items(list(journey.supplier_includes or []))
     extra_sections: list[RenderSection] = []
     if route_text:
         extra_sections.append(RenderSection("Route", [route_text]))
@@ -397,7 +459,7 @@ def _build_featured_nutshell_block(travel_rows, legacy_lines: list[str]) -> Rend
     if highlights:
         extra_sections.append(RenderSection("Highlights", highlights))
     if supplier_items:
-        extra_sections.append(RenderSection("Included journey", supplier_items[:6]))
+        extra_sections.append(RenderSection("Included journey", ["Scheduled rail, coach and fjord-cruise tickets as listed"]))
     if transfer_lines:
         extra_sections.append(RenderSection("Linked transfers", transfer_lines))
 
@@ -457,16 +519,15 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
     for row in travel_rows:
         row_type = get_row_type(row)
         if row is cruise_row:
-            cruise_label = "Coastal cruise"
-            cruise_route = route_phrase or get_travel_sequence_line(row)
-            if time_value:
-                flow_items.append(f"{cruise_label}: {cruise_route} — {time_value}")
-            else:
-                flow_items.append(f"{cruise_label}: {cruise_route}")
+            cruise_route = f"{origin} → {destination}" if origin and destination and origin.lower() != destination.lower() else (route_phrase or get_travel_sequence_line(row))
+            detail = f"{cruise_route} · {time_value}" if time_value else cruise_route
+            flow_items.append(f"Coastal cruise — {detail}")
             continue
         line = get_travel_arrangement_line(row)
         if row_type == "Transfer":
-            line = re.sub(r"^Private transfer\s+", "Private transfer: ", line, flags=re.IGNORECASE)
+            line = re.sub(r"^Private transfer\s+", "", line, flags=re.IGNORECASE).strip(" :-")
+            if line:
+                line = f"Private transfer — {line[:1].upper() + line[1:]}"
         if line and line not in flow_items:
             flow_items.append(line)
 
@@ -475,9 +536,10 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
     if includes:
         extra_sections.append(RenderSection("Cruise inclusions", includes[:6]))
 
-    meta = [RenderMetaLine("Service", "Coastal cruise transfer")]
+    meta = []
     if time_value:
         meta.append(RenderMetaLine("Time", time_value))
+    meta.append(RenderMetaLine("Style", "Coordinated port-to-hotel transfer"))
 
     return RenderBlock(
         kind="travel_sequence",
@@ -487,7 +549,7 @@ def _build_coastal_cruise_block(travel_rows, legacy_lines: list[str]) -> RenderB
         meta=meta,
         description=(
             "A coordinated coastal transfer day, pairing private port transfers with the scenic cruise leg "
-            "so the journey reads as one door-to-door arrangement."
+            "as one clear door-to-door arrangement."
         ),
         lines=legacy_lines,
         extra_sections=extra_sections,

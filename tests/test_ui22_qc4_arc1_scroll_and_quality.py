@@ -136,7 +136,8 @@ def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
     assert self_transfer["effective_type"] == "Transfer"
     assert self_transfer["title"].startswith("Bergen: Self-arranged transfer")
     assert "Train to Bergen Bergen" not in joined
-    assert "Bergen: Self-arranged transfer to Bergen Railway Station" in joined
+    assert "Self-arranged transfer to Bergen Railway Station" in joined
+    assert "Bergen: Self-arranged transfer" not in joined
     assert "Norway in a Nutshell to Oslo" in joined
 
 

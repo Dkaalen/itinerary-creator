@@ -30,7 +30,9 @@ from itinerary_generation.day_group_tour_text import (
     _natural_group_tour_focus,
 )
 from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
+from itinerary_generation.destination_copy import leisure_description
 from parser_modules.common import extract_route_points
+from text_polish import polish_title
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_safety import base_destination_from_terminal, normalize_transport_place
 
@@ -103,18 +105,134 @@ def _has_destination_hotel(day_rows: list[dict], city: str) -> bool:
     return any(get_row_type(row) == "Hotel" and str(row.get("city", "")).strip().lower() == city_key for row in day_rows)
 
 
+
+def _route_summary_from_rows(day_rows: list[dict]) -> tuple[str, str, str]:
+    """Return origin, destination and main mode for route-led day intros."""
+
+    origin = ""
+    destination = ""
+    mode = ""
+    for row in day_rows:
+        row_type = get_row_type(row)
+        if row_type not in TRANSPORT_TYPES:
+            continue
+        if not mode:
+            row_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+            if row_type == "Train" or "train" in row_text:
+                mode = "train"
+            elif row_type == "Flight" or "flight" in row_text:
+                mode = "flight"
+            elif row_type == "Cruise" or "cruise" in row_text:
+                mode = "cruise"
+            elif row_type == "Ferry" or "ferry" in row_text:
+                mode = "ferry"
+            elif "coach" in row_text or "bus" in row_text:
+                mode = "coach"
+            else:
+                mode = row_type.lower()
+        route_origin, route_destination = get_route_points_for_transport(row)
+        if route_origin and not origin:
+            origin = _canonical_route_city(base_destination_from_terminal(route_origin) or route_origin)
+        if route_destination:
+            destination = _canonical_route_city(base_destination_from_terminal(route_destination) or route_destination)
+    return origin, destination, mode
+
+
+def _premium_route_intro(origin: str, destination: str, mode: str, detail_level: str = "") -> str:
+    origin = _canonical_route_city(origin)
+    destination = _canonical_route_city(destination)
+    mode = str(mode or "").lower()
+    if not destination:
+        return ""
+    if origin and origin.lower() == destination.lower():
+        origin = ""
+
+    if destination.lower() == "kristiansand":
+        if origin:
+            return f"Travel south from {origin} to Kristiansand, with the coach journey connecting the route to Norway’s southern coast." if mode == "coach" else f"Travel south from {origin} to Kristiansand, with the day shaped around the move into Norway’s southern coast."
+        return "Travel towards Kristiansand today, with the day shaped around Norway’s southern coastal charm."
+    if destination.lower() == "stavanger":
+        if origin:
+            return f"Travel from {origin} to Stavanger by train, continuing from the southern coast towards Norway’s fjord country." if mode == "train" else f"Travel from {origin} to Stavanger, continuing towards Norway’s fjord country."
+        return "Travel towards Stavanger today, continuing towards Norway’s fjord country."
+    if destination.lower() == "bergen" and mode in {"cruise", "ferry"}:
+        if origin:
+            return f"Travel from {origin} to Bergen by coastal cruise, with the day arranged as a coordinated port-to-hotel journey."
+        return "Travel to Bergen by coastal cruise, with the day arranged as a coordinated port-to-hotel journey."
+    if origin:
+        connector = f" by {mode}" if mode in {"train", "coach", "ferry", "cruise", "flight"} else ""
+        return f"Travel from {origin} to {destination}{connector}, with the day’s route and arrival arrangements grouped clearly below."
+    return f"Travel to {destination}, with the day’s route and arrival arrangements grouped clearly below."
+
+def _title_route_points(title: str, city: str = "") -> tuple[str, str]:
+    """Infer coarse route endpoints from a planned day title."""
+
+    text = str(title or "").strip()
+    if not text:
+        return "", polish_title(city) if city else ""
+    if re.search(r"^travel\s+to\s+", text, flags=re.IGNORECASE):
+        destination = re.sub(r"^travel\s+to\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
+        return "", polish_title(destination)
+
+    match = re.search(r"\bfrom\s+(.+?)\s+to\s+(.+)$", text, flags=re.IGNORECASE)
+    if not match:
+        match = re.search(r"^(.+?)\s+(?:→|->|to)\s+(.+)$", text, flags=re.IGNORECASE)
+    if match:
+        origin = polish_title(match.group(1).strip(" -:|"))
+        destination = polish_title(match.group(2).strip(" -:|"))
+        if origin.lower() in {"travel", "journey"}:
+            origin = ""
+        return origin, destination
+
+    match = re.search(r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+)$", text, flags=re.IGNORECASE)
+    if match:
+        destination = polish_title(match.group(1).strip(" -:|"))
+        return "", destination
+    return "", polish_title(city) if city else ""
+
+
+def _travel_mode_from_title(title: str) -> str:
+    lower = str(title or "").lower()
+    if "norway in a nutshell" in lower:
+        return "nutshell"
+    if "coastal cruise" in lower or "cruise transfer" in lower:
+        return "coastal_cruise"
+    if "cruise" in lower:
+        return "cruise"
+    if "ferry" in lower:
+        return "ferry"
+    if "train" in lower or "rail" in lower:
+        return "train"
+    if "coach" in lower or "bus" in lower:
+        return "coach"
+    if "flight" in lower:
+        return "flight"
+    return ""
+
+
 def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
-        return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests." if city else "Enjoy a slower day, with time to explore independently or relax."
+        return leisure_description(city, []) if city else "Use the day at your own pace, with time to relax, explore independently or settle into the destination."
     if pattern == "multi_activity_day":
         if "tallinn" in str(title or "").lower():
             return "Cross from Helsinki to Tallinn for a focused day trip, with the ferry crossings kept as logistics and the main experience centred on Tallinn’s historic Old Town."
         return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
     if pattern == "travel_day":
-        dest = re.sub(r"^(?:Train|Flight|Cruise|Coach Transfer|Scenic Train Transfer|Panoramic Coach Transfer)\s+(?:from\s+.+?\s+)?to\s+", "", title, flags=re.I)
-        if "norway in a nutshell" in title.lower():
-            return f"Follow the Norway in a Nutshell route towards {dest}, with the rail, fjord and road segments kept together as one scenic travel day." if dest and dest != title else "Follow the Norway in a Nutshell route today, with the rail, fjord and road segments kept together as one scenic travel day."
-        return f"Travel to {dest} today, with the listed arrangements keeping the route clear and easy to follow." if dest and dest != title else "Today is mainly a travel day, with the listed arrangements keeping the route clear and easy to follow."
+        mode = _travel_mode_from_title(title)
+        origin, destination = _title_route_points(title, city)
+        destination = destination or polish_title(city)
+        if mode == "nutshell":
+            return f"Follow the Norway in a Nutshell route towards {destination}, with the rail, fjord and road segments presented together as one signature scenic journey." if destination else "Follow the Norway in a Nutshell route today, with the rail, fjord and road segments presented together as one signature scenic journey."
+        if mode == "coastal_cruise":
+            if origin and destination and origin.lower() != destination.lower():
+                return f"Travel from {origin} to {destination} by coastal cruise, with the port transfers and sailing arranged as one coordinated door-to-door journey."
+            if destination:
+                return f"Travel to {destination} by coastal cruise, with the port transfers and sailing arranged as one coordinated door-to-door journey."
+            return "Travel by coastal cruise today, with the port transfers and sailing arranged as one coordinated door-to-door journey."
+        premium_intro = _premium_route_intro(origin, destination, mode)
+        if premium_intro:
+            return premium_intro
+        return f"Travel to {destination}, with the route and arrival arrangements grouped clearly below." if destination else "Today is arranged as a clear travel day, with the route and arrival details grouped below."
     if pattern == "self_drive_route_day":
         return "Today’s self-drive route is arranged to keep the journey clear and scenic, with suggested stops and overnight plans laid out in a simple way."
     if pattern == "hop_on_city_day":
@@ -267,6 +385,11 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
                 return f"Travel from {route_label} today, with the main transfer details laid out clearly in the itinerary."
             return f"Travel from {route_label}, with the day focused on the planned route."
 
+        route_origin, route_destination, route_mode = _route_summary_from_rows(day_rows)
+        premium_intro = _premium_route_intro(route_origin, route_destination, route_mode, detail_level)
+        if premium_intro:
+            return premium_intro
+
         destination_city = ""
         invalid_destination_words = {"hotel", "station", "airport", "accommodation", "your accommodation", "self transfer", "private airport to hotel", "private hotel to airport"}
         travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
@@ -310,10 +433,10 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
 
     if leisure and city:
         if detail_level == "Elegant concise":
-            return f"Enjoy time at leisure in {city}."
+            return leisure_description(city, day_rows)
         if detail_level == "Rich descriptive":
-            return f"Enjoy a slower day in {city}, with time to explore independently, relax, or add optional experiences that suit your interests."
-        return f"Enjoy time at leisure in {city}. This is a good opportunity to explore independently, relax, or add optional experiences."
+            return leisure_description(city, day_rows)
+        return leisure_description(city, day_rows)
 
     if city:
         if has_hotel(day_rows):

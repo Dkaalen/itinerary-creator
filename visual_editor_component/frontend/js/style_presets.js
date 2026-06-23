@@ -148,6 +148,8 @@ window.CONTROLLED_EDITOR_STYLE_REGISTRY = {
     "premium-route-ribbon",
     "premium-travel-timeline",
     "premium-travel-timeline-item",
+    "premium-travel-timeline-label",
+    "premium-travel-timeline-detail",
     "premium-travel-chips",
     "premium-travel-chip",
     "premium-travel-chip-muted",
