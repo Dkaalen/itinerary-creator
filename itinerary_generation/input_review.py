@@ -44,6 +44,19 @@ class StructuredInputRowReview:
 
 
 @dataclass(frozen=True)
+class StructuredInputCorrectionAction:
+    row_number: int
+    action_type: str
+    action_label: str
+    safe_auto_apply: bool
+    field_updates: dict[str, Any]
+    reason: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class StructuredInputReview:
     row_count: int
     day_count: int
@@ -59,6 +72,7 @@ class StructuredInputReview:
     suggested_fix_count: int = 0
     review_flags: dict[str, int] | None = None
     row_reviews: tuple[StructuredInputRowReview, ...] = ()
+    correction_actions: tuple[StructuredInputCorrectionAction, ...] = ()
     issues: tuple[ItineraryHealthIssue, ...] = ()
 
     @property
@@ -70,6 +84,7 @@ class StructuredInputReview:
         data["issues"] = [issue.as_dict() for issue in self.issues]
         data["route"] = list(self.route)
         data["row_reviews"] = [row.as_dict() for row in self.row_reviews]
+        data["correction_actions"] = [action.as_dict() for action in self.correction_actions]
         return data
 
 
@@ -232,6 +247,99 @@ def build_input_row_reviews(rows: Iterable[Mapping[str, Any]] | None) -> tuple[S
     return tuple(reviews)
 
 
+
+def _canonical_destination_name(value: str) -> str:
+    record = destination_for_alias(value)
+    return record.name if record else str(value or "").strip()
+
+
+def _correction_field_updates(row: Mapping[str, Any]) -> dict[str, Any]:
+    updates: dict[str, Any] = {}
+    declared_type = _text(row, "type")
+    effective_type = _text(row, "effective_type")
+    if declared_type and effective_type and declared_type != effective_type:
+        updates["type"] = effective_type
+
+    for key in ("city", "destination", "route_origin", "route_destination", "from", "to"):
+        value = _text(row, key)
+        if not value:
+            continue
+        canonical = _canonical_destination_name(value)
+        if canonical and canonical != value and destination_for_alias(value) is not None:
+            updates[key] = canonical
+    return updates
+
+
+def build_input_correction_actions(
+    rows: Iterable[Mapping[str, Any]] | None,
+) -> tuple[StructuredInputCorrectionAction, ...]:
+    """Return safe, explicit correction actions for parsed supplier rows.
+
+    These actions are intentionally conservative. They only cover parser-normalized
+    row types and registry-backed destination canonicalization; missing commercial
+    facts still require human review.
+    """
+
+    actions: list[StructuredInputCorrectionAction] = []
+    for index, row in enumerate(_rows(rows), start=1):
+        updates = _correction_field_updates(row)
+        if not updates:
+            continue
+        labels: list[str] = []
+        declared_type = _text(row, "type")
+        effective_type = _text(row, "effective_type")
+        if declared_type and effective_type and declared_type != effective_type:
+            labels.append(f"type {declared_type} → {effective_type}")
+        destination_updates = [key for key in updates if key != "type"]
+        if destination_updates:
+            labels.append("destination spelling")
+        action_label = "Accept parser fix: " + ", ".join(labels)
+        actions.append(
+            StructuredInputCorrectionAction(
+                row_number=index,
+                action_type="safe_parser_fix",
+                action_label=action_label,
+                safe_auto_apply=True,
+                field_updates=updates,
+                reason="Parser-normalized row type or destination alias can be accepted safely.",
+            )
+        )
+    return tuple(actions)
+
+
+def apply_input_correction_actions(
+    rows: Iterable[Mapping[str, Any]] | None,
+    actions: Iterable[StructuredInputCorrectionAction | Mapping[str, Any]] | None = None,
+    *,
+    row_numbers: Iterable[int] | None = None,
+) -> tuple[list[dict[str, Any]], tuple[StructuredInputCorrectionAction, ...]]:
+    """Apply selected safe input corrections to parsed rows.
+
+    Returns a corrected row list plus the actions that were actually applied.
+    """
+
+    normalized_rows = _rows(rows)
+    available_actions = tuple(
+        action if isinstance(action, StructuredInputCorrectionAction) else StructuredInputCorrectionAction(**dict(action))
+        for action in (actions or build_input_correction_actions(normalized_rows))
+    )
+    selected = set(int(number) for number in row_numbers) if row_numbers is not None else None
+    applied: list[StructuredInputCorrectionAction] = []
+    by_row = {action.row_number: action for action in available_actions if action.safe_auto_apply}
+    for index, row in enumerate(normalized_rows, start=1):
+        if selected is not None and index not in selected:
+            continue
+        action = by_row.get(index)
+        if not action:
+            continue
+        for key, value in action.field_updates.items():
+            row[key] = value
+        row.setdefault("accepted_input_corrections", [])
+        if isinstance(row["accepted_input_corrections"], list):
+            row["accepted_input_corrections"].append(action.action_label)
+        applied.append(action)
+    return normalized_rows, tuple(applied)
+
 def build_structured_input_review(
     parsed_rows: Iterable[Mapping[str, Any]] | None,
     *,
@@ -259,6 +367,7 @@ def build_structured_input_review(
     )
     low_confidence_count = sum(1 for row in row_reviews if row.status != "Ready")
     suggested_fix_count = sum(1 for row in row_reviews if row.suggested_fixes)
+    correction_actions = build_input_correction_actions(rows)
 
     return StructuredInputReview(
         row_count=len(rows),
@@ -275,6 +384,7 @@ def build_structured_input_review(
         suggested_fix_count=suggested_fix_count,
         review_flags=dict(sorted(review_flags.items())),
         row_reviews=row_reviews,
+        correction_actions=correction_actions,
         issues=issues,
     )
 
@@ -291,6 +401,7 @@ def format_structured_input_review(review: StructuredInputReview) -> str:
         f"Parser confidence: {review.average_confidence}%",
         f"Rows needing review: {review.low_confidence_count}",
         f"Suggested fixes: {review.suggested_fix_count}",
+        f"Acceptable parser fixes: {len(review.correction_actions)}",
         f"Issues: {review.critical_issue_count} critical / {review.review_issue_count} review / {review.issue_count} total",
     ]
     if review.review_flags:
@@ -298,6 +409,10 @@ def format_structured_input_review(review: StructuredInputReview) -> str:
         lines.append(f"Review flags: {flags}")
     blockers = [row for row in review.row_reviews if row.review_priority == "Blocker"]
     needs_review = [row for row in review.row_reviews if row.review_priority == "Review"]
+    if review.correction_actions:
+        lines.append("Safe parser fixes ready")
+        for action in review.correction_actions[:5]:
+            lines.append(f"- Row {action.row_number}: {action.action_label}")
     if blockers:
         lines.append("Correction queue: blockers first")
         for row in blockers[:5]:

@@ -82,6 +82,61 @@ def _row_text(row: dict) -> str:
     ])
 
 
+
+
+SERVICE_INTENT_KEYWORDS = {
+    "rail": {"train", "rail", "railway", "flam", "flåm", "myrdal", "nutshell"},
+    "fjord_cruise": {"fjord", "cruise", "boat", "lysefjord", "preikestolen", "naeroyfjord", "nærøyfjord", "flam", "flåm", "gudvangen"},
+    "coastal_cruise": {"coastal", "cruise", "ferry", "port", "harbour", "harbor", "fjord", "lounge"},
+    "kayaking": {"kayak", "kayaking", "river", "otra", "paddle"},
+    "city_walk": {"walking", "walk", "historic", "old", "town", "guide", "guided"},
+    "funicular": {"funicular", "floibanen", "fløibanen", "fløyen", "floyen", "mount", "viewpoint"},
+}
+
+
+def _service_intents_for_rows(rows: list[dict]) -> set[str]:
+    intents: set[str] = set()
+    normalized_text = normalize_keyword(" ".join(_row_text(row) for row in rows or []))
+    tokens = tokenize(normalized_text)
+    row_types = {_row_type(row) for row in rows or []}
+
+    if "norway in a nutshell" in normalized_text or "nutshell" in tokens:
+        intents.update({"scenic_rail_fjord", "rail", "fjord_cruise"})
+    if "lysefjord" in tokens or "preikestolen" in tokens:
+        intents.add("fjord_cruise")
+    if "coastal cruise" in normalized_text or "atlantic coastal" in normalized_text:
+        intents.add("coastal_cruise")
+    if row_types & {"train"} or tokens & SERVICE_INTENT_KEYWORDS["rail"]:
+        intents.add("rail")
+    if row_types & {"cruise", "ferry"} or tokens & {"fjord", "cruise", "boat"}:
+        intents.add("fjord_cruise" if tokens & {"fjord", "lysefjord", "preikestolen", "naeroyfjord", "gudvangen", "flam", "flåm"} else "coastal_cruise")
+    if tokens & SERVICE_INTENT_KEYWORDS["kayaking"]:
+        intents.add("kayaking")
+    if tokens & SERVICE_INTENT_KEYWORDS["funicular"]:
+        intents.add("funicular")
+    if tokens & SERVICE_INTENT_KEYWORDS["city_walk"]:
+        intents.add("city_walk")
+
+    # Pure arrival/departure/hotel days should remain city-led instead of
+    # being pulled toward generic transport visuals.
+    if row_types <= {"arrival", "departure", "hotel", "accommodation", "leisure", "transfer"} and not (tokens & {"train", "cruise", "fjord", "kayak", "funicular"}):
+        intents.discard("coastal_cruise")
+        intents.discard("fjord_cruise")
+    return intents
+
+
+def _service_destination_variants(intents: set[str], text: str) -> set[str]:
+    variants: set[str] = set()
+    normalized_text = normalize_keyword(text)
+    if "scenic_rail_fjord" in intents or "norway in a nutshell" in normalized_text:
+        for place in ("Bergen", "Voss", "Gudvangen", "Flåm", "Flam", "Myrdal", "Oslo", "Nærøyfjord", "Naeroyfjord"):
+            variants.update(city_variants(place))
+    if "fjord_cruise" in intents and ("lysefjord" in normalized_text or "preikestolen" in normalized_text):
+        for place in ("Stavanger", "Lysefjord", "Preikestolen"):
+            variants.update(city_variants(place))
+    return variants
+
+
 def _themes_for_rows(rows: list[dict]) -> set[str]:
     text_parts = []
     hinted = set()
@@ -203,7 +258,11 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
     tokens = tokenize(text)
     themes = infer_themes(tokens) | _themes_for_rows(rows or [])
     primary_themes = _themes_for_rows(primary_rows)
+    service_intents = _service_intents_for_rows(rows or [])
+    if service_intents & {"rail", "fjord_cruise", "coastal_cruise", "scenic_rail_fjord", "kayaking", "funicular"}:
+        themes.update(intent.replace("_", " ") for intent in service_intents)
     city_variant_values = _all_city_variants(rows or [], city)
+    city_variant_values.update(_service_destination_variants(service_intents, text))
     country_variants = _country_variants_for_city(city)
     image_profiles, season_profiles = _destination_profiles_for_city(city)
     for row in rows or []:
@@ -225,5 +284,6 @@ def build_day_context(day: str, rows: list[dict]) -> dict:
         "month": infer_primary_month_from_rows(rows),
         "image_profiles": image_profiles,
         "season_profiles": season_profiles,
+        "service_intents": service_intents,
         "text": normalize_keyword(text),
     }

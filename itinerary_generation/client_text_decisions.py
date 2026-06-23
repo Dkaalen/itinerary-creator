@@ -43,6 +43,22 @@ def _contains(text: str, *markers: str) -> bool:
 
 ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     TextRule(
+        ("oslofjord", "electric boat", "trollcruise"),
+        lambda title, city: f"Begin with Oslo from the water, where {title} adds harbour views, island scenery and an easy fjord perspective to the capital stay.",
+    ),
+    TextRule(
+        ("lysefjord", "preikestolen", "pulpit rock"),
+        lambda title, city: f"The day centres on Lysefjord, with {title} carrying you from Stavanger beneath steep mountain walls, waterfalls and the viewpoint of Preikestolen.",
+    ),
+    TextRule(
+        ("otra river",),
+        lambda title, city: f"See Kristiansand from river level today, with {title} giving the day a quiet outdoor rhythm through the city’s waterways.",
+    ),
+    TextRule(
+        ("bergen past & present", "fløibanen", "floibanen"),
+        lambda title, city: f"Bergen comes into focus through local stories, old harbour streets and viewpoints, with {title} giving the day both city context and mountain perspective.",
+    ),
+    TextRule(
         ("icebreaker", "survival suit", "frozen sea", "cruise & swim"),
         lambda title, city: f"Today includes a distinctive Arctic sea experience, with {title} arranged from {city} and time on the frozen water built into the day.",
     ),

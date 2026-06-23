@@ -17,6 +17,48 @@ THEME_MATCH_SCORE = 12
 KEYWORD_MATCH_SCORE_PER_TOKEN = 4
 KEYWORD_MATCH_SCORE_CAP = 20
 COUNTRY_REGION_MATCH_SCORE = 8
+SERVICE_INTENT_MATCH_SCORE = 28
+SERVICE_GENERIC_CITY_PENALTY = 18
+
+
+
+
+SERVICE_INTENT_MATCHERS = {
+    "rail": {"themes": {"train"}, "tokens": {"train", "rail", "railway", "station", "flam", "flåm", "myrdal", "nutshell"}},
+    "scenic_rail_fjord": {"themes": {"train", "fjord", "mountain"}, "tokens": {"nutshell", "flam", "flåm", "myrdal", "voss", "gudvangen", "naeroyfjord", "nærøyfjord", "fjord", "rail"}},
+    "fjord_cruise": {"themes": {"fjord", "ocean", "mountain"}, "tokens": {"fjord", "cruise", "boat", "lysefjord", "preikestolen", "gudvangen", "flam", "flåm", "naeroyfjord", "nærøyfjord"}},
+    "coastal_cruise": {"themes": {"fjord", "ocean", "waterfront"}, "tokens": {"coastal", "cruise", "boat", "ferry", "harbour", "harbor", "port", "sea", "fjord"}},
+    "kayaking": {"themes": {"fjord", "ocean", "mountain"}, "tokens": {"kayak", "kayaking", "river", "otra", "paddle", "water"}},
+    "city_walk": {"themes": {"city", "old town", "waterfront"}, "tokens": {"walking", "walk", "historic", "old", "town", "street", "streets", "bryggen"}},
+    "funicular": {"themes": {"funicular", "mountain", "city"}, "tokens": {"funicular", "floibanen", "fløibanen", "floyen", "fløyen", "viewpoint", "mountain"}},
+}
+
+
+def _service_intent_score(candidate_tokens: set[str], candidate_themes: set[str], day_context: dict) -> tuple[int, list[str]]:
+    intents = set(day_context.get("service_intents", set()) or set())
+    if not intents:
+        return 0, []
+    score = 0
+    reasons: list[str] = []
+    matched_intents: list[str] = []
+    for intent in sorted(intents):
+        matcher = SERVICE_INTENT_MATCHERS.get(intent)
+        if not matcher:
+            continue
+        if candidate_themes & matcher["themes"] or candidate_tokens & matcher["tokens"]:
+            matched_intents.append(intent.replace("_", " "))
+    if matched_intents:
+        score += SERVICE_INTENT_MATCH_SCORE * min(2, len(matched_intents))
+        reasons.append("service intent match: " + ", ".join(matched_intents[:3]))
+        return score, reasons
+
+    # If a day is clearly led by a scenic/transport service, a generic city
+    # skyline should not win merely because the folder matches the city.
+    service_led = intents & {"rail", "scenic_rail_fjord", "fjord_cruise", "coastal_cruise", "kayaking", "funicular"}
+    generic_city = candidate_themes <= {"city", "waterfront", "old town"} or bool(candidate_themes & {"city"})
+    if service_led and generic_city:
+        return -SERVICE_GENERIC_CITY_PENALTY, ["generic city image downranked for service-led day"]
+    return 0, []
 
 
 def candidate_destination_matches(candidate: ImageCandidate, day_context: dict) -> bool:
@@ -93,6 +135,11 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
     if theme_matches:
         score += THEME_MATCH_SCORE * len(theme_matches)
         reasons.append("theme match: " + ", ".join(sorted(theme_matches)))
+
+    service_score, service_reasons = _service_intent_score(candidate_tokens, candidate_themes, day_context)
+    if service_score:
+        score += service_score
+        reasons.extend(service_reasons)
 
     day_season = normalize_keyword(day_context.get("season", ""))
     candidate_seasons = set(candidate.seasons)
@@ -174,6 +221,11 @@ def _score_breakdown_from_reasons(score: int, reasons: list[str], *, is_default:
         elif reason.startswith("keyword match"):
             matched = [part for part in reason.split(":", 1)[-1].split(",") if part.strip()]
             breakdown["activity_product_score"] += min(KEYWORD_MATCH_SCORE_CAP, KEYWORD_MATCH_SCORE_PER_TOKEN * max(1, len(matched)))
+        elif reason.startswith("service intent match"):
+            matched = [part for part in reason.split(":", 1)[-1].split(",") if part.strip()]
+            breakdown["activity_product_score"] += SERVICE_INTENT_MATCH_SCORE * max(1, min(2, len(matched)))
+        elif reason.startswith("generic city image downranked"):
+            breakdown["activity_product_score"] -= SERVICE_GENERIC_CITY_PENALTY
     return breakdown
 
 

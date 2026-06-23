@@ -45,6 +45,24 @@ def _issue(code: str, severity: str, message: str) -> PdfPreflightIssue:
     return PdfPreflightIssue(code=code, severity=severity, message=message)
 
 
+
+
+def _warning_value(warning: Any, key: str, default: str = "") -> str:
+    if isinstance(warning, Mapping):
+        return str(warning.get(key, default) or default)
+    return str(getattr(warning, key, default) or default)
+
+
+def _client_warning_preflight_severity(warning: Any) -> str:
+    severity = _warning_value(warning, "severity", "review").lower()
+    code = _warning_value(warning, "code", "client_output_warning").lower()
+    if severity in {"critical", "error", "blocking"}:
+        return "critical"
+    if code in {"client_price_or_currency_leak", "client_raw_supplier_fragment", "raw_supplier_fragment"}:
+        return "critical"
+    return "review"
+
+
 def build_pdf_preflight_report(
     state: Mapping[str, Any],
     image_status: Mapping[str, Any] | None = None,
@@ -76,9 +94,9 @@ def build_pdf_preflight_report(
 
     latest_warnings = (output_edits or {}).get("latest_client_output_warnings", []) if isinstance(output_edits, Mapping) else []
     for warning in latest_warnings[:8]:
-        message = str(getattr(warning, "message", "") or (warning.get("message", "") if isinstance(warning, Mapping) else warning)).strip()
+        message = _warning_value(warning, "message", str(warning)).strip()
         if message:
-            issues.append(_issue("client_output_warning", "review", message))
+            issues.append(_issue(_warning_value(warning, "code", "client_output_warning") or "client_output_warning", _client_warning_preflight_severity(warning), message))
 
     seen: set[tuple[str, str]] = set()
     unique: list[PdfPreflightIssue] = []

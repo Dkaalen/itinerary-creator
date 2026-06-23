@@ -15,6 +15,7 @@ REMAINING_STAGE_SIZE = 8
 TIERED_STAGE_SIZE = 4
 
 FAST_TESTS = (
+    "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
     "tests/test_date_resolver.py",
@@ -62,12 +63,19 @@ FAST_TESTS = (
     "tests/test_patch_text_cleanup_caching.py",
     "tests/test_input7_supplier_review_workflow.py",
     "tests/test_input8_supplier_correction_workflow.py",
+    "tests/test_input9_accept_supplier_corrections.py",
     "tests/test_editor4_selection_refinement.py",
     "tests/test_review4_actionable_review_center.py",
     "tests/test_cleanup1_editor_review_contract.py",
+    "tests/test_copy1_premium_day_intro_engine.py",
+    "tests/test_image_qa1_service_aware_matching.py",
+    "tests/test_pdf8_luxury_day_layout.py",
+    "tests/test_review5_client_readiness_export_gate.py",
+    "tests/test_brand1_proposal_profiles.py",
 )
 
 PARSER_TESTS = (
+    "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
     "tests/test_date_resolver.py",
@@ -82,6 +90,8 @@ PARSER_TESTS = (
     "tests/test_patch_text_cleanup_caching.py",
     "tests/test_input7_supplier_review_workflow.py",
     "tests/test_input8_supplier_correction_workflow.py",
+    "tests/test_input9_accept_supplier_corrections.py",
+    "tests/test_copy1_premium_day_intro_engine.py",
 )
 
 ACTIVITY_TESTS = (
@@ -180,6 +190,7 @@ EDITOR_TESTS = (
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
     "tests/test_patch_bz1g_finland_source_fidelity.py",
     "tests/test_patch_ih4_group_tour_rendering.py",
+    "tests/test_review5_client_readiness_export_gate.py",
 )
 
 IMAGE_TESTS = (
@@ -208,9 +219,11 @@ IMAGE_TESTS = (
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
+    "tests/test_image_qa1_service_aware_matching.py",
 )
 
 UI_TESTS = (
+    "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_review3_ready_for_client_workflow.py",
     "tests/test_editor3_image_inspector_workflow.py",
     "tests/test_cleanup1_editor_review_contract.py",
@@ -231,10 +244,14 @@ UI_TESTS = (
     "tests/test_editor_interaction_polish.py",
     "tests/test_input7_supplier_review_workflow.py",
     "tests/test_input8_supplier_correction_workflow.py",
+    "tests/test_input9_accept_supplier_corrections.py",
     "tests/test_premium_output_regression_followup.py",
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
+    "tests/test_copy1_premium_day_intro_engine.py",
+    "tests/test_review5_client_readiness_export_gate.py",
+    "tests/test_brand1_proposal_profiles.py",
 )
 
 QUALITY_TESTS = (
@@ -292,6 +309,8 @@ PDF_TESTS = (
     "tests/test_dest3_image_profiles_and_visual_consistency.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
+    "tests/test_pdf8_luxury_day_layout.py",
+    "tests/test_brand1_proposal_profiles.py",
 )
 
 SLOW_TESTS = (

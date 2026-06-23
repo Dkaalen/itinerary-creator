@@ -22,47 +22,78 @@ class PdfExportProfile:
     bottom_margin_mm: int = 22
     min_compact_level: int = 0
     include_internal_notes: bool = False
+    audience: str = "Client"
+    use_case: str = "Client-ready itinerary proposal"
+    document_label: str = "TRAVEL ITINERARY"
+    client_ready: bool = True
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    @property
+    def selector_label(self) -> str:
+        return f"{self.label} · {self.audience}"
 
 
 PDF_EXPORT_PROFILES: tuple[PdfExportProfile, ...] = (
     PdfExportProfile(
         id="client_premium",
-        label="Client PDF",
-        description="Full premium client-ready itinerary.",
+        label="Luxury Proposal",
+        description="Full premium client-ready proposal with the most polished spacing and editorial rhythm.",
         filename_suffix="",
+        audience="Client",
+        use_case="Best for high-value proposals and polished final itinerary delivery.",
+        document_label="LUXURY PROPOSAL",
     ),
     PdfExportProfile(
         id="client_compact",
-        label="Compact client PDF",
-        description="Tighter layout for long itineraries while staying client-facing.",
+        label="Compact Itinerary",
+        description="Tighter client-facing layout for long itineraries while keeping the proposal clean.",
         filename_suffix="compact",
         margin_mm=20,
         top_margin_mm=22,
         bottom_margin_mm=20,
         min_compact_level=1,
+        audience="Client",
+        use_case="Best when the itinerary is long and page count matters.",
+        document_label="TRAVEL ITINERARY",
+    ),
+    PdfExportProfile(
+        id="client_detailed",
+        label="Detailed Travel Plan",
+        description="Client-facing detailed version for review calls and operationally rich proposals.",
+        filename_suffix="detailed",
+        audience="Client / Advisor",
+        use_case="Best for walkthroughs where the client or advisor needs more context.",
+        document_label="DETAILED TRAVEL PLAN",
     ),
     PdfExportProfile(
         id="internal_review",
-        label="Internal review PDF",
-        description="Internal QA copy with a compact layout and review appendix.",
+        label="Internal Ops Version",
+        description="Internal QA copy with compact layout and review appendix. Not intended for clients.",
         filename_suffix="internal",
         margin_mm=20,
         top_margin_mm=22,
         bottom_margin_mm=20,
         min_compact_level=1,
         include_internal_notes=True,
+        audience="Internal",
+        use_case="Best for agency/DMC checks before client delivery.",
+        document_label="INTERNAL REVIEW",
+        client_ready=False,
     ),
 )
-
 _PROFILE_BY_ID = {profile.id: profile for profile in PDF_EXPORT_PROFILES}
 DEFAULT_PDF_EXPORT_PROFILE = PDF_EXPORT_PROFILES[0]
 
 
 def pdf_export_profile_options() -> tuple[dict[str, Any], ...]:
-    return tuple(profile.as_dict() for profile in PDF_EXPORT_PROFILES)
+    options = []
+    for profile in PDF_EXPORT_PROFILES:
+        data = profile.as_dict()
+        data["selector_label"] = profile.selector_label
+        options.append(data)
+    return tuple(options)
 
 
 def resolve_pdf_export_profile(value: str | Mapping[str, Any] | None) -> PdfExportProfile:

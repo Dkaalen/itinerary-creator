@@ -25,7 +25,7 @@ from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint, SamePageDayImage
 from pdf_exporter_modules.image_layout import normalize_crop_focus
-from pdf_exporter_modules.render_flowables import add_premium_rule, boxed_story_table
+from pdf_exporter_modules.render_flowables import add_day_opener_rule, add_premium_rule, boxed_story_table
 from pdf_exporter_modules.html_utils import clean_text, para_text
 from pdf_exporter_modules.cover_page import CoverPageContent, normalize_cover_route_text, render_cover_content
 from pdf_exporter_modules.render_content import render_content_blocks
@@ -417,6 +417,8 @@ def _render_day_story(day: RenderDay, styles, *, compact_level: int = 0) -> list
         add_paragraph(story, day.city, styles["city"])
     intro = _ellipsize_text(day.intro, 185) if compact_level >= 2 else day.intro
     add_paragraph(story, intro, styles["intro"])
+    if intro:
+        add_day_opener_rule(story)
 
     for block in day.blocks or []:
         story.extend(_block_story(block, styles, compact_level=compact_level))
@@ -544,7 +546,7 @@ def export_render_document_to_pdf(
         leftMargin=profile.margin_mm * mm,
         topMargin=profile.top_margin_mm * mm,
         bottomMargin=profile.bottom_margin_mm * mm,
-        title=profile.label,
+        title=profile.document_label or profile.label,
         author="Itinerary Creator",
     )
     doc.allowSplitting = 1

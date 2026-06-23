@@ -25,6 +25,9 @@ class ExportReadiness:
     status_label: str
     preflight_status: str = "Clear"
     preflight_issues: tuple[str, ...] = field(default_factory=tuple)
+    critical_issue_count: int = 0
+    review_issue_count: int = 0
+    client_risk_count: int = 0
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -39,6 +42,9 @@ class ExportReadiness:
             "status_label": self.status_label,
             "preflight_status": self.preflight_status,
             "preflight_issues": list(self.preflight_issues),
+            "critical_issue_count": self.critical_issue_count,
+            "review_issue_count": self.review_issue_count,
+            "client_risk_count": self.client_risk_count,
         }
 
 
@@ -104,4 +110,7 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         status_label=status,
         preflight_status=preflight.status_label,
         preflight_issues=tuple(issue.message for issue in preflight.issues),
+        critical_issue_count=preflight.critical_count,
+        review_issue_count=preflight.review_count,
+        client_risk_count=sum(1 for issue in preflight.issues if str(issue.code).startswith("client_") or issue.code == "client_output_warning"),
     )

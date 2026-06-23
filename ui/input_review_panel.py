@@ -8,6 +8,7 @@ import streamlit as st
 
 from itinerary_generation.input_review import (
     StructuredInputReview,
+    apply_input_correction_actions,
     build_structured_input_review,
     format_structured_input_review,
 )
@@ -40,6 +41,34 @@ def _review_table_rows(review: StructuredInputReview) -> list[dict[str, Any]]:
     ]
 
 
+def _correction_action_rows(review: StructuredInputReview) -> list[dict[str, Any]]:
+    return [
+        {
+            "Row": action.row_number,
+            "Action": action.action_label,
+            "Fields updated": ", ".join(action.field_updates.keys()),
+            "Safe": "Yes" if action.safe_auto_apply else "Review",
+            "Reason": action.reason,
+        }
+        for action in review.correction_actions
+    ]
+
+
+def _accept_safe_parser_fixes(rows: list[dict], diagnostics: list[dict], review: StructuredInputReview) -> int:
+    corrected_rows, applied = apply_input_correction_actions(rows, review.correction_actions)
+    if not applied:
+        return 0
+    st.session_state["parsed_rows"] = corrected_rows
+    st.session_state["structured_input_review"] = build_structured_input_review(
+        corrected_rows,
+        parser_diagnostics=diagnostics,
+    )
+    st.session_state["input_corrections_applied"] = [action.as_dict() for action in applied]
+    st.session_state["pdf_status"] = "Not created"
+    st.session_state["pdf_dirty"] = True
+    return len(applied)
+
+
 def render_structured_input_review_panel(
     parsed_rows: list[dict] | None = None,
     parser_diagnostics: list[dict] | None = None,
@@ -62,6 +91,15 @@ def render_structured_input_review_panel(
         if resolved.low_confidence_count:
             st.caption("Correction queue: handle blocker rows first, then review medium-confidence rows before final polishing.")
         st.dataframe(_review_table_rows(resolved), hide_index=True, use_container_width=True)
+
+        if resolved.correction_actions:
+            st.caption("Safe parser fixes")
+            st.dataframe(_correction_action_rows(resolved), hide_index=True, use_container_width=True)
+            if st.button("Accept safe parser fixes", key="accept_safe_input_parser_fixes", use_container_width=True):
+                applied_count = _accept_safe_parser_fixes(list(rows), list(diagnostics), resolved)
+                if applied_count:
+                    st.success(f"Accepted {applied_count} safe parser fix(es). Refresh the itinerary before creating a new PDF.")
+                    st.rerun()
 
         st.caption("Review summary")
         st.code(format_structured_input_review(resolved), language=None)

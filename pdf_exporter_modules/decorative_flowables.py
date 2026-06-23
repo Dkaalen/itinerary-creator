@@ -101,3 +101,27 @@ def add_cover_rule(story, width=44 * mm, space_after=9, color=None):
     )
     story.append(table)
     story.append(Spacer(1, space_after))
+
+
+def add_day_opener_rule(story, width=22 * mm, space_before=1, space_after=9):
+    """Add a restrained editorial rule after a day opener.
+
+    This separates the narrative opener from the operational itinerary blocks
+    without introducing heavy cards or a separate widget look.
+    """
+    if space_before:
+        story.append(Spacer(1, space_before))
+    table = Table([[""]], colWidths=[width], hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 0.35, pdf_styles.LINE),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(table)
+    story.append(Spacer(1, space_after))

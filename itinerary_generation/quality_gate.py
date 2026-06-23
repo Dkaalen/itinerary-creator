@@ -210,10 +210,6 @@ def _validate_snapshot(snapshot: ItineraryQualitySnapshot) -> list[ItineraryVali
 
 def _source_fidelity_issues(rows: Iterable[dict]) -> list[ItineraryValidationIssue]:
     issues: list[ItineraryValidationIssue] = []
-    suspicious_time_re = re.compile(
-        r"\b12:[0-5]\d\s*a\.?m\.?\s*[-–—]\s*(?:1[0-2]|0?[1-9]):[0-5]\d\s*p\.?m\.?\b",
-        flags=re.IGNORECASE,
-    )
     typo_re = re.compile(r"\b(?:Meeteing|Funicluar|Funicual|Profesional|athmosphere|Kristinsand|Crusie)\b", flags=re.IGNORECASE)
     for row in rows:
         row_type = get_row_type(row)
@@ -228,7 +224,7 @@ def _source_fidelity_issues(rows: Iterable[dict]) -> list[ItineraryValidationIss
                 )
             )
         raw_text = " ".join(str(row.get(key, "")) for key in ("raw", "details", "original_title", "title"))
-        if suspicious_time_re.search(raw_text):
+        if SUSPICIOUS_AM_PM_TIME_RANGE_RE.search(raw_text):
             issues.append(
                 ItineraryValidationIssue(
                     WARNING,
@@ -285,6 +281,11 @@ PRICE_CLIENT_PATTERN_MESSAGE = "Supplier prices, costs and currency values must 
 SUPPLIER_TIME_WARNING_RE = re.compile(
     r"\b(?:before\s+departure|bring\s+warm\s+clothes|please\s+arrive|meeting\s+point|"
     r"voucher|subject\s+to|pick[-\s]?up\s+window|\d+\s*(?:min\.?|minutes?)\s+before)\b",
+    flags=re.IGNORECASE,
+)
+
+SUSPICIOUS_AM_PM_TIME_RANGE_RE = re.compile(
+    r"\b12:[0-5]\d\s*a\.?m\.?\s*[-–—]\s*(?:1[0-2]|0?[1-9]):[0-5]\d\s*p\.?m\.?\b",
     flags=re.IGNORECASE,
 )
 
@@ -491,6 +492,15 @@ def evaluate_client_output_quality(
                 WARNING,
                 "aurora_wording_review",
                 "Client-facing output contains 'Aurora'. Verify it is preserved supplier/product wording; otherwise prefer 'Northern Lights'.",
+            )
+        )
+
+    if SUSPICIOUS_AM_PM_TIME_RANGE_RE.search(text):
+        issues.append(
+            ItineraryValidationIssue(
+                WARNING,
+                "suspicious_am_pm_time_range",
+                "Client-facing output contains a suspicious AM-to-PM time range. Review the source timing before sending to the client.",
             )
         )
 

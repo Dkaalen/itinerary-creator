@@ -119,9 +119,9 @@ def test_ui23_quiet_known_typo_corrections_and_better_activity_intros():
 
     assert "source_typo_corrected" not in codes
     assert "known typo" not in "\n".join(issue.message for issue in report.issues).lower()
-    assert "explore Kristiansand from the water" in day4.intro
+    assert "See Kristiansand from river level" in day4.intro
     assert "main arranged experience" not in day4.intro
-    assert "Sail from Stavanger" in day6.intro
+    assert "The day centres on Lysefjord" in day6.intro
     assert "Today brings you closer" not in day6.intro
     assert "Taste your way through Oslo" in day10.intro
 
@@ -130,7 +130,14 @@ def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
     rows, context = _render_context()
     self_transfer = next(row for row in rows if row.get("day") == "Day 9" and row.get("type") == "Transfer" and row.get("city") == "Bergen")
     day9 = next(day for day in context.render_document.days if day.day == "Day 9")
-    travel_lines = [line for block in day9.blocks if block.kind == "travel_sequence" for line in block.lines]
+    travel_lines = []
+    for block in day9.blocks:
+        if block.kind != "travel_sequence":
+            continue
+        travel_lines.append(block.title)
+        travel_lines.extend(block.lines)
+        for section in block.extra_sections:
+            travel_lines.extend(section.items)
     joined = "\n".join(travel_lines)
 
     assert self_transfer["effective_type"] == "Transfer"

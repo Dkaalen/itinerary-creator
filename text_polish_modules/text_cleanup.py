@@ -129,6 +129,17 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bAuroras\b", "Northern Lights", text, flags=re.IGNORECASE)
     text = re.sub(r"\bAurora\b", "Northern Lights", text, flags=re.IGNORECASE)
 
+    # Clean awkward supplier punctuation/quote residue that otherwise reaches
+    # meeting points and descriptions in preview/PDF.
+    text = re.sub(
+        r"\bby\s+[‘’'\"]{1,2}\s*([^‘’'\"]+?)\s*[‘’'\"]{1,2}\s+sign\b",
+        lambda m: f"by the “{clean_space(m.group(1))}” sign",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\baboard\s*&\s*(?=[A-Za-zÀ-ÿ])", "aboard a ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\belectric\s*,\s*boat\b", "electric boat", text, flags=re.IGNORECASE)
+
     # Clean broken supplier inclusion fragments and recurring typo/casing issues.
     text = re.sub(r"\bRound-trip ferry is\b", "Round-trip ferry", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKnowledgeable\s*,?\s*multilingual guide\b", "Knowledgeable, multilingual guide", text, flags=re.IGNORECASE)
@@ -216,6 +227,8 @@ def _polish_text_fragment(text: str) -> str:
         flags=re.IGNORECASE,
     )
     text = re.sub(r"\b(?:premium|luxurious|luxury|hi[- ]?end|high[- ]end|upscale|bespoke|vip)\s+(?=\w)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\belectric\s*,\s*boat\b", "electric boat", text, flags=re.IGNORECASE)
+    text = re.sub(r"\baboard\s*&\s*(?=[A-Za-zÀ-ÿ])", "aboard a ", text, flags=re.IGNORECASE)
     text = text.replace("__PREMIUM_DOUBLE_IGLOO__", "Premium Double Igloo").replace("__PREMIUM_GLASS_IGLOO__", "Premium Glass Igloo")
     if original_leading_sales_adjective or leading_sales_adjective:
         text = re.sub(r"^(\s*)([a-zà-ÿ])", lambda m: m.group(1) + m.group(2).upper(), text, count=1)

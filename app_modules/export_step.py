@@ -149,10 +149,13 @@ def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
     picture_status = "Not added"
     if readiness.pictures_added:
         picture_status = "Ready" if readiness.picture_review_ready else "Needs review"
+    client_qa_ok = readiness.critical_issue_count == 0
+    client_qa_label = "Ready for client" if client_qa_ok and readiness.review_issue_count == 0 else "Needs review" if client_qa_ok else "Blocked"
     states = [
         ("Document", "Ready" if readiness.has_document else "Missing", readiness.has_document),
         ("Pictures", picture_status, readiness.pictures_added and readiness.picture_review_ready),
         ("Image bank", "Connected" if readiness.image_bank_ready else "Missing", readiness.image_bank_ready),
+        ("Client QA", client_qa_label, client_qa_ok),
         ("PDF", "Ready" if readiness.pdf_ready else "Not created", readiness.pdf_ready),
     ]
     cards = "".join(
@@ -174,6 +177,8 @@ def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
         '</div>'
     )
     attention_messages = readiness.blocking_messages or readiness.preflight_issues
+    if readiness.review_issue_count and not readiness.critical_issue_count:
+        st.caption(f"Client QA has {readiness.review_issue_count} review item(s). You can export, but review these before sending.")
     if attention_messages and not readiness.pending_editor_commit:
         with st.expander(f"PDF preflight — {readiness.preflight_status}", expanded=bool(readiness.blocking_messages)):
             for message in attention_messages:
@@ -188,20 +193,23 @@ def _render_pdf_profile_selector() -> None:
     output_edits = st.session_state.setdefault("output_edits", {})
     profiles = list(pdf_export_profile_options())
     profile_ids = [profile["id"] for profile in profiles]
-    labels = {profile["id"]: profile["label"] for profile in profiles}
+    labels = {profile["id"]: profile.get("selector_label") or profile["label"] for profile in profiles}
+    descriptions = {profile["id"]: profile.get("description", "") for profile in profiles}
+    use_cases = {profile["id"]: profile.get("use_case", "") for profile in profiles}
     current_id = str(output_edits.get("pdf_export_profile") or profile_ids[0])
     if current_id not in profile_ids:
         current_id = profile_ids[0]
     selected = st.selectbox(
-        "PDF version",
+        "Proposal profile",
         profile_ids,
         index=profile_ids.index(current_id),
         format_func=lambda value: labels.get(value, value),
-        help="Choose client, compact, or internal review export before creating the PDF.",
+        help="Choose the proposal/export profile before creating the PDF.",
     )
+    st.caption(" · ".join(part for part in (descriptions.get(selected, ""), use_cases.get(selected, "")) if part))
     if selected != output_edits.get("pdf_export_profile"):
         output_edits["pdf_export_profile"] = selected
-        clear_pdf_artifact("PDF version changed")
+        clear_pdf_artifact("Proposal profile changed")
 
 
 def _current_image_review_errors() -> tuple:

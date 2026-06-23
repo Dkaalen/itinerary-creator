@@ -37,7 +37,7 @@ def export_html_to_pdf(html_path, pdf_path):
         leftMargin=22 * mm,
         topMargin=24 * mm,
         bottomMargin=22 * mm,
-        title="Itinerary Preview",
+        title="Travel Itinerary",
         author="Itinerary Creator",
     )
     doc.allowSplitting = 1

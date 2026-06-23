@@ -70,7 +70,7 @@ def extract_pdf_palette(soup):
 
 def _footer_label(doc) -> str:
     title = str(getattr(doc, "title", "") or "").strip().upper()
-    if title in {"", "CLIENT PDF", "COMPACT CLIENT PDF", "INTERNAL REVIEW PDF"}:
+    if title in {"", "CLIENT PDF", "COMPACT CLIENT PDF", "INTERNAL REVIEW PDF", "ITINERARY PREVIEW"}:
         return "TRAVEL ITINERARY"
     return title
 

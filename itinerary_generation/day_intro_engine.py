@@ -228,8 +228,11 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "leisure_day":
         return leisure_description(city, []) if city else "Use the day at your own pace, with time to relax, explore independently or settle into the destination."
     if pattern == "multi_activity_day":
-        if "tallinn" in str(title or "").lower():
+        title_text = str(title or "").lower()
+        if "tallinn" in title_text:
             return "Cross from Helsinki to Tallinn for a focused day trip, with the ferry crossings kept as logistics and the main experience centred on Tallinn’s historic Old Town."
+        if "bergen" in (city or "").lower() and ("fløibanen" in title_text or "floibanen" in title_text or "walking" in title_text):
+            return "Bergen is explored on foot and from above today, pairing local stories around the historic harbour with the flexible mountain viewpoint of Fløyen."
         return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
     if pattern == "travel_day":
         mode = _travel_mode_from_title(title)
@@ -299,8 +302,14 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             if detail_level == "Rich descriptive":
                 return f"Your journey comes to a close in {city} today, with time for check-out before you continue your travels home."
             return f"Your journey comes to a close in {city} today before your journey home."
-        if "self-guided" in transfer_title or "self transfer" in transfer_title:
-            return f"After check-out, please make your own way to {city} Airport for your onward journey."
+        if (
+            "self-guided" in transfer_title
+            or "self transfer" in transfer_title
+            or "self-arranged" in transfer_title
+            or "self arranged" in transfer_title
+        ):
+            airport = _explicit_transfer_airport(day_rows) or f"{city} Airport"
+            return f"After check-out, please make your own way to {airport} for your onward journey."
         if detail_level == "Rich descriptive":
             airport = _explicit_transfer_airport(day_rows) or f"{city} Airport"
             return f"Your journey comes to a close today. After check-out, your arranged transfer will take you from your hotel to {airport} for your onward journey."

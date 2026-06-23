@@ -45,6 +45,10 @@ RAW_CLIENT_OUTPUT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("bad_transport_typo", r"\btranfers\b|\btrasfer\b|\btransffer\b|\btranfer\b|\brelased\b|\brelesed\b"),
     ("bad_flight_typo", r"\bFight\s*:"),
     ("date_dependant", r"\bdate dependant\b|\bdate dependent\b"),
+    (
+        "suspicious_am_pm_time_range",
+        r"\b12:[0-5]\d\s*a\.?m\.?\s*[-–—]\s*(?:1[0-2]|0?[1-9]):[0-5]\d\s*p\.?m\.?\b",
+    ),
 )
 
 
