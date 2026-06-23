@@ -57,5 +57,5 @@ def render_structured_input_review_panel(
         st.caption(f"Route: {resolved.route_text}")
         st.dataframe(_review_table_rows(resolved), hide_index=True, use_container_width=True)
 
-        with st.expander("Review summary", expanded=False):
-            st.code(format_structured_input_review(resolved), language=None)
+        st.caption("Review summary")
+        st.code(format_structured_input_review(resolved), language=None)

@@ -92,6 +92,8 @@ def test_input7_ui_sources_expose_review_table_and_metrics():
     assert "st.dataframe" in source
     assert "Parser confidence" in source
     assert "Rows to review" in source
+    assert source.count("st.expander(") == 1
+    assert 'st.expander("Review summary"' not in source
     assert "StructuredInputRowReview" in model_source
     assert "build_input_row_reviews" in model_source
     assert "suggested_fixes" in model_source
