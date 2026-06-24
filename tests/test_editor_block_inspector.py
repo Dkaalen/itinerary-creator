@@ -11,10 +11,15 @@ def _frontend_source() -> str:
             "styles/editor.css",
             "js/state.js",
             "js/images.js",
+            "js/editor_image_tools.js",
             "js/render.js",
             "js/editor_dirty_state.js",
             "js/editor_text_tools.js",
             "js/editor_document_model.js",
+            "js/editor_inspector_selection.js",
+            "js/editor_inspector_fields.js",
+            "js/editor_inspector_text_panel.js",
+            "js/editor_inspector_layout_panel.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
             "js/editor_warnings.js",
@@ -90,17 +95,21 @@ def test_right_inspector_exposes_pdf_safe_text_tools():
 
 
 
-def test_right_inspector_exposes_image_tools():
+def test_right_inspector_does_not_own_image_tools():
     source = _frontend_source()
+    inspector = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
+    images = Path("visual_editor_component/frontend/js/images.js").read_text(encoding="utf-8")
+    cover_tools = Path("visual_editor_component/frontend/js/editor_image_tools.js").read_text(encoding="utf-8")
 
-    assert "renderInspectorImageTools" in source
-    assert "selectedImageContext" in source
-    assert "inspectorImageFocus" in source
-    assert "inspectorImageBank" in source
-    assert "inspectorImageAutomaticBtn" in source
-    assert "inspectorImageManualBtn" in source
-    assert "inspectorImageRemoveBtn" in source
-    assert "inspectorImageUploadInput" in source
-    assert "Why this image" in source
-    assert "Quality warnings" in source
-    assert "image-tools-card" in source
+    assert "renderInspectorImageTools" not in source
+    assert "inspectorImageFocus" not in source
+    assert "inspectorImageBank" not in source
+    assert "Why this image" not in source
+    assert "Quality warnings" not in source
+    assert "Replacement image" in images
+    assert "data-img-action" in images
+    assert "data-cover-img-action" in cover_tools
+    assert "Upload" in images
+    assert "Use selected" in images
+    assert "Use selected" in cover_tools
+    assert "image-tools-card" not in inspector

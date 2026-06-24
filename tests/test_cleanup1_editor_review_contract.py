@@ -17,8 +17,8 @@ def test_cleanup1_keeps_review_navigation_logic_centralized():
 
 
 def test_cleanup1_selection_reveal_does_not_mutate_document_model():
-    inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
-    body = inspector_js.split("function revealSelectedInspectorTarget", 1)[1].split("function renderInspectorTextTools", 1)[0]
+    selection_js = _read("visual_editor_component/frontend/js/editor_inspector_selection.js")
+    body = selection_js.split("function revealSelectedInspectorTarget", 1)[1]
 
     assert "collect();" not in body
     assert "markTouched(" not in body

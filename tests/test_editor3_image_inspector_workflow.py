@@ -29,21 +29,23 @@ def test_canvas_image_controls_are_restored_to_hover_toolbar():
 
 
 def test_image_crop_focus_updates_without_full_redraw():
-    inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
+    image_handlers_js = _read("visual_editor_component/frontend/js/editor_image_event_handlers.js")
     state_js = _read("visual_editor_component/frontend/js/state.js")
 
     assert "function imageFocusLabel" in state_js
-    assert "function updateImagePreviewForContext" in inspector_js
-    assert "if (action === 'focus')" in inspector_js
-    assert "updateImagePreviewForContext(ctx);" in inspector_js
-    assert "draw();" in inspector_js
-
+    assert "data-img-focus" in image_handlers_js
+    assert "data-cover-img-focus" in image_handlers_js
+    assert "style.objectPosition = focusPos(sel.value)" in image_handlers_js
+    focus_section = image_handlers_js[image_handlers_js.index("document.querySelectorAll('[data-img-focus]')"):]
+    assert "draw();" not in focus_section
 
 def test_right_inspector_has_compact_selection_context():
+    selection_js = _read("visual_editor_component/frontend/js/editor_inspector_selection.js")
     inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
     css = read_resolved_frontend_css()
 
+    assert "renderInspectorSelectionCard" in selection_js
+    assert "Selection" in selection_js
     assert "renderInspectorSelectionCard" in inspector_js
-    assert "Selection" in inspector_js
     assert "selection-card" in css
     assert "canvas-image-tools" in css

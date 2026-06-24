@@ -31,6 +31,14 @@ function blockHasDirtyEdits(blockId) {
 function saveRecoveryPanelHtml() {
   return `<div id="saveRecoveryCard" class="save-recovery-card ${escAttr(saveState.state)}">
     <div><strong id="saveStatusLabel">${esc(saveStatusLabel())}</strong><span id="saveStatusDetail">${esc(saveStatusDetail())}</span></div>
-    <em id="saveServerStatus">${esc(saveState.serverSavedAt ? `Server autosaved ${humanTime(saveState.serverSavedAt)}` : 'Server autosave ready')}</em>
+    <em id="saveServerStatus">${esc(saveState.serverSavedAt ? `Server saved ${humanTime(saveState.serverSavedAt)}` : '')}</em>
+  </div>`;
+}
+
+function saveIssuePanelHtml() {
+  if (!(saveState.error || saveState.state === 'failed' || saveState.serverOk === false)) return '';
+  return `<div id="saveIssueCard" class="save-issue-card">
+    <strong>${esc(saveStatusLabel())}</strong>
+    <span>${esc(saveStatusDetail())}</span>
   </div>`;
 }

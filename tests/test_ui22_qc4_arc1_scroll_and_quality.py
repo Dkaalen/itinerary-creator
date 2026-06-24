@@ -159,12 +159,15 @@ def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():
     assert "max-width: calc(var(--page-w) - 260px)" in css
 
 
-def test_ui23_editor_toolbar_is_compact_but_keeps_advanced_status_available():
+def test_ui23_editor_toolbar_is_compact_and_moves_advanced_status_to_debug():
     source = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
     css = read_resolved_frontend_css()
 
     assert "toolbar-copy compact" in source
     assert "toolbar-legacy-label" in source
-    assert "${studioStatusStripHtml()}" in source
-    assert "Advanced tools" in source
+    assert "${studioStatusStripHtml()}" not in source
+    assert "Advanced tools" not in source
+    assert "${studioStatusStripHtml()}" in debug_js
+    assert "Advanced tools" in debug_js
     assert "grid-template-columns: minmax(180px, 1fr) auto" in css

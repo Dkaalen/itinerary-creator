@@ -26,7 +26,7 @@ const SAVE_STATUS_STALE_MS = 20000;
 let lastEditorInteractionAt = Date.now();
 let saveState = {
   state: 'ready',
-  message: 'Autosave ready',
+  message: 'Ready',
   lastSavedAt: 0,
   lastAttemptAt: 0,
   localDraftAt: 0,
@@ -54,7 +54,7 @@ function saveStatusLabel() {
   if (saveState.state === 'exporting') return 'Applying changes…';
   if (saveState.lastSavedAt) return `Saved ${humanTime(saveState.lastSavedAt)}`;
   if (saveState.serverSavedAt) return `Server saved ${humanTime(saveState.serverSavedAt)}`;
-  return saveState.message || 'Autosave ready';
+  return saveState.message || 'Ready';
 }
 function saveStatusDetail() {
   if (saveState.error) return saveState.error;
@@ -139,7 +139,7 @@ function updateSaveStatusUi() {
   const server = document.getElementById('saveServerStatus');
   if (server) {
     const ok = saveState.serverOk;
-    server.textContent = ok === false ? `Server issue: ${saveState.serverReason || 'check autosave'}` : (saveState.serverSavedAt ? `Server autosaved ${humanTime(saveState.serverSavedAt)}` : 'Server autosave ready');
+    server.textContent = ok === false ? `Server issue: ${saveState.serverReason || 'check autosave'}` : (saveState.serverSavedAt ? `Server saved ${humanTime(saveState.serverSavedAt)}` : '');
   }
 }
 function hydrateSaveStateFromPayload(payload) {

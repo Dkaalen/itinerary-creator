@@ -108,18 +108,26 @@ def test_cleanup_suite_image_only_editor_save_does_not_dirty_text():
 
 
 def test_cleanup_suite_editor_checks_are_canvas_first_without_client_qa_copy():
-    editor_source = "\n".join(
+    normal_editor_source = "\n".join(
         Path(path).read_text(encoding="utf-8")
         for path in (
             "visual_editor_component/frontend/js/render.js",
-            "visual_editor_component/frontend/js/editor_readiness.js",
             "visual_editor_component/frontend/js/images.js",
         )
     )
-    editor_source += "\n" + read_resolved_frontend_css()
+    debug_editor_source = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in (
+            "visual_editor_component/frontend/js/editor_readiness.js",
+            "visual_editor_component/frontend/js/editor_debug_shell.js",
+        )
+    )
+    editor_source = normal_editor_source + "\n" + debug_editor_source + "\n" + read_resolved_frontend_css()
 
-    assert "Document checks" in editor_source
-    assert "Export checks" in editor_source
+    assert "Document checks" not in normal_editor_source
+    assert "Export checks" not in normal_editor_source
+    assert "Document checks" in debug_editor_source
+    assert "Export checks" in debug_editor_source
     assert "Ready for client" not in editor_source
     assert "Client QA" not in editor_source
     assert "client-risk" not in editor_source

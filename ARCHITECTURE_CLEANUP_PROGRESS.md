@@ -77,15 +77,15 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [--------------------] 0%
-Critical editor/workflow cleanup:    [--------------------] 0%
+Overall architecture cleanup:        [##------------------] 12%
+Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [--------------------] 0%
 Streamlit workflow cleanup:          [--------------------] 0%
 CSS responsibility cleanup:          [--------------------] 0%
 Parser cleanup:                      [--------------------] 0%
 Generation cleanup:                  [--------------------] 0%
 PDF/images cleanup:                  [--------------------] 0%
-Architecture guards:                 [--------------------] 0%
+Architecture guards:                 [###-----------------] 15%
 ```
 
 Status legend:
@@ -99,7 +99,7 @@ Status legend:
 
 ## Current known issue to verify first
 
-[!] Right sidebar image tools may still be visible after generation.
+[x] Right sidebar image tools have been removed from the inspector/sidebar path.
 
 Observed unwanted sidebar block:
 
@@ -211,7 +211,7 @@ The first three batches are the highest value because they protect the actual us
 
 # Batch 1: Critical editor/workflow cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
 
 Goal:
 
@@ -219,9 +219,19 @@ Goal:
 Fix the visible editor/sidebar bloat and make it hard for it to return.
 ```
 
+Completed in Batch 1:
+
+```text
+[x] editor_inspector.js split into responsibility modules
+[x] sidebar image tools removed
+[x] image editing kept on canvas/image modules only
+[x] guard tests added for sidebar image bloat and normal shell bloat
+[x] normal editor shell debug/review/status clutter moved behind editor_debug_shell.js
+```
+
 ## Patch 1.1: Split `editor_inspector.js`
 
-Status: [ ]
+Status: [x]
 
 Current problem:
 
@@ -305,7 +315,7 @@ focused editor inspector tests
 
 ## Patch 1.2: Remove sidebar image tools permanently
 
-Status: [ ]
+Status: [x]
 
 Remove image-editing responsibilities from the right inspector entirely.
 
@@ -341,7 +351,7 @@ no image editing controls are lost from the image/canvas path
 
 ## Patch 1.3: Add guard tests against editor/sidebar bloat
 
-Status: [ ]
+Status: [x]
 
 Add tests that fail if normal editor/sidebar source contains forbidden image-sidebar strings.
 

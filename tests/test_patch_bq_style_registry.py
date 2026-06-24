@@ -50,7 +50,11 @@ def test_patch_bq_controlled_classes_have_single_registry_source():
 
 def test_patch_bq_frontend_uses_registry_for_toolbar_and_sanitizer():
     index_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
-    inspector_js = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
+    inspector_js = (
+        Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
+        + "\n"
+        + Path("visual_editor_component/frontend/js/editor_inspector_text_panel.js").read_text(encoding="utf-8")
+    )
     text_tools_js = Path("visual_editor_component/frontend/js/editor_text_tools.js").read_text(encoding="utf-8")
 
     assert '<script src="js/style_presets.js"></script>' in index_html

@@ -13,6 +13,7 @@ def _frontend_source() -> str:
             "js/images.js",
             "js/render.js",
             "js/editor_readiness.js",
+            "js/editor_debug_shell.js",
             "js/editor_dirty_state.js",
             "js/editor_text_tools.js",
             "js/editor_document_model.js",
@@ -34,6 +35,7 @@ def test_pdf_readiness_panel_surfaces_export_confidence_signals():
     assert "pdfReadinessPanelHtml" in source
     assert "pdfReadinessBadgeHtml" in source
     assert "Export checks" in source
+    assert "editorDebugReviewHtml" in source
     assert "unsaved_edits" in source
     assert "hiddenPageIssues" in source
     assert "pendingImagePreviewIssues" in source

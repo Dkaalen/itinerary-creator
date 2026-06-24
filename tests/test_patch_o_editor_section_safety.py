@@ -12,11 +12,16 @@ def _editor_html() -> str:
         "js/state.js",
         "js/style_presets.js",
         "js/images.js",
+        "js/editor_debug_shell.js",
         "js/render.js",
         "js/serialization.js",
         "js/editor_dirty_state.js",
             "js/editor_text_tools.js",
             "js/editor_document_model.js",
+            "js/editor_inspector_selection.js",
+            "js/editor_inspector_fields.js",
+            "js/editor_inspector_text_panel.js",
+            "js/editor_inspector_layout_panel.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
             "js/editor_warnings.js",
@@ -53,9 +58,12 @@ def test_editor_page_actions_collect_before_redraw_and_do_not_delete_nonempty_pa
 
 def test_editor_toolbar_keeps_daily_surface_simple_with_advanced_tools_hidden():
     html = _editor_html()
+    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
 
-    assert "Advanced tools" in html
-    assert "<details class=\"advanced-tools\">" in html
+    assert "Advanced tools" not in render_js
+    assert "Advanced tools" in debug_js
+    assert '<details class="advanced-tools">' in debug_js
     assert "Save changes" in html
     assert "Font" in html
     assert "Size" in html
@@ -63,7 +71,6 @@ def test_editor_toolbar_keeps_daily_surface_simple_with_advanced_tools_hidden():
     assert "Normal text" in html
     assert "Add note block" in html
     assert "Add divider" in html
-
 
 def test_editor_paste_preserves_clean_itinerary_structure_without_editor_artifacts():
     html = _editor_html()

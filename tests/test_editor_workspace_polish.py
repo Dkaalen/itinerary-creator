@@ -10,6 +10,11 @@ def _frontend_source() -> str:
         for relative in (
             "js/render.js",
             "js/editor_readiness.js",
+            "js/editor_debug_shell.js",
+            "js/editor_inspector_selection.js",
+            "js/editor_inspector_fields.js",
+            "js/editor_inspector_text_panel.js",
+            "js/editor_inspector_layout_panel.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
         )
@@ -17,8 +22,10 @@ def _frontend_source() -> str:
     return read_resolved_frontend_css() + "\n" + js_source
 
 
-def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
+def test_ui15_keeps_review_center_behind_debug_boundary():
     source = _frontend_source()
+    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
 
     assert "reviewCenterHtml" in source
     assert 'class="review-center"' in source
@@ -26,7 +33,9 @@ def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
     assert "review-center-grid" in source
     assert 'class="warning-panel"><summary>' in source
     assert 'class="pdf-readiness-panel ${escAttr(status.level)}"><summary>' in source
-    assert "${reviewCenterHtml()}" in source
+    assert "editorDebugReviewHtml" in render_js
+    assert "${reviewCenterHtml()}" not in render_js
+    assert "return reviewCenterHtml();" in debug_js
 
 
 def test_ui18_protects_canvas_with_internal_workspace_scroll():

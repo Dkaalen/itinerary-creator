@@ -15,11 +15,16 @@ def test_visual_editor_index_is_thin_asset_shell():
     assert '<script src="js/images.js"></script>' in index
     assert '<script src="js/editor_image_tools.js"></script>' in index
     assert '<script src="js/editor_readiness.js"></script>' in index
+    assert '<script src="js/editor_debug_shell.js"></script>' in index
     assert '<script src="js/render.js"></script>' in index
     assert '<script src="js/serialization.js"></script>' in index
     assert '<script src="js/editor_dirty_state.js"></script>' in index
     assert '<script src="js/editor_text_tools.js"></script>' in index
     assert '<script src="js/editor_document_model.js"></script>' in index
+    assert '<script src="js/editor_inspector_selection.js"></script>' in index
+    assert '<script src="js/editor_inspector_fields.js"></script>' in index
+    assert '<script src="js/editor_inspector_text_panel.js"></script>' in index
+    assert '<script src="js/editor_inspector_layout_panel.js"></script>' in index
     assert '<script src="js/editor_inspector.js"></script>' in index
     assert '<script src="js/editor_page_actions.js"></script>' in index
     assert '<script src="js/editor_warnings.js"></script>' in index
@@ -28,7 +33,7 @@ def test_visual_editor_index_is_thin_asset_shell():
     assert '<script src="js/streamlit_bridge.js"></script>' in index
     assert "<style>" not in index
     assert "function render(" not in index
-    assert len(index.splitlines()) <= 30
+    assert len(index.splitlines()) <= 36
 
 
 def test_visual_editor_frontend_assets_are_split_by_responsibility():
@@ -53,12 +58,17 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],
         "js/editor_readiness.js": ["function pdfReadinessStatus", "function reviewCenterHtml"],
+        "js/editor_debug_shell.js": ["function editorDebugModeEnabled", "function editorDebugToolbarHtml"],
         "js/render.js": ["function render(", "function draw()"],
         "js/serialization.js": ["function collect()", "function buildEditableDraftFromPayload", "function buildSaveEnvelope"],
         "js/editor_dirty_state.js": ["function markTouched", "function saveRecoveryPanelHtml"],
         "js/editor_text_tools.js": ["function insertCleanClipboardHtml", "function applyTextStylePreset"],
         "js/editor_document_model.js": ["function documentPages", "function manualPageFromTemplate"],
-        "js/editor_inspector.js": ["function renderRightInspector", "function renderInspectorTextTools"],
+        "js/editor_inspector_selection.js": ["function selectedInspectorMeta", "function renderInspectorSelectionCard"],
+        "js/editor_inspector_fields.js": ["function inspectorFieldEntriesForSelection", "function applyInspectorFieldEdit"],
+        "js/editor_inspector_text_panel.js": ["function renderInspectorTextTools", "inspectorFontFamilyPreset"],
+        "js/editor_inspector_layout_panel.js": ["function renderInspectorLayoutTools", "inspectorPageSpacing"],
+        "js/editor_inspector.js": ["function renderRightInspector", "function attachInspectorHandlers"],
         "js/editor_page_actions.js": ["function mergeInclusionPageUp", "function addManualPage"],
         "js/editor_warnings.js": ["function highlightWarnings", "function updateEditorStats"],
         "js/commands.js": ["window.visualEditorCommands", "Public command facade"],
@@ -81,7 +91,8 @@ def test_visual_editor_toolbar_uses_simple_default_actions():
     assert "Edit itinerary text" in render_js
     assert "Review itinerary with pictures" in render_js
     assert "Save changes" in render_js
-    assert "Advanced tools" in render_js
+    assert "Advanced tools" not in render_js
+    assert "Advanced tools" in (FRONTEND / "js/editor_debug_shell.js").read_text(encoding="utf-8")
     assert "Save for now" not in render_js
     assert "More edit tools" not in render_js
     assert "grid-template-columns: minmax(260px, 1fr) auto;" in css
@@ -97,7 +108,7 @@ def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
 
     assert "preview_data_uri" in payload
     assert "get_image_preview_for_path(path, option=True)" in payload
-    assert "selected.preview_data_uri || selected.data_uri" in inspector
+    assert "selected.preview_data_uri || selected.data_uri" not in inspector
     assert "selected.preview_data_uri || selected.data_uri" in image_handlers
     assert "Replacement selected — save to update preview" not in images
     assert "Save changes to refresh the preview image" not in inspector

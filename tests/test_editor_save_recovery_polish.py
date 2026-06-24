@@ -10,6 +10,7 @@ def _frontend_source() -> str:
             "js/state.js",
             "js/render.js",
             "js/editor_dirty_state.js",
+            "js/editor_debug_shell.js",
             "js/editor_text_tools.js",
             "js/editor_document_model.js",
             "js/editor_inspector.js",
@@ -29,7 +30,8 @@ def test_editor_exposes_save_and_recovery_status_panel():
     assert "save-recovery-card" in source
     assert "saveStatusLabel" in source
     assert "saveStatusDetail" in source
-    assert "Server autosave ready" in source
+    assert "Server autosave ready" not in source
+    assert "saveIssuePanelHtml" in source
 
 
 def test_editor_surfaces_local_recovery_and_failed_send_states():
@@ -51,7 +53,7 @@ def test_editor_marks_dirty_pages_and_blocks():
     assert "dirtyKeysForBlock" in source
     assert "pageHasDirtyEdits" in source
     assert "blockHasDirtyEdits" in source
-    assert "dirty-dot" in source
+    assert "outline-status dirty" in source
     assert "studioDirtyPagesMetric" in source
 
 

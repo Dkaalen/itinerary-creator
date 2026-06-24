@@ -95,7 +95,8 @@ def test_ui21_default_inspector_stays_canvas_first_without_sidebar_text_editor()
     render_body = inspector_js[render_start:render_end]
 
     assert "renderInspectorTextTools" in render_body
-    assert "renderInspectorImageTools" in render_body
+    assert "renderInspectorImageTools" not in render_body
+    assert "inspectorImage" not in render_body
     assert "renderInspectorFieldEditor" not in render_body
     assert "renderInspectorCompareTools" not in render_body
     assert "renderSourceRows" not in render_body
