@@ -236,7 +236,7 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
         if "tallinn" in title_text:
             return "Cross from Helsinki to Tallinn for a focused day trip, with the ferry crossings kept as logistics and the main experience centred on Tallinn’s historic Old Town."
         if "bergen" in (city or "").lower() and ("fløibanen" in title_text or "floibanen" in title_text or "walking" in title_text):
-            return "Bergen is explored on foot and from above today, pairing local stories around the historic harbour with the flexible mountain viewpoint of Fløyen."
+            return "Explore Bergen in two parts today, beginning with local stories around the historic harbour before using Fløibanen for flexible time above the city at Mount Fløyen."
         return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
     if pattern == "travel_day":
         mode = _travel_mode_from_title(title)

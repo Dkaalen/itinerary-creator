@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
+from shared.commercial_markers import has_self_transfer_marker
 from itinerary_generation.content_engine import clean_client_title
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine, RenderSection
@@ -195,12 +196,11 @@ def _self_transfer_source_text(row) -> str:
     details = clean_space(row.get("details", ""))
     original_title = clean_space(row.get("original_title", ""))
 
-    self_transfer_marker = re.compile(r"\bself[-\s]*(?:transfer|arranged\s+transfer)\b", re.IGNORECASE)
-    if title and self_transfer_marker.search(title):
+    if title and has_self_transfer_marker(title):
         source = title
-    elif details and self_transfer_marker.search(details):
+    elif details and has_self_transfer_marker(details):
         source = details
-    elif original_title and self_transfer_marker.search(original_title):
+    elif original_title and has_self_transfer_marker(original_title):
         source = original_title
     else:
         source = get_transport_source_text(row)
@@ -218,7 +218,7 @@ def _self_transfer_source_text(row) -> str:
 def _self_transfer_lines(row):
     text = _self_transfer_source_text(row)
     lower = text.lower()
-    if "self transfer" not in lower and "self-arranged transfer" not in lower:
+    if not has_self_transfer_marker(lower):
         return []
     notes = split_self_transfer_notes(text)
     city = clean_space(row.get("city", ""))

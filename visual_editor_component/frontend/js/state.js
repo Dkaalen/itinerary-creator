@@ -21,7 +21,9 @@ let editorScrollSnapshot = {top: 0, left: 0, pageId: '', blockId: '', editKey: '
 let suppressNextScrollRestore = false;
 const SERVER_AUTOSAVE_DELAY_MS = 12000;
 const SERVER_AUTOSAVE_MIN_INTERVAL_MS = 9000;
+const AUTOSAVE_IDLE_GRACE_MS = 2500;
 const SAVE_STATUS_STALE_MS = 20000;
+let lastEditorInteractionAt = Date.now();
 let saveState = {
   state: 'ready',
   message: 'Autosave ready',
@@ -64,6 +66,12 @@ function saveStatusDetail() {
   if (saveState.serverOk === false) return saveState.serverReason || 'Last server autosave was rejected.';
   const savedAt = humanTime(saveState.lastSavedAt || saveState.serverSavedAt || saveState.localDraftAt);
   return savedAt ? `Last recovery snapshot: ${savedAt}` : 'Local recovery is ready.';
+}
+function noteEditorInteraction() {
+  lastEditorInteractionAt = Date.now();
+}
+function editorIsActivelyInUse(now = Date.now()) {
+  return now - lastEditorInteractionAt < AUTOSAVE_IDLE_GRACE_MS;
 }
 function updateSaveState(state, extras = {}) {
   saveState = Object.assign({}, saveState, extras, {state});

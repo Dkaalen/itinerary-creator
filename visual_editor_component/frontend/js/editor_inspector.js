@@ -384,11 +384,13 @@ function setImageRemoved(ctx) {
 function setImageManualPath(ctx, path) {
   if (!ctx?.image || !path) return false;
   const selected = (Array.isArray(ctx.image.options) ? ctx.image.options : []).find(opt => opt.path === path) || {};
+  const previewDataUri = selected.preview_data_uri || selected.data_uri || '';
   ctx.image.mode = 'manual';
   ctx.image.path = path;
-  ctx.image.data_uri = '';
+  ctx.image.data_uri = previewDataUri;
   ctx.image.name = selected.name || path.split('/').pop() || '';
-  ctx.image.pending_preview = true;
+  ctx.image.pending_preview = !previewDataUri;
+  ctx.image.pending_save = true;
   markTouched(ctx.fieldKey);
   return true;
 }
@@ -448,7 +450,7 @@ function renderInspectorImageTools(fieldKey) {
   const upload = ctx.supportsUpload
     ? `<label class="upload-label inspector-upload-label">Upload<input type="file" accept="image/png,image/jpeg,image/webp" id="inspectorImageUploadInput"></label>`
     : '<p class="inspector-mini-note">Upload is currently available on day images. Cover/page-2 images can use the curated replacement list.</p>';
-  const pending = image.pending_preview ? '<p class="inspector-mini-note pending-preview-note">Replacement selected. Save changes to refresh the preview image.</p>' : '';
+  const pending = image.pending_preview ? '<p class="inspector-mini-note pending-preview-note">Unsaved image change. Save changes to keep this replacement.</p>' : '';
   return `<div class="inspector-card image-tools-card"><div class="inspector-kicker">Image tools</div>
     <strong>${esc(ctx.label)}</strong>
     <dl><dt>Mode</dt><dd>${esc(imageModeLabel(image))}</dd><dt>Crop</dt><dd>${esc(imageFocusLabel(focus))}</dd><dt>Name</dt><dd>${esc(image.name || image.auto_name || '—')}</dd></dl>

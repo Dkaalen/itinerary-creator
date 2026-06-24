@@ -66,3 +66,29 @@ def test_visual_editor_toolbar_uses_simple_default_actions():
     assert "grid-template-columns: minmax(260px, 1fr) auto;" in css
     assert "max-width: 1060px;" in css
     assert ".advanced-tools .toolbar-tools" in css
+
+
+def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
+    inspector = (FRONTEND / "js/editor_inspector.js").read_text(encoding="utf-8")
+    editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
+    images = (FRONTEND / "js/images.js").read_text(encoding="utf-8")
+    payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
+
+    assert "preview_data_uri" in payload
+    assert "get_image_preview_for_path(path, option=True)" in payload
+    assert "selected.preview_data_uri || selected.data_uri" in inspector
+    assert "selected.preview_data_uri || selected.data_uri" in editing
+    assert "Replacement selected — save to update preview" not in images
+    assert "Save changes to refresh the preview image" not in inspector
+
+
+def test_server_autosave_waits_for_editor_idle_instead_of_interrupting_scroll():
+    state = (FRONTEND / "js/state.js").read_text(encoding="utf-8")
+    editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
+
+    assert "AUTOSAVE_IDLE_GRACE_MS" in state
+    assert "function noteEditorInteraction" in state
+    assert "function editorIsActivelyInUse" in state
+    assert "editorIsActivelyInUse(now)" in editing
+    assert "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)" in editing
+    assert "addEventListener('scroll', noteEditorInteraction" in editing

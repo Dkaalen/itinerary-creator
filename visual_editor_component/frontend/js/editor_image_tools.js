@@ -10,7 +10,7 @@ function coverImageControls(key, label, image) {
   const options = typeof imageToolbarOptionsHtml === 'function' ? imageToolbarOptionsHtml(img) : '';
   const hasOptions = !!options;
   const focusOptions = typeof imageFocusOptionsHtml === 'function' ? imageFocusOptionsHtml(img.crop_focus) : '';
-  const pending = img.pending_preview ? '<span class="image-pending-chip">Save to refresh</span>' : '';
+  const pending = img.pending_preview ? '<span class="image-pending-chip">Unsaved image</span>' : '';
   return `<div class="cover-image-panel canvas-image-tools" data-cover-image-key="${esc(key)}"${imageBlockAttrs}>
     <strong>${esc(label)}</strong>
     <span class="image-crop-chip">${esc(imageFocusLabel(img.crop_focus))}</span>

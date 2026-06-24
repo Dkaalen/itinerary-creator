@@ -156,7 +156,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
     for day, rows in grouped_days.items():
         intro = create_day_intro(rows, detail_level=edits["detail_level"], visit_context=visit_contexts.get(str(day)))
         edits["days"][day] = {
-            "title": create_day_title(rows),
+            "title": create_day_title(rows, visit_context=visit_contexts.get(str(day))),
             "intro": intro,
             "intro_generated_value": intro,
             "intro_generator_version": INTRO_GENERATOR_VERSION,

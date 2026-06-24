@@ -18,8 +18,13 @@ from itinerary_generation.transport import (
 from place_aliases import country_for_place
 from text_polish import polish_title
 
-def create_day_title(day_rows):
+def create_day_title(day_rows, *, visit_context=None):
     city = get_primary_city(day_rows)
+
+    def arrival_title() -> str:
+        if getattr(visit_context, "is_return_visit", False) and city:
+            return f"Return to {city}"
+        return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
@@ -32,13 +37,13 @@ def create_day_title(day_rows):
         return f"Departure from {city}"
 
     if has_arrival and city:
-        return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
+        return arrival_title()
 
     # Colleague format often starts with a transfer + hotel, without an explicit
     # Arrival row. Treat airport/city-centre transfer + accommodation as arrival
     # before allowing the transfer text to become the title.
     if hotel_present and not activity_rows and has_airport_arrival_transfer(day_rows) and city:
-        return f"Welcome to {country_for_place(city) or city}" if country_for_place(city) == "Iceland" else f"Welcome to {city}"
+        return arrival_title()
 
     group_tour_title = group_tour_day_title(day_rows)
     if group_tour_title:
@@ -105,7 +110,7 @@ def create_day_title(day_rows):
                     if re.search(r"glass\s+igloo|santa'?s\s+igloos|igloo\s+with\s+alcove", hotel_text, flags=re.IGNORECASE):
                         return "Glass Igloo Stay in Rovaniemi"
                     if city:
-                        return f"Welcome to {city}"
+                        return arrival_title()
 
                 if title:
                     if item_type == "Leisure" and city:

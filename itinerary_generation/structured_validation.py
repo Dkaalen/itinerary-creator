@@ -11,6 +11,7 @@ import re
 from collections import Counter, defaultdict
 
 from itinerary_generation.structured_model import ItineraryDocument, ModelWarning, SourceRowRef, StructuredListItem
+from shared.commercial_markers import has_self_transfer_marker
 
 _REVIEW_KIND_COVERAGE = {"activity", "accommodation"}
 _INCLUDED_STATUSES = {"", "included"}
@@ -111,7 +112,7 @@ def _source_requires_exclusion_coverage(source: SourceRowRef) -> bool:
     text = "\n".join(
         value for value in (source.original_title, source.raw_text, source.title) if str(value or "").strip()
     ).lower()
-    if "self transfer" in text or "self arranged" in text or "self-arranged" in text:
+    if has_self_transfer_marker(text) or "self arranged" in text or "self-arranged" in text:
         return True
     return bool(re.search(
         r"\b(?:price\s+not\s+included|cost\s+not\s+included|not\s+in(?:cl|lc)uded\s*[:?]|to\s+be\s+bought\s+on\s+site|paid\s+locally|pay\s+locally)\b",

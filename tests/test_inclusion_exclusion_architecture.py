@@ -169,3 +169,51 @@ def test_rental_safety_deposit_is_specific_cost_not_raw_rental_pickup():
     assert "Rental vehicle safety deposit" in text
     assert "Pick-up Rental vehicle from Office or Airport" not in text
 
+
+
+def test_self_transfer_typo_is_excluded_not_included_transport():
+    from itinerary_generation.inclusion_sections import create_categorized_inclusions
+    from itinerary_generation.exclusion_sections import create_structured_whats_not_included
+
+    rows = [
+        {
+            "row_id": "transfer-typo",
+            "day": "Day 9",
+            "type": "Transfer",
+            "effective_type": "Transfer",
+            "city": "Ålesund",
+            "title": "Self trnasfer to your accommodation",
+            "details": "Ålesund: Self trnasfer to your accommodation",
+            "start_date": "2026-08-09",
+        },
+        {
+            "row_id": "flight-1",
+            "day": "Day 9",
+            "type": "Flight",
+            "effective_type": "Flight",
+            "city": "Bergen",
+            "title": "Flight from Bergen to Ålesund",
+            "details": "Flight from Bergen to Ålesund - Includes: Tickets",
+            "start_date": "2026-08-09",
+            "includes": ["Tickets"],
+        },
+    ]
+
+    included_sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    included_text = "\n".join(
+        [section["title"] for section in included_sections]
+        + [item for section in included_sections for item in section.get("items", [])]
+    )
+    assert "Other arranged transport" not in included_text
+    assert "Self trnasfer" not in included_text
+    assert "Self transfer" not in included_text
+    assert "Flight from Bergen to Ålesund" in included_text
+
+    exclusions = create_structured_whats_not_included(rows)
+    exclusion_text = "\n".join(
+        [section["title"] for section in exclusions]
+        + [item["label"] for section in exclusions for item in section.get("items", [])]
+    )
+    assert "Self transfers" in exclusion_text
+    assert "Self-arranged transfer to your accommodation - 9th of August" in exclusion_text
+    assert "trnasfer" not in exclusion_text.lower()

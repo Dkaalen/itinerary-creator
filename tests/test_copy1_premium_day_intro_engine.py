@@ -47,3 +47,64 @@ def test_copy1_departure_copy_respects_self_arranged_transfer():
 
     assert "make your own way to Oslo Airport" in intro
     assert "arranged transfer" not in intro
+
+
+def test_copy1_bergen_walking_floibanen_intro_is_not_stale_formula():
+    rows = parse_itinerary(
+        "\n".join(
+            [
+                "Day 8\tActivity\t08.08.2026\t\tBergen: Guided Walking Tour of Bergen Past & Present - Time: 10:00 am - 12:00 pm - Meeting point: Bradbenken 1 - Includes: Professional Guide",
+                "Day 8\tActivity\t08.08.2026\t\tBergen: Fløybanen Funicular Experience - Time: Flexible - Meeting point: Fløybanen - Includes: Tickets valid for the day",
+            ]
+        )
+    )
+
+    intro = create_day_intro(rows, "Rich descriptive")
+
+    assert "Bergen comes into focus" in intro
+    assert "Bergen is explored on foot and from above today" not in intro
+
+
+def test_copy1_return_visit_title_refreshes_with_return_copy():
+    rows = parse_itinerary(
+        "\n".join(
+            [
+                "Day 1\tArrival\t01.08.2026\t\tOslo: Welcome to Norway",
+                "Day 1\tHotel\t01.08.2026\t03.08.2026\tOslo: Check in to your accommodation for a 2 night stay - Thon Hotel Opera - Breakfast included",
+                "Day 2\tTrain\t03.08.2026\t\tOslo: Scenic Train Transfer to Bergen - Time: 11:23 am - 3:53 pm - Includes: Tickets",
+                "Day 3\tTransfer\t11.08.2026\t\tOslo: Self transfer to your accommodation",
+                "Day 3\tHotel\t11.08.2026\t12.08.2026\tOslo: Check in to your accommodation for a 1 night stay - Thon Hotel Opera - Breakfast included",
+            ]
+        )
+    )
+
+    context = build_itinerary_render_context(rows, group_rows_by_day(rows), {})
+    titles = {day.day: day.title for day in context.render_document.days}
+    intros = {day.day: day.intro for day in context.render_document.days}
+
+    assert titles["Day 3"] == "Return to Oslo"
+    assert not intros["Day 3"].startswith("Welcome to Oslo.")
+    assert "first impressions" not in intros["Day 3"].lower()
+
+
+def test_copy1_geiranger_one_way_duration_not_shown_as_total_activity_duration():
+    from itinerary_generation.canonical_activity import canonical_activity_block
+
+    row = {
+        "row_id": "geiranger-1",
+        "type": "Activity",
+        "effective_type": "Activity",
+        "city": "Ålesund",
+        "title": "Round Trip Fjord Cruise to Geiranger",
+        "time": "08:30 am - 6:00 pm",
+        "duration": "3 hours",
+        "details": "Description: In just 3 hours one-way, take in dramatic landscapes.",
+        "client_description": "In just 3 hours one-way, take in dramatic landscapes.",
+        "includes": ["Return tickets Ålesund - Geiranger - Ålesund", "scenic fjord cruise"],
+    }
+
+    block = canonical_activity_block(row)
+    meta = {(line.label, line.value) for line in block.meta}
+
+    assert ("Time", "8:30 AM - 6:00 PM") in meta
+    assert all(not (label == "Duration" and value == "3 hours") for label, value in meta)

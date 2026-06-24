@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from text_polish import polish_title
+from shared.commercial_markers import has_self_transfer_marker
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.transport_domain.titles import get_transport_route_phrase, get_transfer_travel_title
@@ -21,7 +22,7 @@ def row_search_text(row: dict) -> str:
 
 
 def is_self_transfer_row(row: dict) -> bool:
-    return "self transfer" in row_search_text(row)
+    return has_self_transfer_marker(row_search_text(row))
 
 
 def is_flight_row(row: dict) -> bool:

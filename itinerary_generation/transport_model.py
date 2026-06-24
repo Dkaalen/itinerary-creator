@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
+from shared.commercial_markers import has_self_transfer_marker
 
 
 TRANSPORT_CORE_FIELDS: tuple[str, ...] = ("title", "details")
@@ -75,7 +76,7 @@ def has_local_transfer_marker(text: str) -> bool:
     """True when text describes local/private/self-transfer logistics."""
 
     lower = str(text or "").lower()
-    return any(marker in lower for marker in LOCAL_TRANSFER_MARKERS)
+    return has_self_transfer_marker(lower) or any(marker in lower for marker in LOCAL_TRANSFER_MARKERS)
 
 
 def is_cruise_leisure_row(row: dict) -> bool:

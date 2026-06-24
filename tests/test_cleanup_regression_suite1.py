@@ -71,7 +71,10 @@ def test_cleanup_suite_return_visit_copy_is_itinerary_level():
 
     document = build_render_document(rows, grouped)
     intros = {day.day: day.intro for day in document.days}
+    titles = {day.day: day.title for day in document.days}
 
+    assert titles["Day 1"] == "Welcome to Oslo"
+    assert titles["Day 3"] == "Return to Oslo"
     assert intros["Day 1"].startswith("Welcome to Oslo.")
     assert intros["Day 3"].startswith("Return to Oslo.")
     assert "first impressions" not in intros["Day 3"].lower()

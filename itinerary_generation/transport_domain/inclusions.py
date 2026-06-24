@@ -6,6 +6,7 @@ from place_aliases import canonicalize_place_name
 from text_polish import polish_inclusion_item, polish_title
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
+from shared.commercial_markers import has_self_transfer_marker
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transport_route_phrase, get_transfer_travel_title
@@ -20,7 +21,7 @@ from itinerary_generation.inclusion_utils import add_unique, clean, join_detail_
 
 def is_self_transfer_row(row: dict) -> bool:
     text = get_transport_source_text(row, TRANSPORT_CORE_FIELDS).lower()
-    return get_row_type(row) == "Transfer" and "self transfer" in text
+    return get_row_type(row) == "Transfer" and has_self_transfer_marker(text)
 
 
 def is_cruise_leisure_row(row: dict) -> bool:
@@ -74,7 +75,7 @@ def transport_bucket(row: dict) -> str:
     row_type = get_row_type(row)
     if "private" in text and row_type in {"Transfer", "Arrival", "Departure"} and not is_route_transfer(row):
         return "Private transfers"
-    if "self-guided" in text or "self transfer" in text:
+    if "self-guided" in text or has_self_transfer_marker(text):
         return ""
     if resolve_nutshell_journey(row) is not None:
         return "Scenic rail & fjord journeys"

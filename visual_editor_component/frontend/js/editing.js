@@ -27,6 +27,10 @@ function sendServerAutosaveNow() {
     scheduleServerAutosave(SERVER_AUTOSAVE_MIN_INTERVAL_MS);
     return;
   }
+  if (editorIsActivelyInUse(now)) {
+    scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS);
+    return;
+  }
   const serialized = buildServerAutosaveEnvelope();
   if (serialized === lastServerAutosavePayload) return;
   serverAutosaveInFlight = true;
@@ -88,6 +92,11 @@ function saveChanges(commitNonce = null) {
 }
 
 function attachHandlers() {
+  const stack = pageStackElement();
+  stack?.addEventListener('scroll', noteEditorInteraction, {passive: true});
+  document.querySelector('.editor-shell')?.addEventListener('pointerdown', noteEditorInteraction, {passive: true});
+  document.querySelector('.editor-shell')?.addEventListener('keydown', noteEditorInteraction, {passive: true});
+  document.querySelector('.editor-shell')?.addEventListener('input', noteEditorInteraction, {passive: true});
   document.getElementById('saveBtn').addEventListener('click', () => saveChanges());
   document.getElementById('undoBtn')?.addEventListener('click', undoLastEdit);
   document.getElementById('resetBlockBtn')?.addEventListener('click', resetSelectedBlock);
@@ -275,11 +284,13 @@ function attachHandlers() {
         const sel = document.querySelector(`[data-cover-img-bank="${CSS.escape(key)}"]`);
         if (sel && sel.value) {
           const selected = (image.options || []).find(opt => opt.path === sel.value) || {};
+          const previewDataUri = selected.preview_data_uri || selected.data_uri || '';
           image.mode = 'manual';
           image.path = sel.value;
-          image.data_uri = '';
+          image.data_uri = previewDataUri;
           image.name = selected.name || sel.options[sel.selectedIndex]?.text || '';
-          image.pending_preview = true;
+          image.pending_preview = !previewDataUri;
+          image.pending_save = true;
         }
       }
       captureEditorScrollState(`cover-image-${action}`);
@@ -325,11 +336,13 @@ function attachHandlers() {
         const sel = document.querySelector(`[data-img-bank="${idx}"]`);
         if (sel && sel.value) {
           const selected = (day.image.options || []).find(opt => opt.path === sel.value) || {};
+          const previewDataUri = selected.preview_data_uri || selected.data_uri || '';
           day.image.mode = 'manual';
           day.image.path = sel.value;
-          day.image.data_uri = '';
+          day.image.data_uri = previewDataUri;
           day.image.name = selected.name || sel.options[sel.selectedIndex]?.text || '';
-          day.image.pending_preview = true;
+          day.image.pending_preview = !previewDataUri;
+          day.image.pending_save = true;
         }
       }
       captureEditorScrollState(`day-image-${idx}-${action}`);

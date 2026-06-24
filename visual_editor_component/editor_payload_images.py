@@ -13,6 +13,17 @@ from images.app_image_selection import (
 from itinerary_generation.cover_assets import resolve_cover_background
 
 
+def _with_option_previews(options):
+    enriched = []
+    for option in options or []:
+        item = dict(option or {})
+        path = item.get("path")
+        if path and not item.get("preview_data_uri"):
+            item["preview_data_uri"] = get_image_preview_for_path(path, option=True)
+        enriched.append(item)
+    return enriched
+
+
 def _editor_cover_image_payload(parsed_rows, output_edits, key: str, *, pictures_added: bool) -> dict:
     image = resolve_cover_background(parsed_rows, output_edits, key=key, include_image_data=False)
     if not pictures_added:
@@ -23,6 +34,7 @@ def _editor_cover_image_payload(parsed_rows, output_edits, key: str, *, pictures
         image["data_uri"] = get_image_preview_for_path(image.get("path"))
     if image.get("auto_path"):
         image["auto_data_uri"] = get_image_preview_for_path(image.get("auto_path"))
+    image["options"] = _with_option_previews(image.get("options") or [])
     return image
 
 
@@ -45,7 +57,7 @@ def build_day_image_payload(day, rows, output_edits, *, pictures_added: bool, im
         match = image_matches.get(day)
         image_path = match.get("path") if match else ""
         preview_data_uri = get_image_preview_for_path(image_path) if image_path else ""
-        options = list_replacement_image_options_for_rows(day, rows, limit=12)
+        options = _with_option_previews(list_replacement_image_options_for_rows(day, rows, limit=12))
         return {
             "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
             "path": image_path or "",

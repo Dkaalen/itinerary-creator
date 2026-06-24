@@ -77,10 +77,13 @@ def generated_day_values(
     city = group_city or get_primary_city(rows)
     if not city and any(get_row_type(row) == "Cruise" for row in rows or []):
         city = "Cruise"
+    generated_title = group_title or plan.title or create_day_title(rows, visit_context=visit_context)
+    if getattr(visit_context, "is_return_visit", False) and city and generated_title.lower().startswith((f"welcome to {city}".lower(), f"arrival in {city}".lower())):
+        generated_title = f"Return to {city}"
     return {
         "label": str(day),
         "date": get_day_date_text(rows),
-        "title": group_title or plan.title or create_day_title(rows),
+        "title": generated_title,
         "city": city,
         "intro": intro,
     }
@@ -115,6 +118,14 @@ def resolve_day_content(
             if isinstance(owner, Mapping) and field in owner:
                 value = _text(owner.get(field, ""))
                 if value:
+                    if (
+                        field == "title"
+                        and owner is day_edits
+                        and getattr(visit_context, "is_return_visit", False)
+                        and generated_value.lower().startswith("return to ")
+                        and value.lower().startswith(("welcome to ", "arrival in "))
+                    ):
+                        return _text(generated_value)
                     return value
         return _text(generated_value)
 

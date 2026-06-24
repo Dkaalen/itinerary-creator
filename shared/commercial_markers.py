@@ -6,9 +6,15 @@ future validation layers can agree on the same supplier wording policy.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 SELF_ARRANGED_MARKERS: tuple[str, ...] = (
+    "self transfer",
+    "self trnasfer",
+    "self trasfer",
+    "self trasnfer",
+    "self transffer",
     "self arranged",
     "self arrnaged",
     "self arrnage",
@@ -41,7 +47,15 @@ def normalize_commercial_text(*values: Any) -> str:
     """Return compact lower-case text for commercial-status matching."""
 
     text = " ".join(str(value or "") for value in values).lower().replace("-", " ")
+    text = re.sub(r"\btrnasfer\b|\btrasfer\b|\btrasnfer\b|\btransffer\b|\btranfer\b", "transfer", text)
     return " ".join(text.replace(",", " ").split())
+
+
+def has_self_transfer_marker(*values: Any) -> bool:
+    """Return whether text describes a self-arranged local transfer."""
+
+    compact = normalize_commercial_text(*values)
+    return bool(re.search(r"\bself\s+transfer\b|\bself\s+arranged\s+transfer\b", compact))
 
 
 def has_self_arranged_marker(*values: Any) -> bool:
@@ -49,6 +63,6 @@ def has_self_arranged_marker(*values: Any) -> bool:
 
     compact = normalize_commercial_text(*values)
     squashed = compact.replace(" ", "")
-    return any(marker in compact for marker in SELF_ARRANGED_MARKERS) or any(
+    return has_self_transfer_marker(compact) or any(marker in compact for marker in SELF_ARRANGED_MARKERS) or any(
         marker in squashed for marker in SELF_ARRANGED_SQUASHED_MARKERS
     )

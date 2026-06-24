@@ -42,7 +42,7 @@ RAW_CLIENT_OUTPUT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("raw_self_transfer_case", r"\bself Transfer\b|\bSelf Transfer\b"),
     ("transport_shorthand", r"\bPrivate Hotel to\b|\bPrivate Airport to\b|\bPrivate Station to\b|\bPrivate Bustation to\b"),
     ("supplier_future", r"\bwill be relased\b|\bwill be released\b|\bwill be advised\b|\bdetails to follow\b"),
-    ("bad_transport_typo", r"\btranfers\b|\btrasfer\b|\btransffer\b|\btranfer\b|\brelased\b|\brelesed\b"),
+    ("bad_transport_typo", r"\btranfers\b|\btrnasfer\b|\btrasfer\b|\btrasnfer\b|\btransffer\b|\btranfer\b|\brelased\b|\brelesed\b"),
     ("bad_flight_typo", r"\bFight\s*:"),
     ("date_dependant", r"\bdate dependant\b|\bdate dependent\b"),
     (
@@ -54,6 +54,7 @@ RAW_CLIENT_OUTPUT_PATTERNS: tuple[tuple[str, str], ...] = (
 
 COMMON_TEXT_REWRITES: tuple[tuple[str, str], ...] = (
     (r"\btranfers\b|\btrasfer\b|\btransffer\b|\btranfer\b", "transfers"),
+    (r"\btrnasfer\b|\btrasnfer\b", "transfer"),
     (r"\brelased\b|\brelesed\b", "released"),
     (r"\bbrekafast\b|\bbreakfest\b", "breakfast"),
     (r"\baccomodation\b|\baccommondation\b", "accommodation"),

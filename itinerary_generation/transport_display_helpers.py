@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_self_arranged
 from itinerary_generation.transport import is_route_transfer
+from shared.commercial_markers import has_self_transfer_marker
 from itinerary_generation.render_text_helpers import normalize_list
 
 
@@ -15,7 +16,7 @@ def is_self_transfer(row):
     row_type = get_row_type(row)
     text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
 
-    return row_type == "Transfer" and "self transfer" in text
+    return row_type == "Transfer" and has_self_transfer_marker(text)
 
 
 def is_tallinn_ferry_day_trip(row):

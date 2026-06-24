@@ -37,6 +37,16 @@ def _activity_time_label(row: dict, time_display: str) -> str:
     return "Time"
 
 
+def _suppress_duration_when_time_range_is_clear(row: dict, time_display: str, duration: str) -> bool:
+    source = f"{row.get('title', '')} {row.get('original_title', '')} {row.get('details', '')} {row.get('client_description', '')}".lower()
+    duration_text = str(duration or "").lower()
+    if not time_display or " - " not in time_display or not duration_text:
+        return False
+    # Fjord/ferry day trips often mention a one-way sailing time in supplier
+    # prose. When the actual activity already has a full start/end time, showing
+    # the one-way value as the total duration is misleading.
+    return bool(re.search(r"\bone[- ]way\b|\bper\s+direction\b", source))
+
 
 def _format_clock_time(value: str) -> str:
     match = re.fullmatch(r"(\d{1,2}):(\d{2})", str(value or "").strip())
@@ -137,7 +147,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
             if time_display:
                 meta.append(CanonicalMetaLine(_activity_time_label(row, time_display), time_display))
 
-    if duration and not _is_fløibanen(title):
+    if duration and not _is_fløibanen(title) and not _suppress_duration_when_time_range_is_clear(row, time_display if 'time_display' in locals() else display_time_with_duration(time, duration), duration):
         meta.append(CanonicalMetaLine(get_activity_duration_label(row, duration), format_duration_display(duration)))
     if _is_fløibanen(title):
         meta.append(CanonicalMetaLine("Ticket", "Round-trip funicular ticket valid for a flexible visit to Mount Fløyen during the day."))
