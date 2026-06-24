@@ -1,0 +1,31 @@
+/* Visual editor base document and control styles. */
+/* Visual editor foundation styles: variables, shell, toolbar, controls. */
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(0, 111, 107, .10), transparent 32rem),
+        linear-gradient(180deg, #fffdf8 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+button, select, input[type="text"] {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--ink);
+      min-height: 34px;
+      padding: 7px 12px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: transform .12s ease, box-shadow .12s ease, filter .12s ease; }
+    button.primary { background: var(--accent); border-color: rgba(0,0,0,0.08); color: white; box-shadow: 0 9px 18px rgba(0,111,107,.18); }
+    button.ghost { background: #ffffff; }
+    button.danger { background: rgba(173,52,52,0.12); border-color: rgba(173,52,52,0.45); color: #7a1c1c; }
+    button:hover:not(:disabled), select:hover:not(:disabled) { filter: brightness(1.06); }
+    button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(23,32,51,.09); }
+    button:disabled, select:disabled, input:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; }
+    button:focus-visible, select:focus-visible, input:focus-visible, [contenteditable="true"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

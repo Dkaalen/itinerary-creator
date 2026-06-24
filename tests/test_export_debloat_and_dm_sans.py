@@ -34,7 +34,7 @@ def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default(
     font_ids = [font.get("id") for font in fonts]
     dm_sans = next(font for font in fonts if font.get("id") == "dm_sans")
     frontend_fonts = _frontend_registry()["font_families"]
-    css = Path("visual_editor_component/frontend/styles/editor_text_presets.css").read_text(encoding="utf-8")
+    css = Path("visual_editor_component/frontend/styles/editor_text_tools.css").read_text(encoding="utf-8")
 
     assert font_ids[0] == "default"
     assert preset_class_map("font_families")["default"] == ""

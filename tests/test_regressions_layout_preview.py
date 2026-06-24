@@ -104,9 +104,13 @@ def test_day_page_editorial_parity_markup():
     assert_contains(html, "ROVANIEMI", "The day kicker city should render in uppercase for preview/PDF parity.")
     assert_not_contains(html, "Today’s setting", "The rejected setting label must not render on day pages.")
 
-    final_html_css = (
-        (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
-        + (ROOT / "app_modules" / "itinerary_html_styles.py").read_text(encoding="utf-8")
+    final_html_css = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in [
+            ROOT / "app_modules" / "itinerary_html.py",
+            ROOT / "app_modules" / "itinerary_html_styles.py",
+            ROOT / "app_modules" / "preview_css_images.py",
+        ]
     )
     assert_not_contains(final_html_css, ".day-image-slot::after", "Final preview should no longer draw the decorative image divider emblem.")
     assert_contains(final_html_css, "border-top: 5px solid rgba(184,149,85,.96)", "Final preview should keep one thicker solid divider attached to the image edge.")

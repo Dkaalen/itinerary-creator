@@ -1,0 +1,8 @@
+/* Visual editor responsive layout fallbacks. */
+@media (max-width: 860px) {
+  .a4-page { transform: scale(calc((100vw - 34px) / 794)); margin-bottom: calc(-1123px + ((100vw - 34px) / 794 * 1123px)); }
+  .editor-toolbar { display: flex; align-items: flex-start; flex-direction: column; }
+  .toolbar-actions, .toolbar-tools { justify-content: flex-start; }
+  .toolbar-stack { align-items: flex-start; min-width: 0; width: 100%; }
+  .studio-status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: none; }
+}

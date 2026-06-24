@@ -24,11 +24,13 @@ def _visual_editor_frontend_source():
     parts = [(frontend / "index.html").read_text(encoding="utf-8")]
     for relative in (
         "styles/editor.css",
-        "styles/editor_core.css",
-        "styles/editor_foundation.css",
-        "styles/editor_workspace.css",
-        "styles/editor_review.css",
+        "styles/editor_pages.css",
+        "styles/editor_base.css",
+        "styles/editor_shell.css",
+        "styles/editor_debug.css",
         "js/state.js",
+        "js/editor_save_state.js",
+        "js/editor_local_draft.js",
         "js/images.js",
         "js/editor_debug_shell.js",
         "js/render.js",

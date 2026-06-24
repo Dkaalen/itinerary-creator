@@ -1,0 +1,20 @@
+/* Visual editor design tokens. */
+:root {
+      --bg: #f5f1ea;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --paper: #f7efe3;
+      --ink: #172033;
+      --body: #252b35;
+      --muted: #5c6675;
+      --accent: #006f6b;
+      --border: rgba(132, 151, 172, 0.42);
+      --focus: #c58a24;
+      --danger: #ad3434;
+      --surface: rgba(255,255,255,.96);
+      --surface-strong: #ffffff;
+      --shadow-panel: 0 18px 42px rgba(23,32,51,.10);
+      --shadow-page: 0 28px 70px rgba(23,32,51,0.18);
+      --page-w: 794px;
+      --page-h: 1123px;
+    }

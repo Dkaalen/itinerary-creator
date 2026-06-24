@@ -77,15 +77,15 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [#####---------------] 25%
+Overall architecture cleanup:        [#######-------------] 35%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
-CSS responsibility cleanup:          [--------------------] 0%
+CSS responsibility cleanup:          [####################] 100%
 Parser cleanup:                      [--------------------] 0%
 Generation cleanup:                  [--------------------] 0%
 PDF/images cleanup:                  [--------------------] 0%
-Architecture guards:                 [######--------------] 30%
+Architecture guards:                 [########------------] 40%
 ```
 
 Status legend:
@@ -1115,12 +1115,22 @@ Fatal errors are still visible when PDF creation is blocked.
 
 # Batch 4: CSS responsibility cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
 
 Goal:
 
 ```text
 Remove patch-history CSS layering and organize styles by responsibility.
+```
+
+Completed in Batch 4:
+
+```text
+[x] editor.css rebuilt as responsibility-based imports
+[x] patch-history workspace/review/image-inspector CSS files removed
+[x] Streamlit global CSS split into UI style modules
+[x] itinerary preview/PDF CSS builder split into focused modules
+[x] CSS asset tests updated to guard against patch-history file regressions
 ```
 
 Current CSS smell:
@@ -1136,7 +1146,7 @@ These names reflect patch history, not product responsibility.
 
 ## Patch 4.1: Rebuild editor CSS import structure
 
-Status: [ ]
+Status: [x]
 
 Target import set:
 
@@ -1158,7 +1168,7 @@ editor_responsive.css
 
 ## Patch 4.2: Merge workspace patch-history files
 
-Status: [ ]
+Status: [x]
 
 Merge/remove:
 
@@ -1172,7 +1182,7 @@ Move rules into responsibility files.
 
 ## Patch 4.3: Remove or debug-gate review/image-inspector CSS
 
-Status: [ ]
+Status: [x]
 
 Remove or isolate:
 
@@ -1186,7 +1196,7 @@ Normal workflow should not need review panel CSS or sidebar image inspector CSS.
 
 ## Patch 4.4: Split Streamlit/global CSS blobs
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -1212,7 +1222,7 @@ ui/style_responsive.py
 
 ## Patch 4.5: Split itinerary preview CSS builder
 
-Status: [ ]
+Status: [x]
 
 Current file:
 

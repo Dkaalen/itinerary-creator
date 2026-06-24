@@ -1,0 +1,9 @@
+/* Visual editor manual page and manual block styles. */
+.manual-page { background: #fffdf8; }
+.manual-page-edit-box { min-height: 720px; padding: 4px; }
+.manual-page-title { display: block; }
+.manual-block-shell { position: relative; margin-bottom: 12px; border-radius: 10px; padding: 2px; }
+.manual-block-shell:hover { box-shadow: inset 0 0 0 1px rgba(0,111,107,.18); background: rgba(0,111,107,.035); }
+.manual-block-shell.dragging { opacity: 0.55; }
+.manual-block-shell.drag-over { outline: 2px dashed rgba(31, 52, 70, 0.35); outline-offset: 2px; }
+.manual-block-drag-handle { position: absolute; left: -1.25rem; top: 0.55rem; align-self: center; border: 0; background: transparent; color: #7b746c; cursor: grab; font-weight: 700; letter-spacing: -0.14em; padding: 0.15rem 0.25rem; }

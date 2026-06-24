@@ -1,4 +1,4 @@
-/* Visual editor final page and base responsive styles. */
+/* Visual editor final page styles. */
     .final-page .page-content { padding-top: 86px; }
     .final-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 26px; line-height: 1.18; margin-bottom: 10px; }
     .final-title::after {

@@ -7,8 +7,8 @@ def _frontend_source() -> str:
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
             "styles/editor.css",
-            "styles/editor_core.css",
-            "styles/editor_review.css",
+            "styles/editor_pages.css",
+            "styles/editor_debug.css",
             "js/state.js",
             "js/images.js",
             "js/render.js",

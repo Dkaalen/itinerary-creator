@@ -15,7 +15,7 @@ def test_pdf_download_has_durable_top_and_bottom_stations():
 
 
 def test_pdf_download_button_is_sticky_when_ready():
-    styles = Path("ui/styles.py").read_text()
+    styles = (Path("ui/style_export.py").read_text() + Path("ui/style_responsive.py").read_text())
 
     assert ".pdf-ready-panel" in styles
     assert "stDownloadButton" in styles

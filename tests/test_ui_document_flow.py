@@ -64,7 +64,7 @@ def test_removed_duplicate_visual_editor_app_shells_stay_deleted():
 
 
 def test_styles_do_not_hide_legacy_workflow_or_force_sidebar_theme():
-    styles = Path("ui/styles.py").read_text()
+    styles = "\n".join(path.read_text() for path in Path("ui").glob("style_*.py"))
 
     assert "workflow-step-grid { display: none" not in styles
     assert "data-testid=\"stSidebar\"" not in styles
