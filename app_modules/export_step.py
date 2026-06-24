@@ -72,43 +72,14 @@ def _render_secondary_downloads(app_version: str) -> None:
             st.button("Download HTML", disabled=True, use_container_width=True)
 
 
-def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
-    picture_status = "Not added"
-    if readiness.pictures_added:
-        picture_status = "Added"
-    editor_status = "Saving" if readiness.pending_editor_commit else "Saved"
-    states = [
-        ("Document", "Ready" if readiness.has_document else "Missing", readiness.has_document),
-        ("Pictures", picture_status, readiness.pictures_added),
-        ("Image bank", "Connected" if readiness.image_bank_ready else "Missing", readiness.image_bank_ready),
-        ("Editor", editor_status, not readiness.pending_editor_commit),
-        ("PDF", "Ready" if readiness.pdf_ready else "Not created", readiness.pdf_ready),
-    ]
-    cards = "".join(
-        '<div class="export-readiness-card export-ready" data-ready="true">'
-        f'<span>{label}</span><strong>{value}</strong>'
-        '</div>'
-        if ok
-        else '<div class="export-readiness-card export-blocked" data-ready="false">'
-        f'<span>{label}</span><strong>{value}</strong>'
-        '</div>'
-        for label, value, ok in states
-    )
-    st.html(
-        '<div class="export-readiness-panel">'
-        '<div class="export-readiness-heading">'
-        f'<span>Export status</span><strong>{readiness.status_label}</strong>'
-        '</div>'
-        f'<div class="export-readiness-grid">{cards}</div>'
-        '</div>'
-    )
-    attention_messages = readiness.blocking_messages or readiness.preflight_issues
-    if readiness.advisory_issue_count and not readiness.critical_issue_count:
-        st.caption(f"{readiness.advisory_issue_count} advisory export warning(s). They do not block PDF creation.")
-    if attention_messages and not readiness.pending_editor_commit:
-        with st.expander(f"Export checks — {readiness.preflight_status}", expanded=bool(readiness.blocking_messages)):
-            for message in attention_messages:
-                st.write(f"- {message}")
+def _render_fatal_export_blockers(readiness: ExportReadiness) -> None:
+    """Show only blockers that actually prevent PDF creation."""
+
+    if readiness.pending_editor_commit:
+        st.info("Applying pending editor changes before creating the PDF…")
+        return
+    for message in readiness.blocking_messages:
+        st.error(message)
 
 
 def _session_state_snapshot() -> dict:
@@ -151,33 +122,19 @@ def render_export_step(app_version: str) -> None:
         bank_signature=image_bank_storage_signature(),
     )
     commit_ready = visual_editor_export_commit_ready()
-    _render_pdf_profile_selector()
     snapshot = _session_state_snapshot()
     readiness = export_readiness_from_state(snapshot, current_image_status)
-    _render_export_readiness_panel(readiness)
-
-    if not readiness.pictures_added:
-        st.warning("Add pictures before creating the final PDF.")
-        return
-
-    if not readiness.image_bank_ready:
-        st.warning("Connect the real destination image bank before creating the final PDF.")
-        return
+    _render_fatal_export_blockers(readiness)
 
     if st.session_state.get("_pdf_after_visual_edit_commit_nonce") and not commit_ready:
-        st.info("Applying pending editor changes before creating the PDF…")
         return
 
     if current_pdf_bytes():
         render_pdf_download_station(location="bottom")
-        st.caption("PDF is ready and will stay available while the current itinerary is unchanged.")
-        if st.button("Create PDF again", use_container_width=True, disabled=not readiness.can_create_pdf):
-            request_pdf_creation_after_visual_editor_commit()
-            st.rerun()
-    else:
-        if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
-            request_pdf_creation_after_visual_editor_commit()
-            st.rerun()
+
+    if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
+        request_pdf_creation_after_visual_editor_commit()
+        st.rerun()
 
     if commit_ready:
         try:
@@ -195,6 +152,3 @@ def render_export_step(app_version: str) -> None:
             st.error("PDF export failed in this environment. The itinerary preview and HTML download still work.")
             with st.expander("PDF export error details"):
                 st.exception(error)
-
-    with st.expander("Project downloads", expanded=False):
-        _render_secondary_downloads(app_version)

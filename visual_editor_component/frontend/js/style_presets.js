@@ -163,6 +163,13 @@ window.CONTROLLED_EDITOR_STYLE_REGISTRY = {
       "pdf_suffix": "arial"
     },
     {
+      "id": "dm_sans",
+      "label": "DM Sans",
+      "class_name": "ve-font-dm-sans",
+      "pdf_font_name": "Helvetica",
+      "pdf_suffix": "dm_sans"
+    },
+    {
       "id": "times",
       "label": "Times New Roman",
       "class_name": "ve-font-times",

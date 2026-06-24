@@ -2,6 +2,7 @@
 /* UI18 canvas-first formatting sidebar */
 .ve-font-georgia { font-family: Georgia, 'Times New Roman', serif !important; }
 .ve-font-arial { font-family: Arial, Helvetica, sans-serif !important; }
+.ve-font-dm-sans { font-family: 'DM Sans', Arial, Helvetica, sans-serif !important; }
 .ve-font-times { font-family: 'Times New Roman', Times, serif !important; }
 .ve-font-courier { font-family: 'Courier New', Courier, monospace !important; }
 .ve-size-9 { font-size: 12px !important; line-height: 1.35 !important; }
