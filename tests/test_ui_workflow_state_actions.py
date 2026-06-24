@@ -283,7 +283,7 @@ def test_project_io_delegates_project_loading_to_workflow_actions():
     from pathlib import Path
 
     source = Path("app_modules/project_io.py").read_text(encoding="utf-8")
-    action_source = Path("app_modules/workflow_actions.py").read_text(encoding="utf-8")
+    action_source = Path("app_modules/project_load_action.py").read_text(encoding="utf-8")
 
     assert "from app_modules.workflow_actions import load_project" in source
     assert "result = load_project(st.session_state" in source

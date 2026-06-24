@@ -12,6 +12,8 @@ def _frontend_source() -> str:
             "js/state.js",
             "js/images.js",
             "js/render.js",
+            "js/editor_warning_model.js",
+            "js/editor_debug_readiness.js",
             "js/editor_readiness.js",
             "js/editor_debug_shell.js",
             "js/editor_dirty_state.js",

@@ -77,15 +77,15 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [##------------------] 12%
+Overall architecture cleanup:        [#####---------------] 25%
 Critical editor/workflow cleanup:    [####################] 100%
-Editor structure cleanup:            [--------------------] 0%
-Streamlit workflow cleanup:          [--------------------] 0%
+Editor structure cleanup:            [####################] 100%
+Streamlit workflow cleanup:          [####################] 100%
 CSS responsibility cleanup:          [--------------------] 0%
 Parser cleanup:                      [--------------------] 0%
 Generation cleanup:                  [--------------------] 0%
 PDF/images cleanup:                  [--------------------] 0%
-Architecture guards:                 [###-----------------] 15%
+Architecture guards:                 [######--------------] 30%
 ```
 
 Status legend:
@@ -387,7 +387,7 @@ render.js
 
 ## Patch 1.4: Clean remaining editor shell bloat regressions
 
-Status: [ ]
+Status: [x]
 
 Remove or debug-gate normal editor shell references to:
 
@@ -417,7 +417,16 @@ right inspector text/layout controls
 
 # Batch 2: Editor structure cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
+
+Completed in Batch 2:
+
+```text
+[x] state.js split into save/scroll/draft/html/editable/image-label modules
+[x] render.js split into summary/final/manual/outline/shell modules
+[x] document model, text tools, style presets, and readiness split by responsibility
+[x] normal readiness/review rendering kept behind debug modules
+```
 
 Goal:
 
@@ -427,7 +436,7 @@ Make the visual editor maintainable so bloat does not keep being added to catch-
 
 ## Patch 2.1: Split `state.js`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -519,7 +528,7 @@ picturesAdded
 
 ## Patch 2.2: Split `render.js`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -595,7 +604,7 @@ warning pills
 
 ## Patch 2.3: Split `editor_document_model.js`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -691,7 +700,7 @@ setSelectedBlockOverride
 
 ## Patch 2.4: Split `editor_text_tools.js`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -796,7 +805,7 @@ insertCleanClipboardHtml
 
 ## Patch 2.5: Split style preset behavior
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -842,7 +851,7 @@ DM Sans remains optional only in editor font options.
 
 ## Patch 2.6: Move readiness/review UI to debug-only module
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -876,7 +885,16 @@ review center
 
 # Batch 3: Streamlit workflow cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
+
+Completed in Batch 3:
+
+```text
+[x] main_view.py reduced to stage routing
+[x] workflow actions split by generation/project/image/export responsibility
+[x] parser/review/diagnostic UI placed behind one debug boundary
+[x] workflow guard tests added for normal-flow cleanliness
+```
 
 Goal:
 
@@ -886,7 +904,7 @@ Make the Python app flow match the simple product flow and keep debug panels out
 
 ## Patch 3.1: Split `app_modules/main_view.py`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -993,7 +1011,7 @@ structured input review if kept
 
 ## Patch 3.2: Split `workflow_actions.py`
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -1050,7 +1068,7 @@ enter_export_stage
 
 ## Patch 3.3: Create a real debug boundary
 
-Status: [ ]
+Status: [x]
 
 Add or consolidate one clear debug gate, for example:
 
@@ -1082,7 +1100,7 @@ Normal flow must not render these.
 
 ## Patch 3.4: Add workflow guard tests
 
-Status: [ ]
+Status: [x]
 
 Guard tests should assert:
 

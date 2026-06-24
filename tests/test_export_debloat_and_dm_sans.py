@@ -6,9 +6,9 @@ from visual_editor_component.style_presets import preset_class_map, preset_group
 
 
 def _frontend_registry() -> dict:
-    js = Path("visual_editor_component/frontend/js/style_presets.js").read_text(encoding="utf-8")
+    js = Path("visual_editor_component/frontend/js/style_preset_data.js").read_text(encoding="utf-8")
     match = re.search(
-        r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});\s*\n\nfunction",
+        r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});",
         js,
         flags=re.DOTALL,
     )

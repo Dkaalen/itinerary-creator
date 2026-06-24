@@ -6,11 +6,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_add_pictures_is_gated_by_explicit_apply_changes_commit():
-    source = (ROOT / "app_modules" / "main_view.py").read_text(encoding="utf-8")
-    edit_page = source[source.index('def render_edit_page'): source.index('def render_final_preview_step')]
-    helper = source[source.index('def _activate_picture_stage'): source.index('def _add_pictures_apply_ready')]
+    edit_page = (ROOT / "app_modules" / "preview_step.py").read_text(encoding="utf-8")
+    helper = edit_page[edit_page.index('def _activate_picture_stage'): edit_page.index('def _add_pictures_apply_ready')]
 
-    action_source = (ROOT / "app_modules" / "workflow_actions.py").read_text(encoding="utf-8")
+    action_source = (ROOT / "app_modules" / "image_stage_action.py").read_text(encoding="utf-8")
     commit_source = (ROOT / "app_modules" / "editor_commit.py").read_text(encoding="utf-8")
 
     assert 'request_add_pictures_editor_commit(st.session_state)' in edit_page

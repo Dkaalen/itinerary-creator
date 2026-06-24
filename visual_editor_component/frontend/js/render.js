@@ -1,141 +1,4 @@
-function summaryPage(summary) {
-  const glance = summary?.trip_glance || {};
-  const arc = summary?.journey_arc || [];
-  const columns = summary?.journey_arc_columns || {};
-  const glanceRows = Object.keys(glance).map(key => `<div class="glance-row"><div class="glance-label">${esc(key)}</div>${editableText(glance[key], `summary.trip_glance.${key}`, 'glance-value', `Trip glance ${key}`)}</div>`).join('');
-  const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
-  const bg = picturesAdded() ? (model.cover?.summary_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
-  const summaryFocus = model.cover?.summary_image?.crop_focus || 'top';
-  const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)};` : '';
-  return `<div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
-    ${coverImageControls('summary_image', 'Page 2 background image', model.cover?.summary_image)}
-    <div class="summary-card">${editableText(summary?.trip_glance_title || 'Your Trip at a Glance', 'summary.trip_glance_title', 'summary-title', 'Trip glance title')}${glanceRows}</div>
-    <div class="summary-card">${editableText(summary?.journey_arc_title || 'Your Journey Arc', 'summary.journey_arc_title', 'summary-title', 'Journey arc title')}<table class="journey-table"><thead><tr><th>${editableSpan(columns.chapter || 'Chapter', 'summary.journey_arc_columns.chapter', 'table-header-edit', 'Chapter column')}</th><th>${editableSpan(columns.days || 'Days', 'summary.journey_arc_columns.days', 'table-header-edit', 'Days column')}</th><th>${editableSpan(columns.experience || 'What You’ll Experience', 'summary.journey_arc_columns.experience', 'table-header-edit', 'Experience column')}</th></tr></thead><tbody>${arcRows}</tbody></table></div>
-  </div></div>`;
-}
-function finalTextPage(label, title, key, text, titleKey) {
-  const pageId = finalPageId(key === 'important_travel_notes_text' ? 'important_travel_notes' : key);
-  const isImportantNotes = key === 'important_travel_notes_text';
-  const notesHtml = isImportantNotes ? (model.final_pages?.important_travel_notes_html || '') : '';
-  const body = notesHtml
-    ? `<div class="final-html-box readonly-premium-notes" data-editor-field-key="final_pages.${escAttr(key)}">${notesHtml}</div>`
-    : editableText(text || '', `final_pages.${key}`, 'final-edit-box');
-  return pageChrome(pageId, label, `<div class="a4-page final-page ${isImportantNotes ? 'important-notes-page premium-notes-page' : ''}"><div class="page-content">
-    ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
-    ${body}
-  </div></div>`, {pageType: 'final_section', sortOrder: 900});
-}
-function listTextToHtml(text) {
-  const items = String(text || '').split(/\n+/).map(item => item.trim()).filter(Boolean);
-  if (!items.length) return '';
-  return `<ul class="final-list">${items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
-}
-function finalHtmlPage(label, title, key, html, titleKey) {
-  const sectionId = key === 'whats_not_included_html' ? 'whats_not_included' : key;
-  const pageId = finalPageId(sectionId);
-  return pageChrome(pageId, label, `<div class="a4-page final-page"><div class="page-content">
-    ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
-    ${editableHtml(html || '', `final_pages.${key}`, 'final-html-box')}
-  </div></div>`, {pageType: 'final_section', sortOrder: 899});
-}
-
-function finalHtmlPages(label, title, key, pages, titleKey) {
-  const pageId = finalPageId('whats_included');
-  if (typeof pageIsHidden === 'function' && pageIsHidden(pageId)) return '';
-  const cleanPages = (Array.isArray(pages) && pages.length ? pages : [{html: ''}]).map(page => {
-    return typeof page === 'string' ? {html: page} : (page || {html: ''});
-  });
-  if (!model.final_pages) model.final_pages = {};
-  model.final_pages[key] = cleanPages;
-  return cleanPages.map((page, idx) => {
-    const html = typeof page === 'string' ? page : (page?.html || '');
-    const pageLabel = label;
-    const controls = `<div class="page-controls"><button class="ghost" type="button" data-page-action="merge-up" data-page-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Move content up</button><button class="danger" type="button" data-page-action="delete" data-page-index="${idx}">Remove empty page</button></div>`;
-    const body = `<div class="a4-page final-page categorized-inclusions-page"><div class="page-content">
-      ${editableText(title, `final_pages.${titleKey || `${key}_title`}`, 'final-title', 'Final page title')}
-      ${editableHtml(html || '', `final_pages.${key}.${idx}.html`, 'final-html-box')}
-    </div></div>`;
-    return idx === 0 ? pageChrome(pageId, pageLabel, `<div class="page-controls local-page-controls">${controls}</div>${body}`, {pageType: 'final_section', sortOrder: 898}) : `<div class="page-wrap" data-page-id="${escAttr(pageId)}-part-${idx}"><div class="page-header-row"><div class="page-label">${esc(pageLabel)}</div>${controls}</div>${body}</div>`;
-  }).join('');
-}
-
-
-
-function pageTypeLabel(page) {
-  const type = String(page?.page_type || 'page');
-  if (type === 'generated_day') return 'Day';
-  if (type === 'final_section') return 'Final';
-  if (type === 'manual') return 'Manual';
-  if (type === 'cover') return 'Cover';
-  if (type === 'summary') return 'Summary';
-  return 'Page';
-}
-function editorStudioStats() {
-  const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model?.document_pages) ? model.document_pages : []);
-  const visible = pages.filter(page => !page?.is_hidden).length;
-  const hidden = pages.filter(page => page?.is_hidden).length;
-  const manual = pages.filter(page => page?.page_type === 'manual' && !page?.is_hidden).length;
-  const dirtyPages = pages.filter(page => pageHasDirtyEdits(page?.page_id)).length;
-  const selection = activeBlockId ? 'Block selected' : (activePageId ? 'Page selected' : 'No selection');
-  return {visible, hidden, manual, dirtyPages, selection};
-}
-function studioStatusStripHtml() {
-  const stats = editorStudioStats();
-  const summary = `${stats.visible} visible · ${stats.selection} · ${touchedKeys.size} unsaved`;
-  return `<details class="studio-status-panel">
-    <summary><strong>Document status</strong><span>${esc(summary)}</span></summary>
-    <div class="studio-status-strip" aria-label="Editor document status">
-      <span class="studio-metric"><b>${esc(stats.visible)}</b><small>Visible pages</small></span>
-      <span class="studio-metric ${stats.hidden ? 'review' : ''}"><b>${esc(stats.hidden)}</b><small>Hidden</small></span>
-      <span class="studio-metric"><b>${esc(stats.manual)}</b><small>Manual pages</small></span>
-      <span class="studio-metric ${stats.dirtyPages ? 'review' : ''}"><b id="studioDirtyPagesMetric">${esc(stats.dirtyPages)}</b><small>Dirty pages</small></span>
-      <span class="studio-metric selection"><b id="studioSelectionMetric">${esc(stats.selection)}</b><small>Selection</small></span>
-      <span class="studio-metric"><b id="studioEditsMetric">${esc(touchedKeys.size)}</b><small>Unsaved edits</small></span>
-    </div>
-  </details>`;
-}
-function renderDocumentOutline() {
-  const pages = typeof sortedDocumentPages === 'function' ? sortedDocumentPages() : (Array.isArray(model.document_pages) ? model.document_pages : []);
-  const rows = pages.map(page => {
-    const pageId = String(page?.page_id || '');
-    const title = String(page?.title || pageId || 'Untitled page');
-    const hidden = !!page?.is_hidden;
-    const dirty = pageHasDirtyEdits(pageId);
-    const badges = `${hidden ? '<b class="outline-status hidden">Hidden</b>' : ''}${dirty ? '<b class="outline-status dirty">Unsaved</b>' : ''}`;
-    return `<li class="outline-row ${hidden ? 'hidden' : ''} ${dirty ? 'dirty' : ''} ${activePageId === pageId ? 'active' : ''}" data-outline-page-id="${escAttr(pageId)}" data-outline-row-page-id="${escAttr(pageId)}">
-      <button class="outline-jump" type="button" data-outline-page-id="${escAttr(pageId)}"><span>${esc(title)}</span><em>${esc(pageTypeLabel(page))}</em>${badges ? `<span class="outline-status-row">${badges}</span>` : ''}</button>
-    </li>`;
-  }).join('');
-  return `<aside class="document-outline" aria-label="Document pages">
-    <div class="outline-title"><strong>Pages</strong><span>${pages.length} total</span></div>
-    <ul>${rows}</ul>
-  </aside>`;
-}
-function pagesMenuHtml() {
-  return `<details class="pages-menu">
-    <summary>Pages</summary>
-    ${renderDocumentOutline()}
-  </details>`;
-}
-function renderManualPageHtml(page, fallbackIndex = 0) {
-  if (!page || page.page_type !== 'manual') return '';
-  const realIndex = typeof pageIndexById === 'function' ? pageIndexById(page.page_id) : fallbackIndex;
-    const blocks = Array.isArray(page.manual_blocks) && page.manual_blocks.length
-      ? page.manual_blocks
-      : [{editable_fields: {content_html: '<div class="body-text">New page text</div>'}}];
-    const body = blocks.map((block, blockIndex) => {
-      const html = block?.editable_fields?.content_html || '';
-      const blockId = block?.block_id || `${page.page_id}__manual-${blockIndex + 1}`;
-      const label = block?.title || humanizeEditorToken(block?.block_type || 'Manual block');
-      return `<div class="manual-block-shell ${blockLayoutClasses(block)}" draggable="true" data-manual-block-page-id="${escAttr(page.page_id)}" data-manual-block-index="${blockIndex}" data-editor-page-id="${escAttr(page.page_id)}" data-editor-block-id="${escAttr(blockId)}" data-editor-block-type="${escAttr(block?.block_type || 'manual_text')}" data-editor-field-key="document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html" data-editor-field-label="${escAttr(label)}"><div class="manual-block-drag-handle" aria-hidden="true" title="Drag block to reorder">⋮⋮</div>${editableHtml(html, `document_pages.${realIndex}.manual_blocks.${blockIndex}.editable_fields.content_html`, 'manual-page-edit-box', label)}</div>`;
-    }).join('');
-    return pageChrome(page.page_id, page.title || 'Blank page', `<div class="a4-page manual-page"><div class="page-content"><div class="final-title">${editableText(page.title || 'Blank page', `document_pages.${realIndex}.title`, 'manual-page-title')}</div>${body}</div></div>`, {pageType: 'manual', sortOrder: page.sort_order || 999});
-}
-function renderManualPages() {
-  if (typeof sortedDocumentPages !== 'function') return '';
-  return sortedDocumentPages().filter(page => page?.page_type === 'manual').map((page, pageIndex) => renderManualPageHtml(page, pageIndex)).join('');
-}
-
+/** Render split breadcrumbs: summaryStyle -> editor_render_summary.js. */
 function render(payload, commitNonce = null) {
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {
@@ -169,7 +32,7 @@ function render(payload, commitNonce = null) {
 function draw() {
   captureEditorScrollState('draw');
   const root = document.getElementById('root');
-  let h = `<div class="editor-shell">
+  let h = editorShellOpenHtml() + `
     <div class="editor-toolbar">
       <div class="toolbar-main">
         <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · hover an image to edit it on the canvas' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
@@ -185,8 +48,7 @@ function draw() {
       </div>
       ${typeof editorDebugReviewHtml === 'function' ? editorDebugReviewHtml() : ''}
     </div>
-    <div class="editor-workspace">
-      <div class="page-stack">`;
+    ${editorWorkspaceOpenHtml()}`;
   const coverBg = picturesAdded() ? (model.cover?.cover_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';
   const coverMuted = picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c';
@@ -239,7 +101,7 @@ function draw() {
   Object.keys(pageHtmlById).forEach(pageId => {
     if (!renderedPageIds.has(pageId)) h += pageHtmlById[pageId];
   });
-  h += `</div>${renderRightInspector()}</div><div class="help-strip">The PDF preview/export remains the final rendering check after saving your edits.</div></div>`;
+  h += editorWorkspaceCloseHtml();
   root.innerHTML = h;
   attachHandlers();
   restoreEditorScrollState();

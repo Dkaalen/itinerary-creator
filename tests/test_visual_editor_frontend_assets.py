@@ -54,16 +54,22 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "styles/editor_text_presets_final.css": ["Visual editor controlled preset polish"],
         "styles/editor_workspace_final.css": ["Visual editor final workspace chrome"],
         "styles/editor_review_final.css": ["Visual editor grouped document-check styles"],
-        "js/state.js": ["let initialPayload", "function restoreLocalDraftIfAvailable"],
+        "js/state.js": ["let initialPayload", "AUTOSAVE_IDLE_GRACE_MS"],
+        "js/editor_local_draft.js": ["function restoreLocalDraftIfAvailable", "function persistLocalDraft"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],
-        "js/editor_readiness.js": ["function pdfReadinessStatus", "function reviewCenterHtml"],
+        "js/editor_warning_model.js": ["function pdfReadinessStatus", "function warningTargetPageId"],
+        "js/editor_debug_readiness.js": ["function pdfReadinessPanelHtml", "function reviewCenterHtml"],
         "js/editor_debug_shell.js": ["function editorDebugModeEnabled", "function editorDebugToolbarHtml"],
         "js/render.js": ["function render(", "function draw()"],
         "js/serialization.js": ["function collect()", "function buildEditableDraftFromPayload", "function buildSaveEnvelope"],
         "js/editor_dirty_state.js": ["function markTouched", "function saveRecoveryPanelHtml"],
-        "js/editor_text_tools.js": ["function insertCleanClipboardHtml", "function applyTextStylePreset"],
-        "js/editor_document_model.js": ["function documentPages", "function manualPageFromTemplate"],
+        "js/editor_insert_blocks.js": ["function insertControlledBlock", "function addNoteBlock"],
+        "js/editor_paste_sanitizer.js": ["function insertCleanClipboardHtml"],
+        "js/editor_text_formatting.js": ["function applyTextStylePreset", "function applyFontFamilyPreset"],
+        "js/editor_pages_model.js": ["function documentPages", "function sortedDocumentPages"],
+        "js/editor_manual_pages.js": ["function manualPageFromTemplate", "function addManualBlockToSelectedPage"],
+        "js/editor_document_model.js": ["function editorSlug", "function htmlTextContent"],
         "js/editor_inspector_selection.js": ["function selectedInspectorMeta", "function renderInspectorSelectionCard"],
         "js/editor_inspector_fields.js": ["function inspectorFieldEntriesForSelection", "function applyInspectorFieldEdit"],
         "js/editor_inspector_text_panel.js": ["function renderInspectorTextTools", "inspectorFontFamilyPreset"],
@@ -116,11 +122,12 @@ def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
 
 def test_server_autosave_waits_for_editor_idle_instead_of_interrupting_scroll():
     state = (FRONTEND / "js/state.js").read_text(encoding="utf-8")
+    save_state = (FRONTEND / "js/editor_save_state.js").read_text(encoding="utf-8")
     editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
 
     assert "AUTOSAVE_IDLE_GRACE_MS" in state
-    assert "function noteEditorInteraction" in state
-    assert "function editorIsActivelyInUse" in state
+    assert "function noteEditorInteraction" in save_state
+    assert "function editorIsActivelyInUse" in save_state
     assert "editorIsActivelyInUse(now)" in editing
     assert "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)" in editing
     assert "addEventListener('scroll', noteEditorInteraction" in editing

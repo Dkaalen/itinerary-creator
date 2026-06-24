@@ -4,7 +4,7 @@ from pathlib import Path
 def test_pdf_download_has_durable_top_and_bottom_stations():
     export_source = Path("app_modules/export_step.py").read_text()
     action_source = Path("app_modules/export_actions.py").read_text()
-    main_source = Path("app_modules/main_view.py").read_text()
+    main_source = Path("app_modules/picture_step.py").read_text() + Path("app_modules/export_page.py").read_text()
 
     assert "export_pdf_bytes" in action_source
     assert "export_pdf_signature" in action_source
