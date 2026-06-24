@@ -8,17 +8,10 @@ from app_modules.itinerary_html_sections import (
     render_summary_page,
 )
 from app_modules.itinerary_html_styles import build_preview_style
-from ui.day_pages import (
-    render_day_pages,
-    render_split_list_pages,
-    render_categorized_inclusions_pages,
-    render_custom_html_final_page,
-    render_custom_html_final_pages,
-    render_text_paragraph_page,
-)
-from ui.final_pages import render_optional_addons_pages
+from ui.day_page_sections import render_day_page_html_by_id
+from app_modules.render_final_sections_html import render_final_sections_html_by_id
 from ui.render_helpers import esc
-from itinerary_generation.editor_page_contract import final_section_is_hidden as contract_final_section_is_hidden, page_is_hidden as contract_page_is_hidden
+from itinerary_generation.editor_page_contract import ordered_page_ids, page_is_hidden as contract_page_is_hidden
 
 
 def _balanced_cover_subtitle_html(subtitle: str) -> str:
@@ -39,15 +32,11 @@ def _raise_for_blocking_client_output(context) -> None:
         details = "; ".join(
             f"{issue.code}: {issue.message}" for issue in report.blocking_issues
         )
-        raise ValueError(f"Client output quality gate blocked itinerary generation: {details}")
+        raise ValueError(f"Client output safety check blocked itinerary generation: {details}")
 
 
 def _page_is_hidden(context, page_id: str) -> bool:
     return contract_page_is_hidden(getattr(context, "hidden_page_ids", set()) or set(), page_id)
-
-
-def _final_section_is_hidden(context, section_id: str) -> bool:
-    return contract_final_section_is_hidden(getattr(context, "hidden_page_ids", set()) or set(), section_id)
 
 
 def build_itinerary_html_from_context(context):
@@ -60,8 +49,9 @@ def build_itinerary_html_from_context(context):
     html_text += f'''    <div class="preview-background" data-preset="{esc(context.preset_name)}" data-colors="{colors_json}">
 
 '''
+    page_html_by_id = {}
     if not _page_is_hidden(context, "cover"):
-        html_text += render_cover_page(
+        page_html_by_id["cover"] = render_cover_page(
             cover_theme=context.cover_theme,
             cover_background_path=context.cover_background_path,
             cover_crop_focus=context.cover_crop_focus,
@@ -74,7 +64,7 @@ def build_itinerary_html_from_context(context):
             route_label=context.cover_route_label,
         )
     if not _page_is_hidden(context, "summary"):
-        html_text += render_summary_page(
+        page_html_by_id["summary"] = render_summary_page(
             cover_theme=context.cover_theme,
             trip_glance=context.trip_glance,
             journey_arc=context.journey_arc,
@@ -86,37 +76,11 @@ def build_itinerary_html_from_context(context):
             summary_crop_focus=context.summary_crop_focus,
         )
 
-    html_text += render_day_pages(context.render_grouped_days, context.output_edits, render_document=context.render_document)
+    page_html_by_id.update(render_day_page_html_by_id(context.render_grouped_days, context.output_edits, render_document=context.render_document))
+    page_html_by_id.update(render_final_sections_html_by_id(context.render_document.final_sections))
 
-    if not _final_section_is_hidden(context, "whats_included"):
-        if context.typed_inclusions_owned:
-            if context.typed_inclusion_pages:
-                html_text += render_custom_html_final_pages(context.final_section_titles.get("whats_included", "What’s included"), context.typed_inclusion_pages, "final-list-page categorized-inclusions-page")
-        elif context.output_edits.get("whats_included_pages_html"):
-            html_text += render_custom_html_final_pages(context.final_section_titles.get("whats_included", "What’s included"), context.output_edits.get("whats_included_pages_html"), "final-list-page categorized-inclusions-page")
-        elif context.output_edits.get("whats_included_html"):
-            html_text += render_custom_html_final_page(context.final_section_titles.get("whats_included", "What’s included"), context.output_edits.get("whats_included_html"), "final-list-page categorized-inclusions-page")
-        elif context.manual_whats_included:
-            html_text += render_split_list_pages(context.final_section_titles.get("whats_included", "What’s included"), context.whats_included)
-        else:
-            html_text += render_categorized_inclusions_pages(context.final_section_titles.get("whats_included", "What’s included"), context.categorized_inclusions)
-    html_text += render_optional_addons_pages(context.optional_addons)
-    if not _final_section_is_hidden(context, "whats_not_included"):
-        if context.typed_exclusions_owned:
-            if context.typed_exclusion_html:
-                html_text += render_custom_html_final_page(context.final_section_titles.get("whats_not_included", "What’s not included"), context.typed_exclusion_html, "final-list-page categorized-exclusions-page")
-        elif context.output_edits.get("whats_not_included_html"):
-            html_text += render_custom_html_final_page(context.final_section_titles.get("whats_not_included", "What’s not included"), context.output_edits.get("whats_not_included_html"), "final-list-page categorized-exclusions-page")
-        elif context.output_edits.get("whats_not_included_text"):
-            html_text += render_split_list_pages(context.final_section_titles.get("whats_not_included", "What’s not included"), context.whats_not_included)
-        else:
-            html_text += render_categorized_inclusions_pages(context.final_section_titles.get("whats_not_included", "What’s not included"), context.structured_whats_not_included, "final-list-page categorized-exclusions-page")
-    if not _final_section_is_hidden(context, "important_travel_notes"):
-        html_text += render_text_paragraph_page(context.final_section_titles.get("important_travel_notes", "Important travel notes"), context.important_travel_notes)
-    for page in getattr(context, "manual_pages", []) or []:
-        content_html = str(page.get("content_html") or "").strip()
-        if content_html:
-            html_text += render_custom_html_final_page(str(page.get("title") or "Custom page"), content_html, "manual-page")
+    for page_id in ordered_page_ids(list(page_html_by_id), getattr(context.render_document, "page_order", []) or []):
+        html_text += page_html_by_id[page_id]
 
     html_text += "</div>"
 

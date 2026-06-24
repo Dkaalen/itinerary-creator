@@ -12,7 +12,7 @@ def _arrival_display_destination(city):
     country = country_for_place(city)
     if country == "Iceland":
         return "Iceland"
-    return city or "the destination"
+    return city or "the area"
 
 
 def _arrival_transfer_phrase(day_rows):

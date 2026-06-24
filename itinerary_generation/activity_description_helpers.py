@@ -257,5 +257,5 @@ def get_activity_description(row, detail_level=None):
     if "walking" in combined or "guided" in combined:
         return f"Enjoy a guided experience{destination_phrase}, with local context and a clear route through the day’s main highlights."
     if "boat" in combined or "cruise" in combined or "canal" in combined:
-        return f"See the destination from the water, adding a scenic perspective to the day’s planned experience{destination_phrase}."
+        return f"See the area from the water, adding a scenic perspective to the day’s planned experience{destination_phrase}."
     return f"Enjoy a planned experience{destination_phrase}, adding a clear highlight to the day while keeping the wider itinerary easy to follow."

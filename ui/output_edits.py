@@ -20,6 +20,7 @@ except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallb
 
 from itinerary_generation.common import get_primary_city, get_row_type, group_rows_by_day
 from itinerary_generation.day_text import create_day_intro, create_travel_route_label
+from itinerary_generation.copy.visit_context import build_day_visit_contexts
 from itinerary_generation.generated_ownership import INTRO_GENERATOR_VERSION, day_source_signature
 from itinerary_generation.inclusions import create_whats_included
 from itinerary_generation.titles import (
@@ -50,11 +51,12 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
     old_detail = old_detail if old_detail in DETAIL_LEVELS else "Standard client itinerary"
     new_detail = new_detail if new_detail in DETAIL_LEVELS else "Standard client itinerary"
     grouped_days = group_rows_by_day(parsed_rows)
+    visit_contexts = build_day_visit_contexts(grouped_days)
 
     for day, rows in grouped_days.items():
         day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-        old_intro = create_day_intro(rows, detail_level=old_detail)
-        new_intro = create_day_intro(rows, detail_level=new_detail)
+        old_intro = create_day_intro(rows, detail_level=old_detail, visit_context=visit_contexts.get(str(day)))
+        new_intro = create_day_intro(rows, detail_level=new_detail, visit_context=visit_contexts.get(str(day)))
         current_intro = day_edit.get("intro", "")
         if not current_intro or current_intro == old_intro or day_edit.get("intro_manual_override") is False:
             day_edit["intro"] = new_intro
@@ -83,7 +85,7 @@ def mark_output_dirty():
     st.session_state.pdf_status = "Needs refresh"
 
 
-def apply_rich_writing_to_day(day, rows, output_edits):
+def apply_rich_writing_to_day(day, rows, output_edits, *, visit_context=None):
     """Use the built-in writing assistant to make one day warmer and fuller.
 
     This is intentionally local/rule-based: no external AI, no API key, and no
@@ -93,7 +95,7 @@ def apply_rich_writing_to_day(day, rows, output_edits):
 
     output_edits = output_edits or {}
     day_edit = output_edits.setdefault("days", {}).setdefault(day, {})
-    intro = create_day_intro(rows, detail_level="Rich descriptive")
+    intro = create_day_intro(rows, detail_level="Rich descriptive", visit_context=visit_context)
     day_edit["intro"] = intro
     day_edit["intro_generated_value"] = intro
     day_edit["intro_generator_version"] = INTRO_GENERATOR_VERSION
@@ -117,8 +119,9 @@ def apply_rich_writing_to_day(day, rows, output_edits):
 def apply_rich_writing_to_all_days(parsed_rows, output_edits):
     output_edits = output_edits or {}
     grouped_days = group_rows_by_day(parsed_rows)
+    visit_contexts = build_day_visit_contexts(grouped_days)
     for day, rows in grouped_days.items():
-        output_edits = apply_rich_writing_to_day(day, rows, output_edits)
+        output_edits = apply_rich_writing_to_day(day, rows, output_edits, visit_context=visit_contexts.get(str(day)))
     output_edits["detail_level"] = "Rich descriptive"
     return output_edits
 
@@ -149,8 +152,9 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "important_travel_notes_text": list_to_text(DEFAULT_IMPORTANT_TRAVEL_NOTES),
     }
 
+    visit_contexts = build_day_visit_contexts(grouped_days)
     for day, rows in grouped_days.items():
-        intro = create_day_intro(rows, detail_level=edits["detail_level"])
+        intro = create_day_intro(rows, detail_level=edits["detail_level"], visit_context=visit_contexts.get(str(day)))
         edits["days"][day] = {
             "title": create_day_title(rows),
             "intro": intro,

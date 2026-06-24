@@ -7,6 +7,7 @@ from itinerary_generation.day_render_blocks import build_render_day
 from itinerary_generation.date_resolver import get_day_date_text
 from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.generated_ownership import resolve_blocks_html
+from itinerary_generation.editor_page_contract import stable_page_id
 from images.app_image_selection import render_day_image_slot, select_day_images_with_overrides
 from ui.render_blocks import render_blocks_to_html
 from ui.editor_sanitizer import clean_visual_editor_html
@@ -78,27 +79,34 @@ def render_day_page(day, rows, output_edits=None, image_match=None, render_day=N
     '''
 
 
-def render_day_pages(grouped_days, output_edits=None, render_document=None):
-    """Render exactly one itinerary day per A4 page.
+def render_day_page_html_by_id(grouped_days, output_edits=None, render_document=None):
+    """Return day preview pages keyed by the shared editor/PDF page id."""
 
-    v36 image placement depends on predictable one-day pages so the PDF exporter
-    can place a full-width image below the day text when enough space remains.
-    """
-    html_text = ""
     if pictures_are_added(output_edits):
         image_grouped_days = {day: [row for row in rows if not is_optional_row(row)] or list(rows) for day, rows in grouped_days.items()}
         image_matches = select_day_images_with_overrides(image_grouped_days, output_edits)
     else:
         image_matches = {}
     render_days_by_day = {str(render_day.day): render_day for render_day in getattr(render_document, "days", []) or []}
+    pages = {}
     for day, rows in grouped_days.items():
-        html_text += render_day_page(
+        pages[stable_page_id("day", day)] = render_day_page(
             day,
             rows,
             output_edits,
             image_match=image_matches.get(day),
             render_day=render_days_by_day.get(str(day)),
         )
-    return html_text
+    return pages
+
+
+def render_day_pages(grouped_days, output_edits=None, render_document=None):
+    """Render exactly one itinerary day per A4 page.
+
+    v36 image placement depends on predictable one-day pages so the PDF exporter
+    can place a full-width image below the day text when enough space remains.
+    """
+
+    return "".join(render_day_page_html_by_id(grouped_days, output_edits, render_document).values())
 
 

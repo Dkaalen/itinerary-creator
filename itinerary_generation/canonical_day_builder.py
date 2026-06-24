@@ -5,13 +5,21 @@ from __future__ import annotations
 from itinerary_generation.canonical_helpers import _row_id
 from itinerary_generation.canonical_model import CanonicalDay
 from itinerary_generation.content_engine import clean_client_title, sanitize_day_intro
+from itinerary_generation.copy.visit_context import DayVisitContext
 from itinerary_generation.day_content_resolver import resolve_day_content
 from itinerary_generation.group_tour_rendering import group_tour_day_from_rows
 from text_polish import polish_title
 
 
-def canonical_day(day: str, rows: list[dict], *, output_edits: dict | None = None, detail_level: str = "Rich descriptive") -> CanonicalDay:
-    resolved = resolve_day_content(day, rows, output_edits=output_edits, detail_level=detail_level)
+def canonical_day(
+    day: str,
+    rows: list[dict],
+    *,
+    output_edits: dict | None = None,
+    detail_level: str = "Rich descriptive",
+    visit_context: DayVisitContext | None = None,
+) -> CanonicalDay:
+    resolved = resolve_day_content(day, rows, output_edits=output_edits, detail_level=detail_level, visit_context=visit_context)
     group_tour_day = group_tour_day_from_rows(rows)
     display_title = str(resolved.title or "").strip() if group_tour_day else clean_client_title(resolved.title, rows[0] if rows else {})
     if display_title:

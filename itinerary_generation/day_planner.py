@@ -102,7 +102,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
 
     if travel_rows and all(get_row_type(row) == "Cruise" for row in rows) and _has_text(rows, "spend time at leisure"):
         title = "At Leisure Onboard the Coastal Cruise"
-        return DayPlan("cruise_leisure_day", title, "Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, use the ship facilities and settle into the rhythm of the voyage.", suppress_free_time=True)
+        return DayPlan("cruise_leisure_day", title, "Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, use the ship facilities and ease into life onboard for the day.", suppress_free_time=True)
 
     if any(get_row_type(row) == "Cruise" and "overnight" in _text(row).lower() for row in travel_rows) and (
         any(rt == "Leisure" for rt in row_types) or any(_is_empty_activity(row) for row in rows)

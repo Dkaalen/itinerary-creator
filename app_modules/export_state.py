@@ -17,7 +17,6 @@ class ExportReadiness:
     has_document: bool
     pictures_added: bool
     image_bank_ready: bool
-    picture_review_ready: bool
     pending_editor_commit: bool
     pdf_ready: bool
     can_create_pdf: bool
@@ -27,6 +26,7 @@ class ExportReadiness:
     preflight_issues: tuple[str, ...] = field(default_factory=tuple)
     critical_issue_count: int = 0
     review_issue_count: int = 0
+    advisory_issue_count: int = 0
     client_risk_count: int = 0
 
     def as_dict(self) -> dict[str, object]:
@@ -34,7 +34,6 @@ class ExportReadiness:
             "has_document": self.has_document,
             "pictures_added": self.pictures_added,
             "image_bank_ready": self.image_bank_ready,
-            "picture_review_ready": self.picture_review_ready,
             "pending_editor_commit": self.pending_editor_commit,
             "pdf_ready": self.pdf_ready,
             "can_create_pdf": self.can_create_pdf,
@@ -44,6 +43,7 @@ class ExportReadiness:
             "preflight_issues": list(self.preflight_issues),
             "critical_issue_count": self.critical_issue_count,
             "review_issue_count": self.review_issue_count,
+            "advisory_issue_count": self.advisory_issue_count,
             "client_risk_count": self.client_risk_count,
         }
 
@@ -62,10 +62,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     output_edits = state.get("output_edits") or {}
     pictures = pictures_are_added(output_edits)
     image_ready = image_bank_is_ready_for_client_pictures(image_status)
-    # Picture review is no longer an export gate.  Once pictures have been
-    # added, the PDF can be created even if the selector used bundled fallback
-    # images.
-    picture_review_ready = bool(pictures)
     pending_commit = bool(state.get("_pdf_after_visual_edit_commit_nonce")) and not bool(
         state.get("_visual_editor_export_commit_ready")
     )
@@ -79,7 +75,7 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     if not has_document:
         blocking.append("Generate an itinerary before exporting.")
     if not pictures:
-        blocking.append("Add and review destination pictures before creating the PDF.")
+        blocking.append("Add destination pictures before creating the PDF.")
     if not image_ready:
         blocking.append("Connect the real destination image bank before creating the PDF.")
     if pending_commit:
@@ -102,7 +98,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         has_document=has_document,
         pictures_added=pictures,
         image_bank_ready=image_ready,
-        picture_review_ready=picture_review_ready,
         pending_editor_commit=pending_commit,
         pdf_ready=pdf_ready,
         can_create_pdf=can_create,
@@ -112,5 +107,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         preflight_issues=tuple(issue.message for issue in preflight.issues),
         critical_issue_count=preflight.critical_count,
         review_issue_count=preflight.review_count,
+        advisory_issue_count=preflight.advisory_count,
         client_risk_count=sum(1 for issue in preflight.issues if str(issue.code).startswith("client_") or issue.code == "client_output_warning"),
     )

@@ -45,7 +45,7 @@ def test_export_readiness_blocks_missing_pictures_before_pdf_creation():
 
     assert readiness.can_create_pdf is False
     assert readiness.status_label == "Not ready"
-    assert "Add and review destination pictures" in readiness.blocking_messages[0]
+    assert "Add destination pictures" in readiness.blocking_messages[0]
 
 
 def test_export_readiness_blocks_default_only_image_bank():
@@ -77,11 +77,10 @@ def test_export_readiness_rejects_stale_pdf_artifact():
     assert readiness.status_label == "Ready to create"
 
 
-def test_export_readiness_ignores_picture_review_errors_before_pdf_creation():
+def test_export_readiness_ignores_legacy_picture_review_state_before_pdf_creation():
     readiness = export_readiness_from_state(_ready_state(image_review_error_count=2), READY_IMAGE_BANK)
 
     assert readiness.can_create_pdf is True
-    assert readiness.picture_review_ready is True
     assert readiness.status_label == "Ready to create"
     assert not any("blocked picture selections" in message for message in readiness.blocking_messages)
 
@@ -106,8 +105,18 @@ def test_export_screen_has_readiness_panel_and_disabled_create_gate():
     assert "def export_readiness_from_state" in state_source
     assert "def _render_export_readiness_panel" in source
     assert "disabled=not readiness.can_create_pdf" in source
-    assert "picture_review_ready" in state_source
+    assert "picture_review_ready" not in state_source
     assert "image_bank_is_ready_for_client_pictures" in action_source
     assert "create_pdf_from_current_preview" in action_source
     assert ".export-readiness-panel" in styles
     assert ".export-readiness-grid" in styles
+
+
+def test_export_screen_keeps_client_qa_out_of_normal_pdf_flow():
+    source = Path("app_modules/export_step.py").read_text()
+
+    assert "Client QA" not in source
+    assert "Ready for client" not in source
+    assert "Download QA" not in source
+    assert "QA report" not in source
+    assert "Export checks" in source

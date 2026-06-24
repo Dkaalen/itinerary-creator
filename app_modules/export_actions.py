@@ -2,7 +2,7 @@
 
 The Streamlit export screen should mostly render controls and status. This module
 owns the state-heavy export actions: editor-save coordination, durable PDF bytes,
-preview validation, image validation, quality gate checks, and final PDF creation.
+preview validation, image validation, client-safety blockers, and final PDF creation.
 """
 
 from __future__ import annotations
@@ -112,8 +112,8 @@ def create_pdf_from_current_preview() -> bool:
     )
     blocking_contract_issues = [issue for issue in contract_issues if issue.severity == "error"]
     if blocking_contract_issues:
-        clear_pdf_artifact("Needs review")
-        _show_issue_list("PDF export stopped because the preview structure needs review.", blocking_contract_issues)
+        clear_pdf_artifact("Blocked by preview structure")
+        _show_issue_list("PDF export stopped because the preview structure is invalid.", blocking_contract_issues)
         return False
 
     image_grouped_days = _image_grouped_days()
@@ -164,14 +164,15 @@ def create_pdf_from_current_preview() -> bool:
         day: get_day_image_crop_focus(st.session_state.get("output_edits", {}) or {}, day)
         for day in grouped_days_for_pdf
     }
-    client_quality_report = evaluate_client_output_quality(
+    client_safety_report = evaluate_client_output_quality(
         pdf_render_context.render_document,
         day_images=image_matches,
         image_bank_status=current_image_bank_status,
     )
-    if client_quality_report.is_blocked:
-        clear_pdf_artifact("Blocked by output quality gate")
-        for issue in client_quality_report.blocking_issues:
+    if client_safety_report.is_blocked:
+        clear_pdf_artifact("Blocked by client safety check")
+        st.error("PDF export stopped because client-facing output contains a fatal issue.")
+        for issue in client_safety_report.blocking_issues:
             st.error(issue.message)
         return False
 

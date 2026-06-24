@@ -10,20 +10,21 @@ def _frontend_source() -> str:
         for relative in (
             "styles/editor.css",
             "js/render.js",
+            "js/editor_readiness.js",
             "js/editor_warnings.js",
         )
     )
 
 
-def test_review3_groups_warnings_and_uses_ready_for_client_language():
+def test_review3_groups_warnings_and_uses_export_check_language():
     source = _frontend_source()
 
-    assert "Ready for client" in source
+    assert "Export clear" in source
     assert "groupedClientWarnings" in source
     assert "Critical" in source
-    assert "Needs review" in source
+    assert "Review" in source
     assert "Hidden auto-fixes" in source
-    assert "client-risk item" in source
+    assert "export blocker" in source
     assert "isHiddenAutoFixWarning" in source
     assert "warning-panel-stack" in source
 

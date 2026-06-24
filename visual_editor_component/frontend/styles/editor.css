@@ -1940,7 +1940,7 @@ body {
   }
 }
 
-/* REVIEW3 grouped client-readiness workflow */
+/* Grouped document-check workflow */
 .warning-panel-stack {
   display: grid;
   gap: 8px;

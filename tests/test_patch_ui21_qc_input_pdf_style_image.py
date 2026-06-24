@@ -54,10 +54,10 @@ def test_pdf1_preflight_feeds_export_readiness():
     preflight = build_pdf_preflight_report(state, READY_IMAGE_BANK)
     readiness = export_readiness_from_state(state, READY_IMAGE_BANK)
 
-    assert preflight.status_label == "Needs review"
+    assert preflight.status_label == "Blocked"
     assert any(issue.code == "missing_hotel_name" for issue in preflight.issues)
     assert readiness.can_create_pdf is False
-    assert readiness.preflight_status == "Needs review"
+    assert readiness.preflight_status == "Blocked"
     assert any("hotel" in message.lower() for message in readiness.preflight_issues)
 
 

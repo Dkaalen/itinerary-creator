@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence
 
 from itinerary_generation.common import get_primary_city, get_row_type
 from itinerary_generation.content_engine import is_group_tour_overview
+from itinerary_generation.copy.visit_context import DayVisitContext
 from itinerary_generation.date_resolver import get_day_date_text
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.day_planner import plan_day
@@ -54,7 +55,13 @@ def _typed_day(output_edits: Mapping[str, Any] | None, day: str) -> dict[str, An
     return {}
 
 
-def generated_day_values(day: str, rows: Sequence[dict], *, detail_level: str = "Rich descriptive") -> dict[str, str]:
+def generated_day_values(
+    day: str,
+    rows: Sequence[dict],
+    *,
+    detail_level: str = "Rich descriptive",
+    visit_context: DayVisitContext | None = None,
+) -> dict[str, str]:
     group_tour_segment = group_tour_day_from_rows(rows)
     group_city = group_tour_day_city(rows) if group_tour_segment else ""
     group_title = group_tour_day_title(rows) if group_tour_segment else ""
@@ -64,9 +71,9 @@ def generated_day_values(day: str, rows: Sequence[dict], *, detail_level: str = 
     if group_intro:
         intro = group_intro
     elif has_group_tour_overview:
-        intro = create_day_intro(rows, detail_level=detail_level)
+        intro = create_day_intro(rows, detail_level=detail_level, visit_context=visit_context)
     else:
-        intro = plan.intro or create_day_intro(rows, detail_level=detail_level)
+        intro = plan.intro or create_day_intro(rows, detail_level=detail_level, visit_context=visit_context)
     city = group_city or get_primary_city(rows)
     if not city and any(get_row_type(row) == "Cruise" for row in rows or []):
         city = "Cruise"
@@ -86,11 +93,12 @@ def resolve_day_content(
     output_edits: Mapping[str, Any] | None = None,
     typed_day: Mapping[str, Any] | None = None,
     detail_level: str = "Rich descriptive",
+    visit_context: DayVisitContext | None = None,
 ) -> ResolvedDayContent:
     day_edits = (output_edits or {}).get("days", {}).get(day, {}) if isinstance(output_edits, Mapping) else {}
     if typed_day is None:
         typed_day = _typed_day(output_edits, day)
-    generated = generated_day_values(day, rows, detail_level=detail_level)
+    generated = generated_day_values(day, rows, detail_level=detail_level, visit_context=visit_context)
     signature = day_source_signature(rows)
     intro = resolve_intro(
         day_edits=day_edits if isinstance(day_edits, Mapping) else {},

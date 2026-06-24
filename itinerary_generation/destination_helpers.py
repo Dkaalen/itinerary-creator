@@ -290,4 +290,4 @@ def get_primary_city(day_rows):
 
 def get_row_city(day_rows):
     city = get_primary_city(day_rows)
-    return city or "the destination"
+    return city or "the area"

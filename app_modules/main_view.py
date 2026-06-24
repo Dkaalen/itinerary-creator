@@ -63,13 +63,13 @@ STAGE_LABELS = {
 }
 STAGE_COPY = {
     "input": {
-        "headline": "Create a client-ready itinerary",
+        "headline": "Create a premium itinerary",
         "subtitle": "Paste supplier text, generate the itinerary, edit the document, add real destination pictures, then export the final PDF.",
         "panel_title": "Paste supplier text",
-        "panel_text": "Copy the full supplier table or messy itinerary rows and paste them below. The app will build the editable client itinerary on the next page.",
+        "panel_text": "Copy the full supplier table or messy itinerary rows and paste them below. The app will build the editable itinerary on the next page.",
     },
     "edit": {
-        "subtitle": "Edit the generated client itinerary directly. Pictures stay off until the text is ready.",
+        "subtitle": "Edit the generated itinerary directly. Pictures stay off until the text is ready.",
         "panel_title": "Edit the itinerary",
         "panel_text": "Work directly in the generated document. When the text is ready, add destination pictures from the real image bank.",
     },
@@ -79,7 +79,7 @@ STAGE_COPY = {
         "panel_text": "The itinerary now includes automatic image selections. Replace weak matches, remove unwanted pictures, then create the PDF.",
     },
     "export": {
-        "subtitle": "Run the final quality checks, create the PDF, then download the client-ready file.",
+        "subtitle": "Run final export checks, create the PDF, then download the finished file.",
         "panel_title": "Create the final PDF",
         "panel_text": "The current document and picture choices are used for export. Create PDF applies pending page edits first, then the ready panel keeps the download available. If the PDF already up to date, the existing download is reused.",
     },
@@ -272,7 +272,7 @@ def _image_status_notice() -> None:
         st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}.")
     else:
         st.error(status.get("blocking_message") or "Full destination image bank is missing.")
-        st.caption("Default pictures are fallback placeholders only. They are not approved for final client output unless explicitly allowed.")
+        st.caption("Default pictures are fallback placeholders only. They are not approved for final PDF export unless explicitly allowed.")
 
 
 def _image_bank_gateway_is_blocking(result: dict | None) -> bool:
@@ -408,7 +408,7 @@ def render_picture_page(app_version: str) -> None:
     _stage_panel(STAGE_COPY["pictures"]["panel_title"], STAGE_COPY["pictures"]["panel_text"])
     _render_document_editor(pictures_active=True)
 
-    st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final client PDF from the current document.</span></div></div>')
+    st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final PDF from the current document.</span></div></div>')
     if st.button("Create PDF", type="primary", use_container_width=True):
         enter_export_stage(st.session_state, request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit)
         st.rerun()
@@ -431,7 +431,7 @@ def render_export_page(app_version: str) -> None:
     _stage_panel(STAGE_COPY["export"]["panel_title"], STAGE_COPY["export"]["panel_text"])
     _render_document_editor(pictures_active=True)
 
-    st.html('<div class="bottom-cta"><div><strong>Ready to deliver?</strong><span>Create or download the final client PDF.</span></div></div>')
+    st.html('<div class="bottom-cta"><div><strong>Ready to deliver?</strong><span>Create or download the final PDF.</span></div></div>')
     render_export_step(app_version)
 
 

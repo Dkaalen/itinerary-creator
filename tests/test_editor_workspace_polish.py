@@ -8,6 +8,7 @@ def _frontend_source() -> str:
         for relative in (
             "styles/editor.css",
             "js/render.js",
+            "js/editor_readiness.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
         )
@@ -19,7 +20,7 @@ def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
 
     assert "reviewCenterHtml" in source
     assert 'class="review-center"' in source
-    assert "Review center" in source
+    assert "Document checks" in source
     assert "review-center-grid" in source
     assert 'class="warning-panel"><summary>' in source
     assert 'class="pdf-readiness-panel ${escAttr(status.level)}"><summary>' in source

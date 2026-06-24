@@ -178,7 +178,7 @@ _PROFILE_HOOKS: dict[str, tuple[str, ...]] = {
     "urban_culture": ("culture", "architecture", "local neighbourhoods"),
     "arctic": ("Arctic setting", "northern light", "winter landscapes"),
     "scenic_nature": ("fjord scenery", "mountain views", "village atmosphere"),
-    "mountain_resort": ("mountain scenery", "outdoor rhythm", "resort atmosphere"),
+    "mountain_resort": ("mountain scenery", "outdoor life", "resort atmosphere"),
     "national_park": ("protected landscapes", "viewpoints", "trails"),
     "scenic_route": ("changing landscapes", "route highlights", "photo stops"),
     "icelandic_town": ("harbour", "coast", "local Icelandic life"),
@@ -419,6 +419,10 @@ def destination_leisure_sentence(
     return profile.leisure_templates[template_idx].format(city=city, identity=profile.identity, focus=focus)
 
 
+def _is_return_visit(visit_context: object | None) -> bool:
+    return bool(getattr(visit_context, "is_return_visit", False))
+
+
 def destination_arrival_intro(
     city: object,
     transfer_phrase: str,
@@ -426,14 +430,21 @@ def destination_arrival_intro(
     *,
     display_destination: str | None = None,
     rows: Iterable[Mapping[str, object]] | None = None,
+    visit_context: object | None = None,
 ) -> str:
     destination = str(display_destination or "").strip() or destination_profile_for(city).name or polish_title(str(city or "").strip()) or "this place"
     transfer_phrase = re.sub(r"\s+", " ", str(transfer_phrase or "").strip())
     transfer_phrase = transfer_phrase or "After arrival, make your way to your accommodation."
+    return_visit = _is_return_visit(visit_context)
     if detail_level == "Elegant concise":
-        return f"Welcome to {destination}. {transfer_phrase}"
+        prefix = "Return to" if return_visit else "Welcome to"
+        return f"{prefix} {destination}. {transfer_phrase}"
 
-    if destination.casefold() != str(city or "").strip().casefold() and destination:
+    if return_visit:
+        profile = destination_profile_for(city)
+        identity = profile.arrival_identity or profile.identity or destination
+        arrival_sentence = f"Back in {identity}, the rest of the day is kept relaxed after check-in, with time to settle back into familiar surroundings."
+    elif destination.casefold() != str(city or "").strip().casefold() and destination:
         identity = destination
         arrival_sentence = f"After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impressions of {identity}."
     else:
@@ -446,13 +457,27 @@ def destination_arrival_intro(
             "the rest of the day is yours to settle in, relax, and enjoy",
             "the rest of the day is yours to relax and enjoy",
         )
-    return f"Welcome to {destination}. {transfer_phrase} {arrival_sentence}"
+    prefix = "Return to" if return_visit else "Welcome to"
+    return f"{prefix} {destination}. {transfer_phrase} {arrival_sentence}"
 
 
-def destination_stay_intro(city: object, detail_level: str, rows: Iterable[Mapping[str, object]] | None = None) -> str:
+def destination_stay_intro(
+    city: object,
+    detail_level: str,
+    rows: Iterable[Mapping[str, object]] | None = None,
+    *,
+    visit_context: object | None = None,
+) -> str:
     destination = destination_profile_for(city).name or polish_title(str(city or "").strip()) or "this place"
+    return_visit = _is_return_visit(visit_context)
     if detail_level == "Elegant concise":
+        if return_visit:
+            return f"Return to {destination}. Time is kept relaxed after arrival so you can settle back in."
         return f"Welcome to {destination}. Time is kept relaxed after arrival so you can settle in."
+    if return_visit:
+        profile = destination_profile_for(city)
+        identity = profile.arrival_identity or profile.identity or destination
+        return f"Return to {destination}. After arrival, the day is kept relaxed so you can check in and settle back into your accommodation. Back in {identity}, use the remaining time at your own pace."
     arrival_sentence = select_arrival_sentence(city, rows)
     return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in and settle into your accommodation. {arrival_sentence}"
 

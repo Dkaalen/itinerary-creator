@@ -88,7 +88,7 @@ _COMMON_ROUTES: dict[tuple[str, str, str], RouteCopyProfile] = {
         title="Kristiansand → Stavanger",
         intro=(
             "Travel from Kristiansand to Stavanger by train, continuing west along Southern Norway towards the fjord gateway of Stavanger. "
-            "The rail journey gives the day a clear travel rhythm before check-in on arrival."
+            "The rail journey gives the day a clear structure before check-in on arrival."
         ),
         description="A westbound rail journey linking Southern Norway with Stavanger’s harbour and fjord country.",
         style="Scenic rail connection",
@@ -313,7 +313,7 @@ def route_intro_for_day(day_rows: Sequence[Mapping[str, object]], detail_level: 
         "self_drive": "by self-drive route",
     }.get(mode, "with the planned travel arrangements")
     if origin and destination and origin.lower() != destination.lower():
-        return f"Travel from {origin} to {destination} {mode_label}, with the route presented clearly as part of the day’s experience."
+        return f"Travel from {origin} to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."
     if destination:
-        return f"Continue to {destination} {mode_label}, with the route presented clearly as part of the day’s experience."
+        return f"Continue to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."
     return ""

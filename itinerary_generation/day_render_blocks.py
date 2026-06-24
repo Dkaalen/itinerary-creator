@@ -13,6 +13,7 @@ from itinerary_generation.content_engine import clean_client_title, group_tour_p
 from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.day_overview_blocks import build_day_overview_render_block
 from itinerary_generation.day_content_resolver import resolve_day_content
+from itinerary_generation.copy.visit_context import DayVisitContext
 from itinerary_generation.day_planner import plan_day
 from itinerary_generation.canonical_render_adapter import render_block_from_canonical
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderMetaLine
@@ -96,7 +97,7 @@ def build_cruise_leisure_render_block(row):
         title="Spend time at leisure onboard the cruise",
         description=(
             "Enjoy a relaxed day onboard the cruise, with time to take in the coastal scenery, "
-            "use the ship facilities and settle into the rhythm of the voyage."
+            "use the ship facilities and ease into life onboard for the day."
         ),
         css_class="cruise-leisure-block",
     )
@@ -393,19 +394,20 @@ def build_render_day_from_document(
     *,
     output_edits: dict | None = None,
     detail_level: str = "Rich descriptive",
+    visit_context: DayVisitContext | None = None,
 ) -> RenderDay:
     """Build one RenderDay from the structured itinerary source document."""
 
     ordered_rows = _rows_ordered_by_day_document(_day_document_for(document, day), rows)
     main_rows = [row for row in ordered_rows if not is_optional_row(row)] or list(ordered_rows)
     effective_output_edits = _output_edits_with_typed_day_overrides(output_edits, day)
-    day_shell = canonical_day(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level)
+    day_shell = canonical_day(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level, visit_context=visit_context)
     day_document = _day_document_for(document, day)
     source_ids = list(day_document.source_row_ids) if day_document else list(day_shell.source_row_ids)
     warnings = list(day_shell.warnings)
     if day_document:
         warnings.extend(warning.message for warning in day_document.warnings)
-    resolved_day_content = resolve_day_content(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level)
+    resolved_day_content = resolve_day_content(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level, visit_context=visit_context)
     edited_date = str(resolved_day_content.date or "").strip()
     return RenderDay(
         day=day_shell.day,

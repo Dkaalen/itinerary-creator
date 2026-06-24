@@ -34,7 +34,7 @@ function imageHtml(day, dayIndex) {
   const img = day.image || {};
   const hasImage = !!img.data_uri;
   const warnings = Array.isArray(img.warnings) ? img.warnings : [];
-  const warningHtml = warnings.length ? `<div class="image-warning-badge">Needs review: ${esc(warnings[0].message || warnings[0].code || 'picture warning')}</div>` : '';
+  const warningHtml = warnings.length ? `<div class="image-warning-badge">Review: ${esc(warnings[0].message || warnings[0].code || 'picture warning')}</div>` : '';
   const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : `<span>${img.pending_preview ? 'Replacement selected — save to update preview' : 'No picture selected'}</span>`;
   return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}"${blockAttrs}>
       ${src}${warningHtml}

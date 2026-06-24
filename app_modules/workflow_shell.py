@@ -102,7 +102,7 @@ def build_workflow_steps(session_state: Mapping[str, Any] | Any) -> list[Workflo
             6,
             "Export",
             "PDF delivery",
-            "Create the final PDF only after quality gates pass.",
+            "Create the final PDF after fatal export checks are clear.",
             "complete" if pdf_status == "Ready" else ("active" if has_html else "locked"),
             "PDF ready" if pdf_status == "Ready" else pdf_status,
         ),

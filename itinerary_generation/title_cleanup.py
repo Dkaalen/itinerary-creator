@@ -27,7 +27,7 @@ _GENERIC_FALLBACK_MARKERS = [
     "join a guided glacier experience",
     "enjoy this lagoon and wellness experience",
     "enjoy a guided experience",
-    "see the destination from the water",
+    "see the area from the water",
 ]
 
 TYPO_FIXES = [

@@ -12,6 +12,7 @@ from collections import OrderedDict
 from typing import Mapping
 
 from itinerary_generation.common import group_rows_by_day, is_optional_row
+from itinerary_generation.copy.visit_context import build_day_visit_contexts
 from itinerary_generation.render_model import RenderDocument
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import ItineraryDocument
@@ -56,6 +57,7 @@ def build_render_document_from_document(
     from itinerary_generation.day_render_blocks import build_render_day_from_document
 
     render_grouped_days = grouped_days_with_day_optional_rows(grouped_days, parsed_rows)
+    visit_contexts = build_day_visit_contexts(grouped_days or {})
     warnings = [warning.message for warning in document.warnings]
     return RenderDocument(
         title=create_trip_title(parsed_rows, grouped_days),
@@ -68,6 +70,7 @@ def build_render_document_from_document(
                 list(rows),
                 output_edits=output_edits,
                 detail_level=detail_level,
+                visit_context=visit_contexts.get(str(day)),
             )
             for day, rows in render_grouped_days.items()
         ],

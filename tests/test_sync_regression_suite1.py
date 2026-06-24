@@ -215,5 +215,5 @@ def test_copy_rules_keep_lysefjord_and_oslofjord_separate():
     oslo_intro = create_day_intro(oslo_rows, detail_level="Rich descriptive")
 
     assert "The day centres on Lysefjord" in lysefjord_intro
-    assert "Begin with Oslo from the water" in oslo_intro
-    assert "Begin with Oslo" not in lysefjord_intro
+    assert "See Oslo from the fjord today" in oslo_intro
+    assert "See Oslo from the fjord" not in lysefjord_intro

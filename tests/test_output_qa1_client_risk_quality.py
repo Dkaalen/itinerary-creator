@@ -82,7 +82,7 @@ def test_copy1_and_output_qa1_render_context_has_less_stale_day_intros():
     context = build_itinerary_render_context(rows, group_rows_by_day(rows), {})
     intros = {day.city: day.intro for day in context.render_document.days}
 
-    assert "Begin with Oslo from the water" in intros["Oslo"]
+    assert "See Oslo from the fjord today" in intros["Oslo"]
     assert "The day centres on Lysefjord" in intros["Stavanger"]
     assert "See Kristiansand from river level" in intros["Kristiansand"]
     assert not any(intro.startswith("Sail from") for intro in intros.values())

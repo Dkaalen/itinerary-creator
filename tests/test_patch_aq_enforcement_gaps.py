@@ -75,7 +75,7 @@ def test_client_output_quality_gate_runs_during_html_generation(monkeypatch):
 
     monkeypatch.setattr("app_modules.itinerary_html.evaluate_client_output_quality", lambda *_args, **_kwargs: report)
 
-    with pytest.raises(ValueError, match="Client output quality gate blocked itinerary generation"):
+    with pytest.raises(ValueError, match="Client output safety check blocked itinerary generation"):
         build_itinerary_html(rows, grouped, {})
 
 

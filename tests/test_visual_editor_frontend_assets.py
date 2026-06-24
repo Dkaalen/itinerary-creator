@@ -9,6 +9,8 @@ def test_visual_editor_index_is_thin_asset_shell():
     assert '<link rel="stylesheet" href="styles/editor.css" />' in index
     assert '<script src="js/state.js"></script>' in index
     assert '<script src="js/images.js"></script>' in index
+    assert '<script src="js/editor_image_tools.js"></script>' in index
+    assert '<script src="js/editor_readiness.js"></script>' in index
     assert '<script src="js/render.js"></script>' in index
     assert '<script src="js/serialization.js"></script>' in index
     assert '<script src="js/editor_dirty_state.js"></script>' in index
@@ -30,6 +32,8 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "styles/editor.css": [".editor-toolbar", ".advanced-tools", ".a4-page"],
         "js/state.js": ["let initialPayload", "function restoreLocalDraftIfAvailable"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
+        "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],
+        "js/editor_readiness.js": ["function pdfReadinessStatus", "function reviewCenterHtml"],
         "js/render.js": ["function render(", "function draw()"],
         "js/serialization.js": ["function collect()", "function buildEditableDraftFromPayload", "function buildSaveEnvelope"],
         "js/editor_dirty_state.js": ["function markTouched", "function saveRecoveryPanelHtml"],

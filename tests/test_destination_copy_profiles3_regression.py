@@ -129,3 +129,57 @@ def test_pdf_day_intro_no_longer_gets_decorative_divider_line():
         make_styles(),
     )
     assert not any(isinstance(item, Table) for item in typed_story)
+
+
+def test_return_visit_intro_uses_return_language_not_first_arrival_copy():
+    rows = [
+        {
+            "day": "Day 1",
+            "type": "Arrival",
+            "effective_type": "Arrival",
+            "city": "Oslo",
+            "title": "Arrival in Oslo",
+            "details": "Private transfer to hotel",
+        },
+        {
+            "day": "Day 1",
+            "type": "Hotel",
+            "effective_type": "Hotel",
+            "city": "Oslo",
+            "title": "Check in to your accommodation",
+            "details": "One-night stay.",
+        },
+        {
+            "day": "Day 2",
+            "type": "Transfer",
+            "effective_type": "Transfer",
+            "city": "Bergen",
+            "title": "Travel from Oslo to Bergen",
+            "details": "Train from Oslo to Bergen.",
+        },
+        {
+            "day": "Day 3",
+            "type": "Arrival",
+            "effective_type": "Arrival",
+            "city": "Oslo",
+            "title": "Arrival in Oslo",
+            "details": "Private transfer to hotel",
+        },
+        {
+            "day": "Day 3",
+            "type": "Hotel",
+            "effective_type": "Hotel",
+            "city": "Oslo",
+            "title": "Check in to your accommodation",
+            "details": "One-night stay.",
+        },
+    ]
+    grouped = {"Day 1": rows[:2], "Day 2": rows[2:3], "Day 3": rows[3:]}
+    from itinerary_generation.render_document_builder import build_render_document
+
+    render_document = build_render_document(rows, grouped)
+    intros = {day.day: day.intro for day in render_document.days}
+
+    assert intros["Day 1"].startswith("Welcome to Oslo.")
+    assert intros["Day 3"].startswith("Return to Oslo.")
+    assert "first impressions" not in intros["Day 3"].lower()

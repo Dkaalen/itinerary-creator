@@ -15,15 +15,7 @@ from app_modules.export_actions import (
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
-from ui.picture_workflow import pictures_are_added
 from pdf_exporter_modules.export_profiles import pdf_export_profile_options
-from itinerary_generation.qa_report import (
-    build_qa_report,
-    persist_qa_report,
-    qa_reports_dir,
-    render_qa_report_json,
-    render_qa_report_markdown,
-)
 
 
 def render_pdf_download_station(*, location: str = "bottom") -> None:
@@ -35,7 +27,7 @@ def render_pdf_download_station(*, location: str = "bottom") -> None:
 
     st.html(
         '<div class="pdf-ready-panel">'
-        '<div><strong>PDF ready</strong><span>Your client-ready PDF has been created from the current itinerary.</span></div>'
+        '<div><strong>PDF ready</strong><span>Your PDF has been created from the current itinerary.</span></div>'
         f'<span class="pdf-ready-location">{location}</span>'
         '</div>'
     )
@@ -49,73 +41,7 @@ def render_pdf_download_station(*, location: str = "bottom") -> None:
         key=f"download_pdf_{location}",
     )
 
-
-
-def _current_qa_warnings() -> list:
-    warnings = []
-    report = st.session_state.get("itinerary_validation_report")
-    if report is not None:
-        warnings.extend(getattr(report, "warnings", ()) or ())
-    warnings.extend(st.session_state.get("parser_diagnostics", []) or [])
-    warnings.extend(st.session_state.get("generation_overflow_warnings", []) or [])
-    output_edits = st.session_state.get("output_edits", {}) or {}
-    if isinstance(output_edits, dict):
-        warnings.extend(output_edits.get("latest_client_output_warnings", []) or [])
-    return warnings
-
-
-def _render_qa_report_downloads(app_version: str) -> None:
-    parsed_rows = st.session_state.get("parsed_rows", []) or []
-    output_edits = st.session_state.get("output_edits", {}) or {}
-    if not parsed_rows:
-        st.caption("QA report is available after itinerary generation.")
-        return
-
-    report = build_qa_report(
-        parsed_rows,
-        output_edits,
-        app_version=app_version,
-        warnings=_current_qa_warnings(),
-    )
-    json_text = render_qa_report_json(report)
-    markdown_text = render_qa_report_markdown(report)
-
-    st.markdown("**QA report / edit learning log**")
-    st.caption(
-        "Use this when an activity, warning, inclusion, or page text looks wrong. "
-        "Save it to shared storage for the team, or download it and send it with the latest ZIP."
-    )
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.download_button(
-            "Download QA Markdown",
-            data=markdown_text.encode("utf-8"),
-            file_name="itinerary_qa_report.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
-    with col_b:
-        st.download_button(
-            "Download QA JSON",
-            data=json_text.encode("utf-8"),
-            file_name="itinerary_qa_report.json",
-            mime="application/json",
-            use_container_width=True,
-        )
-    with col_c:
-        if st.button("Save QA report", use_container_width=True):
-            paths = persist_qa_report(report)
-            st.session_state["last_saved_qa_report"] = paths
-
-    saved = st.session_state.get("last_saved_qa_report") or {}
-    if saved:
-        st.success(f"QA report saved to shared storage: {saved.get('markdown_path')}")
-    st.caption(f"Shared QA storage: {qa_reports_dir()}")
-
-
 def _render_secondary_downloads(app_version: str) -> None:
-    _render_qa_report_downloads(app_version)
-    st.divider()
     project_data = {
         "app_version": app_version,
         "raw_text": st.session_state.get("last_generated_raw_text", ""),
@@ -148,14 +74,13 @@ def _render_secondary_downloads(app_version: str) -> None:
 def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
     picture_status = "Not added"
     if readiness.pictures_added:
-        picture_status = "Ready" if readiness.picture_review_ready else "Needs review"
-    client_qa_ok = readiness.critical_issue_count == 0
-    client_qa_label = "Ready for client" if client_qa_ok and readiness.review_issue_count == 0 else "Needs review" if client_qa_ok else "Blocked"
+        picture_status = "Added"
+    editor_status = "Saving" if readiness.pending_editor_commit else "Saved"
     states = [
         ("Document", "Ready" if readiness.has_document else "Missing", readiness.has_document),
-        ("Pictures", picture_status, readiness.pictures_added and readiness.picture_review_ready),
+        ("Pictures", picture_status, readiness.pictures_added),
         ("Image bank", "Connected" if readiness.image_bank_ready else "Missing", readiness.image_bank_ready),
-        ("Client QA", client_qa_label, client_qa_ok),
+        ("Editor", editor_status, not readiness.pending_editor_commit),
         ("PDF", "Ready" if readiness.pdf_ready else "Not created", readiness.pdf_ready),
     ]
     cards = "".join(
@@ -177,10 +102,10 @@ def _render_export_readiness_panel(readiness: ExportReadiness) -> None:
         '</div>'
     )
     attention_messages = readiness.blocking_messages or readiness.preflight_issues
-    if readiness.review_issue_count and not readiness.critical_issue_count:
-        st.caption(f"Client QA has {readiness.review_issue_count} review item(s). You can export, but review these before sending.")
+    if readiness.advisory_issue_count and not readiness.critical_issue_count:
+        st.caption(f"{readiness.advisory_issue_count} advisory export warning(s). They do not block PDF creation.")
     if attention_messages and not readiness.pending_editor_commit:
-        with st.expander(f"PDF preflight — {readiness.preflight_status}", expanded=bool(readiness.blocking_messages)):
+        with st.expander(f"Export checks — {readiness.preflight_status}", expanded=bool(readiness.blocking_messages)):
             for message in attention_messages:
                 st.write(f"- {message}")
 
@@ -212,11 +137,6 @@ def _render_pdf_profile_selector() -> None:
         clear_pdf_artifact("Proposal profile changed")
 
 
-def _current_image_review_errors() -> tuple:
-    """Compatibility hook: picture review no longer blocks PDF export."""
-
-    return ()
-
 
 def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
@@ -225,10 +145,8 @@ def render_export_step(app_version: str) -> None:
     required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
     current_image_status = image_bank_status(required_destinations)
     commit_ready = visual_editor_export_commit_ready()
-    image_review_errors = _current_image_review_errors()
     _render_pdf_profile_selector()
     snapshot = _session_state_snapshot()
-    snapshot["image_review_error_count"] = len(image_review_errors)
     readiness = export_readiness_from_state(snapshot, current_image_status)
     _render_export_readiness_panel(readiness)
 
@@ -257,7 +175,7 @@ def render_export_step(app_version: str) -> None:
 
     if commit_ready:
         try:
-            with st.spinner("Creating client-ready PDF…"):
+            with st.spinner("Creating PDF…"):
                 ok = create_pdf_from_current_preview()
             st.session_state["_pdf_after_visual_edit_commit_nonce"] = None
             st.session_state["_visual_editor_export_commit_ready"] = False
@@ -272,5 +190,5 @@ def render_export_step(app_version: str) -> None:
             with st.expander("PDF export error details"):
                 st.exception(error)
 
-    with st.expander("Other downloads", expanded=False):
+    with st.expander("Project downloads", expanded=False):
         _render_secondary_downloads(app_version)

@@ -93,11 +93,12 @@ def _group_tour_intro_from_source(title: str, source: str) -> str:
     return client_group_tour_intro(title, "the route", source)
 
 
-def _welcome_arrival_intro(city: str, detail_level: str, *, with_activity: bool = False) -> str:
+def _welcome_arrival_intro(city: str, detail_level: str, *, with_activity: bool = False, visit_context=None) -> str:
     destination = _arrival_display_destination(city)
     if with_activity:
-        return f"Welcome to {destination}."
-    return destination_stay_intro(city, detail_level)
+        prefix = "Return to" if getattr(visit_context, "is_return_visit", False) else "Welcome to"
+        return f"{prefix} {destination}."
+    return destination_stay_intro(city, detail_level, visit_context=visit_context)
 
 
 def _has_destination_hotel(day_rows: list[dict], city: str) -> bool:
@@ -262,7 +263,7 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     return ""
 
 
-def create_day_intro(day_rows, detail_level="Standard client itinerary"):
+def create_day_intro(day_rows, detail_level="Standard client itinerary", *, visit_context=None):
     """Create a clear, client-facing day intro.
 
     This function is intentionally deterministic and pattern-based. It avoids
@@ -273,7 +274,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
 
     detail_level = normalize_detail_level(detail_level)
     city = get_primary_city(day_rows)
-    city_text = city or "the destination"
+    city_text = city or "the experience area"
 
     has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
     has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
@@ -328,13 +329,15 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             activity_city = str(activities[0].get("city", "") or "").strip()
             city_for_activity = activity_city or city_text
             activity_intro = _activity_day_intro(activity_title, city_for_activity, activity_text, detail_level)
-            return f"Welcome to {destination}. {transfer_phrase} {activity_intro}"
+            prefix = "Return to" if getattr(visit_context, "is_return_visit", False) else "Welcome to"
+            return f"{prefix} {destination}. {transfer_phrase} {activity_intro}"
         return destination_arrival_intro(
             city,
             transfer_phrase,
             detail_level,
             display_destination=destination,
             rows=day_rows,
+            visit_context=visit_context,
         )
 
     if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
@@ -346,6 +349,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
             detail_level,
             display_destination=destination,
             rows=day_rows,
+            visit_context=visit_context,
         )
 
     if has_departure and city:
@@ -390,7 +394,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         if transports or route_transfers:
             intro = _activity_day_intro(activity_title, city_for_activity or city_text, activity_text, detail_level)
             if has_hotel(day_rows) and city:
-                return f"{_welcome_arrival_intro(city, detail_level, with_activity=True)} {intro}"
+                return f"{_welcome_arrival_intro(city, detail_level, with_activity=True, visit_context=visit_context)} {intro}"
             return intro
 
         if not has_hotel(day_rows) or (not transports and not route_transfers):
@@ -409,20 +413,19 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
 
         has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
         if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):
-            return _welcome_arrival_intro(city, detail_level)
-
-        premium_route_intro = route_intro_for_day(day_rows, detail_level)
-        if premium_route_intro:
-            return premium_route_intro
+            return _welcome_arrival_intro(city, detail_level, visit_context=visit_context)
 
         route_label = create_travel_route_label(day_rows)
         if route_label:
-            route_destination = route_label.split(" to ")[-1].strip() if " to " in route_label else ""
             if detail_level == "Elegant concise":
                 return f"Travel from {route_label}."
             if detail_level == "Rich descriptive":
                 return f"Travel from {route_label} today, with the main transfer details laid out clearly in the itinerary."
             return f"Travel from {route_label}, with the day focused on the planned route."
+
+        premium_route_intro = route_intro_for_day(day_rows, detail_level)
+        if premium_route_intro:
+            return premium_route_intro
 
         route_origin, route_destination, route_mode = _route_summary_from_rows(day_rows)
         premium_intro = _premium_route_intro(route_origin, route_destination, route_mode, detail_level)
@@ -447,7 +450,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
         display_city = destination_city or city
         has_flight_transport = any(get_row_type(row) == "Flight" for row in transports)
         if has_flight_transport and has_hotel(day_rows) and city and _has_destination_hotel(day_rows, city):
-            return _welcome_arrival_intro(city, detail_level)
+            return _welcome_arrival_intro(city, detail_level, visit_context=visit_context)
         if detail_level == "Elegant concise":
             return f"Travel to {display_city} with the listed arrangements."
         if detail_level == "Rich descriptive":
@@ -480,7 +483,7 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary"):
     if city:
         if has_hotel(day_rows):
             destination = _arrival_display_destination(city)
-            return destination_stay_intro(city, detail_level, rows=day_rows)
+            return destination_stay_intro(city, detail_level, rows=day_rows, visit_context=visit_context)
         if detail_level == "Elegant concise":
             return f"This is part of your stay in {city}, with arrangements listed below."
         if detail_level == "Rich descriptive":

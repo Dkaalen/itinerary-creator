@@ -20,16 +20,16 @@ class _StructuredDocument:
 
 
 def test_review4_uses_specific_page_action_labels_and_source_rows():
-    render_js = _read("visual_editor_component/frontend/js/render.js")
+    readiness_js = _read("visual_editor_component/frontend/js/editor_readiness.js")
 
-    assert "function warningActionLabel" in render_js
-    assert "Open day page" in render_js
-    assert "Open final page" in render_js
-    assert "Open cover" in render_js
-    assert "Open summary" in render_js
-    assert "warningSourceChipsHtml" in render_js
-    assert "Source row:" in render_js
-    assert "Review page</button>" not in render_js
+    assert "function warningActionLabel" in readiness_js
+    assert "Open day page" in readiness_js
+    assert "Open final page" in readiness_js
+    assert "Open cover" in readiness_js
+    assert "Open summary" in readiness_js
+    assert "warningSourceChipsHtml" in readiness_js
+    assert "Source row:" in readiness_js
+    assert "Review page</button>" not in readiness_js
 
 
 def test_review4_model_warning_payload_gets_page_id_from_source_row():

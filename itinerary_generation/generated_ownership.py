@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence
 
 from bs4 import BeautifulSoup
 
-INTRO_GENERATOR_VERSION = "destination-copy-profiles1"
+INTRO_GENERATOR_VERSION = "copy-engine-split1"
 BLOCKS_GENERATOR_VERSION = "blocks-ownership-v1"
 
 _INTRO_MANUAL_KEY = "intro_manual_override"

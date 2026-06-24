@@ -1,4 +1,10 @@
-"""Pure PDF preflight checks for the export workflow."""
+"""Pure PDF preflight checks for the export workflow.
+
+The export screen needs one simple decision: can the user create the PDF now?
+This module keeps that decision separate from advisory review metadata.  Issues
+with severity ``critical`` are true export blockers; issues with severity
+``review`` are advisory and must not block PDF creation.
+"""
 
 from __future__ import annotations
 
@@ -26,19 +32,40 @@ class PdfPreflightReport:
     issues: tuple[PdfPreflightIssue, ...]
 
     @property
+    def blocking_issues(self) -> tuple[PdfPreflightIssue, ...]:
+        return tuple(issue for issue in self.issues if issue.severity == "critical")
+
+    @property
+    def advisory_issues(self) -> tuple[PdfPreflightIssue, ...]:
+        return tuple(issue for issue in self.issues if issue.severity == "review")
+
+    @property
     def critical_count(self) -> int:
-        return sum(1 for issue in self.issues if issue.severity == "critical")
+        return len(self.blocking_issues)
+
+    @property
+    def blocking_count(self) -> int:
+        return self.critical_count
 
     @property
     def review_count(self) -> int:
-        return sum(1 for issue in self.issues if issue.severity == "review")
+        return len(self.advisory_issues)
+
+    @property
+    def advisory_count(self) -> int:
+        return self.review_count
 
     @property
     def can_export(self) -> bool:
         return self.critical_count == 0
 
     def as_dict(self) -> dict[str, Any]:
-        return {"status_label": self.status_label, "issues": [issue.as_dict() for issue in self.issues]}
+        return {
+            "status_label": self.status_label,
+            "issues": [issue.as_dict() for issue in self.issues],
+            "blocking_issues": [issue.as_dict() for issue in self.blocking_issues],
+            "advisory_issues": [issue.as_dict() for issue in self.advisory_issues],
+        }
 
 
 def _issue(code: str, severity: str, message: str) -> PdfPreflightIssue:
@@ -108,9 +135,9 @@ def build_pdf_preflight_report(
         unique.append(issue)
 
     if any(issue.severity == "critical" for issue in unique):
-        status = "Needs review"
+        status = "Blocked"
     elif any(issue.severity == "review" for issue in unique):
-        status = "Review"
+        status = "Warnings"
     else:
         status = "Clear"
     return PdfPreflightReport(status_label=status, issues=tuple(unique))

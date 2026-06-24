@@ -75,7 +75,9 @@ def test_itinerary_html_builds_render_document_from_structured_document():
     }
 
     assert "build_itinerary_render_context" in html_call_names
-    assert "render_day_pages" in html_call_names
+    assert "render_day_page_html_by_id" in html_call_names
+    assert "render_final_sections_html_by_id" in html_call_names
+    assert "ordered_page_ids" in html_call_names
     assert "build_itinerary_document" in context_call_names
     assert "build_render_document_from_document" in context_call_names
 
@@ -90,3 +92,25 @@ def test_canonical_to_render_adapter_is_the_only_canonical_bridge():
     source = (ROOT / "itinerary_generation" / "canonical_render_adapter.py").read_text(encoding="utf-8")
     assert "from itinerary_generation.canonical_model" in source
     assert "from itinerary_generation.render_model" in source
+
+
+def test_preview_uses_render_document_final_sections_and_shared_page_order():
+    from app_modules.itinerary_html import build_itinerary_html
+    rows = [
+        {"type": "Activity", "effective_type": "Activity", "day": "Day 1", "city": "Oslo", "title": "Generated Walk"},
+    ]
+    grouped = {"Day 1": rows}
+    draft = {
+        "final_sections": [
+            {"section_id": "important_travel_notes", "title": "Notes", "text": "Shared render note"},
+        ],
+        "document_pages": [
+            {"page_id": "final-important-travel-notes", "page_type": "final_section", "sort_order": 10},
+            {"page_id": "day-day-1", "page_type": "generated_day", "sort_order": 20},
+        ],
+    }
+
+    html = build_itinerary_html(rows, grouped, {"editor_draft": draft})
+
+    assert "Shared render note" in html
+    assert html.index("Shared render note") < html.index("Generated Walk")
