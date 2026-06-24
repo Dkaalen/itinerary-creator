@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 FRONTEND = Path("visual_editor_component/frontend")
 
 
@@ -31,11 +33,22 @@ def test_visual_editor_index_is_thin_asset_shell():
 
 def test_visual_editor_frontend_assets_are_split_by_responsibility():
     expected = {
-        "styles/editor.css": ['@import url("editor_foundation.css")', '@import url("editor_core.css")'],
-        "styles/editor_core.css": [".editor-toolbar", ".advanced-tools", ".a4-page"],
-        "styles/editor_foundation.css": ["Visual editor foundation styles"],
+        "styles/editor.css": ['@import url("editor_foundation.css")', '@import url("editor_review_final.css")'],
+        "styles/editor_foundation.css": ["Visual editor foundation styles", ".editor-toolbar", ".advanced-tools"],
+        "styles/editor_core.css": ["Visual editor core page/content styles", ".a4-page"],
+        "styles/editor_image_tools.css": ["Visual editor canvas image toolbars", ".image-stage:hover .image-actions"],
+        "styles/editor_final_pages.css": ["Visual editor final page"],
         "styles/editor_workspace.css": ["Visual editor workspace/page-shell styles"],
+        "styles/editor_image_inspector.css": ["Visual editor image inspector", ".selection-actions"],
+        "styles/editor_layout_tools.css": ["Visual editor layout-density"],
+        "styles/editor_inspector.css": ["Visual editor field/source/compare inspector"],
         "styles/editor_review.css": ["Visual editor review/readiness styles"],
+        "styles/editor_workspace_corrections.css": ["Visual editor workspace correction styles"],
+        "styles/editor_text_presets.css": ["Visual editor text preset classes"],
+        "styles/editor_workspace_late.css": ["Visual editor late workspace layout overrides"],
+        "styles/editor_text_presets_final.css": ["Visual editor controlled preset polish"],
+        "styles/editor_workspace_final.css": ["Visual editor final workspace chrome"],
+        "styles/editor_review_final.css": ["Visual editor grouped document-check styles"],
         "js/state.js": ["let initialPayload", "function restoreLocalDraftIfAvailable"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],
@@ -63,7 +76,7 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
 
 def test_visual_editor_toolbar_uses_simple_default_actions():
     render_js = (FRONTEND / "js/render.js").read_text(encoding="utf-8")
-    css = (FRONTEND / "styles/editor_core.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
 
     assert "Edit itinerary text" in render_js
     assert "Review itinerary with pictures" in render_js

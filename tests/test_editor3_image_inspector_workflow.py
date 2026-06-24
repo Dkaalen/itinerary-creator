@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 
 def _read(relative: str) -> str:
     return Path(relative).read_text(encoding="utf-8")
@@ -10,7 +12,7 @@ def test_canvas_image_controls_are_restored_to_hover_toolbar():
     image_tools_js = _read("visual_editor_component/frontend/js/editor_image_tools.js")
     image_handlers_js = _read("visual_editor_component/frontend/js/editor_image_event_handlers.js")
     page_handlers_js = _read("visual_editor_component/frontend/js/editor_page_event_handlers.js")
-    css = _read("visual_editor_component/frontend/styles/editor_core.css")
+    css = read_resolved_frontend_css()
 
     assert 'data-select-image-field="days.${dayIndex}.image"' in images_js
     assert 'data-select-image-field="${escAttr(fieldKey)}"' in image_tools_js
@@ -39,7 +41,7 @@ def test_image_crop_focus_updates_without_full_redraw():
 
 def test_right_inspector_has_compact_selection_context():
     inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
-    css = _read("visual_editor_component/frontend/styles/editor_core.css")
+    css = read_resolved_frontend_css()
 
     assert "renderInspectorSelectionCard" in inspector_js
     assert "Selection" in inspector_js

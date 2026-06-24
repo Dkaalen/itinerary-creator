@@ -1,0 +1,13 @@
+/* Visual editor text preset classes. */
+/* UI18 canvas-first formatting sidebar */
+.ve-font-georgia { font-family: Georgia, 'Times New Roman', serif !important; }
+.ve-font-arial { font-family: Arial, Helvetica, sans-serif !important; }
+.ve-font-times { font-family: 'Times New Roman', Times, serif !important; }
+.ve-font-courier { font-family: 'Courier New', Courier, monospace !important; }
+.ve-size-9 { font-size: 12px !important; line-height: 1.35 !important; }
+.ve-size-10 { font-size: 13.3px !important; line-height: 1.36 !important; }
+.ve-size-11 { font-size: 14.7px !important; line-height: 1.36 !important; }
+.ve-size-12 { font-size: 16px !important; line-height: 1.36 !important; }
+.ve-size-14 { font-size: 18.7px !important; line-height: 1.34 !important; }
+.ve-size-16 { font-size: 21.3px !important; line-height: 1.32 !important; }
+.ve-size-18 { font-size: 24px !important; line-height: 1.30 !important; }

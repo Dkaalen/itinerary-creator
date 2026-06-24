@@ -3,6 +3,8 @@ import sys
 import types
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 streamlit_stub = types.SimpleNamespace(
     warning=lambda *args, **kwargs: None,
     success=lambda *args, **kwargs: None,
@@ -112,10 +114,9 @@ def test_cleanup_suite_editor_checks_are_canvas_first_without_client_qa_copy():
             "visual_editor_component/frontend/js/render.js",
             "visual_editor_component/frontend/js/editor_readiness.js",
             "visual_editor_component/frontend/js/images.js",
-            "visual_editor_component/frontend/styles/editor.css",
-            "visual_editor_component/frontend/styles/editor_core.css",
         )
     )
+    editor_source += "\n" + read_resolved_frontend_css()
 
     assert "Document checks" in editor_source
     assert "Export checks" in editor_source

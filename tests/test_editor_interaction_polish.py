@@ -1,18 +1,21 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 
 def _frontend_source() -> str:
     frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
+    js_source = "\n".join(
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
-            "styles/editor.css",
             "js/render.js",
             "js/editing.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
+            "js/editor_page_event_handlers.js",
         )
     )
+    return read_resolved_frontend_css() + "\n" + js_source
 
 
 def test_ui16_collapses_document_status_metrics_by_default():
@@ -28,7 +31,10 @@ def test_ui16_collapses_document_status_metrics_by_default():
 
 def test_ui17_outline_page_cards_are_navigation_not_action_menus():
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    editing_js = Path("visual_editor_component/frontend/js/editing.js").read_text(encoding="utf-8")
+    editing_js = "\n".join(
+        Path("visual_editor_component/frontend/js", relative).read_text(encoding="utf-8")
+        for relative in ("editing.js", "editor_page_event_handlers.js")
+    )
 
     assert 'data-outline-page-id' in render_js
     assert 'class="outline-jump"' in render_js

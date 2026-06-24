@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from itinerary_generation.common import (
-    TRANSPORT_TYPES,
-    get_row_type,
-    is_self_arranged,
-    is_valid_destination_city,
-)
+from itinerary_generation.common_constants import TRANSPORT_TYPES
+from itinerary_generation.row_filters import get_row_type, is_self_arranged
 from itinerary_generation.transport_model import has_local_transfer_marker
 from itinerary_generation.transport_domain.routes import _route_destination_from_text
 
@@ -20,7 +16,11 @@ def is_route_transfer(row):
     if has_local_transfer_marker(lower):
         return False
     destination = _route_destination_from_text(text)
-    return bool(destination and is_valid_destination_city(destination))
+    if not destination:
+        return False
+    from itinerary_generation.destination_helpers import is_valid_destination_city
+
+    return is_valid_destination_city(destination)
 
 
 def has_self_arranged_transport(day_rows):

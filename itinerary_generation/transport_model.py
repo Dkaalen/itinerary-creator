@@ -10,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
+from itinerary_generation.common_constants import TRANSPORT_TYPES
+from itinerary_generation.row_filters import get_row_type
 from shared.commercial_markers import has_self_transfer_marker
 
 

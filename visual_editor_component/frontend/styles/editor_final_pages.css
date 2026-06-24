@@ -1,0 +1,30 @@
+/* Visual editor final page and base responsive styles. */
+    .final-page .page-content { padding-top: 86px; }
+    .final-title { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); font-size: 26px; line-height: 1.18; margin-bottom: 10px; }
+    .final-title::after {
+      content: "";
+      display: block;
+      width: 86px;
+      height: 1px;
+      background: rgba(31,52,70,.20);
+      margin-top: 12px;
+    }
+    .final-edit-box, .final-html-box {
+      width: 100%; min-height: 720px; border: 1px dashed rgba(31,52,70,.20); background: rgba(255,255,255,.16); color: var(--body); font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.45; padding: 10px; border-radius: 8px; white-space: pre-wrap;
+    }
+    .final-html-box { white-space: normal; }
+    .saved-note { color: #087443; font-weight: 850; font-size: 12px; display: none; padding: 5px 8px; border-radius: 999px; background: rgba(8,116,67,.10); }
+    .saved-note.show { display: inline-flex; align-items: center; min-height: 30px; }
+    .saved-note.dirty, .saved-note.autosaving, .saved-note.saving, .saved-note.exporting { color: #6d4200; background: rgba(197,138,36,.14); }
+    .saved-note.recovered, .saved-note.local_draft { color: #28496c; background: rgba(62,94,140,.12); }
+    .saved-note.failed { color: #7a1c1c; background: rgba(173,52,52,.12); }
+    .help-strip { margin-top: 10px; color: #526171; font-size: 12px; line-height: 1.4; text-align: center; }
+    .editor-error { max-width: 760px; margin: 24px auto; padding: 18px 20px; border: 1px solid rgba(197,138,36,.45); border-radius: 14px; background: rgba(197,138,36,.12); color: #4a2e00; line-height: 1.45; }
+    .editor-error strong { display: block; margin-bottom: 6px; color: #2b1a00; }
+    @media (max-width: 860px) {
+      .a4-page { transform: scale(calc((100vw - 34px) / 794)); margin-bottom: calc(-1123px + ((100vw - 34px) / 794 * 1123px)); }
+      .editor-toolbar { display: flex; align-items: flex-start; flex-direction: column; }
+      .toolbar-actions, .toolbar-tools { justify-content: flex-start; }
+      .toolbar-stack { align-items: flex-start; min-width: 0; width: 100%; }
+      .studio-status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: none; }
+    }
