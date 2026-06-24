@@ -7,6 +7,8 @@ def test_visual_editor_index_is_thin_asset_shell():
     index = (FRONTEND / "index.html").read_text(encoding="utf-8")
 
     assert '<link rel="stylesheet" href="styles/editor.css" />' in index
+    assert '<script src="js/editor_page_event_handlers.js"></script>' in index
+    assert '<script src="js/editor_image_event_handlers.js"></script>' in index
     assert '<script src="js/state.js"></script>' in index
     assert '<script src="js/images.js"></script>' in index
     assert '<script src="js/editor_image_tools.js"></script>' in index
@@ -29,7 +31,11 @@ def test_visual_editor_index_is_thin_asset_shell():
 
 def test_visual_editor_frontend_assets_are_split_by_responsibility():
     expected = {
-        "styles/editor.css": [".editor-toolbar", ".advanced-tools", ".a4-page"],
+        "styles/editor.css": ['@import url("editor_foundation.css")', '@import url("editor_core.css")'],
+        "styles/editor_core.css": [".editor-toolbar", ".advanced-tools", ".a4-page"],
+        "styles/editor_foundation.css": ["Visual editor foundation styles"],
+        "styles/editor_workspace.css": ["Visual editor workspace/page-shell styles"],
+        "styles/editor_review.css": ["Visual editor review/readiness styles"],
         "js/state.js": ["let initialPayload", "function restoreLocalDraftIfAvailable"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],
@@ -43,6 +49,8 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/editor_page_actions.js": ["function mergeInclusionPageUp", "function addManualPage"],
         "js/editor_warnings.js": ["function highlightWarnings", "function updateEditorStats"],
         "js/commands.js": ["window.visualEditorCommands", "Public command facade"],
+        "js/editor_page_event_handlers.js": ["function attachPageEventHandlers", "data-outline-page-id"],
+        "js/editor_image_event_handlers.js": ["function attachImageEventHandlers", "data-img-action"],
         "js/editing.js": ["function saveChanges", "function attachHandlers"],
         "js/streamlit_bridge.js": ["const Streamlit", "streamlit:render"],
     }
@@ -55,7 +63,7 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
 
 def test_visual_editor_toolbar_uses_simple_default_actions():
     render_js = (FRONTEND / "js/render.js").read_text(encoding="utf-8")
-    css = (FRONTEND / "styles/editor.css").read_text(encoding="utf-8")
+    css = (FRONTEND / "styles/editor_core.css").read_text(encoding="utf-8")
 
     assert "Edit itinerary text" in render_js
     assert "Review itinerary with pictures" in render_js
@@ -70,14 +78,14 @@ def test_visual_editor_toolbar_uses_simple_default_actions():
 
 def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
     inspector = (FRONTEND / "js/editor_inspector.js").read_text(encoding="utf-8")
-    editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
+    image_handlers = (FRONTEND / "js/editor_image_event_handlers.js").read_text(encoding="utf-8")
     images = (FRONTEND / "js/images.js").read_text(encoding="utf-8")
     payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
 
     assert "preview_data_uri" in payload
     assert "get_image_preview_for_path(path, option=True)" in payload
     assert "selected.preview_data_uri || selected.data_uri" in inspector
-    assert "selected.preview_data_uri || selected.data_uri" in editing
+    assert "selected.preview_data_uri || selected.data_uri" in image_handlers
     assert "Replacement selected — save to update preview" not in images
     assert "Save changes to refresh the preview image" not in inspector
 

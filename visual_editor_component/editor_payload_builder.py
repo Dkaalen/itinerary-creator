@@ -148,9 +148,4 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     )
     payload["editor_draft"] = normalise_editable_draft(payload)
     _append_payload_warnings(payload, model_warnings, image_warnings)
-    if isinstance(output_edits, dict):
-        # Keep the latest warning payload available for export preflight.
-        # This is tiny metadata only; it avoids rebuilding the visual editor model
-        # when the export screen checks fatal blockers vs advisory warnings.
-        output_edits["latest_client_output_warnings"] = payload["client_output_warnings"]
     return payload

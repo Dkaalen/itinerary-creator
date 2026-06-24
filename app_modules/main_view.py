@@ -52,6 +52,10 @@ from images.app_image_selection import (
     image_bank_status,
     select_day_images_with_overrides,
 )
+from app_modules.image_bank_status_cache import (
+    get_cached_image_bank_status,
+    store_image_bank_status,
+)
 
 
 FLOW_STAGES = ("input", "edit", "pictures", "export")
@@ -256,11 +260,14 @@ def _current_image_bank_requests():
 
 
 def _current_image_bank_status() -> dict:
-    return image_bank_status(_current_image_bank_requests())
+    requests = _current_image_bank_requests()
+    return get_cached_image_bank_status(st.session_state, requests, image_bank_status)
 
 
 def _connect_current_image_bank() -> dict:
-    return connect_remote_image_bank_if_missing(_current_image_bank_requests())
+    requests = _current_image_bank_requests()
+    status = connect_remote_image_bank_if_missing(requests)
+    return store_image_bank_status(st.session_state, requests, status)
 
 
 def _image_status_notice() -> None:

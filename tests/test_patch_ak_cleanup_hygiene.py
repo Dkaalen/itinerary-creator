@@ -178,3 +178,40 @@ def test_first_party_code_no_longer_imports_transport_compatibility_facades():
                 offenders.append(f"{relative}: {module}")
 
     assert offenders == []
+
+
+def test_artifact_hygiene_prunes_excluded_directories_before_yield(tmp_path):
+    keep = tmp_path / "app_modules" / "main_view.py"
+    keep.parent.mkdir(parents=True)
+    keep.write_text("# source\n", encoding="utf-8")
+    noisy = tmp_path / ".git" / "objects" / "large.bin"
+    noisy.parent.mkdir(parents=True)
+    noisy.write_text("noise", encoding="utf-8")
+
+    assert list(iter_clean_artifact_files(tmp_path)) == [keep]
+
+
+def test_clean_runtime_artifacts_removes_only_generated_noise(tmp_path):
+    from scripts.clean_runtime_artifacts import clean_runtime_artifacts
+
+    source = tmp_path / "app_modules" / "main_view.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("# source\n", encoding="utf-8")
+    pycache = tmp_path / "app_modules" / "__pycache__"
+    pycache.mkdir()
+    (pycache / "main_view.pyc").write_text("bytecode", encoding="utf-8")
+    output = tmp_path / "outputs" / "itinerary_preview.html"
+    output.parent.mkdir()
+    output.write_text("generated", encoding="utf-8")
+    legacy_empty = tmp_path / "visual_editor_component" / "ui"
+    legacy_empty.mkdir(parents=True)
+
+    removed = clean_runtime_artifacts(tmp_path)
+
+    assert Path("app_modules/__pycache__") in removed
+    assert Path("outputs") in removed
+    assert Path("visual_editor_component/ui") in removed
+    assert source.exists()
+    assert not pycache.exists()
+    assert not output.parent.exists()
+    assert not legacy_empty.exists()

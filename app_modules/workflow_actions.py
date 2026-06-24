@@ -37,7 +37,6 @@ from images.image_workflow_review import build_image_workflow_review
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import (
     apply_output_edits,
-    apply_rich_writing_to_all_days,
     make_output_edit_state,
     refresh_generated_text_for_detail_level,
 )
@@ -79,7 +78,6 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     grouped_days = group_rows_by_day(parsed_rows)
     duplicate_count = get_duplicate_count(raw_text, parsed_rows)
     output_edits = make_output_edit_state(parsed_rows, grouped_days)
-    output_edits = apply_rich_writing_to_all_days(parsed_rows, output_edits)
     output_edits["allow_default_final_images"] = False
 
     state["parsed_rows"] = parsed_rows

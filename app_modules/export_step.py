@@ -15,6 +15,7 @@ from app_modules.export_actions import (
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
+from app_modules.image_bank_status_cache import get_cached_image_bank_status
 from pdf_exporter_modules.export_profiles import pdf_export_profile_options
 
 
@@ -143,7 +144,7 @@ def render_export_step(app_version: str) -> None:
         return
 
     required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
-    current_image_status = image_bank_status(required_destinations)
+    current_image_status = get_cached_image_bank_status(st.session_state, required_destinations, image_bank_status)
     commit_ready = visual_editor_export_commit_ready()
     _render_pdf_profile_selector()
     snapshot = _session_state_snapshot()

@@ -4,7 +4,7 @@ Norway in a Nutshell is a compound route product made up of rail, fjord-cruise
 and road legs.  It must not be reduced to a generic train/cruise title by
 renderers.  This module owns the product-level identity, route endpoints,
 ordered legs and source/commercial metadata.  Low-level source parsing remains
-in :mod:`itinerary_generation.transport_norway`.
+in :mod:`itinerary_generation.nutshell_parsing`.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from typing import Any, Iterable, Mapping
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
 
-from itinerary_generation.transport_norway import (
+from itinerary_generation.nutshell_parsing import (
     NUTSHELL_ROUTE_PLACES,
     _is_norway_in_a_nutshell_text,
     explicit_norway_nutshell_title,

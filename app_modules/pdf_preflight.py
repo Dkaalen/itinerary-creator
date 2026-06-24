@@ -119,7 +119,12 @@ def build_pdf_preflight_report(
         elif health_issue.severity == "review":
             issues.append(_issue(health_issue.code, "review", health_issue.message))
 
-    latest_warnings = (output_edits or {}).get("latest_client_output_warnings", []) if isinstance(output_edits, Mapping) else []
+    latest_warnings = state.get("latest_client_output_warnings", [])
+    if not latest_warnings and isinstance(output_edits, Mapping):
+        # Backward compatibility for older saved projects. New editor payloads
+        # keep derived warning metadata out of durable output_edits so render
+        # cache signatures stay stable.
+        latest_warnings = (output_edits or {}).get("latest_client_output_warnings", [])
     for warning in latest_warnings[:8]:
         message = _warning_value(warning, "message", str(warning)).strip()
         if message:

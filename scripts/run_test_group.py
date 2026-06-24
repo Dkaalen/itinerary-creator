@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.test_groups import (
     GROUPS,
     GROUP_ORDER,
+    CHUNKED_GROUP_STAGE_SIZES,
     chunked_group_stages,
     build_full_stages,
     build_slow_stages,
@@ -113,8 +114,12 @@ def _stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...
         return build_full_stages(REPO_ROOT)
     if group_name == "slow":
         return build_slow_stages()
-    if group_name in {"fast", "quality"}:
-        return chunked_group_stages(group_name, GROUPS[group_name])
+    if group_name in {"fast", "quality", *CHUNKED_GROUP_STAGE_SIZES}:
+        return chunked_group_stages(
+            group_name,
+            GROUPS[group_name],
+            stage_size=CHUNKED_GROUP_STAGE_SIZES.get(group_name, 4),
+        )
     return ((group_name, GROUPS[group_name]),)
 
 

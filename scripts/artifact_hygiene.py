@@ -7,7 +7,9 @@ out of deliverables so applying a patch does not pollute the user's checkout.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from typing import Iterator
 
 ARTIFACT_EXCLUDED_DIRS = frozenset({
     ".cache",
@@ -30,6 +32,10 @@ ARTIFACT_EXCLUDED_FILENAMES = frozenset({
 })
 
 ARTIFACT_EXCLUDED_SUFFIXES = (".pyc", ".pyo", ".zip", ".tmp", ".bak")
+EMPTY_LEGACY_DIRS = (
+    Path("visual_editor_component/app_modules"),
+    Path("visual_editor_component/ui"),
+)
 
 
 def is_artifact_noise_path(path: str | Path) -> bool:
@@ -44,17 +50,23 @@ def is_artifact_noise_path(path: str | Path) -> bool:
     return candidate.name.endswith(ARTIFACT_EXCLUDED_SUFFIXES)
 
 
-def iter_clean_artifact_files(root: str | Path):
-    """Yield files under *root* that are safe to include in a source ZIP."""
+def iter_clean_artifact_files(root: str | Path) -> Iterator[Path]:
+    """Yield source files under *root*, pruning generated/runtime folders early."""
 
     root_path = Path(root)
-    for path in sorted(root_path.rglob("*")):
-        relative = path.relative_to(root_path)
-        if is_artifact_noise_path(relative):
-            if path.is_dir():
-                # rglob cannot be pruned here, but this keeps the predicate in
-                # one place and is fast enough for the current project size.
-                continue
-            continue
-        if path.is_file():
-            yield path
+    clean_files: list[Path] = []
+    for current_root, dirnames, filenames in os.walk(root_path):
+        current = Path(current_root)
+        relative_current = current.relative_to(root_path)
+        dirnames[:] = sorted(
+            dirname
+            for dirname in dirnames
+            if not is_artifact_noise_path(relative_current / dirname)
+        )
+        for filename in filenames:
+            path = current / filename
+            relative = path.relative_to(root_path)
+            if not is_artifact_noise_path(relative):
+                clean_files.append(path)
+
+    yield from sorted(clean_files, key=lambda path: path.relative_to(root_path).as_posix())

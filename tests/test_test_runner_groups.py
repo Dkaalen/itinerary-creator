@@ -114,6 +114,12 @@ def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
     assert len(fast_stages) > 1
     assert all(name.startswith("fast") for name, _paths in fast_stages)
     assert _stages_for_group("activity") == (("activity", GROUPS["activity"]),)
+    assert len(_stages_for_group("architecture")) > 1
+    assert len(_stages_for_group("editor")) > 1
+    assert len(_stages_for_group("images")) > 1
+    assert len(_stages_for_group("ui")) > 1
+    assert len(_stages_for_group("pdf")) > 1
+    assert all(len(paths) <= 3 for _name, paths in _stages_for_group("pdf"))
     assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
     assert _stages_for_group("slow") == build_slow_stages()
 

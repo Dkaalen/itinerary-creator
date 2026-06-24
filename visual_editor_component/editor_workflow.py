@@ -61,9 +61,11 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
     """
     payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
     st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
+    st.session_state["latest_client_output_warnings"] = list(payload.get("client_output_warnings") or [])
     if _try_apply_server_autosave(payload, output_edits, mark_dirty=mark_dirty):
         payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
         st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
+        st.session_state["latest_client_output_warnings"] = list(payload.get("client_output_warnings") or [])
     commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
     result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
     if result and result != st.session_state.get("_last_visual_editor_result"):

@@ -113,6 +113,7 @@ def test_cleanup_suite_editor_checks_are_canvas_first_without_client_qa_copy():
             "visual_editor_component/frontend/js/editor_readiness.js",
             "visual_editor_component/frontend/js/images.js",
             "visual_editor_component/frontend/styles/editor.css",
+            "visual_editor_component/frontend/styles/editor_core.css",
         )
     )
 

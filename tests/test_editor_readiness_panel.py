@@ -7,6 +7,8 @@ def _frontend_source() -> str:
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
             "styles/editor.css",
+            "styles/editor_core.css",
+            "styles/editor_review.css",
             "js/state.js",
             "js/images.js",
             "js/render.js",
@@ -18,6 +20,8 @@ def _frontend_source() -> str:
             "js/editor_page_actions.js",
             "js/editor_warnings.js",
             "js/commands.js",
+            "js/editor_page_event_handlers.js",
+            "js/editor_image_event_handlers.js",
             "js/editing.js",
         )
     )

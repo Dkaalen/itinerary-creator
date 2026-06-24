@@ -8,12 +8,13 @@ def _read(relative: str) -> str:
 def test_canvas_image_controls_are_restored_to_hover_toolbar():
     images_js = _read("visual_editor_component/frontend/js/images.js")
     image_tools_js = _read("visual_editor_component/frontend/js/editor_image_tools.js")
-    editing_js = _read("visual_editor_component/frontend/js/editing.js")
-    css = _read("visual_editor_component/frontend/styles/editor.css")
+    image_handlers_js = _read("visual_editor_component/frontend/js/editor_image_event_handlers.js")
+    page_handlers_js = _read("visual_editor_component/frontend/js/editor_page_event_handlers.js")
+    css = _read("visual_editor_component/frontend/styles/editor_core.css")
 
     assert 'data-select-image-field="days.${dayIndex}.image"' in images_js
     assert 'data-select-image-field="${escAttr(fieldKey)}"' in image_tools_js
-    assert "selectEditorFieldByKey" in editing_js
+    assert "selectEditorFieldByKey" in page_handlers_js
     assert "data-img-bank" in images_js
     assert "data-cover-img-bank" in image_tools_js
     assert "data-img-action" in images_js
@@ -38,7 +39,7 @@ def test_image_crop_focus_updates_without_full_redraw():
 
 def test_right_inspector_has_compact_selection_context():
     inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
-    css = _read("visual_editor_component/frontend/styles/editor.css")
+    css = _read("visual_editor_component/frontend/styles/editor_core.css")
 
     assert "renderInspectorSelectionCard" in inspector_js
     assert "Selection" in inspector_js

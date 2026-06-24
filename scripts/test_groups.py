@@ -13,6 +13,14 @@ TEST_ROOT = "tests"
 EMPTY_LEGACY_TEST_MODULES = frozenset()
 REMAINING_STAGE_SIZE = 8
 TIERED_STAGE_SIZE = 4
+PDF_STAGE_SIZE = 3
+CHUNKED_GROUP_STAGE_SIZES = {
+    "architecture": 4,
+    "editor": 4,
+    "images": 4,
+    "ui": 4,
+    "pdf": PDF_STAGE_SIZE,
+}
 
 FAST_TESTS = (
     "tests/test_sync_regression_suite1.py",
@@ -477,9 +485,9 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
             covered.update(_module_name(path) for path in chunk)
 
     stage_paths = tuple(path for path in PDF_TESTS if _module_name(path) not in covered)
-    if stage_paths:
-        stages.append(("pdf/rendering", stage_paths))
-        covered.update(_module_name(path) for path in stage_paths)
+    for stage_name, chunk in chunked_group_stages("pdf/rendering", stage_paths, stage_size=PDF_STAGE_SIZE):
+        stages.append((stage_name, chunk))
+        covered.update(_module_name(path) for path in chunk)
 
     slow_paths = tuple(path for path in SLOW_TESTS if _module_name(path) not in covered)
     for stage_name, stage_paths in build_slow_stages(slow_paths):
