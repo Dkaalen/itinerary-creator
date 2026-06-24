@@ -11,7 +11,7 @@ from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.nutshell_parsing import format_norway_nutshell_route
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine, RenderSection
 from itinerary_generation.render_text_helpers import clean_space
-from itinerary_generation.route_intelligence import premium_mode_label, route_profile_for_places
+from itinerary_generation.route_intelligence import route_profile_for_places
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_times import get_transport_time_text
 from itinerary_generation.time_display import display_time
@@ -22,6 +22,24 @@ def _line_with_time_value(label: str, time_value: str, row: dict, inline_arrival
     time = display_time(time_value) or display_time(get_transport_time_text(row)) or inline_arrival_time_func(row)
     return f"{label} — {time}" if time else label
 
+
+
+
+def _nutshell_mode_label(value: str) -> str:
+    text = clean_space(value)
+    labels = {
+        "train": "Train",
+        "scenic train": "Scenic Train",
+        "bus": "Bus",
+        "scenic bus": "Scenic Bus",
+        "coach": "Coach",
+        "scenic coach": "Scenic Coach",
+        "cruise": "Cruise",
+        "scenic cruise": "Scenic Cruise",
+        "fjord cruise": "Fjord Cruise",
+        "ferry": "Ferry",
+    }
+    return labels.get(text.lower(), polish_title(text))
 
 def _nutshell_leg_line(leg) -> str:
     origin = clean_space(leg.origin)
@@ -38,8 +56,8 @@ def _nutshell_leg_line(leg) -> str:
         line = f"{origin} - {arrival} {destination}"
     else:
         line = f"{origin} to {destination}"
-    label = premium_mode_label(leg.mode, leg.source_text) if leg.mode else "Journey leg"
-    return f"{label} — {line}"
+    label = _nutshell_mode_label(leg.mode) if leg.mode else "Journey leg"
+    return f"{line} — {label}"
 
 
 def norway_nutshell_lines(row, *, inline_arrival_time_func: Callable[[dict], str]) -> list[str]:
@@ -78,14 +96,17 @@ def _route_arrow_text(points: list[str] | tuple[str, ...]) -> str:
 
 
 def _timed_leg_label(leg) -> str:
-    line = _nutshell_leg_line(leg)
-    return line.replace(" - ", " → ", 1) if line else ""
+    return _nutshell_leg_line(leg)
 
 
 def _normalise_transport_mode(value: str) -> str:
     text = polish_title(clean_space(value))
     text = re.sub(r"\s+transfer\b", "", text, flags=re.IGNORECASE).strip()
-    return premium_mode_label(text)
+    if not text:
+        return "Journey leg"
+    if text.lower() == "bus":
+        return "Coach"
+    return _nutshell_mode_label(text)
 
 
 def _timeline_time_display(value: str) -> str:
@@ -227,7 +248,7 @@ def build_featured_nutshell_block(
     return RenderBlock(
         kind="travel_sequence",
         row_id="travel-arrangements",
-        section_title="Featured Scenic Journey",
+        section_title="Travel Arrangements",
         title=journey.client_title or (profile.title if profile else "Norway in a Nutshell"),
         meta=meta,
         description=(profile.description if profile else (

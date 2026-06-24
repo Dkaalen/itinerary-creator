@@ -27,23 +27,27 @@ from visual_editor_component.editor_workflow import build_visual_editor_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 
 def _visual_editor_frontend_source() -> str:
     frontend = ROOT / "visual_editor_component" / "frontend"
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
+    parts = [
+        (frontend / "index.html").read_text(encoding="utf-8"),
+        read_resolved_frontend_css(),
+    ]
     for relative in (
-        "styles/editor.css",
         "js/state.js",
         "js/images.js",
         "js/render.js",
         "js/serialization.js",
         "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
+        "js/editor_text_tools.js",
+        "js/editor_document_model.js",
+        "js/editor_inspector.js",
+        "js/editor_page_actions.js",
+        "js/editor_warnings.js",
+        "js/commands.js",
         "js/editing.js",
         "js/streamlit_bridge.js",
     ):

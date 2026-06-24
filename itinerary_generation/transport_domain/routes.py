@@ -42,7 +42,7 @@ def _explicit_transport_route_from_source(source_text: str) -> tuple[str, str]:
     known_places = r"(?:Copenhagen|København|Gothenburg|Göteborg|Oslo|Stockholm|Helsinki|Tallinn|Tallin|Bergen|Reykjavík|Reykjavik|Rovaniemi|Tromsø|Tromso|Alta|Gudvangen|Voss|Flåm|Flam|Myrdal)"
     patterns = [
         rf"\b(?:day\s+)?(?:train|flight|coach|bus|cruise|ferry)\s*[:,]?\s*(?P<origin>{known_places})\s*[-–—]\s*(?P<destination>{known_places})(?=\s*(?:\n|intercity\b|ic\b|train\b|flight\b|coach\b|bus\b|cruise\b|ferry\b|\d{{1,2}}:\d{{2}}|$))",
-        rf"\b(?:overnight\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*[:,]?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|\s*,?\s*tickets?\s+to\s+be\s+bought|\s*,?\s*tickets?\s+to\s+be\s+purchased|,|$)",
+        rf"\b(?:(?:overnight|night)\s+)?(?:cruise|ferry|train|flight|coach|bus)\s*[:,]?\s*(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s*\||\s+-\s+|\s+\d{{1,2}}(?::|\s|$)|\s+self[-\s]*arranged|\s+self\s+arranged|\s+cost\s+not|\s*,?\s*tickets?\s+to\s+be\s+bought|\s*,?\s*tickets?\s+to\s+be\s+purchased|,|$)",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s+(?:\d+\s*(?:hr|hrs|hour|hours)\s+)?(?:cruise|ferry|train|flight|coach|bus)\b",
         rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})\s*\|",
         rf"\b(?:train|flight|coach|bus|cruise|ferry)\s+(?P<origin>{known_places})\s+(?P<destination>{known_places})\b",
@@ -72,6 +72,12 @@ def _clean_route_place(value):
     raw = re.sub(r"\bnot\s+included\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*,?\s*tickets?\s+to\s+be\s+(?:bought|purchased).*$", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*,?\s*to\s+be\s+paid\s+locally.*$", "", raw, flags=re.IGNORECASE)
+    raw = re.split(
+        r"\s+-\s+(?:\d+\s*x\s*)?(?:private\s+)?(?:sleeper|sleeping)\s+(?:compartment|cabin|berth)|\s+-\s+breakfast\s+included|\s+-\s+train\s+ticket\s+included",
+        raw,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" -:|.,")
     # Common supplier typo: "Saariselka t to Rovaniemi" leaves a stray
     # trailing "t" on the origin after route splitting. Do not let that
     # become a client-facing place name.

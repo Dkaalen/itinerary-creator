@@ -111,8 +111,9 @@ def get_travel_sequence_line(row):
 
     if row_type == "Transfer" and is_route_transfer(row):
         text = get_transport_source_text(row).lower()
-        if any(marker in text for marker in ["train", "ferry", "cruise", "flight"]):
-            return get_transport_route_phrase(row) or get_transfer_travel_title(row) or polish_title(row.get("title", ""))
+        if any(marker in text for marker in ["train", "ferry", "cruise", "flight", "coach", "bus"]):
+            phrase = get_transport_route_phrase(row) or get_transfer_travel_title(row) or polish_title(row.get("title", ""))
+            return _destination_focused_coach_day_line(row, phrase)
         return get_transfer_travel_title(row) or polish_title(row.get("title", ""))
 
     if row_type == "Transfer":

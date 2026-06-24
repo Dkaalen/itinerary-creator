@@ -260,6 +260,11 @@ def _strip_repeated_city_prefix(title):
         rest_clean = clean_space(rest)
         if "|" in possible_city_clean or re.search(r"\d", possible_city_clean):
             break
+        # Labelled activity metadata is not a city prefix. Without this guard,
+        # "South Coast Adventure - Time: 08:00..." is split at the Time colon
+        # and the title degrades to the clock value.
+        if re.search(r"(?:^|[-|])\s*(?:time|duration|highlights?|stops?|includes?|meeting\s+point)\b", possible_city_clean, flags=re.IGNORECASE):
+            break
         if _looks_like_product_title(possible_city_clean) and not is_known_place(possible_city_clean):
             break
         if len(possible_city_clean) <= 35 and rest_clean and is_valid_city_value(possible_city_clean):
@@ -527,6 +532,12 @@ def detect_effective_type(item_type, title, details):
     # route transfer, even though the supplier wording contains minibus/bus.
     if normalized_item_type == "Activity" and "stegastein" in combined and any(marker in combined for marker in ["electric minibus", "electric bus", "viewpoint", "sightseeing tour"]):
         return "Activity"
+
+    # Overnight/night-train rows are arranged rail even when the cabin text
+    # contains words such as "private sleeper compartment". Detect them before
+    # local/private-transfer protection.
+    if normalized_item_type == "Transfer" and re.search(r"\b(?:overnight|night)\s+train\b", combined, flags=re.IGNORECASE):
+        return "Train"
 
     # Local/private/self transfers must stay transfers even when the terminal
     # contains words like Train Station. Run this before generic train/flight

@@ -160,7 +160,7 @@ def _split_oversized_inclusion_section(section, page_body_units):
 _SECTION_BOTTOM_GUARDS = {
     "rail journeys": 20,
     "private transfers": 24,
-    "ferries & cruises": 22,
+    "ferries & cruises": 12,
     "coach transfers": 18,
     "transport": 20,
     "travel arrangements": 20,
