@@ -186,19 +186,6 @@ def _direct_nutshell_pipe_route(text: str) -> tuple[str, str]:
     return "", ""
 
 
-def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
-    """Compatibility wrapper around the canonical Nutshell domain title."""
-
-    from itinerary_generation.nutshell_domain import build_nutshell_journey
-
-    journey = build_nutshell_journey(
-        str(text or ""),
-        fallback_origin=fallback_origin,
-        fallback_destination=fallback_destination,
-    )
-    return journey.client_title if journey else "Norway in a Nutshell"
-
-
 def _normalise_nutshell_line_separators(text: str) -> str:
     """Repair common supplier separator typos inside timetable legs."""
 

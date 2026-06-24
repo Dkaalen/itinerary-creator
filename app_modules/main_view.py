@@ -50,6 +50,7 @@ from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
     destination_requests_from_rows,
     image_bank_status,
+    image_bank_storage_signature,
     select_day_images_with_overrides,
 )
 from app_modules.image_bank_status_cache import (
@@ -261,13 +262,23 @@ def _current_image_bank_requests():
 
 def _current_image_bank_status() -> dict:
     requests = _current_image_bank_requests()
-    return get_cached_image_bank_status(st.session_state, requests, image_bank_status)
+    return get_cached_image_bank_status(
+        st.session_state,
+        requests,
+        image_bank_status,
+        bank_signature=image_bank_storage_signature(),
+    )
 
 
 def _connect_current_image_bank() -> dict:
     requests = _current_image_bank_requests()
     status = connect_remote_image_bank_if_missing(requests)
-    return store_image_bank_status(st.session_state, requests, status)
+    return store_image_bank_status(
+        st.session_state,
+        requests,
+        status,
+        bank_signature=image_bank_storage_signature(),
+    )
 
 
 def _image_status_notice() -> None:

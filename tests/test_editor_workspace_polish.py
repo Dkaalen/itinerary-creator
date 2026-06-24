@@ -1,18 +1,20 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 
 def _frontend_source() -> str:
     frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
+    js_source = "\n".join(
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
-            "styles/editor.css",
             "js/render.js",
             "js/editor_readiness.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
         )
     )
+    return read_resolved_frontend_css() + "\n" + js_source
 
 
 def test_ui15_collapses_warning_and_readiness_noise_into_review_center():
@@ -52,7 +54,7 @@ def test_ui18_keeps_formatting_sidebar_visible_while_canvas_scrolls():
 
 def test_ui18_page_navigation_is_collapsed_not_a_permanent_left_sidebar():
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
 
     assert 'class="pages-menu"' in render_js
     assert '${renderDocumentOutline()}' in render_js
@@ -80,7 +82,7 @@ def test_ui18_inspector_keeps_word_style_formatting_tools_visible():
 
 
 def test_ui20_uses_internal_canvas_scroll_instead_of_expanding_iframe():
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
     ui20 = css[css.index("UI20 editor foundation fix"):]
 
     assert "body {" in ui20
@@ -93,7 +95,7 @@ def test_ui20_uses_internal_canvas_scroll_instead_of_expanding_iframe():
 
 
 def test_ui20_selection_styles_do_not_change_layout_dimensions():
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
     ui20 = css[css.index("UI20 editor foundation fix"):]
 
     assert ".selected-editor-block" in ui20

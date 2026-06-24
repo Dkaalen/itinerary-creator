@@ -22,6 +22,7 @@ from images.app_image_selection import (
     destination_requests_from_rows,
     get_day_image_crop_focus,
     image_bank_status,
+    image_bank_storage_signature,
     select_day_images_with_overrides,
 )
 from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
@@ -119,7 +120,12 @@ def create_pdf_from_current_preview() -> bool:
 
     image_grouped_days = _image_grouped_days()
     required_destinations = destination_requests_from_rows(image_grouped_days)
-    current_image_bank_status = get_cached_image_bank_status(st.session_state, required_destinations, image_bank_status)
+    current_image_bank_status = get_cached_image_bank_status(
+        st.session_state,
+        required_destinations,
+        image_bank_status,
+        bank_signature=image_bank_storage_signature(),
+    )
     if image_grouped_days and not current_image_bank_status.get(
         "required_destinations_ready",
         not current_image_bank_status.get("missing_full_bank"),
@@ -128,6 +134,7 @@ def create_pdf_from_current_preview() -> bool:
             st.session_state,
             required_destinations,
             connect_remote_image_bank_if_missing(required_destinations),
+            bank_signature=image_bank_storage_signature(),
         )
     if not image_bank_is_ready_for_client_pictures(current_image_bank_status):
         clear_pdf_artifact("Image bank missing")
@@ -140,7 +147,12 @@ def create_pdf_from_current_preview() -> bool:
     )
     preview_image_matches = day_image_matches_from_preview_html(st.session_state.get("itinerary_html", ""))
     image_matches = merge_preview_image_contract(selected_image_matches, preview_image_matches)
-    current_image_bank_status = get_cached_image_bank_status(st.session_state, required_destinations, image_bank_status)
+    current_image_bank_status = get_cached_image_bank_status(
+        st.session_state,
+        required_destinations,
+        image_bank_status,
+        bank_signature=image_bank_storage_signature(),
+    )
 
     current_pdf_signature = st.session_state.get("preview_signature")
     pdf_is_current = bool(st.session_state.get("pdf_bytes")) and st.session_state.get("pdf_signature") == current_pdf_signature

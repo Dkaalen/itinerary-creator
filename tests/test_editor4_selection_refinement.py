@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 
 def _read(relative: str) -> str:
     return Path(relative).read_text(encoding="utf-8")
@@ -7,7 +9,7 @@ def _read(relative: str) -> str:
 
 def test_editor4_selection_card_exposes_reveal_and_clear_actions():
     inspector_js = _read("visual_editor_component/frontend/js/editor_inspector.js")
-    css = _read("visual_editor_component/frontend/styles/editor.css")
+    css = read_resolved_frontend_css()
 
     assert "Reveal on page" in inspector_js
     assert "Clear selection" in inspector_js

@@ -50,3 +50,27 @@ def test_store_and_clear_image_bank_status_cache():
 
     clear_image_bank_status_cache(state)
     assert get_cached_image_bank_status(state, requests, lambda _requests: {"ready": False}) == {"ready": False}
+
+
+def test_cached_image_bank_status_invalidates_when_bank_signature_changes():
+    calls = []
+    state = {}
+
+    def status_func(requests):
+        calls.append(list(requests or []))
+        return {"count": len(calls)}
+
+    requests = [{"destination": "Oslo"}]
+    assert get_cached_image_bank_status(state, requests, status_func, bank_signature="bank-a")["count"] == 1
+    assert get_cached_image_bank_status(state, requests, status_func, bank_signature="bank-a")["count"] == 1
+    assert get_cached_image_bank_status(state, requests, status_func, bank_signature="bank-b")["count"] == 2
+    assert len(calls) == 2
+
+
+def test_image_bank_storage_signature_from_status_uses_path_and_counts():
+    from app_modules.image_bank_status_cache import image_bank_storage_signature_from_status
+
+    first = image_bank_storage_signature_from_status({"paths": ["/bank"], "destination_image_count": 1})
+    second = image_bank_storage_signature_from_status({"paths": ["/bank"], "destination_image_count": 2})
+
+    assert first != second

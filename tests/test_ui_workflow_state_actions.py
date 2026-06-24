@@ -225,7 +225,10 @@ def test_enter_picture_stage_treats_day_image_matches_as_derived_metadata():
     assert result.ok is True
     assert captured["edits"]["day_images"]["Day 1"]["path"] == "manual-oslo.webp"
     assert state["output_edits"]["day_images"]["Day 1"]["path"] == "manual-oslo.webp"
-    assert state["output_edits"]["day_image_matches"]["Day 1"]["path"] == "manual-oslo.webp"
+    assert "day_image_matches" not in state["output_edits"]
+    assert state["day_image_matches"]["Day 1"]["path"] == "manual-oslo.webp"
+    assert "image_workflow_review" not in state["output_edits"]
+    assert "image_workflow_review" in state
 
 
 def test_retry_image_bank_connection_keeps_gateway_result_in_state():

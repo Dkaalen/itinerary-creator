@@ -205,6 +205,8 @@ def enter_picture_stage(
 
     output_edits = state.get("output_edits") or {}
     state["output_edits"] = output_edits
+    for derived_key in ("day_image_matches", "image_match_unmatched_days", "image_workflow_review"):
+        output_edits.pop(derived_key, None)
     output_edits["allow_default_final_images"] = False
 
     if not add_pictures_editor_commit_ready(state):
@@ -244,11 +246,10 @@ def enter_picture_stage(
     if not matched_days:
         set_pictures_added(output_edits, False)
         # Derived audit metadata only. Durable user choices live in day_images.
-        output_edits["day_image_matches"] = dict(matches or {})
-        output_edits["image_match_unmatched_days"] = unmatched_days
+        state["day_image_matches"] = dict(matches or {})
+        state["image_match_unmatched_days"] = unmatched_days
         image_review = build_image_workflow_review(image_grouped_days, matches, ())
         state["image_workflow_review"] = image_review.as_dict()
-        output_edits["image_workflow_review"] = image_review.as_dict()
         state["image_review_warning_count"] = max(1, len(unmatched_days))
         clear_pdf_artifacts(state, status="No destination pictures matched")
         stage = set_workflow_stage(state, "edit")
@@ -261,8 +262,8 @@ def enter_picture_stage(
 
     set_pictures_added(output_edits, True)
     # Derived audit metadata only. Durable user choices live in day_images.
-    output_edits["day_image_matches"] = dict(matches or {})
-    output_edits["image_match_unmatched_days"] = unmatched_days
+    state["day_image_matches"] = dict(matches or {})
+    state["image_match_unmatched_days"] = unmatched_days
     editor_draft = output_edits.get("editor_draft")
     if isinstance(editor_draft, dict):
         workflow = editor_draft.setdefault("workflow", {})
@@ -271,7 +272,6 @@ def enter_picture_stage(
     warnings = audit_images_func(image_grouped_days, matches, output_edits)
     image_review = build_image_workflow_review(image_grouped_days, matches, warnings)
     state["image_workflow_review"] = image_review.as_dict()
-    output_edits["image_workflow_review"] = image_review.as_dict()
     state["image_review_warning_count"] = len(
         [warning for warning in warnings if getattr(warning, "severity", "") == "error"]
     )

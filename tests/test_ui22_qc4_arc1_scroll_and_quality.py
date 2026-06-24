@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.frontend_asset_helpers import read_resolved_frontend_css
+
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from generator import group_rows_by_day
 from itinerary_generation.quality_gate import evaluate_itinerary_quality
@@ -149,7 +151,7 @@ def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
 
 
 def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
     assert "UI23: compact editor chrome and centered page actions" in css
     assert "grid-template-columns: 1fr auto 1fr" in css
     assert ".page-header-row .page-controls" in css
@@ -159,7 +161,7 @@ def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():
 
 def test_ui23_editor_toolbar_is_compact_but_keeps_advanced_status_available():
     source = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    css = Path("visual_editor_component/frontend/styles/editor.css").read_text(encoding="utf-8")
+    css = read_resolved_frontend_css()
 
     assert "toolbar-copy compact" in source
     assert "toolbar-legacy-label" in source

@@ -64,6 +64,36 @@ def image_bank_status(required_destinations=None):
     return _image_bank_status(APP_ROOT, required_destinations=required_destinations)
 
 
+def image_bank_storage_signature():
+    """Return a lightweight signature for the active image-bank storage."""
+
+    image_suffixes = {".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+    parts = []
+    for path in get_image_bank_scan_paths():
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if not path.exists() or not path.is_dir():
+            parts.append((str(resolved), "missing", 0, 0, 0))
+            continue
+        count = 0
+        total_size = 0
+        newest_mtime = 0
+        for candidate in path.rglob("*"):
+            if not candidate.is_file() or candidate.suffix.lower() not in image_suffixes:
+                continue
+            try:
+                stat = candidate.stat()
+            except OSError:
+                continue
+            count += 1
+            total_size += int(stat.st_size)
+            newest_mtime = max(newest_mtime, int(stat.st_mtime_ns))
+        parts.append((str(resolved), "present", count, total_size, newest_mtime))
+    return repr(parts)
+
+
 def prefetch_image_bank_for_rows(rows_or_grouped_days):
     return _prefetch_image_bank_for_rows(rows_or_grouped_days, APP_ROOT)
 
