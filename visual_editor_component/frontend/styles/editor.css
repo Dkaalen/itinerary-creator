@@ -313,9 +313,10 @@
       border: 1px solid rgba(255,255,255,0.18);
       backdrop-filter: blur(8px);
       opacity: 0;
-      transition: opacity .16s ease;
+      transform: translateY(3px);
+      transition: opacity .16s ease, transform .16s ease;
     }
-    .a4-page:hover .cover-image-panel, .cover-image-panel:focus-within { opacity: 1; }
+    .a4-page:hover .cover-image-panel, .cover-image-panel:focus-within { opacity: 1; transform: translateY(0); }
     .cover-image-panel strong { color: #fff7ec; font-size: 11px; font-weight: 900; margin-right: 4px; }
     .cover-image-panel select, .cover-image-panel button { min-height: 30px; font-size: 11px; padding: 5px 8px; }
 
@@ -367,7 +368,7 @@
       left: 12px;
       right: 12px;
       bottom: 12px;
-      display: none;
+      display: flex;
       gap: 8px;
       flex-wrap: wrap;
       padding: 10px;
@@ -375,8 +376,12 @@
       background: rgba(15, 20, 26, 0.86);
       border: 1px solid rgba(255,255,255,0.18);
       backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity .16s ease, transform .16s ease;
     }
-    .image-stage:hover .image-actions, .image-actions:focus-within { display: flex; }
+    .image-stage:hover .image-actions, .image-stage.selected-editor-block .image-actions, .image-actions:focus-within { opacity: 1; pointer-events: auto; transform: translateY(0); }
     .image-actions select, .image-actions button, .image-actions input { min-height: 30px; font-size: 11px; padding: 5px 8px; }
     .upload-label { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--border); color: white; background: var(--accent); font-weight: 800; font-size: 11px; cursor: pointer; }
     .upload-label input { display: none; }
@@ -580,11 +585,42 @@
       letter-spacing: .04em;
       text-transform: uppercase;
     }
-    .image-actions.canvas-image-tools select,
-    .image-actions.canvas-image-tools label,
-    .cover-image-panel.canvas-image-tools select {
-      display: none;
+    .canvas-image-tools select {
+      min-width: 130px;
+      max-width: 210px;
+      min-height: 30px;
+      padding: 5px 9px;
+      border-color: rgba(255,255,255,.24);
+      background: rgba(255,255,255,.94);
+      color: var(--ink);
+      font-size: 11px;
     }
+    .canvas-image-tools button,
+    .canvas-image-tools .upload-label {
+      min-height: 30px;
+      padding: 5px 9px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .canvas-image-tools .danger {
+      background: rgba(255,235,235,.94);
+      border-color: rgba(173,52,52,.50);
+      color: #7a1c1c;
+    }
+    .image-pending-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(255,244,214,.95);
+      color: #7a3f00;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    .compact-details { opacity: .9; }
     .selection-card dl { grid-template-columns: 48px minmax(0, 1fr); }
     .selection-card.image { border-color: rgba(0,111,107,.24); background: linear-gradient(180deg, rgba(0,111,107,.055), #fff); }
     .selection-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 9px; }

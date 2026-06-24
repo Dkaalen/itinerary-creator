@@ -269,6 +269,8 @@ function attachHandlers() {
         image.data_uri = '';
         image.name = '';
       }
+      activeFieldKey = `cover.${key}`;
+      activePageId = key === 'summary_image' ? 'summary' : 'cover';
       if (action === 'manual') {
         const sel = document.querySelector(`[data-cover-img-bank="${CSS.escape(key)}"]`);
         if (sel && sel.value) {
@@ -292,7 +294,9 @@ function attachHandlers() {
       image.crop_focus = sel.value;
       markTouched(`cover.${key}`);
       const page = sel.closest('.a4-page');
-      if (page) page.style.backgroundPosition = focusPos(sel.value);
+      if (page) page.style.backgroundPosition = key === 'summary_image' ? `center center, ${focusPos(sel.value)}` : focusPos(sel.value);
+      const chip = sel.closest('.cover-image-panel')?.querySelector('.image-crop-chip');
+      if (chip) chip.textContent = imageFocusLabel(sel.value);
     });
   });
   document.querySelectorAll('[data-img-action]').forEach(btn => {
@@ -315,6 +319,8 @@ function attachHandlers() {
         day.image.data_uri = '';
         day.image.name = '';
       }
+      activeFieldKey = `days.${idx}.image`;
+      activePageId = typeof pageIdForDay === 'function' ? pageIdForDay(day, idx) : activePageId;
       if (action === 'manual') {
         const sel = document.querySelector(`[data-img-bank="${idx}"]`);
         if (sel && sel.value) {
@@ -339,6 +345,8 @@ function attachHandlers() {
       
       const img = sel.closest('.image-stage')?.querySelector('img');
       if (img) img.style.objectPosition = focusPos(sel.value);
+      const chip = sel.closest('.image-stage')?.querySelector('.image-crop-chip');
+      if (chip) chip.textContent = imageFocusLabel(sel.value);
     });
   });
   document.querySelectorAll('[data-img-upload]').forEach(input => {
@@ -349,6 +357,7 @@ function attachHandlers() {
       const reader = new FileReader();
       reader.onload = () => {
         uploadedImages[idx] = {filename: file.name, data_uri: reader.result, season: 'Summer', label: file.name.replace(/\.[^.]+$/, '')};
+        activeFieldKey = `days.${idx}.image`;
         markTouched(`days.${idx}.image`);
         if (model.days[idx] && model.days[idx].image) {
           model.days[idx].image.mode = 'manual';

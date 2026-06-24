@@ -208,7 +208,7 @@ def test_visual_editor_v2_contract_is_inline_not_separate_form():
     editor_html = _visual_editor_frontend_source()
 
     assert "Save changes" in editor_html
-    assert "select an image, then use the inspector" in editor_html
+    assert "hover an image to edit it on the canvas" in editor_html
     assert "data-select-image-field" in editor_html
     assert "cover.trip_dates" in editor_html
     assert "Undo" in editor_html

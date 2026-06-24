@@ -4,10 +4,20 @@ function coverImageControls(key, label, image) {
   const imagePageId = key === 'summary_image' ? 'summary' : 'cover';
   const fieldKey = `cover.${key}`;
   const imageBlockAttrs = ` data-editor-page-id="${escAttr(imagePageId)}" data-editor-block-id="${escAttr(imagePageId)}__${escAttr(editorSlug(key))}" data-editor-block-type="image" data-editor-field-key="${escAttr(fieldKey)}" data-editor-field-label="${escAttr(label)}"`;
+  const options = typeof imageToolbarOptionsHtml === 'function' ? imageToolbarOptionsHtml(img) : '';
+  const hasOptions = !!options;
+  const focusOptions = typeof imageFocusOptionsHtml === 'function' ? imageFocusOptionsHtml(img.crop_focus) : '';
+  const pending = img.pending_preview ? '<span class="image-pending-chip">Save to refresh</span>' : '';
   return `<div class="cover-image-panel canvas-image-tools" data-cover-image-key="${esc(key)}"${imageBlockAttrs}>
     <strong>${esc(label)}</strong>
     <span class="image-crop-chip">${esc(imageFocusLabel(img.crop_focus))}</span>
-    <button type="button" class="ghost" data-select-image-field="${escAttr(fieldKey)}">Image tools</button>
+    ${pending}
+    <select data-cover-img-focus="${escAttr(key)}" aria-label="${escAttr(label)} crop position">${focusOptions}</select>
+    <select data-cover-img-bank="${escAttr(key)}" ${hasOptions ? '' : 'disabled'} aria-label="${escAttr(label)} replacement image"><option value="">Choose image…</option>${options}</select>
+    <button type="button" class="ghost" data-cover-img-key="${escAttr(key)}" data-cover-img-action="auto">Automatic</button>
+    <button type="button" class="ghost" data-cover-img-key="${escAttr(key)}" data-cover-img-action="manual" ${hasOptions ? '' : 'disabled'}>Use selected</button>
+    <button type="button" class="danger" data-cover-img-key="${escAttr(key)}" data-cover-img-action="none">Remove</button>
+    <button type="button" class="ghost compact-details" data-select-image-field="${escAttr(fieldKey)}">Details</button>
   </div>`;
 }
 
@@ -408,7 +418,7 @@ function draw() {
   let h = `<div class="editor-shell">
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · select an image, then use the inspector' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
+        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · hover an image to edit it on the canvas' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
       </div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
