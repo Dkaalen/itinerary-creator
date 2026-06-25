@@ -16,7 +16,8 @@ def _set_stage(stage: str) -> None:
     set_workflow_stage(st.session_state, stage)
 
 
-def _generate_itinerary(raw_text: str) -> bool:
+def _generate_itinerary(raw_text: str, output_brand: str = "agent") -> bool:
+    st.session_state["requested_output_brand"] = output_brand
     result = generate_itinerary(st.session_state, raw_text)
     if not result.ok:
         validation_report = (result.payload or {}).get("validation_report")
@@ -57,12 +58,16 @@ def render_input_page(app_version: str) -> None:
         label_visibility="collapsed",
     )
 
-    if st.button("Generate Itinerary", type="primary", use_container_width=True):
+    agent_col, customer_col = st.columns(2)
+    generate_agent = agent_col.button("Generate Agent Itinerary", type="primary", use_container_width=True)
+    generate_customer = customer_col.button("Generate Customer Itinerary", use_container_width=True)
+    if generate_agent or generate_customer:
         if not raw_text.strip():
             st.warning("Please paste supplier text first.")
             return
+        output_brand = "booknordics_customer" if generate_customer else "agent"
         with st.spinner("Building your itinerary…"):
-            generated = _generate_itinerary(raw_text)
+            generated = _generate_itinerary(raw_text, output_brand)
         if generated:
             _set_stage("edit")
             st.rerun()

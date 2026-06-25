@@ -38,6 +38,7 @@ from pdf_exporter_modules.pdf_html_fallback import render_document_requires_html
 from pdf_exporter_modules.pdf_image_renderer import image_path_from_match as _image_path_from_match
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable as _render_day_image_flowable
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
+from pdf_exporter_modules.pdf_branding import configure_pdf_brand
 
 
 def _render_internal_review_appendix(render_document: RenderDocument, story, styles):
@@ -54,12 +55,14 @@ def export_render_document_to_pdf(
     day_images: Mapping[str, Mapping | None] | None = None,
     day_image_crop_focus: Mapping[str, str] | None = None,
     export_profile: str | Mapping | None = None,
+    output_brand: str = "agent",
 ):
     """Export a typed RenderDocument to PDF without parsing generated HTML."""
 
     pdf_path = Path(pdf_path).resolve()
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     apply_pdf_palette(color_data or None)
+    configure_pdf_brand(output_brand)
     profile = resolve_pdf_export_profile(export_profile) if export_profile is not None else DEFAULT_PDF_EXPORT_PROFILE
     styles = make_styles()
     doc = SimpleDocTemplate(

@@ -75,7 +75,8 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
         outputs_folder.mkdir(exist_ok=True)
 
         profile = resolve_pdf_export_profile(output_edits or None)
-        pdf_path = outputs_folder / pdf_filename(profile=profile.as_dict())
+        base_name = "itinerary_preview_booknordics" if str((output_edits or {}).get("output_brand") or "agent") == "booknordics_customer" else "itinerary_preview"
+        pdf_path = outputs_folder / pdf_filename(base_name=base_name, profile=profile.as_dict())
         if render_document is not None and not render_document_requires_html_fallback(render_document, output_edits):
             export_render_document_to_pdf(
                 render_document,
@@ -84,6 +85,7 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
                 day_images=day_images,
                 day_image_crop_focus=day_image_crop_focus,
                 export_profile=profile.as_dict(),
+                output_brand=str((output_edits or {}).get("output_brand") or "agent"),
             )
         else:
             export_html_to_pdf(html_path, pdf_path)

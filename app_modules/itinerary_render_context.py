@@ -33,6 +33,8 @@ class ItineraryRenderContext:
     structured_document: Any
     render_grouped_days: dict[str, list[dict]]
     render_document: RenderDocument
+    output_brand: str
+    brand_logo_data_uri: str
     preset_name: str
     colors: dict[str, str]
     colors_json: str

@@ -8,6 +8,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 
 from pdf_exporter_modules import pdf_style_tokens as tokens
+from pdf_exporter_modules.pdf_branding import is_booknordics_pdf, logo_path, pdf_font
 from pdf_exporter_modules.pdf_style_base import make_base_styles
 from pdf_exporter_modules.pdf_style_cover import make_cover_styles
 from pdf_exporter_modules.pdf_style_day import make_day_styles
@@ -70,9 +71,12 @@ def draw_proposal_footer(canvas, doc):
     canvas.setFillColor(tokens.MUTED)
     canvas.setLineWidth(0.25)
     canvas.line(left, rule_y, right, rule_y)
-    canvas.setFont("Helvetica", 6.6)
+    canvas.setFont(pdf_font("medium") if is_booknordics_pdf() else "Helvetica", 6.6)
     canvas.drawString(left, y, _footer_label(doc))
     canvas.drawRightString(right, y, f"{int(getattr(doc, 'page', 1) or 1):02d}")
+    brand_logo = logo_path()
+    if brand_logo is not None and int(getattr(doc, "page", 1) or 1) >= 3:
+        canvas.drawImage(str(brand_logo), right - 36 * mm, A4[1] - 15 * mm, width=36 * mm, height=5.4 * mm, preserveAspectRatio=True, mask="auto", anchor="ne")
     canvas.restoreState()
 
 
@@ -96,6 +100,11 @@ def make_styles():
         make_final_page_styles,
     ):
         styles.update(factory(base))
+    if is_booknordics_pdf():
+        for style in styles.values():
+            current = str(getattr(style, "fontName", "") or "")
+            weight = "bold" if "Bold" in current else "regular"
+            style.fontName = pdf_font(weight)
     return styles
 
 

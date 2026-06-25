@@ -44,6 +44,9 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     grouped_days = group_rows_by_day(parsed_rows)
     duplicate_count = get_duplicate_count(raw_text, parsed_rows)
     output_edits = make_output_edit_state(parsed_rows, grouped_days)
+    output_brand = str(state.pop("requested_output_brand", "agent") or "agent")
+    output_edits["output_brand"] = output_brand
+    output_edits["color_preset"] = "Booknordics B2C" if output_brand == "booknordics_customer" else "Classic Agent"
     output_edits["allow_default_final_images"] = False
 
     state["parsed_rows"] = parsed_rows

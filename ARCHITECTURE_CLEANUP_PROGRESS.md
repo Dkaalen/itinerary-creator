@@ -2233,3 +2233,13 @@ Completed in Batch 22:
 [x] Removed sales-oriented optional-addition notes from the default client document
 [x] Added focused Scandinavian winter output regressions
 ```
+
+## Batch 23 — Maintainable Booknordics customer theme
+
+- [x] Added explicit agent and Booknordics customer generation actions.
+- [x] Kept one canonical itinerary/rendering pipeline; branding is selected through output state.
+- [x] Added the Booknordics palette, DM Sans font contract, and supplied logo asset.
+- [x] Applied customer branding consistently to preview and typed PDF output.
+- [x] Added page-header logos from page 3 onward while leaving cover and summary pages clear.
+- [x] Included output branding in render/cache state and customer PDF filenames.
+- [x] Added focused brand-theme regressions and an official-source DM Sans installer.

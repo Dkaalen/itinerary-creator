@@ -12,14 +12,14 @@ COLOR_PRESETS = {
         "accent": "#1f3446",
     },
     "Booknordics B2C": {
-        "page_bg": "#F7F9FB",
-        "preview_bg": "#07111F",
-        "ink": "#111827",
-        "body": "#1F2937",
-        "muted": "#64748B",
-        "line": "#D9E1EA",
-        "card": "rgba(255, 255, 255, 0.82)",
-        "accent": "#F2055C",
+        "page_bg": "#FAFAFB",
+        "preview_bg": "#00193C",
+        "ink": "#00193C",
+        "body": "#202738",
+        "muted": "#667085",
+        "line": "#D7DDE5",
+        "card": "rgba(255, 255, 255, 0.88)",
+        "accent": "#FF0041",
     },
 }
 

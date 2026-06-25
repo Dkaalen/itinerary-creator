@@ -9,11 +9,11 @@ from app_modules.preview_css_summary import CSS as SUMMARY_CSS
 from app_modules.preview_css_tokens import build_preview_tokens
 
 
-def build_preview_style(colors, cover_theme, cover_background_data_uri):
+def build_preview_style(colors, cover_theme, cover_background_data_uri, *, output_brand="agent", brand_logo_data_uri=""):
     """Return the shared preview/PDF HTML style block."""
 
     sections = (
-        build_preview_tokens(colors, cover_theme, cover_background_data_uri),
+        build_preview_tokens(colors, cover_theme, cover_background_data_uri, output_brand=output_brand, brand_logo_data_uri=brand_logo_data_uri),
         COVER_CSS,
         SUMMARY_CSS,
         DAY_PAGE_CSS,

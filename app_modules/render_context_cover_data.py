@@ -6,6 +6,7 @@ from typing import Any
 
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 from app_modules.itinerary_html_sections import balanced_cover_subtitle_html
+from app_modules.output_brand import logo_data_uri, output_brand_id
 from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.cover_route import clean_or_create_cover_route_line, cover_route_html
 from itinerary_generation.cover_theme import get_cover_theme
@@ -39,6 +40,8 @@ def build_cover_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
     destinations_line = clean_or_create_cover_route_line(parsed_rows, saved_destinations_line or create_destinations_line(parsed_rows))
 
     return {
+        "output_brand": output_brand_id(output_edits),
+        "brand_logo_data_uri": logo_data_uri(output_edits),
         "preset_name": get_color_preset_name(output_edits),
         "colors": get_color_preset(output_edits),
         "colors_json": "",

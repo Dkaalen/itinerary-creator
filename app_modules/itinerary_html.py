@@ -45,8 +45,8 @@ def build_itinerary_html_from_context(context):
     _raise_for_blocking_client_output(context)
     colors_json = esc(json.dumps(context.colors))
 
-    html_text = build_preview_style(context.colors, context.cover_theme, context.cover_background_data_uri)
-    html_text += f'''    <div class="preview-background" data-preset="{esc(context.preset_name)}" data-colors="{colors_json}">
+    html_text = build_preview_style(context.colors, context.cover_theme, context.cover_background_data_uri, output_brand=context.output_brand, brand_logo_data_uri=context.brand_logo_data_uri)
+    html_text += f'''    <div class="preview-background" data-preset="{esc(context.preset_name)}" data-output-brand="{esc(context.output_brand)}" data-colors="{colors_json}">
 
 '''
     page_html_by_id = {}
