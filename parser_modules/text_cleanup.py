@@ -5,11 +5,8 @@ from functools import lru_cache
 
 import diagnostics
 from place_aliases import normalize_place_text
+from shared.text import clean_space
 from text_polish import polish_client_text
-
-
-def clean_space(value):
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
 
 
 COMMON_TEXT_REPLACEMENTS = [

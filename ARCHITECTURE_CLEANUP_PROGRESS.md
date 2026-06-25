@@ -89,6 +89,7 @@ Architecture guards:                 [####################] 100%
 Healthcheck follow-up:                [####################] 100%
 Fixture hygiene cleanup:              [####################] 100%
 Cleanup leftovers and guard gaps:      [####################] 100%
+Shared helper + duplicate cleanup:     [####################] 100%
 ```
 
 Status legend:
@@ -1874,4 +1875,24 @@ Completed in Batch 11:
 [x] Removed dead review-step workflow-card code from app_modules/workflow_shell.py
 [x] Split oversized editor_shell.css into shell, workspace, outline, and page-action responsibilities
 [x] Added guards for root patch artifacts, duplicate tests, CSS size, and oversized *_core.py files
+```
+---
+
+# Batch 12: Shared helper + duplicate logic cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Remove low-value helper duplication and make shared helpers the single source of truth.
+```
+
+Completed in Batch 12:
+
+```text
+[x] Replaced local clean_space implementations with shared.text.clean_space
+[x] Removed stale ChatGPT patch metadata folder from the repo working tree
+[x] Added architecture guard coverage for duplicated clean_space helpers
+[x] Extended patch-artifact hygiene guard to catch _patch_metadata
 ```

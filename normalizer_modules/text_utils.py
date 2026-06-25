@@ -2,8 +2,8 @@
 
 import re
 
-def clean_space(value: str) -> str:
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
+from shared.text import clean_space
+
 
 def get_row_type(row: dict) -> str:
     return row.get("effective_type") or row.get("type", "")

@@ -5,16 +5,13 @@ import html
 import os
 
 from images.remote_distribution import image_bank_manifest_url
+from shared.text import clean_space
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE_BANK_REPO_URL = "https://github.com/Dkaalen/itinerary-image-bank.git"
 DEFAULT_IMAGE_BANK_REPO_BRANCH = "main"
 RUNTIME_IMAGE_BANK_DIR = ".runtime_image_bank"
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".webp", ".jpg", ".jpeg", ".png", ".avif"})
-
-
-def clean_space(value):
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
 
 
 def image_bank_repo_url() -> str:

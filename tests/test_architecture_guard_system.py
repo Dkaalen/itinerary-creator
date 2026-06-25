@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.architecture_guards import (
+    duplicate_shared_clean_space_hits,
     duplicate_test_path_hits,
     forbidden_normal_ui_hits,
     import_from_hits,
@@ -82,3 +83,7 @@ def test_right_inspector_does_not_depend_on_canvas_image_replacement_modules() -
 def test_patch_artifacts_and_duplicate_tests_do_not_return() -> None:
     assert root_patch_artifact_hits() == ()
     assert duplicate_test_path_hits() == ()
+
+
+def test_shared_clean_space_is_the_single_source_of_truth() -> None:
+    assert duplicate_shared_clean_space_hits() == ()

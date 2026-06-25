@@ -117,6 +117,7 @@ PATCH_HISTORY_NAME_MARKERS = (
 )
 
 ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MANIFEST.md"})
+PATCH_METADATA_DIR_NAMES = frozenset({"_patch_metadata"})
 DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
 
 EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})
@@ -277,7 +278,37 @@ def oversized_editor_css_files(limit: int = 500) -> tuple[SizeHit, ...]:
 
 
 def root_patch_artifact_hits() -> tuple[str, ...]:
-    return tuple(sorted(name for name in ROOT_PATCH_ARTIFACT_NAMES if (REPO_ROOT / name).exists()))
+    hits = [name for name in ROOT_PATCH_ARTIFACT_NAMES if (REPO_ROOT / name).exists()]
+    hits.extend(name for name in PATCH_METADATA_DIR_NAMES if (REPO_ROOT / name).exists())
+    return tuple(sorted(hits))
+
+
+def duplicate_shared_clean_space_hits() -> tuple[str, ...]:
+    """Return local clean_space definitions outside the shared text helper.
+
+    The app has many text-heavy layers, but they should import the canonical
+    whitespace normalizer instead of each owning a subtly different copy.
+    """
+
+    hits: list[str] = []
+    for relative in (
+        "app_modules",
+        "parser_modules",
+        "normalizer_modules",
+        "itinerary_generation",
+        "pdf_exporter_modules",
+        "images",
+        "text_polish_modules",
+    ):
+        for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):
+            try:
+                tree = ast.parse(_read(path))
+            except SyntaxError:
+                continue
+            for node in tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "clean_space":
+                    hits.append(f"{_repo_path(path)}:{node.lineno}")
+    return tuple(sorted(hits))
 
 
 def duplicate_test_path_hits() -> tuple[str, ...]:

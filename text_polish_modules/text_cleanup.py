@@ -5,10 +5,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-
-def clean_space(value: str) -> str:
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
-
+from shared.text import clean_space
 
 
 # One maintainable pass for itinerary proper nouns and activity phrases.
