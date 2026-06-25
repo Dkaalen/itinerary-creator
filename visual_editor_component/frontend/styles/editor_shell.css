@@ -39,6 +39,7 @@
   overflow: visible;
 }
 
+/* UI20 editor foundation fix: lock the component frame while the canvas scrolls internally. */
 html,
 body {
   height: 100%;

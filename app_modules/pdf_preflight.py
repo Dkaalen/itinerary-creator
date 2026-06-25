@@ -102,7 +102,7 @@ def build_pdf_preflight_report(
 
     output_edits = state.get("output_edits") or {}
     if not pictures_are_added(output_edits):
-        issues.append(_issue("missing_pictures", "critical", "Add and review destination pictures before creating the PDF."))
+        issues.append(_issue("missing_pictures", "critical", "Add destination pictures before creating the PDF."))
 
     if not image_bank_is_ready_for_client_pictures(image_status):
         issues.append(_issue("image_bank_missing", "critical", "Connect the real destination image bank before creating the PDF."))

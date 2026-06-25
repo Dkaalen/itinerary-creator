@@ -316,6 +316,7 @@ PDF_TESTS = (
     "tests/test_pdf.py",
     "tests/test_pdf6_luxury_proposal.py",
     "tests/test_pdf7_proposal_footer.py",
+    "tests/test_pdf_export_fast_path.py",
     "tests/test_preview_pdf_parity.py",
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_rendered_pdf_quality.py",

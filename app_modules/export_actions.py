@@ -33,6 +33,8 @@ from itinerary_generation.quality_gate import evaluate_client_output_quality
 from ui.export_files import save_pdf_file
 from ui.output_edits import apply_output_edits
 from app_modules.editor_commit import (
+    PDF_COMMIT_READY_KEY,
+    PDF_COMMIT_REQUEST_KEY,
     pdf_editor_commit_ready,
     request_pdf_editor_commit,
 )
@@ -51,7 +53,13 @@ def visual_editor_export_commit_ready() -> bool:
 def current_pdf_bytes() -> bytes | None:
     """Return current PDF bytes from durable export state."""
 
+    if st.session_state.get(PDF_COMMIT_REQUEST_KEY) and not st.session_state.get(PDF_COMMIT_READY_KEY):
+        return None
+
     current_signature = st.session_state.get("preview_signature")
+    if not current_signature:
+        return None
+
     pdf_bytes = st.session_state.get("pdf_bytes")
     if pdf_bytes and st.session_state.get("pdf_signature") == current_signature:
         return pdf_bytes
@@ -94,13 +102,23 @@ def _show_issue_list(title: str, issues) -> None:
 def create_pdf_from_current_preview() -> bool:
     """Validate current state and create a durable PDF artifact when allowed."""
 
+    if current_pdf_bytes():
+        st.session_state.pdf_status = "Ready"
+        return True
+
     validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))
     if validation_report.is_blocked:
         block_generation(validation_report)
         render_blocking_issues(validation_report)
         return False
 
-    rebuild_current_preview(mark_pdf_dirty=False, save_html=True)
+    preview_refreshed = rebuild_current_preview(mark_pdf_dirty=False, save_html=True)
+    current_pdf_signature = st.session_state.get("preview_signature")
+    if not preview_refreshed or not current_pdf_signature:
+        clear_pdf_artifact("Preview refresh failed")
+        st.error("PDF export stopped because the current preview could not be refreshed.")
+        return False
+
     html_path = Path(st.session_state.html_path) if st.session_state.get("html_path") else None
     if not html_path or not html_path.exists():
         st.session_state.pdf_status = "HTML preview missing"
@@ -154,7 +172,6 @@ def create_pdf_from_current_preview() -> bool:
         bank_signature=image_bank_storage_signature(),
     )
 
-    current_pdf_signature = st.session_state.get("preview_signature")
     pdf_is_current = bool(st.session_state.get("pdf_bytes")) and st.session_state.get("pdf_signature") == current_pdf_signature
     if pdf_is_current:
         st.session_state.pdf_status = "Ready"

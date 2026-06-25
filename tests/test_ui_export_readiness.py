@@ -45,7 +45,8 @@ def test_export_readiness_blocks_missing_pictures_before_pdf_creation():
 
     assert readiness.can_create_pdf is False
     assert readiness.status_label == "Not ready"
-    assert "Add destination pictures" in readiness.blocking_messages[0]
+    assert readiness.blocking_messages == ("Add destination pictures before creating the PDF.",)
+    assert "review" not in readiness.blocking_messages[0].lower()
 
 
 def test_export_readiness_blocks_default_only_image_bank():
@@ -64,7 +65,24 @@ def test_export_readiness_tracks_persistent_pdf_artifact_by_signature():
 
     assert readiness.pdf_ready is True
     assert readiness.status_label == "PDF ready"
-    assert readiness.can_create_pdf is True
+    assert readiness.can_create_pdf is False
+
+
+def test_export_readiness_hides_stale_pdf_while_editor_commit_is_pending():
+    readiness = export_readiness_from_state(
+        _ready_state(
+            export_pdf_bytes=b"%PDF",
+            export_pdf_signature="sig-1",
+            _pdf_after_visual_edit_commit_nonce="2",
+            _visual_editor_export_commit_ready=False,
+        ),
+        READY_IMAGE_BANK,
+    )
+
+    assert readiness.pending_editor_commit is True
+    assert readiness.pdf_ready is False
+    assert readiness.can_create_pdf is False
+    assert readiness.status_label == "Not ready"
 
 
 def test_export_readiness_rejects_stale_pdf_artifact():

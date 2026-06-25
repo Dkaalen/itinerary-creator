@@ -423,9 +423,11 @@ def create_day_intro(day_rows, detail_level="Standard client itinerary", *, visi
                 return f"Travel from {route_label} today, with the main transfer details laid out clearly in the itinerary."
             return f"Travel from {route_label}, with the day focused on the planned route."
 
-        premium_route_intro = route_intro_for_day(day_rows, detail_level)
-        if premium_route_intro:
-            return premium_route_intro
+        has_primary_transport_row = any(get_row_type(row) in TRANSPORT_TYPES for row in transports + route_transfers)
+        if has_primary_transport_row:
+            premium_route_intro = route_intro_for_day(day_rows, detail_level)
+            if premium_route_intro:
+                return premium_route_intro
 
         route_origin, route_destination, route_mode = _route_summary_from_rows(day_rows)
         premium_intro = _premium_route_intro(route_origin, route_destination, route_mode, detail_level)

@@ -67,10 +67,11 @@ def render_input_page(app_version: str) -> None:
             _set_stage("edit")
             st.rerun()
 
-    with st.container(border=True):
-        st.markdown("**Load saved project**")
-        uploaded_project = st.file_uploader("Load editable project JSON", type=["json"], label_visibility="collapsed")
-        if uploaded_project is not None and st.button("Load project", use_container_width=True):
-            load_project_json(uploaded_project)
-            _set_stage("pictures" if pictures_are_added(st.session_state.get("output_edits", {})) else "edit")
-            st.rerun()
+    if is_debug_mode(st.session_state):
+        with st.container(border=True):
+            st.markdown("**Load saved project**")
+            uploaded_project = st.file_uploader("Load editable project JSON", type=["json"], label_visibility="collapsed")
+            if uploaded_project is not None and st.button("Load project", use_container_width=True):
+                load_project_json(uploaded_project)
+                _set_stage("pictures" if pictures_are_added(st.session_state.get("output_edits", {})) else "edit")
+                st.rerun()

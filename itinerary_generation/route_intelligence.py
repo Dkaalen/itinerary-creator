@@ -295,14 +295,14 @@ def route_intro_for_day(day_rows: Sequence[Mapping[str, object]], detail_level: 
     if profile:
         return profile.intro
 
-    origin, destination = get_route_points_for_transport(row) if get_row_type(row) in TRANSPORT_TYPES else ("", "")
+    origin, destination = get_route_points_for_transport(row)
     if not destination and is_route_transfer(row):
         # Route transfer rows often keep the endpoint inside the generated transfer title.
         from parser_modules.common import extract_route_points
 
         origin, destination = extract_route_points(get_transfer_travel_title(row))
     origin = _display_place(origin or row.get("city", ""))
-    destination = _display_place(destination)
+    destination = _display_place(base_destination_from_terminal(destination) or destination)
     mode = normalize_route_mode(get_row_type(row), get_transport_source_text(row))
     mode_label = {
         "train": "by rail",

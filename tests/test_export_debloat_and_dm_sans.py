@@ -26,7 +26,12 @@ def test_normal_export_flow_is_direct_and_not_a_readiness_dashboard():
     assert "Export checks" not in source
     assert "export-readiness-panel" not in source
     assert "Project downloads" not in source
-    assert "Proposal profile" not in source[source.index("def render_export_step") :]
+    assert "def _render_secondary_downloads" not in source
+    assert "def _render_pdf_profile_selector" not in source
+    assert "Download project JSON" not in source
+    assert "Download HTML" not in source
+    assert "HTML download" not in source
+    assert "Proposal profile" not in source
 
 
 def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default():
@@ -44,3 +49,12 @@ def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default(
     assert any(font.get("id") == "dm_sans" for font in frontend_fonts)
     assert ".ve-font-dm-sans" in css
     assert "'DM Sans'" in css
+
+
+def test_normal_input_flow_keeps_project_json_loader_debug_only():
+    source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
+
+    assert "Generate Itinerary" in source
+    assert "Supplier text" in source
+    assert "Load editable project JSON" in source
+    assert source.index("if is_debug_mode(st.session_state):") < source.index("Load editable project JSON")

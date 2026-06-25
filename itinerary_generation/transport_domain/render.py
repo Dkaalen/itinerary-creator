@@ -211,7 +211,11 @@ def _self_transfer_source_text(row) -> str:
     source_lower = source.lower()
     if details and details.lower() != source_lower:
         details_lower = details.lower()
-        if ("private transfer may" in details_lower or "additional cost" in details_lower) and details_lower not in source_lower:
+        has_local_private_transfer_note = any(
+            marker in details_lower
+            for marker in ("private transfer may", "additional cost", "addon cost", "add-on cost", "paid on ground")
+        )
+        if has_local_private_transfer_note and details_lower not in source_lower:
             source = f"{source}. {details}"
     return clean_space(source)
 

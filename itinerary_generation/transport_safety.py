@@ -158,6 +158,7 @@ def base_destination_from_terminal(value: str) -> str:
     """
 
     place = normalize_transport_place(value)
+    place = re.sub(r"^(?:from|to)\s+", "", place, flags=re.IGNORECASE).strip(" .,-|:")
     if not place:
         return ""
     for pattern, terminal in TERMINAL_SUFFIXES:
