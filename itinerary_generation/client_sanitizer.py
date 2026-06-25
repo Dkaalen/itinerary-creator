@@ -46,13 +46,54 @@ _COST_WORD_AMOUNT_RE = re.compile(
 _EMPTY_PAREN_RE = re.compile(r"\(\s*\)")
 
 
+_PRICE_BLOCKER_CONTEXT_RE = re.compile(
+    r"\b(?:price|cost|fee|supplement|single\s+travell?er\s+supplement)\b",
+    flags=re.IGNORECASE,
+)
+
+_BAGGAGE_ALLOWANCE_DETAIL_RE = re.compile(
+    r"(?:"
+    r"\b(?:checked|check(?:ed)?[ -]?in|carry[- ]?on|cabin)\b"
+    r"|\b(?:bag|baggage|luggage)\b"
+    r"|\b\d+\s*kg\b"
+    r")",
+    flags=re.IGNORECASE,
+)
+
+
+def _mask_safe_baggage_per_person_phrases(text: str) -> str:
+    """Hide allowance-only ``per person`` wording from price/currency scanning.
+
+    The client output can legitimately say that flight tickets include a checked
+    bag and carry-on bag per person.  That wording should not be treated like a
+    leaked supplier price, while price-like phrases such as ``fee 50 per
+    person`` must still be caught.
+    """
+
+    if not text or "per" not in text.lower():
+        return text
+
+    def replace(match: re.Match[str]) -> str:
+        start, end = match.span()
+        context = text[max(0, start - 140): min(len(text), end + 40)]
+        if _PRICE_BLOCKER_CONTEXT_RE.search(context):
+            return match.group(0)
+        detail_hits = _BAGGAGE_ALLOWANCE_DETAIL_RE.findall(context)
+        if len(detail_hits) >= 2:
+            return "__CLIENT_SAFE_BAGGAGE_PER_PERSON__"
+        return match.group(0)
+
+    return re.sub(r"\bper\s+person\b", replace, text, flags=re.IGNORECASE)
+
+
 def contains_price_or_currency(value: object) -> bool:
     """Return True when a client-facing string still contains price/currency text."""
 
     text = str(value or "")
     if not text:
         return False
-    return bool(PRICE_PATTERN_RE.search(text) or _CURRENCY_RE.search(text))
+    scan_text = _mask_safe_baggage_per_person_phrases(text)
+    return bool(PRICE_PATTERN_RE.search(scan_text) or _CURRENCY_RE.search(scan_text))
 
 
 def sanitize_client_text(value: object) -> str:

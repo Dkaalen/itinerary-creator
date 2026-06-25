@@ -2315,3 +2315,24 @@ Import smoke: optional skips=25, failures=0
 Rendered Booknordics Scandinavian sample PDF: 24 pages, 2 What’s included pages, no blank text pages
 git diff --check: passed
 ```
+
+---
+
+# Batch 26 — Client-output baggage allowance gate hotfix
+
+Progress: `[####################] 100%`
+
+Completed in Batch 26:
+
+```text
+[x] Fixed the late client-output quality gate so legitimate flight baggage allowance wording with `per person` is not mistaken for leaked supplier pricing
+[x] Kept price-like `per person` wording blocked, including currency amounts, standalone per-person prices, and baggage-fee wording
+[x] Added focused regressions for the Booknordics baggage allowance wording that previously blocked generation
+```
+
+Validation snapshot:
+
+```text
+Focused baggage/client-sanitizer regressions: passed
+Scandinavian Booknordics generation smoke: passed
+```
