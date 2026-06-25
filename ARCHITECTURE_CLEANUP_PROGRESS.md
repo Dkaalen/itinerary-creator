@@ -77,14 +77,14 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [############--------] 60%
+Overall architecture cleanup:        [###############-----] 75%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
 CSS responsibility cleanup:          [####################] 100%
 Parser cleanup:                      [####################] 100%
 Generation cleanup:                  [####################] 100%
-PDF/images cleanup:                  [--------------------] 0%
+PDF/images cleanup:                  [####################] 100%
 Architecture guards:                 [############--------] 60%
 ```
 
@@ -1511,7 +1511,7 @@ day_render_block_ordering.py
 
 # Batch 7: PDF/images cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
 
 Goal:
 
@@ -1521,7 +1521,7 @@ Make PDF export and image-bank reliability easier to maintain.
 
 ## Patch 7.1: Split `pdf_exporter_modules/typed_exporter.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1546,7 +1546,7 @@ Internal review appendix should be debug-only or removed from normal output if n
 
 ## Patch 7.2: Split `pdf_exporter_modules/styles.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1569,7 +1569,7 @@ make_styles
 
 ## Patch 7.3: Split `images/remote_distribution.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1586,6 +1586,17 @@ images/remote_distribution_prefetch.py
 ```
 
 `remote_distribution.py` keeps compatibility façade exports only.
+
+Completed in Batch 7:
+
+```text
+[x] typed_exporter.py reduced to typed PDF orchestration and compatibility exports
+[x] cover, summary, day, image, final-section, fallback, and internal-review PDF responsibilities split
+[x] styles.py reduced to style orchestration, palette/footer wrappers, and compatibility exports
+[x] PDF style tokens/base/cover/day/summary/table/final modules added
+[x] remote_distribution.py reduced to compatibility façade exports
+[x] remote image-bank models, config, requests, pack resolver, archive install, locking, manifest orchestration, and prefetch modules added
+```
 
 ---
 

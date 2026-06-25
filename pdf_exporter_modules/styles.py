@@ -1,71 +1,49 @@
-import json
+"""ReportLab style orchestration for PDF export."""
+
+from __future__ import annotations
 
 from bs4 import BeautifulSoup  # noqa: F401 - keeps dependency explicit for export environment
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 
-PAGE_BACKGROUND = colors.HexColor("#f4efe8")
-INK = colors.HexColor("#1f3446")
-BODY = colors.HexColor("#2f2f2f")
-MUTED = colors.HexColor("#7b746c")
-LINE = colors.HexColor("#d8cec2")
-ACCENT = colors.HexColor("#1f3446")
-CARD = colors.Color(1, 1, 1, alpha=0.35)
-SUMMARY_CARD = colors.Color(1, 1, 1, alpha=0.72)
+from pdf_exporter_modules import pdf_style_tokens as tokens
+from pdf_exporter_modules.pdf_style_base import make_base_styles
+from pdf_exporter_modules.pdf_style_cover import make_cover_styles
+from pdf_exporter_modules.pdf_style_day import make_day_styles
+from pdf_exporter_modules.pdf_style_final_pages import make_final_page_styles
+from pdf_exporter_modules.pdf_style_summary import make_summary_styles
+from pdf_exporter_modules.pdf_style_tables import make_table_styles
 
-DEFAULT_PDF_COLORS = {
-    "page_bg": "#f4efe8",
-    "ink": "#1f3446",
-    "body": "#2f2f2f",
-    "muted": "#7b746c",
-    "line": "#d8cec2",
-    "accent": "#1f3446",
+_TOKEN_NAMES = {
+    "PAGE_BACKGROUND",
+    "INK",
+    "BODY",
+    "MUTED",
+    "LINE",
+    "ACCENT",
+    "CARD",
+    "SUMMARY_CARD",
+    "DEFAULT_PDF_COLORS",
 }
 
 
+def __getattr__(name: str):
+    if name in _TOKEN_NAMES:
+        return getattr(tokens, name)
+    raise AttributeError(name)
+
+
 def hex_to_color(value, fallback):
-    try:
-        value = str(value or "").strip()
-        if not value.startswith("#"):
-            return fallback
-        return colors.HexColor(value)
-    except Exception:
-        return fallback
+    return tokens.hex_to_color(value, fallback)
 
 
 def apply_pdf_palette(color_data):
-    """Apply the selected HTML color preset to the ReportLab PDF renderer."""
-    global PAGE_BACKGROUND, INK, BODY, MUTED, LINE, ACCENT
-
-    color_data = color_data or {}
-    PAGE_BACKGROUND = hex_to_color(color_data.get("page_bg"), PAGE_BACKGROUND)
-    INK = hex_to_color(color_data.get("ink"), INK)
-    BODY = hex_to_color(color_data.get("body"), BODY)
-    MUTED = hex_to_color(color_data.get("muted"), MUTED)
-    LINE = hex_to_color(color_data.get("line"), LINE)
-    ACCENT = hex_to_color(color_data.get("accent"), ACCENT)
+    tokens.apply_pdf_palette(color_data)
 
 
 def extract_pdf_palette(soup):
-    wrapper = soup.select_one(".preview-background")
-    if not wrapper:
-        return DEFAULT_PDF_COLORS
-
-    raw = wrapper.get("data-colors") or ""
-    if not raw:
-        return DEFAULT_PDF_COLORS
-
-    try:
-        data = json.loads(raw)
-        if isinstance(data, dict):
-            return {**DEFAULT_PDF_COLORS, **data}
-    except Exception:
-        return DEFAULT_PDF_COLORS
-
-    return DEFAULT_PDF_COLORS
+    return tokens.extract_pdf_palette(soup)
 
 
 def _footer_label(doc) -> str:
@@ -76,12 +54,7 @@ def _footer_label(doc) -> str:
 
 
 def draw_proposal_footer(canvas, doc):
-    """Draw a quiet proposal footer on non-cover pages.
-
-    The footer is deliberately understated: it gives the exported PDF a more
-    finished proposal feel without competing with the itinerary content, cover
-    image, or page-level artwork.
-    """
+    """Draw a quiet proposal footer on non-cover pages."""
 
     if int(getattr(doc, "page", 1) or 1) <= 1:
         return
@@ -93,8 +66,8 @@ def draw_proposal_footer(canvas, doc):
     rule_y = y + 5.8 * mm
 
     canvas.saveState()
-    canvas.setStrokeColor(LINE)
-    canvas.setFillColor(MUTED)
+    canvas.setStrokeColor(tokens.LINE)
+    canvas.setFillColor(tokens.MUTED)
     canvas.setLineWidth(0.25)
     canvas.line(left, rule_y, right, rule_y)
     canvas.setFont("Helvetica", 6.6)
@@ -105,7 +78,7 @@ def draw_proposal_footer(canvas, doc):
 
 def page_background(canvas, doc):
     canvas.saveState()
-    canvas.setFillColor(PAGE_BACKGROUND)
+    canvas.setFillColor(tokens.PAGE_BACKGROUND)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
     canvas.restoreState()
     draw_proposal_footer(canvas, doc)
@@ -113,312 +86,34 @@ def page_background(canvas, doc):
 
 def make_styles():
     base = getSampleStyleSheet()
+    styles = {}
+    for factory in (
+        make_cover_styles,
+        make_base_styles,
+        make_day_styles,
+        make_summary_styles,
+        make_table_styles,
+        make_final_page_styles,
+    ):
+        styles.update(factory(base))
+    return styles
 
-    return {
-        "cover_kicker": ParagraphStyle(
-            "cover_kicker",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.8,
-            leading=12,
-            textColor=MUTED,
-            uppercase=True,
-            alignment=TA_CENTER,
-            spaceAfter=10,
-        ),
-        "cover_title": ParagraphStyle(
-            "cover_title",
-            parent=base["Title"],
-            fontName="Times-Bold",
-            fontSize=38,
-            leading=41,
-            textColor=INK,
-            alignment=TA_CENTER,
-            spaceAfter=12,
-        ),
-        "cover_subtitle": ParagraphStyle(
-            "cover_subtitle",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=15.5,
-            leading=20,
-            textColor=INK,
-            alignment=TA_CENTER,
-            spaceAfter=6,
-        ),
-        "cover_dates": ParagraphStyle(
-            "cover_dates",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.5,
-            leading=11,
-            textColor=MUTED,
-            alignment=TA_CENTER,
-            spaceAfter=10,
-        ),
-        "cover_route_label": ParagraphStyle(
-            "cover_route_label",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=7.5,
-            leading=10,
-            textColor=MUTED,
-            alignment=TA_CENTER,
-            spaceAfter=6,
-        ),
-        "cover_destinations": ParagraphStyle(
-            "cover_destinations",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=9.8,
-            leading=14,
-            textColor=BODY,
-            alignment=TA_CENTER,
-            spaceBefore=0,
-        ),
-        "page_title": ParagraphStyle(
-            "page_title",
-            parent=base["Heading1"],
-            fontName="Times-Bold",
-            fontSize=25,
-            leading=30,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=7,
-        ),
-        "summary_title": ParagraphStyle(
-            "summary_title",
-            parent=base["Heading2"],
-            fontName="Times-Bold",
-            fontSize=18.5,
-            leading=22,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=7,
-        ),
-        "day_label": ParagraphStyle(
-            "day_label",
-            parent=base["Heading1"],
-            fontName="Times-Bold",
-            fontSize=25,
-            leading=29,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=3,
-        ),
-        "day_kicker": ParagraphStyle(
-            "day_kicker",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=9.4,
-            leading=12.5,
-            textColor=ACCENT,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=9,
-        ),
-        "day_title": ParagraphStyle(
-            "day_title",
-            parent=base["Heading2"],
-            fontName="Times-Roman",
-            fontSize=20,
-            leading=24,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=8,
-        ),
-        "city": ParagraphStyle(
-            "city",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.5,
-            leading=11,
-            textColor=MUTED,
-            spaceAfter=14,
-        ),
-        "intro": ParagraphStyle(
-            "intro",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=11.5,
-            leading=16,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=14,
-        ),
-        "section": ParagraphStyle(
-            "section",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.5,
-            leading=11,
-            textColor=INK,
-            spaceBefore=10,
-            spaceAfter=4,
-        ),
-        "body": ParagraphStyle(
-            "body",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=10.2,
-            leading=14,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=3,
-        ),
-        "body_bold": ParagraphStyle(
-            "body_bold",
-            parent=base["Normal"],
-            fontName="Times-Bold",
-            fontSize=10.5,
-            leading=14,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=4,
-        ),
-        "activity_title": ParagraphStyle(
-            "activity_title",
-            parent=base["Normal"],
-            fontName="Times-Bold",
-            fontSize=13.5,
-            leading=17,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceBefore=10,
-            spaceAfter=5,
-        ),
-        "editor_small_note": ParagraphStyle(
-            "editor_small_note",
-            parent=base["Normal"],
-            fontName="Helvetica",
-            fontSize=8.8,
-            leading=11.5,
-            textColor=MUTED,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=3,
-        ),
-        "editor_large": ParagraphStyle(
-            "editor_large",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=11.8,
-            leading=15.5,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceAfter=5,
-        ),
-        "editor_heading": ParagraphStyle(
-            "editor_heading",
-            parent=base["Heading3"],
-            fontName="Times-Bold",
-            fontSize=15.2,
-            leading=18.5,
-            textColor=INK,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceBefore=8,
-            spaceAfter=5,
-        ),
-        "editor_subheading": ParagraphStyle(
-            "editor_subheading",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.8,
-            leading=11.4,
-            textColor=ACCENT,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceBefore=6,
-            spaceAfter=4,
-        ),
-        "editor_note": ParagraphStyle(
-            "editor_note",
-            parent=base["Normal"],
-            fontName="Helvetica",
-            fontSize=8.8,
-            leading=11.8,
-            textColor=MUTED,
-            leftIndent=7,
-            borderColor=colors.HexColor("#c58a24"),
-            borderWidth=0.7,
-            borderPadding=5,
-            splitLongWords=0,
-            wordWrap="LTR",
-            spaceBefore=4,
-            spaceAfter=6,
-        ),
-        "bullet": ParagraphStyle(
-            "bullet",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=10.0,
-            leading=13,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-            leftIndent=0,
-            firstLineIndent=0,
-            spaceAfter=0,
-        ),
-        "bullet_continuation": ParagraphStyle(
-            "bullet_continuation",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=10.0,
-            leading=13,
-            textColor=MUTED,
-            splitLongWords=0,
-            wordWrap="LTR",
-            leftIndent=0,
-            firstLineIndent=0,
-            spaceAfter=0,
-        ),
-        "table_header": ParagraphStyle(
-            "table_header",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=9,
-            leading=12,
-            textColor=INK,
-        ),
-        "table_cell": ParagraphStyle(
-            "table_cell",
-            parent=base["Normal"],
-            fontName="Helvetica",
-            fontSize=8.6,
-            leading=11.6,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-        ),
-        "summary_header": ParagraphStyle(
-            "summary_header",
-            parent=base["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=7.8,
-            leading=10.5,
-            textColor=ACCENT,
-            splitLongWords=0,
-            wordWrap="LTR",
-        ),
-        "summary_cell": ParagraphStyle(
-            "summary_cell",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=10.3,
-            leading=13.8,
-            textColor=BODY,
-            splitLongWords=0,
-            wordWrap="LTR",
-        ),
-    }
+
+__all__ = [
+    "ACCENT",
+    "BODY",
+    "CARD",
+    "DEFAULT_PDF_COLORS",
+    "INK",
+    "LINE",
+    "MUTED",
+    "PAGE_BACKGROUND",
+    "SUMMARY_CARD",
+    "apply_pdf_palette",
+    "draw_proposal_footer",
+    "extract_pdf_palette",
+    "hex_to_color",
+    "make_styles",
+    "page_background",
+    "_footer_label",
+]
