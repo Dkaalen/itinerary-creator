@@ -138,6 +138,12 @@ def parse_hotel_details(row, main_text, night_count_hint=""):
     # title. Strip the admin prefix before hotel/room parsing.
     text = re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"^Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(
+        r"\s+Check[- ]?in\s+to\s+your\s+accommodation\s+for\s+a\s+\d+\s+(?:night|nite|nt)s?\s+stay\b",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    ).strip()
     lower = text.lower()
 
     hotel_name = ""

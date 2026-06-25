@@ -46,18 +46,39 @@ Latest result:
 - Parsed output rows: 5,438
 - Parser exceptions: 0
 - Whole-corpus generation smoke: passed
-- Average parser confidence: 97.3%
-- Rows under 80 confidence: 205
+- Average parser confidence: 97.4%
+- Rows under 80 confidence: 196
 
 ## Current quality backlog from the real corpus
 
-The latest run exposes the next product-quality targets:
+The latest run exposes the next product-quality targets. Batch 17 reduced the first title/prose group, but remaining cases still need polishing:
 
-1. Overlong generated/parsed titles, especially transfer and day-overview prose.
-2. Day overview rows being treated as titles instead of structured day text.
-3. Activity supplier prose leaking into title fields.
-4. Missing parsed city for a small set of activity/transfer rows.
+1. Remaining overlong generated/parsed titles, especially long day-overview prose, train metadata, and local-transfer notes.
+2. Remaining activity supplier prose leaking into title fields.
+3. Missing parsed city for a small set of activity/transfer rows.
+4. Hotel-name extraction misses for malformed accommodation rows.
 5. Cost/calculator rows and malformed header-like rows still appearing in the extracted corpus and needing better classification/reporting.
+
+
+## Batch 17 title/prose cleanup result
+
+Batch 17 used the real Vipin corpus to harden title cleanup and row typing. The full run stayed stable with zero parser exceptions and generation smoke still passed.
+
+Improvement from the previous full-corpus checkpoint:
+
+- Overlong titles: 173 → 86
+- Activity/supplier prose used as title: 82 → 63
+- Rows under 80 parser confidence: 205 → 196
+- Missing hotel name flags: 102 → 93
+- Missing parsed city: 9 → 8
+
+Key fixes locked with regression tests:
+
+- Day overview rows remain Day Overview even when their prose mentions flights/trains/buses.
+- Long activity prose can extract compact product titles such as `Ultimate Icelandic Adventure Tour`.
+- Long-distance bus/coach transfers become compact transport titles.
+- Private point-to-point transfers strip address/procurement notes from the title.
+- Leading known-place titles can infer missing city, e.g. `Helsinki Hop on Hop off 24 Hr ticket`.
 
 ## How this should be used
 

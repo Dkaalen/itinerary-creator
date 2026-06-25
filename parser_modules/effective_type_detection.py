@@ -7,9 +7,28 @@ from parser_modules.common import *  # noqa: F401,F403
 from parser_modules.detail_extractors import _looks_like_cruise_experience_text
 from parser_modules.time_parsing import normalize_duration_text, normalize_time_text
 
+
+
+def _looks_like_long_distance_coach_or_bus(combined: str) -> bool:
+    """Return True for arranged coach/bus transport, not local transfers."""
+
+    return bool(
+        re.search(r"\b(?:bus|coach)\s*[:|]", combined)
+        or "coach transfer" in combined
+        or "panorama coach" in combined
+        or "panoramic coach" in combined
+        or ("long distance" in combined and ("coach" in combined or "bus" in combined))
+    )
+
 def detect_effective_type(item_type, title, details):
     combined = f"{title} {details}".lower().strip()
     normalized_item_type = normalize_type(item_type)
+
+    # Day-overview rows can mention flights, trains, buses, and cruises in long
+    # descriptive prose. Keep the row type stable so overview prose is rendered
+    # as day text instead of being converted into a transport title.
+    if normalized_item_type == "Day Overview":
+        return "Day Overview"
 
     # Hop-on hop-off / city pass style products are client activities, not
     # transport segments, even if the word "bus" appears in the title.
@@ -42,7 +61,7 @@ def detect_effective_type(item_type, title, details):
             "to station", "to railway station", "to train station", "accommodation",
             "bus station", "bustation",
         ]
-    ) and "coach transfer to" not in combined and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+    ) and not _looks_like_long_distance_coach_or_bus(combined) and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
         return "Transfer"
 
     # Accommodation-relocation rows occasionally land in the Activity column.
@@ -120,13 +139,7 @@ def detect_effective_type(item_type, title, details):
 
     # Long-distance coach/bus rows should remain arranged transport even when
     # the description also mentions a bus station or resort/accommodation.
-    if normalized_item_type == "Transfer" and (
-        re.search(r"\b(?:bus|coach)\s*[:|]", combined)
-        or "coach transfer" in combined
-        or "panorama coach" in combined
-        or "panoramic coach" in combined
-        or "long distance" in combined and ("coach" in combined or "bus" in combined)
-    ) and "private" not in combined:
+    if normalized_item_type == "Transfer" and _looks_like_long_distance_coach_or_bus(combined) and "private" not in combined:
         return "Transport"
 
     # Plain private/self-guided/local transfers remain transfers even when the
@@ -139,7 +152,7 @@ def detect_effective_type(item_type, title, details):
             "hotel to", "airport to", "station to", "to hotel",
             "to airport", "to station", "accommodation", "bus station", "bustation",
         ]
-    ) and "coach transfer to" not in combined and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+    ) and not _looks_like_long_distance_coach_or_bus(combined) and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
         return "Transfer"
 
     if (

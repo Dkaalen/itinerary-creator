@@ -60,10 +60,40 @@ def _explicit_airport_from_text(text, fallback_city=""):
     return city_airport(fallback_city)
 
 
+
+
+def _clean_route_endpoint(value: str) -> str:
+    endpoint = fix_common_text(value).strip(" -:|,.")
+    endpoint = re.split(
+        r",\s*(?:[A-ZÀ-Ýa-zà-ÿ .'-]*(?:gate|gade|gata|street|road|avenue|vei|veien|tollbodgate)\b|\d)",
+        endpoint,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" -:|,.")
+    return normalize_transport_place(endpoint) or endpoint
+
+
+def _generic_private_transfer_route_title(text: str) -> str:
+    match = re.search(
+        r"\bprivate\s+transfer\s+(?:from\s+)?(?P<origin>.+?)\s+to\s+(?P<destination>.+?)(?:\s*\||\s+-\s+|,\s*(?:tickets?|price|cost|incl\.?|includes?|[A-ZÀ-Ýa-zà-ÿ .'-]*(?:gate|gade|gata|street|road|avenue|vei|veien|tollbodgate)\b|\d)|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    origin = _clean_route_endpoint(match.group("origin"))
+    destination = _clean_route_endpoint(match.group("destination"))
+    if not origin or not destination or origin.lower() == destination.lower():
+        return ""
+    if origin.lower() in {"airport", "hotel", "accommodation", "private airport"}:
+        return ""
+    return f"Private transfer from {origin} to {destination}"
+
 def standardize_private_transfer_title(title, details, city):
     text = fix_common_text(details or title)
     lower = text.lower()
     airport = _explicit_airport_from_text(text, city)
+    generic_route_title = _generic_private_transfer_route_title(text)
 
     if re.search(r"\bhotel\s+to\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport\b", text, flags=re.IGNORECASE):
         return f"Private transfer from your hotel to {airport}"
@@ -110,6 +140,9 @@ def standardize_private_transfer_title(title, details, city):
     if "to hotel" in lower or "to accommodation" in lower or "to your accommodation" in lower:
         return "Private transfer to your accommodation"
 
+    if generic_route_title:
+        return generic_route_title
+
     return fix_common_text(title)
 
 
@@ -136,8 +169,13 @@ def standardize_self_transfer_title(title, details, city):
     if "station to hotel" in lower or "station to accommodation" in lower:
         return f"Self-arranged transfer from {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'} to your accommodation"
 
+    if "|" in text and "self" in lower and "transfer" in lower:
+        return "Self-arranged local transfer"
+
     notes = split_self_transfer_notes(text)
-    return notes[0] if notes else fix_common_text(title).replace("Self-guided transfer", "Self transfer")
+    if notes:
+        return re.sub(r"\s*\([^)]*(?:cheapest|efficient|taxi|local)[^)]*\)", "", notes[0], flags=re.IGNORECASE).strip()
+    return fix_common_text(title).replace("Self-guided transfer", "Self transfer")
 
 
 def standardize_shuttle_transfer_title(title, details, city):

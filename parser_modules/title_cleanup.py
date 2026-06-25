@@ -36,6 +36,7 @@ def _best_title_source(text):
 
 def _strip_admin_title_prefixes(title):
     title = re.sub(r"^\s*(?:optional|optinal|optional\s*/\s*recommended|optional\s+recommended|add[-\s]*on\s+optional)\s*[:,-]\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"^\s*detailed\s+itinerary(?:\s+day\s+\d+)?\s*[:,-]?\s*", "", title, flags=re.IGNORECASE)
     title = re.sub(r"^\s*day\s+\d+\s*[:,-]\s*", "", title, flags=re.IGNORECASE)
     return title.strip()
 
@@ -80,10 +81,54 @@ def _strip_repeated_city_prefix(title):
     return title
 
 
+
+
+def _supplier_prose_product_name(source: str) -> str:
+    """Extract a compact product name from a sentence-style supplier title."""
+
+    generic_start = re.match(
+        r"^(?:after|start|begin|today|make|take|enjoy|embark|discover|experience|join|prepare)\b",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if not generic_start:
+        return ""
+
+    match = re.search(
+        r"\bon\s+the\s+([A-ZÀ-Ý][^.!?]{8,90}?\b(?:Tour|Experience|Safari|Cruise|Excursion|Package|Holiday))\b",
+        source,
+    )
+    if not match:
+        match = re.search(
+            r"\b([A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ' -]{4,70}?\b(?:Tour|Safari|Cruise|Excursion|Experience|Ticket))\b",
+            source,
+        )
+    if match:
+        candidate = clean_space(match.group(1)).strip(" -:|,.")
+        if 8 <= len(candidate) <= 85 and not re.search(r"\b(?:begins|followed|where|while|before|after)\b", candidate, flags=re.IGNORECASE):
+            return candidate
+
+    visit_match = re.search(
+        r"\bvisit\s+to\s+([A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ' -]{3,60}?)(?:,|\s+known\b|\s+where\b|\s+before\b|\.)",
+        source,
+    )
+    if visit_match:
+        candidate = clean_space(visit_match.group(1)).strip(" -:|,.")
+        if 4 <= len(candidate) <= 70:
+            if re.search(r"\b(?:tour|cruise|safari|excursion|experience|ticket|visit)\b", candidate, flags=re.IGNORECASE):
+                return candidate
+            return f"{candidate} Visit"
+
+    return ""
+
 def _split_long_title_from_prose(title):
     """Keep headings compact when supplier body text follows the title."""
 
     source = clean_space(title)
+    product_name = _supplier_prose_product_name(source)
+    if product_name:
+        return product_name
+
     source = re.split(
         r"\s*,?\s*\d{1,2}[:.]\s*\d{2}\s+(?:duration|time)\b",
         source,
@@ -108,10 +153,16 @@ def _split_long_title_from_prose(title):
         r"\s+You will visit\b",
         r"\s+The first stop\b",
         r"\s+Embark on\b",
-        r"\s+After (?:a |enjoying )?(?:delicious )?breakfast\b",
+        r"\s+Experience the\b",
+        r"\s+After Pick[- ]?up\b",
+        r"\s+After (?:(?:a|the) |enjoying (?:a |the )?)?(?:delicious )?breakfast\b",
         r"\s+Start your day\b",
+        r"\s+Start the day\b",
         r"\s+Today'?s journey\b",
         r"\s+On this day\b",
+        r"\s+On (?:the|your) final day\b",
+        r"\s+Continuing your journey\b",
+        r"\s+Your adventure begins\b",
         r"\s+You(?:'|’)ll\b",
         r"\s+You will\b",
         r"\s+A\s+\d{2,4}m\b",
@@ -139,6 +190,13 @@ def _split_long_title_from_prose(title):
         flags=re.IGNORECASE,
     )[0].strip(" -:|,.")
 
+    source = re.split(
+        r"\s+-\s+(?:a\s+)?4x4\b|\s+-\s+(?:vehicle|car)\s+will\b",
+        source,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" -:|,.")
+
     # Product metadata after a colon often introduces descriptive text rather
     # than a better title: "Cable Car: Tickets Included: Enjoy the view...".
     if ":" in source:
@@ -149,7 +207,7 @@ def _split_long_title_from_prose(title):
             5 <= len(left) <= 70
             and not re.search(r"\d\s*$", left)
             and (
-                re.search(r"\b(?:ticket|tickets|included|round trip|admission)\b", right, flags=re.IGNORECASE)
+                re.search(r"\b(?:ticket|tickets|included|incl\.?|round trip|admission)\b", right, flags=re.IGNORECASE)
                 or re.search(r"[.!?]", right)
                 or len(right.split()) >= 10
             )
@@ -158,7 +216,7 @@ def _split_long_title_from_prose(title):
 
     # Very long comma clauses usually represent extras/notes, not the heading.
     source = re.split(
-        r",\s+(?:shared|includes?|with|including|incl\.?|and\s+with|free\s+time|transfer(?:s)?|return\s+transfer)\b",
+        r",\s+(?:shared|includes?|with|including|incl\.?|and\s+with|free\s+time|transfer(?:s)?|return\s+transfer|return\s+same\s+night)\b",
         source,
         maxsplit=1,
         flags=re.IGNORECASE,

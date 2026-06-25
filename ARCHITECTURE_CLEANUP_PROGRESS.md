@@ -112,7 +112,7 @@ Architecture cleanup is complete. The next phase is end-to-end itinerary quality
 ```text
 Golden input inventory:           [####################] 100%
 Golden input runner/reporting:    [####################] 100%
-Client output quality fixes:      [                    ] 0%
+Client output quality fixes:      [#####               ] 25%
 Preview/PDF parity hardening:     [                    ] 0%
 Editor product polish:            [                    ] 0%
 ```
@@ -125,10 +125,50 @@ Source workbooks represented:     2
 Sheets represented:               307
 Latest parser exceptions:         0
 Latest generation smoke:          passed
-Latest average parser confidence: 97.3%
+Latest average parser confidence: 97.4%
 ```
 
 Use `docs/reports/golden_input_quality_sprint.md` as the entry point for the product-quality sprint.
+
+
+---
+
+# Batch 17: Golden input title/prose quality fixes
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Use the real Vipin Nordic calculator corpus to reduce overlong titles, supplier prose leaking into titles, and row-type/title mistakes that hurt client-ready itinerary output.
+```
+
+Completed in Batch 17:
+
+```text
+[x] Kept Day Overview rows as Day Overview even when long supplier prose mentions flights/trains/buses
+[x] Added compact title extraction for sentence-style supplier prose and day activity text
+[x] Converted long-distance bus/coach calculator rows into compact transport titles
+[x] Stripped address/procurement notes from generic private point-to-point transfer titles
+[x] Improved leading known-place city inference for titles such as Helsinki Hop on Hop off
+[x] Improved malformed hotel title parsing where check-in text followed the property name
+[x] Added regression tests for the new real-corpus title and city cases
+[x] Re-ran the full 5,557-row Vipin corpus report
+```
+
+Full-corpus result after Batch 17:
+
+```text
+Rows checked:                  5,557
+Parsed rows:                   5,438
+Parser exceptions:             0
+Generation smoke:              passed
+Average parser confidence:     97.4%
+Rows under 80 confidence:      196
+Overlong title flags:          173 -> 86
+Supplier prose title flags:    82 -> 63
+Missing parsed city flags:     9 -> 8
+```
 
 ## Current known issue to verify first
 

@@ -91,3 +91,77 @@ def test_input4_writes_machine_log_and_human_report(tmp_path):
     report = report_path.read_text(encoding="utf-8")
     assert "INPUT4 Vipin Excel Corpus Regression Report" in report
     assert "missing_source_city" in report
+
+
+def test_input4_keeps_day_overview_as_day_text_not_transport_title():
+    item = _item(
+        "Day overview",
+        "Group Tour Starts: 8-Day Holiday Package Ring Road & Landmannalaugar | "
+        "Overview Discover Iceland from Reykjavík across the Golden Circle. "
+        "What to expect? Your journey begins with geysers and waterfalls. Book your return flight after Day 8.",
+        city="South Coast",
+        row=14,
+    )
+
+    summary = evaluate_excel_corpus([item])
+    assert summary["parse_errors"] == 0
+    assert "overlong_title" not in summary["bad_output_counts"]
+    assert "activity_text_used_as_title" not in summary["bad_output_counts"]
+
+
+def test_input4_compacts_long_day_activity_prose_titles():
+    item = _item(
+        "Activity",
+        "Day 1: Embark on an unforgettable journey through Iceland's breathtaking landscapes "
+        "on the Ultimate Icelandic Adventure Tour. Your adventure begins with a pick-up in Reykjavík, "
+        "followed by a scenic drive to Þingvellir National Park.",
+        city="South Coast",
+        row=15,
+    )
+
+    summary = evaluate_excel_corpus([item])
+    assert summary["parse_errors"] == 0
+    assert "overlong_title" not in summary["bad_output_counts"]
+    assert "activity_text_used_as_title" not in summary["bad_output_counts"]
+
+
+def test_input4_long_distance_bus_transfer_becomes_compact_transport_title():
+    item = _item(
+        "Transfer",
+        "Bus : Long distance comfortable panorama coach transfer from Rovaniemi Bus Station "
+        "to Saariselka - Tickets Included",
+        city="Saariselka",
+        row=16,
+    )
+
+    summary = evaluate_excel_corpus([item])
+    assert summary["parse_errors"] == 0
+    assert "overlong_title" not in summary["bad_output_counts"]
+
+
+def test_input4_private_transfer_route_strips_address_from_title():
+    item = _item(
+        "Transfer",
+        "Private Transfer Fjellheisen Cable Car to The Polar Museum, Søndre Tollbodgate 11, "
+        "9008 Tromsø | tickets to be bought on site, Price not included",
+        city="Tromso",
+        row=17,
+    )
+
+    summary = evaluate_excel_corpus([item])
+    assert summary["parse_errors"] == 0
+    assert "overlong_title" not in summary["bad_output_counts"]
+
+
+def test_input4_infers_city_from_leading_known_place_title():
+    item = _item(
+        "Activity",
+        "Helsinki Hop on Hop off 24 Hr ticket",
+        city="",
+        row=18,
+    )
+
+    summary = evaluate_excel_corpus([item])
+    assert summary["parse_errors"] == 0
+    assert summary["bad_output_counts"]["missing_source_city"] == 1
+    assert "missing_parsed_city" not in summary["bad_output_counts"]
