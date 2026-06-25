@@ -1,0 +1,98 @@
+/* Visual editor page action menu styles. */
+.page-controls {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.page-controls button {
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.page-controls button[title="Move page up"],
+.page-controls button[title="Move page down"] {
+  width: 28px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 12px;
+}
+
+.page-action-menu {
+  display: none !important;
+}
+
+.page-header-row .page-controls {
+  grid-column: 2 !important;
+  justify-self: center !important;
+  max-width: calc(var(--page-w) - 260px) !important;
+  z-index: 2 !important;
+}
+
+.page-controls {
+  justify-content: center !important;
+}
+
+.page-controls button {
+  white-space: nowrap !important;
+}
+
+.page-controls {
+  position: relative;
+  margin: 0;
+}
+
+.page-controls > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid rgba(17,38,63,.16);
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  color: #253041;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  user-select: none;
+}
+
+.page-action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 18;
+  display: grid;
+  min-width: 128px;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(17,38,63,.12);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(23,32,51,.14);
+}
+
+.page-action-menu button {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.page-context-card:not([open]) {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.page-context-card > summary em {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

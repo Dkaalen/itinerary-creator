@@ -3,13 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.architecture_guards import (
+    duplicate_test_path_hits,
     forbidden_normal_ui_hits,
     import_from_hits,
+    oversized_core_named_python_files,
     oversized_core_python_files,
+    oversized_editor_css_files,
     oversized_frontend_js_files,
     oversized_python_functions,
     oversized_workflow_python_files,
     patch_history_name_hits,
+    root_patch_artifact_hits,
     source_contains,
 )
 
@@ -25,6 +29,8 @@ def test_file_size_guards_protect_recently_split_frontend_and_workflow_files() -
     assert oversized_frontend_js_files() == ()
     assert oversized_workflow_python_files() == ()
     assert oversized_core_python_files() == ()
+    assert oversized_editor_css_files() == ()
+    assert oversized_core_named_python_files() == ()
 
 
 def test_function_size_guard_blocks_new_giant_functions_outside_allowlist() -> None:
@@ -71,3 +77,8 @@ def test_right_inspector_does_not_depend_on_canvas_image_replacement_modules() -
     )
     for marker in forbidden:
         assert marker not in inspector_sources
+
+
+def test_patch_artifacts_and_duplicate_tests_do_not_return() -> None:
+    assert root_patch_artifact_hits() == ()
+    assert duplicate_test_path_hits() == ()

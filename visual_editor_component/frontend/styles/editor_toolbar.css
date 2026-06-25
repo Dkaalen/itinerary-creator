@@ -38,3 +38,157 @@
     .advanced-tools .toolbar-tools { max-width: 760px; padding: 10px; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(17,38,63,.08); }
     .stat-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border-radius: 999px; border: 1px solid rgba(17,38,63,.14); color: #253041; background: #f8fafc; font-size: 11px; font-weight: 850; }
     .stat-pill.warn { color: #6d4200; border-color: rgba(197,138,36,.50); background: rgba(197,138,36,.16); }
+
+/* Toolbar, status, and compact chrome overrides. */
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-radius: 0 0 22px 22px;
+}
+
+.toolbar-actions .pages-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.toolbar-copy.compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.toolbar-copy.compact strong {
+  display: inline-block;
+  font-size: 15px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.toolbar-copy.compact span:not(.toolbar-legacy-label) {
+  display: inline-block;
+  max-width: none;
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.toolbar-legacy-label {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+.editor-toolbar {
+  align-items: center !important;
+  grid-template-columns: minmax(180px, 1fr) auto !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  margin-bottom: 10px !important;
+}
+
+.toolbar-stack {
+  min-width: 0 !important;
+  gap: 5px !important;
+}
+
+.toolbar-actions {
+  gap: 5px !important;
+}
+
+.save-recovery-card {
+  margin-top: 0 !important;
+  padding: 5px 9px !important;
+}
+
+.advanced-tools .studio-status-panel {
+  margin: 8px 0 0 auto;
+  max-width: 760px;
+  text-align: left;
+}
+
+.advanced-tools .toolbar-tools {
+  margin-left: auto;
+}
+
+.review-center {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.editor-toolbar {
+  max-width: 1460px;
+  margin-bottom: 14px;
+}
+
+.studio-status-strip {
+  grid-template-columns: repeat(6, minmax(64px, auto));
+  gap: 6px;
+  max-width: 620px;
+}
+
+.studio-metric {
+  padding: 7px 8px;
+}
+
+.toolbar-actions {
+  gap: 6px;
+}
+
+.toolbar-stack {
+  gap: 6px;
+}
+
+.save-recovery-card {
+  padding: 7px 10px;
+}
+
+.advanced-tools .toolbar-tools {
+  margin-left: auto;
+}
+
+.studio-status-panel {
+  margin-top: 10px;
+  max-width: 620px;
+  border: 1px solid rgba(17,38,63,.10);
+  border-radius: 16px;
+  background: rgba(255,255,255,.62);
+}
+
+.studio-status-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.studio-status-panel > summary span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-status-panel .studio-status-strip {
+  margin: 0;
+  padding: 0 8px 8px;
+}
+
+.studio-status-panel:not([open]) .studio-status-strip {
+  display: none;
+}

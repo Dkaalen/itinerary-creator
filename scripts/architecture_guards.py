@@ -116,6 +116,9 @@ PATCH_HISTORY_NAME_MARKERS = (
     "-misc",
 )
 
+ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MANIFEST.md"})
+DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
+
 EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})
 
 PYTHON_FUNCTION_ALLOWLIST = frozenset(
@@ -266,3 +269,37 @@ def import_from_hits(path: str, forbidden_modules: tuple[str, ...]) -> tuple[str
 
 def _module_matches(module: str, forbidden_modules: tuple[str, ...]) -> bool:
     return any(module == forbidden or module.startswith(f"{forbidden}.") for forbidden in forbidden_modules)
+
+
+def oversized_editor_css_files(limit: int = 500) -> tuple[SizeHit, ...]:
+    root = REPO_ROOT / "visual_editor_component/frontend/styles"
+    return _oversized_files(root, frozenset({".css"}), limit)
+
+
+def root_patch_artifact_hits() -> tuple[str, ...]:
+    return tuple(sorted(name for name in ROOT_PATCH_ARTIFACT_NAMES if (REPO_ROOT / name).exists()))
+
+
+def duplicate_test_path_hits() -> tuple[str, ...]:
+    by_name: dict[str, list[str]] = {}
+    for relative in DUPLICATE_TEST_DIRS:
+        root = REPO_ROOT / relative
+        if not root.exists():
+            continue
+        for path in root.rglob("test_*.py"):
+            if "__pycache__" in path.parts:
+                continue
+            by_name.setdefault(path.name, []).append(_repo_path(path))
+    return tuple(sorted(path for paths in by_name.values() if len(paths) > 1 for path in paths))
+
+
+def oversized_core_named_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
+    hits: list[SizeHit] = []
+    for relative in ("parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
+        for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):
+            if not path.stem.endswith("_core"):
+                continue
+            line_count = len(_read(path).splitlines())
+            if line_count > limit:
+                hits.append(SizeHit(_repo_path(path), line_count, limit))
+    return tuple(hits)

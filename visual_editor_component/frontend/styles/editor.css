@@ -2,6 +2,9 @@
 @import url("editor_base.css");
 @import url("editor_pages.css");
 @import url("editor_shell.css");
+@import url("editor_canvas_workspace.css");
+@import url("editor_outline.css");
+@import url("editor_page_actions.css");
 @import url("editor_toolbar.css");
 @import url("editor_text_tools.css");
 @import url("editor_image_tools.css");

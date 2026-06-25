@@ -88,6 +88,7 @@ PDF/images cleanup:                  [####################] 100%
 Architecture guards:                 [####################] 100%
 Healthcheck follow-up:                [####################] 100%
 Fixture hygiene cleanup:              [####################] 100%
+Cleanup leftovers and guard gaps:      [####################] 100%
 ```
 
 Status legend:
@@ -1858,3 +1859,19 @@ Completed:
 [x] Added fixture hygiene guard tests
 ```
 
+
+---
+
+# Batch 11: Cleanup leftovers and guard gaps
+
+Progress: `[####################] 100%`
+
+Completed in Batch 11:
+
+```text
+[x] Removed root patch artifact manifests from the repo tree
+[x] Removed stale duplicate workflow-shell test under visual_editor_component/tests
+[x] Removed dead review-step workflow-card code from app_modules/workflow_shell.py
+[x] Split oversized editor_shell.css into shell, workspace, outline, and page-action responsibilities
+[x] Added guards for root patch artifacts, duplicate tests, CSS size, and oversized *_core.py files
+```

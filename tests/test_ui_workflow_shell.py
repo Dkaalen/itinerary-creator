@@ -1,53 +1,14 @@
-from app_modules.workflow_shell import (
-    build_project_metrics,
-    build_workflow_steps,
-    completed_step_count,
-    project_route_label,
-    project_title,
-    workflow_progress_percent,
-    workflow_steps_html,
-)
+from __future__ import annotations
+
+from pathlib import Path
+
+from app_modules.workflow_shell import build_project_metrics, project_route_label, project_title
 
 
-def test_workflow_shell_starts_with_input_active():
-    steps = build_workflow_steps({})
-
-    assert [step.status for step in steps] == [
-        "active",
-        "locked",
-        "locked",
-        "locked",
-        "locked",
-        "locked",
-    ]
-    assert completed_step_count(steps) == 0
-    assert workflow_progress_percent(steps) == 0
-    assert "workflow-step-grid" in workflow_steps_html(steps)
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_workflow_shell_reflects_generated_project_state():
-    state = {
-        "parsed_rows": [{"day": "Day 1", "type": "Activity", "city": "Oslo", "title": "Walk"}],
-        "output_edits": {"trip_title": "Nordic City Escape", "pictures_added": True},
-        "itinerary_html": "<html></html>",
-        "pdf_status": "Ready",
-    }
-
-    steps = build_workflow_steps(state)
-
-    assert [step.status for step in steps] == [
-        "complete",
-        "complete",
-        "complete",
-        "complete",
-        "complete",
-        "complete",
-    ]
-    assert workflow_progress_percent(steps) == 100
-    assert project_title(state["output_edits"]) == "Nordic City Escape"
-
-
-def test_project_metrics_are_consultant_facing_and_exclude_optional_items():
+def test_project_metrics_are_header_facing_and_exclude_optional_items() -> None:
     rows = [
         {"day": "Day 1", "type": "Hotel", "city": "Rome", "title": "Hotel"},
         {"day": "Day 1", "type": "Activity", "city": "Rome", "title": "Walking Tour"},
@@ -63,24 +24,16 @@ def test_project_metrics_are_consultant_facing_and_exclude_optional_items():
     assert metrics["hotels"] == 1
     assert metrics["transfers"] == 1
     assert metrics["optional_rows"] == 1
+    assert metrics["pictures_added"] is False
     assert project_route_label(metrics) == "Rome → Sorrento"
 
-def test_workflow_html_is_not_indented_markdown_code():
-    steps = build_workflow_steps({})
-    html = workflow_steps_html(steps)
 
-    assert "\n    <div" not in html
-    assert "\n            <div" not in html
-    assert html.count('class="workflow-step-card') == 6
-    assert not html.startswith("\n")
+def test_project_header_copy_stays_direct_and_not_review_step_based() -> None:
+    assert project_title({"trip_title": "Nordic City Escape"}) == "Nordic City Escape"
+    assert project_title({}, "Create itinerary") == "Create itinerary"
+    assert project_route_label({"destination_names": ["Oslo", "Bergen", "Flåm", "Ålesund"]}) == "Oslo → Bergen → Flåm + 1 more"
 
-
-def test_metric_card_html_is_compact_for_streamlit():
-    from app_modules.workflow_shell import metric_card_html
-
-    html = metric_card_html("Destinations", 3, "Rome → Amalfi")
-
-    assert "metric-card" in html
-    assert "\n    <div" not in html
-    assert not html.startswith("\n")
-
+    source = (ROOT / "app_modules" / "workflow_shell.py").read_text(encoding="utf-8")
+    stale_step_copy = ("Structure Review", "Client Text", "Image Review", "workflow_steps_html", "WorkflowStep")
+    for marker in stale_step_copy:
+        assert marker not in source
