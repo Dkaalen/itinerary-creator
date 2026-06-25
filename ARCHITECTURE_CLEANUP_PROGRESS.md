@@ -77,15 +77,15 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [#######-------------] 35%
+Overall architecture cleanup:        [#########-----------] 45%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
 CSS responsibility cleanup:          [####################] 100%
-Parser cleanup:                      [--------------------] 0%
+Parser cleanup:                      [####################] 100%
 Generation cleanup:                  [--------------------] 0%
 PDF/images cleanup:                  [--------------------] 0%
-Architecture guards:                 [########------------] 40%
+Architecture guards:                 [##########----------] 50%
 ```
 
 Status legend:
@@ -1259,7 +1259,7 @@ Make messy Excel/supplier parsing easier to maintain without changing output.
 
 ## Patch 5.1: Split `parser_modules/details.py`
 
-Status: [ ]
+Status: [x]
 
 Current responsibilities mixed:
 
@@ -1287,7 +1287,7 @@ parser_modules/effective_type_detection.py
 
 ## Patch 5.2: Split `parser_modules/parser_main.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1308,7 +1308,7 @@ read rows -> build context -> build row -> enrich row -> append row
 
 ## Patch 5.3: Parser regression protection
 
-Status: [ ]
+Status: [x]
 
 Before and after parser split, run parser tests and focused transport tests.
 
