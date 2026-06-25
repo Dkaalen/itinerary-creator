@@ -2118,3 +2118,44 @@ missing_source_day: 85
 non_itinerary_type: 65
 missing_source_type: 21
 ```
+
+---
+
+# Batch 20: Responsibility cleanup hardening
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Future-proof the remaining broad responsibility files so each file has one clear responsibility or acts only as a thin compatibility facade.
+```
+
+Completed in Batch 20:
+
+```text
+[x] Converted `itinerary_generation/day_intro_engine.py` into a thin public facade and moved intro orchestration into responsibility modules
+[x] Converted `itinerary_generation/nutshell_domain.py` into a compatibility facade backed by Nutshell model, constants, cleaning, source, route parsing, detection, and journey-builder modules
+[x] Converted `itinerary_generation/day_render_blocks.py` into a UI-neutral facade backed by activity, transport, ordering, and document-adapter render modules
+[x] Reduced `app_modules/itinerary_render_context.py` to a render-context coordinator backed by document, cover-data, summary-data, and final-section-data modules
+[x] Reduced `app_modules/export_actions.py` to a PDF export coordinator backed by PDF artifact, editor-commit, issue-display, image-validation, and render-context modules
+[x] Converted `itinerary_generation/qa_report.py` into a facade backed by QA model, helper, edit, warning, builder, rendering, and persistence modules
+[x] Converted `itinerary_generation/input_review.py` into a facade backed by review models, helpers, rows, corrections, builder, and formatting modules
+[x] Converted `itinerary_generation/exclusion_sections.py` into a facade backed by exclusion constants, row rules, source items, specific sections, and final builder modules
+[x] Converted `itinerary_generation/summaries.py` into a facade backed by summary text, trip-glance, experience, and journey-arc modules
+[x] Converted `scripts/vipin_excel_corpus.py` into a CLI/facade backed by a small `scripts/vipin_corpus/` package
+[x] Re-split oversized helper functions discovered by the architecture guard in `day_intro_orchestrator.py` and `summaries_experience.py`
+[x] Preserved compatibility imports for existing callers while keeping implementation ownership in the new responsibility modules
+```
+
+Validation snapshot:
+
+```text
+python -m compileall -q .
+node --check visual_editor_component/frontend/js/*.js
+python scripts/import_smoke.py
+Focused architecture/export/parity/corpus tests: 98 passed
+Architecture group stages 1-5 passed through the grouped runner
+Architecture stage 6 timed out with no failure shown; stage 6 rerun directly and passed
+Architecture stages 7-11 rerun directly in chunks and passed
+```

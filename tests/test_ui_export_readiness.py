@@ -116,6 +116,7 @@ def test_export_readiness_waits_for_visual_editor_commit():
 def test_export_screen_keeps_normal_pdf_flow_direct():
     source = Path("app_modules/export_step.py").read_text()
     action_source = Path("app_modules/export_actions.py").read_text()
+    image_validation_source = Path("app_modules/export_image_validation.py").read_text()
     state_source = Path("app_modules/export_state.py").read_text()
 
     assert "ExportReadiness" in state_source
@@ -123,7 +124,7 @@ def test_export_screen_keeps_normal_pdf_flow_direct():
     assert "def _render_fatal_export_blockers" in source
     assert "disabled=not readiness.can_create_pdf" in source
     assert "picture_review_ready" not in state_source
-    assert "image_bank_is_ready_for_client_pictures" in action_source
+    assert "image_bank_is_ready_for_client_pictures" in image_validation_source
     assert "create_pdf_from_current_preview" in action_source
     assert "def _render_export_readiness_panel" not in source
     assert "export-readiness-panel" not in source

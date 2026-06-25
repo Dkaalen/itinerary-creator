@@ -3,11 +3,11 @@ from pathlib import Path
 
 def test_pdf_download_has_durable_top_and_bottom_stations():
     export_source = Path("app_modules/export_step.py").read_text()
-    action_source = Path("app_modules/export_actions.py").read_text()
+    artifact_source = Path("app_modules/export_pdf_artifacts.py").read_text()
     main_source = Path("app_modules/picture_step.py").read_text() + Path("app_modules/export_page.py").read_text()
 
-    assert "export_pdf_bytes" in action_source
-    assert "export_pdf_signature" in action_source
+    assert "export_pdf_bytes" in artifact_source
+    assert "export_pdf_signature" in artifact_source
     assert "def render_pdf_download_station" in export_source
     assert "render_pdf_download_station(location=\"bottom\")" in export_source
     assert "render_pdf_download_station(location=\"top\")" in main_source

@@ -1,11 +1,165 @@
-"""Day-render block ordering."""
+"""Day-render block ordering and source-row placement."""
 
 from __future__ import annotations
 
-from itinerary_generation.day_render_blocks import (
-    _group_tour_start_time,
-    _is_group_tour_overview_row,
-    build_day_render_blocks,
-)
+import re
 
-__all__ = ['_group_tour_start_time', '_is_group_tour_overview_row', 'build_day_render_blocks']
+from itinerary_generation.canonical_accommodation import canonical_accommodation_block
+from itinerary_generation.canonical_activity import canonical_activity_block
+from itinerary_generation.canonical_builder import should_hide_note_row
+from itinerary_generation.canonical_render_adapter import render_block_from_canonical
+from itinerary_generation.common import get_primary_city, get_row_type, is_optional_row
+from itinerary_generation.content_engine import group_tour_pickup_window_from_overview, is_group_tour_overview
+from itinerary_generation.day_overview_blocks import build_day_overview_render_block
+from itinerary_generation.day_planner import plan_day
+from itinerary_generation.day_render_activity_blocks import (
+    _is_blank_activity_row,
+    build_cruise_leisure_render_block,
+    build_included_today_render_block,
+    build_leisure_render_block,
+    build_optional_render_block,
+)
+from itinerary_generation.day_render_transport_blocks import build_arrival_render_block, build_departure_render_block
+from itinerary_generation.group_tour_rendering import build_group_tour_day_render_block, is_group_tour_commercial_day_visible
+from itinerary_generation.structured_model import TravelSequence
+from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
+from itinerary_generation.travel_sequence_blocks import build_travel_arrangements_render_block, is_travel_sequence_candidate
+from shared.source_rows import rows_by_source_id, source_row_id
+from text_polish import polish_title
+
+
+def _group_tour_start_time(rows):
+    for row in rows:
+        pickup = group_tour_pickup_window_from_overview(row)
+        if pickup:
+            return pickup
+    return ""
+
+
+def _is_group_tour_overview_row(row):
+    return is_group_tour_overview(row)
+
+
+def _row_id(row: dict, fallback_index: int = 0) -> str:
+    return source_row_id(row, fallback_index)
+
+
+def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple[TravelSequence, ...] | None = None):
+    """Build day blocks in source order as UI-neutral render blocks."""
+
+    blocks = []
+    travel_group: list[dict] = []
+    sequence_by_first_row = {str(sequence.source_row_ids[0]): sequence for sequence in (travel_sequences or []) if sequence.source_row_ids}
+    sequence_row_ids = {str(row_id) for sequence in (travel_sequences or []) for row_id in sequence.source_row_ids}
+    row_lookup = rows_by_source_id(rows)
+    main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
+    day_plan = plan_day(main_rows)
+    departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
+    has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in main_rows)
+    group_tour_start_time = _group_tour_start_time(main_rows)
+
+    def flush_travel_group():
+        nonlocal travel_group
+        if travel_group:
+            block = build_travel_arrangements_render_block(travel_group)
+            if block:
+                blocks.append(block)
+            travel_group = []
+
+    for source_row in rows:
+        row = source_row
+        row_type = get_row_type(row)
+        title = row.get("title", "")
+
+        if row.get("group_tour_role") == "package_master":
+            continue
+        if not is_group_tour_commercial_day_visible(row):
+            continue
+
+        if is_optional_row(row):
+            flush_travel_group()
+            blocks.append(build_optional_render_block(row))
+            continue
+
+        current_row_id = _row_id(row)
+        if current_row_id in sequence_by_first_row:
+            flush_travel_group()
+            sequence = sequence_by_first_row[current_row_id]
+            sequence_rows = [row_lookup[row_id] for row_id in sequence.source_row_ids if row_id in row_lookup]
+            block = build_travel_arrangements_render_block(sequence_rows)
+            if block:
+                block.row_id = sequence.sequence_id
+                block.source_row_ids = list(sequence.source_row_ids)
+                block.warnings.extend(
+                    warning
+                    for warning in [
+                        "Travel sequence has no final destination; review source route endpoints." if not sequence.final_destination else "",
+                    ]
+                    if warning
+                )
+                blocks.append(block)
+            continue
+        if current_row_id in sequence_row_ids:
+            continue
+
+        if is_travel_sequence_candidate(row):
+            if departure_day and row_type == "Transfer" and "to your accommodation" in str(row.get("title", "")).lower():
+                row = dict(row)
+                city = get_primary_city(rows) or row.get("city", "")
+                row["title"] = f"Private transfer from your hotel to {polish_title(city)} Airport" if city else "Private transfer from your hotel to the airport"
+            travel_group.append(row)
+            continue
+
+        flush_travel_group()
+
+        if row_type == "Departure":
+            generic_departure = re.search(r"^(departure|departure\s+day|departure\s+home|journey\s+home)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+            if not generic_departure:
+                blocks.append(build_departure_render_block(row))
+        elif row_type == "Day Overview":
+            if has_activity and _is_group_tour_overview_row(row):
+                continue
+            block = build_day_overview_render_block(row)
+            if block:
+                blocks.append(block)
+        elif row_type == "Car":
+            block = build_day_overview_render_block(row)
+            if block:
+                blocks.append(block)
+        elif row_type == "Hotel":
+            blocks.append(render_block_from_canonical(canonical_accommodation_block(row)))
+        elif row_type == "Arrival":
+            generic_arrival = re.search(r"^(arrival|welcome\s+to\s+.+)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+            if not generic_arrival:
+                blocks.append(build_arrival_render_block(row))
+        elif row_type == "Group Tour" or row.get("group_tour_role") == "day_segment":
+            block = build_group_tour_day_render_block(row)
+            if block:
+                blocks.append(block)
+        elif row_type == "Activity":
+            if _is_blank_activity_row(row):
+                continue
+            if group_tour_start_time and not row.get("time"):
+                row = dict(row)
+                row["group_tour_pickup_range"] = group_tour_start_time
+            blocks.append(render_block_from_canonical(canonical_activity_block(row)))
+        elif row_type == "Leisure":
+            if day_plan.suppress_free_time or (travel_group and len(rows) > 3):
+                continue
+            blocks.append(build_leisure_render_block(row, main_rows))
+        elif row_type in {"Notes", "Note"}:
+            if should_hide_note_row(row):
+                continue
+            continue
+        elif is_cruise_leisure_row(row):
+            blocks.append(build_cruise_leisure_render_block(row))
+        elif title:
+            included_block = build_included_today_render_block([polish_title(title)])
+            if included_block:
+                blocks.append(included_block)
+
+    flush_travel_group()
+    return blocks
+
+
+__all__ = ["_group_tour_start_time", "_is_group_tour_overview_row", "_row_id", "build_day_render_blocks"]

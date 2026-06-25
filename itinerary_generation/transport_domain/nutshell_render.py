@@ -248,10 +248,14 @@ def build_featured_nutshell_block(
         section_title="Featured Scenic Journey",
         title=journey.client_title or (profile.title if profile else "Norway in a Nutshell"),
         meta=meta,
-        description=(profile.description if profile else (
-            "A signature Norway rail-and-fjord journey, combining mountain railway scenery, "
-            "fjord villages and scheduled connections in one carefully sequenced route."
-        )),
+        description=(
+            f"Travel Arrangements: {profile.description}"
+            if profile
+            else (
+                "Travel Arrangements: A signature Norway rail-and-fjord journey, combining "
+                "mountain railway scenery, fjord villages and scheduled connections in one carefully sequenced route."
+            )
+        ),
         lines=[],
         extra_sections=extra_sections,
         css_class="travel-sequence-block",
