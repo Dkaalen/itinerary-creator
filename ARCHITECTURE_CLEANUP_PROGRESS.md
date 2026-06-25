@@ -104,6 +104,32 @@ Status legend:
 [!] Needs re-check / regression found
 ```
 
+
+## Post-cleanup product quality sprint
+
+Architecture cleanup is complete. The next phase is end-to-end itinerary quality using real supplier inputs.
+
+```text
+Golden input inventory:           [####################] 100%
+Golden input runner/reporting:    [####################] 100%
+Client output quality fixes:      [                    ] 0%
+Preview/PDF parity hardening:     [                    ] 0%
+Editor product polish:            [                    ] 0%
+```
+
+Current real corpus checkpoint:
+
+```text
+Vipin Nordic calculator rows:     5,557
+Source workbooks represented:     2
+Sheets represented:               307
+Latest parser exceptions:         0
+Latest generation smoke:          passed
+Latest average parser confidence: 97.3%
+```
+
+Use `docs/reports/golden_input_quality_sprint.md` as the entry point for the product-quality sprint.
+
 ## Current known issue to verify first
 
 [x] Right sidebar image tools have been removed from the inspector/sidebar path.

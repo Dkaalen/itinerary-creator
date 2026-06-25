@@ -103,6 +103,22 @@ class ExcelCorpusItem:
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "ExcelCorpusItem":
+        return cls(
+            file=str(data.get("file", "") or ""),
+            sheet=str(data.get("sheet", "") or ""),
+            row=int(data.get("row", 0) or 0),
+            day=str(data.get("day", "") or ""),
+            row_type=str(data.get("row_type", "") or ""),
+            city=str(data.get("city", "") or ""),
+            element=str(data.get("element", "") or ""),
+            nights=str(data.get("nights", "") or ""),
+            from_date=str(data.get("from_date", "") or ""),
+            to_date=str(data.get("to_date", "") or ""),
+            supplier=str(data.get("supplier", "") or ""),
+        )
+
 
 @dataclass(frozen=True)
 class BadOutput:
@@ -540,6 +556,38 @@ def evaluate_excel_corpus(
         "bulk_generation_error": bulk_error,
     }
 
+def load_items_jsonl(path: str | Path) -> list[ExcelCorpusItem]:
+    """Load pre-extracted corpus rows from a JSONL fixture.
+
+    This keeps the full real-world calculator corpus available for regression
+    checks without committing large binary Excel workbooks to the repo.
+    """
+
+    input_path = Path(path)
+    items: list[ExcelCorpusItem] = []
+    with input_path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                payload = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid corpus JSONL at {input_path}:{line_number}: {exc}") from exc
+            items.append(ExcelCorpusItem.from_dict(payload))
+    return items
+
+
+def write_items_jsonl(items: Iterable[ExcelCorpusItem], path: str | Path) -> None:
+    """Write extracted corpus rows as a stable JSONL fixture."""
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="\n") as handle:
+        for item in items:
+            handle.write(json.dumps(item.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")
+
+
 def write_bad_outputs_jsonl(bad_outputs: Iterable[BadOutput], path: str | Path) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -548,7 +596,13 @@ def write_bad_outputs_jsonl(bad_outputs: Iterable[BadOutput], path: str | Path) 
             handle.write(json.dumps(bad_output.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def write_markdown_report(summary: Mapping[str, Any], path: str | Path, *, bad_jsonl_path: str | Path | None = None) -> None:
+def write_markdown_report(
+    summary: Mapping[str, Any],
+    path: str | Path,
+    *,
+    bad_jsonl_path: str | Path | None = None,
+    report_label: str | None = None,
+) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     bad_outputs = list(summary.get("bad_outputs") or [])
@@ -568,9 +622,9 @@ def write_markdown_report(summary: Mapping[str, Any], path: str | Path, *, bad_j
         category = bad_output.category if isinstance(bad_output, BadOutput) else str(dict(bad_output).get("category", ""))
         if len(sample_by_category[category]) < 6:
             sample_by_category[category].append(bad_output)
-    report_label = "INPUT5" if "input5" in output_path.name.lower() else "INPUT4"
+    resolved_report_label = report_label or ("INPUT5" if "input5" in output_path.name.lower() else "INPUT4")
     lines = [
-        f"# {report_label} Vipin Excel Corpus Regression Report",
+        f"# {resolved_report_label} Vipin Excel Corpus Regression Report",
         "",
         "Purpose: run the real messy Nordic calculator corpus through parser and editable-title generation, then log risky outputs for regression hardening.",
         "",
@@ -621,18 +675,31 @@ def write_markdown_report(summary: Mapping[str, Any], path: str | Path, *, bad_j
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Vipin Excel parser/generator corpus checks.")
-    parser.add_argument("workbooks", nargs="+", help="XLSX workbook paths to scan")
+    parser.add_argument("workbooks", nargs="*", help="XLSX workbook paths to scan")
+    parser.add_argument("--items-jsonl", help="Read a pre-extracted ExcelCorpusItem JSONL fixture instead of scanning XLSX files.")
+    parser.add_argument("--export-items-jsonl", help="Write extracted ExcelCorpusItem rows to this JSONL fixture path.")
     parser.add_argument("--report", default="docs/reports/input4_vipin_excel_corpus_report.md")
     parser.add_argument("--bad-jsonl", default="docs/reports/input4_vipin_excel_bad_outputs.jsonl")
+    parser.add_argument("--report-label", default=None, help="Heading label for the markdown report, for example VIPIN_FULL.")
     parser.add_argument("--workers", type=int, default=1, help="Parallel parser workers. Use 4-8 for the full Vipin corpus.")
     parser.add_argument("--chunk-size", type=int, default=5, help="Parser rows per isolated chunk. Keep low for strict regression checks; raise for quick smoke runs.")
     parser.add_argument("--progress", action="store_true", help="Print progress to stderr while parsing chunks.")
     args = parser.parse_args(argv)
 
-    items = collect_excel_corpus_items(args.workbooks)
+    if args.items_jsonl:
+        if args.workbooks:
+            parser.error("Pass either workbook paths or --items-jsonl, not both.")
+        items = load_items_jsonl(args.items_jsonl)
+    else:
+        if not args.workbooks:
+            parser.error("Pass one or more workbook paths, or use --items-jsonl.")
+        items = collect_excel_corpus_items(args.workbooks)
+    if args.export_items_jsonl:
+        write_items_jsonl(items, args.export_items_jsonl)
+
     summary = evaluate_excel_corpus(items, workers=max(1, args.workers), progress=args.progress, chunk_size=max(1, args.chunk_size))
     write_bad_outputs_jsonl(summary["bad_outputs"], args.bad_jsonl)
-    write_markdown_report(summary, args.report, bad_jsonl_path=args.bad_jsonl)
+    write_markdown_report(summary, args.report, bad_jsonl_path=args.bad_jsonl, report_label=args.report_label)
     print(json.dumps({key: value for key, value in summary.items() if key != "bad_outputs"}, indent=2, ensure_ascii=False))
     return 0 if summary["parse_errors"] == 0 and summary["bulk_generation_ok"] else 1
 

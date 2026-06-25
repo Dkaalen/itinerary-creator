@@ -305,6 +305,7 @@ QUALITY_TESTS = (
     "tests/test_patch_ih4_group_tour_rendering.py",
     "tests/test_content1_destination_copy_library.py",
     "tests/test_destination_copy_profiles3_regression.py",
+    "tests/test_vipin_full_corpus_fixture.py",
     "tests/test_dest4_route_journey_intelligence.py",
     "tests/test_dest5_destination_qc_and_pagination.py",
 )
