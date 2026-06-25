@@ -101,15 +101,21 @@ def _extract_ticket_detail(source: str, row_type: str, title: str) -> str:
 
 def _extract_luggage_detail(source: str) -> str:
     text = str(source or "")
+    checked = re.search(r"(\d+)\s*x\s*(\d+)\s*kg\s*(?:check(?:ed)?[ -]?in|checked)\s*(?:bag|baggage|luggage)?", text, flags=re.IGNORECASE)
+    carry = re.search(r"(\d+)\s*x\s*(\d+)\s*kg\s*carry[- ]?on\s*(?:bag|baggage|luggage)?", text, flags=re.IGNORECASE)
+    if checked or carry:
+        parts = ["Flight tickets"]
+        if checked:
+            parts.append(f"{checked.group(1)} x {checked.group(2)} kg checked bag")
+        if carry:
+            parts.append(f"{carry.group(1)} x {carry.group(2)} kg carry-on bag")
+        suffix = " per person" if re.search(r"\bper person\b", text, flags=re.IGNORECASE) else ""
+        return ", ".join(parts) + suffix
     match = re.search(r"\b((?:\d+\s*x?\s*)?)(checked\s+bag|checked\s+baggage|checked\s+luggage|cabin\s+bag|carry[-\s]?on\s+bag|luggage)\s+included\b", text, flags=re.IGNORECASE)
     if not match:
         return ""
     prefix = (match.group(1) or "").strip()
     item = match.group(2).lower().replace("baggage", "luggage")
-    if item == "checked bag":
-        item = "checked luggage"
-    if item == "carry-on bag":
-        item = "carry-on bag"
     return f"{prefix} {item} included".strip()
 
 

@@ -63,7 +63,7 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
         lambda title, city: "The day is kept easy around your evening Northern Lights experience, giving you time to settle before heading out with local guidance after dark.",
     ),
     TextRule(
-        ("fjord", "cruise", "boat", "silent electric ship"),
+        ("fjord", "cruise", "silent electric ship"),
         lambda title, city: f"Sail from {city} on {title}, with fjord scenery, coastal landmarks and time on the water shaping the day.",
     ),
     TextRule(

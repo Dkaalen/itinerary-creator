@@ -2212,3 +2212,24 @@ environment after applying the patch.
 Four failures in tests/test_accommodation_stress_fixtures.py were reproduced
 unchanged against the uploaded Git baseline and are not Batch 21 regressions.
 ```
+
+
+---
+
+# Batch 22: Scandinavian winter output fidelity
+
+Progress: `[####################] 100%`
+
+Completed in Batch 22:
+
+```text
+[x] Made cover date ranges follow itinerary day order and show years for cross-year trips
+[x] Repaired destination-only flight routes by using the row city as the origin
+[x] Added client-ready flight ticket and checked/carry-on baggage wording
+[x] Preserved complete hotel bed configurations without duplicated room descriptors
+[x] Suppressed placeholder activity meeting points and repaired common source typos
+[x] Prevented unsupported Trollfjord and generic boat-title cruise claims
+[x] Replaced unsuitable generic Arctic waterfront copy
+[x] Removed sales-oriented optional-addition notes from the default client document
+[x] Added focused Scandinavian winter output regressions
+```

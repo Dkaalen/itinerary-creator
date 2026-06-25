@@ -96,6 +96,8 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
     meeting_point = polish_client_text(meeting_point)
+    if meeting_point.strip().lower() in {"x", "xx", "xxx", "n/a", "na", "tbc", "tbd", "-"}:
+        meeting_point = ""
     end_point = polish_client_text(row.get("end_point", ""))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
 

@@ -60,7 +60,8 @@ def normalize_room_category(value: str) -> str:
         quantity, category = clean_space(match.group(1) or ""), clean_space(match.group(2) or "")
         cleaned = _normalize_single_room_category(f"{quantity} {category}".strip(), preserve_quantity=bool(quantity))
         if cleaned: matches.append(cleaned)
-    return ", ".join(dict.fromkeys(matches)) if matches else _normalize_single_room_category(room, preserve_quantity=True)
+    result = ", ".join(dict.fromkeys(matches)) if matches else _normalize_single_room_category(room, preserve_quantity=True)
+    return re.sub(r"\s+-\s+(?:Double|Single|Twin|Triple)$", "", result, flags=re.IGNORECASE)
 
 
 def extract_room_category_from_source(source: str) -> str:
@@ -77,7 +78,10 @@ def extract_room_category_from_source(source: str) -> str:
 
 def extract_bed_type_from_source(source: str) -> str:
     text = re.sub(r"\bextra\s+bed\s+not\s+included\b", "", clean_space(source), flags=re.IGNORECASE)
-    for pattern in (r"\b(full\s+double\s+bed)\b", r"\b(double\s+bed)\b", r"\b(twin\s+beds?)\b", r"\b(queen\s+bed)\b", r"\b(king\s+bed)\b", r"\b(single\s+bed)\b", r"\b(sofa\s+bed)\b"):
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if match: return clean_space(match.group(1)).lower()
-    return ""
+    beds = []
+    pattern = r"\b(full\s+double\s+bed|double\s+bed|twin\s+beds?|queen\s+bed|king\s+bed|single\s+bed|sofa\s+bed|bunk\s+bed)\b"
+    for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+        bed = clean_space(match.group(1)).lower()
+        if bed not in beds:
+            beds.append(bed)
+    return " and ".join(beds)

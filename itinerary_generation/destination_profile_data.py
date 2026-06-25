@@ -52,7 +52,7 @@ ATMOSPHERE_OVERRIDES: dict[str, tuple[str, ...]] = {
 PROFILE_ATMOSPHERE: dict[str, tuple[str, ...]] = {
     "coastal_city": ("the harbourfront", "coastal streets and viewpoints", "waterfront cafés and small shops"),
     "urban_culture": ("historic streets", "museums, galleries or design shops", "local cafés and city viewpoints"),
-    "arctic": ("Arctic scenery", "local cafés and a slower northern pace", "the waterfront or village centre"),
+    "arctic": ("Arctic scenery", "local cafés and a slower northern pace", "snowy streets and nearby viewpoints"),
     "scenic_nature": ("nearby viewpoints", "village streets or waterside paths", "the surrounding fjord, lake or valley scenery"),
     "mountain_resort": ("mountain views around the resort", "local cafés and resort village atmosphere", "time between outdoor experiences"),
     "national_park": ("viewpoints and visitor areas", "trails and surrounding landscapes", "a calm pause between nature experiences"),

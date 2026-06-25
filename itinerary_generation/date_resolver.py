@@ -33,12 +33,28 @@ def get_day_date_text(rows: list[dict]) -> str:
 def get_trip_date_range_text(rows: list[dict]) -> str:
     """Return the display date range for the full trip, if available."""
 
-    starts = [_row_start(row) for row in rows or []]
-    ends = [_row_end(row) for row in rows or []]
-    starts = [value for value in starts if value]
-    ends = [value for value in ends if value]
-    if not starts and not ends:
-        return ""
-    start = min(starts or ends)
-    end = max(ends or starts)
+    dated_days = []
+    for row in rows or []:
+        day_text = str(row.get("day", "") or "")
+        import re
+        match = re.search(r"\d+", day_text)
+        value = _row_start(row)
+        if match and value:
+            dated_days.append((int(match.group()), value))
+    if dated_days:
+        by_day = {}
+        for day_number, value in dated_days:
+            by_day.setdefault(day_number, value)
+        ordered = [by_day[key] for key in sorted(by_day)]
+        # Use itinerary order rather than a stray maximum year. Chronology
+        # validation reports contradictory source dates separately.
+        start, end = ordered[0], ordered[-1]
+    else:
+        starts = [value for value in (_row_start(row) for row in rows or []) if value]
+        ends = [value for value in (_row_end(row) for row in rows or []) if value]
+        if not starts and not ends:
+            return ""
+        start, end = min(starts or ends), max(ends or starts)
+    if start.year != end.year:
+        return f"{format_client_date(start)} {start.year} - {format_client_date(end)} {end.year}"
     return format_client_date_range(start, end)

@@ -260,6 +260,8 @@ def polish_client_text(value: str) -> str:
         return ""
 
     text = str(value).replace("\xa0", " ")
+    text = re.sub(r"\balonside\b", "alongside", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bdrinkgs\b", "drinks", text, flags=re.IGNORECASE)
 
     if "\n" in text:
         return "\n".join(_polish_text_fragment(line) for line in text.splitlines())

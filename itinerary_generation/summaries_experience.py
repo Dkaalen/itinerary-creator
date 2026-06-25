@@ -246,8 +246,10 @@ def _add_theme_candidates(candidates, signals):
 def _add_fjord_and_experience_candidates(candidates, signals):
     text = signals.text
     chapter_city = signals.chapter_city
-    if _has(text, "lofoten", "henningsvær", "haukland", "trollfjord"):
+    if _has(text, "trollfjord"):
         candidates.append("Lofoten scenery and Trollfjord cruising")
+    elif _has(text, "lofoten", "henningsvær", "haukland", "reine", "vestvågøy", "flakstadøy"):
+        candidates.append("Lofoten scenery and photography")
     elif signals.has_fjord and signals.has_city and chapter_city.lower() == "oslo":
         candidates.append("City sights and Oslofjord cruising")
     elif signals.has_fjord and signals.has_cable:

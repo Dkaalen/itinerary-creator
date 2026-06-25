@@ -97,6 +97,8 @@ def _clean_route_place(value):
     invalid_places = _ROUTE_PREFIX_ORIGINS | {
         "",
         "the",
+        "to",
+        "from",
         "hotel",
         "the hotel",
         "station",
@@ -215,7 +217,10 @@ def get_route_points_for_transport(row):
         row_type = str(row.get("effective_type") or row.get("type") or "")
         title_lower = str(row.get("title", "") or "").lower()
         city_origin = _clean_route_place(row.get("city", ""))
-        if city_origin and city_origin.lower() != title_destination.lower() and (row_type in {"Cruise", "Ferry"} or "cruise" in title_lower or "ferry" in title_lower):
+        if city_origin and city_origin.lower() != title_destination.lower() and (
+            row_type in {"Flight", "Cruise", "Ferry"}
+            or "flight" in title_lower or "cruise" in title_lower or "ferry" in title_lower
+        ):
             return city_origin, title_destination
         return title_origin, title_destination
 

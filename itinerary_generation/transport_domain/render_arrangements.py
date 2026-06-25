@@ -32,6 +32,13 @@ def get_travel_arrangement_line(row):
     if duration and " - " not in time:
         clean_duration = format_duration_display(duration)
         if clean_duration: details.append(clean_duration)
+    if get_row_type(row) == "Flight":
+        inclusion_details = [item for item in details if item.lower().startswith("flight tickets")]
+        other_details = [item for item in details if item not in inclusion_details]
+        line = f"{title} — {'; '.join(other_details)}" if other_details else title
+        if inclusion_details:
+            line += f"; Includes: {inclusion_details[0]}"
+        return line
     return f"{title} — {'; '.join(details)}" if details else title
 
 
