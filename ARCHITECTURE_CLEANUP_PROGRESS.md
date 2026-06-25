@@ -87,6 +87,7 @@ Generation cleanup:                  [####################] 100%
 PDF/images cleanup:                  [####################] 100%
 Architecture guards:                 [####################] 100%
 Healthcheck follow-up:                [####################] 100%
+Fixture hygiene cleanup:              [####################] 100%
 ```
 
 Status legend:
@@ -1837,4 +1838,23 @@ After each completed patch:
 3. Add a short note under the completed item if something important was learned.
 4. Add any new known regression under `Current known issue to verify first`.
 5. Do not mark work complete unless it was validated.
+---
+
+# Batch 10: Fixture hygiene cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Remove accidental dirty fixture state caused only by CRLF line endings and guard the activity-training fixtures against drifting dirty again.
+```
+
+Completed:
+
+```text
+[x] Normalized activity-training fixture line endings to LF
+[x] Verified fixture content is unchanged after line-ending normalization
+[x] Added fixture hygiene guard tests
+```
 
