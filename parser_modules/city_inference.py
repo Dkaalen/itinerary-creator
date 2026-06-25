@@ -35,23 +35,23 @@ def infer_city_from_text(text):
         return leading_place
 
     patterns = [
+        r"\b(?:meeting\s+point|pick[- ]?up\s*/\s*meeting\s+point|address|office)[^|\n]{0,140},\s*([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s*$)",
+        r"\bin\s+central\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s|$)",
         r"\bin\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s*$)",
         r"\b(?:from|to)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35})(?:\s*[,|:-]|\s*$)",
         r"^([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s+(?:Hop|Walking|City|Sightseeing|Private|Shuttle|Airport|Leisure|Roundtrip|Guided)\b",
     ]
     for pattern in patterns:
-        match = re.search(pattern, source)
-        if not match:
-            continue
-        candidate = clean_space(match.group(1)).strip(" .,-|:")
-        candidate = re.split(
-            r"\s+(?:Guide|Ticket|Tour|Walk|Bus|Boat|Cruise|Safari|Transfer)\b",
-            candidate,
-            maxsplit=1,
-            flags=re.IGNORECASE,
-        )[0].strip(" .,-|:")
-        if candidate and is_valid_city_value(candidate) and is_known_place(candidate):
-            return canonicalize_place_name(candidate)
+        for match in re.finditer(pattern, source, flags=re.IGNORECASE):
+            candidate = clean_space(match.group(1)).strip(" .,-|:")
+            candidate = re.split(
+                r"\s+(?:Guide|Ticket|Tour|Walk|Bus|Boat|Cruise|Safari|Transfer|City\s+Highlights)\b",
+                candidate,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )[0].strip(" .,-|:")
+            if candidate and is_valid_city_value(candidate) and is_known_place(candidate):
+                return canonicalize_place_name(candidate)
     return ""
 
 

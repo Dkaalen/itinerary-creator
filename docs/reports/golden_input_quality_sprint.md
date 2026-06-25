@@ -43,21 +43,59 @@ python .\scripts\vipin_excel_corpus.py `
 Latest result:
 
 - Corpus rows checked: 5,557
-- Parsed output rows: 5,438
+- Parsed output rows: 5,439
+- Generated editable titles checked: 4,194
 - Parser exceptions: 0
+- Rows skipped by parser: 118
 - Whole-corpus generation smoke: passed
-- Average parser confidence: 97.5%
-- Rows under 80 confidence: 192
+- Average parser confidence: 99.4%
+- Rows under 80 confidence: 0
 
-## Current quality backlog from the real corpus
+## Current quality status from the real corpus
 
-The latest run has cleared the overlong-title and supplier-prose-title categories. The next product-quality targets are:
+The latest run has cleared the deterministic parsed-output defect buckets that were targeted in the post-cleanup sprint:
 
-1. Missing parsed city for a small set of sparse activity/transfer rows.
-2. Hotel-name extraction misses for malformed accommodation rows.
-3. Cost/calculator rows and malformed header-like rows still appearing in the extracted corpus and needing better classification/reporting.
-4. Unexpected skips from sparse rows that look itinerary-like but have too little usable supplier text.
-5. Broader preview/PDF parity checks using the same golden inputs.
+- Missing parsed city: 8 → 0
+- Missing hotel name: 93 → 0
+- Missing route origin: 97 → 0
+- Missing route destination: 82 → 0
+- Missing room category: 80 → 0
+- Weak title: 6 → 0
+- Missing hotel nights: 2 → 0
+- Unexpected skip: 35 → 0
+- Rows under 80 parser confidence: 192 → 0
+
+The remaining bad-output log categories are source-data/reporting categories, not deterministic parser-generated client-output defects:
+
+- missing_source_city: 381
+- missing_source_date: 87
+- missing_source_day: 85
+- non_itinerary_type: 65
+- missing_source_type: 21
+
+The only remaining parser review flag is `very_long_supplier_text: 324`, which is retained as a developer review signal rather than normal-user UI.
+
+## Batch 19 real-corpus output quality, parity, and editor polish result
+
+Batch 19 moved the post-cleanup sprint to complete by hardening the app against real extracted Vipin calculator rows and representative golden-input preview/PDF output.
+
+Key fixes locked with regression tests:
+
+- Sparse city inference now uses nearby real itinerary context without allowing numeric night/count cells such as `2.0` to become cities.
+- Hotel parsing now handles Excel serial dates, malformed star-hotel rows, room quantities, suites, igloos, chalets, studios, and meal-text leakage.
+- Route extraction now handles Norway in a Nutshell, timed multileg routes, airport flights, trains, buses, coaches, and local/self-transfer summaries without noisy route flags.
+- Calculator/header/report-only rows are reported as source-data cases instead of parser output failures.
+- Preview/PDF parity smoke now covers multiple representative real fixture itineraries.
+- Editor design-polish guards now read the split frontend source files and keep advanced/debug-only controls out of the normal render path.
+
+Validation checkpoint:
+
+```text
+Full Vipin corpus: 5,557 rows, 0 parser exceptions, 99.4% average confidence, 0 rows under 80 confidence, generation smoke passed
+Focused parser corpus tests: passed
+Preview/PDF parity and editor no-bloat tests: passed
+Baseline compile/node/import smoke: passed
+```
 
 
 ## Batch 18 title/prose boundary cleanup result

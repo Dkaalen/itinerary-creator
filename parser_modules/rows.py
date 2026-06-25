@@ -39,8 +39,14 @@ def preprocess_raw_rows(raw_text):
         # A supplier paragraph inside a quoted spreadsheet cell may begin with
         # "Day 1: ...". That is not a new spreadsheet row unless the line still
         # has tab-separated row cells. Without this guard, group-tour overview
-        # inclusions are split away before the parser can use them.
-        starts_new_row = "\t" in raw_line and any(looks_like_day(part) for part in parts[:4])
+        # inclusions are split away before the parser can use them. Real Excel
+        # rows may also omit the day but still contain a type/costing cell; those
+        # must start their own row so calculator lines cannot pollute the
+        # previous itinerary item.
+        starts_new_row = "\t" in raw_line and (
+            any(looks_like_day(part) for part in parts[:4])
+            or any(looks_like_known_type(part) or looks_like_non_itinerary_type(part) for part in parts[1:4])
+        )
 
         if not starts_new_row and is_optional_addon_header(raw_line):
             flush_current()

@@ -1,5 +1,7 @@
 """Top-level itinerary parser orchestration."""
 
+import re
+
 import diagnostics
 
 from parser_modules.commercial_status import infer_optional_row_type
@@ -10,6 +12,7 @@ from parser_modules.common import (
     looks_like_non_itinerary_type,
     normalize_type,
 )
+from parser_modules.contextual_city import apply_context_city, context_city_from_row
 from parser_modules.date_fields import (
     _date_derived_hotel_nights,
     _excel_serial_date,
@@ -44,12 +47,15 @@ def _extract_date_context(parts, *, type_index, description_index, item_type):
         if not value:
             continue
 
-        if not night_count_hint and item_type == "Hotel" and value.isdigit():
-            night_count_hint = value
-            continue
-
         if looks_like_date(value) or excel_serial_date(value):
             date_values.append(value)
+            continue
+
+        if not night_count_hint and item_type == "Hotel" and re.fullmatch(r"\d+(?:\.0)?", value):
+            nights_value = int(float(value))
+            if 0 < nights_value <= 30:
+                night_count_hint = str(nights_value)
+                continue
 
     start_date = date_values[0] if len(date_values) >= 1 else ""
     end_date = date_values[1] if len(date_values) >= 2 else ""
@@ -96,6 +102,9 @@ def parse_itinerary(raw_text):
     rows = []
     seen_row_ids = set()
     current_day = ""
+    last_context_city = ""
+    day_context_city = {}
+    pending_city_rows_by_day = {}
 
     for line_number, raw_line in enumerate(preprocess_raw_rows(raw_text), start=1):
         if not raw_line.strip():
@@ -136,6 +145,9 @@ def parse_itinerary(raw_text):
 
         description_index = get_description_index(parts)
         description = find_description_cell(parts)
+        if len(parts) > 10 and not clean_space(parts[10]) and description_index < 9:
+            description = ""
+            description_index = 10
         item_type, type_optional = _normalize_row_type(item_type, description)
         is_optional = row_marker_optional or type_optional
 
@@ -204,6 +216,19 @@ def parse_itinerary(raw_text):
             night_count_hint=night_count_hint,
             current_day=current_day,
         )
+
+        context_city = day_context_city.get(current_day) or last_context_city
+        apply_context_city(row, context_city)
+
+        row_context_city = context_city_from_row(row)
+        if row_context_city:
+            day_context_city[current_day] = row_context_city
+            last_context_city = row_context_city
+            for pending_row in pending_city_rows_by_day.pop(current_day, []):
+                apply_context_city(pending_row, row_context_city)
+        elif normalize_type(item_type) in {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Leisure"}:
+            pending_city_rows_by_day.setdefault(current_day, []).append(row)
+
         rows.append(row)
 
     return rows

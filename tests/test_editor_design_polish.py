@@ -7,11 +7,21 @@ def _frontend_source() -> str:
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
             "styles/editor.css",
+            "styles/editor_base.css",
+            "styles/editor_inspector.css",
+            "styles/editor_outline.css",
+            "styles/editor_shell.css",
+            "styles/editor_toolbar.css",
+            "styles/editor_layout_tools.css",
+            "styles/editor_canvas_workspace.css",
+            "styles/editor_tokens.css",
             "js/render.js",
             "js/editor_dirty_state.js",
             "js/editor_text_tools.js",
             "js/editor_document_model.js",
+            "js/editor_document_outline.js",
             "js/editor_inspector.js",
+            "js/editor_inspector_text_panel.js",
             "js/editor_page_actions.js",
             "js/editor_warnings.js",
             "js/commands.js",
@@ -57,11 +67,16 @@ def test_ui18_removes_duplicate_toolbar_formatting_shortcuts():
     assert '.pages-menu .document-outline' in source
 
 
-def test_ui18_keeps_advanced_tools_separate_from_formatting_sidebar():
+def test_ui18_keeps_advanced_tools_debug_only_and_formatting_in_inspector():
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    inspector_js = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
+    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
+    inspector_js = "\n".join(
+        Path("visual_editor_component/frontend/js", name).read_text(encoding="utf-8")
+        for name in ("editor_inspector.js", "editor_inspector_text_panel.js")
+    )
 
-    assert 'class="advanced-tools"' in render_js
+    assert 'class="advanced-tools"' not in render_js
+    assert 'class="advanced-tools"' in debug_js
     assert 'id="inspectorFontFamilyPreset"' in inspector_js
     assert 'id="inspectorFontSizePreset"' in inspector_js
     assert 'id="inspectorColorPreset"' in inspector_js

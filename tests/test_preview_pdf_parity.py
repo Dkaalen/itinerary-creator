@@ -106,3 +106,21 @@ def test_preview_visible_text_is_present_in_rendered_pdf_for_real_fixture():
 
     missing = [line for line in _preview_visible_lines(html) if line not in pdf_text]
     assert not missing, "Rendered PDF is missing preview-visible text:\n" + "\n".join(missing[:20])
+
+
+def test_preview_visible_text_is_present_in_rendered_pdf_for_representative_real_inputs():
+    fixtures = [
+        "norway_short_oslo_bergen_alesund.txt",
+        "finland_norway_winter_family.txt",
+        "scandinavia_autumn_cruise.txt",
+    ]
+
+    for fixture_name in fixtures:
+        html = _build_fixture_html(fixture_name)
+        pdf_text = compact_text(_pdf_text_from_html(html))
+
+        missing = [line for line in _preview_visible_lines(html) if line not in pdf_text]
+        assert not missing, (
+            f"Rendered PDF is missing preview-visible text for {fixture_name}:\n"
+            + "\n".join(missing[:20])
+        )

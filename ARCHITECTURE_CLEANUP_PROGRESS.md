@@ -112,9 +112,9 @@ Architecture cleanup is complete. The next phase is end-to-end itinerary quality
 ```text
 Golden input inventory:           [####################] 100%
 Golden input runner/reporting:    [####################] 100%
-Client output quality fixes:      [#########           ] 45%
-Preview/PDF parity hardening:     [                    ] 0%
-Editor product polish:            [                    ] 0%
+Client output quality fixes:      [####################] 100%
+Preview/PDF parity hardening:     [####################] 100%
+Editor product polish:            [####################] 100%
 ```
 
 Current real corpus checkpoint:
@@ -125,7 +125,7 @@ Source workbooks represented:     2
 Sheets represented:               307
 Latest parser exceptions:         0
 Latest generation smoke:          passed
-Latest average parser confidence: 97.5%
+Latest average parser confidence: 99.4%
 ```
 
 Use `docs/reports/golden_input_quality_sprint.md` as the entry point for the product-quality sprint.
@@ -2068,4 +2068,53 @@ Completed in Batch 15:
 [x] Extended clean ZIP artifact hygiene to exclude patch manifests and patch metadata
 [x] Extended runtime cleanup to remove patch manifests and patch metadata
 [x] Added test coverage for the strengthened artifact hygiene rules
+```
+
+---
+
+# Batch 19: Real corpus output quality, parity, and editor polish
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Finish the post-cleanup product-quality sprint by clearing deterministic real-corpus parsed-output defects, broadening preview/PDF parity smoke coverage, and refreshing editor no-bloat polish guards.
+```
+
+Completed in Batch 19:
+
+```text
+[x] Added contextual city inference for sparse itinerary rows without letting numeric night/count cells become cities
+[x] Cleared missing parsed city, missing hotel name, missing route origin/destination, missing room category, weak title, missing hotel nights, and unexpected skip output buckets
+[x] Hardened hotel extraction for Excel serial dates, malformed star-hotel rows, room quantities, igloos, suites, chalets, studios, and meal-text leakage
+[x] Hardened route extraction for Norway in a Nutshell, timed multileg transfers, airport flights, trains, buses, coaches, and local transfer summaries
+[x] Reclassified report-only calculator/header rows as source-data/reporting cases instead of parser output failures
+[x] Extended representative golden-input preview/PDF parity smoke coverage across multiple real fixture itineraries
+[x] Refreshed editor design-polish and no-bloat guards against the split frontend source files
+[x] Preserved the clean normal workflow with no new normal-user dashboards, QA panels, readiness gates, or sidebar image-tool bloat
+```
+
+Full-corpus result after Batch 19:
+
+```text
+Rows checked:                       5,557
+Parsed output rows:                 5,439
+Generated editable titles checked:  4,194
+Parser exceptions:                  0
+Rows skipped by parser:             118
+Average parser confidence:          99.4%
+Rows under 80 confidence:           0
+Whole-corpus generation smoke:      passed
+Parser review flags remaining:      very_long_supplier_text: 324
+```
+
+Remaining bad-output log categories are source-data/reporting categories rather than deterministic parsed-output defects:
+
+```text
+missing_source_city: 381
+missing_source_date: 87
+missing_source_day: 85
+non_itinerary_type: 65
+missing_source_type: 21
 ```

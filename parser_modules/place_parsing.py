@@ -28,6 +28,10 @@ def is_valid_city_value(value):
         return False
     if city.isdigit():
         return False
+    if re.fullmatch(r"[\d\s.,]+", city):
+        return False
+    if re.search(r"\b\d+\s*[-/]\s*\d+\s*[- ]?star\b|\b\d+\s*[- ]?star\s+hotel\b", lower):
+        return False
     if len(city) > 35:
         return False
     if is_likely_service_text(city):
@@ -94,6 +98,84 @@ def extract_route_points(text):
 
     route_source = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", route_source, flags=re.IGNORECASE)
     route_source = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", route_source, flags=re.IGNORECASE)
+
+
+    scheduled_places = []
+    for schedule_match in re.finditer(
+        r"\b\d{1,2}[:.]\s*\d{2}(?:\s*[ap]m)?\s+(?P<place>[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,45}?)(?=\s+(?:via|direct|arrival|with|\d{1,2}[:.]\s*\d{2})|\s*[|,;)]|\s*$)",
+        route_source,
+        flags=re.IGNORECASE,
+    ):
+        place = normalize_place_name(schedule_match.group("place"))
+        if place and is_valid_city_value(place) and place.lower() not in {"am", "pm", "morning train"}:
+            scheduled_places.append(place)
+
+    has_timed_dash_route = re.search(
+        r"\d{1,2}[:.]\s*\d{2}\s+[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,45}?\s*-\s*\d{1,2}[:.]\s*\d{2}",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if len(scheduled_places) >= 2 and not has_timed_dash_route and re.search(r"\b(?:norway\s+in\s+a\s+nutshell|train|flight|bus|coach|ferry|cruise)\b", route_source, flags=re.IGNORECASE):
+        origin = scheduled_places[0]
+        destination = scheduled_places[-1]
+        if origin.lower() != destination.lower():
+            return origin, destination
+
+    bare_mode_route = re.search(
+        r"^\s*(?:train|bus|coach|flight)\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s+(?P<destination>[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\s*[|,;.]|\s+\d|$)",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if bare_mode_route:
+        origin = normalize_place_name(bare_mode_route.group("origin"))
+        destination = normalize_place_name(bare_mode_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+
+
+    nutshell_route = re.search(
+        r"^\s*(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?):\s*Norway\s+in\s+a\s+Nutshell\b",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if nutshell_route:
+        origin = normalize_place_name(nutshell_route.group("origin"))
+        destination = normalize_place_name(nutshell_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+
+    timed_legs = list(re.finditer(
+        r"\b(?:bus|coach|train|flight|ferry|cruise)\s+\d{1,2}[:.]\s*\d{2}\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s*-\s*\d{1,2}[:.]\s*\d{2}\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?=\s*(?:\+|\||\(|$))",
+        route_source,
+        flags=re.IGNORECASE,
+    ))
+    if timed_legs:
+        origin = normalize_place_name(timed_legs[0].group("origin"))
+        destination = normalize_place_name(timed_legs[-1].group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+
+    night_train_route = re.search(
+        r"(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s*-\s*(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s+Night\s+train\b",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if night_train_route and re.search(r"\btrain\b", route_source, flags=re.IGNORECASE):
+        origin = normalize_place_name(night_train_route.group("origin"))
+        destination = normalize_place_name(night_train_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+
+    reaching_route = re.search(
+        r"\bfrom\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\s+bus\s+st(?:a|sa)ion|\s+station)?\b.+?\breaching\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\s+at\b|\s+resort\b|\s*[,|.]|$)",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if reaching_route:
+        origin = normalize_place_name(reaching_route.group("origin"))
+        destination = normalize_place_name(reaching_route.group("destination"))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
 
     # Hyphen-format transport rows from calculator exports, e.g.
     # ``Day train, Rovaniemi - Helsinki`` or ``Flight, Bergen - Svolvær``.

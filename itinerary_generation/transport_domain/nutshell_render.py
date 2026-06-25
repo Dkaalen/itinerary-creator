@@ -245,7 +245,7 @@ def build_featured_nutshell_block(
     return RenderBlock(
         kind="travel_sequence",
         row_id="travel-arrangements",
-        section_title="Travel Arrangements",
+        section_title="Featured Scenic Journey",
         title=journey.client_title or (profile.title if profile else "Norway in a Nutshell"),
         meta=meta,
         description=(profile.description if profile else (

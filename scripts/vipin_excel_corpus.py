@@ -357,6 +357,41 @@ def _bad(item: ExcelCorpusItem, category: str, reason: str, row: Mapping[str, An
     )
 
 
+def _has_usable_source_content(item: ExcelCorpusItem) -> bool:
+    """Return True when a source row has client-facing content to parse."""
+
+    return bool(_norm(item.element) or _norm(item.city))
+
+
+def _number_like(value: str) -> bool:
+    return bool(re.fullmatch(r"\d+(?:\.\d+)?", _norm(value)))
+
+
+def _looks_report_only_source(item: ExcelCorpusItem) -> bool:
+    """Return True for headers/calculator rows that should not parse as itinerary."""
+
+    day = _norm_key(item.day)
+    row_type = _norm_key(item.row_type)
+    city = _norm_key(item.city)
+    element = _norm_key(item.element)
+    from_date = _norm_key(item.from_date)
+    to_date = _norm_key(item.to_date)
+
+    if {day, row_type, city} >= {"id", "day", "supplier"}:
+        return True
+    if row_type in _NON_ITINERARY_TYPES or row_type in {"single room cost"}:
+        return True
+    if _number_like(day) and (_number_like(row_type) or "pricing" in from_date or "pricing" in to_date):
+        return True
+    if "cost per person" in day or "single room cost" in row_type:
+        return True
+    if "pricing" in from_date or "pricing" in to_date or "travels free" in from_date or "travels free" in to_date:
+        return True
+    if not (element or city) and (_number_like(day) or _number_like(row_type)):
+        return True
+    return False
+
+
 def _looks_like_activity_prose_title(title: str) -> bool:
     title = _norm(title)
     if not title:
@@ -413,18 +448,29 @@ def _generated_titles_for_rows(rows: list[Mapping[str, Any]]) -> dict[str, str]:
 
 
 def _worker_parse_chunk(payload: tuple[int, list[ExcelCorpusItem]]) -> list[tuple[ExcelCorpusItem, dict[str, Any]]]:
-    """Parse one independent workbook chunk in a worker process."""
+    """Parse one workbook chunk and recheck chunk-only duplicate skips.
+
+    The parser correctly suppresses duplicate rows inside one itinerary. The real
+    calculator corpus, however, is a collection of many unrelated quote sheets,
+    and a fixed-size worker chunk can contain identical airport-transfer or hotel
+    rows from different sheets. Those should still be evaluated as independent
+    source rows, so any itinerary-like source line not represented after the
+    chunk parse is retried on its own.
+    """
 
     _start, chunk = payload
     import diagnostics
     from itinerary_parser import parse_itinerary
+    from parser_modules.type_detection import looks_like_non_itinerary_type
 
     diagnostics.reset()
     rows = parse_itinerary("\n".join(item.as_raw_line() for item in chunk))
     parsed: list[tuple[ExcelCorpusItem, dict[str, Any]]] = []
+    represented_line_numbers: set[int] = set()
     for row in rows:
         line_number = int(row.get("line_number") or 0)
         if 0 < line_number <= len(chunk):
+            represented_line_numbers.add(line_number)
             parsed.append((chunk[line_number - 1], row))
         else:
             parsed.append((ExcelCorpusItem(
@@ -436,8 +482,17 @@ def _worker_parse_chunk(payload: tuple[int, list[ExcelCorpusItem]]) -> list[tupl
                 city=str(row.get("city", "")),
                 element=str(row.get("details", "")),
             ), row))
-    return parsed
 
+    for line_number, item in enumerate(chunk, start=1):
+        if line_number in represented_line_numbers:
+            continue
+        if _looks_report_only_source(item) or not _has_usable_source_content(item):
+            continue
+        retry_rows = parse_itinerary(item.as_raw_line())
+        for retry_row in retry_rows:
+            parsed.append((item, retry_row))
+
+    return parsed
 
 def _parse_rows_chunked(
     items: list[ExcelCorpusItem],
@@ -524,8 +579,9 @@ def evaluate_excel_corpus(
     for item in item_list:
         if item.source_id in parsed_source_ids:
             continue
-        if _norm_key(item.row_type) not in _NON_ITINERARY_TYPES:
-            bad_outputs.append(_bad(item, "unexpected_skip", "Parser returned no row for this itinerary-like source row."))
+        if not item.day or not item.row_type or _looks_report_only_source(item) or not _has_usable_source_content(item):
+            continue
+        bad_outputs.append(_bad(item, "unexpected_skip", "Parser returned no row for this itinerary-like source row."))
 
     bulk_generation_ok = False
     bulk_error = ""

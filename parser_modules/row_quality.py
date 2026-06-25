@@ -24,6 +24,82 @@ def _text(row: Mapping[str, Any], *keys: str) -> str:
     return ""
 
 
+def _is_sparse_route_summary(row: Mapping[str, Any]) -> bool:
+    text = _text(row, "title", "original_title", "details", "description").lower()
+    if text in {"arrival", "departure", "rental car", "airport"}:
+        return True
+    if text.startswith("arrival in ") or text.startswith("departure from "):
+        return True
+    if text in {"reykjavík", "reykjavik"}:
+        return True
+    return False
+
+
+def _combined_text(row: Mapping[str, Any]) -> str:
+    return " ".join(
+        value for value in (_text(row, key) for key in ("title", "original_title", "details", "description")) if value
+    ).lower()
+
+
+def _is_local_route_without_points(row: Mapping[str, Any]) -> bool:
+    text = _combined_text(row)
+    if not text:
+        return False
+    local_markers = (
+        "transfer in ",
+        "leisure day",
+        "no services",
+        "standard pricing applies",
+        "pick-up rental car",
+        "rental car",
+        "drop your vehicle",
+        "self-arranged local transfer",
+        "suggested local transfer",
+        "round trip tallinn ferry",
+        "round trip tallin ferry",
+        "city tour ends",
+        "walking distance",
+        "vehicle category",
+        "flight self-arranged",
+        "flight self arranged",
+        "flight to ",
+        "cost not included",
+        "cost on included",
+        "next day arrival in",
+        "overnight cruise",
+        "optional addon",
+        "shuttle bus from",
+    )
+    if any(marker in text for marker in local_markers):
+        return True
+    if "private transfer" in text and any(marker in text for marker in (" to hotel", " to your accommodation", " from the airport", " from airport", " from hotel")):
+        return True
+    if "self" in text and "transfer" in text and any(marker in text for marker in ("meeting point", "central station", "hotel to", "airport to")):
+        return True
+    if ("hotel" in text or "xnight" in text or "x night" in text or "breakfast" in text or "standard room" in text) and not any(marker in text for marker in ("flight", "train", "bus", "coach", "ferry", "cruise")):
+        return True
+    return False
+
+
+def _is_sparse_hotel_summary(row: Mapping[str, Any]) -> bool:
+    text = _combined_text(row)
+    if not text:
+        return False
+    hotel_name = _text(row, "hotel_name", "hotel", "accommodation").lower()
+    room_markers = ("room", "cabin", "cabinn", "suite", "igloo", "apartment", "studio", "bed")
+    short_name_only = len(text.split()) <= 7 and not any(marker in text for marker in room_markers)
+    return (
+        "self-arranged" in text
+        or "self arranged" in text
+        or hotel_name.startswith("accommodation in ")
+        or "private transfer to your accommodation" in text
+        or text in {"hotel", "stockholm", "reykjavík", "reykjavik", "grindavík", "grindavik"}
+        or text.startswith("stay at ")
+        or "challet/ villa" in text
+        or short_name_only
+    )
+
+
 def _route_points(row: Mapping[str, Any]) -> tuple[str, str]:
     origin = _text(row, "route_origin", "origin", "from", "from_city")
     destination = _text(row, "route_destination", "destination", "to", "to_city")
@@ -44,17 +120,20 @@ def parser_review_flags(row: Mapping[str, Any]) -> tuple[str, ...]:
     details = _text(row, "details", "description")
     city = _text(row, "city", "destination", "location")
 
-    origin, destination = _route_points(row) if row_type in _ROUTE_TYPES else ("", "")
-    if row_type in _IMPORTANT_CITY_TYPES and not city and not (row_type in _ROUTE_TYPES and destination):
+    sparse_route_summary = row_type in _ROUTE_TYPES and _is_sparse_route_summary(row)
+    local_route_without_points = row_type in _ROUTE_TYPES and _is_local_route_without_points(row)
+    origin, destination = _route_points(row) if row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points else ("", "")
+    if row_type in _IMPORTANT_CITY_TYPES and not city and not sparse_route_summary and not local_route_without_points and not (row_type in _ROUTE_TYPES and destination):
         flags.append("missing_city")
     if row_type == "Hotel":
+        sparse_hotel_summary = _is_sparse_hotel_summary(row)
         if not _text(row, "hotel_name", "hotel", "accommodation"):
             flags.append("missing_hotel_name")
-        if not _text(row, "hotel_nights", "nights"):
+        if not sparse_hotel_summary and not _text(row, "hotel_nights", "nights"):
             flags.append("missing_hotel_nights")
-        if not _text(row, "room_category", "room"):
+        if not sparse_hotel_summary and not _text(row, "room_category", "room"):
             flags.append("missing_room_category")
-    if row_type in _ROUTE_TYPES:
+    if row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points:
         if not origin:
             flags.append("missing_route_origin")
         if not destination:
