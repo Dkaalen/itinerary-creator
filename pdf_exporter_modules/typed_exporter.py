@@ -37,8 +37,13 @@ from pdf_exporter_modules.pdf_html_fallback import _iter_html_values
 from pdf_exporter_modules.pdf_html_fallback import render_document_requires_html_fallback
 from pdf_exporter_modules.pdf_image_renderer import image_path_from_match as _image_path_from_match
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable as _render_day_image_flowable
-from pdf_exporter_modules.pdf_internal_review_appendix import render_internal_review_appendix as _render_internal_review_appendix
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
+
+
+def _render_internal_review_appendix(render_document: RenderDocument, story, styles):
+    from pdf_exporter_modules.pdf_internal_review_appendix import render_internal_review_appendix
+
+    return render_internal_review_appendix(render_document, story, styles)
 
 
 def export_render_document_to_pdf(

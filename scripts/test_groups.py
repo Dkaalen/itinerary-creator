@@ -136,6 +136,7 @@ ACTIVITY_TESTS = (
 
 ARCHITECTURE_TESTS = (
     "tests/test_architecture_consolidation.py",
+    "tests/test_architecture_guard_system.py",
     "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_canonical_block_renderers.py",
     "tests/test_canonical_boundary.py",

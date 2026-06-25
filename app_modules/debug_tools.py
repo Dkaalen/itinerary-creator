@@ -3,12 +3,13 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.debug_mode import is_debug_mode
-from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
 
 
 def render_debug_tools() -> None:
     if not is_debug_mode(st.session_state):
         return
+    from ui.diagnostics_panel import render_itinerary_health_report_panel, render_parser_diagnostics_panel
+
     with st.container(border=True):
         render_parser_diagnostics_panel()
         render_itinerary_health_report_panel(

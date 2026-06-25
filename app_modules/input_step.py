@@ -9,7 +9,6 @@ from app_modules.validation_gate import block_generation, render_blocking_issues
 from app_modules.workflow_actions import generate_itinerary
 from app_modules.workflow_config import STAGE_COPY
 from app_modules.workflow_state import set_workflow_stage
-from ui.input_review_panel import render_structured_input_review_panel
 from ui.picture_workflow import pictures_are_added
 
 
@@ -30,6 +29,8 @@ def _generate_itinerary(raw_text: str) -> bool:
 def _render_generation_messages() -> None:
     if not is_debug_mode(st.session_state):
         return
+    from ui.input_review_panel import render_structured_input_review_panel
+
     render_structured_input_review_panel(
         st.session_state.get("parsed_rows", []),
         st.session_state.get("parser_diagnostics", []),

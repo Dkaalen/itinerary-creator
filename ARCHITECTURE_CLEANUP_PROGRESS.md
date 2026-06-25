@@ -77,7 +77,7 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [###############-----] 75%
+Overall architecture cleanup:        [##################--] 90%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
@@ -85,7 +85,7 @@ CSS responsibility cleanup:          [####################] 100%
 Parser cleanup:                      [####################] 100%
 Generation cleanup:                  [####################] 100%
 PDF/images cleanup:                  [####################] 100%
-Architecture guards:                 [############--------] 60%
+Architecture guards:                 [####################] 100%
 ```
 
 Status legend:
@@ -1602,7 +1602,7 @@ Completed in Batch 7:
 
 # Batch 8: Architecture guard system
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
 
 Goal:
 
@@ -1610,9 +1610,21 @@ Goal:
 Stop future chats from adding bloat to the wrong files.
 ```
 
+
+Completed in Batch 8:
+
+```text
+[x] source-level normal-workflow bloat guard helpers added
+[x] file-size and function-size guard helpers added
+[x] patch-history/vague-name guard helpers added
+[x] lazy import boundaries added for debug review panels
+[x] PDF internal review appendix lazy-loaded only when enabled
+[x] architecture guard tests added to the architecture test group
+```
+
 ## Patch 8.1: Add source-level bloat guards
 
-Status: [ ]
+Status: [x]
 
 Fail tests if normal workflow files contain forbidden visible bloat strings.
 
@@ -1642,7 +1654,7 @@ Allow only in debug modules or explicitly allowlisted test fixtures.
 
 ## Patch 8.2: Add file-size / responsibility guards
 
-Status: [ ]
+Status: [x]
 
 Suggested thresholds:
 
@@ -1666,7 +1678,7 @@ compatibility facades
 
 ## Patch 8.3: Add naming guards
 
-Status: [ ]
+Status: [x]
 
 Discourage vague or patch-history names:
 
@@ -1685,7 +1697,7 @@ Exception only when already existing and intentionally retained for compatibilit
 
 ## Patch 8.4: Add import-boundary guards
 
-Status: [ ]
+Status: [x]
 
 Suggested boundaries:
 
