@@ -61,15 +61,16 @@ def _page_inner_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
     return html_text
 
 
-def render_final_section_page_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
+def render_final_section_page_html(section: RenderFinalSection, page: RenderFinalPage, *, continued: bool = False) -> str:
     if not _page_has_content(page):
         return ""
     inner_html = _page_inner_html(section, page)
     if not inner_html:
         return ""
+    title = f"{section.title} continued" if continued else section.title
     return (
         f'<div class="a4-page {esc(_page_class(section))}">'
-        f'<div class="final-page-title">{esc(section.title)}</div>'
+        f'<div class="final-page-title">{esc(title)}</div>'
         f'{inner_html}'
         f'</div>'
     )
@@ -104,8 +105,8 @@ def render_final_section_html(section: RenderFinalSection) -> str:
     """Render one already-resolved final section for the HTML preview."""
 
     html_text = ""
-    for page in _section_pages(section):
-        html_text += render_final_section_page_html(section, page)
+    for index, page in enumerate(_section_pages(section)):
+        html_text += render_final_section_page_html(section, page, continued=index > 0)
     return html_text
 
 

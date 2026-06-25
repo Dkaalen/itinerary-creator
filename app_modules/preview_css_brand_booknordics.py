@@ -25,6 +25,19 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
 }}
 .preview-background[data-output-brand="booknordics_customer"] .cover-page {{
     background-color: var(--page-bg);
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+}}
+.preview-background[data-output-brand="booknordics_customer"] .cover-main {{
+    left: 72px;
+    right: 72px;
+    width: auto;
+    max-width: 650px;
+    padding: 28px 36px 32px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(250,250,251,.86);
+    box-shadow: 0 20px 48px rgba(0,25,60,.18);
 }}
 .preview-background[data-output-brand="booknordics_customer"] .cover-emblem {{
     border-color: rgba(255, 0, 65, .55);
@@ -58,11 +71,18 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
 .preview-background[data-output-brand="booknordics_customer"] .cover-destination-label,
 .preview-background[data-output-brand="booknordics_customer"] .day-kicker,
 .preview-background[data-output-brand="booknordics_customer"] .page-kicker,
-.preview-background[data-output-brand="booknordics_customer"] .section-title,
-.preview-background[data-output-brand="booknordics_customer"] .row-type,
-.preview-background[data-output-brand="booknordics_customer"] .premium-note-card-title {{
+.preview-background[data-output-brand="booknordics_customer"] .premium-note-card-title,
+.preview-background[data-output-brand="booknordics_customer"] .final-list-page .section-title,
+.preview-background[data-output-brand="booknordics_customer"] .categorized-inclusions-page .section-title,
+.preview-background[data-output-brand="booknordics_customer"] .categorized-exclusions-page .section-title,
+.preview-background[data-output-brand="booknordics_customer"] .premium-notes-page .section-title {{
     color: var(--accent);
     font-family: "DM Sans", sans-serif;
+}}
+.preview-background[data-output-brand="booknordics_customer"] .day-page .section-title,
+.preview-background[data-output-brand="booknordics_customer"] .day-page .row-type,
+.preview-background[data-output-brand="booknordics_customer"] .day-page .ve-text-subheading {{
+    color: var(--ink);
 }}
 .preview-background[data-output-brand="booknordics_customer"] .cover-rule,
 .preview-background[data-output-brand="booknordics_customer"] .cover-rule::after {{
@@ -78,6 +98,8 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
     background-image:
         linear-gradient(rgba(250,250,251,.58), rgba(250,250,251,.58)),
         var(--cover-bg-image);
+    background-size: cover, cover;
+    background-repeat: no-repeat, no-repeat;
 }}
 .preview-background[data-output-brand="booknordics_customer"] .summary-page .glance-card,
 .preview-background[data-output-brand="booknordics_customer"] .summary-page .journey-arc,

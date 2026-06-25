@@ -29,4 +29,5 @@ DEFAULT_IMPORTANT_TRAVEL_NOTES = [
     "Northern Lights sightings are a natural phenomenon and cannot be guaranteed. Tours are arranged to give the best possible opportunity based on local conditions.",
     "Hotel check-in and check-out times vary by property. As a general guideline, check-in in the Nordic region is usually between 3:00 PM and 4:30 PM, while check-out is usually between 10:00 AM and 12:00 noon.",
     "Route, road and rail conditions in the Nordic region can vary in winter. Please follow local guidance and allow extra time for independent transfers.",
+    "Some transfers are self-arranged unless specifically listed as included. Please allow enough time between hotels, stations, airports and meeting points, especially during winter conditions.",
 ]

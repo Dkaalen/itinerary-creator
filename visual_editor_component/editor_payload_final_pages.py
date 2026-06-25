@@ -5,6 +5,7 @@ from itinerary_generation.inclusions import create_whats_not_included
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 from ui.day_pages import render_inclusion_page_inner_htmls, render_inclusion_sections_inner_html
+from ui.inclusion_page_ownership import inclusion_pages_match_generated
 from ui.render_helpers import list_to_text, text_to_list
 from ui.premium_final_notes import render_premium_notes_inner_html
 from visual_editor_component.editor_payload_sources import _generated_value_for_page_html, _page_html_payload
@@ -38,7 +39,15 @@ def build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_ed
         for page in typed_inclusions.get("pages", [])
         if isinstance(page, dict)
     ] if typed_inclusions else []
-    saved_inclusion_page_htmls = typed_inclusion_pages or output_edits.get("whats_included_pages_html")
+    generated_page_htmls = generated_inclusion_page_htmls
+    typed_pages_are_refreshable = inclusion_pages_match_generated(typed_inclusion_pages, generated_page_htmls)
+    saved_output_pages = output_edits.get("whats_included_pages_html")
+    saved_output_pages_are_refreshable = inclusion_pages_match_generated(saved_output_pages, generated_page_htmls)
+    saved_inclusion_page_htmls = (
+        [] if typed_pages_are_refreshable else typed_inclusion_pages
+    ) or (
+        [] if saved_output_pages_are_refreshable else saved_output_pages
+    )
     saved_exclusions_html = typed_exclusions.get("content_html") if typed_exclusions else output_edits.get("whats_not_included_html")
     if typed_exclusions and not saved_exclusions_html and typed_exclusions.get("pages"):
         first_page = typed_exclusions.get("pages", [{}])[0]

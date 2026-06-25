@@ -7,7 +7,9 @@ function summaryPage(summary) {
   const arcRows = arc.map((row, idx) => `<tr><td>${editableText(row.chapter, `summary.journey_arc.${idx}.chapter`, '')}</td><td>${editableText(row.days, `summary.journey_arc.${idx}.days`, '')}</td><td>${editableText(row.experience, `summary.journey_arc.${idx}.experience`, '')}</td></tr>`).join('');
   const bg = picturesAdded() ? (model.cover?.summary_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
   const summaryFocus = model.cover?.summary_image?.crop_focus || 'top';
-  const summaryStyle = bg ? `background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)};` : '';
+  const isBooknordics = model?.brand?.output_brand === 'booknordics_customer';
+  const overlay = isBooknordics ? 'rgba(250,250,251,.58)' : 'rgba(244,239,232,.40)';
+  const summaryStyle = bg ? `background-image: linear-gradient(${overlay}, ${overlay}), url('${escAttr(bg)}'); background-position: center center, ${focusPos(summaryFocus)}; background-size: cover, cover; background-repeat: no-repeat, no-repeat;` : '';
   return `<div class="a4-page summary-page" style="${summaryStyle}"><div class="page-content">
     ${coverImageControls('summary_image', 'Page 2 background image', model.cover?.summary_image)}
     <div class="summary-card">${editableText(summary?.trip_glance_title || 'Your Trip at a Glance', 'summary.trip_glance_title', 'summary-title', 'Trip glance title')}${glanceRows}</div>

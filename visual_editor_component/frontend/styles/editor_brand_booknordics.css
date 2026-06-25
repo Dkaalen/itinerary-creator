@@ -7,7 +7,7 @@
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .a4-page {
-  background: var(--paper, #FAFAFB);
+  background-color: var(--paper, #FAFAFB);
   color: var(--body, #202738);
   font-family: "DM Sans", sans-serif;
 }
@@ -25,7 +25,30 @@
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .cover-page.editor-text-cover {
-  background: var(--paper, #FAFAFB) !important;
+  background-color: var(--paper, #FAFAFB) !important;
+}
+
+.editor-shell[data-output-brand="booknordics_customer"] .cover-page {
+  background-size: cover !important;
+  background-position: center center;
+  background-repeat: no-repeat !important;
+}
+
+.editor-shell[data-output-brand="booknordics_customer"] .summary-page {
+  background-size: cover, cover !important;
+  background-repeat: no-repeat, no-repeat !important;
+}
+
+.editor-shell[data-output-brand="booknordics_customer"] .cover-main {
+  left: 72px;
+  right: 72px;
+  width: auto;
+  max-width: 650px;
+  padding: 28px 36px 32px;
+  border: 1px solid var(--border, #D7DDE5);
+  border-radius: 18px;
+  background: rgba(250,250,251,.86);
+  box-shadow: 0 20px 48px rgba(0,25,60,.18);
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .cover-emblem {
@@ -105,6 +128,13 @@
   color: var(--accent, #FF0041);
   -webkit-text-fill-color: var(--accent, #FF0041);
   font-family: "DM Sans", sans-serif;
+}
+
+.editor-shell[data-output-brand="booknordics_customer"] .day-page .section-title,
+.editor-shell[data-output-brand="booknordics_customer"] .day-page .row-type,
+.editor-shell[data-output-brand="booknordics_customer"] .day-page .ve-text-subheading {
+  color: var(--ink, #00193C);
+  -webkit-text-fill-color: var(--ink, #00193C);
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .summary-card,

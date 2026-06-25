@@ -149,6 +149,17 @@ def format_duration_display(value: str) -> str:
         end = re.sub(r"\s*([.,])\s*", r"\1", hour_range.group(2)).replace(",", ".")
         return f"{start}–{end} hours"
 
+    hyphenated_hour = re.fullmatch(
+        r"(\d+(?:\s*[.,]\s*\d+)?)\s*(?:-|–)\s*(?:h|hr|hrs|hour|hours)",
+        label_stripped,
+        flags=re.IGNORECASE,
+    )
+    if hyphenated_hour:
+        normalized = re.sub(r"\s*([.,])\s*", r"\1", hyphenated_hour.group(1)).replace(",", ".")
+        minutes = parse_duration_minutes(f"{normalized} hours")
+        if minutes is not None:
+            return format_duration_minutes(minutes)
+
     minute_range = re.search(
         r"\b(\d+)\s*(?:-|–)\s*(\d+)\s*(minutes?)\b",
         label_stripped,

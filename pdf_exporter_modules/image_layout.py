@@ -46,6 +46,13 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
     if PILImage is None or ImageOps is None:
         return None
 
+    normalized_focus = normalize_crop_focus(crop_focus)
+    temp_path = Path(temp_dir) / (
+        f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalized_focus))) % 10_000_000}.jpg"
+    )
+    if temp_path.exists():
+        return temp_path
+
     try:
         with PILImage.open(source_path) as image:
             image = ImageOps.exif_transpose(image)
@@ -66,7 +73,7 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
             else:
                 crop_height = max(1, int(source_width / target_ratio))
                 extra_height = max(0, source_height - crop_height)
-                focus = PDF_CROP_FOCUS_FACTORS.get(normalize_crop_focus(crop_focus), PDF_CROP_VERTICAL_FOCUS)
+                focus = PDF_CROP_FOCUS_FACTORS.get(normalized_focus, PDF_CROP_VERTICAL_FOCUS)
                 top = max(0, int(extra_height * focus))
                 box = (0, top, source_width, min(source_height, top + crop_height))
 
@@ -83,9 +90,6 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
             if image.size != target_px:
                 image = image.resize(target_px, PILImage.LANCZOS)
 
-            temp_path = Path(temp_dir) / (
-                f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalize_crop_focus(crop_focus)))) % 10_000_000}.jpg"
-            )
             image.save(temp_path, format="JPEG", quality=76, optimize=True)
             return temp_path
     except (OSError, ValueError) as error:

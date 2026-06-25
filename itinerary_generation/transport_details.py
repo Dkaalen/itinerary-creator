@@ -99,7 +99,9 @@ def _extract_ticket_detail(source: str, row_type: str, title: str) -> str:
     return ""
 
 
-def _extract_luggage_detail(source: str) -> str:
+def format_flight_luggage_detail(source: str) -> str:
+    """Return client-ready flight ticket and baggage wording when detected."""
+
     text = str(source or "")
     checked = re.search(r"(\d+)\s*x\s*(\d+)\s*kg\s*(?:check(?:ed)?[ -]?in|checked)\s*(?:bag|baggage|luggage)?", text, flags=re.IGNORECASE)
     carry = re.search(r"(\d+)\s*x\s*(\d+)\s*kg\s*carry[- ]?on\s*(?:bag|baggage|luggage)?", text, flags=re.IGNORECASE)
@@ -109,14 +111,17 @@ def _extract_luggage_detail(source: str) -> str:
             parts.append(f"{checked.group(1)} x {checked.group(2)} kg checked bag")
         if carry:
             parts.append(f"{carry.group(1)} x {carry.group(2)} kg carry-on bag")
-        suffix = " per person" if re.search(r"\bper person\b", text, flags=re.IGNORECASE) else ""
-        return ", ".join(parts) + suffix
+        return ", ".join(parts) + " per person"
     match = re.search(r"\b((?:\d+\s*x?\s*)?)(checked\s+bag|checked\s+baggage|checked\s+luggage|cabin\s+bag|carry[-\s]?on\s+bag|luggage)\s+included\b", text, flags=re.IGNORECASE)
     if not match:
         return ""
     prefix = (match.group(1) or "").strip()
     item = match.group(2).lower().replace("baggage", "luggage")
     return f"{prefix} {item} included".strip()
+
+
+def _extract_luggage_detail(source: str) -> str:
+    return format_flight_luggage_detail(source)
 
 
 def _extract_cruise_cabin_detail(source: str) -> str:
@@ -205,7 +210,12 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     if ticket_detail:
         add_unique(details, ticket_detail)
 
-    luggage = clean(row.get("luggage_included", "")) or _extract_luggage_detail(source)
+    luggage_source = clean(row.get("luggage_included", ""))
+    luggage = format_flight_luggage_detail(luggage_source or source)
+    if not luggage and luggage_source:
+        luggage = luggage_source
+    if not luggage:
+        luggage = _extract_luggage_detail(source)
     if luggage:
         add_unique(details, luggage)
 

@@ -74,6 +74,7 @@ def build_itinerary_html_from_context(context):
             summary_background_data_uri=context.summary_background_data_uri,
             summary_background_path=context.summary_background_path,
             summary_crop_focus=context.summary_crop_focus,
+            output_brand=context.output_brand,
         )
 
     page_html_by_id.update(render_day_page_html_by_id(context.render_grouped_days, context.output_edits, render_document=context.render_document))

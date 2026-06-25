@@ -11,7 +11,7 @@ from itinerary_generation.content_engine import merge_compound_inclusions, sanit
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.titles import get_transport_route_phrase, get_transfer_travel_title
 from itinerary_generation.transport_model import TRANSPORT_CORE_FIELDS, get_transport_source_text
-from itinerary_generation.transport_details import get_transport_detail_items
+from itinerary_generation.transport_details import format_flight_luggage_detail, get_transport_detail_items
 from itinerary_generation.transport_times import get_transport_time_text
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport_norway import format_norway_nutshell_route
@@ -182,6 +182,8 @@ def transport_line(row: dict) -> str:
     if schedule and transport_bucket(row) not in {"Private transfers"}:
         add_unique(extras, schedule)
     for item in row.get("includes", []) or []:
+        if get_row_type(row) == "Flight" and format_flight_luggage_detail(item):
+            continue
         item = sanitize_inclusion_item(item, title)
         if not item:
             continue
@@ -213,7 +215,7 @@ def transport_line(row: dict) -> str:
             extras = [item for item in extras if item.lower() not in {"ticket included", "tickets included"}]
         extras = [item for item in extras if item]
         extras = [item for item in extras if "ticket included" not in item.lower()] + [item for item in extras if "ticket included" in item.lower()]
-        extras = merge_compound_inclusions(extras)
+        extras = [re.sub(r"^Flight Tickets\b", "Flight tickets", item) for item in merge_compound_inclusions(extras)]
         provisional_notes = [
             item for item in extras
             if item.lower().startswith("train timing is provisional")

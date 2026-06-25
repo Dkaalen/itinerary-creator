@@ -11,6 +11,7 @@ from itinerary_generation.render_model import RenderDocument
 from pdf_exporter_modules import styles as pdf_styles
 from pdf_exporter_modules.html_utils import para_text
 from pdf_exporter_modules.image_flowables import FullPageBackgroundImage, FullPageTint
+from pdf_exporter_modules.pdf_branding import is_booknordics_pdf
 from pdf_exporter_modules.render_flowables import boxed_story_table
 from pdf_exporter_modules.story import add_paragraph, make_table
 
@@ -22,7 +23,7 @@ def render_summary(render_document: RenderDocument, story, styles, temp_dir):
     background_path = Path(str(getattr(summary, "background_path", "") or ""))
     if background_path.exists() and background_path.is_file():
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=getattr(summary, "crop_focus", "top")))
-        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.38))
+        story.append(FullPageTint(color=pdf_styles.PAGE_BACKGROUND, alpha=0.58 if is_booknordics_pdf() else 0.38))
 
     glance_story = []
     add_paragraph(glance_story, getattr(summary, "trip_glance_title", "") or "Your Trip at a Glance", styles["summary_title"], spacer_after=5)

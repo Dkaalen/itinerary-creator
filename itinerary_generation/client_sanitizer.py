@@ -66,6 +66,13 @@ def sanitize_client_text(value: object) -> str:
         return "\n".join(part for part in (sanitize_client_text(line) for line in text.split("\n")) if part)
     terminal = re.search(r"[.!?]\s*$", text)
     text = text.replace("\xa0", " ")
+    baggage_per_person_marker = "__CLIENT_SAFE_BAGGAGE_PER_PERSON__"
+    baggage_per_person = re.compile(
+        r"((?:\d+\s*x\s*\d+\s*kg\s*(?:checked|check(?:ed)?[ -]?in|carry[- ]?on)|"
+        r"(?:checked|carry[- ]?on|cabin)\s+(?:bag|baggage|luggage))[^.;,]{0,32})\bper\s+person\b",
+        flags=re.IGNORECASE,
+    )
+    text = baggage_per_person.sub(lambda match: f"{match.group(1)}{baggage_per_person_marker}", text)
     text = _PRICE_PARENTHESES_RE.sub(" ", text)
     text = strip_price_fragments(text)
     text = PRICE_PATTERN_RE.sub(" ", text)
@@ -76,6 +83,7 @@ def sanitize_client_text(value: object) -> str:
     text = re.sub(r"\s+([,.;:])", r"\1", text)
     text = re.sub(r"(?:,\s*){2,}", ", ", text)
     text = re.sub(r"\s{2,}", " ", text)
+    text = text.replace(baggage_per_person_marker, "per person")
     text = re.sub(r"\s+and\s*$", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s*,\s*and\s*$", "", text, flags=re.IGNORECASE)
     text = text.strip(" -:|,;")

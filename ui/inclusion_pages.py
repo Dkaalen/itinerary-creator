@@ -171,6 +171,49 @@ def _section_bottom_guard_units(section_title: str) -> int:
     return _SECTION_BOTTOM_GUARDS.get(str(section_title or "").strip().lower(), 12)
 
 
+def _section_from_items(section_title, items):
+    return {"title": section_title, "items": list(items or [])}
+
+
+def _section_units_from_items(section_title, items):
+    return _estimate_inclusion_section_units(_section_from_items(section_title, items))
+
+
+def _split_section_for_remaining_space(section, remaining_units, page_body_units):
+    """Split a category so an explicit page does not overflow later in PDF."""
+
+    normalized = normalize_structured_list_sections([section])
+    if not normalized:
+        return None, section
+    section_obj = normalized[0]
+    title = section_obj.title
+    items = list(section_obj.items)
+    if not items:
+        return None, None
+
+    # Keep at least enough room for the section heading and one item.
+    usable_units = max(0, float(remaining_units))
+    if usable_units < 8:
+        return None, section
+
+    head_items = []
+    current_units = 3
+    for item in items:
+        item_units = _estimate_inclusion_item_units(item)
+        if head_items and current_units + item_units > usable_units:
+            break
+        if not head_items and current_units + item_units > usable_units:
+            return None, section
+        head_items.append(item)
+        current_units += item_units
+
+    if not head_items or len(head_items) == len(items):
+        return None, section
+
+    tail_items = items[len(head_items):]
+    return _section_from_items(title, head_items), _section_from_items(title, tail_items)
+
+
 def paginate_categorized_inclusions(sections):
     """Return inclusion page sections using the PDF category-splitting rules."""
 
@@ -185,39 +228,64 @@ def paginate_categorized_inclusions(sections):
     pages = []
     current = []
     current_units = 7  # final page title and top spacing
-    max_units = 70
+    max_units = 58
     empty_page_body_units = max_units - 7
 
-    for section in clean_sections:
+    pending_sections = list(clean_sections)
+    while pending_sections:
+        section = pending_sections.pop(0)
         candidate_sections = [section]
-        if _estimate_inclusion_section_units(section) > empty_page_body_units:
+        section_title = str(section.get("title") or "").strip().lower()
+        if section_title == "activities & experiences" and _estimate_inclusion_section_units(section) > empty_page_body_units:
             candidate_sections = _split_oversized_inclusion_section(section, empty_page_body_units)
 
         for candidate in candidate_sections:
-            section_units = _estimate_inclusion_section_units(candidate)
-            section_title = str(candidate.get("title") or "").strip().lower()
-            remaining_after_section = max_units - (current_units + section_units)
-            bottom_guard = _section_bottom_guard_units(section_title)
-            current_titles = {str(existing.get("title") or "").strip().lower() for existing in current}
-            current_has_transport_category = bool(current_titles & {"rail journeys", "ferries & cruises", "coach transfers", "transport", "travel arrangements"})
-            if section_title == "private transfers":
-                keep_off_bottom = bool(
-                    current
-                    and current_has_transport_category
-                    and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
-                )
-            else:
-                keep_off_bottom = (
-                    current
-                    and section_title in _SECTION_BOTTOM_GUARDS
-                    and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
-                )
-            if current and (current_units + section_units > max_units or keep_off_bottom):
-                pages.append(current)
-                current = []
-                current_units = 7
-            current.append(candidate)
-            current_units += section_units
+            while candidate:
+                section_units = _estimate_inclusion_section_units(candidate)
+                section_title = str(candidate.get("title") or "").strip().lower()
+                remaining_after_section = max_units - (current_units + section_units)
+                bottom_guard = _section_bottom_guard_units(section_title)
+                current_titles = {str(existing.get("title") or "").strip().lower() for existing in current}
+                current_has_transport_category = bool(current_titles & {"rail journeys", "ferries & cruises", "coach transfers", "transport", "travel arrangements"})
+                fit_limit = max_units
+                if section_title == "private transfers" and current and not current_has_transport_category:
+                    # Short private-transfer sections are operationally clearer with the destination stay
+                    # they support. Allow a tiny amount of estimate slack so older short-transfer
+                    # documents do not orphan transport categories on the next page.
+                    fit_limit = max(fit_limit, 64)
+                if section_title == "private transfers":
+                    keep_off_bottom = bool(
+                        current
+                        and current_has_transport_category
+                        and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
+                    )
+                else:
+                    keep_off_bottom = (
+                        current
+                        and section_title in _SECTION_BOTTOM_GUARDS
+                        and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
+                    )
+
+                if current and current_units + section_units > fit_limit and section_title == "activities & experiences":
+                    head, tail = _split_section_for_remaining_space(candidate, max_units - current_units, empty_page_body_units)
+                    if head:
+                        current.append(head)
+                        current_units += _estimate_inclusion_section_units(head)
+                        pages.append(current)
+                        current = []
+                        current_units = 7
+                        candidate = tail
+                        continue
+
+                if current and (current_units + section_units > fit_limit or keep_off_bottom):
+                    pages.append(current)
+                    current = []
+                    current_units = 7
+                    continue
+
+                current.append(candidate)
+                current_units += section_units
+                candidate = None
 
     if current:
         pages.append(current)
@@ -237,6 +305,7 @@ def render_categorized_inclusions_pages(title, sections, page_class="final-list-
 
     html_text = ""
     for index, page_sections in enumerate(pages):
+        page_title = f"{title} continued" if index else title
         inner_html = render_inclusion_sections_inner_html(page_sections)
-        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(page_title)}</div>{inner_html}</div>'
     return html_text

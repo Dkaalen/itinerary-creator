@@ -1,4 +1,5 @@
 from ui.render_helpers import esc
+from app_modules.output_brand import BOOKNORDICS_BRAND
 from itinerary_generation.cover_assets import cover_focus_css_position
 
 
@@ -61,7 +62,7 @@ def render_cover_page(
 ) -> str:
     """Render the cover page section for the itinerary preview/PDF HTML."""
     background_position = cover_focus_css_position(cover_crop_focus)
-    return f"""        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-crop-focus="{esc(cover_crop_focus)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}" style="background-position: {esc(background_position)};">
+    return f"""        <div class="a4-page cover-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(cover_background_path)}" data-cover-crop-focus="{esc(cover_crop_focus)}" data-cover-ink="{esc(cover_theme['ink'])}" data-cover-muted="{esc(cover_theme['muted'])}" data-cover-accent="{esc(cover_theme['accent'])}" style="background-position: {esc(background_position)}; background-size: cover; background-repeat: no-repeat;">
             <div class="cover-main">
                 <div class="cover-emblem" aria-hidden="true"></div>
                 <div class="cover-kicker">{esc(cover_kicker)}</div>
@@ -90,14 +91,16 @@ def render_summary_page(
     summary_background_data_uri: str = "",
     summary_background_path: str = "",
     summary_crop_focus: str = "top",
+    output_brand: str = "agent",
 ) -> str:
     """Render the trip glance and journey arc summary page."""
     background_position = cover_focus_css_position(summary_crop_focus)
+    overlay = "rgba(250,250,251,.58)" if output_brand == BOOKNORDICS_BRAND else "rgba(244,239,232,.40)"
     background_style = (
-        f"background-image: linear-gradient(rgba(244,239,232,.40), rgba(244,239,232,.40)), url('{esc(summary_background_data_uri)}'); "
-        f"background-position: center center, {esc(background_position)};"
+        f"background-image: linear-gradient({overlay}, {overlay}), url('{esc(summary_background_data_uri)}'); "
+        f"background-position: center center, {esc(background_position)}; background-size: cover, cover; background-repeat: no-repeat, no-repeat;"
         if summary_background_data_uri
-        else f"background-position: center center, {esc(background_position)};"
+        else f"background-position: center center, {esc(background_position)}; background-size: cover, cover; background-repeat: no-repeat, no-repeat;"
     )
     html_text = f"""        <div class="a4-page summary-page cover-season-{esc(cover_theme['season'])}" data-cover-season="{esc(cover_theme['season'])}" data-cover-background-path="{esc(summary_background_path)}" data-cover-crop-focus="{esc(summary_crop_focus)}" style="{background_style}">
             <div class="glance-card">

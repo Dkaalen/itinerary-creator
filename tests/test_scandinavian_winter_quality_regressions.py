@@ -3,7 +3,7 @@ from itinerary_generation.date_resolver import get_trip_date_range_text
 from itinerary_generation.summaries_experience import describe_city_experience
 from itinerary_generation.transport_domain.render_arrangements import get_travel_arrangement_line
 from normalizer_modules.hotel_row import normalize_hotel_row
-from text_polish import polish_client_text
+from text_polish import format_duration_display, polish_client_text
 
 
 def test_cross_year_cover_uses_ordered_day_dates_not_stray_maximum_year():
@@ -52,3 +52,8 @@ def test_lofoten_summary_does_not_invent_trollfjord():
     rows = [{"type": "Activity", "effective_type": "Activity", "city": "Svolvær", "title": "Photo Tour to Reine and Haukland Beach", "details": "Lofoten scenery"}]
     phrase = describe_city_experience(rows)
     assert "Trollfjord" not in phrase
+
+
+def test_standalone_hyphenated_hour_duration_is_client_ready():
+    assert format_duration_display("3-hour") == "3 hours"
+    assert format_duration_display("8-hour") == "8 hours"

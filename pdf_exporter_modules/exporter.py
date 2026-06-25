@@ -6,7 +6,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate
 
+from app_modules.output_brand import output_brand_id
+
 from .day_page_guard import one_page_day_flowable
+from .pdf_branding import configure_pdf_brand
 from .renderers import render_cover_page, render_general_page, render_glance_page
 from .styles import (
     apply_pdf_palette,
@@ -26,6 +29,8 @@ def export_html_to_pdf(html_path, pdf_path):
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
     soup = BeautifulSoup(html_path.read_text(encoding="utf-8"), "html.parser")
+    wrapper = soup.select_one(".preview-background")
+    configure_pdf_brand(output_brand_id({"output_brand": wrapper.get("data-output-brand") if wrapper else "agent"}))
     apply_pdf_palette(extract_pdf_palette(soup))
     pages = soup.select(".a4-page")
 

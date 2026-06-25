@@ -75,7 +75,11 @@ def build_final_sections_for_pdf(context: Any) -> list[RenderFinalSection]:
     if not _final_section_is_hidden(context, "whats_included") and context.typed_inclusions_owned:
         if context.typed_inclusion_pages:
             sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
-    elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_pages_html"):
+    elif (
+        not _final_section_is_hidden(context, "whats_included")
+        and context.output_edits.get("whats_included_pages_html")
+        and not getattr(context, "saved_inclusion_pages_refreshable", False)
+    ):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
     elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_html"):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))

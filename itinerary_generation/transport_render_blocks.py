@@ -8,6 +8,7 @@ from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time
+from itinerary_generation.transport_details import format_flight_luggage_detail
 from text_polish import format_duration_display, polish_inclusion_item, polish_inclusion_items, polish_title
 
 
@@ -16,7 +17,10 @@ def build_transport_render_block(row, title_override=None):
     time = row.get("time", "")
     duration = row.get("duration", "")
     includes = polish_inclusion_items([clean_include_item(item, title) for item in normalize_list(row.get("includes", []))], title)
-    luggage_included = polish_inclusion_item(clean_include_item(row.get("luggage_included", ""), title), title)
+    raw_luggage = row.get("luggage_included", "")
+    if get_row_type(row) == "Flight":
+        raw_luggage = format_flight_luggage_detail(raw_luggage or row.get("details", "")) or raw_luggage
+    luggage_included = polish_inclusion_item(clean_include_item(raw_luggage, title), title)
 
     meta: list[RenderMetaLine] = []
     if time:

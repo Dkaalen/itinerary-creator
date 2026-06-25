@@ -58,7 +58,7 @@ function draw() {
   const coverMuted = isBooknordics ? (brandColors.muted || '#667085') : (picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c');
   const coverAccent = isBooknordics ? (brandColors.accent || '#FF0041') : (picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555');
   const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
-  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)};` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
+  const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)}; background-size: cover; background-repeat: no-repeat;` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
   const pageHtmlById = {};
   const addPageHtml = (pageId, html) => { pageHtmlById[pageId] = (pageHtmlById[pageId] || '') + (html || ''); };
   addPageHtml('cover', pageChrome('cover', 'Cover page', `<div class="a4-page cover-page ${picturesAdded() ? '' : 'editor-text-cover'}" style="${coverStyle}"><div class="page-content">

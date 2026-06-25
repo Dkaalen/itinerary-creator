@@ -67,6 +67,7 @@ class ItineraryRenderContext:
     structured_whats_not_included: Any
     typed_inclusion_pages: list[str]
     typed_inclusions_owned: bool
+    saved_inclusion_pages_refreshable: bool
     typed_exclusion_html: str
     typed_exclusions_owned: bool
     important_travel_notes: list[str] | str

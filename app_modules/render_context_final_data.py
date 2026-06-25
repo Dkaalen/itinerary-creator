@@ -9,6 +9,8 @@ from itinerary_generation.client_sanitizer import normalize_important_note_parag
 from itinerary_generation.editable_draft import section_by_id
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from ui.final_pages import create_optional_addons, get_important_travel_notes
+from ui.inclusion_page_ownership import inclusion_pages_match_generated
+from ui.inclusion_pages import render_inclusion_page_inner_htmls
 from ui.render_helpers import text_to_list
 
 
@@ -35,6 +37,17 @@ def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
     typed_inclusions = section_by_id(editor_draft, "whats_included")
     typed_exclusions = section_by_id(editor_draft, "whats_not_included")
     typed_notes = section_by_id(editor_draft, "important_travel_notes")
+    generated_inclusion_pages = render_inclusion_page_inner_htmls(structured_document.inclusions)
+    typed_inclusion_pages = [
+        page.get("content_html", "")
+        for page in typed_inclusions.get("pages", [])
+        if isinstance(page, dict)
+    ] if typed_inclusions else []
+    typed_inclusion_pages_refreshable = inclusion_pages_match_generated(typed_inclusion_pages, generated_inclusion_pages)
+    saved_inclusion_pages_refreshable = inclusion_pages_match_generated(
+        output_edits.get("whats_included_pages_html"),
+        generated_inclusion_pages,
+    )
     final_section_titles = {
         "whats_included": _safe_label(typed_inclusions.get("title") if typed_inclusions else output_edits.get("whats_included_title"), "What’s included"),
         "whats_not_included": _safe_label(typed_exclusions.get("title") if typed_exclusions else output_edits.get("whats_not_included_title"), "What’s not included"),
@@ -49,8 +62,9 @@ def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
         "optional_addons": create_optional_addons(parsed_rows),
         "whats_not_included": whats_not_included,
         "structured_whats_not_included": structured_document.exclusions,
-        "typed_inclusion_pages": [page.get("content_html", "") for page in typed_inclusions.get("pages", []) if isinstance(page, dict)] if typed_inclusions else [],
-        "typed_inclusions_owned": bool(typed_inclusions),
+        "typed_inclusion_pages": [] if typed_inclusion_pages_refreshable else typed_inclusion_pages,
+        "typed_inclusions_owned": bool(typed_inclusions) and not typed_inclusion_pages_refreshable,
+        "saved_inclusion_pages_refreshable": bool(saved_inclusion_pages_refreshable),
         "typed_exclusion_html": _typed_exclusion_html(typed_exclusions),
         "typed_exclusions_owned": bool(typed_exclusions),
         "important_travel_notes": normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits)),

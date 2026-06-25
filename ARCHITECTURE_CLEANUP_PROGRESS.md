@@ -2275,3 +2275,43 @@ Import smoke: optional skips=25, failures=0
 Rendered Booknordics sample PDF inspected after export: passed
 git diff --check: passed
 ```
+
+---
+
+# Batch 25 — Booknordics preview/PDF parity and inclusion polish
+
+Progress: `[####################] 100%`
+
+Completed in Batch 25:
+
+```text
+[x] Fixed Booknordics cover and overview image fitting in generated preview and visual editor paths so selected images do not tile
+[x] Reworked customer preview CSS so red remains a structural accent instead of over-colouring day-page sublabels
+[x] Made the typed Booknordics PDF cover and overview consume the same customer palette, DM Sans styling, image-fit treatment, and logo rules as the preview
+[x] Ensured the fallback HTML-to-PDF route configures the active output brand before rendering customer PDFs
+[x] Added generated-inclusion-page ownership checks so stale saved final pages can refresh after renderer upgrades
+[x] Rebalanced categorized inclusion pagination to avoid orphan transport pages and blank overflow pages in the Scandinavian winter itinerary
+[x] Added explicit continued titles for multi-page final sections in preview and PDF contracts
+[x] Added the independent-transfers travel note while preserving useful operational notes and excluding sales-oriented notes
+[x] Normalized flight baggage wording consistently across day travel arrangements and final inclusions
+[x] Preserved baggage “per person” wording in the client sanitizer while continuing to remove price-per-person language
+[x] Normalized standalone hyphenated hour durations such as `3-hour` to `3 hours`
+[x] Cached repeated cover/summary image crops during a PDF export to reduce duplicate image work
+[x] Preserved the thin Nutshell compatibility hook expected by the architecture facade tests
+[x] Added focused regressions for Booknordics image fitting, red-accent scope, inclusion pagination, travel notes, baggage wording, continuation headings, and duration display
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused Booknordics/output-brand/Scandinavian regressions: 22 passed
+Adjacent PDF/editor/final-page/cache regressions: 21 passed
+Architecture group stages 1-6 passed before runner timeout at stage 7
+Architecture stages 7-11 rerun directly after the timeout: 139 passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+Rendered Booknordics Scandinavian sample PDF: 24 pages, 2 What’s included pages, no blank text pages
+git diff --check: passed
+```
