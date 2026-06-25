@@ -8,6 +8,8 @@ from text_polish import polish_client_text
 from ui.render_helpers import esc, normalize_list
 
 _NOTE_RULES = [
+    ("Northern Lights", re.compile(r"\b(northern lights|aurora|natural phenomenon|sighting|sightings)\b", re.I)),
+    ("Winter travel conditions", re.compile(r"\b(winter|road|rail conditions|local guidance|independent transfer|extra time)\b", re.I)),
     ("Hotel timings", re.compile(r"\b(hotel|check[- ]?in|check[- ]?out|accommodation)\b", re.I)),
     ("Extra nights", re.compile(r"\b(extra night|additional night|night can be added|budget)\b", re.I)),
     ("Optional transfers", re.compile(r"\b(private transfer|private transfers|railway station|bus terminal|airport|cruise port|optional add[- ]?on)\b", re.I)),

@@ -34,6 +34,7 @@ function compactImage(image) {
 
 function buildEditableDraftFromPayload(value) {
   const source = JSON.parse(JSON.stringify(value || {}));
+  delete source.brand;
   const coverDraft = JSON.parse(JSON.stringify(source.cover || {}));
   if (coverDraft.cover_image) coverDraft.cover_image = compactImage(coverDraft.cover_image);
   if (coverDraft.summary_image) coverDraft.summary_image = compactImage(coverDraft.summary_image);
@@ -100,6 +101,7 @@ function buildEditableDraftFromPayload(value) {
 }
 function attachEditableDraft(value) {
   const copy = JSON.parse(JSON.stringify(value || {}));
+  delete copy.brand;
   copy.editor_draft = buildEditableDraftFromPayload(copy);
   return copy;
 }
@@ -111,6 +113,7 @@ function getByPath(obj, path) {
 }
 function pruneForSave(value) {
   const full = JSON.parse(JSON.stringify(value || {}));
+  delete full.brand;
   const payload = {cover: {}, summary: {}, days: [], final_pages: {}};
   const dayMap = {};
   function dayPayload(index) {
@@ -164,6 +167,7 @@ function pruneForSave(value) {
 
 function compactFullPayloadForCommit(value) {
   const full = JSON.parse(JSON.stringify(value || {}));
+  delete full.brand;
   if (full.cover?.cover_image) full.cover.cover_image = compactImage(full.cover.cover_image);
   if (full.cover?.summary_image) full.cover.summary_image = compactImage(full.cover.summary_image);
   (full.days || []).forEach((day, index) => {

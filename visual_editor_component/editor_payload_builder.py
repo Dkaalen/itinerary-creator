@@ -4,6 +4,8 @@ The payload contract remains owned here, while focused helper modules keep the
 cover, summary, days, final pages, images, source rows, and warnings logic small.
 """
 
+from app_modules.display_settings import get_color_preset
+from app_modules.output_brand import editor_brand_payload
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.editable_draft import normalise_editable_draft
 from itinerary_generation.editor_page_contract import build_editor_document_pages
@@ -112,6 +114,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     payload = {
         "draft_id": output_edits.get("draft_id", ""),
+        "brand": editor_brand_payload(output_edits, get_color_preset(output_edits)),
         "meta": {
             "draft_schema_version": 3,
             "source_signature": _source_signature(parsed_rows, grouped_days),

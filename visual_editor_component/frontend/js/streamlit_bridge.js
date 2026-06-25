@@ -10,7 +10,10 @@ const Streamlit = {
   }
 };
 
+let streamlitRenderReceived = false;
+
 function syncEditorFrameHeight() {
+  if (!streamlitRenderReceived) return;
   const shell = document.querySelector('.editor-shell');
   const measured = Math.ceil((shell?.getBoundingClientRect?.().height || document.body.scrollHeight || 900) + 24);
   const bounded = Math.max(780, Math.min(1080, measured));
@@ -21,7 +24,7 @@ function showEditorError(err) {
   const root = document.getElementById('root');
   const message = err && err.message ? err.message : String(err || 'Unknown rendering error');
   root.innerHTML = `<div class="editor-shell"><div class="editor-error"><strong>The editable preview could not render safely.</strong><div>${esc(message)}</div><div style="margin-top:8px">Your itinerary data is still in the app. Refresh the preview or generate the itinerary again after saving.</div></div></div>`;
-  Streamlit.setFrameHeight(360);
+  syncEditorFrameHeight();
 }
 function safeRender(payload, commitNonce = null) {
   try {
@@ -33,11 +36,11 @@ function safeRender(payload, commitNonce = null) {
 }
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'streamlit:render') {
+    streamlitRenderReceived = true;
     const args = event.data.args || {};
     safeRender(args.payload, args.commit_nonce);
   }
 });
 Streamlit.setComponentReady();
-syncEditorFrameHeight();
 
 window.addEventListener('resize', () => requestAnimationFrame(syncEditorFrameHeight));

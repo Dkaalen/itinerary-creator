@@ -32,7 +32,8 @@ function render(payload, commitNonce = null) {
 function draw() {
   captureEditorScrollState('draw');
   const root = document.getElementById('root');
-  let h = editorShellOpenHtml() + `
+  const brand = model?.brand || {};
+  let h = editorShellOpenHtml(brand) + `
     <div class="editor-toolbar">
       <div class="toolbar-main">
         <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · hover an image to edit it on the canvas' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
@@ -50,9 +51,12 @@ function draw() {
     </div>
     ${editorWorkspaceOpenHtml()}`;
   const coverBg = picturesAdded() ? (model.cover?.cover_image?.data_uri || model.cover?.cover_background_data_uri || '') : '';
-  const coverInk = picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446';
-  const coverMuted = picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c';
-  const coverAccent = picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555';
+  const isBooknordics = brand?.output_brand === 'booknordics_customer';
+  const brandColors = brand?.colors || {};
+  const daySeparator = isBooknordics ? '-' : '✦';
+  const coverInk = isBooknordics ? (brandColors.ink || '#00193C') : (picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446');
+  const coverMuted = isBooknordics ? (brandColors.muted || '#667085') : (picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c');
+  const coverAccent = isBooknordics ? (brandColors.accent || '#FF0041') : (picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555');
   const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
   const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)};` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;
   const pageHtmlById = {};
@@ -77,7 +81,7 @@ function draw() {
     const dayNumber = String(day.day || '').replace(/^Day\s*/i, '').trim() || String(i + 1);
     const pageId = pageIdForDay(day, i);
     addPageHtml(pageId, pageChrome(pageId, day.day || `Day ${i + 1}`, `<div class="a4-page day-page"><div class="page-content">
-      <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')} <span class="day-kicker-symbol">✦</span> ${editableSpan(day.date || '', `days.${i}.date`, 'day-kicker-date', 'Date')}</div>
+      <div class="day-kicker">DAY ${esc(dayNumber)} <span class="day-kicker-symbol">${daySeparator}</span> ${editableSpan(day.city, `days.${i}.city`, 'day-kicker-city')} <span class="day-kicker-symbol">${daySeparator}</span> ${editableSpan(day.date || '', `days.${i}.date`, 'day-kicker-date', 'Date')}</div>
       ${editableText(day.title, `days.${i}.title`, 'day-title')}
       ${editableText(day.intro, `days.${i}.intro`, 'intro')}
       ${editableHtml(day.blocks_html || '', `days.${i}.blocks_html`, 'day-blocks')}

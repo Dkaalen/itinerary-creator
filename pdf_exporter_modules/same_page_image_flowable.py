@@ -6,6 +6,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Flowable
 
+from pdf_exporter_modules import pdf_style_tokens as tokens
+from pdf_exporter_modules.pdf_branding import is_booknordics_pdf
+
 from .image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from .image_layout import make_cover_cropped_image, normalize_crop_focus
 
@@ -78,7 +81,7 @@ class SamePageDayImage(Flowable):
             preserveAspectRatio=False,
             mask="auto",
         )
-        divider_color = colors.HexColor("#b89555")
+        divider_color = tokens.ACCENT if is_booknordics_pdf() else colors.HexColor("#b89555")
         canv.setStrokeColor(divider_color)
         canv.setLineWidth(5.0)
         canv.line(self.absolute_x, image_top_y, self.absolute_x + self.content_width, image_top_y)

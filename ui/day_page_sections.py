@@ -12,6 +12,7 @@ from images.app_image_selection import render_day_image_slot, select_day_images_
 from ui.render_blocks import render_blocks_to_html
 from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import esc, get_detail_level_name
+from app_modules.output_brand import is_booknordics
 from ui.picture_workflow import pictures_are_added
 
 
@@ -29,10 +30,11 @@ def render_day_section(day, rows, output_edits=None, render_day=None):
     day_number = render_day.number
     day_date = get_day_date_text(main_rows)
     day_kicker_html = f"DAY {esc(day_number)}"
+    day_separator = "-" if is_booknordics(output_edits) else "✦"
     if city:
-        day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(str(city).upper())}'
+        day_kicker_html += f' <span class="day-kicker-symbol">{day_separator}</span> {esc(str(city).upper())}'
     if day_date:
-        day_kicker_html += f' <span class="day-kicker-symbol">✦</span> {esc(day_date)}'
+        day_kicker_html += f' <span class="day-kicker-symbol">{day_separator}</span> {esc(day_date)}'
     html_text = f'''
             <section class="day-section" data-day="{esc(day)}">
                 <div class="day-kicker">{day_kicker_html}</div>

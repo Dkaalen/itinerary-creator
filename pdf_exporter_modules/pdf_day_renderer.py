@@ -8,6 +8,7 @@ from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_
 from pdf_exporter_modules.html_utils import clean_text
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable
+from pdf_exporter_modules.pdf_branding import is_booknordics_pdf
 from pdf_exporter_modules.story import add_bullets, add_paragraph
 from itinerary_generation.render_model import RenderBlock, RenderDay
 
@@ -105,11 +106,12 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
 
 
 def day_label(day: RenderDay) -> str:
+    separator = "-" if is_booknordics_pdf() else "✦"
     kicker = f"DAY {day.number}"
     if day.city:
-        kicker += f" ✦ {str(day.city).upper()}"
+        kicker += f" {separator} {str(day.city).upper()}"
     if getattr(day, "date", ""):
-        kicker += f" ✦ {day.date}"
+        kicker += f" {separator} {day.date}"
     return kicker
 
 

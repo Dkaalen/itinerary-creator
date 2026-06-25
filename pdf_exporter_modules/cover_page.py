@@ -10,6 +10,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Spacer, Table, TableStyle
 
 from . import styles as pdf_styles
+from .pdf_branding import is_booknordics_pdf
 from .image_flowables import FullPageBackgroundImage
 from .render_flowables import CoverEmblem, add_cover_rule
 from .story import add_paragraph
@@ -39,6 +40,7 @@ def cover_styles(content: CoverPageContent, styles):
     cover_styles = dict(styles)
     ink = cover_color(content.ink, pdf_styles.INK)
     muted = cover_color(content.muted, pdf_styles.MUTED)
+    accent = pdf_styles.ACCENT if is_booknordics_pdf() else muted
     body = cover_color(content.ink, pdf_styles.BODY)
     for name, color in {
         "cover_kicker": muted,
@@ -81,17 +83,18 @@ def render_cover_content(content: CoverPageContent, story, styles, temp_dir=None
 
     resolved_styles = cover_styles(content, styles)
     muted = cover_color(content.muted, pdf_styles.MUTED)
+    accent = pdf_styles.ACCENT if is_booknordics_pdf() else muted
     background_path = Path(str(content.background_path or ""))
     if background_path.exists() and background_path.is_file() and temp_dir:
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=content.crop_focus or "top"))
 
     story.append(Spacer(1, 9 * mm))
-    _append_cover_emblem(story, muted)
+    _append_cover_emblem(story, accent)
     story.append(Spacer(1, 6 * mm))
     add_paragraph(story, content.kicker or "Travel Itinerary", resolved_styles["cover_kicker"])
-    add_cover_rule(story, width=50 * mm, space_after=4, color=muted)
+    add_cover_rule(story, width=50 * mm, space_after=4, color=accent)
     add_paragraph(story, content.title or "Itinerary", resolved_styles["cover_title"])
-    add_cover_rule(story, width=42 * mm, space_after=3, color=muted)
+    add_cover_rule(story, width=42 * mm, space_after=3, color=accent)
     add_paragraph(story, content.subtitle or "", resolved_styles["cover_subtitle"])
     if content.dates:
         add_paragraph(story, content.dates, resolved_styles["cover_dates"])

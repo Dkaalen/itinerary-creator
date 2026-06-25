@@ -2243,3 +2243,35 @@ Completed in Batch 22:
 - [x] Added page-header logos from page 3 onward while leaving cover and summary pages clear.
 - [x] Included output branding in render/cache state and customer PDF filenames.
 - [x] Added focused brand-theme regressions and an official-source DM Sans installer.
+
+---
+
+# Batch 24 — Booknordics customer theme repair
+
+Progress: `[####################] 100%`
+
+Completed in Batch 24:
+
+```text
+[x] Made generated customer previews fully consume the Booknordics theme tokens, logo, DM Sans font faces, and red accent rules
+[x] Made the visual editor receive a brand payload instead of relying on agent defaults
+[x] Added Booknordics visual-editor CSS and local component font assets so the editable preview renders independently
+[x] Prevented visual-editor brand metadata from being saved into editable drafts or PDF commit payloads
+[x] Delayed Streamlit component height messages until after the first render event to avoid unsafe SessionInfo access during PDF creation
+[x] Restored useful operational travel notes while keeping sales-oriented notes out of the default document
+[x] Preserved the agent day-image divider color while using the Booknordics accent only for customer PDFs
+[x] Replaced unsupported customer-PDF day-label star separators with PDF-safe hyphens
+[x] Added focused regressions for Booknordics preview, visual-editor theming, safe component bridge behavior, notes, and PDF-safe labels
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused Booknordics/export/parity regressions: 46 passed
+Architecture/facade/boundary guards: 44 passed
+Import smoke: optional skips=25, failures=0
+Rendered Booknordics sample PDF inspected after export: passed
+git diff --check: passed
+```

@@ -13,7 +13,11 @@ def test_important_travel_notes_render_as_premium_guidance_cards():
 
     assert "Transport schedules" in titles
     assert "Hotel timings" in titles
-    assert "Optional transfers" in titles
+    assert "Northern Lights" in titles
+    assert "Winter travel conditions" in titles
+    assert "Extra nights" not in titles
+    assert "Optional transfers" not in titles
+    assert "Tailor-made additions" not in titles
     assert len(cards) == len(DEFAULT_IMPORTANT_TRAVEL_NOTES)
 
     html = render_text_paragraph_page("Important travel notes", DEFAULT_IMPORTANT_TRAVEL_NOTES)
