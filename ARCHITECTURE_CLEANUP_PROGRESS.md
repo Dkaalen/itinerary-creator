@@ -77,15 +77,15 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [#########-----------] 45%
+Overall architecture cleanup:        [############--------] 60%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
 CSS responsibility cleanup:          [####################] 100%
 Parser cleanup:                      [####################] 100%
-Generation cleanup:                  [--------------------] 0%
+Generation cleanup:                  [####################] 100%
 PDF/images cleanup:                  [--------------------] 0%
-Architecture guards:                 [##########----------] 50%
+Architecture guards:                 [############--------] 60%
 ```
 
 Status legend:
@@ -1328,7 +1328,7 @@ hotel nights/destination parsing
 
 # Batch 6: Generation cleanup
 
-Progress: `[--------------------] 0%`
+Progress: `[####################] 100%`
 
 Goal:
 
@@ -1336,9 +1336,18 @@ Goal:
 Make generated itinerary copy/render logic easier to improve without regressions.
 ```
 
+Completed in Batch 6:
+
+```text
+[x] generation facades now isolate day intro, summaries, activity titles, structured document, editable draft, quality gate, QA report, nutshell, exclusions, and day render responsibilities
+[x] existing public imports remain compatibility-safe
+[x] normal workflow behavior unchanged
+[x] focused generation/quality/structured tests pass
+```
+
 ## Patch 6.1: Split `day_intro_engine.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1354,7 +1363,7 @@ itinerary_generation/day_intro_arrival.py
 
 ## Patch 6.2: Split `summaries.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1368,7 +1377,7 @@ itinerary_generation/journey_arc_text_safety.py
 
 ## Patch 6.3: Split `activity_titles.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1387,7 +1396,7 @@ normalize source -> classify activity -> apply rule -> clean result
 
 ## Patch 6.4: Split `structured_builder.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1402,7 +1411,7 @@ itinerary_generation/structured_final_sections.py
 
 ## Patch 6.5: Split `editable_draft.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1419,7 +1428,7 @@ The legacy bridge should be isolated so it can eventually be removed.
 
 ## Patch 6.6: Split `quality_gate.py`
 
-Status: [ ]
+Status: [x]
 
 Target structure:
 
@@ -1440,7 +1449,7 @@ They should return fatal messages only when needed.
 
 ## Patch 6.7: Move QA report to debug/reporting area
 
-Status: [ ]
+Status: [x]
 
 Current file:
 
@@ -1462,7 +1471,7 @@ Normal app flow should not import QA report rendering.
 
 ## Patch 6.8: Split specialist generation/render helpers
 
-Status: [ ]
+Status: [x]
 
 Targets:
 

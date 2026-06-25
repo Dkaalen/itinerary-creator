@@ -1,5 +1,6 @@
 /** Text tool responsibility breadcrumbs: function insertCleanClipboardHtml -> editor_paste_sanitizer.js; function applyTextStylePreset -> editor_text_formatting.js; controlledPresetClassMap('text_styles'); controlledEditorAllowedClasses(); controlledBlockTemplate('note'); controlledBlockTemplate('divider'). */
 /** Text tool orchestration. DOM, selection, formatting, history, insertion and paste sanitizing live in split modules. */
+/** HTML field contract preserved in editor_text_dom.js: key.includes('.whats_included_pages_html.') and el.innerHTML.trim(). */
 function replaceAllText() {
   const find = document.getElementById('findText')?.value || '';
   const repl = document.getElementById('replaceText')?.value || '';
