@@ -6,7 +6,9 @@ from scripts.architecture_guards import (
     duplicate_shared_clean_space_hits,
     duplicate_test_path_hits,
     forbidden_normal_ui_hits,
+    generation_implementation_core_import_hits,
     import_from_hits,
+    oversized_cleaned_generation_core_facades,
     oversized_core_named_python_files,
     oversized_core_python_files,
     oversized_editor_css_files,
@@ -32,6 +34,7 @@ def test_file_size_guards_protect_recently_split_frontend_and_workflow_files() -
     assert oversized_core_python_files() == ()
     assert oversized_editor_css_files() == ()
     assert oversized_core_named_python_files() == ()
+    assert oversized_cleaned_generation_core_facades() == ()
 
 
 def test_function_size_guard_blocks_new_giant_functions_outside_allowlist() -> None:
@@ -87,3 +90,7 @@ def test_patch_artifacts_and_duplicate_tests_do_not_return() -> None:
 
 def test_shared_clean_space_is_the_single_source_of_truth() -> None:
     assert duplicate_shared_clean_space_hits() == ()
+
+
+def test_cleaned_generation_facades_do_not_reabsorb_implementation_imports() -> None:
+    assert generation_implementation_core_import_hits() == ()

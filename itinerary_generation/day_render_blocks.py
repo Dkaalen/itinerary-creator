@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from shared.source_rows import source_row_id
+
 from itinerary_generation.day_render_blocks_core import (
     _is_blank_activity_row,
     _optional_title,

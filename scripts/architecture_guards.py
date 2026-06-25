@@ -120,6 +120,30 @@ ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MA
 PATCH_METADATA_DIR_NAMES = frozenset({"_patch_metadata"})
 DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
 
+
+CLEANED_GENERATION_CORE_FACADES = {
+    "itinerary_generation/editable_draft_core.py": 120,
+    "itinerary_generation/quality_gate_core.py": 140,
+    "itinerary_generation/structured_builder_core.py": 160,
+}
+
+GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
+    "itinerary_generation/editable_draft_model.py",
+    "itinerary_generation/editable_draft_normalize.py",
+    "itinerary_generation/editable_draft_lookup.py",
+    "itinerary_generation/editable_draft_merge.py",
+    "itinerary_generation/editable_draft_legacy_bridge.py",
+    "itinerary_generation/generation_quality_gate.py",
+    "itinerary_generation/client_output_quality_gate.py",
+    "itinerary_generation/quality_gate_patterns.py",
+    "itinerary_generation/structured_row_helpers.py",
+    "itinerary_generation/structured_items_builder.py",
+    "itinerary_generation/structured_warning_builder.py",
+    "itinerary_generation/structured_days_builder.py",
+    "itinerary_generation/structured_travel_sequences.py",
+    "itinerary_generation/structured_final_sections.py",
+)
+
 EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})
 
 PYTHON_FUNCTION_ALLOWLIST = frozenset(
@@ -334,3 +358,33 @@ def oversized_core_named_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
             if line_count > limit:
                 hits.append(SizeHit(_repo_path(path), line_count, limit))
     return tuple(hits)
+
+
+def oversized_cleaned_generation_core_facades() -> tuple[SizeHit, ...]:
+    """Return cleaned generation-core facades that grew back into implementations."""
+
+    hits: list[SizeHit] = []
+    for relative, limit in CLEANED_GENERATION_CORE_FACADES.items():
+        path = REPO_ROOT / relative
+        if not path.exists():
+            continue
+        line_count = len(_read(path).splitlines())
+        if line_count > limit:
+            hits.append(SizeHit(relative, line_count, limit))
+    return tuple(hits)
+
+
+def generation_implementation_core_import_hits() -> tuple[str, ...]:
+    """Return named generation implementation modules that still import cleaned core modules."""
+
+    forbidden = (
+        "itinerary_generation.editable_draft_core",
+        "itinerary_generation.quality_gate_core",
+        "itinerary_generation.structured_builder_core",
+    )
+    hits: list[str] = []
+    for relative in GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE:
+        if not (REPO_ROOT / relative).exists():
+            continue
+        hits.extend(import_from_hits(relative, forbidden))
+    return tuple(sorted(hits))

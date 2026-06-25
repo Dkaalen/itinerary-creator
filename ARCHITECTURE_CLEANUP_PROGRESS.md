@@ -90,6 +90,7 @@ Healthcheck follow-up:                [####################] 100%
 Fixture hygiene cleanup:              [####################] 100%
 Cleanup leftovers and guard gaps:      [####################] 100%
 Shared helper + duplicate cleanup:     [####################] 100%
+Large generation core cleanup:          [####################] 100%
 ```
 
 Status legend:
@@ -1896,3 +1897,21 @@ Completed in Batch 12:
 [x] Added architecture guard coverage for duplicated clean_space helpers
 [x] Extended patch-artifact hygiene guard to catch _patch_metadata
 ```
+
+
+## Batch 13: Large generation core cleanup
+
+Progress: `[####################] 100%`
+
+Completed:
+
+- Inverted editable-draft modules so `editable_draft_model.py`, `editable_draft_normalize.py`, `editable_draft_lookup.py`, `editable_draft_merge.py`, and `editable_draft_legacy_bridge.py` own their logic.
+- Inverted quality-gate modules so generation-input checks, client-output checks, and shared patterns are separate responsibilities.
+- Inverted structured-builder modules so row helpers, item building, warning building, day building, travel sequencing, and final sections are split by responsibility.
+- Kept `*_core.py` files as compatibility facades for older imports.
+- Added architecture guards so cleaned facades do not grow back into implementation catch-alls and named modules do not import back from cleaned core files.
+
+Validation notes:
+
+- `quality` group stages 1-6 passed. The full grouped command timed out during stage 7, so stages 7-9 were rerun directly and passed.
+- `architecture` group stages 1-6 passed. The full grouped command timed out during stage 7, so stages 7-11 were rerun directly and passed.
