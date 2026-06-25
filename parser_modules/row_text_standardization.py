@@ -41,15 +41,17 @@ def standardize_row_text(row):
     combined_lower = f"{title} {details}".lower()
 
     if row_type == "Transfer":
-        if "self transfer" in combined_lower:
+        if "self transfer" in combined_lower or "self-transfer" in combined_lower:
             row["title"] = standardize_self_transfer_title(title, details, city)
         elif "private" in combined_lower:
             row["title"] = standardize_private_transfer_title(title, details, city)
         elif "shuttle" in combined_lower:
             row["title"] = standardize_shuttle_transfer_title(title, details, city)
+        elif re.search(r"\b(?:train|coach|bus|flight|cruise|ferry)\b", combined_lower):
+            row["title"] = create_clean_transport_title(row)
 
-    if row_type in {"Arrival", "Departure"} and any(marker in combined_lower for marker in ["private", "shuttle", "self transfer"]):
-        if "self transfer" in combined_lower:
+    if row_type in {"Arrival", "Departure"} and any(marker in combined_lower for marker in ["private", "shuttle", "self transfer", "self-transfer"]):
+        if "self transfer" in combined_lower or "self-transfer" in combined_lower:
             row["title"] = standardize_self_transfer_title(title, details, city)
         elif "private" in combined_lower:
             row["title"] = standardize_private_transfer_title(title, details, city)

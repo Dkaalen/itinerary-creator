@@ -20,6 +20,7 @@ def test_details_facade_delegates_to_responsibility_modules() -> None:
         "row_text_standardization.py",
         "detail_extractors.py",
         "title_cleanup.py",
+        "title_prose_boundaries.py",
         "list_parsing.py",
         "effective_type_detection.py",
     }

@@ -112,7 +112,7 @@ Architecture cleanup is complete. The next phase is end-to-end itinerary quality
 ```text
 Golden input inventory:           [####################] 100%
 Golden input runner/reporting:    [####################] 100%
-Client output quality fixes:      [#####               ] 25%
+Client output quality fixes:      [#########           ] 45%
 Preview/PDF parity hardening:     [                    ] 0%
 Editor product polish:            [                    ] 0%
 ```
@@ -125,7 +125,7 @@ Source workbooks represented:     2
 Sheets represented:               307
 Latest parser exceptions:         0
 Latest generation smoke:          passed
-Latest average parser confidence: 97.4%
+Latest average parser confidence: 97.5%
 ```
 
 Use `docs/reports/golden_input_quality_sprint.md` as the entry point for the product-quality sprint.
@@ -168,6 +168,43 @@ Rows under 80 confidence:      196
 Overlong title flags:          173 -> 86
 Supplier prose title flags:    82 -> 63
 Missing parsed city flags:     9 -> 8
+```
+
+---
+
+# Batch 18: Golden title/prose boundary cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Continue the real Vipin corpus quality sprint while preserving one clear responsibility per file.
+```
+
+Completed in Batch 18:
+
+```text
+[x] Split supplier title/prose boundary heuristics into parser_modules/title_prose_boundaries.py
+[x] Kept parser_modules/title_cleanup.py as the title-cleanup orchestrator
+[x] Fixed earliest-boundary selection so early prose markers beat later markers
+[x] Compacted repeated-subject activity descriptions such as Seljalandsfoss Waterfall Seljalandsfoss...
+[x] Compacted rental-car, coach, cable-car, hotel-note, and itinerary-note title shapes from the real corpus
+[x] Added regression tests for the new real-corpus title shapes
+[x] Re-ran the full 5,557-row Vipin corpus report
+```
+
+Full-corpus result after Batch 18:
+
+```text
+Rows checked:                  5,557
+Parsed rows:                   5,438
+Parser exceptions:             0
+Generation smoke:              passed
+Average parser confidence:     97.5%
+Rows under 80 confidence:      192
+Overlong title flags:          86 -> 0
+Supplier prose title flags:    63 -> 0
 ```
 
 ## Current known issue to verify first

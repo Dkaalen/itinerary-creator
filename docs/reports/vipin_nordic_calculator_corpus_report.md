@@ -11,8 +11,8 @@ Purpose: run the real messy Nordic calculator corpus through parser and editable
 - Sheets with extracted rows: 307
 - Parser exceptions: 0
 - Rows skipped by parser: 119
-- Average parser confidence: 97.4%
-- Rows under 80 confidence: 196
+- Average parser confidence: 97.5%
+- Rows under 80 confidence: 192
 - Whole-corpus generation smoke: passed
 - Bad-output log: `docs/reports/vipin_nordic_calculator_bad_outputs.jsonl`
 
@@ -20,10 +20,8 @@ Purpose: run the real messy Nordic calculator corpus through parser and editable
 
 - missing_source_city: 381
 - missing_source_date: 87
-- overlong_title: 86
 - missing_source_day: 85
 - non_itinerary_type: 65
-- activity_text_used_as_title: 63
 - unexpected_skip: 35
 - missing_source_type: 21
 - missing_parsed_city: 8
@@ -31,9 +29,9 @@ Purpose: run the real messy Nordic calculator corpus through parser and editable
 ## Parser review flags
 
 - very_long_supplier_text: 324
-- missing_route_origin: 101
+- missing_route_origin: 97
 - missing_hotel_name: 93
-- missing_route_destination: 87
+- missing_route_destination: 82
 - missing_room_category: 80
 - missing_city: 8
 - weak_title: 6
@@ -71,22 +69,6 @@ Purpose: run the real messy Nordic calculator corpus through parser and editable
 - single room cost: 1
 
 ## Worst-case samples
-
-### overlong_title
-- Vipin Calculator Nordic 2.xlsx::10066::R14 | type='Day overview' | title='Climb Craters and Explore West Iceland’s Hot Springs On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | generated='Climb Craters and Explore West Iceland’s Hot Springs On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | reason=Parsed title is over 100 characters.
-- Vipin Calculator Nordic 2.xlsx::10071::R12 | type='Activity' | title='On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | generated='On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | reason=Parsed title is over 100 characters.
-- Vipin Calculator Nordic 2.xlsx::10100v4::R9 | type='Transfer' | title='Train to Gothenburg: Direct train (10:13-13:42) incl. high-speed train and booked seats. Timing can vary slightly' | generated='Train to Gothenburg: Direct train (10:13-13:42) incl. high-speed train and booked seats. Timing can vary slightly' | reason=Parsed title is over 100 characters.
-- Vipin Calculator Nordic 2.xlsx::10100v4::R14 | type='Transfer' | title='Train to Copenhagen: Direct train (09:55-13:28) incl. high-speed train and booked seats. Timing can vary slightly' | generated='Train to Copenhagen: Direct train (09:55-13:28) incl. high-speed train and booked seats. Timing can vary slightly' | reason=Parsed title is over 100 characters.
-- Vipin Calculator Nordic 2.xlsx::10100v4::R17 | type='Transfer' | title='Self-transfer from hotel to cruise harbor by local taxi (the cheapest and most efficient way to travel)' | generated='Self-transfer from hotel to cruise harbor by local taxi (the cheapest and most efficient way to travel)' | reason=Parsed title is over 100 characters.
-- Vipin Calculator Nordic 2.xlsx::10100v4::R19 | type='Transfer' | title='Self-transfer from cruise harbor to hotel by local taxi (the cheapest and most efficient way to travel)' | generated='Self-transfer from cruise harbor to hotel by local taxi (the cheapest and most efficient way to travel)' | reason=Parsed title is over 100 characters.
-
-### activity_text_used_as_title
-- Vipin Calculator Nordic 2.xlsx::10066::R14 | type='Day overview' | title='Climb Craters and Explore West Iceland’s Hot Springs On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | generated='Climb Craters and Explore West Iceland’s Hot Springs On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | reason=Parsed title looks like supplier prose or activity body text.
-- Vipin Calculator Nordic 2.xlsx::10071::R12 | type='Activity' | title='On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | generated='On the final day of your Icelandic adventure, savor a delicious breakfast before continuing your journey. Drive to Grábrók, a volcanic crater known for its stunning views and unique geological features. Take a short walk to the rim and soak in the panoramic vistas. Next, visit Glanni waterfall, a serene and picturesque cascade nestled in the beautiful Húsafell area. Enjoy the peaceful ambiance and let the sounds of nature soothe your soul. Continue your exploration to Hraunfossar, a series of cascading waterfalls flowing through lava fields, creating a mesmerizing sight. Marvel at the contrast between the vibrant blue water and the dark volcanic rocks. Afterward, visit Sturlureykir, a traditional Icelandic horse farm' | reason=Parsed title looks like supplier prose or activity body text.
-- Vipin Calculator Nordic 2.xlsx::10093 Ref  1205::R19 | type='Transfer' | title='Self-arranged transfer to meeting point of Lyngen Stay ( Crystall lavvo )' | generated='Self-arranged transfer to meeting point of Lyngen Stay ( Crystall lavvo )' | reason=Parsed title looks like supplier prose or activity body text.
-- Vipin Calculator Nordic 2.xlsx::10093v2::R17 | type='Transfer' | title='Self-arranged transfer to meeting point of Lyngen Stay ( Crystall lavvo )' | generated='Self-arranged transfer to meeting point of Lyngen Stay ( Crystall lavvo )' | reason=Parsed title looks like supplier prose or activity body text.
-- Vipin Calculator Nordic 2.xlsx::10108::R7 | type='Notes' | title='This Day 2 Bergen to Bergen day toour can be upgraded to Fully English-speaking guided Version with Trip guide with additional cost of 75 EUR per persib' | generated='This Day 2 Bergen to Bergen day toour can be upgraded to Fully English-speaking guided Version with Trip guide with additional cost of 75 EUR per persib' | reason=Parsed title looks like supplier prose or activity body text.
-- Vipin Calculator Nordic 2.xlsx::10115::R8 | type='Day overview' | title='Hike Waterfalls and Glacier Seljalandsfoss: the adventure begins with the powerful theatrics of Seljalandsfoss. Bring a raincoat and' | generated='Hike Waterfalls and Glacier Seljalandsfoss: the adventure begins with the powerful theatrics of Seljalandsfoss. Bring a raincoat and' | reason=Parsed title looks like supplier prose or activity body text.
 
 ### missing_parsed_city
 - Vipin Calculator Nordic 2.xlsx::10114::R42 | type='Transfer' | title='Departure' | generated='Departure' | reason=Parsed row is missing city/area.

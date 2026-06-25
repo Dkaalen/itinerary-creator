@@ -5,6 +5,10 @@ from place_aliases import is_known_place
 
 from parser_modules.common import *  # noqa: F401,F403
 from parser_modules.time_parsing import normalize_duration_text, normalize_time_text
+from parser_modules.title_prose_boundaries import (
+    extract_supplier_prose_product_name as _supplier_prose_product_name,
+    split_long_title_from_prose as _split_long_title_from_prose,
+)
 
 def _best_title_source(text):
     """Return the most title-like part of messy supplier text.
@@ -81,155 +85,6 @@ def _strip_repeated_city_prefix(title):
     return title
 
 
-
-
-def _supplier_prose_product_name(source: str) -> str:
-    """Extract a compact product name from a sentence-style supplier title."""
-
-    generic_start = re.match(
-        r"^(?:after|start|begin|today|make|take|enjoy|embark|discover|experience|join|prepare)\b",
-        source,
-        flags=re.IGNORECASE,
-    )
-    if not generic_start:
-        return ""
-
-    match = re.search(
-        r"\bon\s+the\s+([A-ZÀ-Ý][^.!?]{8,90}?\b(?:Tour|Experience|Safari|Cruise|Excursion|Package|Holiday))\b",
-        source,
-    )
-    if not match:
-        match = re.search(
-            r"\b([A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ' -]{4,70}?\b(?:Tour|Safari|Cruise|Excursion|Experience|Ticket))\b",
-            source,
-        )
-    if match:
-        candidate = clean_space(match.group(1)).strip(" -:|,.")
-        if 8 <= len(candidate) <= 85 and not re.search(r"\b(?:begins|followed|where|while|before|after)\b", candidate, flags=re.IGNORECASE):
-            return candidate
-
-    visit_match = re.search(
-        r"\bvisit\s+to\s+([A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ' -]{3,60}?)(?:,|\s+known\b|\s+where\b|\s+before\b|\.)",
-        source,
-    )
-    if visit_match:
-        candidate = clean_space(visit_match.group(1)).strip(" -:|,.")
-        if 4 <= len(candidate) <= 70:
-            if re.search(r"\b(?:tour|cruise|safari|excursion|experience|ticket|visit)\b", candidate, flags=re.IGNORECASE):
-                return candidate
-            return f"{candidate} Visit"
-
-    return ""
-
-def _split_long_title_from_prose(title):
-    """Keep headings compact when supplier body text follows the title."""
-
-    source = clean_space(title)
-    product_name = _supplier_prose_product_name(source)
-    if product_name:
-        return product_name
-
-    source = re.split(
-        r"\s*,?\s*\d{1,2}[:.]\s*\d{2}\s+(?:duration|time)\b",
-        source,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip(" -:|,.")
-    if len(source) <= 95 and not re.search(r"[.!?]", source):
-        return source
-
-    # Common day-overview/activity patterns where a heading is followed by prose.
-    prose_starts = [
-        r"\s+Make your way\b",
-        r"\s+The day starts\b",
-        r"\s+The journey continues\b",
-        r"\s+The scenery continues\b",
-        r"\s+This day is filled\b",
-        r"\s+We will start\b",
-        r"\s+On this,? our final day\b",
-        r"\s+Your journey begins\b",
-        r"\s+Your next destination\b",
-        r"\s+Prepare to explore\b",
-        r"\s+You will visit\b",
-        r"\s+The first stop\b",
-        r"\s+Embark on\b",
-        r"\s+Experience the\b",
-        r"\s+After Pick[- ]?up\b",
-        r"\s+After (?:(?:a|the) |enjoying (?:a |the )?)?(?:delicious )?breakfast\b",
-        r"\s+Start your day\b",
-        r"\s+Start the day\b",
-        r"\s+Today'?s journey\b",
-        r"\s+On this day\b",
-        r"\s+On (?:the|your) final day\b",
-        r"\s+Continuing your journey\b",
-        r"\s+Your adventure begins\b",
-        r"\s+You(?:'|’)ll\b",
-        r"\s+You will\b",
-        r"\s+A\s+\d{2,4}m\b",
-        r"\s+Seljalandsfoss\s*:\b",
-        r"\s+Bring a raincoat\b",
-        r"\s+Our adventure\b",
-        r"\s+the adventure begins\b",
-    ]
-    for pattern in prose_starts:
-        match = re.search(pattern, source, flags=re.IGNORECASE)
-        if match and match.start() >= 8:
-            return source[:match.start()].strip(" -:|,.")
-
-    source = re.split(
-        r"\s+-\s+(?:[A-Za-zÀ-ÿøØåÅäÄöÖ\s]+\s+)?(?:port\s+)?transfers?\s+included\b|\s+-\s+self[-\s]*guided\b|\s+○\s+",
-        source,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip(" -:|,.")
-
-    source = re.split(
-        r"\s+with\s+private\s+transfer\b|\s+with\s+hotel\s+pick[-\s]*up\b",
-        source,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip(" -:|,.")
-
-    source = re.split(
-        r"\s+-\s+(?:a\s+)?4x4\b|\s+-\s+(?:vehicle|car)\s+will\b",
-        source,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip(" -:|,.")
-
-    # Product metadata after a colon often introduces descriptive text rather
-    # than a better title: "Cable Car: Tickets Included: Enjoy the view...".
-    if ":" in source:
-        left, right = source.split(":", 1)
-        left = clean_space(left)
-        right = clean_space(right)
-        if (
-            5 <= len(left) <= 70
-            and not re.search(r"\d\s*$", left)
-            and (
-                re.search(r"\b(?:ticket|tickets|included|incl\.?|round trip|admission)\b", right, flags=re.IGNORECASE)
-                or re.search(r"[.!?]", right)
-                or len(right.split()) >= 10
-            )
-        ):
-            return left
-
-    # Very long comma clauses usually represent extras/notes, not the heading.
-    source = re.split(
-        r",\s+(?:shared|includes?|with|including|incl\.?|and\s+with|free\s+time|transfer(?:s)?|return\s+transfer|return\s+same\s+night)\b",
-        source,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0]
-
-    # As a last resort, stop after the first sentence when the rest is prose.
-    # Keep product abbreviations such as "incl. Lunch" intact.
-    protected_source = re.sub(r"\bincl\.", "incl§", source, flags=re.IGNORECASE)
-    sentence = re.split(r"(?<=[.!?])\s+", protected_source, maxsplit=1)[0].replace("incl§", "incl.")
-    if len(sentence) >= 8 and len(sentence) < len(source):
-        return sentence.strip(" -:|,.")
-
-    return source.strip(" -:|,.")
 
 
 def clean_title(text):

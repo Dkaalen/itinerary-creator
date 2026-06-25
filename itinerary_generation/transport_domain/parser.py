@@ -41,6 +41,30 @@ def _explicit_transport_route_from_text(text: str):
     return "", ""
 
 
+def _compact_route_destination(destination: str, fallback_city: str = "") -> str:
+    """Return a client-safe destination label for transport titles."""
+
+    cleaned = normalize_transport_place(destination) or fix_common_text(destination).strip(" -:|,.")
+    cleaned = re.split(
+        r"\s+(?:booking window|final timing|timing can vary|tickets? included|incl\.?|includes?|booked seats)\b",
+        cleaned,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" -:|,.")
+    if ":" in cleaned:
+        before_colon = cleaned.split(":", 1)[0].strip(" -:|,.")
+        normalized_before = normalize_transport_place(before_colon)
+        if normalized_before:
+            cleaned = normalized_before
+    if (
+        not cleaned
+        or len(cleaned) > 55
+        or re.search(r"\b(?:direct|high[-\s]*speed|booked seats|timing can vary|tickets? included|incl\.?|booking window|voucher)\b", cleaned, flags=re.IGNORECASE)
+    ):
+        return fallback_city
+    return cleaned
+
+
 def _explicit_airport_from_text(text, fallback_city=""):
     source = text or ""
     directional = re.search(r"\b(?:to|from)\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?\s+Airport)\b", source, flags=re.IGNORECASE)
@@ -157,6 +181,20 @@ def standardize_self_transfer_title(title, details, city):
     if "airport to hotel" in lower or "airport to accommodation" in lower:
         return f"Self-arranged transfer from {airport} to your accommodation"
 
+    if "hotel to cruise" in lower or "hotel to harbor" in lower or "hotel to harbour" in lower:
+        return "Self-arranged transfer from your hotel to the cruise harbour"
+
+    if "cruise harbor to hotel" in lower or "cruise harbour to hotel" in lower or "cruise terminal to hotel" in lower:
+        return "Self-arranged transfer from the cruise harbour to your accommodation"
+
+    lyngen = re.search(r"to\s+(?:the\s+)?meeting point of\s+(.+?)(?:\.|$)", text, flags=re.IGNORECASE)
+    if lyngen:
+        destination = fix_common_text(lyngen.group(1)).strip(" -:|,.")
+        return f"Self-arranged transfer to {destination}" if destination else "Self-arranged local transfer"
+
+    if "activity meeting point" in lower or "activity location" in lower:
+        return "Self-arranged transfer to activity location"
+
     if "bus station" in lower or "bustation" in lower:
         if "hotel to" in lower or "to bus" in lower:
             return f"Self-arranged transfer from your hotel to {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'}"
@@ -214,6 +252,7 @@ def create_clean_transport_title(row):
     if not destination:
         origin, destination = extract_route_points(text)
     city = normalize_place_name(row.get("city", ""))
+    destination = _compact_route_destination(destination, city)
 
     if "norway in a nutshell" in lower:
         return _norway_nutshell_route_label(text, origin, destination)

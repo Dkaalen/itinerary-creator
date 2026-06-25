@@ -46,19 +46,39 @@ Latest result:
 - Parsed output rows: 5,438
 - Parser exceptions: 0
 - Whole-corpus generation smoke: passed
-- Average parser confidence: 97.4%
-- Rows under 80 confidence: 196
+- Average parser confidence: 97.5%
+- Rows under 80 confidence: 192
 
 ## Current quality backlog from the real corpus
 
-The latest run exposes the next product-quality targets. Batch 17 reduced the first title/prose group, but remaining cases still need polishing:
+The latest run has cleared the overlong-title and supplier-prose-title categories. The next product-quality targets are:
 
-1. Remaining overlong generated/parsed titles, especially long day-overview prose, train metadata, and local-transfer notes.
-2. Remaining activity supplier prose leaking into title fields.
-3. Missing parsed city for a small set of activity/transfer rows.
-4. Hotel-name extraction misses for malformed accommodation rows.
-5. Cost/calculator rows and malformed header-like rows still appearing in the extracted corpus and needing better classification/reporting.
+1. Missing parsed city for a small set of sparse activity/transfer rows.
+2. Hotel-name extraction misses for malformed accommodation rows.
+3. Cost/calculator rows and malformed header-like rows still appearing in the extracted corpus and needing better classification/reporting.
+4. Unexpected skips from sparse rows that look itinerary-like but have too little usable supplier text.
+5. Broader preview/PDF parity checks using the same golden inputs.
 
+
+## Batch 18 title/prose boundary cleanup result
+
+Batch 18 kept the one-responsibility-per-file rule by moving title/prose boundary heuristics into `parser_modules/title_prose_boundaries.py`, leaving `parser_modules/title_cleanup.py` as the orchestrator.
+
+Improvement from the Batch 17 checkpoint:
+
+- Overlong titles: 86 → 0
+- Activity/supplier prose used as title: 63 → 0
+- Rows under 80 parser confidence: 196 → 192
+- Missing route origin flags: 101 → 97
+- Missing route destination flags: 87 → 82
+
+Key fixes locked with regression tests:
+
+- Earliest title/prose boundary is chosen, so early text like `Prepare to explore...` beats later prose markers.
+- Repeated-subject descriptions become compact titles, e.g. `Seljalandsfoss Waterfall Seljalandsfoss...` → `Seljalandsfoss Waterfall`.
+- Long train/coach metadata becomes compact transport titles.
+- Rental-car day-overview rows become `Pick-up rental car`.
+- Hotel and cable-car rows no longer leak long inclusions or descriptive body text into the title.
 
 ## Batch 17 title/prose cleanup result
 
