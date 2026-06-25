@@ -115,6 +115,7 @@ def test_patch_bt_cover_image_edits_are_persisted(monkeypatch) -> None:
 
 def test_patch_bt_text_formatting_sidebar_is_visible_and_wired() -> None:
     render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    outline_js = Path("visual_editor_component/frontend/js/editor_document_outline.js").read_text(encoding="utf-8")
     debug_shell_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
     inspector_js = (
         Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
@@ -125,7 +126,7 @@ def test_patch_bt_text_formatting_sidebar_is_visible_and_wired() -> None:
 
     assert 'class="advanced-tools"' not in render_js
     assert 'class="advanced-tools"' in debug_shell_js
-    assert 'class="pages-menu"' in render_js
+    assert 'class="pages-menu"' in outline_js
     assert "inspectorFontFamilyPreset')?.addEventListener" in inspector_js
     assert "inspectorFontSizePreset')?.addEventListener" in inspector_js
     assert "applyFontFamilyPreset" in inspector_js

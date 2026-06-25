@@ -11,7 +11,7 @@ from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.nutshell_parsing import format_norway_nutshell_route
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine, RenderSection
 from itinerary_generation.render_text_helpers import clean_space
-from itinerary_generation.route_intelligence import route_profile_for_places
+from itinerary_generation.route_intelligence import premium_mode_label, route_profile_for_places
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_times import get_transport_time_text
 from itinerary_generation.time_display import display_time
@@ -101,12 +101,9 @@ def _timed_leg_label(leg) -> str:
 
 def _normalise_transport_mode(value: str) -> str:
     text = polish_title(clean_space(value))
-    text = re.sub(r"\s+transfer\b", "", text, flags=re.IGNORECASE).strip()
     if not text:
         return "Journey leg"
-    if text.lower() == "bus":
-        return "Coach"
-    return _nutshell_mode_label(text)
+    return premium_mode_label(text)
 
 
 def _timeline_time_display(value: str) -> str:

@@ -77,7 +77,7 @@ If the existing module is already overloaded, split first, then patch.
 Update this section after every completed patch batch.
 
 ```text
-Overall architecture cleanup:        [##################--] 90%
+Overall architecture cleanup:        [####################] 100%
 Critical editor/workflow cleanup:    [####################] 100%
 Editor structure cleanup:            [####################] 100%
 Streamlit workflow cleanup:          [####################] 100%
@@ -86,6 +86,7 @@ Parser cleanup:                      [####################] 100%
 Generation cleanup:                  [####################] 100%
 PDF/images cleanup:                  [####################] 100%
 Architecture guards:                 [####################] 100%
+Healthcheck follow-up:                [####################] 100%
 ```
 
 Status legend:
@@ -1620,6 +1621,18 @@ Completed in Batch 8:
 [x] lazy import boundaries added for debug review panels
 [x] PDF internal review appendix lazy-loaded only when enabled
 [x] architecture guard tests added to the architecture test group
+```
+
+## Batch 9: Healthcheck follow-up
+
+Progress: `[####################] 100%`
+
+Completed in Batch 9:
+
+```text
+[x] refreshed stale frontend source-contract tests after the editor split
+[x] restored premium Norway in a Nutshell timeline mode labels
+[x] verified baseline compile/import/frontend syntax gates
 ```
 
 ## Patch 8.1: Add source-level bloat guards

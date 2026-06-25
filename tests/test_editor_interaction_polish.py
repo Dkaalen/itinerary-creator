@@ -9,6 +9,7 @@ def _frontend_source() -> str:
         (frontend / relative).read_text(encoding="utf-8")
         for relative in (
             "js/render.js",
+            "js/editor_document_outline.js",
             "js/editing.js",
             "js/editor_inspector.js",
             "js/editor_page_actions.js",
@@ -30,16 +31,16 @@ def test_ui16_collapses_document_status_metrics_by_default():
 
 
 def test_ui17_outline_page_cards_are_navigation_not_action_menus():
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    outline_js = Path("visual_editor_component/frontend/js/editor_document_outline.js").read_text(encoding="utf-8")
     editing_js = "\n".join(
         Path("visual_editor_component/frontend/js", relative).read_text(encoding="utf-8")
         for relative in ("editing.js", "editor_page_event_handlers.js")
     )
 
-    assert 'data-outline-page-id' in render_js
-    assert 'class="outline-jump"' in render_js
-    assert '<summary>Actions</summary>' not in render_js
-    assert 'class="outline-action-menu"' not in render_js
+    assert 'data-outline-page-id' in outline_js
+    assert 'class="outline-jump"' in outline_js
+    assert '<summary>Actions</summary>' not in outline_js
+    assert 'class="outline-action-menu"' not in outline_js
     assert "event.target?.closest?.('[data-doc-page-action]')" in editing_js
 
 
@@ -73,6 +74,8 @@ def test_ui20_preserves_canvas_selection_when_using_formatting_controls():
         for relative in (
             "js/state.js",
             "js/editor_text_tools.js",
+            "js/editor_text_selection.js",
+            "js/editor_text_formatting.js",
             "js/editor_inspector.js",
             "js/editing.js",
         )
@@ -86,7 +89,7 @@ def test_ui20_preserves_canvas_selection_when_using_formatting_controls():
 
 
 def test_ui20_does_not_refresh_inspector_for_unchanged_selection():
-    source = Path("visual_editor_component/frontend/js/editor_document_model.js").read_text(encoding="utf-8")
+    source = Path("visual_editor_component/frontend/js/editor_selection_model.js").read_text(encoding="utf-8")
 
     assert "const changed = activePageId !== nextPageId" in source
     assert "if (changed) updateRightInspector();" in source

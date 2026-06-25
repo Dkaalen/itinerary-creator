@@ -11,6 +11,8 @@ def _frontend_source() -> str:
             "styles/editor.css",
             "js/render.js",
             "js/editor_readiness.js",
+            "js/editor_warning_model.js",
+            "js/editor_debug_readiness.js",
             "js/editor_warnings.js",
         )
     )
