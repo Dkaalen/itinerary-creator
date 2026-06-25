@@ -40,17 +40,13 @@ from parser_modules.rows import (
 def _extract_date_context(parts, *, type_index, description_index, item_type):
     night_count_hint = ""
     date_values = []
-
     for part in parts[type_index + 1:description_index]:
         value = clean_space(part)
-
         if not value:
             continue
-
         if looks_like_date(value) or excel_serial_date(value):
             date_values.append(value)
             continue
-
         if not night_count_hint and item_type == "Hotel" and re.fullmatch(r"\d+(?:\.0)?", value):
             nights_value = int(float(value))
             if 0 < nights_value <= 30:

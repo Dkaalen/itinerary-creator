@@ -8,23 +8,27 @@ future domain work without creating a second runtime source of truth.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-import csv
 import hashlib
-import json
 import re
 from typing import Iterable
 
-CORPUS_VERSION = "ih1-v1"
-SCHEMA_VERSION = 1
-CORPUS_ROOT = Path(__file__).resolve().parent / "data" / "reference_corpus" / CORPUS_VERSION
-
-_STANDARD_PATH = CORPUS_ROOT / "standard_input_templates.tsv"
-_ACTIVITY_PATH = CORPUS_ROOT / "clean_activity_inputs.tsv"
-_ICELAND_PATH = CORPUS_ROOT / "iceland_standard_itinerary.json"
-_MANIFEST_PATH = CORPUS_ROOT / "manifest.json"
+from itinerary_generation.reference_corpus_loaders import (
+    CORPUS_ROOT,
+    CORPUS_VERSION,
+    SCHEMA_VERSION,
+    clean_activity_references,
+    iceland_reference_payload,
+    reference_corpus_manifest,
+    standard_input_templates,
+)
+from itinerary_generation.reference_corpus_models import (
+    CleanActivityReference,
+    ReferenceCorpusIssue,
+    ReferenceCorpusSummary,
+    StandardInputTemplate,
+)
 
 _ALLOWED_STANDARD_TYPES = frozenset({"Hotel", "Leisure", "Transfer", "Flight", "Cruise", "Train", "Coach"})
 _ALLOWED_PLACEHOLDERS = frozenset({"X", "HotelName", "RoomCategory", "BedType", "MealPlan", "Destination", "Time"})
@@ -61,52 +65,6 @@ _DAY_LABEL_RE = re.compile(r"^\s*Day\s*(\d+)\s*$", re.I)
 _SPACE_RE = re.compile(r"\s+")
 
 
-@dataclass(frozen=True)
-class StandardInputTemplate:
-    record_id: str
-    service_type: str
-    source_destination: str
-    canonical_destination: str
-    template_text: str
-    placeholders: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class CleanActivityReference:
-    record_id: str
-    record_type: str
-    source_city: str
-    canonical_city: str
-    activity_location: str
-    canonical_activity_location: str
-    activity_text: str
-    conditional_markers: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class ReferenceCorpusIssue:
-    code: str
-    severity: str
-    corpus: str
-    record_id: str
-    message: str
-
-
-@dataclass(frozen=True)
-class ReferenceCorpusSummary:
-    version: str
-    standard_template_count: int
-    clean_activity_count: int
-    iceland_sheet_count: int
-    iceland_row_count: int
-    issue_count: int
-    blocking_issue_count: int
-
-
-def _split_semicolon(value: str) -> tuple[str, ...]:
-    return tuple(item for item in (part.strip() for part in str(value or "").split(";")) if item)
-
-
 def _normalized(value: str) -> str:
     return _SPACE_RE.sub(" ", str(value or "").strip().lower())
 
@@ -117,50 +75,6 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-@lru_cache(maxsize=1)
-def standard_input_templates() -> tuple[StandardInputTemplate, ...]:
-    with _STANDARD_PATH.open("r", encoding="utf-8-sig", newline="") as handle:
-        return tuple(
-            StandardInputTemplate(
-                record_id=row["record_id"],
-                service_type=row["service_type"],
-                source_destination=row["source_destination"],
-                canonical_destination=row["canonical_destination"],
-                template_text=row["template_text"],
-                placeholders=_split_semicolon(row["placeholders"]),
-            )
-            for row in csv.DictReader(handle, delimiter="\t")
-        )
-
-
-@lru_cache(maxsize=1)
-def clean_activity_references() -> tuple[CleanActivityReference, ...]:
-    with _ACTIVITY_PATH.open("r", encoding="utf-8-sig", newline="") as handle:
-        return tuple(
-            CleanActivityReference(
-                record_id=row["record_id"],
-                record_type=row["record_type"],
-                source_city=row["source_city"],
-                canonical_city=row["canonical_city"],
-                activity_location=row["activity_location"],
-                canonical_activity_location=row["canonical_activity_location"],
-                activity_text=row["activity_text"],
-                conditional_markers=_split_semicolon(row["conditional_markers"]),
-            )
-            for row in csv.DictReader(handle, delimiter="\t")
-        )
-
-
-@lru_cache(maxsize=1)
-def iceland_reference_payload() -> dict:
-    return json.loads(_ICELAND_PATH.read_text(encoding="utf-8"))
-
-
-@lru_cache(maxsize=1)
-def reference_corpus_manifest() -> dict:
-    return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
 def destination_capability_map() -> dict[str, frozenset[str]]:

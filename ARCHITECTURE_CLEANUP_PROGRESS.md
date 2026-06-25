@@ -2159,3 +2159,56 @@ Architecture group stages 1-5 passed through the grouped runner
 Architecture stage 6 timed out with no failure shown; stage 6 rerun directly and passed
 Architecture stages 7-11 rerun directly in chunks and passed
 ```
+
+---
+
+# Batch 21: Second-layer responsibility cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Finish the second-layer "one file = one clear responsibility" cleanup without changing the user-facing workflow.
+```
+
+Completed in Batch 21:
+
+```text
+[x] Split destination profile model/data/build/copy responsibilities
+[x] Split editor page contract model/ID/build/query responsibilities
+[x] Split PDF controlled content, inclusion, block, day, and general-page rendering
+[x] Split hotel normalization into dates/meals/rooms/names/row orchestration
+[x] Split hotel parsing into meal, room, and detail parsing
+[x] Split transport sequence, special-route, and arrangement rendering
+[x] Split group-tour source enrichment, presentation, and inclusion responsibilities
+[x] Split image-bank paths, recursive scanning, index construction, and cache API
+[x] Split client-output text, content/time checks, image checks, and report model
+[x] Split itinerary health models, row/route facts, destination checks, and orchestration
+[x] Split reference-corpus models/loaders and offline TSV/XLSX/manifest/CLI builders
+[x] Split activity-training text/model/loading/matching/validation responsibilities
+[x] Split product-rule models/context/evidence/descriptions/matching responsibilities
+[x] Split structured-document source coverage from ID/cross-reference integrity
+[x] Split image matcher destination context from service/theme inference
+[x] Split single-row normalization from itinerary-level normalization orchestration
+[x] Re-checked destination_content.py and summaries_experience.py as cohesive copy generators
+[x] Re-checked scripts/test_groups.py as a focused test registry/stage builder
+[x] Preserved compatibility facades and legacy private hooks still used by callers/tests
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+git diff --check: passed
+Architecture/facade/boundary checks: 42 passed
+Additional targeted domain regressions: 52 passed
+Architecture guard findings: 0 across every guard category
+
+The local runtime did not provide pytest, BeautifulSoup, Streamlit, or
+ReportLab, so the normal grouped runners must be rerun in the full project
+environment after applying the patch.
+
+Four failures in tests/test_accommodation_stress_fixtures.py were reproduced
+unchanged against the uploaded Git baseline and are not Batch 21 regressions.
+```
