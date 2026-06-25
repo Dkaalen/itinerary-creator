@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.exclusion_sections_core import (
+from itinerary_generation.exclusion_sections import (
     _commercial_status,
     _commercial_reason,
     _row_search_text,

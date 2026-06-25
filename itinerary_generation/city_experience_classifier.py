@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.summaries_core import (
+from itinerary_generation.summaries import (
     _add_theme,
     _compact_arc_phrase,
     _has,

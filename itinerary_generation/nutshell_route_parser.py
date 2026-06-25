@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.nutshell_domain_core import (
+from itinerary_generation.nutshell_domain import (
     _title_endpoints,
     _direct_route_endpoints,
     _mode_from_supplier_item,

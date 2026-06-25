@@ -195,10 +195,10 @@ def test_ih4_legacy_package_accommodation_is_not_recreated_as_hotel_products() -
         if section.title == "Included Overnight"
     ]
     assert overnight_sections == [
-        "Reykjavík hotel breakfast included.",
-        "West Iceland guesthouse breakfast included.",
-        "Countryside guesthouse breakfast included.",
-        "South Coast guesthouse breakfast included.",
+        "Breakfast included at Reykjavík hotel.",
+        "Breakfast included at West Iceland guesthouse.",
+        "Breakfast included at Countryside guesthouse.",
+        "Breakfast included at South Coast guesthouse.",
     ]
     assert all(row.get("group_tour_role") != "day_segment" or row.get("type") == "Activity" for row in rows)
 

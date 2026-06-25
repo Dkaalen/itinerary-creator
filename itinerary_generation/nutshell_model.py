@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.nutshell_domain_core import (
+from itinerary_generation.nutshell_domain import (
     NutshellLeg,
     NutshellJourney,
 )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.day_intro_engine_core import (
+from itinerary_generation.day_intro_engine import (
     _intro_for_title,
 )
 

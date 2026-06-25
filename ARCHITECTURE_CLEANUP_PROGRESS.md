@@ -91,6 +91,7 @@ Fixture hygiene cleanup:              [####################] 100%
 Cleanup leftovers and guard gaps:      [####################] 100%
 Shared helper + duplicate cleanup:     [####################] 100%
 Large generation core cleanup:          [####################] 100%
+Remaining generation core cleanup:       [####################] 100%
 ```
 
 Status legend:
@@ -1915,3 +1916,29 @@ Validation notes:
 
 - `quality` group stages 1-6 passed. The full grouped command timed out during stage 7, so stages 7-9 were rerun directly and passed.
 - `architecture` group stages 1-6 passed. The full grouped command timed out during stage 7, so stages 7-11 were rerun directly and passed.
+
+---
+
+# Batch 14: Remaining generation core cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Finish the remaining generation `_core.py` cleanup so `*_core` files stay thin compatibility facades instead of becoming new catch-all implementation files.
+```
+
+Completed in Batch 14:
+
+```text
+[x] Moved Nutshell domain implementation from `nutshell_domain_core.py` into `nutshell_domain.py`
+[x] Moved exclusion-section implementation from `exclusion_sections_core.py` into `exclusion_sections.py`
+[x] Moved day-intro implementation from `day_intro_engine_core.py` into `day_intro_engine.py`
+[x] Moved summary/journey-arc implementation from `summaries_core.py` into `summaries.py`
+[x] Moved QA-report implementation from `qa_report_core.py` into `qa_report.py`
+[x] Moved day-render-block implementation from `day_render_blocks_core.py` into `day_render_blocks.py`
+[x] Updated responsibility modules to import named implementation modules instead of legacy core modules
+[x] Extended architecture guards so cleaned generation core facades cannot grow back into implementations
+[x] Normalized group-tour overnight breakfast wording found during validation
+```

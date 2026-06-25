@@ -213,6 +213,15 @@ def _accommodation_display(value: str) -> str:
     text = _clean(value)
     text = re.sub(r"\bw\s*/\s*breakfast\b", "breakfast included", text, flags=re.IGNORECASE)
     text = re.sub(r"\bwith\s+breakfast\b", "breakfast included", text, flags=re.IGNORECASE)
+    place_breakfast = re.fullmatch(
+        r"(?P<place>[A-Za-zÀ-ÿØøÅåÆæÄäÖö .'-]+?)\s+(?P<lodging>hotel|guesthouse)\s+breakfast included\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if place_breakfast:
+        place = place_breakfast.group("place").strip()
+        lodging = place_breakfast.group("lodging").lower()
+        text = f"Breakfast included at {place} {lodging}"
     if text and not text.endswith((".", "!", "?")):
         text += "."
     return polish_client_text(text)

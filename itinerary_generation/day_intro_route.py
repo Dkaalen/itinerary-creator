@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.day_intro_engine_core import (
+from itinerary_generation.day_intro_engine import (
     _premium_route_intro,
     _route_summary_from_rows,
     _title_route_points,

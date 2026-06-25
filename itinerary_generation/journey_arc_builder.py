@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.summaries_core import (
+from itinerary_generation.summaries import (
     create_journey_arc,
     format_day_range,
 )

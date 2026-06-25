@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.qa_report_core import (
+from itinerary_generation.qa_report import (
     _clean,
     _block_text,
     _row_id,

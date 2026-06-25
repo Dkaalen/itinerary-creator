@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.day_render_blocks_core import (
+from itinerary_generation.day_render_blocks import (
     build_arrival_render_block,
     build_departure_render_block,
 )

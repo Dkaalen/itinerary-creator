@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.qa_report_core import (
+from itinerary_generation.qa_report import (
     build_qa_report,
     persist_qa_report,
 )

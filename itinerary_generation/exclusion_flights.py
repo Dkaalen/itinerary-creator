@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.exclusion_sections_core import (
+from itinerary_generation.exclusion_sections import (
     _is_flight_row,
 )
 

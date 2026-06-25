@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.day_render_blocks_core import (
+from itinerary_generation.day_render_blocks import (
     _row_id,
     _day_document_for,
     _rows_ordered_by_day_document,

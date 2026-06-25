@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.exclusion_sections_core import (
+from itinerary_generation.exclusion_sections import (
     _row_specific_not_included_items,
     _is_cost_not_included_row,
     _rental_cost_not_included_label,

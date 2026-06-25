@@ -122,19 +122,65 @@ DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
 
 
 CLEANED_GENERATION_CORE_FACADES = {
+    "itinerary_generation/day_intro_engine_core.py": 80,
+    "itinerary_generation/day_render_blocks_core.py": 80,
     "itinerary_generation/editable_draft_core.py": 120,
+    "itinerary_generation/exclusion_sections_core.py": 80,
+    "itinerary_generation/nutshell_domain_core.py": 80,
+    "itinerary_generation/qa_report_core.py": 80,
     "itinerary_generation/quality_gate_core.py": 140,
     "itinerary_generation/structured_builder_core.py": 160,
+    "itinerary_generation/summaries_core.py": 80,
 }
 
+GENERATION_CORE_FACADE_MODULES = (
+    "itinerary_generation.day_intro_engine_core",
+    "itinerary_generation.day_render_blocks_core",
+    "itinerary_generation.editable_draft_core",
+    "itinerary_generation.exclusion_sections_core",
+    "itinerary_generation.nutshell_domain_core",
+    "itinerary_generation.qa_report_core",
+    "itinerary_generation.quality_gate_core",
+    "itinerary_generation.structured_builder_core",
+    "itinerary_generation.summaries_core",
+)
+
 GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
+    "itinerary_generation/city_experience_classifier.py",
+    "itinerary_generation/day_intro_activity.py",
+    "itinerary_generation/day_intro_arrival.py",
+    "itinerary_generation/day_intro_classification.py",
+    "itinerary_generation/day_intro_route.py",
+    "itinerary_generation/day_render_activity_blocks.py",
+    "itinerary_generation/day_render_block_ordering.py",
+    "itinerary_generation/day_render_document_adapter.py",
+    "itinerary_generation/day_render_group_tour_blocks.py",
+    "itinerary_generation/day_render_leisure_blocks.py",
+    "itinerary_generation/day_render_transport_blocks.py",
+    "itinerary_generation/debug/qa_edit_events.py",
+    "itinerary_generation/debug/qa_report_model.py",
+    "itinerary_generation/debug/qa_report_persist.py",
+    "itinerary_generation/debug/qa_report_render.py",
+    "itinerary_generation/debug/qa_warning_events.py",
     "itinerary_generation/editable_draft_model.py",
     "itinerary_generation/editable_draft_normalize.py",
     "itinerary_generation/editable_draft_lookup.py",
     "itinerary_generation/editable_draft_merge.py",
     "itinerary_generation/editable_draft_legacy_bridge.py",
+    "itinerary_generation/exclusion_commercial_items.py",
+    "itinerary_generation/exclusion_flights.py",
+    "itinerary_generation/exclusion_formatting.py",
+    "itinerary_generation/exclusion_self_transfers.py",
     "itinerary_generation/generation_quality_gate.py",
     "itinerary_generation/client_output_quality_gate.py",
+    "itinerary_generation/journey_arc_builder.py",
+    "itinerary_generation/journey_arc_text_safety.py",
+    "itinerary_generation/nutshell_detection.py",
+    "itinerary_generation/nutshell_journey_builder.py",
+    "itinerary_generation/nutshell_labels.py",
+    "itinerary_generation/nutshell_model.py",
+    "itinerary_generation/nutshell_route_parser.py",
+    "itinerary_generation/nutshell_source.py",
     "itinerary_generation/quality_gate_patterns.py",
     "itinerary_generation/structured_row_helpers.py",
     "itinerary_generation/structured_items_builder.py",
@@ -142,6 +188,7 @@ GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
     "itinerary_generation/structured_days_builder.py",
     "itinerary_generation/structured_travel_sequences.py",
     "itinerary_generation/structured_final_sections.py",
+    "itinerary_generation/trip_glance_builder.py",
 )
 
 EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})
@@ -149,8 +196,8 @@ EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpe
 PYTHON_FUNCTION_ALLOWLIST = frozenset(
     {
         "itinerary_generation/activity_titles_core.py:create_client_activity_title",
-        "itinerary_generation/day_intro_engine_core.py:create_day_intro",
-        "itinerary_generation/summaries_core.py:describe_city_experience",
+        "itinerary_generation/day_intro_engine.py:create_day_intro",
+        "itinerary_generation/summaries.py:describe_city_experience",
     }
 )
 
@@ -377,14 +424,9 @@ def oversized_cleaned_generation_core_facades() -> tuple[SizeHit, ...]:
 def generation_implementation_core_import_hits() -> tuple[str, ...]:
     """Return named generation implementation modules that still import cleaned core modules."""
 
-    forbidden = (
-        "itinerary_generation.editable_draft_core",
-        "itinerary_generation.quality_gate_core",
-        "itinerary_generation.structured_builder_core",
-    )
     hits: list[str] = []
     for relative in GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE:
         if not (REPO_ROOT / relative).exists():
             continue
-        hits.extend(import_from_hits(relative, forbidden))
+        hits.extend(import_from_hits(relative, GENERATION_CORE_FACADE_MODULES))
     return tuple(sorted(hits))
