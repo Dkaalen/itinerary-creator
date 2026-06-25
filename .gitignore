@@ -13,3 +13,7 @@ qa_reports/
 
 persistent_drafts/
 .cache/
+# Patch/package artifacts
+CHANGED_FILES_MANIFEST.md
+DELETION_MANIFEST.md
+_patch_metadata/

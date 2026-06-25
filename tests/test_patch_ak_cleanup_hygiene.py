@@ -49,6 +49,9 @@ def test_gitignore_blocks_patch_artifact_noise():
         "outputs/",
         "persistent_drafts/",
         "qa_reports/",
+        "CHANGED_FILES_MANIFEST.md",
+        "DELETION_MANIFEST.md",
+        "_patch_metadata/",
     ):
         assert pattern in gitignore
 
@@ -69,6 +72,9 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
         tmp_path / "scratch.tmp",
         tmp_path / "patch.zip",
         tmp_path / ".chatgpt_write_test.txt",
+        tmp_path / "CHANGED_FILES_MANIFEST.md",
+        tmp_path / "DELETION_MANIFEST.md",
+        tmp_path / "_patch_metadata" / "manifest.json",
     ]
     for path in noise_files:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +87,9 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
     assert is_artifact_noise_path("persistent_drafts/draft.json")
     assert is_artifact_noise_path("qa_reports/report.json")
     assert is_artifact_noise_path("scratch.tmp")
+    assert is_artifact_noise_path("CHANGED_FILES_MANIFEST.md")
+    assert is_artifact_noise_path("DELETION_MANIFEST.md")
+    assert is_artifact_noise_path("_patch_metadata/manifest.json")
     assert not is_artifact_noise_path("itinerary_generation/transport.py")
 
     assert list(iter_clean_artifact_files(tmp_path)) == [keep]
@@ -104,6 +113,9 @@ def test_clean_zip_builder_excludes_local_artifacts(tmp_path):
         root / "qa_reports" / "report.json",
         root / "backup.bak",
         root / "old_patch.zip",
+        root / "CHANGED_FILES_MANIFEST.md",
+        root / "DELETION_MANIFEST.md",
+        root / "_patch_metadata" / "manifest.json",
     ]
     for path in noise_files:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,13 +217,26 @@ def test_clean_runtime_artifacts_removes_only_generated_noise(tmp_path):
     output.write_text("generated", encoding="utf-8")
     legacy_empty = tmp_path / "visual_editor_component" / "ui"
     legacy_empty.mkdir(parents=True)
+    patch_manifest = tmp_path / "CHANGED_FILES_MANIFEST.md"
+    patch_manifest.write_text("patch artifact", encoding="utf-8")
+    deletion_manifest = tmp_path / "DELETION_MANIFEST.md"
+    deletion_manifest.write_text("patch artifact", encoding="utf-8")
+    patch_metadata = tmp_path / "_patch_metadata"
+    patch_metadata.mkdir()
+    (patch_metadata / "manifest.json").write_text("{}", encoding="utf-8")
 
     removed = clean_runtime_artifacts(tmp_path)
 
     assert Path("app_modules/__pycache__") in removed
     assert Path("outputs") in removed
     assert Path("visual_editor_component/ui") in removed
+    assert Path("CHANGED_FILES_MANIFEST.md") in removed
+    assert Path("DELETION_MANIFEST.md") in removed
+    assert Path("_patch_metadata") in removed
     assert source.exists()
     assert not pycache.exists()
     assert not output.parent.exists()
     assert not legacy_empty.exists()
+    assert not patch_manifest.exists()
+    assert not deletion_manifest.exists()
+    assert not patch_metadata.exists()

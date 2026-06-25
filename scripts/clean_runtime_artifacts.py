@@ -18,10 +18,12 @@ GENERATED_DIR_NAMES = {
     ".ruff_cache",
     ".runtime_image_bank",
     "__pycache__",
+    "_patch_metadata",
     "outputs",
     "persistent_drafts",
     "qa_reports",
 }
+GENERATED_FILENAMES = {".chatgpt_write_test.txt", "CHANGED_FILES_MANIFEST.md", "DELETION_MANIFEST.md"}
 GENERATED_SUFFIXES = (".pyc", ".pyo")
 EMPTY_LEGACY_DIRS = (
     Path("visual_editor_component/app_modules"),
@@ -44,7 +46,7 @@ def clean_runtime_artifacts(root: str | Path = REPO_ROOT, *, dry_run: bool = Fal
             should_remove = True
         elif path.is_file() and path.name.endswith(GENERATED_SUFFIXES):
             should_remove = True
-        elif path.is_file() and path.name == ".chatgpt_write_test.txt":
+        elif path.is_file() and path.name in GENERATED_FILENAMES:
             should_remove = True
         elif path.is_dir() and relative in EMPTY_LEGACY_DIRS and not any(path.iterdir()):
             should_remove = True

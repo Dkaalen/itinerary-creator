@@ -19,6 +19,7 @@ ARTIFACT_EXCLUDED_DIRS = frozenset({
     ".ruff_cache",
     ".runtime_image_bank",
     "__pycache__",
+    "_patch_metadata",
     ".venv",
     "venv",
     "outputs",
@@ -28,6 +29,8 @@ ARTIFACT_EXCLUDED_DIRS = frozenset({
 
 ARTIFACT_EXCLUDED_FILENAMES = frozenset({
     ".chatgpt_write_test.txt",
+    "CHANGED_FILES_MANIFEST.md",
+    "DELETION_MANIFEST.md",
     ".DS_Store",
 })
 
