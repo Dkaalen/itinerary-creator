@@ -36,5 +36,5 @@ def render_picture_page(app_version: str) -> None:
     st.html('<div class="bottom-cta"><div><strong>Pictures reviewed?</strong><span>Create the final PDF from the current document.</span></div></div>')
     if not current_pdf_bytes():
         if st.button("Create PDF", type="primary", use_container_width=True):
-            enter_export_stage(st.session_state)
+            enter_export_stage(st.session_state, auto_create_pdf=True)
             st.rerun()

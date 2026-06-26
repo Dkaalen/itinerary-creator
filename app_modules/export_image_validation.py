@@ -12,7 +12,6 @@ from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
     destination_requests_from_rows,
     image_bank_status,
-    image_bank_storage_signature,
     select_day_images_with_overrides,
 )
 from images.preview_image_contract import day_image_matches_from_preview_html, merge_preview_image_contract
@@ -31,14 +30,12 @@ def prepare_pdf_image_contract() -> tuple[bool, dict, dict, dict]:
         st.session_state,
         required_destinations,
         image_bank_status,
-        bank_signature=image_bank_storage_signature(),
     )
     if grouped_days and not image_bank_is_ready_for_client_pictures(current_image_bank_status):
         current_image_bank_status = store_image_bank_status(
             st.session_state,
             required_destinations,
             connect_remote_image_bank_if_missing(required_destinations),
-            bank_signature=image_bank_storage_signature(),
         )
     if not image_bank_is_ready_for_client_pictures(current_image_bank_status):
         clear_pdf_artifact("Image bank missing")
@@ -55,7 +52,6 @@ def prepare_pdf_image_contract() -> tuple[bool, dict, dict, dict]:
         st.session_state,
         required_destinations,
         image_bank_status,
-        bank_signature=image_bank_storage_signature(),
     )
     return True, current_image_bank_status, image_matches, grouped_days
 

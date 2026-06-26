@@ -32,8 +32,8 @@ def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
     source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
     picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
 
-    assert "if not readiness.pdf_ready:" in source
-    assert source.index("if not readiness.pdf_ready:") < source.index('st.button("Create PDF"')
+    assert "if readiness.pdf_ready:" in source
+    assert source.index("if readiness.pdf_ready:") < source.index('st.button("Create PDF"')
     assert "if not current_pdf_bytes():" in picture_source
     assert picture_source.index("if not current_pdf_bytes():") < picture_source.index('st.button("Create PDF"')
 
@@ -43,7 +43,8 @@ def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
 
     assert "visual_editor_export_commit_ready" not in source
     assert "Applying pending editor changes" not in source
-    assert "clear_pdf_editor_commit_request(st.session_state)" in source
+    assert "clear_pdf_editor_save(st.session_state)" in source
+    assert "request_editor_save_before_pdf(st.session_state)" in source
     assert "create_pdf_from_current_preview()" in source
 
 

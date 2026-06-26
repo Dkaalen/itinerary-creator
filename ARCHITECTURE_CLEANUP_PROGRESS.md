@@ -2469,3 +2469,34 @@ Import smoke: optional skips=25, failures=0
 Rendered Kristiansand Booknordics PDF sample: 16 pages, Day 1-10 in correct order, no Norway in a Nutshell leakage, no self-arranged exclusion artifact, contextual travel notes, cruise arrival present
 git diff --check: passed
 ```
+
+---
+
+# Batch 31 — PDF export reliability and performance state-machine cleanup
+
+Progress: `[####################] 100%`
+
+Completed in Batch 31:
+
+```text
+[x] Added a small PDF export job state model so Create PDF has explicit idle, saving, exporting, ready, and failed states instead of implicit button/session side effects
+[x] Split PDF editor-save coordination into a focused module with a bounded save request and recoverable fallback to the last saved itinerary
+[x] Kept agent and Booknordics customer export on the same shared pipeline; the output brand remains presentation/theme state only
+[x] Made the picture-stage Create PDF button hand off to the export page with a one-shot shared PDF job request instead of only changing stages
+[x] Preserved existing PDF downloads while new saves or retries are pending so the user is not forced to restart the itinerary
+[x] Added internal PDF export stage timing around validation, preview refresh, image preparation, render-context reuse, client-safety checks, PDF rendering, and byte storage
+[x] Removed repeated image-bank storage-signature scans from the normal picture/export screen paths; cached image-bank status is now reused by request signature unless an explicit repair stores a new status
+[x] Changed the visual editor save flow so dirty keys are not cleared merely because a browser message was sent; they clear only after the server-rendered payload acknowledges the saved values
+[x] Added regressions for the export job lifecycle, bounded editor-save recovery, one-shot Create PDF handoff, image-bank scan avoidance, internal timing capture, and save acknowledgement behavior
+```
+
+Validation snapshot:
+
+```text
+Focused PDF export job/state-machine regressions: passed
+Focused Canva-like export flow regressions: passed
+Existing export readiness/download/fast-path regressions: passed
+Visual editor autosave/save-contract regressions: passed
+Adjacent workflow, Booknordics/theme, image fallback, and itinerary fidelity regressions: passed
+Frontend JavaScript syntax validation: passed
+```

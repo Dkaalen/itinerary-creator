@@ -10,7 +10,6 @@ from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
     destination_requests_from_rows,
     image_bank_status,
-    image_bank_storage_signature,
 )
 
 
@@ -23,7 +22,6 @@ def _current_image_bank_status() -> dict:
         st.session_state,
         requests,
         image_bank_status,
-        bank_signature=image_bank_storage_signature(),
     )
 
 def _connect_current_image_bank() -> dict:
@@ -33,7 +31,6 @@ def _connect_current_image_bank() -> dict:
         st.session_state,
         requests,
         status,
-        bank_signature=image_bank_storage_signature(),
     )
 
 def _image_status_notice() -> None:

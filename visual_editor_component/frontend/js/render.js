@@ -10,6 +10,7 @@ function render(payload, commitNonce = null) {
     return;
   }
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
+  acknowledgeServerSaveFromPayload(initialPayload);
   hydrateSaveStateFromPayload(initialPayload);
   const incomingPicturesAdded = !!initialPayload?.workflow?.pictures_added;
   const currentPicturesAdded = !!model?.workflow?.pictures_added;

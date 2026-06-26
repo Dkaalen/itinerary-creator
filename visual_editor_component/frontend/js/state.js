@@ -11,6 +11,8 @@ let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
 let lastSavedPayload = '';
+let pendingServerSaveKeys = new Set();
+let pendingServerSavePayload = '';
 // Browser-local autosave is immediate; server-side autosave is debounced and quiet.
 let activeEditKey = null;
 let activePageId = null;

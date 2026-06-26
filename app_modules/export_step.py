@@ -7,15 +7,23 @@ from app_modules.export_actions import (
     create_pdf_from_current_preview,
     current_pdf_bytes,
 )
-from app_modules.export_state import ExportReadiness, export_readiness_from_state
-from app_modules.editor_commit import (
-    PDF_COMMIT_REQUEST_KEY,
-    clear_pdf_editor_commit_request,
-    pdf_editor_commit_ready,
-    request_pdf_editor_commit,
+from app_modules.export_editor_save import (
+    clear_pdf_editor_save,
+    pdf_editor_save_timed_out,
+    pdf_editor_save_waiting,
+    pdf_editor_save_ready,
+    request_editor_save_before_pdf,
 )
+from app_modules.export_job_state import (
+    consume_auto_pdf_create_request,
+    current_export_job,
+    mark_export_failed,
+    mark_export_ready,
+    mark_exporting,
+)
+from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
-from images.app_image_selection import destination_requests_from_rows, image_bank_status, image_bank_storage_signature
+from images.app_image_selection import destination_requests_from_rows, image_bank_status
 from app_modules.image_bank_status_cache import get_cached_image_bank_status
 
 
@@ -55,50 +63,80 @@ def _session_state_snapshot() -> dict:
 
 
 def _create_pdf_now() -> bool:
+    mark_exporting(st.session_state, signature=st.session_state.get("preview_signature"))
     ok = False
     try:
         with st.spinner("Creating PDF…"):
             ok = create_pdf_from_current_preview()
     except Exception as error:
         clear_pdf_artifact("PDF failed")
+        mark_export_failed(st.session_state, error=str(error))
         st.session_state["export_last_error"] = str(error)
         st.error("PDF export failed in this environment. The editable itinerary preview is still available.")
         with st.expander("PDF export error details"):
             st.exception(error)
+        return False
+    if ok:
+        mark_export_ready(st.session_state, signature=st.session_state.get("preview_signature"))
+    else:
+        mark_export_failed(st.session_state, error=st.session_state.get("pdf_status") or "PDF export failed.")
     return ok
 
 
-def _pdf_commit_pending() -> bool:
-    return bool(st.session_state.get(PDF_COMMIT_REQUEST_KEY)) and not pdf_editor_commit_ready(st.session_state)
-
-
-def _start_pdf_editor_commit() -> None:
-    request_pdf_editor_commit(st.session_state)
-    st.session_state["_pdf_create_after_editor_commit"] = True
-
-
-def _create_pdf_from_committed_editor_state() -> bool:
-    clear_pdf_editor_commit_request(st.session_state)
-    st.session_state["_pdf_create_after_editor_commit"] = False
+def _create_pdf_from_last_saved_version() -> bool:
+    clear_pdf_editor_save(st.session_state)
     return _create_pdf_now()
+
+
+def _continue_ready_editor_save() -> bool:
+    if not pdf_editor_save_ready(st.session_state):
+        return False
+    clear_pdf_editor_save(st.session_state)
+    if _create_pdf_now():
+        st.success("PDF created. Use the download button.")
+        st.rerun()
+    return True
+
+
+def _render_pending_editor_save() -> None:
+    timed_out = pdf_editor_save_timed_out(st.session_state)
+    if timed_out:
+        st.warning("The latest editor save is taking longer than expected. You can retry, or create the PDF from the last saved itinerary.")
+    else:
+        st.info("Saving the latest editor changes before creating the PDF. The existing preview remains usable while this finishes.")
+    left, right = st.columns(2)
+    with left:
+        if st.button("Create PDF from last saved version", use_container_width=True):
+            if _create_pdf_from_last_saved_version():
+                st.success("PDF created from the last saved itinerary. Use the download button.")
+                st.rerun()
+    with right:
+        label = "Retry saving changes" if timed_out else "Cancel PDF creation"
+        if st.button(label, use_container_width=True):
+            clear_pdf_editor_save(st.session_state)
+            if timed_out:
+                request_editor_save_before_pdf(st.session_state)
+            st.rerun()
+
+
+def _request_pdf_creation() -> None:
+    request_editor_save_before_pdf(st.session_state)
+    st.rerun()
+
+
+def _current_image_bank_status_for_export() -> dict:
+    required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
+    return get_cached_image_bank_status(st.session_state, required_destinations, image_bank_status)
 
 
 def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
         return
 
-    if st.session_state.get("_pdf_create_after_editor_commit") and pdf_editor_commit_ready(st.session_state):
-        if _create_pdf_from_committed_editor_state():
-            st.success("PDF created. Use the download button.")
-            st.rerun()
+    if _continue_ready_editor_save():
+        return
 
-    required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
-    current_image_status = get_cached_image_bank_status(
-        st.session_state,
-        required_destinations,
-        image_bank_status,
-        bank_signature=image_bank_storage_signature(),
-    )
+    current_image_status = _current_image_bank_status_for_export()
     snapshot = _session_state_snapshot()
     readiness = export_readiness_from_state(snapshot, current_image_status)
     _render_fatal_export_blockers(readiness)
@@ -106,19 +144,24 @@ def render_export_step(app_version: str) -> None:
     if current_pdf_bytes():
         render_pdf_download_station(location="bottom")
 
-    if not readiness.pdf_ready:
-        if _pdf_commit_pending():
-            st.info("Saving the latest editor changes before creating the PDF…")
-            st.button("Create PDF", disabled=True, use_container_width=True)
-            if st.button("Create PDF from last saved version", use_container_width=True):
-                if _create_pdf_from_committed_editor_state():
-                    st.success("PDF created from the last saved itinerary. Use the download button.")
-                    st.rerun()
-            return
+    if readiness.pdf_ready:
+        return
 
-        if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
-            _start_pdf_editor_commit()
-            st.rerun()
+    if pdf_editor_save_waiting(st.session_state):
+        _render_pending_editor_save()
+        return
+
+    auto_create = consume_auto_pdf_create_request(st.session_state)
+    if auto_create and readiness.can_create_pdf:
+        _request_pdf_creation()
+        return
+
+    job = current_export_job(st.session_state)
+    if job.failed and job.error:
+        st.warning("The last PDF attempt did not complete. You can retry without restarting the itinerary.")
+
+    if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
+        _request_pdf_creation()
 
 
 __all__ = ["render_export_step", "render_pdf_download_station"]

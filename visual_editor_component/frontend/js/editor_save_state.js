@@ -65,6 +65,34 @@ function updateSaveStatusUi() {
   }
 }
 
+
+function normalizeSavedValue(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim();
+  try { return JSON.stringify(value); } catch (err) { return String(value); }
+}
+
+function serverPayloadContainsPendingSave(payload) {
+  if (!pendingServerSaveKeys.size || !model || typeof getByPath !== 'function') return false;
+  for (const key of pendingServerSaveKeys) {
+    const serverValue = normalizeSavedValue(getByPath(payload, key));
+    const localValue = normalizeSavedValue(getByPath(model, key));
+    if (serverValue !== localValue) return false;
+  }
+  return true;
+}
+
+function acknowledgeServerSaveFromPayload(payload) {
+  if (!serverPayloadContainsPendingSave(payload)) return false;
+  pendingServerSaveKeys.forEach(key => touchedKeys.delete(key));
+  pendingServerSaveKeys = new Set();
+  pendingServerSavePayload = '';
+  if (!touchedKeys.size) {
+    updateSaveState('saved', {message: 'Saved', lastSavedAt: Date.now(), error: ''});
+  }
+  return true;
+}
+
 function hydrateSaveStateFromPayload(payload) {
   const status = payload?.autosave_status || {};
   if (!status || typeof status !== 'object') return;

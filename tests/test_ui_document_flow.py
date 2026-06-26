@@ -47,7 +47,7 @@ def test_picture_page_hands_off_to_real_export_stage():
 
     assert 'if st.button("Create PDF", type="primary", use_container_width=True):' in picture_source
     assert "enter_export_stage" in picture_source
-    assert "enter_export_stage(st.session_state)" in picture_source
+    assert "enter_export_stage(st.session_state, auto_create_pdf=True)" in picture_source
     assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" not in picture_source
     assert "render_export_step(app_version)" not in picture_source
 

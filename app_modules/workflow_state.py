@@ -74,6 +74,9 @@ RESET_PROJECT_KEYS = (
     "generation_duplicate_count",
     "generation_overflow_warnings",
     "export_last_error",
+    "_pdf_export_job",
+    "_pdf_auto_create_requested",
+    "_pdf_export_timings",
 )
 
 

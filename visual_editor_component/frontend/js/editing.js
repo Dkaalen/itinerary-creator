@@ -83,11 +83,16 @@ function saveChanges(commitNonce = null) {
   if (!commitNonce && serialized === lastSavedPayload) return;
   lastSavedPayload = serialized;
   lastServerAutosavePayload = serialized;
+  pendingServerSaveKeys = new Set(touchedKeys);
+  pendingServerSavePayload = serialized;
   persistLocalDraft();
   updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Saving…', lastAttemptAt: Date.now(), error: ''});
   if (!safeSendComponentValue(serialized, commitNonce ? 'exporting' : 'saving')) return;
-  touchedKeys = new Set();
-  updateSaveState('saved', {message: commitNonce ? 'Applying changes…' : 'Saved', lastSavedAt: Date.now(), error: ''});
+  if (!pendingServerSaveKeys.size) {
+    updateSaveState('saved', {message: commitNonce ? 'Changes applied' : 'Saved', lastSavedAt: Date.now(), error: ''});
+  } else {
+    updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Save sent', lastAttemptAt: Date.now(), error: ''});
+  }
   updateEditorStats();
 }
 
