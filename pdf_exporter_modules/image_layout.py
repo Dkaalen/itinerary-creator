@@ -1,6 +1,10 @@
 """PDF image crop and layout helpers."""
 
 from pathlib import Path
+import hashlib
+import os
+import shutil
+import tempfile
 
 import diagnostics
 
@@ -11,6 +15,53 @@ except ImportError:  # pragma: no cover - export safely skips images if Pillow i
     ImageOps = None
 
 from .image_constants import PDF_CROP_FOCUS_FACTORS, PDF_CROP_VERTICAL_FOCUS, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
+
+
+
+
+def _source_signature(source_path: Path) -> tuple[str, int, int]:
+    try:
+        resolved = str(source_path.resolve())
+    except OSError:
+        resolved = str(source_path)
+    try:
+        stat = source_path.stat()
+    except OSError:
+        return resolved, 0, 0
+    return resolved, int(stat.st_mtime_ns), int(stat.st_size)
+
+
+def _persistent_pdf_image_cache_dir() -> Path | None:
+    if str(os.environ.get("ITINERARY_DISABLE_PDF_IMAGE_CACHE", "")).strip().lower() in {"1", "true", "yes"}:
+        return None
+    root = Path(tempfile.gettempdir()) / "itinerary_pdf_image_cache"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+    return root
+
+
+def _cached_variant_path(source_path, target_width, target_height, crop_focus) -> Path | None:
+    cache_dir = _persistent_pdf_image_cache_dir()
+    if cache_dir is None:
+        return None
+    resolved, mtime_ns, size = _source_signature(Path(source_path))
+    digest = hashlib.sha1(
+        f"{resolved}|{mtime_ns}|{size}|{round(float(target_width), 2)}|{round(float(target_height), 2)}|{crop_focus}|v2".encode("utf-8", "surrogateescape")
+    ).hexdigest()[:24]
+    return cache_dir / f"{digest}.jpg"
+
+
+def _copy_cached_variant(cache_path: Path, temp_path: Path) -> Path | None:
+    if not cache_path.exists():
+        return None
+    try:
+        if not temp_path.exists():
+            shutil.copy2(cache_path, temp_path)
+        return temp_path
+    except OSError:
+        return cache_path if cache_path.exists() else None
 
 
 def calculate_day_image_layout(
@@ -47,11 +98,15 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
         return None
 
     normalized_focus = normalize_crop_focus(crop_focus)
-    temp_path = Path(temp_dir) / (
-        f"day_image_{abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalized_focus))) % 10_000_000}.jpg"
-    )
+    cache_path = _cached_variant_path(source_path, target_width, target_height, normalized_focus)
+    cache_token = cache_path.stem if cache_path else str(abs(hash((str(source_path), round(float(target_width), 2), round(float(target_height), 2), normalized_focus))) % 10_000_000)
+    temp_path = Path(temp_dir) / f"day_image_{cache_token}.jpg"
     if temp_path.exists():
         return temp_path
+    if cache_path is not None:
+        cached = _copy_cached_variant(cache_path, temp_path)
+        if cached is not None:
+            return cached
 
     try:
         with PILImage.open(source_path) as image:
@@ -84,13 +139,18 @@ def make_cover_cropped_image(source_path, target_width, target_height, temp_dir,
             # Resize to roughly 2x the displayed point size, which is sharp for
             # A4 output while keeping file sizes emailable.
             target_px = (
-                max(1, int(float(target_width) * 2.0)),
-                max(1, int(float(target_height) * 2.0)),
+                max(1, int(float(target_width) * 1.6)),
+                max(1, int(float(target_height) * 1.6)),
             )
             if image.size != target_px:
                 image = image.resize(target_px, PILImage.LANCZOS)
 
-            image.save(temp_path, format="JPEG", quality=76, optimize=True)
+            image.save(temp_path, format="JPEG", quality=74, optimize=False)
+            if cache_path is not None:
+                try:
+                    shutil.copy2(temp_path, cache_path)
+                except OSError:
+                    pass
             return temp_path
     except (OSError, ValueError) as error:
         diagnostics.warn_exception("pdf_image", "Could not crop image for PDF output.", error, str(source_path), source="pdf_exporter_modules.image_layout")

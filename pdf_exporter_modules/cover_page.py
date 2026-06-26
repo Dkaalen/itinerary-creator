@@ -12,7 +12,7 @@ from reportlab.platypus import Spacer, Table, TableStyle
 from . import styles as pdf_styles
 from .pdf_branding import is_booknordics_pdf
 from .image_flowables import FullPageBackgroundImage
-from .render_flowables import CoverEmblem, add_cover_rule, boxed_story_table
+from .render_flowables import CoverEmblem, add_cover_rule
 from .story import add_paragraph
 
 
@@ -38,20 +38,16 @@ def cover_color(value, fallback):
 
 def cover_styles(content: CoverPageContent, styles):
     cover_styles = dict(styles)
-    if is_booknordics_pdf():
-        ink = pdf_styles.INK
-        muted = pdf_styles.MUTED
-        body = pdf_styles.BODY
-    else:
-        ink = cover_color(content.ink, pdf_styles.INK)
-        muted = cover_color(content.muted, pdf_styles.MUTED)
-        body = cover_color(content.ink, pdf_styles.BODY)
+    ink = cover_color(content.ink, pdf_styles.INK)
+    muted = cover_color(content.muted, pdf_styles.MUTED)
+    body = cover_color(content.ink, pdf_styles.BODY)
+    route_label_color = pdf_styles.ACCENT if is_booknordics_pdf() else muted
     for name, color in {
         "cover_kicker": muted,
         "cover_title": ink,
         "cover_subtitle": ink,
         "cover_dates": muted,
-        "cover_route_label": muted,
+        "cover_route_label": route_label_color,
         "cover_destinations": body,
     }.items():
         if name in cover_styles:
@@ -97,6 +93,19 @@ def _append_cover_text(story, content: CoverPageContent, resolved_styles, accent
     add_paragraph(story, str(content.route or "").upper(), resolved_styles["cover_destinations"])
 
 
+def _append_booknordics_cover_text(story, content: CoverPageContent, resolved_styles, accent):
+    _append_cover_emblem(story, accent)
+    story.append(Spacer(1, 6 * mm))
+    add_paragraph(story, content.kicker or "Travel Itinerary", resolved_styles["cover_kicker"])
+    add_paragraph(story, content.title or "Itinerary", resolved_styles["cover_title"])
+    add_paragraph(story, content.subtitle or "", resolved_styles["cover_subtitle"])
+    if content.dates:
+        add_paragraph(story, content.dates, resolved_styles["cover_dates"])
+    add_cover_rule(story, width=42 * mm, space_after=4, color=accent)
+    add_paragraph(story, content.route_label or "Route", resolved_styles["cover_route_label"])
+    add_paragraph(story, str(content.route or "").upper(), resolved_styles["cover_destinations"])
+
+
 def render_cover_content(content: CoverPageContent, story, styles, temp_dir=None):
     """Append the shared cover flowables to ``story``."""
 
@@ -108,10 +117,8 @@ def render_cover_content(content: CoverPageContent, story, styles, temp_dir=None
         story.append(FullPageBackgroundImage(background_path, temp_dir, crop_focus=content.crop_focus or "top"))
 
     if is_booknordics_pdf():
-        card_story = []
-        _append_cover_text(card_story, content, resolved_styles, accent)
-        story.append(Spacer(1, 42 * mm))
-        story.append(boxed_story_table(card_story, width=150 * mm, padding=10, background=pdf_styles.SUMMARY_CARD))
+        story.append(Spacer(1, 1 * mm))
+        _append_booknordics_cover_text(story, content, resolved_styles, accent)
         return
 
     story.append(Spacer(1, 9 * mm))

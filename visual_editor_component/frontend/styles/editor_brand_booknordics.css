@@ -43,12 +43,13 @@
   left: 72px;
   right: 72px;
   width: auto;
-  max-width: 650px;
-  padding: 28px 36px 32px;
-  border: 1px solid var(--border, #D7DDE5);
-  border-radius: 18px;
-  background: rgba(250,250,251,.86);
-  box-shadow: 0 20px 48px rgba(0,25,60,.18);
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-shadow: 0 2px 10px rgba(0,25,60,.28);
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .cover-emblem {
@@ -89,7 +90,12 @@
   font-family: "DM Sans", sans-serif;
 }
 
-.editor-shell[data-output-brand="booknordics_customer"] .cover-title,
+.editor-shell[data-output-brand="booknordics_customer"] .cover-title {
+  color: var(--cover-ink, #00193C);
+  -webkit-text-fill-color: var(--cover-ink, #00193C);
+  font-weight: 700;
+}
+
 .editor-shell[data-output-brand="booknordics_customer"] .summary-title,
 .editor-shell[data-output-brand="booknordics_customer"] .day-label,
 .editor-shell[data-output-brand="booknordics_customer"] .day-title,
@@ -101,7 +107,11 @@
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .cover-subtitle,
-.editor-shell[data-output-brand="booknordics_customer"] .cover-destinations,
+.editor-shell[data-output-brand="booknordics_customer"] .cover-destinations {
+  color: var(--cover-ink, #00193C) !important;
+  -webkit-text-fill-color: var(--cover-ink, #00193C) !important;
+}
+
 .editor-shell[data-output-brand="booknordics_customer"] .cover-page.editor-text-cover .cover-title,
 .editor-shell[data-output-brand="booknordics_customer"] .cover-page.editor-text-cover .cover-subtitle,
 .editor-shell[data-output-brand="booknordics_customer"] .cover-page.editor-text-cover .cover-destinations {
@@ -110,7 +120,11 @@
 }
 
 .editor-shell[data-output-brand="booknordics_customer"] .cover-kicker,
-.editor-shell[data-output-brand="booknordics_customer"] .cover-dates,
+.editor-shell[data-output-brand="booknordics_customer"] .cover-dates {
+  color: var(--cover-muted, #667085) !important;
+  -webkit-text-fill-color: var(--cover-muted, #667085) !important;
+}
+
 .editor-shell[data-output-brand="booknordics_customer"] .city,
 .editor-shell[data-output-brand="booknordics_customer"] .muted-note {
   color: var(--muted, #667085) !important;

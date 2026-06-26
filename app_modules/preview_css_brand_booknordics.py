@@ -32,13 +32,23 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
     left: 72px;
     right: 72px;
     width: auto;
-    max-width: 650px;
-    padding: 28px 36px 32px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: rgba(250,250,251,.86);
-    box-shadow: 0 20px 48px rgba(0,25,60,.18);
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    text-shadow: 0 2px 10px rgba(0,25,60,.28);
 }}
+.preview-background[data-output-brand="booknordics_customer"] .cover-subtitle,
+.preview-background[data-output-brand="booknordics_customer"] .cover-destinations {{
+    color: var(--cover-ink);
+}}
+.preview-background[data-output-brand="booknordics_customer"] .cover-kicker,
+.preview-background[data-output-brand="booknordics_customer"] .cover-dates {{
+    color: var(--cover-muted);
+}}
+
 .preview-background[data-output-brand="booknordics_customer"] .cover-emblem {{
     border-color: rgba(255, 0, 65, .55);
 }}
@@ -58,7 +68,10 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
 .preview-background[data-output-brand="booknordics_customer"] .final-page-title {{
     font-family: "DM Sans", sans-serif;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-title,
+.preview-background[data-output-brand="booknordics_customer"] .cover-title {{
+    color: var(--cover-ink);
+    font-weight: 700;
+}}
 .preview-background[data-output-brand="booknordics_customer"] .day-title,
 .preview-background[data-output-brand="booknordics_customer"] .summary-title,
 .preview-background[data-output-brand="booknordics_customer"] .glance-title,

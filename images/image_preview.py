@@ -35,7 +35,7 @@ def _image_to_preview_data_uri_cached(path_text, max_size, quality, mtime):
             img = img.convert("RGB")
             img.thumbnail(max_size, Image.LANCZOS)
             buffer = BytesIO()
-            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+            img.save(buffer, format="JPEG", quality=quality, optimize=False)
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
         return f"data:image/jpeg;base64,{encoded}"
     except (OSError, TypeError, ValueError) as error:

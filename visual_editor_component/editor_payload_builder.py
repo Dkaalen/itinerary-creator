@@ -5,7 +5,8 @@ cover, summary, days, final pages, images, source rows, and warnings logic small
 """
 
 from app_modules.display_settings import get_color_preset
-from app_modules.output_brand import editor_brand_payload
+from app_modules.output_brand import editor_brand_payload, output_brand_id
+from app_modules.output_brand_cover import apply_output_brand_cover_palette
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.editable_draft import normalise_editable_draft
 from itinerary_generation.editor_page_contract import build_editor_document_pages
@@ -105,6 +106,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     model_warnings = _compact_model_warnings(final_pages_bundle["structured_document"], parsed_rows)
 
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=False)
+    cover_theme = apply_output_brand_cover_palette(cover_theme, output_brand_id(output_edits))
     cover_image, summary_image = build_cover_image_payloads(parsed_rows, output_edits, pictures_added=pictures_added)
     cover_theme["background_path"] = cover_image.get("path", "")
     cover_theme["background_data_uri"] = cover_image.get("data_uri", "")

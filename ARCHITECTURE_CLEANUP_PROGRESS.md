@@ -2336,3 +2336,34 @@ Validation snapshot:
 Focused baggage/client-sanitizer regressions: passed
 Scandinavian Booknordics generation smoke: passed
 ```
+
+---
+
+# Batch 27 — Booknordics cover contrast and export speed polish
+
+Progress: `[####################] 100%`
+
+Completed in Batch 27:
+
+```text
+[x] Removed the Booknordics cover card from preview, visual editor, and typed PDF output
+[x] Reused image-aware cover contrast so customer covers can use light text on dark image areas and navy/dark text on light image areas
+[x] Aligned the Booknordics PDF cover rule and route stack with a single centered divider instead of the previous offset line treatment
+[x] Kept the agent cover behavior unchanged while applying Booknordics cover-specific palette adjustments through a focused brand helper
+[x] Reduced Add Pictures payload cost by limiting eager option-preview thumbnails and avoiding unnecessary thumbnail optimization work
+[x] Added persistent PDF image-variant caching so repeated exports can reuse resized/cropped image files across export temp directories
+[x] Added focused regressions for Booknordics cover contrast, no-card rendering, cover alignment source ownership, editor payload preview caps, and PDF image cache reuse
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused Booknordics cover/contrast/theme regressions: 21 passed
+Adjacent editor/PDF/cache/parity regressions: 27 passed
+Combined focused and adjacent regression set: 55 passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+Rendered Booknordics cover sample PDF inspected: no cover card, light text on dark image, centered accent divider
+```

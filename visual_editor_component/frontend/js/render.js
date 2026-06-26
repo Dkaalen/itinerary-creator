@@ -54,8 +54,8 @@ function draw() {
   const isBooknordics = brand?.output_brand === 'booknordics_customer';
   const brandColors = brand?.colors || {};
   const daySeparator = isBooknordics ? '-' : '✦';
-  const coverInk = isBooknordics ? (brandColors.ink || '#00193C') : (picturesAdded() ? (model.cover?.cover_ink || '#1f3446') : '#1f3446');
-  const coverMuted = isBooknordics ? (brandColors.muted || '#667085') : (picturesAdded() ? (model.cover?.cover_muted || '#7b746c') : '#53606c');
+  const coverInk = picturesAdded() ? (model.cover?.cover_ink || (isBooknordics ? '#00193C' : '#1f3446')) : (isBooknordics ? (brandColors.ink || '#00193C') : '#1f3446');
+  const coverMuted = picturesAdded() ? (model.cover?.cover_muted || (isBooknordics ? '#667085' : '#7b746c')) : (isBooknordics ? (brandColors.muted || '#667085') : '#53606c');
   const coverAccent = isBooknordics ? (brandColors.accent || '#FF0041') : (picturesAdded() ? (model.cover?.cover_accent || '#b89555') : '#b89555');
   const coverFocus = model.cover?.cover_image?.crop_focus || 'top';
   const coverStyle = `${coverBg ? `background-image: url('${escAttr(coverBg)}'); background-position: ${focusPos(coverFocus)}; background-size: cover; background-repeat: no-repeat;` : ''} --cover-ink: ${escAttr(coverInk)}; --cover-muted: ${escAttr(coverMuted)}; --cover-accent: ${escAttr(coverAccent)};`;

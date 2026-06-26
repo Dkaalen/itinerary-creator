@@ -13,13 +13,19 @@ from images.app_image_selection import (
 from itinerary_generation.cover_assets import resolve_cover_background
 
 
-def _with_option_previews(options):
+OPTION_PREVIEW_LIMIT = 4
+DAY_REPLACEMENT_OPTION_LIMIT = 8
+
+
+def _with_option_previews(options, *, preview_limit: int = OPTION_PREVIEW_LIMIT):
     enriched = []
-    for option in options or []:
+    for index, option in enumerate(options or []):
         item = dict(option or {})
         path = item.get("path")
-        if path and not item.get("preview_data_uri"):
+        if path and not item.get("preview_data_uri") and index < preview_limit:
             item["preview_data_uri"] = get_image_preview_for_path(path, option=True)
+        else:
+            item.setdefault("preview_data_uri", "")
         enriched.append(item)
     return enriched
 
@@ -57,7 +63,7 @@ def build_day_image_payload(day, rows, output_edits, *, pictures_added: bool, im
         match = image_matches.get(day)
         image_path = match.get("path") if match else ""
         preview_data_uri = get_image_preview_for_path(image_path) if image_path else ""
-        options = _with_option_previews(list_replacement_image_options_for_rows(day, rows, limit=12))
+        options = _with_option_previews(list_replacement_image_options_for_rows(day, rows, limit=DAY_REPLACEMENT_OPTION_LIMIT))
         return {
             "mode": get_day_image_choice(output_edits, day).get("mode", "auto"),
             "path": image_path or "",

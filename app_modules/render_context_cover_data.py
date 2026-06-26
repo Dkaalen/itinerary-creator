@@ -7,6 +7,7 @@ from typing import Any
 from app_modules.display_settings import get_color_preset, get_color_preset_name
 from app_modules.itinerary_html_sections import balanced_cover_subtitle_html
 from app_modules.output_brand import logo_data_uri, output_brand_id
+from app_modules.output_brand_cover import apply_output_brand_cover_palette
 from itinerary_generation.cover_assets import resolve_cover_background
 from itinerary_generation.cover_route import clean_or_create_cover_route_line, cover_route_html
 from itinerary_generation.cover_theme import get_cover_theme
@@ -25,7 +26,9 @@ def build_cover_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
 
     typed_cover = editor_draft.get("cover", {}) if isinstance(editor_draft.get("cover"), dict) else {}
     include_picture_data = pictures_are_added(output_edits)
+    output_brand = output_brand_id(output_edits)
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=include_picture_data)
+    cover_theme = apply_output_brand_cover_palette(cover_theme, output_brand)
     summary_image = resolve_cover_background(parsed_rows, output_edits, key="summary_image", include_image_data=include_picture_data)
 
     trip_title = typed_cover.get("trip_title") or output_edits.get("trip_title") or create_trip_title(parsed_rows, grouped_days)
@@ -40,7 +43,7 @@ def build_cover_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
     destinations_line = clean_or_create_cover_route_line(parsed_rows, saved_destinations_line or create_destinations_line(parsed_rows))
 
     return {
-        "output_brand": output_brand_id(output_edits),
+        "output_brand": output_brand,
         "brand_logo_data_uri": logo_data_uri(output_edits),
         "preset_name": get_color_preset_name(output_edits),
         "colors": get_color_preset(output_edits),
