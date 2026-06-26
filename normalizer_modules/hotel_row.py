@@ -5,6 +5,7 @@ import re
 from normalizer_modules.hotel_dates import hotel_nights_from_date_range
 from normalizer_modules.hotel_meals import extract_star_level, normalize_meal_plan
 from normalizer_modules.hotel_names import clean_hotel_name_from_source, is_placeholder_hotel_name, strip_city_and_star_prefix
+from normalizer_modules.hotel_amenities import extract_hotel_amenities
 from normalizer_modules.hotel_rooms import extract_bed_type_from_source, extract_room_category_from_source, normalize_room_category
 from normalizer_modules.text_utils import clean_space
 from text_polish import polish_hotel_name
@@ -38,5 +39,5 @@ def normalize_hotel_row(row: dict) -> dict:
         if match: nights = match.group(1)
     if city and name.lower().endswith(" city"): name = name[:-5].strip() or name
     name = re.sub(r"\bSariselka\b", "Saariselkä", name, flags=re.IGNORECASE)
-    row.update(hotel_name=name, title=name, room_category=room, hotel_nights=nights, meal_plan=normalize_meal_plan(row.get("meal_plan", ""), source), star_rating=star)
+    row.update(hotel_name=name, title=name, room_category=room, hotel_nights=nights, meal_plan=normalize_meal_plan(row.get("meal_plan", ""), source), star_rating=star, hotel_amenities=extract_hotel_amenities(source))
     return row

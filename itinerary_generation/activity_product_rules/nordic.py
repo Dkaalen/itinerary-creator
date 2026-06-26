@@ -172,6 +172,16 @@ def match_nordic_activity(
     if "oslo" in source_lower and ("munch museum" in source_lower or re.search(r"\bmunch\b", source_lower)) and any(marker in source_lower for marker in ("ticket", "tickets", "entrance", "entry", "admission", "museum")):
         return match_product("munch_museum_ticket", "admission", "Munch Museum Visit", source_title=source_title)
 
+    if "santa claus" in source_lower and "village" in source_lower and "visit" in source_title.lower():
+        title_lower = source_title.lower()
+        if not ("husky" in title_lower or "reindeer" in title_lower or "snowmobile" in title_lower):
+            return match_product(
+                "santa_claus_village_visit",
+                "self_guided_visit",
+                "Santa Claus Village Visit",
+                source_title=source_title,
+            )
+
     if "santa claus" in source_lower and "husky" in source_lower and "reindeer" in source_lower:
         title = "City Highlights, Santa Claus Village & Husky-Reindeer Safari" if "city highlights" in source_lower else "Santa Claus Village, Husky & Reindeer Experience"
         tags = tuple(tag for tag, marker in (("arktikum", "arktikum"), ("lunch", "lunch")) if marker in source_lower)

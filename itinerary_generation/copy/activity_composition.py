@@ -71,6 +71,10 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
         lambda title, city: f"Use today for a flexible viewpoint visit in {city}, with {title} arranged so you can choose the timing that suits the day.",
     ),
     TextRule(
+        ("santa claus village", "santa's post office", "arctic circle"),
+        lambda title, city: f"Visit Santa Claus Village from {city}, with transfer arrangements and self-guided time around Santa’s Post Office, the Arctic Circle crossing and the village surroundings.",
+    ),
+    TextRule(
         ("santa", "reindeer", "husky"),
         lambda title, city: f"Today focuses on classic Arctic experiences around {city}, with animal encounters or seasonal activities arranged at an easy pace.",
     ),

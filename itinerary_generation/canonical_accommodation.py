@@ -64,10 +64,10 @@ def canonical_accommodation_block(row: dict) -> CanonicalBlock:
     elif meal:
         lines.append(meal.capitalize())
 
-    stay_inclusions = extract_stay_inclusions(row)
+    stay_inclusions = [*extract_stay_inclusions(row), *(row.get("hotel_amenities") or [])]
     if stay_inclusions:
         lines.append("Included with this stay:")
-        lines.extend(stay_inclusions)
+        lines.extend(dict.fromkeys(stay_inclusions))
 
     return CanonicalBlock(
         kind="accommodation",

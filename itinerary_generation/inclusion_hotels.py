@@ -63,10 +63,10 @@ def hotel_line(row: dict) -> str:
             details += "."
         detail_lines.append(details)
 
-    stay_inclusions = extract_stay_inclusions(row)
+    stay_inclusions = [*extract_stay_inclusions(row), *(row.get("hotel_amenities") or [])]
     if stay_inclusions:
         detail_lines.append("Included with this stay:")
-        detail_lines.extend(stay_inclusions)
+        detail_lines.extend(dict.fromkeys(stay_inclusions))
 
     return title if not detail_lines else f"{title}\n" + "\n".join(detail_lines)
 

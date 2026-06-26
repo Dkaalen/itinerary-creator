@@ -82,6 +82,7 @@ def looks_like_leisure_activity(row: dict) -> bool:
 
     leisure_markers = [
         "spend time at leisure",
+        "leisure day",
         "day at leisure",
         "morning at leisure",
         "afternoon at leisure",

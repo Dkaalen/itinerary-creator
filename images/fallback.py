@@ -63,6 +63,9 @@ def _semantic_bridge_bonus(candidate_themes: set[str], day_themes: set[str], day
     has = lambda *items: any(item in day_themes or item in day_tokens for item in items)
     cand = lambda *items: any(item in candidate_themes for item in items)
 
+    if has("santa", "santaclaus", "santa claus", "overnight", "overnighttrain", "santa express", "claus express", "rovaniemi") and cand("northern lights", "winter", "mountain"):
+        bonus += 32
+        reasons.append("fallback context match: Lapland overnight rail")
     if has("igloo", "kakslauttanen", "glass", "arctic", "resort") and cand("northern lights", "winter", "mountain"):
         bonus += 22
         reasons.append("fallback context match: arctic resort")

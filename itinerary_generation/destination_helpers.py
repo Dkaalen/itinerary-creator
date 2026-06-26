@@ -208,9 +208,20 @@ def destination_cities_for_row(row: dict) -> list[str]:
         if is_valid_destination_city(city) and city not in cities:
             cities.append(city)
 
+    row_type = get_row_type(row)
+    if row_type == "Transfer":
+        from itinerary_generation.transport_detection import is_route_transfer
+        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+
+        if is_route_transfer(row):
+            origin, destination = get_route_points_for_transport(row)
+            add_city(origin)
+            add_city(destination)
+            if cities:
+                return cities
+
     add_city(row.get("city", ""))
 
-    row_type = get_row_type(row)
     if row_type in TRANSPORT_TYPES:
         # Import lazily: transport route extraction depends on the common facade,
         # which in turn re-exports this destination module. Lazy import keeps the

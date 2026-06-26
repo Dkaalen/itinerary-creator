@@ -2500,3 +2500,39 @@ Visual editor autosave/save-contract regressions: passed
 Adjacent workflow, Booknordics/theme, image fallback, and itinerary fidelity regressions: passed
 Frontend JavaScript syntax validation: passed
 ```
+
+---
+
+# Batch 32 — Messy Finland input fidelity repair
+
+Progress: `[####################] 100%`
+
+Completed in Batch 32:
+
+```text
+[x] Treated supplier rows titled `Leisure Day` as leisure/free-time rows even when pasted under the Activity type
+[x] Prevented Santa Claus Village optional husky/reindeer recommendations from becoming included product titles or day-intro copy
+[x] Added explicit Santa Claus Village visit copy that stays focused on Santa’s Post Office, Arctic Circle crossing, and self-guided village time
+[x] Stopped generic photo/fjord/coastal activity prose from applying to Rovaniemi Northern Lights BBQ products without source evidence
+[x] Added Northern Lights BBQ description copy based on campfire/barbecue/light-pollution source evidence
+[x] Improved route-transfer detection for explicit place-to-airport shuttle transfers such as Kakslauttanen to Ivalo Airport
+[x] Titled final route-transfer days as transfer days and generated onward-journey intro copy from the actual origin and destination
+[x] Preserved final shuttle transfers as included arranged transport while keeping local self transfers excluded
+[x] Preserved messy hotel bed counts such as `2 Twin Beds and 1 Twin Sofa Bed` and `2x Single Bed, 1x Single Sofa Bed`
+[x] Extracted explicit hotel amenities such as hotel-sauna access into accommodation day blocks and final inclusions
+[x] Kept hotel date/night-count mismatch metadata available for review instead of silently dropping the conflict
+[x] Added fallback-image scoring so overnight Lapland rail context can prefer winter/Lapland imagery over generic summer rail-track images
+[x] Added focused regressions for messy Finland input fidelity, including leisure handling, Santa Village title restraint, Northern Lights BBQ copy, final transfer endpoint/title, hotel fidelity, and winter rail image selection
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused messy-input fidelity regressions: 6 passed
+Focused and adjacent itinerary/image/accommodation/export/theme regressions: 66 passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+git diff --check: passed
+```

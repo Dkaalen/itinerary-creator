@@ -9,6 +9,34 @@ ROOM_UNIT_PATTERN = r"(?:rooms?|igloos?|nests?|suites?|cabins?|apartments?|villa
 ROOM_DESCRIPTOR_PATTERN = r"(?:standard|std\.?|superior|deluxe|small glass|glass|panorama|triple|tirple|double|single|twin|family|premium|junior|classic|atrium view|large|art|waterfront view|one bedroom|two bedroom|three bedroom|four bedroom|aurora|aurora nest|log|arctic treehouse|fisherman[’']?s?)"
 
 
+def _strip_bed_fragments(value: str) -> str:
+    """Remove bed-count fragments that belong in the bed suffix, not the room name."""
+
+    text = clean_space(value)
+    text = re.sub(
+        r"\s*(?:[-,;]|\bwith\b)?\s*(?:\d+\s*x\s*)?(?:twin\s+sofa\s+bed|single\s+sofa\s+bed|sofa\s+bed|twin\s+beds?|single\s+beds?|double\s+beds?|queen\s+bed|king\s+bed|bunk\s+bed)s?\b.*$",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return clean_space(text.strip(" ,-"))
+
+
+def _normalise_bed_label(label: str, quantity: str = "") -> str:
+    bed = clean_space(label).lower()
+    bed = re.sub(r"\btwin\s+sofa\s+bed\b", "single sofa bed", bed, flags=re.IGNORECASE)
+    bed = re.sub(r"\bsingle\s+sofa\s+bed\b", "single sofa bed", bed, flags=re.IGNORECASE)
+    if quantity:
+        try:
+            amount = int(quantity)
+        except ValueError:
+            amount = 0
+        if amount > 1 and not bed.endswith("s"):
+            bed += "s"
+        return f"{amount} x {bed}" if amount else bed
+    return bed
+
+
 def _normalize_single_room_category(value: str, *, preserve_quantity: bool = False) -> str:
     original, room = str(value or ""), polish_client_text(value)
     if re.search(r"\bpremium\s+double\s+igloo\b", original, flags=re.IGNORECASE) and not re.search(r"\bpremium\s+double\s+igloo\b", room, flags=re.IGNORECASE):
@@ -71,7 +99,7 @@ def extract_room_category_from_source(source: str) -> str:
         if "hotel" in lower and not re.search(r"\d+\s*x", lower): continue
         if not re.search(rf"\b{ROOM_UNIT_PATTERN}\b", fragment, flags=re.IGNORECASE): continue
         if not (re.search(r"\d+\s*x", fragment, flags=re.IGNORECASE) or re.search(ROOM_DESCRIPTOR_PATTERN, fragment, flags=re.IGNORECASE)): continue
-        cleaned = normalize_room_category(fragment)
+        cleaned = _strip_bed_fragments(normalize_room_category(fragment))
         if cleaned: matches.append(cleaned)
     return ", ".join(dict.fromkeys(matches))
 
@@ -79,9 +107,12 @@ def extract_room_category_from_source(source: str) -> str:
 def extract_bed_type_from_source(source: str) -> str:
     text = re.sub(r"\bextra\s+bed\s+not\s+included\b", "", clean_space(source), flags=re.IGNORECASE)
     beds = []
-    pattern = r"\b(full\s+double\s+bed|double\s+bed|twin\s+beds?|queen\s+bed|king\s+bed|single\s+bed|sofa\s+bed|bunk\s+bed)\b"
+    seen = set()
+    pattern = r"(?:(\d+)\s*x?\s*)?\b(full\s+double\s+bed|double\s+beds?|twin\s+sofa\s+bed|single\s+sofa\s+bed|twin\s+beds?|queen\s+bed|king\s+bed|single\s+beds?|sofa\s+bed|bunk\s+bed)\b"
     for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-        bed = clean_space(match.group(1)).lower()
-        if bed not in beds:
+        bed = _normalise_bed_label(match.group(2), match.group(1) or "")
+        key = bed.lower()
+        if key not in seen:
+            seen.add(key)
             beds.append(bed)
     return " and ".join(beds)

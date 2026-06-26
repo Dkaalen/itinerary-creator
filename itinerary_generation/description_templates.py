@@ -111,6 +111,10 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         return "Set out on a guided ATV adventure, with equipment provided and the route arranged around the surrounding black-sand and coastal landscapes."
     if "fløibanen" in full or "floibanen" in full:
         return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
+    if "santa claus village" in full and "visit" in title.lower() and not any(marker in title.lower() for marker in ["husky", "reindeer", "snowmobile"]):
+        return polish_client_text(
+            "Visit Santa Claus Village, with time for Santa’s Post Office, the Arctic Circle crossing and self-guided exploration of the festive village surroundings."
+        )
     if (
         ("cable car" in full or "funicular" in full or "gondola" in full)
         and ("ticket" in full or "admission" in full)
@@ -141,7 +145,6 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     if (
         "photo tour" in full
         or "photo excursion" in full
-        or "arctic landscapes" in full
         or "scenic fjord safari" in full
         or "camera settings" in full
         or "nature photos" in full
@@ -168,6 +171,10 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
         if "tromsø" in full or "tromso" in full or city.lower() in {"tromsø", "tromso"}:
             return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn about Sámi culture and Arctic traditions.")
         return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn more about this classic Arctic experience at an easy pace.")
+    if ("northern lights" in full or "aurora" in full) and ("bbq" in full or "barbecue" in full or "campfire" in full or "lappish" in full):
+        return polish_client_text(
+            f"Head outside the city in search of the Northern Lights{city_phrase}, with a campfire barbecue and local guidance included while you wait for clear skies."
+        )
     if "northern lights" in full or "aurora" in full:
         return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
     if "tallinn" in full:

@@ -32,7 +32,7 @@ def get_transport_route_phrase(row):
     origin, destination = get_route_points_for_transport(row)
     via = get_route_via_points(row, origin, destination)
 
-    if row_type == "Transfer" and has_local_transfer_marker(lower):
+    if row_type == "Transfer" and has_local_transfer_marker(lower) and not is_route_transfer(row):
         return polish_title(row.get("title", "") or "Transfer")
 
     if row_type == "Train" or "train" in lower:
@@ -130,7 +130,7 @@ def get_premium_transport_phrase(row):
 def get_transfer_travel_title(row):
     text = f'{row.get("title", "")} {row.get("details", "")}'
     lower = text.lower()
-    _, route_destination = get_route_points_for_transport(row)
+    route_origin, route_destination = get_route_points_for_transport(row)
     text_destination = _route_destination_from_text(text)
     city_destination = canonicalize_place_name(row.get("city", ""))
 
@@ -147,6 +147,9 @@ def get_transfer_travel_title(row):
     if "coach" in lower or "bus" in lower:
         destination = base_destination_from_terminal(route_destination or text_destination or city_destination)
         return f"Coach Transfer to {destination}" if destination else polish_title(row.get("title", "") or "Coach Transfer")
+    if ("shuttle" in lower or "transfer" in lower) and route_origin and route_destination:
+        label = "Shuttle transfer" if "shuttle" in lower else "Transfer"
+        return f"{label} from {route_origin} to {route_destination}"
 
     destination = text_destination or route_destination or city_destination
     if destination:
@@ -177,6 +180,8 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
         return f"Overnight train to {destination}" if re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", lower) else f"Train to {destination}"
     if "coach" in lower or "bus" in lower:
         return f"Coach Transfer to {destination}"
+    if "shuttle" in lower or "transfer" in lower:
+        return f"Transfer to {destination}"
     if "ferry" in lower:
         return f"Ferry to {destination}"
     if "cruise" in lower:

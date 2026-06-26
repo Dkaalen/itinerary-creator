@@ -182,6 +182,11 @@ def plan_day(rows: list[dict]) -> DayPlan:
 
     if travel_rows:
         primary_transport_title = get_primary_transport_title(rows)
+        has_single_route_transfer = len(travel_rows) == 1 and get_row_type(travel_rows[0]) == "Transfer" and all(get_route_points_for_transport(travel_rows[0]))
+        if has_single_route_transfer and primary_transport_title:
+            origin, destination = get_route_points_for_transport(travel_rows[0])
+            intro = f"After check-out, take your arranged transfer from {origin} to {destination} for your onward journey."
+            return DayPlan("travel_day", primary_transport_title, intro, suppress_free_time=True, consolidate_travel=True)
         title = primary_transport_title if primary_transport_title and primary_transport_title.lower().startswith("journey to") else (travel_sequence_title(rows, city) or _transport_title(rows))
         if not title:
             dest = _destination_from_transport(rows) or city
