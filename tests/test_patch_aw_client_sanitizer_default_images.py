@@ -134,14 +134,15 @@ def test_patch_aw_important_notes_are_real_paragraphs_not_fragments():
     ]
 
 
-def test_patch_aw_default_only_bank_returns_no_auto_final_images(tmp_path):
+def test_patch_aw_default_only_bank_can_return_auto_fallback_images(tmp_path):
     bank = tmp_path / "image_bank"
     _write_webp(bank / "Default" / "Default_Autumn_City_01.webp")
     grouped = {"Day 1": [{"day": "Day 1", "city": "Reykjavík", "title": "Welcome to Reykjavík"}]}
 
     matches = select_day_images_with_overrides(grouped, {}, app_root=tmp_path, image_bank_scan_paths=[bank])
 
-    assert matches == {"Day 1": None}
+    assert matches["Day 1"]
+    assert matches["Day 1"].get("is_default") is True
 
 
 def test_patch_aw_preview_image_contract_contains_bank_status(tmp_path):

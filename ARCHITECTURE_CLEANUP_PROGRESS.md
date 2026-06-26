@@ -2367,3 +2367,33 @@ Architecture guards: passed
 Import smoke: optional skips=25, failures=0
 Rendered Booknordics cover sample PDF inspected: no cover card, light text on dark image, centered accent divider
 ```
+
+---
+
+# Batch 28 — Shared image-bank fallback logic hotfix
+
+Progress: `[####################] 100%`
+
+Completed in Batch 28:
+
+```text
+[x] Restored one shared image-readiness path for agent and Booknordics customer itineraries
+[x] Allowed Add Pictures and PDF export to proceed with bundled fallback images when no destination bank is available
+[x] Kept missing full-bank and missing destination-pack states as warnings instead of brand-specific blockers
+[x] Prevented stale blocking image-bank gateway state from stopping the workflow when fallback images are available
+[x] Stopped Norway in a Nutshell route stops such as Myrdal and Gudvangen from becoming mandatory image-pack requests
+[x] Preserved hard blocking only for the true no-image-source case
+[x] Updated client-output image checks so fallback-image usage is reviewable rather than generation-blocking
+[x] Added regressions for shared fallback readiness, stale gateway cleanup, route-stop request filtering, default fallback selection, and export readiness
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused image-bank/workflow/export regressions: 90 passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+git diff --check: passed
+```

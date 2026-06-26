@@ -46,7 +46,7 @@ def test_patch_ar_default_only_bank_is_blocking_status(tmp_path):
     assert "Full destination image bank is missing" in status["blocking_message"]
 
 
-def test_patch_ar_audit_blocks_default_only_bank_before_pdf_export(tmp_path):
+def test_patch_ar_audit_warns_about_default_only_bank_before_pdf_export(tmp_path):
     bank = tmp_path / "image_bank"
     image_path = bank / "Default" / "Default_Autumn_City_01.webp"
     _write_webp(image_path)
@@ -68,10 +68,10 @@ def test_patch_ar_audit_blocks_default_only_bank_before_pdf_export(tmp_path):
     warnings = audit_day_image_matches(grouped, matches, image_bank_scan_paths=[bank])
 
     assert any(warning.code == "image_bank_full_missing" for warning in warnings)
-    assert any(warning.severity == "error" for warning in warnings)
+    assert not any(warning.severity == "error" for warning in warnings)
 
 
-def test_patch_ar_client_quality_gate_blocks_missing_full_image_bank(tmp_path):
+def test_patch_ar_client_quality_gate_warns_about_missing_full_image_bank(tmp_path):
     bank = tmp_path / "image_bank"
     _write_webp(bank / "Default" / "Default_Autumn_City_01.webp")
     status = image_bank.image_bank_status_for_paths([bank])
@@ -81,8 +81,8 @@ def test_patch_ar_client_quality_gate_blocks_missing_full_image_bank(tmp_path):
         image_bank_status=status,
     )
 
-    assert report.is_blocked
-    assert any(issue.code == "image_bank_full_missing" for issue in report.blocking_issues)
+    assert not report.is_blocked
+    assert any(issue.code == "image_bank_full_missing" for issue in report.warnings)
 
 
 def test_patch_ar_image_path_lookup_does_not_clone_runtime_repo(monkeypatch, tmp_path):

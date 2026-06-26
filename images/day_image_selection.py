@@ -94,7 +94,13 @@ def _attach_image_bank_contract(match, status):
 
 
 def _default_images_allowed_for_final(output_edits=None) -> bool:
-    return bool((output_edits or {}).get("allow_default_final_images"))
+    """Return whether bundled fallback images may be used in normal output.
+
+    The old opt-in flag is retained for compatibility, but default images are
+    now allowed unless a caller explicitly sets ``block_default_final_images``.
+    """
+
+    return not bool((output_edits or {}).get("block_default_final_images"))
 
 
 def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_root, image_bank_scan_paths):

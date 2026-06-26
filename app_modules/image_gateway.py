@@ -28,12 +28,26 @@ class ImageBankGatewayResult:
 
 
 def image_bank_is_ready_for_client_pictures(status: Mapping[str, Any] | None) -> bool:
-    """Return True only when a real destination image bank is available."""
+    """Return True when the picture workflow has any usable image source.
+
+    Agent and customer itineraries share the same image path.  A connected
+    destination bank is ideal, but the workflow may still proceed with bundled
+    fallbacks so missing destination packs stay as review warnings rather than
+    brand-specific blockers.
+    """
 
     status = status or {}
-    if "required_destinations_ready" in status:
-        return bool(status.get("required_destinations_ready"))
-    return bool(status.get("full_bank_found") and not status.get("missing_full_bank"))
+    if status.get("full_bank_found") or status.get("using_full_destination_bank"):
+        return True
+    if status.get("default_only") or status.get("is_default_only"):
+        return True
+    if int(status.get("destination_image_count") or 0) > 0:
+        return True
+    if int(status.get("default_image_count") or 0) > 0:
+        return True
+    if int(status.get("total_image_count") or 0) > 0:
+        return True
+    return False
 
 
 def _blocking_message(status: Mapping[str, Any] | None, setup_status: Mapping[str, Any] | None = None) -> str:
@@ -42,7 +56,7 @@ def _blocking_message(status: Mapping[str, Any] | None, setup_status: Mapping[st
     return str(
         status.get("blocking_message")
         or setup_status.get("message")
-        or "Full destination image bank is missing. Connect the separate itinerary-image-bank repository before picture review."
+        or "No usable itinerary images are available. Add pictures after connecting an image bank or bundled fallback images."
     )
 
 
@@ -72,9 +86,9 @@ def connect_image_bank_for_picture_stage(
 ) -> ImageBankGatewayResult:
     """Try to connect the full image bank before entering picture review.
 
-    The normal Add Pictures workflow must never silently proceed with only the
-    bundled Default bank.  This helper keeps that rule outside the Streamlit
-    view, which makes it easy to test and harder to bypass accidentally.
+    Agent and customer outputs use the same image-readiness decision.  Missing
+    destination packs can be reported as warnings, but bundled fallback images
+    are enough to enter review instead of creating a brand-specific blocker.
     """
 
     current_status = dict(status_func() or {})

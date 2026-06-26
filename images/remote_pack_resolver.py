@@ -28,6 +28,38 @@ def coerce_request(value: Any) -> DestinationRequest | None:
     return DestinationRequest(destination=destination, country=str(country or "").strip())
 
 
+
+def _row_type(value: Mapping[str, Any]) -> str:
+    return str(value.get("effective_type") or value.get("type") or "").strip().casefold()
+
+
+def _row_city(value: Mapping[str, Any]) -> str:
+    return str(value.get("city") or value.get("destination") or value.get("location") or "").strip()
+
+
+def _destination_from_rows_for_pack_request(rows: Sequence[Mapping[str, Any]]) -> str:
+    """Return the stay/page destination used for remote image-pack readiness.
+
+    Image matching may consider service text such as rail segments and fjord
+    route stops, but the image-bank connection gate should only request packs
+    for actual itinerary page/stay destinations.  This keeps Norway in a
+    Nutshell stops such as Myrdal or Gudvangen from blocking Add Pictures.
+    """
+
+    rows = [row for row in rows or [] if isinstance(row, Mapping)]
+    priority_groups = (
+        {"hotel", "accommodation", "lodging"},
+        {"day overview"},
+        {"arrival", "departure", "leisure"},
+        {"activity"},
+        {"train", "flight", "cruise", "ferry", "coach", "transport", "transfer", "drive", "car"},
+    )
+    for group in priority_groups:
+        for row in rows:
+            if _row_type(row) in group and _row_city(row):
+                return _row_city(row)
+    return next((_row_city(row) for row in rows if _row_city(row)), "")
+
 def destination_requests_from_rows(rows_or_grouped_days: Any) -> list[DestinationRequest]:
     """Return ordered, unique day-image destinations."""
 
@@ -59,10 +91,8 @@ def destination_requests_from_rows(rows_or_grouped_days: Any) -> list[Destinatio
         direct_values = [rows_or_grouped_days]
 
     if grouped_items:
-        from images.matcher_context import build_day_context
-
-        for day, rows in grouped_items:
-            city = str(build_day_context(day, rows).get("city") or "").strip()
+        for _day, rows in grouped_items:
+            city = _destination_from_rows_for_pack_request(rows)
             if city:
                 direct_values.append({"destination": city, "country": country_for_place(city)})
 

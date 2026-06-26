@@ -15,10 +15,11 @@ def _write_placeholder(path: Path) -> None:
     path.write_bytes(b"placeholder")
 
 
-def test_image_bank_gateway_accepts_only_real_destination_bank():
+def test_image_bank_gateway_accepts_real_bank_and_bundled_fallbacks():
     assert image_bank_is_ready_for_client_pictures({"full_bank_found": True, "missing_full_bank": False})
-    assert not image_bank_is_ready_for_client_pictures({"full_bank_found": False, "missing_full_bank": True})
-    assert not image_bank_is_ready_for_client_pictures({"default_only": True, "missing_full_bank": True})
+    assert image_bank_is_ready_for_client_pictures({"default_only": True, "missing_full_bank": True})
+    assert image_bank_is_ready_for_client_pictures({"full_bank_found": False, "missing_full_bank": True, "default_image_count": 3})
+    assert not image_bank_is_ready_for_client_pictures({"full_bank_found": False, "missing_full_bank": True, "default_image_count": 0, "total_image_count": 0})
 
 
 def test_image_bank_gateway_does_not_connect_when_bank_is_ready():
@@ -38,7 +39,21 @@ def test_image_bank_gateway_does_not_connect_when_bank_is_ready():
     assert calls["connect"] == 0
 
 
-def test_image_bank_gateway_blocks_default_only_after_failed_connection():
+def test_stale_default_only_gateway_result_is_not_blocking():
+    from app_modules.image_gateway_ui import _image_bank_gateway_is_blocking
+
+    result = {
+        "ready": False,
+        "status": {"default_only": True, "missing_full_bank": True, "default_image_count": 2},
+        "message": "Full destination image bank is missing.",
+    }
+
+    assert _image_bank_gateway_is_blocking(result) is False
+
+
+def test_image_bank_gateway_allows_default_only_fallback_without_brand_specific_block():
+    calls = {"connect": 0}
+
     def status_func():
         return {
             "full_bank_found": False,
@@ -48,6 +63,7 @@ def test_image_bank_gateway_blocks_default_only_after_failed_connection():
         }
 
     def connect_func():
+        calls["connect"] += 1
         return {
             "full_bank_found": False,
             "missing_full_bank": True,
@@ -58,10 +74,10 @@ def test_image_bank_gateway_blocks_default_only_after_failed_connection():
 
     result = connect_image_bank_for_picture_stage(status_func, connect_func)
 
-    assert result.ready is False
-    assert result.attempted_connection is True
-    assert result.setup_status["code"] == "bootstrap_disabled"
-    assert "Full destination image bank is missing" in result.message
+    assert result.ready is True
+    assert result.attempted_connection is False
+    assert calls["connect"] == 0
+    assert result.message == ""
 
 
 def test_image_bank_gateway_allows_picture_stage_after_connection_succeeds():

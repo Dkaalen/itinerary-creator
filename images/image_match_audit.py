@@ -123,7 +123,7 @@ def _format_name(path_text: str) -> str:
 
 
 def _default_images_allowed_for_final(output_edits: dict | None) -> bool:
-    return bool((output_edits or {}).get("allow_default_final_images"))
+    return not bool((output_edits or {}).get("block_default_final_images"))
 
 
 def audit_day_image_match(
@@ -257,8 +257,8 @@ def audit_day_image_matches(
     if grouped_days and status.get("missing_full_bank"):
         warnings.append(ImageAuditWarning(
             code="image_bank_full_missing",
-            message=str(status.get("blocking_message") or "Full destination image bank is missing."),
-            severity="error",
+            message=str(status.get("blocking_message") or "Full destination image bank is missing; bundled fallback images may be used until the destination bank is connected."),
+            severity="warning",
             day="",
             path="",
         ))

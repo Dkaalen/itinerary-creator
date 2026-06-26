@@ -137,7 +137,7 @@ def test_enter_picture_stage_blocks_missing_bank_and_clears_stale_pdf():
     assert result.ok is False
     assert state["app_stage"] == "edit"
     assert state["output_edits"]["pictures_added"] is False
-    assert state["output_edits"]["allow_default_final_images"] is False
+    assert state["output_edits"].get("allow_default_final_images") is False
     assert state["pdf_bytes"] is None
     assert state["export_pdf_bytes"] is None
     assert state["pdf_status"] == "Image bank missing"

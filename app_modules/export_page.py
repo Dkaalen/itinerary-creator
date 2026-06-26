@@ -4,6 +4,7 @@ import streamlit as st
 
 from app_modules.app_header import _render_app_header, _render_stage_actions, _stage_panel
 from app_modules.export_step import render_export_step, render_pdf_download_station
+from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.image_gateway_ui import (
     _current_image_bank_status,
     _image_status_notice,
@@ -18,7 +19,7 @@ def render_export_page(app_version: str) -> None:
     _render_stage_actions("export")
     render_pdf_download_station(location="top")
     status = _current_image_bank_status()
-    if not status.get("required_destinations_ready", not status.get("missing_full_bank")):
+    if not image_bank_is_ready_for_client_pictures(status):
         st.session_state["image_bank_gateway"] = {
             "ready": False,
             "status": status,

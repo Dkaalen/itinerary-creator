@@ -33,10 +33,7 @@ def prepare_pdf_image_contract() -> tuple[bool, dict, dict, dict]:
         image_bank_status,
         bank_signature=image_bank_storage_signature(),
     )
-    if grouped_days and not current_image_bank_status.get(
-        "required_destinations_ready",
-        not current_image_bank_status.get("missing_full_bank"),
-    ):
+    if grouped_days and not image_bank_is_ready_for_client_pictures(current_image_bank_status):
         current_image_bank_status = store_image_bank_status(
             st.session_state,
             required_destinations,

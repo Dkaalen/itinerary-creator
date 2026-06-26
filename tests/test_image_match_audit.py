@@ -63,7 +63,7 @@ def test_manual_wrong_destination_image_is_review_warning_not_silent():
         assert not any(warning.severity == "error" for warning in warnings)
 
 
-def test_default_image_selection_is_export_blocker_even_when_full_bank_exists():
+def test_default_image_selection_can_be_warned_when_fallbacks_are_explicitly_blocked():
     with tempfile.TemporaryDirectory() as tmp:
         bank = Path(tmp) / "image_bank_full"
         default_dir = bank / "Default"
@@ -88,14 +88,14 @@ def test_default_image_selection_is_export_blocker_even_when_full_bank_exists():
         }
         matches = {"Day 1": {"path": str(default_path), "city": "Default", "is_default": True, "reason": "fallback"}}
 
-        warnings = audit_day_image_matches(grouped, matches, output_edits={}, image_bank_scan_paths=[bank])
+        warnings = audit_day_image_matches(grouped, matches, output_edits={"block_default_final_images": True}, image_bank_scan_paths=[bank])
 
         default_warnings = [warning for warning in warnings if warning.code == "default_image_selected_for_final_output"]
         assert default_warnings
         assert all(warning.severity == "info" for warning in default_warnings)
 
 
-def test_explicit_dev_default_image_fallback_is_not_an_export_blocker():
+def test_default_image_fallback_is_not_an_export_blocker():
     with tempfile.TemporaryDirectory() as tmp:
         bank = Path(tmp) / "image_bank"
         default_dir = bank / "Default"
@@ -115,9 +115,7 @@ def test_explicit_dev_default_image_fallback_is_not_an_export_blocker():
             ]
         }
         matches = {"Day 1": {"path": str(default_path), "city": "Default", "is_default": True, "reason": "fallback"}}
-        output_edits = {"allow_default_final_images": True}
-
-        warnings = audit_day_image_matches(grouped, matches, output_edits=output_edits, image_bank_scan_paths=[bank])
+        warnings = audit_day_image_matches(grouped, matches, output_edits={}, image_bank_scan_paths=[bank])
 
         assert not any(warning.code == "default_image_selected_for_final_output" for warning in warnings)
 

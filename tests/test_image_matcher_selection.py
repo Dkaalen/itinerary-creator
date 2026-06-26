@@ -535,7 +535,7 @@ def test_arctic_resort_fallback_beats_generic_city_default():
         )
 
 
-def test_app_preview_locks_default_only_bank_unless_dev_fallback_is_allowed():
+def test_app_preview_uses_default_only_bank_as_shared_fallback():
     from PIL import Image
     from images.day_image_selection import select_day_images_with_overrides
 
@@ -550,23 +550,23 @@ def test_app_preview_locks_default_only_bank_unless_dev_fallback_is_allowed():
             "Day 2": [{"day": "Day 2", "date": "02.10.2027", "type": "Transfer", "city": "Oslo", "title": "Private Hotel to Airport", "details": "Private transfer from hotel to airport."}],
         }
 
-        locked_matches = select_day_images_with_overrides(grouped, {}, app_root=Path(tmp), image_bank_scan_paths=[bank])
-        assert_equal(
-            locked_matches,
-            {"Day 1": None, "Day 2": None},
-            "Default-only image banks should not dominate the normal app preview when the full bank is missing.",
-        )
-
-        fallback_matches = select_day_images_with_overrides(
-            grouped,
-            {"allow_default_final_images": True},
-            app_root=Path(tmp),
-            image_bank_scan_paths=[bank],
-        )
+        fallback_matches = select_day_images_with_overrides(grouped, {}, app_root=Path(tmp), image_bank_scan_paths=[bank])
         if not fallback_matches.get("Day 1") or not fallback_matches.get("Day 2"):
-            raise AssertionError("Explicit dev fallback mode should still be able to reuse a strong Default image.")
+            raise AssertionError("Default-only image banks should remain usable fallback sources for normal picture review.")
         assert_equal(
             Path(fallback_matches["Day 1"]["path"]).name,
             Path(fallback_matches["Day 2"]["path"]).name,
-            "Explicit fallback mode should preserve strong Default reuse selected by the matcher.",
+            "Default fallback mode should preserve strong Default reuse selected by the matcher.",
+        )
+
+        blocked_matches = select_day_images_with_overrides(
+            grouped,
+            {"block_default_final_images": True},
+            app_root=Path(tmp),
+            image_bank_scan_paths=[bank],
+        )
+        assert_equal(
+            blocked_matches,
+            {"Day 1": None, "Day 2": None},
+            "An explicit internal block flag should still disable bundled Default images for specialized checks.",
         )

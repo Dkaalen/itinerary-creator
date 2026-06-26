@@ -32,7 +32,7 @@ def _ready_state(**overrides):
     return state
 
 
-def test_export_readiness_allows_create_only_after_document_pictures_and_real_image_bank():
+def test_export_readiness_allows_create_after_document_pictures_and_image_source():
     readiness = export_readiness_from_state(_ready_state(), READY_IMAGE_BANK)
 
     assert readiness.status_label == "Ready to create"
@@ -49,12 +49,12 @@ def test_export_readiness_blocks_missing_pictures_before_pdf_creation():
     assert "review" not in readiness.blocking_messages[0].lower()
 
 
-def test_export_readiness_blocks_default_only_image_bank():
+def test_export_readiness_allows_default_only_fallback_image_bank():
     readiness = export_readiness_from_state(_ready_state(), MISSING_IMAGE_BANK)
 
-    assert readiness.can_create_pdf is False
-    assert readiness.image_bank_ready is False
-    assert any("real destination image bank" in message for message in readiness.blocking_messages)
+    assert readiness.can_create_pdf is True
+    assert readiness.image_bank_ready is True
+    assert readiness.blocking_messages == ()
 
 
 def test_export_readiness_tracks_persistent_pdf_artifact_by_signature():

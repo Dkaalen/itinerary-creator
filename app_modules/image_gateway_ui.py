@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
 from app_modules.workflow_actions import retry_image_bank_connection
 from app_modules.workflow_state import image_grouped_days_from_state
@@ -41,13 +42,21 @@ def _image_status_notice() -> None:
         covered = len(status.get("covered_destinations", []))
         required = len(status.get("required_destinations", []))
         suffix = f" across {covered}/{required} itinerary destinations" if required else ""
-        st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}.")
+        if status.get("missing_destinations"):
+            st.warning(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}. Some route or destination-specific packs are missing, so fallback images may be used.")
+        else:
+            st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}.")
+    elif status.get("default_image_count") or status.get("total_image_count"):
+        st.warning("Using bundled fallback pictures. You can still review and export the itinerary, then replace images when the full destination bank is available.")
     else:
-        st.error(status.get("blocking_message") or "Full destination image bank is missing.")
-        st.caption("Default pictures are fallback placeholders only. They are not approved for final PDF export unless explicitly allowed.")
+        st.error(status.get("blocking_message") or "No usable itinerary images are available.")
+        st.caption("Connect the destination image bank or add bundled fallback images before picture review.")
 
 def _image_bank_gateway_is_blocking(result: dict | None) -> bool:
-    return bool(isinstance(result, dict) and result and not result.get("ready"))
+    if not isinstance(result, dict) or not result or result.get("ready"):
+        return False
+    status = result.get("status") if isinstance(result.get("status"), dict) else None
+    return not image_bank_is_ready_for_client_pictures(status)
 
 def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
     result = result or st.session_state.get("image_bank_gateway") or {}
@@ -57,12 +66,12 @@ def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
 
     st.html(
         '<div class="image-bank-repair-panel">'
-        '<strong>Image bank connection required</strong>'
-        '<span>Add Pictures cannot continue with only bundled Default placeholders. Connect the real destination image bank first.</span>'
+        '<strong>Image source required</strong>'
+        '<span>Add Pictures could not find destination or bundled fallback images. Connect the image bank or add fallback images first.</span>'
         '</div>'
     )
     st.error(message)
-    st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full. Default pictures remain emergency placeholders only.")
+    st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full. Bundled fallback pictures are allowed for review when available.")
 
     if setup_status and (setup_status.get("error") or setup_status.get("git_error") or setup_status.get("code")):
         with st.expander("Image-bank setup details", expanded=False):
