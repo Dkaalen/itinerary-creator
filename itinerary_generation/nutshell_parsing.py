@@ -12,10 +12,9 @@ def _is_norway_in_a_nutshell_text(text):
     lower = str(text or "").lower()
     if re.search(r"norway\s+in\s+a\s+(?:nutshell|nuthsell)", lower):
         return True
-    has_flam = any(marker in lower for marker in ["flåm", "flam", "flåmsbana", "flamsbana", "flåm train", "flam train", "flåm railway", "flam railway"])
-    has_fjord = any(marker in lower for marker in ["nærøyfjord", "naeroyfjord", "fjord cruise", "gudvangen", "voss", "geilo"])
-    has_route_mode = bool(re.search(r"\b(?:train|rail|scenic\s+bus|bus|cruise)\b", lower))
-    return (has_flam and has_fjord) or ("gudvangen" in lower and "voss" in lower and has_route_mode)
+    # Do not infer this branded product from ordinary Flåm/Gudvangen/Voss
+    # rail, coach and fjord rows.  Those can be independent scenic services.
+    return False
 
 
 def _clean_nutshell_place(value: str) -> str:

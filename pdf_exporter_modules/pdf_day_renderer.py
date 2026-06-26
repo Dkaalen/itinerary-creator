@@ -106,7 +106,7 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
 
 
 def day_label(day: RenderDay) -> str:
-    separator = "-" if is_booknordics_pdf() else "✦"
+    separator = "•" if is_booknordics_pdf() else "✦"
     kicker = f"DAY {day.number}"
     if day.city:
         kicker += f" {separator} {str(day.city).upper()}"

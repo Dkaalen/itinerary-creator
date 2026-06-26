@@ -32,6 +32,7 @@ from itinerary_generation.transport_domain.inclusions import (
     transport_line,
 )
 from itinerary_generation.inclusion_utils import clean
+from itinerary_generation.accommodation_display_helpers import is_self_arranged_accommodation
 from itinerary_generation.structured_model import StructuredListItem, StructuredListSection
 from itinerary_generation.group_tour_rendering import (
     group_tour_package_from_rows,
@@ -117,13 +118,24 @@ def _is_rental_vehicle_text(row: dict) -> bool:
 
 def _hotel_rows_for_inclusions(rows: list[dict], grouped_days: dict[str, list[dict]] | None) -> list[dict]:
     if not grouped_days:
-        return [row for row in rows if get_row_type(row) == "Hotel" and not _is_rental_vehicle_text(row)]
+        return [
+            row
+            for row in rows
+            if get_row_type(row) == "Hotel"
+            and not _is_rental_vehicle_text(row)
+            and not is_self_arranged_accommodation(row)
+        ]
 
     hotel_rows: list[dict] = []
     seen_hotel_keys = set()
     for day, day_rows in grouped_days.items():
         for row_index, row in enumerate(day_rows):
-            if is_optional_row(row) or get_row_type(row) != "Hotel" or _is_rental_vehicle_text(row):
+            if (
+                is_optional_row(row)
+                or get_row_type(row) != "Hotel"
+                or _is_rental_vehicle_text(row)
+                or is_self_arranged_accommodation(row)
+            ):
                 continue
             key = (
                 str(row.get("day", day)),

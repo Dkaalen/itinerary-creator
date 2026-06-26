@@ -156,7 +156,8 @@ def clean_client_title(value: str, row: dict | None = None) -> str:
         if supplier_heading and text.strip().lower() == supplier_heading.lower():
             return polish_title(text)
 
-    product_match = find_product_match(row, text)
+    allow_product_match = not re.match(r"^(?:travel|journey|arrival|welcome|departure)\b", text.strip(), flags=re.IGNORECASE)
+    product_match = find_product_match(row, text) if allow_product_match else None
     if product_match and product_match.title:
         return product_match.title
 

@@ -5,6 +5,10 @@ from __future__ import annotations
 from itinerary_generation.client_sanitizer import sanitize_client_text
 from itinerary_generation.common import add_unique, get_row_type, is_optional_row, is_self_arranged, main_rows_only, optional_rows_only
 from itinerary_generation.exclusion_constants import EXCLUSION_SECTION_ORDER
+from itinerary_generation.accommodation_display_helpers import (
+    is_self_arranged_accommodation,
+    self_arranged_accommodation_label,
+)
 from itinerary_generation.exclusion_row_rules import (
     _commercial_status,
     _is_cost_not_included_row,
@@ -39,6 +43,10 @@ def _structured_item(label, row=None, row_index=0):
     return {"label": text, "source_row_ids": source_ids}
 
 
+def _self_arranged_accommodation_exclusion_label(row) -> str:
+    return sanitize_client_text(f"{self_arranged_accommodation_label(row)}{row_date_suffix(row)}")
+
+
 def specific_self_arranged_items(parsed_rows):
     items = []
     for row in main_rows_only(parsed_rows or []):
@@ -46,6 +54,8 @@ def specific_self_arranged_items(parsed_rows):
         if not (is_self_arranged(row) or row.get("commercial_status") == "self_arranged" or "self transfer" in text):
             continue
         title = sanitize_client_text(commercial_row_title(row))
+        if is_self_arranged_accommodation(row):
+            title = self_arranged_accommodation_label(row)
         if not title:
             continue
         label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
@@ -96,7 +106,9 @@ def create_specific_exclusion_sections(parsed_rows):
             continue
 
         if status == "self_arranged" or is_self_arranged(row) or _is_self_transfer_row(row):
-            if _is_self_transfer_row(row):
+            if is_self_arranged_accommodation(row):
+                add_unique(sections["self_arranged_accommodation"], _self_arranged_accommodation_exclusion_label(row))
+            elif _is_self_transfer_row(row):
                 add_unique(sections["self_transfers"], label)
                 notes = split_self_transfer_notes(_row_search_text(row))
                 if any("private transfer may" in note.lower() for note in notes):
@@ -151,7 +163,9 @@ def create_source_aware_exclusion_sections(parsed_rows):
             continue
 
         if status == "self_arranged" or is_self_arranged(row) or _is_self_transfer_row(row):
-            if _is_self_transfer_row(row):
+            if is_self_arranged_accommodation(row):
+                _add_unique_structured(sections["self_arranged_accommodation"], _self_arranged_accommodation_exclusion_label(row), row, row_index)
+            elif _is_self_transfer_row(row):
                 _add_unique_structured(sections["self_transfers"], label, row, row_index)
                 notes = split_self_transfer_notes(_row_search_text(row))
                 if any("private transfer may" in note.lower() for note in notes):

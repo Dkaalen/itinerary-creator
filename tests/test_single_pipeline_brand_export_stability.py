@@ -45,15 +45,16 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
     assert "output_edits[\"output_brand\"] = output_brand" in generation_source
 
 
-def test_pdf_export_screen_has_no_unbounded_pending_editor_wait():
+def test_pdf_export_screen_has_bounded_editor_commit_before_export():
     source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
     export_page_source = Path("app_modules/export_page.py").read_text(encoding="utf-8")
     preflight_source = Path("app_modules/pdf_preflight.py").read_text(encoding="utf-8")
     state_source = Path("app_modules/export_state.py").read_text(encoding="utf-8")
 
     assert "Applying pending editor changes" not in source
-    assert "visual_editor_export_commit_ready" not in source
+    assert "Saving the latest editor changes before creating the PDF" in source
+    assert "Create PDF from last saved version" in source
     assert "request_pdf_creation_after_visual_editor_commit" not in source
-    assert export_page_source.index("clear_pdf_editor_commit_request") < export_page_source.index("_render_document_editor")
+    assert "clear_pdf_editor_commit_request" not in export_page_source
     assert "pending_editor_commit" not in preflight_source
     assert "pending_commit = False" in state_source

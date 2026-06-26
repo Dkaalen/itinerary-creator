@@ -119,7 +119,11 @@ def build_final_sections_for_pdf(context: Any) -> list[RenderFinalSection]:
     if not _final_section_is_hidden(context, "whats_not_included") and context.typed_exclusions_owned:
         if context.typed_exclusion_html:
             sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
-    elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_html"):
+    elif (
+        not _final_section_is_hidden(context, "whats_not_included")
+        and context.output_edits.get("whats_not_included_html")
+        and not getattr(context, "saved_exclusion_html_refreshable", False)
+    ):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
     elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_text"):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_split_list_final_pages(context.whats_not_included)))

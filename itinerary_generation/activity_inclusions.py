@@ -126,7 +126,7 @@ def prioritize_inline_inclusions(items, max_items=6):
             continue
         if any(marker in lower for marker in ["tax", "service fee", "goods and services"]):
             continue
-        if lower.startswith("duration") or " with panoramic views" in lower:
+        if lower.startswith("duration"):
             continue
         if lower.startswith(("depart for ", "return to ", "departure from ", "return from ")):
             continue

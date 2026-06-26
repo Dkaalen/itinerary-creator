@@ -8,6 +8,7 @@ from normalizer_modules.hotel_names import clean_hotel_name_from_source, is_plac
 from normalizer_modules.hotel_rooms import extract_bed_type_from_source, extract_room_category_from_source, normalize_room_category
 from normalizer_modules.text_utils import clean_space
 from text_polish import polish_hotel_name
+from shared.commercial_markers import has_self_arranged_marker
 
 
 def normalize_hotel_row(row: dict) -> dict:
@@ -25,8 +26,13 @@ def normalize_hotel_row(row: dict) -> dict:
     bed_type = extract_bed_type_from_source(source)
     if bed_type and bed_type.lower() not in room.lower(): room = f"{room} - {bed_type}"
     nights = clean_space(row.get("hotel_nights", ""))
+    source_nights = clean_space(row.get("source_hotel_nights", ""))
     date_nights = hotel_nights_from_date_range(row.get("start_date", ""), row.get("end_date", ""))
-    if date_nights and (not nights or (nights == "1" and int(date_nights) > 1)): nights = date_nights
+    is_self_arranged_stay = has_self_arranged_marker(name, row.get("hotel_name", ""), row.get("title", ""), source) or row.get("commercial_status") == "self_arranged"
+    if is_self_arranged_stay and source_nights:
+        nights = source_nights
+    elif date_nights and (not nights or (nights == "1" and int(date_nights) > 1)):
+        nights = date_nights
     elif not nights:
         match = re.search(r"\b(\d+)\s*(?:x\s*)?(?:night|ngiht|nite|nt)s?", source, flags=re.IGNORECASE)
         if match: nights = match.group(1)

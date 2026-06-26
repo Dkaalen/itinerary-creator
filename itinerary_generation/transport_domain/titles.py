@@ -6,7 +6,7 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
-from itinerary_generation.common import get_row_type
+from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_model import get_transport_source_text, has_local_transfer_marker
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
@@ -98,7 +98,7 @@ def get_transport_route_phrase(row):
             if destination:
                 return f"{label} to {destination}"
             return label
-        label = "Overnight Coastal Cruise" if "overnight" in lower else "Coastal Cruise"
+        label = "Overnight Coastal Cruise" if "overnight" in lower else ("Nærøyfjord Cruise" if "nærøyfjord" in lower or "naeroyfjord" in lower else "Coastal Cruise")
         if origin and destination:
             phrase = f"{label} from {origin} to {destination}"
         elif destination:
@@ -184,7 +184,42 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
     return polish_title(route_phrase)
 
 
+def _multi_leg_transport_day_title(day_rows) -> str:
+    transport_rows = [row for row in day_rows if get_row_type(row) in set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus"}]
+    if len(transport_rows) < 2:
+        return ""
+
+    final_city = ""
+    for row in reversed(day_rows):
+        if get_row_type(row) == "Hotel" and row.get("city"):
+            final_city = polish_title(str(row.get("city") or ""))
+            break
+    if not final_city:
+        for row in reversed(transport_rows):
+            _, destination = get_route_points_for_transport(row)
+            if destination:
+                final_city = polish_title(destination)
+                break
+    if not final_city:
+        return ""
+
+    intermediate_points: list[str] = []
+    for row in transport_rows[:-1]:
+        _, destination = get_route_points_for_transport(row)
+        destination = polish_title(destination)
+        if destination and destination.lower() != final_city.lower() and destination not in intermediate_points:
+            intermediate_points.append(destination)
+
+    if intermediate_points:
+        return f"Journey to {final_city} via {' and '.join(intermediate_points[:2])}"
+    return f"Journey to {final_city}"
+
+
 def get_primary_transport_title(day_rows):
+    multi_leg_title = _multi_leg_transport_day_title(day_rows)
+    if multi_leg_title:
+        return multi_leg_title
+
     for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:

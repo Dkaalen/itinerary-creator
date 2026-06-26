@@ -130,6 +130,42 @@ def _clean_route_place(value):
 
 
 
+def _row_city_origin(row) -> str:
+    return _clean_route_place(row.get("city", ""))
+
+
+def _explicit_product_route_from_row_city(row) -> tuple[str, str]:
+    """Handle product-style titles such as 'Nærøyfjord Cruise to Flåm'.
+
+    Normalized titles can collapse supplier context to generic labels such as
+    ``Cruise to Flåm``.  Use the source-owned title/details before the cleaned
+    title so route extraction does not mistake the product name for the origin.
+    """
+
+    row_type = str(row.get("effective_type") or row.get("type") or "")
+    if row_type not in {"Cruise", "Ferry", "Train", "Coach", "Transport"}:
+        return "", ""
+    source_candidates = [
+        str(row.get("original_title") or ""),
+        str(row.get("details") or ""),
+        str(row.get("raw") or ""),
+        str(row.get("title") or ""),
+    ]
+    pattern = re.compile(
+        r"\b(?:n[æa]r[øo]yfjord|fjord|coastal|sightseeing|scenic|fl[åa]msbanen)\s+(?:cruise|train|rail|ferry)\s+to\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+-|\s+time\s*:|\s+includes?\s*:|$)",
+        flags=re.IGNORECASE,
+    )
+    for source in source_candidates:
+        match = pattern.search(source)
+        if not match:
+            continue
+        origin = _row_city_origin(row)
+        destination = _clean_route_place(match.group(1))
+        if origin and destination and origin.lower() != destination.lower():
+            return origin, destination
+    return "", ""
+
+
 def _scheduled_route_points_from_source(source_text: str) -> tuple[str, str]:
     """Extract first departure place and final arrival place from timetable prose."""
 
@@ -159,6 +195,10 @@ def get_route_points_for_transport(row):
     any of those locations.
     """
     source_text = _transport_source_text(row)
+
+    product_origin, product_destination = _explicit_product_route_from_row_city(row)
+    if product_destination:
+        return product_origin, product_destination
 
     scheduled_origin, scheduled_destination = _scheduled_route_points_from_source(source_text)
     if scheduled_destination:
@@ -218,8 +258,8 @@ def get_route_points_for_transport(row):
         title_lower = str(row.get("title", "") or "").lower()
         city_origin = _clean_route_place(row.get("city", ""))
         if city_origin and city_origin.lower() != title_destination.lower() and (
-            row_type in {"Flight", "Cruise", "Ferry"}
-            or "flight" in title_lower or "cruise" in title_lower or "ferry" in title_lower
+            row_type in {"Flight", "Cruise", "Ferry", "Train"}
+            or "flight" in title_lower or "cruise" in title_lower or "ferry" in title_lower or "train" in title_lower
         ):
             return city_origin, title_destination
         return title_origin, title_destination

@@ -4,7 +4,6 @@ import streamlit as st
 
 from app_modules.app_header import _render_app_header, _render_stage_actions, _stage_panel
 from app_modules.export_step import render_export_step, render_pdf_download_station
-from app_modules.editor_commit import clear_pdf_editor_commit_request
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.image_gateway_ui import (
     _current_image_bank_status,
@@ -16,7 +15,6 @@ from app_modules.workflow_config import STAGE_COPY
 
 
 def render_export_page(app_version: str) -> None:
-    clear_pdf_editor_commit_request(st.session_state)
     _render_app_header(app_version, stage="export")
     _render_stage_actions("export")
     render_pdf_download_station(location="top")

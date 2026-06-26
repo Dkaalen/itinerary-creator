@@ -30,7 +30,7 @@ def render_day_section(day, rows, output_edits=None, render_day=None):
     day_number = render_day.number
     day_date = get_day_date_text(main_rows)
     day_kicker_html = f"DAY {esc(day_number)}"
-    day_separator = "-" if is_booknordics(output_edits) else "✦"
+    day_separator = "•" if is_booknordics(output_edits) else "✦"
     if city:
         day_kicker_html += f' <span class="day-kicker-symbol">{day_separator}</span> {esc(str(city).upper())}'
     if day_date:

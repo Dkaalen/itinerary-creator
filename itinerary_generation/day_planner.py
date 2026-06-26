@@ -37,6 +37,7 @@ from itinerary_generation.titles import create_day_title
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.titles import get_primary_transport_title
 from text_polish import polish_title
 
 
@@ -130,6 +131,9 @@ def plan_day(rows: list[dict]) -> DayPlan:
         accommodation_title = _accommodation_led_title(rows, city)
         if accommodation_title:
             return DayPlan("stay_day", accommodation_title, _intro_for_title(accommodation_title, city, "stay_day"), suppress_free_time=True)
+        primary_transport_title = get_primary_transport_title(rows)
+        if primary_transport_title and primary_transport_title.lower().startswith("journey to"):
+            return DayPlan("travel_day", primary_transport_title, _intro_for_title(primary_transport_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
         sequence_title = travel_sequence_title(rows, city)
         if sequence_title:
             return DayPlan("travel_day", sequence_title, _intro_for_title(sequence_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
@@ -177,7 +181,8 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("single_activity_day", title, _intro_for_title(title, city, "single_activity_day"), skip_empty_activity_rows=True)
 
     if travel_rows:
-        title = travel_sequence_title(rows, city) or _transport_title(rows)
+        primary_transport_title = get_primary_transport_title(rows)
+        title = primary_transport_title if primary_transport_title and primary_transport_title.lower().startswith("journey to") else (travel_sequence_title(rows, city) or _transport_title(rows))
         if not title:
             dest = _destination_from_transport(rows) or city
             title = f"Travel to {dest}" if dest else "Travel day"

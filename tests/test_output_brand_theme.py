@@ -58,7 +58,7 @@ def test_booknordics_html_preview_embeds_brand_font_and_colors():
     assert "#00193C" in html
     assert "#FF0041" in html
     assert "Georgia, 'Times New Roman', serif" in html  # Agent fallback remains available, but brand overrides it.
-    assert '<span class="day-kicker-symbol">-</span>' in html
+    assert '<span class="day-kicker-symbol">•</span>' in html
     assert ".preview-background[data-output-brand=\"booknordics_customer\"] .day-image-slot" in html
 
 
@@ -69,7 +69,7 @@ def test_booknordics_day_labels_use_pdf_safe_separator():
     finally:
         configure_pdf_brand(AGENT_BRAND)
 
-    assert label == "DAY 1 - TROMSØ - 21st of December"
+    assert label == "DAY 1 • TROMSØ • 21st of December"
     assert "✦" not in label
 
 

@@ -2430,3 +2430,42 @@ Architecture guards: passed
 Import smoke: optional skips=25, failures=0
 git diff --check: passed
 ```
+
+---
+
+# Batch 30 — Itinerary stability and fidelity repair
+
+Progress: `[####################] 100%`
+
+Completed in Batch 30:
+
+```text
+[x] Restored a bounded editor-save handshake for PDF export so the app saves current edits before export without an endless wait
+[x] Added recoverable fallback actions for PDF export and Add Pictures when the browser editor acknowledgement does not arrive
+[x] Forced generated day pages into canonical day-number order for preview/PDF contracts so Day 2 cannot be exported after later days
+[x] Kept agent and Booknordics customer generation on the same pipeline; output brand remains presentation/theme state only
+[x] Treated self-arranged accommodation as self-arranged/excluded instead of included accommodation, while preserving the source-stated night count and mismatch warning
+[x] Removed stale generated exclusion artifacts such as bare accommodation headings and `self-arranged - date` activity-specific exclusions
+[x] Prevented non-explicit scenic Flåm/Voss/Gudvangen/Myrdal routing from being rebranded as Norway in a Nutshell
+[x] Repaired coastal-cruise transfer wording so self-arranged port transfers are not described as private transfers
+[x] Added render-only overnight cruise arrival context on the following day so Bergen arrival is visible before the accommodation transfer
+[x] Improved western Norway transport-day titles and Nærøyfjord route labels, including `Journey to Flåm via Gudvangen` and `Nærøyfjord Cruise from Gudvangen to Flåm`
+[x] Preserved Borgund Stave Church in the Flåm activity title and restored day/final inclusion parity for Bergen boat-tour inclusions
+[x] Restored PDF-safe Booknordics day-header separators using bullet separators instead of plain hyphens
+[x] Made important travel notes context-aware so September western Norway itineraries do not show Northern Lights or winter-travel notes unless supported by the itinerary
+[x] Reduced autosave churn in the editor to lower workflow disruption while preserving draft persistence
+[x] Added regressions for canonical day order, self-arranged accommodation, route-branding restraint, cruise fidelity, activity inclusion parity, contextual notes, and bounded export commits
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused stability/fidelity/export/theme/workflow regressions: 64 passed
+Adjacent PDF/editor/cache/transport/model regressions: 94 passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+Rendered Kristiansand Booknordics PDF sample: 16 pages, Day 1-10 in correct order, no Norway in a Nutshell leakage, no self-arranged exclusion artifact, contextual travel notes, cruise arrival present
+git diff --check: passed
+```

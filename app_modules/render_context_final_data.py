@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from app_modules.render_context_cover_data import _safe_label
 from itinerary_generation.client_sanitizer import normalize_important_note_paragraphs, sanitize_client_list
@@ -12,6 +13,19 @@ from ui.final_pages import create_optional_addons, get_important_travel_notes
 from ui.inclusion_page_ownership import inclusion_pages_match_generated
 from ui.inclusion_pages import render_inclusion_page_inner_htmls
 from ui.render_helpers import text_to_list
+
+
+def _plain_html_text(value: Any) -> str:
+    text = re.sub(r"<[^>]+>", "\n", str(value or ""))
+    return "\n".join(line.strip() for line in text.splitlines() if line.strip())
+
+
+def _looks_like_stale_generated_exclusion_html(value: Any) -> bool:
+    text = _plain_html_text(value).casefold()
+    if not text:
+        return False
+    lines = {line.strip() for line in text.splitlines()}
+    return "accommodation" in lines or "self-arranged -" in text or "self arranged -" in text
 
 
 def _typed_exclusion_html(typed_exclusions: dict[str, Any] | None) -> str:
@@ -65,9 +79,10 @@ def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
         "typed_inclusion_pages": [] if typed_inclusion_pages_refreshable else typed_inclusion_pages,
         "typed_inclusions_owned": bool(typed_inclusions) and not typed_inclusion_pages_refreshable,
         "saved_inclusion_pages_refreshable": bool(saved_inclusion_pages_refreshable),
-        "typed_exclusion_html": _typed_exclusion_html(typed_exclusions),
-        "typed_exclusions_owned": bool(typed_exclusions),
-        "important_travel_notes": normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits)),
+        "typed_exclusion_html": "" if _looks_like_stale_generated_exclusion_html(_typed_exclusion_html(typed_exclusions)) else _typed_exclusion_html(typed_exclusions),
+        "typed_exclusions_owned": bool(typed_exclusions) and not _looks_like_stale_generated_exclusion_html(_typed_exclusion_html(typed_exclusions)),
+        "saved_exclusion_html_refreshable": _looks_like_stale_generated_exclusion_html(output_edits.get("whats_not_included_html")),
+        "important_travel_notes": normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits, parsed_rows=parsed_rows)),
         "final_section_titles": final_section_titles,
     }
 

@@ -27,8 +27,8 @@ def _rows_ordered_by_day_document(day_document: DayDocument | None, rows: list[d
     if not day_document:
         return list(rows)
     row_lookup = rows_by_source_id(rows)
-    ordered: list[dict] = []
-    used_ids: set[str] = set()
+    ordered: list[dict] = [row for row in rows if row.get("is_render_only") and row.get("render_position") == "start"]
+    used_ids: set[str] = {_row_id(row, index) for index, row in enumerate(rows) if row.get("is_render_only") and row.get("render_position") == "start"}
     for source_id in day_document.source_row_ids:
         row = row_lookup.get(str(source_id))
         if row is not None:

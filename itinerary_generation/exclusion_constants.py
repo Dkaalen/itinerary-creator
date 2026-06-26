@@ -14,6 +14,7 @@ DEFAULT_WHATS_NOT_INCLUDED_ITEMS = [
 
 EXCLUSION_SECTION_ORDER = [
     ("self_arranged_flights", "Self-arranged flights"),
+    ("self_arranged_accommodation", "Self-arranged accommodation"),
     ("self_transfers", "Self transfers"),
     ("optional_experiences", "Optional experiences"),
     ("optional_transfers", "Optional transfers"),

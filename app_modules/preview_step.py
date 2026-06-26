@@ -107,8 +107,13 @@ def render_edit_page(app_version: str) -> None:
         return
 
     if apply_pending:
-        st.info("Applying preview changes before pictures can be added…")
+        st.info("Saving the latest editor changes before adding pictures…")
         st.button("Add pictures", disabled=True, use_container_width=True)
+        if st.button("Add pictures from last saved version", use_container_width=True):
+            clear_add_pictures_editor_commit_request(st.session_state)
+            with st.spinner("Preparing destination pictures and finding the best matches…"):
+                _activate_picture_stage()
+            st.rerun()
         return
 
     if st.button("Apply Changes", type="primary", use_container_width=True):

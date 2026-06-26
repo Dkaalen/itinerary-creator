@@ -112,16 +112,7 @@ def _build_signals(rows):
             row_types.issubset({"Hotel", "Transfer", "Flight", "Train", "Transport", "Cruise", "Ferry"})
             and any(get_row_type(row) == "Hotel" for row in rows)
         ),
-        has_nutshell=(not primary_rows and has_nutshell_journey(rows)) or _has(
-            text,
-            "flåm",
-            "flam",
-            "nærøyfjord",
-            "naeroyfjord",
-            "bergen railway",
-            "flåm railway",
-            "flam railway",
-        ),
+        has_nutshell=(not primary_rows and has_nutshell_journey(rows)) or _has(text, "norway in a nutshell"),
         has_self_drive=_has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "rental car"),
         has_lagoon=_has(text, "blue lagoon", "sky lagoon", "wellness", "7-step", "ritual") or bool(re.search(r"\bspa\b", text)),
         has_silfra=_has(text, "silfra", "snork"),
@@ -190,6 +181,8 @@ def _add_route_and_city_candidates(candidates, signals):
     text = signals.text
     if _has(text, "oslofjord", "oslo fjord"):
         candidates.append("Oslofjord cruise and capital welcome" if signals.has_arrival else "City sights and Oslofjord cruising")
+    if signals.chapter_city.lower() == "kristiansand" and _has(text, "coastal cruise", "cruise to bergen", "southern norway", "southern coastal"):
+        candidates.append("South Coast and coastal cruise")
     if _has(text, "otra river", "kayaking", "kayak"):
         candidates.append("Otra River kayaking and southern coast")
     if _has(text, "lysefjord", "preikestolen", "pulpit rock"):
@@ -208,6 +201,14 @@ def _add_route_and_city_candidates(candidates, signals):
         candidates.append("Tallinn Old Town day trip")
     if signals.has_nutshell:
         candidates.append("Norway in a Nutshell and scenic rail")
+    elif _has(text, "nærøyfjord", "naeroyfjord") and _has(text, "stegastein", "borgund"):
+        candidates.append("Nærøyfjord, Stave Church and Stegastein")
+    elif _has(text, "foot", "walking tour") and _has(text, "boat", "city cruise") and signals.chapter_city.lower() == "bergen":
+        candidates.append("Scenic rail and Bergen by foot and boat")
+    elif _has(text, "nærøyfjord", "naeroyfjord", "flåmsbanen", "flamsbanen", "flåm railway", "flam railway"):
+        candidates.append("Scenic rail and fjord travel")
+    elif _has(text, "scenic train", "train transfer", "rail") and signals.chapter_city:
+        candidates.append(f"Scenic rail to {signals.chapter_city}")
     if signals.has_golden and signals.has_silfra:
         candidates.append("Golden Circle and Silfra snorkelling")
     elif signals.has_silfra:

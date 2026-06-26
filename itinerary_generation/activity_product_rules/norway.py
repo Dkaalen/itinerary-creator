@@ -158,6 +158,15 @@ def match_norway_activity(
     if _is_explicit_floibanen_product(source_lower, source_title):
         return match_product("floibanen_funicular", "ticket", "Fløibanen Funicular", source_title=source_title)
 
+    if "borgund" in source_lower and "stegastein" in source_lower:
+        return match_product(
+            "flam_borgund_stegastein_tour",
+            "sightseeing_activity",
+            "Borgund Stave Church & Stegastein Viewpoint Tour",
+            source_title=source_title,
+            variant_tags=("stave_church", "viewpoint", "flam"),
+        )
+
     fjordtours_entry = match_fjordtours_nutshell_addon(source, source_title)
     if fjordtours_entry:
         return match_product(

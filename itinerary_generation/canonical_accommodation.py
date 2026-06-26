@@ -7,11 +7,26 @@ import re
 from itinerary_generation.canonical_helpers import _row_id, _source_text
 from itinerary_generation.canonical_model import CanonicalBlock
 from text_polish import polish_client_text, polish_hotel_name, polish_title
-from itinerary_generation.accommodation_display_helpers import meal_phrase, plural_nights
+from itinerary_generation.accommodation_display_helpers import (
+    is_self_arranged_accommodation,
+    meal_phrase,
+    plural_nights,
+    self_arranged_accommodation_label,
+)
 from itinerary_generation.accommodation_inclusions import extract_stay_inclusions
 
 
 def canonical_accommodation_block(row: dict) -> CanonicalBlock:
+    if is_self_arranged_accommodation(row):
+        return CanonicalBlock(
+            kind="accommodation",
+            row_id=_row_id(row),
+            section_title="Accommodation",
+            title=self_arranged_accommodation_label(row),
+            lines=[],
+            source_row_ids=[_row_id(row)],
+        )
+
     hotel_name = polish_hotel_name(row.get("hotel_name") or row.get("title") or "Accommodation as listed")
     nights = plural_nights(row.get("hotel_nights", ""))
     raw_room_category = str(row.get("room_category") or "")

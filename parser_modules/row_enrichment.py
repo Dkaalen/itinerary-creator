@@ -4,6 +4,7 @@ import re
 
 import diagnostics
 from place_aliases import canonicalize_place_name
+from shared.commercial_markers import has_self_arranged_marker
 from parser_modules.city_inference import infer_city_from_text
 from parser_modules.commercial_status import (
     REASON_OPTIONAL_TEXT_PREFIX,
@@ -123,7 +124,10 @@ def enrich_parsed_row(
                     f"Hotel stay dates imply {date_derived_nights} nights but the text says {parsed_nights} nights",
                     raw_value=main_text,
                 )
-            hotel_details["hotel_nights"] = date_derived_nights
+            if parsed_nights and has_self_arranged_marker(main_text, hotel_details.get("hotel_name", "")):
+                hotel_details["hotel_nights"] = parsed_nights
+            else:
+                hotel_details["hotel_nights"] = date_derived_nights
         row.update(hotel_details)
         if row.get("hotel_name"):
             row["title"] = row["hotel_name"]

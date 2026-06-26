@@ -21,6 +21,7 @@ from itinerary_generation.editor_page_contract import (
 )
 from itinerary_generation.render_document_builder import build_render_document_from_document
 from itinerary_generation.render_model import RenderDocument
+from itinerary_generation.render_page_order import canonical_render_page_order, sorted_render_days
 from itinerary_generation.structured_builder import build_itinerary_document
 
 
@@ -70,6 +71,7 @@ class ItineraryRenderContext:
     saved_inclusion_pages_refreshable: bool
     typed_exclusion_html: str
     typed_exclusions_owned: bool
+    saved_exclusion_html_refreshable: bool
     important_travel_notes: list[str] | str
     final_section_titles: dict[str, str]
     manual_pages: list[dict[str, Any]]
@@ -101,7 +103,8 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     context.render_document.summary = build_render_summary(context)
     context.render_document.final_sections = build_final_sections_for_pdf(context)
     context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
-    context.render_document.page_order = contract_page_order_from_draft(context.editor_draft)
+    context.render_document.days = sorted_render_days(context.render_document.days)
+    context.render_document.page_order = canonical_render_page_order(context.render_document)
 
 
 def _build_render_document_from_structured_document(structured_document, parsed_rows, grouped_days, output_edits):

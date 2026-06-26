@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from itinerary_generation.common import get_row_type
+from itinerary_generation.common import get_row_type, is_self_arranged
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine, RenderSection
 from itinerary_generation.render_text_helpers import clean_space
@@ -24,11 +24,33 @@ def _transport_place_from_title(text: str, fallback: str = "") -> str:
     return polish_title(clean_space(fallback))
 
 
+def _self_arranged_transfer_sequence_line(row) -> str:
+    title = polish_title(clean_space(str(row.get("title") or row.get("original_title") or "")))
+    city = polish_title(clean_space(str(row.get("city") or "")))
+    if city and title.lower().startswith(f"{city.lower()}: "):
+        title = title[len(city) + 2 :].strip()
+    title = re.sub(r"^self[-\s]*arranged\s+", "Self-arranged ", title, flags=re.IGNORECASE)
+    if title and not title.lower().startswith("self-arranged"):
+        title = f"Self-arranged {title[:1].lower() + title[1:]}"
+    return f"{title} (not included)" if title else "Self-arranged port transfer (not included)"
+
+
 def _is_coastal_transfer_cruise_row(row) -> bool:
     if get_row_type(row) != "Cruise":
         return False
     text = get_transport_source_text(row)
+    if "arrival" in text.lower():
+        return False
     return bool(re.search(r"\bcoastal\b|\bcruise\s+transfer\b|\batlantic\s+coastal\b", text, flags=re.IGNORECASE))
+
+
+def _coastal_cruise_description(profile_description: str, travel_rows, destination: str = "") -> str:
+    if any(is_self_arranged(row) for row in travel_rows if get_row_type(row) == "Transfer"):
+        target = f" to {destination}" if destination else ""
+        return f"A clear coastal transfer day, combining the self-arranged port transfer with the scheduled overnight cruise{target}."
+    if profile_description:
+        return profile_description
+    return "A coordinated coastal transfer day, pairing port transfers with the scenic cruise leg as one clear arrangement."
 
 
 def build_coastal_cruise_block(
@@ -66,8 +88,10 @@ def build_coastal_cruise_block(
             continue
         if row_type != "Transfer":
             continue
-        line = travel_arrangement_line_func(row)
-        if row_type == "Transfer":
+        if is_self_arranged(row):
+            line = _self_arranged_transfer_sequence_line(row)
+        else:
+            line = travel_arrangement_line_func(row)
             line = re.sub(r"^Private transfer\s+", "", line, flags=re.IGNORECASE).strip(" :-")
             if line:
                 line = f"Private transfer — {line[:1].upper() + line[1:]}"
@@ -91,10 +115,7 @@ def build_coastal_cruise_block(
         section_title="Travel Arrangements",
         title=profile.title if profile else route_title,
         meta=meta,
-        description=(profile.description if profile else (
-            "A coordinated coastal transfer day, pairing private port transfers with the scenic cruise leg "
-            "as one clear door-to-door arrangement."
-        )),
+        description=_coastal_cruise_description(profile.description if profile else "", travel_rows, destination),
         lines=[],
         extra_sections=extra_sections,
         css_class="travel-sequence-block",

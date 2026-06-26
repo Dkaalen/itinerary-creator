@@ -54,6 +54,9 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
     row_lookup = rows_by_source_id(rows)
     main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
     day_plan = plan_day(main_rows)
+    if day_plan.consolidate_travel:
+        sequence_by_first_row = {}
+        sequence_row_ids = set()
     departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
     has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in main_rows)
     group_tour_start_time = _group_tour_start_time(main_rows)
@@ -83,9 +86,14 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
 
         current_row_id = _row_id(row)
         if current_row_id in sequence_by_first_row:
-            flush_travel_group()
             sequence = sequence_by_first_row[current_row_id]
             sequence_rows = [row_lookup[row_id] for row_id in sequence.source_row_ids if row_id in row_lookup]
+            if travel_group:
+                for sequence_row in sequence_rows:
+                    if sequence_row not in travel_group:
+                        travel_group.append(sequence_row)
+                continue
+            flush_travel_group()
             block = build_travel_arrangements_render_block(sequence_rows)
             if block:
                 block.row_id = sequence.sequence_id
@@ -100,6 +108,9 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
                 blocks.append(block)
             continue
         if current_row_id in sequence_row_ids:
+            continue
+
+        if day_plan.consolidate_travel and (row_type == "Leisure" or _is_blank_activity_row(row)):
             continue
 
         if is_travel_sequence_candidate(row):

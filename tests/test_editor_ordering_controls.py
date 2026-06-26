@@ -68,16 +68,20 @@ def test_generated_pages_are_marked_as_movable_in_page_contract():
     assert movable["final-important-travel-notes"] is True
 
 
-def test_render_document_carries_saved_page_order_for_pdf_export():
-    rows = [{"type": "Activity", "effective_type": "Activity", "day": "Day 1", "city": "Oslo", "title": "Walk"}]
+def test_render_document_uses_canonical_generated_page_order_for_pdf_export():
+    rows = [
+        {"type": "Activity", "effective_type": "Activity", "day": "Day 1", "city": "Oslo", "title": "Walk"},
+        {"type": "Activity", "effective_type": "Activity", "day": "Day 2", "city": "Oslo", "title": "Museum"},
+    ]
     editor_draft = {
         "document_pages": [
-            {"page_id": "day-day-1", "page_type": "generated_day", "title": "Day 1", "sort_order": 1},
+            {"page_id": "day-day-2", "page_type": "generated_day", "title": "Day 2", "sort_order": 1},
             {"page_id": "cover", "page_type": "cover", "title": "Cover", "sort_order": 2},
-            {"page_id": "summary", "page_type": "summary", "title": "Summary", "sort_order": 3},
+            {"page_id": "day-day-1", "page_type": "generated_day", "title": "Day 1", "sort_order": 3},
+            {"page_id": "summary", "page_type": "summary", "title": "Summary", "sort_order": 4},
         ]
     }
 
-    context = build_itinerary_render_context(rows, {"Day 1": rows}, {"editor_draft": editor_draft})
+    context = build_itinerary_render_context(rows, {"Day 1": [rows[0]], "Day 2": [rows[1]]}, {"editor_draft": editor_draft})
 
-    assert context.render_document.page_order[:3] == ["day-day-1", "cover", "summary"]
+    assert context.render_document.page_order[:4] == ["cover", "summary", "day-day-1", "day-day-2"]
