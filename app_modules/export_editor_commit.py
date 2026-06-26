@@ -1,20 +1,26 @@
-"""Visual-editor commit coordination for PDF export."""
+"""Legacy PDF editor-commit compatibility helpers.
+
+PDF export no longer waits on a browser-side visual-editor commit.  The export
+flow uses the latest server-saved editor state so a missing component
+acknowledgement cannot hang the app.  These wrappers remain for older imports
+and clear stale commit state instead of creating new pending work.
+"""
 
 from __future__ import annotations
 
 import streamlit as st
 
-from app_modules.editor_commit import pdf_editor_commit_ready, request_pdf_editor_commit
+from app_modules.editor_commit import clear_pdf_editor_commit_request
 
 
 def request_pdf_creation_after_visual_editor_commit() -> None:
-    """Ask the visual editor to save before PDF creation starts."""
+    """Compatibility no-op: PDF creation must not start a blocking commit wait."""
 
-    request_pdf_editor_commit(st.session_state)
+    clear_pdf_editor_commit_request(st.session_state)
 
 
 def visual_editor_export_commit_ready() -> bool:
-    return pdf_editor_commit_ready(st.session_state)
+    return True
 
 
 __all__ = ["request_pdf_creation_after_visual_editor_commit", "visual_editor_export_commit_ready"]

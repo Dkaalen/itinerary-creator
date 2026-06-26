@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
-from app_modules.editor_commit import PDF_COMMIT_READY_KEY, PDF_COMMIT_REQUEST_KEY
 from app_modules.pdf_preflight import build_pdf_preflight_report
 from ui.picture_workflow import pictures_are_added
 
@@ -54,8 +53,8 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
 
     This function intentionally avoids Streamlit calls so the PDF page rules can
     be regression-tested without rendering the app. A PDF can be created only
-    after the document exists, pictures have been added, the real image bank is
-    available, and the visual editor is not waiting to commit pending changes.
+    after the document exists, pictures have been added, a usable image source is
+    available. PDF export uses the last server-saved editor state.
     """
 
     image_status = image_status or {}
@@ -63,11 +62,10 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     output_edits = state.get("output_edits") or {}
     pictures = pictures_are_added(output_edits)
     image_ready = image_bank_is_ready_for_client_pictures(image_status)
-    pending_commit = bool(state.get(PDF_COMMIT_REQUEST_KEY)) and not bool(state.get(PDF_COMMIT_READY_KEY))
+    pending_commit = False
     current_signature = state.get("preview_signature")
     pdf_ready = bool(
         current_signature
-        and not pending_commit
         and (
             (state.get("pdf_bytes") and state.get("pdf_signature") == current_signature)
             or (state.get("export_pdf_bytes") and state.get("export_pdf_signature") == current_signature)
@@ -81,16 +79,13 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         blocking.append("Add destination pictures before creating the PDF.")
     if not image_ready:
         blocking.append("Connect the real destination image bank before creating the PDF.")
-    if pending_commit:
-        blocking.append("Applying pending editor changes before PDF creation.")
-
     preflight = build_pdf_preflight_report(state, image_status)
     for issue in preflight.issues:
         if issue.severity == "critical" and issue.message not in blocking:
             blocking.append(issue.message)
 
-    can_create = has_document and pictures and image_ready and not pending_commit and not pdf_ready and preflight.can_export
-    if pending_commit or blocking:
+    can_create = has_document and pictures and image_ready and not pdf_ready and preflight.can_export
+    if blocking:
         status = "Not ready"
     elif pdf_ready:
         status = "PDF ready"

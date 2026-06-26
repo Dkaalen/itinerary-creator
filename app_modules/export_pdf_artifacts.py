@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app_modules.editor_commit import PDF_COMMIT_READY_KEY, PDF_COMMIT_REQUEST_KEY
 from app_modules.workflow_state import clear_pdf_artifacts
 
 
 def current_pdf_bytes() -> bytes | None:
     """Return current PDF bytes only when they match the current preview signature."""
-
-    if st.session_state.get(PDF_COMMIT_REQUEST_KEY) and not st.session_state.get(PDF_COMMIT_READY_KEY):
-        return None
 
     current_signature = st.session_state.get("preview_signature")
     if not current_signature:

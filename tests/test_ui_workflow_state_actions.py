@@ -241,15 +241,22 @@ def test_retry_image_bank_connection_keeps_gateway_result_in_state():
     assert state["image_bank_status"] == READY_BANK
 
 
-def test_enter_export_stage_requests_commit_and_sets_export_stage():
-    state = {"app_stage": "pictures"}
+def test_enter_export_stage_clears_stale_pdf_commit_without_requesting_new_one():
+    state = {
+        "app_stage": "pictures",
+        "_pdf_after_visual_edit_commit_nonce": "old",
+        "_visual_editor_export_commit_ready": False,
+        "_visual_editor_commit_nonce": "old",
+    }
     calls = {"commit": 0}
 
     result = enter_export_stage(state, request_pdf_commit_func=lambda: calls.__setitem__("commit", calls["commit"] + 1))
 
     assert result.ok is True
     assert state["app_stage"] == "export"
-    assert calls["commit"] == 1
+    assert calls["commit"] == 0
+    assert state["_pdf_after_visual_edit_commit_nonce"] is None
+    assert state["_visual_editor_commit_nonce"] is None
 
 
 def test_load_project_uses_workflow_action_state_rules():

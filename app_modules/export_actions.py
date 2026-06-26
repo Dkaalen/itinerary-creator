@@ -6,10 +6,6 @@ from pathlib import Path
 
 import streamlit as st
 
-from app_modules.export_editor_commit import (
-    request_pdf_creation_after_visual_editor_commit,
-    visual_editor_export_commit_ready,
-)
 from app_modules.export_image_validation import prepare_pdf_image_contract
 from app_modules.export_issue_display import show_issue_list
 from app_modules.export_pdf_artifacts import clear_pdf_artifact, current_pdf_bytes, store_current_pdf_bytes
@@ -116,7 +112,5 @@ __all__ = [
     "clear_pdf_artifact",
     "create_pdf_from_current_preview",
     "current_pdf_bytes",
-    "request_pdf_creation_after_visual_editor_commit",
     "store_current_pdf_bytes",
-    "visual_editor_export_commit_ready",
 ]

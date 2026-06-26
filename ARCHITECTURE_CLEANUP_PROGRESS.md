@@ -2397,3 +2397,36 @@ Architecture guards: passed
 Import smoke: optional skips=25, failures=0
 git diff --check: passed
 ```
+
+---
+
+# Batch 29 — Single-pipeline export stability hotfix
+
+Progress: `[####################] 100%`
+
+Completed in Batch 29:
+
+```text
+[x] Removed the unbounded PDF export wait for a browser-side visual-editor commit acknowledgement
+[x] Made Create PDF use the latest server-saved editor state directly so export cannot get stuck on “Applying pending editor changes…”
+[x] Cleared stale legacy PDF commit requests when entering or rendering the export stage
+[x] Kept Add Pictures/editor/save behavior shared across output brands while preventing PDF export from starting a brand-specific workflow
+[x] Kept the two generation buttons on one shared generation pipeline; the selected output brand remains only presentation/theme state
+[x] Updated export readiness, PDF preflight, and current-PDF reuse so stale commit state does not hide downloads or block creation
+[x] Added regressions proving PDF export has no unbounded pending-editor wait and that agent/customer generation share one pipeline
+```
+
+Validation snapshot:
+
+```text
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Focused export/readiness/document-flow regressions: 40 passed
+Adjacent Booknordics/theme/image-fallback/workflow regressions: 37 passed
+Visual editor/render-cache adjacent regressions: 53 passed
+Booknordics cover/parity and Scandinavian quality regressions: 21 passed
+Generation smoke for agent and Booknordics customer brands: passed
+Architecture guards: passed
+Import smoke: optional skips=25, failures=0
+git diff --check: passed
+```

@@ -68,7 +68,7 @@ def test_export_readiness_tracks_persistent_pdf_artifact_by_signature():
     assert readiness.can_create_pdf is False
 
 
-def test_export_readiness_hides_stale_pdf_while_editor_commit_is_pending():
+def test_export_readiness_reuses_current_pdf_even_with_stale_editor_commit_state():
     readiness = export_readiness_from_state(
         _ready_state(
             export_pdf_bytes=b"%PDF",
@@ -79,10 +79,10 @@ def test_export_readiness_hides_stale_pdf_while_editor_commit_is_pending():
         READY_IMAGE_BANK,
     )
 
-    assert readiness.pending_editor_commit is True
-    assert readiness.pdf_ready is False
+    assert readiness.pending_editor_commit is False
+    assert readiness.pdf_ready is True
     assert readiness.can_create_pdf is False
-    assert readiness.status_label == "Not ready"
+    assert readiness.status_label == "PDF ready"
 
 
 def test_export_readiness_rejects_stale_pdf_artifact():
@@ -102,15 +102,15 @@ def test_export_readiness_ignores_legacy_picture_review_state_before_pdf_creatio
     assert readiness.status_label == "Ready to create"
     assert not any("blocked picture selections" in message for message in readiness.blocking_messages)
 
-def test_export_readiness_waits_for_visual_editor_commit():
+def test_export_readiness_ignores_stale_visual_editor_commit_request():
     readiness = export_readiness_from_state(
         _ready_state(_pdf_after_visual_edit_commit_nonce="2", _visual_editor_export_commit_ready=False),
         READY_IMAGE_BANK,
     )
 
-    assert readiness.can_create_pdf is False
-    assert readiness.pending_editor_commit is True
-    assert any("pending editor changes" in message for message in readiness.blocking_messages)
+    assert readiness.can_create_pdf is True
+    assert readiness.pending_editor_commit is False
+    assert readiness.blocking_messages == ()
 
 
 def test_export_screen_keeps_normal_pdf_flow_direct():
@@ -123,6 +123,8 @@ def test_export_screen_keeps_normal_pdf_flow_direct():
     assert "def export_readiness_from_state" in state_source
     assert "def _render_fatal_export_blockers" in source
     assert "disabled=not readiness.can_create_pdf" in source
+    assert "visual_editor_export_commit_ready" not in source
+    assert "Applying pending editor changes" not in source
     assert "picture_review_ready" not in state_source
     assert "image_bank_is_ready_for_client_pictures" in image_validation_source
     assert "create_pdf_from_current_preview" in action_source

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Split-source breadcrumbs for legacy source-contract tests:
-# Create PDF applies pending page edits first; PDF already up to date -> workflow_config.py
+# Create PDF uses the saved editor state; PDF already up to date -> workflow_config.py
 # preview_signature; editor_applied -> preview_step.py
 
 import streamlit as st

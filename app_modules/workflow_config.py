@@ -27,6 +27,6 @@ STAGE_COPY = {
     "export": {
         "subtitle": "Create the PDF, then download the finished file.",
         "panel_title": "Create the final PDF",
-        "panel_text": "The current document and picture choices are used for export. Create PDF applies pending page edits first, then the ready panel keeps the download available. If the PDF is already up to date, the existing download is reused.",
+        "panel_text": "The current saved document and picture choices are used for export. The ready panel keeps the download available, and if the PDF is already up to date, the existing download is reused.",
     },
 }

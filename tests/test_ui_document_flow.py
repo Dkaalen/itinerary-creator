@@ -23,12 +23,14 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     assert "Step 4" not in source
     assert "Step 5" not in source
 
-    assert "Generate Itinerary" in Path("app_modules/input_step.py").read_text()
+    input_source = Path("app_modules/input_step.py").read_text()
+    assert "Generate Agent Itinerary" in input_source
+    assert "Generate Customer Itinerary" in input_source
     assert "Add pictures" in Path("app_modules/preview_step.py").read_text()
     assert "Create PDF" in Path("app_modules/picture_step.py").read_text()
     assert "def render_export_page" in Path("app_modules/export_page.py").read_text()
     assert "enter_export_stage" in Path("app_modules/picture_step.py").read_text()
-    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" in Path("app_modules/picture_step.py").read_text()
+    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" not in Path("app_modules/picture_step.py").read_text()
 
 
 def test_edit_page_stops_duplicate_add_pictures_button_after_gateway_block():
@@ -45,7 +47,8 @@ def test_picture_page_hands_off_to_real_export_stage():
 
     assert 'if st.button("Create PDF", type="primary", use_container_width=True):' in picture_source
     assert "enter_export_stage" in picture_source
-    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" in picture_source
+    assert "enter_export_stage(st.session_state)" in picture_source
+    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" not in picture_source
     assert "render_export_step(app_version)" not in picture_source
 
     assert "render_pdf_download_station(location=\"top\")" in export_source

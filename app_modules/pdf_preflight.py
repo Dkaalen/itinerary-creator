@@ -107,9 +107,6 @@ def build_pdf_preflight_report(
     if not image_bank_is_ready_for_client_pictures(image_status):
         issues.append(_issue("image_bank_missing", "critical", "Connect the real destination image bank before creating the PDF."))
 
-    if state.get("_pdf_after_visual_edit_commit_nonce") and not state.get("_visual_editor_export_commit_ready"):
-        issues.append(_issue("pending_editor_commit", "critical", "Applying pending editor changes before PDF creation."))
-
     for health_issue in build_itinerary_health_issues(
         state.get("parsed_rows", []) or [],
         parser_diagnostics=state.get("parser_diagnostics", []) or [],

@@ -38,13 +38,13 @@ def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
     assert picture_source.index("if not current_pdf_bytes():") < picture_source.index('st.button("Create PDF"')
 
 
-def test_failed_pdf_creation_clears_pending_visual_editor_commit_request():
+def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
     source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
-    commit_section = source[source.index("if commit_ready:") :]
 
-    assert "finally:" in commit_section
-    assert "clear_pdf_editor_commit_request(st.session_state)" in commit_section
-    assert commit_section.index("finally:") < commit_section.index("clear_pdf_editor_commit_request(st.session_state)")
+    assert "visual_editor_export_commit_ready" not in source
+    assert "Applying pending editor changes" not in source
+    assert "clear_pdf_editor_commit_request(st.session_state)" in source
+    assert "create_pdf_from_current_preview()" in source
 
 
 def test_current_pdf_bytes_requires_a_current_preview_signature():
@@ -63,7 +63,7 @@ def test_current_pdf_bytes_requires_a_current_preview_signature():
     assert export_actions.current_pdf_bytes() is None
 
 
-def test_current_pdf_bytes_waits_while_editor_pdf_commit_is_pending():
+def test_current_pdf_bytes_ignores_stale_editor_pdf_commit_state():
     st = install_streamlit_stub()
     st.session_state.clear()
     st.session_state.update(
@@ -76,7 +76,7 @@ def test_current_pdf_bytes_waits_while_editor_pdf_commit_is_pending():
         }
     )
 
-    assert export_actions.current_pdf_bytes() is None
+    assert export_actions.current_pdf_bytes() == b"%PDF-current"
 
 
 def test_export_readiness_does_not_reuse_unsigned_pdf_bytes():
