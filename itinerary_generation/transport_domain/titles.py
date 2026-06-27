@@ -148,7 +148,7 @@ def get_transfer_travel_title(row):
         destination = base_destination_from_terminal(route_destination or text_destination or city_destination)
         return f"Coach Transfer to {destination}" if destination else polish_title(row.get("title", "") or "Coach Transfer")
     if ("shuttle" in lower or "transfer" in lower) and route_origin and route_destination:
-        label = "Shuttle transfer" if "shuttle" in lower else "Transfer"
+        label = "Shuttle transfer" if "shuttle" in lower else ("Private transfer" if "private" in lower else "Transfer")
         return f"{label} from {route_origin} to {route_destination}"
 
     destination = text_destination or route_destination or city_destination

@@ -21,7 +21,7 @@ from itinerary_generation.editor_page_contract import (
 )
 from itinerary_generation.render_document_builder import build_render_document_from_document
 from itinerary_generation.render_model import RenderDocument
-from itinerary_generation.render_page_order import canonical_render_page_order, sorted_render_days
+from itinerary_generation.render_page_order import render_page_order_with_editor_request, sorted_render_days
 from itinerary_generation.structured_builder import build_itinerary_document
 
 
@@ -104,7 +104,10 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     context.render_document.final_sections = build_final_sections_for_pdf(context)
     context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
     context.render_document.days = sorted_render_days(context.render_document.days)
-    context.render_document.page_order = canonical_render_page_order(context.render_document)
+    context.render_document.page_order = render_page_order_with_editor_request(
+        context.render_document,
+        getattr(context.render_document, "page_order", []) or [],
+    )
 
 
 def _build_render_document_from_structured_document(structured_document, parsed_rows, grouped_days, output_edits):

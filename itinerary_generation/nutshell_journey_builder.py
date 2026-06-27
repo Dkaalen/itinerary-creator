@@ -18,6 +18,7 @@ from itinerary_generation.nutshell_parsing import (
     extract_norway_nutshell_route_points,
     extract_norway_nutshell_supplier_includes,
     should_preserve_nutshell_origin_label,
+    is_source_backed_nutshell_route_package,
 )
 from itinerary_generation.nutshell_route_parser import (
     _direct_route_endpoints,
@@ -77,7 +78,11 @@ def build_nutshell_journey(
 
     product = _activity_product(row)
     family = str(product.get("canonical_family", "") or "")
-    if family != NUTSHELL_CANONICAL_FAMILY and not _is_norway_in_a_nutshell_text(full_source):
+    if (
+        family != NUTSHELL_CANONICAL_FAMILY
+        and not _is_norway_in_a_nutshell_text(full_source)
+        and not is_source_backed_nutshell_route_package(full_source)
+    ):
         return None
 
     explicit_candidates = (

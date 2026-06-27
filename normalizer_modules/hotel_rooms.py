@@ -89,7 +89,10 @@ def normalize_room_category(value: str) -> str:
         cleaned = _normalize_single_room_category(f"{quantity} {category}".strip(), preserve_quantity=bool(quantity))
         if cleaned: matches.append(cleaned)
     result = ", ".join(dict.fromkeys(matches)) if matches else _normalize_single_room_category(room, preserve_quantity=True)
-    return re.sub(r"\s+-\s+(?:Double|Single|Twin|Triple)$", "", result, flags=re.IGNORECASE)
+    # Keep occupancy/category suffixes such as "Standard Room - Triple".  They
+    # are supplier-owned room facts, not bed fragments.  Bed counts are removed
+    # separately by _strip_bed_fragments()/extract_bed_type_from_source().
+    return result
 
 
 def extract_room_category_from_source(source: str) -> str:

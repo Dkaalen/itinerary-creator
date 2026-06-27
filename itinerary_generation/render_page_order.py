@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from itinerary_generation.common import get_day_number
-from itinerary_generation.editor_page_contract import final_section_page_id, stable_page_id
+from itinerary_generation.editor_page_contract import final_section_page_id, ordered_page_ids, stable_page_id
 
 _STANDARD_FINAL_SECTION_IDS = {"whats_included", "whats_not_included", "important_travel_notes"}
 
@@ -51,4 +51,44 @@ def canonical_render_page_order(render_document: Any) -> list[str]:
     return ordered
 
 
-__all__ = ["canonical_render_page_order", "sorted_render_days"]
+def render_page_order_with_editor_request(render_document: Any, requested_order: list[str] | tuple[str, ...] | None = None) -> list[str]:
+    """Return a render page order that respects editor page movement safely.
+
+    The editor owns page visibility and user-requested page placement.  The
+    renderer still owns generated itinerary-day ordering, because exporting Day
+    2 after Day 5 is never a valid document state.  This helper merges those
+    responsibilities: final/custom pages can move around generated days, while
+    generated day slots are always filled in canonical day-number order.
+    """
+
+    canonical_order = canonical_render_page_order(render_document)
+    if not requested_order:
+        return canonical_order
+
+    day_ids = [stable_page_id("day", getattr(day, "day", "")) for day in sorted_render_days(getattr(render_document, "days", []) or [])]
+    day_ids = [page_id for page_id in day_ids if page_id in canonical_order]
+    if not day_ids:
+        return ordered_page_ids(canonical_order, requested_order)
+
+    known_requested = ordered_page_ids(canonical_order, requested_order)
+    canonical_day_iter = iter(day_ids)
+    merged: list[str] = []
+    used_days: set[str] = set()
+    for page_id in known_requested:
+        if page_id in day_ids:
+            for canonical_day_id in canonical_day_iter:
+                if canonical_day_id not in used_days:
+                    merged.append(canonical_day_id)
+                    used_days.add(canonical_day_id)
+                    break
+            continue
+        if page_id not in merged:
+            merged.append(page_id)
+
+    for page_id in canonical_order:
+        if page_id not in merged:
+            merged.append(page_id)
+    return merged
+
+
+__all__ = ["canonical_render_page_order", "render_page_order_with_editor_request", "sorted_render_days"]

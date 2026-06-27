@@ -5,6 +5,7 @@ import re
 from text_polish import polish_client_text, polish_title
 from normalizer_modules.text_utils import text_blob
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text, explicit_norway_nutshell_title, extract_norway_nutshell_route_points
+from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package
 from itinerary_generation.activity_products import fingerprint_activity
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 
@@ -14,7 +15,10 @@ def normalize_transport_title(row: dict) -> dict:
     original_title = polish_client_text(row.get("original_title", ""))
     full = f"{original_title} {title} {details}".lower()
     product = fingerprint_activity(row)
-    if product and product.display_title and product.product_type not in {"scenic_route"}:
+    if product and product.display_title and (
+        product.product_type not in {"scenic_route"}
+        or product.canonical_family == "norway_in_a_nutshell"
+    ):
         row["title"] = product.display_title
         row["activity_product"] = product.as_row_metadata
         if product.route_legs:
@@ -33,6 +37,10 @@ def normalize_transport_title(row: dict) -> dict:
         elif re.search(r"\b(?:arctic\s+)?snow\s*hotel\s+to\s+(?:railway\s+)?station\b", full, flags=re.IGNORECASE):
             destination = f"{city} Railway Station" if city else "the railway station"
             row["title"] = f"Transfer from Arctic SnowHotel to {destination}"
+        elif re.search(r"\bprivate\s+(?:transfer\s+)?(?:railway\s+)?station\s+to\s+(?:the\s+)?airport\b", full, flags=re.IGNORECASE):
+            station = f"{city} Railway Station" if city else "the railway station"
+            airport = f"{city} Airport" if city else "the airport"
+            row["title"] = f"Private transfer from {station} to {airport}"
 
     if row_type == "Train" and not _is_norway_in_a_nutshell_text(full):
         origin, destination = get_route_points_for_transport(row)
@@ -40,7 +48,9 @@ def normalize_transport_title(row: dict) -> dict:
             row["route_origin"] = origin
         if destination:
             row["route_destination"] = destination
-            if "santa claus express" in full:
+            if _is_unbranded_rail_fjord_package(full) and origin:
+                row["title"] = f"Scenic Rail & Fjord Journey from {origin} to {destination}"
+            elif "santa claus express" in full:
                 row["title"] = f"Santa Claus Express to {destination}"
             elif re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", full):
                 row["title"] = f"Overnight Train to {destination}"
@@ -67,6 +77,22 @@ def normalize_transport_title(row: dict) -> dict:
             row["title"] = "Cruise to Stockholm"
             row["city"] = "Stockholm" if row.get("city", "").lower() in {"helsinki", ""} else row.get("city")
     return row
+
+
+def _is_unbranded_rail_fjord_package(text: str) -> bool:
+    """Return True for source-supported rail/fjord route packages without Nutshell branding."""
+
+    lower = str(text or "").lower()
+    has_flam_train = any(marker in lower for marker in ("flåm train", "flam train", "flåm railway", "flam railway"))
+    has_fjord_cruise = "nærøyfjord" in lower or "naeroyfjord" in lower or "fjord cruise" in lower
+    has_ticketed_route = "e-tickets" in lower or "all tickets" in lower or "luggage transfer" in lower
+    return (
+        has_flam_train
+        and has_fjord_cruise
+        and has_ticketed_route
+        and "norway in a nutshell" not in lower
+        and not is_source_backed_nutshell_route_package(text)
+    )
 
 def _is_rail_or_fjord_route_activity(row: dict) -> bool:
     text = text_blob(row).lower()

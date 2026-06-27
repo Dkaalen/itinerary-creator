@@ -17,6 +17,44 @@ def _is_norway_in_a_nutshell_text(text):
     return False
 
 
+def is_source_backed_nutshell_route_package(text: str) -> bool:
+    """Return True for a complete source-backed Nutshell-style route package.
+
+    This is intentionally narrower than generic Flåm/Nærøyfjord detection: it
+    requires a major Oslo/Bergen route heading and the supplier-owned chain of
+    rail, fjord and luggage/ticket evidence.
+    """
+
+    source = str(text or "")
+    lower = source.lower()
+    if _is_norway_in_a_nutshell_text(source):
+        return True
+    direct_major_route = bool(
+        re.search(
+            r"(?:^|\b)(?P<origin>Oslo|Bergen)\s+to\s+(?P<destination>Oslo|Bergen)\s*(?=[:|\-]|$)",
+            source,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+    )
+    if not direct_major_route:
+        return False
+
+    has_flam_rail = any(marker in lower for marker in ("flåm train", "flam train", "flåm railway", "flam railway"))
+    has_fjord = "nærøyfjord" in lower or "naeroyfjord" in lower or "fjord cruise" in lower
+    has_supplier_chain = all(
+        marker in lower
+        for marker in (
+            "voss",
+            "gudvangen",
+            "flåm",
+            "myrdal",
+        )
+    ) or all(marker in lower for marker in ("voss", "gudvangen", "flam", "myrdal"))
+    has_ticketed_route = any(marker in lower for marker in ("e-tickets", "e tickets", "all tickets", "luggage transfer", "luggage porter"))
+    has_day_route_context = bool(re.search(r"\bday\s+tour\b|\btravel\s+plan\b|\bperfect\s+day\s+tour\b", lower))
+    return has_flam_rail and has_fjord and has_supplier_chain and has_ticketed_route and has_day_route_context
+
+
 def _clean_nutshell_place(value: str) -> str:
     return canonicalize_place_name(polish_title(str(value or "").strip(" -:|.,")))
 

@@ -22,7 +22,12 @@ def normalize_hotel_row(row: dict) -> dict:
     room = normalize_room_category(row.get("room_category", ""))
     source_room = extract_room_category_from_source(source)
     if source_room and (not room or " x " in source_room.lower() or "," in source_room): room = source_room
-    if name == "Centrally located hotel" and (source_room or room) and re.search(r"\b(?:igloo|villa|cabin|apartment|cottage|lodge)\b", source_room or room, flags=re.IGNORECASE): name = "Accommodation"
+    if (
+        (name == "Centrally located hotel" or re.fullmatch(r"Accommodation(?:\s+in\s+.+)?", name, flags=re.IGNORECASE))
+        and (source_room or room)
+        and re.search(r"\b(?:igloo|villa|cabin|apartment|cottage|lodge)\b", source_room or room, flags=re.IGNORECASE)
+    ):
+        name = "Accommodation"
     if not room: room = "Standard Double Room"
     bed_type = extract_bed_type_from_source(source)
     if bed_type and bed_type.lower() not in room.lower(): room = f"{room} - {bed_type}"
@@ -30,7 +35,7 @@ def normalize_hotel_row(row: dict) -> dict:
     source_nights = clean_space(row.get("source_hotel_nights", ""))
     date_nights = hotel_nights_from_date_range(row.get("start_date", ""), row.get("end_date", ""))
     is_self_arranged_stay = has_self_arranged_marker(name, row.get("hotel_name", ""), row.get("title", ""), source) or row.get("commercial_status") == "self_arranged"
-    if is_self_arranged_stay and source_nights:
+    if source_nights:
         nights = source_nights
     elif date_nights and (not nights or (nights == "1" and int(date_nights) > 1)):
         nights = date_nights

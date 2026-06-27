@@ -66,6 +66,7 @@ def _clean_route_place(value):
         raw,
         flags=re.IGNORECASE,
     ).strip(" -:|.,")
+    raw = re.sub(r"^(?:flight|train|coach|bus|cruise|ferry)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     raw = re.sub(r"^(?:from|to)\s+", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     raw = re.sub(r"\bself[-\s]*(?:arranged|arrange|arrnaged|arrnage)\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", raw, flags=re.IGNORECASE)
@@ -132,6 +133,73 @@ def _clean_route_place(value):
 
 def _row_city_origin(row) -> str:
     return _clean_route_place(row.get("city", ""))
+
+
+def _expanded_transfer_route_from_title(title: str) -> tuple[str, str]:
+    """Extract routes from already-normalized client transfer titles.
+
+    These titles are safer than concatenated title/details/raw text.  Parsing a
+    combined source such as ``Private transfer from Helsinki Railway Station to
+    Helsinki Airport Private Station to the airport`` can otherwise glue a
+    duplicate shorthand fragment onto the destination.
+    """
+
+    match = re.search(
+        r"\b(?:private\s+)?(?:shuttle\s+)?transfer\s+from\s+(.+?)\s+to\s+(.+?)$",
+        str(title or ""),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return "", ""
+    origin = _clean_route_place(match.group(1))
+    destination = _clean_route_place(match.group(2))
+    if origin and destination and origin.lower() != destination.lower():
+        return origin, destination
+    return "", ""
+
+
+def _headline_route_from_source(value: str) -> tuple[str, str]:
+    """Prefer a supplier headline route before itemized leg text.
+
+    Package rows often start with a true end-to-end route (``Bergen to Oslo:``)
+    and later list individual tickets (``Voss to Gudvangen``).  The headline is
+    the client-facing route identity; the itemized legs remain supporting facts.
+    """
+
+    text = str(value or "")
+    match = re.search(
+        r"^\s*(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,40})\s+to\s+(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,40})(?:\s*:|\s+-|\s*\|)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return "", ""
+    origin = _clean_route_place(match.group("origin"))
+    destination = _clean_route_place(match.group("destination"))
+    if origin and destination and origin.lower() != destination.lower():
+        return origin, destination
+    return "", ""
+
+
+def _compact_city_terminal_route(row, value: str) -> tuple[str, str]:
+    """Expand compact city-owned terminal routes such as ``Private Station to Airport``."""
+
+    city = _clean_route_place(row.get("city", ""))
+    if not city:
+        return "", ""
+    text = str(value or "")
+    lower = text.lower()
+    if re.search(r"\bprivate\s+(?:transfer\s+)?(?:railway\s+)?station\s+to\s+(?:the\s+)?airport\b", lower):
+        return normalize_transport_place(f"{city} Railway Station"), normalize_transport_place(f"{city} Airport")
+    if re.search(r"\bprivate\s+(?:transfer\s+)?airport\s+to\s+(?:hotel|accommodation)\b", lower):
+        return normalize_transport_place(f"{city} Airport"), "your accommodation"
+    if re.search(r"\bprivate\s+(?:transfer\s+)?(?:hotel|accommodation)\s+to\s+(?:the\s+)?airport\b", lower):
+        return "your hotel", normalize_transport_place(f"{city} Airport")
+    if re.search(r"\bprivate\s+(?:transfer\s+)?(?:hotel|accommodation)\s+to\s+(?:railway\s+)?station\b", lower):
+        return "your hotel", normalize_transport_place(f"{city} Railway Station")
+    if re.search(r"\bprivate\s+(?:transfer\s+)?(?:railway\s+)?station\s+to\s+(?:hotel|accommodation)\b", lower):
+        return normalize_transport_place(f"{city} Railway Station"), "your accommodation"
+    return "", ""
 
 
 def _explicit_product_route_from_row_city(row) -> tuple[str, str]:
@@ -203,6 +271,20 @@ def get_route_points_for_transport(row):
     scheduled_origin, scheduled_destination = _scheduled_route_points_from_source(source_text)
     if scheduled_destination:
         return scheduled_origin, scheduled_destination
+
+    title_origin, title_destination = _expanded_transfer_route_from_title(str(row.get("title", "") or ""))
+    if title_destination:
+        return title_origin, title_destination
+
+    for key in ["original_title", "details", "title"]:
+        headline_origin, headline_destination = _headline_route_from_source(str(row.get(key, "") or ""))
+        if headline_destination:
+            return headline_origin, headline_destination
+
+    for key in ["details", "original_title", "raw", "title"]:
+        compact_origin, compact_destination = _compact_city_terminal_route(row, str(row.get(key, "") or ""))
+        if compact_destination:
+            return compact_origin, compact_destination
 
     for key in ["details", "original_title", "raw", "title"]:
         explicit_origin, explicit_destination = _explicit_transport_route_from_source(str(row.get(key, "") or ""))

@@ -37,6 +37,8 @@ def image_bank_is_ready_for_client_pictures(status: Mapping[str, Any] | None) ->
     """
 
     status = status or {}
+    if status.get("required_destinations_ready"):
+        return True
     if status.get("full_bank_found") or status.get("using_full_destination_bank"):
         return True
     if status.get("default_only") or status.get("is_default_only"):

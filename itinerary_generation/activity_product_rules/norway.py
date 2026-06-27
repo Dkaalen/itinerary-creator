@@ -9,6 +9,7 @@ from itinerary_generation.activity_product_core import ActivityProductFingerprin
 from itinerary_generation.activity_product_text import canonicalize_activity_route_source
 from itinerary_generation.fjordtours_activity_catalogue import match_fjordtours_nutshell_addon
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package
 from itinerary_generation.nutshell_domain import build_nutshell_journey
 
 
@@ -108,7 +109,7 @@ def match_norway_activity(
     if _is_standalone_naeroyfjord_cruise(source_lower):
         return match_product("naeroyfjord_sightseeing_cruise", "fjord_cruise", "Nærøyfjord Sightseeing Cruise", source_title=source_title)
 
-    if _is_norway_in_a_nutshell_text(source_lower):
+    if _is_norway_in_a_nutshell_text(source_lower) or is_source_backed_nutshell_route_package(source):
         if row:
             original_title = str(row.get("original_title", "") or "")
             title = str(row.get("title", "") or "")
