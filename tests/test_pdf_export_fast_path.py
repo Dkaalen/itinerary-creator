@@ -34,8 +34,8 @@ def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
 
     assert "if readiness.pdf_ready:" in source
     assert source.index("if readiness.pdf_ready:") < source.index('st.button("Create PDF"')
-    assert "if not current_pdf_bytes():" in picture_source
-    assert picture_source.index("if not current_pdf_bytes():") < picture_source.index('st.button("Create PDF"')
+    assert "if current_pdf_bytes():" in picture_source
+    assert picture_source.index("if current_pdf_bytes():") < picture_source.index('st.button("Create PDF"')
 
 
 def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
@@ -43,7 +43,7 @@ def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
 
     assert "visual_editor_export_commit_ready" not in source
     assert "Applying pending editor changes" not in source
-    assert "clear_pdf_editor_save(st.session_state)" in source
+    assert "_clear_stale_pdf_editor_state()" in source
     assert "request_editor_save_before_pdf(st.session_state)" not in source
     assert "create_pdf_from_current_preview()" in source
 
@@ -165,3 +165,34 @@ def test_pdf_creation_stops_when_preview_signature_is_missing(monkeypatch):
     assert export_actions.create_pdf_from_current_preview() is False
     assert st.session_state["pdf_status"] == "Preview refresh failed"
     assert st.session_state["pdf_bytes"] is None
+
+
+def test_pdf_image_contract_ignores_stale_stage_matches_when_user_removed_image(monkeypatch):
+    st = install_streamlit_stub(force=True)
+    st.session_state.clear()
+    st.session_state.update(
+        {
+            "day_image_matches": {"Day 1": {"path": "stale-auto-image.jpg"}},
+            "output_edits": {"day_images": {"Day 1": {"mode": "none", "path": "", "crop_focus": "center"}}},
+        }
+    )
+
+    from app_modules import export_image_validation
+
+    monkeypatch.setattr(
+        export_image_validation,
+        "select_day_images_with_overrides",
+        lambda grouped, output_edits: {"Day 1": None},
+    )
+
+    assert export_image_validation._select_image_matches_for_export({"Day 1": [{"city": "Oslo"}]}) == {"Day 1": None}
+
+
+def test_pdf_renderer_prewarms_day_image_crops_before_reportlab_build():
+    source = Path("pdf_exporter_modules/typed_exporter.py").read_text(encoding="utf-8")
+    prewarm_source = Path("pdf_exporter_modules/pdf_image_prewarm.py").read_text(encoding="utf-8")
+
+    assert "prewarm_pdf_day_images(" in source
+    assert "render_document.days or []" in source
+    assert "make_cover_cropped_image(" in prewarm_source
+    assert "Pre-warming is an optimization only" in prewarm_source

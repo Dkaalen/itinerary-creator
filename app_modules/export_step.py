@@ -7,13 +7,14 @@ from app_modules.export_actions import (
     create_pdf_from_current_preview,
     current_pdf_bytes,
 )
-from app_modules.export_editor_save import clear_pdf_editor_save
+from app_modules.editor_commit import clear_pdf_editor_commit_request
 from app_modules.export_job_state import (
     consume_auto_pdf_create_request,
     current_export_job,
     mark_export_failed,
     mark_export_ready,
     mark_exporting,
+    reset_export_job,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
@@ -77,15 +78,15 @@ def _create_pdf_now() -> bool:
     return ok
 
 
+def _clear_stale_pdf_editor_state() -> None:
+    clear_pdf_editor_commit_request(st.session_state)
+    reset_export_job(st.session_state)
+
+
 def _request_pdf_creation() -> None:
-    """Create the PDF from the current server-owned preview state.
+    """Create the PDF from the current committed preview state."""
 
-    The visual editor autosaves text/image changes separately.  PDF creation must
-    not start a browser commit handshake here, because missing component messages
-    were the source of long waits and broken export jobs.
-    """
-
-    clear_pdf_editor_save(st.session_state)
+    _clear_stale_pdf_editor_state()
     if _create_pdf_now():
         st.success("PDF created. Use the download button.")
         st.rerun()

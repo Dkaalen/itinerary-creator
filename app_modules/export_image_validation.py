@@ -33,7 +33,24 @@ def _image_contract_signature(grouped_days: Mapping, required_destinations: list
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
 
 
+def _day_image_overrides() -> Mapping:
+    output_edits = st.session_state.get("output_edits", {}) or {}
+    return output_edits.get("day_images", {}) if isinstance(output_edits, Mapping) else {}
+
+
+def _overrides_require_fresh_selection(overrides: Mapping | None) -> bool:
+    for choice in (overrides or {}).values():
+        if not isinstance(choice, Mapping):
+            continue
+        mode = str(choice.get("mode") or "auto").strip().lower()
+        if mode in {"manual", "none"} or choice.get("crop_focus"):
+            return True
+    return False
+
+
 def _cached_stage_image_matches(grouped_days: Mapping) -> dict:
+    if _overrides_require_fresh_selection(_day_image_overrides()):
+        return {}
     cached = st.session_state.get("day_image_matches")
     if not isinstance(cached, Mapping):
         return {}

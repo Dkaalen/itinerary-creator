@@ -36,7 +36,7 @@ def test_image_crop_focus_updates_without_full_redraw():
     assert "data-img-focus" in image_handlers_js
     assert "data-cover-img-focus" in image_handlers_js
     assert "style.objectPosition = focusPos(sel.value)" in image_handlers_js
-    focus_section = image_handlers_js[image_handlers_js.index("document.querySelectorAll('[data-img-focus]')"):]
+    focus_section = image_handlers_js[image_handlers_js.index("root.querySelectorAll('[data-img-focus]')"):]
     assert "draw();" not in focus_section
 
 def test_right_inspector_has_compact_selection_context():

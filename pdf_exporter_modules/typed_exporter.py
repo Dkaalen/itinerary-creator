@@ -37,6 +37,7 @@ from pdf_exporter_modules.pdf_html_fallback import _iter_html_values
 from pdf_exporter_modules.pdf_html_fallback import render_document_requires_html_fallback
 from pdf_exporter_modules.pdf_image_renderer import image_path_from_match as _image_path_from_match
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable as _render_day_image_flowable
+from pdf_exporter_modules.pdf_image_prewarm import prewarm_pdf_day_images
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
 from pdf_exporter_modules.pdf_branding import configure_pdf_brand
 
@@ -79,6 +80,15 @@ def export_render_document_to_pdf(
     story = []
 
     with tempfile.TemporaryDirectory(prefix="itinerary_render_document_images_") as image_temp_dir:
+        prewarm_pdf_day_images(
+            render_document.days or [],
+            styles,
+            day_images=day_images,
+            day_image_crop_focus=day_image_crop_focus,
+            temp_dir=image_temp_dir,
+            doc=doc,
+            min_compact_level=profile.min_compact_level,
+        )
         hidden_page_ids = set(getattr(render_document, "hidden_page_ids", []) or [])
         page_renderers = []
 
@@ -152,4 +162,5 @@ __all__ = [
     "_render_important_notes_final_page",
     "_render_internal_review_appendix",
     "_render_supported_final_html",
+    "prewarm_pdf_day_images",
 ]

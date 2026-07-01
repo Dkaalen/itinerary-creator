@@ -2587,3 +2587,29 @@ Completed in Batch 34:
 [x] Removed synchronous preview/render-context rebuild from normal editor Save; Add Pictures and PDF export remain the explicit refresh boundaries
 [x] Updated editor messaging and regression tests so picture edits and normal saves stay local/non-blocking until the user chooses to sync
 ```
+
+---
+
+# Batch 35: PDF image sync, export speed and legacy cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Make PDF creation a reliable hard sync boundary for picture edits, speed up the first typed PDF export, clean up inclusion pagination/title policy, and remove obsolete PDF editor-save compatibility code.
+```
+
+Completed in Batch 35:
+
+```text
+[x] Changed Create PDF from picture review to first request one full visible-editor commit, so image removals, replacements, uploads and crop focus are saved before PDF creation
+[x] Kept normal image editing local/non-blocking while making PDF export the explicit server-sync boundary
+[x] Prevented stale picture-stage `day_image_matches` from overriding committed manual/none image choices during PDF image-contract preparation
+[x] Added typed-PDF day-image pre-warming so deterministic crop/resize variants are built before ReportLab `doc.build`
+[x] Kept repeated inclusion/final-page titles clean without client-visible `continued` wording
+[x] Relaxed compact inclusion pagination only for plain single-line entries and short transport clusters
+[x] Moved image-bank setup JSON/details behind explicit debug mode
+[x] Deleted obsolete no-wait legacy PDF editor-save/commit compatibility modules
+[x] Updated export/image/inclusion regressions for the new sync boundary and clean final-page title policy
+```

@@ -142,7 +142,7 @@ def test_flight_final_inclusion_uses_client_ready_baggage_without_duplicate_raw_
     assert "Flight tickets, 1 x 23 kg checked bag, 1 x 8 kg carry-on bag per person" in line
 
 
-def test_final_section_continuation_titles_are_explicit_in_preview_and_pdf_contract():
+def test_final_section_titles_stay_clean_across_preview_and_pdf_contract():
     from app_modules.render_final_sections_html import render_final_section_html
     from pdf_exporter_modules.pdf_final_section_renderer import render_final_page
 
@@ -153,7 +153,8 @@ def test_final_section_continuation_titles_are_explicit_in_preview_and_pdf_contr
     )
 
     html = render_final_section_html(section)
-    assert "What’s included continued" in html
+    assert "What’s included continued" not in html
+    assert html.count("What’s included") == 2
 
     categorized_html = render_categorized_inclusions_pages(
         "What’s included",
@@ -165,7 +166,7 @@ def test_final_section_continuation_titles_are_explicit_in_preview_and_pdf_contr
             )
         ],
     )
-    assert "What’s included continued" in categorized_html
-    assert 'display_title = f"{title} continued" if continued else title' in Path(
+    assert "What’s included continued" not in categorized_html
+    assert 'add_paragraph(story, title, styles["page_title"])' in Path(
         "pdf_exporter_modules/pdf_final_section_renderer.py"
     ).read_text(encoding="utf-8")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any
 
 from app_modules.editor_commit import clear_pdf_editor_commit_request
@@ -12,18 +12,14 @@ from app_modules.workflow_state import set_workflow_stage
 def enter_export_stage(
     state: MutableMapping[str, Any],
     *,
-    request_pdf_commit_func: Callable[[], None] | None = None,
     auto_create_pdf: bool = False,
 ) -> WorkflowActionResult:
     """Move from picture review to export without a blocking browser handshake.
 
-    PDF export uses the last server-saved editor state.  Older sessions may
-    still contain a pending PDF commit request from the former handshake-based
-    flow; clear it so export cannot get stuck waiting for a browser message.
-    The optional callback parameter is retained for compatibility with older
-    imports but is intentionally not called.  When ``auto_create_pdf`` is true,
-    the export page starts the normal shared PDF job after the editor has
-    rendered.
+    Picture review explicitly commits the visible editor model before entering
+    export, so image removals/replacements/crop focus are durable by this point.
+    Clear the completed request and let the export page start the normal shared
+    PDF job when ``auto_create_pdf`` is true.
     """
 
     clear_pdf_editor_commit_request(state)

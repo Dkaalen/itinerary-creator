@@ -67,7 +67,7 @@ def render_final_section_page_html(section: RenderFinalSection, page: RenderFina
     inner_html = _page_inner_html(section, page)
     if not inner_html:
         return ""
-    title = f"{section.title} continued" if continued else section.title
+    title = section.title
     return (
         f'<div class="a4-page {esc(_page_class(section))}">'
         f'<div class="final-page-title">{esc(title)}</div>'

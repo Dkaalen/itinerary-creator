@@ -102,11 +102,10 @@ def _estimate_inclusion_item_units(item):
         return 0
     lines = [structured_item.label, *structured_item.detail_lines]
     text = "\n".join(lines)
-    # Detail lines render as separate block rows with their own line-height.
-    # The previous 0.9 multiplier under-estimated dense hotel/activity entries,
-    # allowing the browser/PDF renderer to split an explicit A4 page and leave
-    # the next category orphaned on a mostly empty page.
-    units = 1.5 + max(0, len(lines) - 1) * 1.2
+    # Plain single-line activity entries render compactly. Detailed hotel,
+    # transport and multi-line entries still reserve extra space so they do not
+    # get orphaned or overflow in the preview/PDF final pages.
+    units = 1.2 if len(lines) == 1 else 1.5 + max(0, len(lines) - 1) * 1.2
     if len(text) > 110:
         units += 0.7
     if len(text) > 210:
@@ -245,9 +244,23 @@ def paginate_categorized_inclusions(sections):
                 section_title = str(candidate.get("title") or "").strip().lower()
                 remaining_after_section = max_units - (current_units + section_units)
                 bottom_guard = _section_bottom_guard_units(section_title)
+                transport_categories = {
+                    "rail journeys",
+                    "ferries & cruises",
+                    "coach transfers",
+                    "transport",
+                    "travel arrangements",
+                    "flights",
+                    "scenic rail & fjord journeys",
+                }
                 current_titles = {str(existing.get("title") or "").strip().lower() for existing in current}
-                current_has_transport_category = bool(current_titles & {"rail journeys", "ferries & cruises", "coach transfers", "transport", "travel arrangements"})
+                current_has_transport_category = bool(current_titles & transport_categories)
                 fit_limit = max_units
+                if current and current_has_transport_category and section_title in transport_categories:
+                    # Transport sections are naturally short and read better as one
+                    # compact travel-arrangements cluster than as a mostly empty
+                    # repeated final page.
+                    fit_limit = 66
                 if section_title == "private transfers" and current and not current_has_transport_category:
                     # Short private-transfer sections are operationally clearer with the destination stay
                     # they support. Allow a tiny amount of estimate slack so older short-transfer
@@ -263,6 +276,7 @@ def paginate_categorized_inclusions(sections):
                     keep_off_bottom = (
                         current
                         and section_title in _SECTION_BOTTOM_GUARDS
+                        and not (current_has_transport_category and section_title in transport_categories)
                         and (current_units >= max_units - bottom_guard or remaining_after_section < 10)
                     )
 
@@ -304,8 +318,7 @@ def render_categorized_inclusions_pages(title, sections, page_class="final-list-
         return ""
 
     html_text = ""
-    for index, page_sections in enumerate(pages):
-        page_title = f"{title} continued" if index else title
+    for page_sections in pages:
         inner_html = render_inclusion_sections_inner_html(page_sections)
-        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(page_title)}</div>{inner_html}</div>'
+        html_text += f'<div class="a4-page {esc(page_class)}"><div class="final-page-title">{esc(title)}</div>{inner_html}</div>'
     return html_text

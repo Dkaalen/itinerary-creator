@@ -248,13 +248,10 @@ def test_enter_export_stage_clears_stale_pdf_commit_without_requesting_new_one()
         "_visual_editor_export_commit_ready": False,
         "_visual_editor_commit_nonce": "old",
     }
-    calls = {"commit": 0}
-
-    result = enter_export_stage(state, request_pdf_commit_func=lambda: calls.__setitem__("commit", calls["commit"] + 1))
+    result = enter_export_stage(state)
 
     assert result.ok is True
     assert state["app_stage"] == "export"
-    assert calls["commit"] == 0
     assert state["_pdf_after_visual_edit_commit_nonce"] is None
     assert state["_visual_editor_commit_nonce"] is None
 

@@ -16,13 +16,10 @@ def test_export_stage_does_not_request_blocking_pdf_editor_commit():
             "_visual_editor_commit_nonce": "stale-commit",
         }
     )
-    calls = []
-
-    result = enter_export_stage(state, request_pdf_commit_func=lambda: calls.append("called"))
+    result = enter_export_stage(state)
 
     assert result.ok is True
     assert state["app_stage"] == "export"
-    assert calls == []
     assert state["_pdf_after_visual_edit_commit_nonce"] is None
     assert state["_visual_editor_export_commit_ready"] is False
     assert state["_visual_editor_commit_nonce"] is None
@@ -51,9 +48,11 @@ def test_pdf_export_screen_has_bounded_editor_commit_before_export():
     preflight_source = Path("app_modules/pdf_preflight.py").read_text(encoding="utf-8")
     state_source = Path("app_modules/export_state.py").read_text(encoding="utf-8")
 
+    picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
+
     assert "Applying pending editor changes" not in source
-    assert "Saving the latest editor changes before creating the PDF" in source
-    assert "Create PDF from last saved version" in source
+    assert "Applying the latest picture edits before creating the PDF" in picture_source
+    assert "Create PDF from last saved version" in picture_source
     assert "request_pdf_creation_after_visual_editor_commit" not in source
     assert "clear_pdf_editor_commit_request" not in export_page_source
     assert "pending_editor_commit" not in preflight_source

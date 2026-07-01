@@ -63,8 +63,7 @@ def render_supported_final_html(html_fragment: str, story, styles) -> None:
 
 
 def render_final_page(title: str, page: RenderFinalPage, story, styles, *, continued=False):
-    display_title = f"{title} continued" if continued else title
-    add_paragraph(story, display_title, styles["page_title"])
+    add_paragraph(story, title, styles["page_title"])
     add_premium_rule(story)
     if page.content_html:
         render_supported_final_html(page.content_html, story, styles)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app_modules.debug_mode import is_debug_mode
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
 from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
 from app_modules.workflow_actions import retry_image_bank_connection
@@ -70,7 +71,7 @@ def _render_image_bank_gateway_repair(result: dict | None = None) -> None:
     st.error(message)
     st.caption("Expected source: Dkaalen/itinerary-image-bank/image_bank_full. Bundled fallback pictures are allowed for review when available.")
 
-    if setup_status and (setup_status.get("error") or setup_status.get("git_error") or setup_status.get("code")):
+    if is_debug_mode(st.session_state) and setup_status and (setup_status.get("error") or setup_status.get("git_error") or setup_status.get("code")):
         with st.expander("Image-bank setup details", expanded=False):
             st.json({
                 "code": setup_status.get("code", ""),
