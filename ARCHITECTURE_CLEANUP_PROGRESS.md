@@ -2658,3 +2658,51 @@ Pre-existing failures observed in the uploaded baseline and still unresolved:
 [x] tests/test_transport_render_split.py::test_nutshell_domain_and_parsing_do_not_import_transport_facade_or_each_other
 [x] tests/test_nordic_quality_sample.py::test_nordic_quality_sample_matches_key_quality_target_markers
 ```
+
+---
+
+# Batch 37: Editor image payload cache
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Stop the visual editor from rebuilding image matches, replacement options, preview data URIs and cover image payloads on ordinary reruns when the underlying itinerary/image state has not changed.
+```
+
+Completed in Batch 37:
+
+```text
+[x] Added one cached visual-editor image payload bundle for day images, cover image, summary image, replacement options and image warnings
+[x] Keyed the cache by parsed/grouped itinerary image signature, relevant image edits, selected brand/theme values and image-bank fingerprint
+[x] Preserved immediate invalidation for day image removals/replacements/crop focus changes, cover/summary image changes and image-bank changes
+[x] Kept cached payload returns isolated with deep copies so callers cannot mutate cached state
+[x] Avoided mutating output_edits while building image payload defaults for day images
+[x] Routed visual-editor day payload building through the cached image bundle instead of rebuilding day image payloads per rerun
+[x] Added focused regression coverage for hot-cache reuse, stale-state invalidation, image-bank invalidation and no output-edit seeding
+```
+
+Validation snapshot:
+
+```text
+Focused visual-editor image payload cache tests: passed
+Adjacent cover/image speed, frontend asset and autosave contract tests: passed
+Adjacent add-pictures, image-bank gateway, cover-toolbar, PDF fast-path and sync regression tests: passed
+```
+
+Pre-existing/unrelated failures observed during broad image-test sweep:
+
+```text
+[ ] tests/test_patch_ui21_qc_input_pdf_style_image.py::test_style1_registry_has_theme_and_new_pdf_safe_presets_synced_to_frontend
+    Reason: old style-preset source-string/breadcrumb assertion; not touched by Batch 37 and should be handled during Batch 40 legacy breadcrumb/test cleanup.
+[ ] tests/test_editor_editing_coverage.py::test_frontend_exposes_remaining_static_labels_as_editable_fields
+    Reason: old frontend source-string assertion; not touched by Batch 37 and should be handled during Batch 40 legacy breadcrumb/test cleanup.
+```
+
+Future saved-itinerary note to preserve in handovers:
+
+```text
+The app is hosted at https://itinerary-creator.streamlit.app/ and will not be run locally by users.
+Saved Itinerary Projects are postponed until after the current cleanup/speed roadmap, but the architecture should not block a future shared hosted backlog, cloud persistence, user tracking, permissions or conflict protection.
+```

@@ -21,8 +21,7 @@ from visual_editor_component.editor_payload_final_pages import (
 )
 from visual_editor_component.editor_payload_images import (
     _editor_cover_image_payload,
-    build_cover_image_payloads,
-    build_day_image_context,
+    build_editor_image_payload_bundle,
 )
 from visual_editor_component.editor_payload_sections import (
     build_cover_payload,
@@ -87,11 +86,15 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
     """Build the editable A4-page payload used by the visual editor component."""
     output_edits = output_edits or {}
     pictures_added = pictures_are_added(output_edits)
-    image_matches, image_warnings, image_warnings_by_day = build_day_image_context(
+    image_payload_bundle = build_editor_image_payload_bundle(
+        parsed_rows,
         grouped_days,
         output_edits,
         pictures_added=pictures_added,
     )
+    image_matches = image_payload_bundle["image_matches"]
+    image_warnings = image_payload_bundle["image_warnings"]
+    image_warnings_by_day = image_payload_bundle["image_warnings_by_day"]
     stored_editor_draft = _stored_editor_draft(output_edits)
     payload_days, generated_days_values = build_payload_days(
         grouped_days,
@@ -100,6 +103,7 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
         pictures_added=pictures_added,
         image_matches=image_matches,
         image_warnings_by_day=image_warnings_by_day,
+        day_image_payloads=image_payload_bundle["day_images"],
     )
 
     final_pages_bundle = build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_editor_draft)
@@ -107,7 +111,8 @@ def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
 
     cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=False)
     cover_theme = apply_output_brand_cover_palette(cover_theme, output_brand_id(output_edits))
-    cover_image, summary_image = build_cover_image_payloads(parsed_rows, output_edits, pictures_added=pictures_added)
+    cover_image = image_payload_bundle["cover_image"]
+    summary_image = image_payload_bundle["summary_image"]
     cover_theme["background_path"] = cover_image.get("path", "")
     cover_theme["background_data_uri"] = cover_image.get("data_uri", "")
     cover_theme["background_crop_focus"] = cover_image.get("crop_focus", "top")

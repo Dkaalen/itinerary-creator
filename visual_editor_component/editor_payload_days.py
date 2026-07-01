@@ -1,5 +1,7 @@
 """Generated-day payload helpers for the visual editor."""
 
+from copy import deepcopy
+
 from itinerary_generation.day_content_resolver import resolve_day_content
 from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.generated_ownership import resolve_blocks_html
@@ -16,6 +18,7 @@ def build_payload_days(
     pictures_added: bool,
     image_matches,
     image_warnings_by_day,
+    day_image_payloads=None,
 ):
     payload_days = []
     generated_days_values = []
@@ -31,14 +34,17 @@ def build_payload_days(
             typed_day=typed_day,
             detail_level=detail_level,
         )
-        image_obj = build_day_image_payload(
-            day,
-            rows,
-            output_edits,
-            pictures_added=pictures_added,
-            image_matches=image_matches,
-            image_warnings_by_day=image_warnings_by_day,
-        )
+        if isinstance(day_image_payloads, dict) and day in day_image_payloads:
+            image_obj = deepcopy(day_image_payloads.get(day) or {})
+        else:
+            image_obj = build_day_image_payload(
+                day,
+                rows,
+                output_edits,
+                pictures_added=pictures_added,
+                image_matches=image_matches,
+                image_warnings_by_day=image_warnings_by_day,
+            )
 
         generated_blocks_html = "".join(block["html"] for block in build_day_blocks(rows))
         resolved_blocks = resolve_blocks_html(
