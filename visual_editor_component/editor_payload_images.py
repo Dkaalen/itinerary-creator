@@ -13,8 +13,8 @@ from images.app_image_selection import (
 from itinerary_generation.cover_assets import resolve_cover_background
 
 
-OPTION_PREVIEW_LIMIT = 4
 DAY_REPLACEMENT_OPTION_LIMIT = 8
+OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT
 
 
 def _with_option_previews(options, *, preview_limit: int = OPTION_PREVIEW_LIMIT):

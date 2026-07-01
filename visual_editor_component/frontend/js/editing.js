@@ -19,15 +19,15 @@ function safeSendComponentValue(serialized, stateName = 'saving') {
   }
 }
 
-function sendServerAutosaveNow() {
+function sendServerAutosaveNow(force = false) {
   if (!model || serverAutosaveInFlight) return;
   if (!touchedKeys.size && !restoredLocalDraftPendingSave) return;
   const now = Date.now();
-  if (now - lastServerAutosaveAt < SERVER_AUTOSAVE_MIN_INTERVAL_MS) {
+  if (!force && now - lastServerAutosaveAt < SERVER_AUTOSAVE_MIN_INTERVAL_MS) {
     scheduleServerAutosave(SERVER_AUTOSAVE_MIN_INTERVAL_MS);
     return;
   }
-  if (editorIsActivelyInUse(now)) {
+  if (!force && editorIsActivelyInUse(now)) {
     scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS);
     return;
   }
@@ -47,11 +47,11 @@ function sendServerAutosaveNow() {
   }, SAVE_STATUS_STALE_MS);
 }
 
-function scheduleServerAutosave(delayMs = SERVER_AUTOSAVE_DELAY_MS) {
+function scheduleServerAutosave(delayMs = SERVER_AUTOSAVE_DELAY_MS, force = false) {
   if (serverAutosaveTimer) clearTimeout(serverAutosaveTimer);
   serverAutosaveTimer = setTimeout(() => {
     serverAutosaveTimer = null;
-    sendServerAutosaveNow();
+    sendServerAutosaveNow(force);
   }, delayMs);
 }
 

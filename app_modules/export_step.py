@@ -7,13 +7,7 @@ from app_modules.export_actions import (
     create_pdf_from_current_preview,
     current_pdf_bytes,
 )
-from app_modules.export_editor_save import (
-    clear_pdf_editor_save,
-    pdf_editor_save_timed_out,
-    pdf_editor_save_waiting,
-    pdf_editor_save_ready,
-    request_editor_save_before_pdf,
-)
+from app_modules.export_editor_save import clear_pdf_editor_save
 from app_modules.export_job_state import (
     consume_auto_pdf_create_request,
     current_export_job,
@@ -83,45 +77,18 @@ def _create_pdf_now() -> bool:
     return ok
 
 
-def _create_pdf_from_last_saved_version() -> bool:
-    clear_pdf_editor_save(st.session_state)
-    return _create_pdf_now()
+def _request_pdf_creation() -> None:
+    """Create the PDF from the current server-owned preview state.
 
+    The visual editor autosaves text/image changes separately.  PDF creation must
+    not start a browser commit handshake here, because missing component messages
+    were the source of long waits and broken export jobs.
+    """
 
-def _continue_ready_editor_save() -> bool:
-    if not pdf_editor_save_ready(st.session_state):
-        return False
     clear_pdf_editor_save(st.session_state)
     if _create_pdf_now():
         st.success("PDF created. Use the download button.")
         st.rerun()
-    return True
-
-
-def _render_pending_editor_save() -> None:
-    timed_out = pdf_editor_save_timed_out(st.session_state)
-    if timed_out:
-        st.warning("The latest editor save is taking longer than expected. You can retry, or create the PDF from the last saved itinerary.")
-    else:
-        st.info("Saving the latest editor changes before creating the PDF. The existing preview remains usable while this finishes.")
-    left, right = st.columns(2)
-    with left:
-        if st.button("Create PDF from last saved version", use_container_width=True):
-            if _create_pdf_from_last_saved_version():
-                st.success("PDF created from the last saved itinerary. Use the download button.")
-                st.rerun()
-    with right:
-        label = "Retry saving changes" if timed_out else "Cancel PDF creation"
-        if st.button(label, use_container_width=True):
-            clear_pdf_editor_save(st.session_state)
-            if timed_out:
-                request_editor_save_before_pdf(st.session_state)
-            st.rerun()
-
-
-def _request_pdf_creation() -> None:
-    request_editor_save_before_pdf(st.session_state)
-    st.rerun()
 
 
 def _current_image_bank_status_for_export() -> dict:
@@ -133,9 +100,6 @@ def render_export_step(app_version: str) -> None:
     if not st.session_state.get("itinerary_html"):
         return
 
-    if _continue_ready_editor_save():
-        return
-
     current_image_status = _current_image_bank_status_for_export()
     snapshot = _session_state_snapshot()
     readiness = export_readiness_from_state(snapshot, current_image_status)
@@ -145,10 +109,6 @@ def render_export_step(app_version: str) -> None:
         render_pdf_download_station(location="bottom")
 
     if readiness.pdf_ready:
-        return
-
-    if pdf_editor_save_waiting(st.session_state):
-        _render_pending_editor_save()
         return
 
     auto_create = consume_auto_pdf_create_request(st.session_state)

@@ -44,7 +44,7 @@ def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
     assert "visual_editor_export_commit_ready" not in source
     assert "Applying pending editor changes" not in source
     assert "clear_pdf_editor_save(st.session_state)" in source
-    assert "request_editor_save_before_pdf(st.session_state)" in source
+    assert "request_editor_save_before_pdf(st.session_state)" not in source
     assert "create_pdf_from_current_preview()" in source
 
 

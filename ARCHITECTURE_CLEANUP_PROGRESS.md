@@ -2536,3 +2536,30 @@ Architecture guards: passed
 Import smoke: optional skips=25, failures=0
 git diff --check: passed
 ```
+
+---
+
+# Batch 33: Image-edit and PDF-export stability cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Make picture changes and PDF creation feel stable by removing full-editor image redraws, avoiding heavy browser-local image payloads, and eliminating the legacy PDF browser-commit wait path.
+```
+
+Completed in Batch 33:
+
+```text
+[x] Reworked visual-editor image changes to refresh only the affected image surface instead of redrawing the full document
+[x] Removed full document collect/draw calls from day and cover image replacement actions
+[x] Added small in-place image upload compression before storing visual-editor uploads in the browser model
+[x] Kept uploaded binary data out of browser-local recovery drafts while preserving it for server autosave/save payloads
+[x] Forced short debounced server autosave for image-only changes so PDF export has a fresher server-owned state
+[x] Increased replacement-option previews so all shown day-image choices can preview immediately
+[x] Removed active PDF export dependency on the visual-editor browser commit handshake
+[x] Converted the old PDF editor-save module into no-wait compatibility helpers
+[x] Reused cached picture-stage image matches during PDF image-contract preparation when valid
+[x] Added regression tests for no-wait export and image-edit hot-path stability
+```

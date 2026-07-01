@@ -154,3 +154,35 @@ def test_server_autosave_waits_for_editor_idle_instead_of_interrupting_scroll():
     assert "editorIsActivelyInUse(now)" in editing
     assert "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)" in editing
     assert "addEventListener('scroll', noteEditorInteraction" in editing
+
+
+def test_image_edits_refresh_only_the_affected_image_surface():
+    image_handlers = (FRONTEND / "js/editor_image_event_handlers.js").read_text(encoding="utf-8")
+
+    assert "function replaceDayImageStage" in image_handlers
+    assert "function replaceCoverImagePanel" in image_handlers
+    assert "refreshImageEditSurface('day', idx)" in image_handlers
+    assert "refreshImageEditSurface('cover', key)" in image_handlers
+    assert "scheduleServerAutosave(autosaveDelayMs, true)" in image_handlers
+
+    day_action_block = image_handlers.split("root.querySelectorAll('[data-img-action]')", 1)[1].split("root.querySelectorAll('[data-img-focus]')", 1)[0]
+    cover_action_block = image_handlers.split("root.querySelectorAll('[data-cover-img-action]')", 1)[1].split("root.querySelectorAll('[data-cover-img-focus]')", 1)[0]
+    assert "collect();" not in day_action_block
+    assert "collect();" not in cover_action_block
+    assert "draw();" not in day_action_block
+    assert "draw();" not in cover_action_block
+
+
+def test_local_draft_strips_uploaded_image_binary_from_browser_storage():
+    local_draft = (FRONTEND / "js/editor_local_draft.js").read_text(encoding="utf-8")
+
+    assert "stripUploadBinaryForLocalDraft" in local_draft
+    assert "delete upload.data_uri" in local_draft
+    assert "data_omitted" in local_draft
+
+
+def test_replacement_options_all_receive_small_previews():
+    payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
+
+    assert "DAY_REPLACEMENT_OPTION_LIMIT = 8" in payload
+    assert "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT" in payload

@@ -4,10 +4,23 @@ function draftStorageKey() {
   return `itinerary-visual-editor-draft:${initialPayload?.draft_id || fallback}`;
 }
 
+function stripUploadBinaryForLocalDraft(value) {
+  const copy = JSON.parse(JSON.stringify(value || {}));
+  (copy.days || []).forEach(day => {
+    const upload = day?.image?.upload;
+    if (upload && typeof upload === 'object') {
+      delete upload.data_uri;
+      upload.data_omitted = true;
+    }
+  });
+  return copy;
+}
+
 function persistLocalDraft() {
   if (!model || !initialPayload) return;
   try {
-    const snapshot = attachEditableDraft(compactFullPayloadForCommit(model));
+    const compact = stripUploadBinaryForLocalDraft(compactFullPayloadForCommit(model));
+    const snapshot = attachEditableDraft(compact);
     localStorage.setItem(draftStorageKey(), JSON.stringify({
       saved_at: Date.now(),
       source_signature: initialPayload?.meta?.source_signature || '',

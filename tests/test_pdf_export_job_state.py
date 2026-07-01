@@ -25,15 +25,17 @@ def test_pdf_export_auto_create_request_is_one_shot():
     assert consume_auto_pdf_create_request(state) is False
 
 
-def test_pdf_editor_save_request_is_bounded_and_recoverable():
-    state = {}
+def test_pdf_editor_save_request_is_no_wait_compatibility_path():
+    state = {"preview_signature": "sig-1", "_pdf_after_visual_edit_commit_nonce": "legacy"}
 
     job = request_editor_save_before_pdf(state, now=100.0)
 
-    assert job.waiting_for_editor is True
-    assert pdf_editor_save_waiting(state) is True
-    assert pdf_editor_save_elapsed_seconds(state, now=104.0) == 4.0
-    assert pdf_editor_save_timed_out(state, now=100.0 + PDF_EDITOR_SAVE_TIMEOUT_SECONDS + 0.1)
+    assert job.exporting is True
+    assert job.signature == "sig-1"
+    assert state["_pdf_after_visual_edit_commit_nonce"] is None
+    assert pdf_editor_save_waiting(state) is False
+    assert pdf_editor_save_elapsed_seconds(state, now=104.0) == 0.0
+    assert not pdf_editor_save_timed_out(state, now=100.0 + PDF_EDITOR_SAVE_TIMEOUT_SECONDS + 0.1)
 
     clear_pdf_editor_save(state)
 
