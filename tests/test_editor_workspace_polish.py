@@ -1,28 +1,11 @@
 from pathlib import Path
 
 from tests.frontend_asset_helpers import read_resolved_frontend_css
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    js_source = "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "js/render.js",
-            "js/editor_readiness.js",
-            "js/editor_warning_model.js",
-            "js/editor_debug_readiness.js",
-            "js/editor_debug_shell.js",
-            "js/editor_document_outline.js",
-            "js/editor_inspector_selection.js",
-            "js/editor_inspector_fields.js",
-            "js/editor_inspector_text_panel.js",
-            "js/editor_inspector_layout_panel.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-        )
-    )
-    return read_resolved_frontend_css() + "\n" + js_source
+    return frontend_source()
 
 
 def test_ui15_keeps_review_center_behind_debug_boundary():

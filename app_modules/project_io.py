@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 
 import streamlit as st
 
@@ -11,7 +12,10 @@ from app_modules.workflow_state import (
     mark_pdf_dirty as mark_pdf_dirty_state,
     reset_workflow_state,
 )
-from app_modules.workflow_actions import load_project
+from app_modules.debug_mode import is_debug_mode
+from app_modules.saved_project_constants import SAVED_PROJECT_KIND
+from app_modules.saved_project_validation import SavedProjectError
+from app_modules.workflow_actions import load_project, load_saved_project
 from app_modules.itinerary_html import build_itinerary_html_from_context
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from app_modules.render_context_cache import store_render_context
@@ -26,25 +30,52 @@ def initialise_state():
     ensure_workflow_defaults(st.session_state)
 
 
-def load_project_json(uploaded_file):
+def load_project_json(uploaded_file, *, require_saved_project: bool = False) -> bool:
     try:
-        data = json.loads(uploaded_file.read().decode("utf-8"))
-        raw_text = data.get("raw_text", "")
-        output_edits = data.get("output_edits", {})
+        data = _read_project_json(uploaded_file)
+        if require_saved_project and data.get("kind") != SAVED_PROJECT_KIND:
+            raise SavedProjectError("Please upload a saved itinerary project file.")
 
-        result = load_project(st.session_state, raw_text, output_edits)
+        if data.get("kind") == SAVED_PROJECT_KIND:
+            result = load_saved_project(st.session_state, data)
+        else:
+            raw_text = data.get("raw_text", "")
+            output_edits = data.get("output_edits", {})
+            result = load_project(st.session_state, raw_text, output_edits)
+
         validation_report = (result.payload or {}).get("validation_report")
         if validation_report and validation_report.is_blocked:
             block_generation(validation_report)
             render_blocking_issues(validation_report)
-            return
+            return False
 
         if validation_report:
             render_warning_issues(validation_report)
-        st.success(result.message or "Editable project loaded.")
+        if result.ok:
+            st.success(result.message or "Editable project loaded.")
+        else:
+            st.error(result.message or "The project file could not be loaded.")
+        return bool(result.ok)
+    except SavedProjectError as error:
+        st.error(f"The project file could not be opened: {error}")
+        return False
+    except (UnicodeDecodeError, JSONDecodeError, ValueError) as error:
+        st.error("The project file is not valid JSON.")
+        if is_debug_mode(st.session_state):
+            st.exception(error)
+        return False
     except Exception as error:
-        st.error("The project JSON could not be loaded.")
-        st.exception(error)
+        st.error("The project file could not be loaded.")
+        if is_debug_mode(st.session_state):
+            st.exception(error)
+        return False
+
+
+def _read_project_json(uploaded_file) -> dict:
+    data = json.loads(uploaded_file.read().decode("utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Project JSON must contain an object.")
+    return data
 
 
 def reset_project_state(clear_raw_text=True):

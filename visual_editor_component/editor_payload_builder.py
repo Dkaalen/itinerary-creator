@@ -46,10 +46,6 @@ from visual_editor_component.editor_payload_warnings import (
 )
 from visual_editor_component.editor_status import persistent_draft_status
 
-# Migration breadcrumbs for older static tests while payload image logic lives in
-# editor_payload_images.py: _editor_cover_image_payload;
-# image["data_uri"] = get_image_preview_for_path; limit=12.
-
 
 def _stored_editor_draft(output_edits):
     stored = (output_edits or {}).get("editor_draft") if isinstance(output_edits, dict) else {}

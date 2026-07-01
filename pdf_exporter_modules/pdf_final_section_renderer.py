@@ -2,64 +2,18 @@
 
 from __future__ import annotations
 
-from bs4 import BeautifulSoup, NavigableString
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, PageBreak, Spacer
 
 from itinerary_generation.render_model import RenderFinalPage, RenderFinalSection
-from pdf_exporter_modules.html_utils import clean_text
-from pdf_exporter_modules.render_content import render_content_blocks
 from pdf_exporter_modules.render_flowables import add_premium_rule, boxed_story_table
-from pdf_exporter_modules.render_text import li_text_with_line_breaks
+from pdf_exporter_modules.pdf_supported_html_renderer import render_supported_html_fragment
 from pdf_exporter_modules.story import add_bullets, add_paragraph
 from ui.premium_final_notes import premium_note_cards
 
 
 def render_supported_final_html(html_fragment: str, story, styles) -> None:
-    html_fragment = str(html_fragment or "").strip()
-    if not html_fragment:
-        return
-
-    soup = BeautifulSoup(html_fragment, "html.parser")
-
-    def render_children(container):
-        for child in getattr(container, "contents", []):
-            if isinstance(child, NavigableString):
-                text = clean_text(str(child))
-                if text:
-                    add_paragraph(story, text, styles["body"])
-                continue
-            if not getattr(child, "name", None):
-                continue
-
-            classes = child.get("class") or []
-            if "content-block" in classes or "activity-inclusion-block" in classes:
-                render_content_blocks(BeautifulSoup(str(child), "html.parser"), story, styles)
-                continue
-
-            if child.name in {"ul", "ol"}:
-                add_bullets(story, [li_text_with_line_breaks(li) for li in child.find_all("li", recursive=False)], styles)
-                continue
-
-            if "section-title" in classes:
-                add_paragraph(story, child.get_text(" "), styles["section"])
-                continue
-
-            if child.name in {"strong", "b"}:
-                add_paragraph(story, child.get_text(" "), styles["body_bold"])
-                continue
-
-            if child.name in {"p", "span", "div", "em", "i"}:
-                nested_structures = child.find_all(["ul", "ol"], recursive=False) or child.find_all(class_="content-block", recursive=False)
-                if nested_structures:
-                    render_children(child)
-                    continue
-                text = clean_text(child.get_text(" "))
-                if text:
-                    style_name = "body_bold" if "strong-line" in classes else "body"
-                    add_paragraph(story, text, styles[style_name])
-
-    render_children(soup)
+    render_supported_html_fragment(html_fragment, story, styles)
 
 
 def render_final_page(title: str, page: RenderFinalPage, story, styles, *, continued=False):

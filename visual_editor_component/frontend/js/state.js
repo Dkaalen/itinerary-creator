@@ -1,10 +1,3 @@
-/* Responsibility split breadcrumbs for legacy source-contract tests:
- * function restoreLocalDraftIfAvailable -> editor_local_draft.js
- * function imageFocusLabel -> editor_image_labels.js
- * function noteEditorInteraction -> editor_save_state.js
- * function editorIsActivelyInUse -> editor_save_state.js
- * serverCover[key]?.data_uri, serverCover[key]?.auto_data_uri, summary_image -> editor_local_draft.js
- */
 let initialPayload = null;
 let model = null;
 let uploadedImages = {};

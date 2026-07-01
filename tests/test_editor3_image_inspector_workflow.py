@@ -30,9 +30,9 @@ def test_canvas_image_controls_are_restored_to_hover_toolbar():
 
 def test_image_crop_focus_updates_without_full_redraw():
     image_handlers_js = _read("visual_editor_component/frontend/js/editor_image_event_handlers.js")
-    state_js = _read("visual_editor_component/frontend/js/state.js")
+    labels_js = _read("visual_editor_component/frontend/js/editor_image_labels.js")
 
-    assert "function imageFocusLabel" in state_js
+    assert "function imageFocusLabel" in labels_js
     assert "data-img-focus" in image_handlers_js
     assert "data-cover-img-focus" in image_handlers_js
     assert "style.objectPosition = focusPos(sel.value)" in image_handlers_js

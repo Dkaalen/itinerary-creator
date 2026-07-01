@@ -1,32 +1,9 @@
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "styles/editor_base.css",
-            "styles/editor_inspector.css",
-            "styles/editor_outline.css",
-            "styles/editor_shell.css",
-            "styles/editor_toolbar.css",
-            "styles/editor_layout_tools.css",
-            "styles/editor_canvas_workspace.css",
-            "styles/editor_tokens.css",
-            "js/render.js",
-            "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_document_outline.js",
-            "js/editor_inspector.js",
-            "js/editor_inspector_text_panel.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-        )
-    )
+    return frontend_source()
 
 
 def test_editor_design_polish_adds_studio_status_strip():

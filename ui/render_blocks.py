@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from itinerary_generation.render_model import RenderBlock
+from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import esc, render_list_items
 
 
@@ -44,6 +45,9 @@ def _data_row_attr(block: RenderBlock) -> str:
 
 
 def render_block_to_html(block: RenderBlock) -> dict:
+    if block.kind == "manual_day_html":
+        return {"kind": block.kind, "row_id": block.row_id, "html": clean_visual_editor_html(block.content_html)}
+
     html_text = f'<div class="{esc(_block_classes(block))}"{_data_row_attr(block)}>'
 
     if block.section_title:

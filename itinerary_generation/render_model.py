@@ -80,6 +80,7 @@ class RenderBlock:
     meta: list[RenderMetaLine] = field(default_factory=list)
     includes: list[str] = field(default_factory=list)
     description: str = ""
+    content_html: str = ""
     notable_sights: list[str] = field(default_factory=list)
     lines: list[str] = field(default_factory=list)
     extra_sections: list[RenderSection] = field(default_factory=list)

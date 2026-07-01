@@ -176,13 +176,14 @@ def test_inclusion_pagination_uses_clean_titles_and_less_aggressive_page_breaks(
 
 def test_visual_editor_add_pictures_path_has_defensive_error_ui_and_bounded_image_payloads():
     frontend = _visual_editor_frontend_source()
-    workflow = (ROOT / "visual_editor_component" / "editor_payload_builder.py").read_text(encoding="utf-8")
+    image_payloads = (ROOT / "visual_editor_component" / "editor_payload_images.py").read_text(encoding="utf-8")
     previews = (ROOT / "images" / "image_preview.py").read_text(encoding="utf-8")
 
     assert "function showEditorError" in frontend
     assert "function safeRender" in frontend
     assert "safeRender(args.payload" in frontend
     assert ".editor-error" in frontend
-    assert "limit=12" in workflow
+    assert "DAY_REPLACEMENT_OPTION_LIMIT = 8" in image_payloads
+    assert "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT" in image_payloads
     assert "max_size=(560, 380)" in previews
     assert "quality=48" in previews

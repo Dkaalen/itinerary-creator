@@ -13,11 +13,7 @@ def test_patch_bl_sidebar_exposes_controlled_presets_not_freeform_styles():
         + "\n"
         + open("visual_editor_component/frontend/js/editor_inspector_text_panel.js", encoding="utf-8").read()
     )
-    style_presets_js = (
-        open("visual_editor_component/frontend/js/style_presets.js", encoding="utf-8").read()
-        + "\n"
-        + open("visual_editor_component/frontend/js/style_preset_data.js", encoding="utf-8").read()
-    )
+    style_presets_js = open("visual_editor_component/frontend/js/style_preset_data.js", encoding="utf-8").read()
     commands_js = open("visual_editor_component/frontend/js/commands.js", encoding="utf-8").read()
 
     assert "Font" in inspector_js

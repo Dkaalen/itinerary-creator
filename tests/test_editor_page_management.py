@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import subprocess
+import textwrap
 
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.itinerary_render_context import build_itinerary_render_context
@@ -12,27 +15,76 @@ from itinerary_generation.editor_page_contract import (
     page_is_hidden,
     page_order_from_draft,
 )
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    parts = []
-    for relative in (
-        "styles/editor.css",
-        "js/state.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-        "js/editing.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
+
+
+def _page_action_snapshot() -> dict:
+    script = textwrap.dedent(
+        r"""
+        const fs = require('fs');
+        const vm = require('vm');
+        const context = {
+          console,
+          window: {},
+          Date: {now: () => 1700000000000},
+          document: {querySelector: () => null, querySelectorAll: () => []},
+          CSS: {escape: (value) => String(value)},
+          requestAnimationFrame: (fn) => fn(),
+          model: {document_pages: [
+            {page_id: 'cover', page_type: 'cover', title: 'Cover', sort_order: 1, is_hidden: false, page_actions: {hide: true, restore: true, move: true, duplicate: false, reset: true}},
+            {page_id: 'summary', page_type: 'summary', title: 'Summary', sort_order: 2, is_hidden: false, page_actions: {hide: true, restore: true, move: true, duplicate: false, reset: true}},
+          ]},
+          activePageId: null,
+          activeBlockId: null,
+          activeFieldKey: null,
+          touched: [],
+          messages: [],
+          pageHasDirtyEdits: () => false,
+          notifyEditor: (message) => context.messages.push(message),
+          updateRightInspector: () => {},
+          collect: () => {},
+          draw: () => {},
+          markTouched: (key) => context.touched.push(key),
+        };
+        vm.createContext(context);
+        [
+          'visual_editor_component/frontend/js/editor_html_utils.js',
+          'visual_editor_component/frontend/js/editor_pages_model.js',
+          'visual_editor_component/frontend/js/editor_layout_overrides.js',
+          'visual_editor_component/frontend/js/editor_document_model.js',
+          'visual_editor_component/frontend/js/editor_blocks_model.js',
+          'visual_editor_component/frontend/js/editor_selection_model.js',
+          'visual_editor_component/frontend/js/editor_inspector_selection.js',
+          'visual_editor_component/frontend/js/editor_document_outline.js',
+          'visual_editor_component/frontend/js/editor_page_actions.js',
+          'visual_editor_component/frontend/js/editor_manual_pages.js',
+        ].forEach((file) => vm.runInContext(fs.readFileSync(file, 'utf8'), context, {filename: file}));
+
+        const outline = context.renderDocumentOutline();
+        const chrome = context.pageChrome('cover', 'Cover page', '<main>x</main>', {pageType: 'cover', sortOrder: 1});
+        context.hideDocumentPage('summary');
+        const hiddenAfterHide = context.model.document_pages.find((page) => page.page_id === 'summary').is_hidden;
+        context.restoreDocumentPage('summary');
+        const hiddenAfterRestore = context.model.document_pages.find((page) => page.page_id === 'summary').is_hidden;
+        context.addManualPageAfter('cover', 'text');
+        const ordered = context.sortedDocumentPages().map((page) => ({id: page.page_id, order: page.sort_order, type: page.page_type}));
+        console.log(JSON.stringify({
+          outline,
+          chrome,
+          hiddenAfterHide,
+          hiddenAfterRestore,
+          ordered,
+          activePageId: context.activePageId,
+          touched: context.touched,
+          messages: context.messages,
+        }));
+        """
+    )
+    return json.loads(subprocess.check_output(["node", "-e", script], text=True))
 
 
 def test_page_contract_marks_every_generated_page_as_editable_and_hideable():
@@ -159,15 +211,16 @@ def test_page_visibility_order_and_manual_page_helpers_share_contract_logic():
     ]
 
 
-def test_frontend_exposes_document_outline_and_page_actions():
-    source = _frontend_source()
+def test_frontend_document_outline_and_page_actions_work_on_page_contract():
+    snapshot = _page_action_snapshot()
 
-    assert "renderDocumentOutline" in source
-    assert "Add blank page" in source
-    assert "Delete page" in source
-    assert "restoreDocumentPage" in source
-    assert "addManualPage" in source
-    assert "duplicateManualPage" in source
-    assert "data-doc-page-action" in source
-    assert "document_pages.${realIndex}.manual_blocks" in source
-    assert "editor-workspace" in source
+    assert 'class="document-outline"' in snapshot["outline"]
+    assert 'data-outline-page-id="cover"' in snapshot["outline"]
+    assert 'data-doc-page-action="add-after"' in snapshot["chrome"]
+    assert 'data-doc-page-action="hide"' in snapshot["chrome"]
+    assert snapshot["hiddenAfterHide"] is True
+    assert snapshot["hiddenAfterRestore"] is False
+    assert snapshot["ordered"][1]["type"] == "manual"
+    assert snapshot["ordered"][2]["id"] == "summary"
+    assert snapshot["activePageId"].startswith("manual-text-")
+    assert "document_pages" in snapshot["touched"]

@@ -70,9 +70,12 @@ def render_page_order_with_editor_request(render_document: Any, requested_order:
     if not day_ids:
         return ordered_page_ids(canonical_order, requested_order)
 
-    known_requested = ordered_page_ids(canonical_order, requested_order)
+    fixed_prefix = [page_id for page_id in ("cover", "summary") if page_id in canonical_order]
+    moveable_canonical_order = [page_id for page_id in canonical_order if page_id not in fixed_prefix]
+    moveable_requested_order = [page_id for page_id in requested_order if page_id not in fixed_prefix]
+    known_requested = ordered_page_ids(moveable_canonical_order, moveable_requested_order)
     canonical_day_iter = iter(day_ids)
-    merged: list[str] = []
+    merged: list[str] = list(fixed_prefix)
     used_days: set[str] = set()
     for page_id in known_requested:
         if page_id in day_ids:

@@ -1,22 +1,11 @@
 from pathlib import Path
 
 from tests.frontend_asset_helpers import read_resolved_frontend_css
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    js_source = "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "js/render.js",
-            "js/editor_document_outline.js",
-            "js/editing.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_page_event_handlers.js",
-        )
-    )
-    return read_resolved_frontend_css() + "\n" + js_source
+    return frontend_source()
 
 
 def test_ui16_collapses_document_status_metrics_by_default():

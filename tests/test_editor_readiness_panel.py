@@ -1,33 +1,9 @@
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "styles/editor_pages.css",
-            "styles/editor_debug.css",
-            "js/state.js",
-            "js/images.js",
-            "js/render.js",
-            "js/editor_warning_model.js",
-            "js/editor_debug_readiness.js",
-            "js/editor_readiness.js",
-            "js/editor_debug_shell.js",
-            "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-            "js/editor_page_event_handlers.js",
-            "js/editor_image_event_handlers.js",
-            "js/editing.js",
-        )
-    )
+    return frontend_source()
 
 
 def test_pdf_readiness_panel_surfaces_export_confidence_signals():

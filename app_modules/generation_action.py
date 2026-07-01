@@ -9,6 +9,7 @@ from app_modules.itinerary_html import build_itinerary_html_from_context
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from app_modules.parse_workflow import get_duplicate_count, get_overflow_warnings, parse_and_normalize_itinerary
 from app_modules.render_context_cache import store_render_context
+from app_modules.saved_project_generation import create_generated_baseline_project_if_named
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
@@ -64,6 +65,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     state["generation_duplicate_count"] = duplicate_count
     state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
     state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
+    create_generated_baseline_project_if_named(state)
     stage = set_workflow_stage(state, "edit")
 
     return WorkflowActionResult(

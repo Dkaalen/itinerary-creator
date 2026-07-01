@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+import re
 
 from app_modules.export_state import export_readiness_from_state
 from app_modules.pdf_preflight import build_pdf_preflight_report
@@ -10,6 +12,14 @@ from visual_editor_component.style_presets import default_theme_preset, preset_c
 
 
 READY_IMAGE_BANK = {"full_bank_found": True, "missing_full_bank": False, "destination_image_count": 4}
+
+
+def _frontend_style_registry() -> dict:
+    js = Path("visual_editor_component/frontend/js/style_preset_data.js").read_text(encoding="utf-8")
+    match = re.search(r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});", js, flags=re.DOTALL)
+    assert match, "frontend style registry assignment was not found"
+    return json.loads(match.group(1))
+
 
 
 def test_qc1_health_checks_find_actionable_review_items_without_ui():
@@ -61,16 +71,17 @@ def test_pdf1_preflight_feeds_export_readiness():
     assert any("hotel" in message.lower() for message in readiness.preflight_issues)
 
 
-def test_style1_registry_has_theme_and_new_pdf_safe_presets_synced_to_frontend():
+def test_style1_registry_has_theme_and_pdf_safe_presets_synced_to_frontend():
     registry = style_preset_registry()
-    js = Path("visual_editor_component/frontend/js/style_presets.js").read_text(encoding="utf-8")
+    frontend_registry = _frontend_style_registry()
 
+    assert frontend_registry == registry
     assert preset_class_map("text_styles")["premium_callout"] == "ve-text-premium-callout"
     assert preset_class_map("colors")["deep_teal"] == "ve-color-deep-teal"
     assert theme_presets()
     assert default_theme_preset()["id"] == registry["themes"][0]["id"]
-    assert "ve-text-premium-callout" in js
-    assert "nordic_luxury" in js
+    assert frontend_registry["text_styles"][-1]["class_name"] == "ve-text-premium-callout"
+    assert frontend_registry["themes"][0]["id"] == "nordic_luxury"
 
 
 def test_img1_workflow_review_reports_image_coverage_and_errors():

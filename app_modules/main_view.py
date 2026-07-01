@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-# Split-source breadcrumbs for legacy source-contract tests:
-# Create PDF uses the saved editor state; PDF already up to date -> workflow_config.py
-# preview_signature; editor_applied -> preview_step.py
-
 import streamlit as st
 
 from app_modules.debug_tools import render_debug_tools
@@ -15,7 +11,6 @@ from app_modules.preview_step import (
     _add_pictures_apply_pending,
     _add_pictures_apply_ready,
     render_edit_page,
-    render_final_preview_step,
 )
 from app_modules.workflow_config import FLOW_STAGES, STAGE_COPY, STAGE_LABELS
 from app_modules.workflow_state import session_stage_from_state

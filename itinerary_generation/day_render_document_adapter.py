@@ -9,6 +9,7 @@ from itinerary_generation.day_content_resolver import resolve_day_content
 from itinerary_generation.day_render_block_ordering import _row_id, build_day_render_blocks
 from itinerary_generation.editable_draft import day_by_id
 from itinerary_generation.render_model import RenderBlock, RenderDay
+from itinerary_generation.day_render_manual_html import manual_day_html_override
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import DayDocument, ItineraryDocument, TravelSequence
 from shared.source_rows import rows_by_source_id
@@ -101,6 +102,18 @@ def build_render_day_from_document(
         warnings.extend(warning.message for warning in day_document.warnings)
     resolved_day_content = resolve_day_content(day, main_rows, output_edits=effective_output_edits, detail_level=detail_level, visit_context=visit_context)
     edited_date = str(resolved_day_content.date or "").strip()
+    blocks = build_day_render_blocks(ordered_rows, _travel_sequences_for_day(document, day))
+    manual_html = manual_day_html_override(day, output_edits)
+    if manual_html.is_manual:
+        blocks = [] if manual_html.html == "" else [
+            RenderBlock(
+                kind="manual_day_html",
+                content_html=manual_html.html,
+                css_class="manual-day-html-block",
+                source_row_ids=source_ids,
+            )
+        ]
+
     return RenderDay(
         day=day_shell.day,
         number=day_document.number if day_document and day_document.number else day_shell.number,
@@ -108,7 +121,7 @@ def build_render_day_from_document(
         title=day_shell.title,
         intro=day_shell.intro,
         date=edited_date or (day_document.date if day_document and day_document.date else ""),
-        blocks=build_day_render_blocks(ordered_rows, _travel_sequences_for_day(document, day)),
+        blocks=blocks,
         source_row_ids=source_ids,
         warnings=list(dict.fromkeys(warnings)),
     )

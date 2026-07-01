@@ -2706,3 +2706,400 @@ Future saved-itinerary note to preserve in handovers:
 The app is hosted at https://itinerary-creator.streamlit.app/ and will not be run locally by users.
 Saved Itinerary Projects are postponed until after the current cleanup/speed roadmap, but the architecture should not block a future shared hosted backlog, cloud persistence, user tracking, permissions or conflict protection.
 ```
+
+---
+
+# Patch 38: Local Draft Delta Persistence + Cross-Window Completeness
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Make browser-local editor recovery lighter and safer on long itineraries while preserving complete day/final-section state across recovery and PDF hard-commit boundaries.
+```
+
+Completed in Patch 38:
+
+```text
+[x] Changed frequent browser-local draft persistence from full compact editor snapshots to dirty-field delta payloads
+[x] Kept full browser recovery snapshots only at hard boundaries: Save changes, Apply Changes / commit nonce, PDF commit, beforeunload, send failure recovery, and explicit recovered-draft sync
+[x] Added local draft save modes so recovery can distinguish compact deltas from full snapshots
+[x] Prevented empty/no-op local draft writes from replacing meaningful recovery state or causing timestamp-only localStorage churn
+[x] Kept image edits local/non-blocking while stripping upload/base64/preview-heavy image data from browser recovery payloads
+[x] Stopped normal delta saves from carrying full document_pages unless page structure/manual pages were actually touched
+[x] Made local-draft recovery merge final_pages field-by-field for deltas so generated inclusions and final notes are not wiped by empty partial payloads
+[x] Rebuilt typed editor_draft from the merged complete model during delta recovery so untouched days, day descriptions, and final sections survive recovery and PDF export
+[x] Added focused Patch 38 regression coverage for delta storage, full-snapshot boundaries, no document_pages bloat, and cross-window/recovery completeness
+```
+
+Validation snapshot:
+
+```text
+Frontend JavaScript syntax validation: passed
+Focused Patch 38 local draft/delta tests: passed
+Persistent draft/autosave tests: passed
+Visual editor autosave contract tests: passed
+Visual editor frontend/image no-server-autosave contract tests: passed
+PDF download/fast-path/inclusion/parity/source-of-truth/sync regression tests: passed
+Visual editor image payload cache tests: passed
+Full Python compilation: passed
+Import smoke: optional skips=24, failures=0
+Architecture guards: passed
+git diff --check: passed
+```
+
+Broad-suite note:
+
+```text
+A full pytest run was attempted but did not complete within the available execution window. A follow-up pytest -q -x stopped at an unrelated/pre-existing parser title expectation:
+[ ] tests/test_activity_cruise_classification.py::test_overnight_and_route_package_cruises_still_remain_transport
+    Expected: Norway in a Nutshell from Bergen to Oslo
+    Actual: Scenic Rail & Fjord Journey from Bergen to Oslo
+```
+
+---
+
+# Patch 39: PDF Fallback Shrink / Typed PDF Expansion
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Reduce the legacy HTML fallback surface while keeping typed PDF export as the preferred path and preserving edited/manual content.
+```
+
+Completed in Patch 39:
+
+```text
+[x] Split the typed-PDF-safe HTML support contract into a focused support module
+[x] Split reusable typed-PDF-safe HTML rendering into a focused renderer module
+[x] Added a focused manual day-body resolver so day edit ownership stays outside the PDF exporter
+[x] Added typed RenderBlock support for manual day-body HTML overrides
+[x] Replaced supported manual day body HTML with typed render-document blocks instead of forcing legacy HTML fallback
+[x] Kept unsupported day/final/manual HTML on the safe legacy HTML fallback path
+[x] Kept a safety check so supported manual day HTML only stays typed when the RenderDocument actually carries the matching manual day block
+[x] Preserved supported manual final sections, inclusions, exclusions, image export contracts, and preview/PDF render-document parity
+[x] Added focused regression coverage for supported day HTML on typed path and unsupported HTML fallback
+```
+
+Validation snapshot:
+
+```text
+Focused typed PDF render-model tests: passed
+PDF fast-path, inclusion, parity, source-of-truth, Booknordics parity, typed-draft, editor block inspector, PDF persistence, sync and image-cache regressions: passed
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Import smoke: optional skips=24, failures=0
+Architecture guards: passed
+git diff --check: passed
+```
+
+Adjacent/pre-existing failures observed during a broader editor test sweep:
+
+```text
+[ ] tests/test_editor_manual_templates.py::test_manual_page_templates_are_available_from_inspector_and_page_headers
+[ ] tests/test_editor_manual_templates.py::test_manual_block_templates_can_be_inserted_from_inspector
+[ ] tests/test_editor_page_management.py::test_frontend_exposes_document_outline_and_page_actions
+    Reason: weak frontend source-string assertions against modular editor assets; belongs to Patch 40 legacy breadcrumb/test cleanup, not Patch 39 PDF fallback behavior.
+```
+
+---
+
+# Patch 40: Legacy Breadcrumb / Test Cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Remove production bloat that existed only to satisfy stale source-string tests while preserving real runtime facades and user-facing behavior.
+```
+
+Completed in Patch 40:
+
+```text
+[x] Removed legacy breadcrumb/source-contract marker comments from active production sources
+[x] Removed the empty `style_presets.js` compatibility shim and its index.html script reference
+[x] Kept style preset runtime loading through the focused asset loader modules: style data, lookup helpers, and controlled block templates
+[x] Removed the unused empty `render_final_preview_step` legacy hook and its unused main-view import
+[x] Moved tests away from unrelated source-string breadcrumbs and toward focused module/contract checks
+[x] Added VM-backed frontend behavior checks for manual-page templates, manual block insertion, document outline rendering, page hide/restore, and add-after ordering
+[x] Updated editor/style/image tests to assert against focused owner modules instead of old facade files
+[x] Added focused Patch 40 cleanup guard coverage to prevent breadcrumb markers and empty legacy shims from returning
+```
+
+Validation snapshot:
+
+```text
+Frontend JavaScript syntax validation: passed
+Focused Patch 40 cleanup tests: passed
+Legacy cleanup/source-string replacement tests: passed
+Adjacent editor manual-template/page-management/editing coverage tests: passed
+Adjacent frontend style/image/editor asset tests: passed
+Cleanup review, architecture guard system and document-flow tests: passed
+Focused Patch 40/adjacent regression target: 96 passed
+Full Python compilation: passed
+Import smoke: optional skips=24, failures=0
+Architecture guards: passed
+git diff --check: passed
+```
+
+---
+
+# Patch 41: Saved Project Contract
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Define the versioned saved itinerary project data model before adding visible save/load UI.
+```
+
+Completed in Patch 41:
+
+```text
+[x] Added explicit saved-project schema constants and payload-size guard limits
+[x] Added dataclasses for SavedItineraryProject, SavedItinerarySnapshot, SavedProjectMetadata, SavedProjectSource, SavedProjectImageState and SavedProjectExportState
+[x] Added a builder that creates a saved project from the generated workflow state without dumping st.session_state
+[x] Preserved generated baseline and current snapshot as separate contract fields
+[x] Preserved compact image edit state for cover, summary and day images without base64 preview data
+[x] Added source input hashing for future conflict/rebuild checks
+[x] Added serialization/deserialization helpers for project JSON round-trips
+[x] Added validation that enforces required fields, schema version, supported status, JSON serializability, payload size and banned temporary/preview fields
+[x] Kept saved-project contract code outside parser, generator and PDF exporter modules
+[x] Added focused Patch 41 regression coverage for contract creation, banned field exclusion, serialization, safe validation failures and payload-size guarding
+```
+
+Validation snapshot:
+
+```text
+Focused Patch 41 saved-project contract tests: passed
+Full Python compilation: passed
+Import smoke: optional skips=24, failures=0
+Architecture guards: passed
+Git whitespace check: passed
+```
+
+
+# Patch 42: Save/Load Rebuild Path
+
+Status: completed
+
+Completed in Patch 42:
+
+[x] Added saved-project reopen action that loads current snapshots directly, without reparsing source input
+[x] Rebuilds normal preview/editor/PDF render-context state from saved parsed rows and output edits
+[x] Preserves manual day, row and final-section edits from the current saved snapshot
+[x] Restores compact image state back into output edits for preview/PDF/export reuse
+[x] Keeps generated baseline and current edited snapshot distinct through snapshot update helpers
+[x] Supports saved-project JSON payloads in the existing project-load boundary without adding new visible UI
+[x] Added focused Patch 42 regression coverage for no reparse/regeneration, edit/image/final-section survival, preview-cache rebuild and PDF-context reuse
+
+Validation:
+
+Focused Patch 42 saved-project rebuild tests: passed
+Workflow state/action regression tests: passed
+Saved-project contract tests: passed
+Python compile: passed
+Import smoke: passed
+Architecture guards: passed
+git diff --check: passed
+
+---
+
+# Patch 43: Project File MVP
+
+Status: completed
+
+Completed in Patch 43:
+
+[x] Added a user-facing Open Project File control on the input page
+[x] Added a user-facing Save Project File download action after generation
+[x] Saved project downloads use the versioned `.itinerary.json` contract from Patch 41
+[x] Opening saved project files delegates to the Patch 42 rebuild path, not raw-source reparsing/regeneration
+[x] Active saved-project metadata is preserved while the current snapshot is refreshed for the downloaded file
+[x] Invalid JSON, wrong schema versions and non-project JSON show safe user-facing errors without exposing tracebacks outside debug mode
+[x] Project-file payloads exclude preview HTML, PDF bytes, temporary session fields and base64 preview/upload data
+[x] Resetting the workflow clears active project-file metadata
+[x] Added focused Patch 43 regression coverage for download, upload/reopen, invalid files, schema errors, no bloat and active-project reset
+
+Validation:
+
+Focused Patch 43 project-file MVP tests: passed
+Patch 41-43 saved-project regression tests: passed
+Workflow state/action/shell regression tests: passed
+Document-flow and debug-boundary regression tests: passed
+PDF/export parity and image-cache focused regressions: passed
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: optional skips=25, failures=0
+Architecture guards: passed
+git diff --check: passed
+
+---
+
+# Patch 44: Itinerary Name + Baseline Save
+
+Status: completed
+
+Completed in Patch 44:
+
+[x] Added an optional Itinerary Name field above the supplier text input
+[x] Kept unnamed generation working normally for quick testing and one-off itineraries
+[x] Synced the typed itinerary name into canonical workflow state before either Generate Agent Itinerary or Generate Customer Itinerary runs
+[x] Created a generated-baseline saved project immediately after named generation
+[x] Kept generated baseline and current snapshot equal at first generation
+[x] Kept unnamed generated itineraries clearly unsaved until the user saves a project file later
+[x] Preserved Agent/Customer as one shared generation pipeline with only output brand/theme state differing
+[x] Seeded the itinerary-name input from reopened saved projects
+[x] Cleared itinerary-name input state on Start over/reset
+[x] Added focused Patch 44 regression coverage for name capture, unnamed generation, baseline preservation, current-snapshot divergence and reset behavior
+
+Validation:
+
+Focused Patch 44 itinerary-name/baseline tests: passed
+Patch 41-44 saved-project regression tests: passed
+Workflow state/action/shell regression tests: passed
+Document-flow/debug-boundary/single-pipeline regression tests: passed
+PDF/export parity and image-cache focused regressions: passed
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: optional skips=26, failures=0
+Architecture guards: passed
+git diff --check: passed
+
+---
+
+# Patch 45: Current Edited Version Save
+
+Status: completed
+
+Completed in Patch 45:
+
+[x] Added a focused active saved-project current-state refresh helper
+[x] Added compact saved-project export-state extraction that records PDF readiness without PDF bytes
+[x] Manual visual-editor Save now refreshes the active saved-project current snapshot, while browser/server autosave remains temporary recovery only
+[x] Apply Changes / editor hard commits refresh the active saved-project current snapshot after committed text/final-section edits reach server state
+[x] Add Pictures refreshes the active saved-project current snapshot after image matching and committed image state are applied
+[x] Create PDF / export transition refreshes the active saved-project current snapshot before export reads from workflow state
+[x] Successful PDF creation refreshes export metadata on the active saved project without saving PDF bytes
+[x] Save Project File continues to update current snapshot without overwriting generated baseline
+[x] Added recovery-draft field guards so browser local/autosave payloads cannot become saved-project state
+[x] Added focused Patch 45 regression coverage for text edits, day intro edits, final-section edits, image removal/replacement/crop state, PDF export state, autosave separation and controlled-boundary refreshes
+
+Validation:
+
+Focused Patch 45 current-edited-save tests: passed
+Patch 41-45 saved-project regression tests: passed
+Workflow state/action/shell regression tests: passed
+Document-flow/debug-boundary/single-pipeline regression tests: passed
+PDF/export parity and image-cache focused regressions: passed
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: optional skips=26, failures=0
+Architecture guards: passed
+git diff --check: passed
+
+---
+
+# Patch 46: Backlog UI / Storage Decision
+
+Status: completed
+
+Completed in Patch 46:
+
+[x] Kept Project File mode as the only enabled saved-project storage path for this hosted release
+[x] Deferred browser-private backlog storage instead of adding localStorage/IndexedDB project collections prematurely
+[x] Kept future hosted/cloud persistence unblocked through an explicit storage-decision contract
+[x] Kept the future backlog action set limited to Open, Duplicate, Rename and Archive without rendering those controls yet
+[x] Added compact project-file storage guidance to the existing Save/Open Project File UI instead of adding a separate backlog panel
+[x] Added project-file payload guards so backlog/search-index/browser-storage fields cannot be saved into `.itinerary.json` files
+[x] Added focused Patch 46 regression coverage for storage mode, backlog disabled state, future cloud readiness, project-file payload bloat guards and UI note behavior
+
+Validation:
+
+Focused Patch 46 backlog/storage decision tests: passed
+Patch 41-46 saved-project regression tests: passed
+Workflow/debug/export debloat focused tests: passed
+PDF/export parity and image-cache focused regressions: passed
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: optional skips=27, failures=0
+Architecture guards: passed
+git diff --check: passed
+
+Known unrelated/pre-existing failure:
+
+[ ] tests/test_activity_cruise_classification.py::test_overnight_and_route_package_cruises_still_remain_transport
+    Expected: Norway in a Nutshell from Bergen to Oslo
+    Actual: Scenic Rail & Fjord Journey from Bergen to Oslo
+
+---
+
+# Patch 47: Saved Project Hardening / Regression Suite
+
+Status: completed
+
+Completed in Patch 47:
+
+[x] Added saved-project source-hash validation so corrupted source payloads fail safely before reopen
+[x] Added required project/snapshot identity checks for project_id, snapshot_id and snapshot timestamps
+[x] Normalized saved image-state choices with durable crop-focus defaults so reopen does not mutate output edits and invalidate preview/PDF signatures
+[x] Added explicit baseline-restore helper that refuses to replace the current edited version unless confirmation is passed
+[x] Verified saved project reopen still rebuilds the normal preview/render context without reparsing or regenerating supplier input
+[x] Verified reopened projects can create PDF from the reopened edited state, including final sections and day-image crop/removal state
+[x] Added regression coverage for corrupt JSON, wrong schema, source-hash mismatch, banned temporary fields, payload-size limits and baseline restore safety
+[x] Confirmed saved-project modules still avoid session-state dumps, duplicate renderers, parser/generator coupling and PDF exporter coupling
+
+Validation:
+
+Focused Patch 47 saved-project hardening tests: passed
+Patch 41-47 saved-project regression tests: passed
+PDF/export parity and image-cache focused regressions: passed
+Workflow/editor focused regressions: passed except pre-existing source-string checks listed below
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: optional skips=27, failures=0
+Architecture guards: passed
+git diff --check: passed
+
+Known unrelated/pre-existing failures:
+
+[ ] tests/test_activity_cruise_classification.py::test_overnight_and_route_package_cruises_still_remain_transport
+    Expected: Norway in a Nutshell from Bergen to Oslo
+    Actual: Scenic Rail & Fjord Journey from Bergen to Oslo
+
+[ ] tests/test_editor_source_compare_restore.py::test_frontend_exposes_compare_and_restore_to_generated_tools
+    Weak frontend source-string expectation for generatedValueForKey is already failing in the uploaded Patch 46 ZIP.
+
+[ ] tests/test_editor_source_compare_restore.py::test_frontend_source_panel_expands_linked_supplier_rows
+    Weak frontend source-string expectation for sourceRowLookup is already failing in the uploaded Patch 46 ZIP.
+
+---
+
+# Post-Patch 47 Health Sweep: Responsibility, Legacy Cleanup and Known Failure Repair
+
+Status: completed
+
+Completed in this sweep:
+
+[x] Fixed the source-backed Norway in a Nutshell route-package classifier so direct Bergen/Oslo supplier rows with Flåm railway, Nærøyfjord cruise, ticket/luggage evidence and partial routed supplier legs keep the canonical Norway in a Nutshell title instead of falling back to the generic Scenic Rail & Fjord Journey title.
+[x] Split `normalizer_modules/transport.py` into focused modules for transport title normalization, rail/fjord package detection, route-activity detection and route-transfer detection.
+[x] Kept `normalizer_modules/transport.py` as a thin compatibility facade only.
+[x] Removed the leftover `visual_editor_component/frontend/js/style_presets.js` breadcrumb shim from the uploaded ZIP.
+[x] Removed root patch artifact manifests from the uploaded ZIP because architecture guards forbid patch packaging files in the repository root.
+[x] Repaired editor compare/restore tests so they follow the actual frontend asset-loading contract and split-module ownership instead of checking only an outdated partial source bundle.
+[x] Updated the stale Nutshell preview test expectation to match the current premium render path while keeping final inclusion summaries in clean no-arrow prose.
+
+Validation:
+
+Focused known-failure repair tests: passed
+Nutshell, transport preview, source-compare and legacy-cleanup regression sweep: passed
+Frontend JavaScript syntax validation: passed
+Python compile: passed
+Import smoke: passed
+Architecture guards: passed
+Whitespace diff check: passed

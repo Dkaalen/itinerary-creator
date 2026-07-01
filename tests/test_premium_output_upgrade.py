@@ -173,7 +173,7 @@ def test_retired_special_travel_widget_classes_are_not_in_runtime_contracts():
     runtime_files = [
         Path("app_modules/itinerary_html_styles.py"),
         Path("visual_editor_component/frontend/styles/editor.css"),
-        Path("visual_editor_component/frontend/js/style_presets.js"),
+        Path("visual_editor_component/frontend/js/style_preset_data.js"),
         Path("pdf_exporter_modules/render_content.py"),
         Path("pdf_exporter_modules/typed_exporter.py"),
         Path("ui/render_blocks.py"),

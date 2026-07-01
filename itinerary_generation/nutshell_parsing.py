@@ -41,7 +41,7 @@ def is_source_backed_nutshell_route_package(text: str) -> bool:
 
     has_flam_rail = any(marker in lower for marker in ("flåm train", "flam train", "flåm railway", "flam railway"))
     has_fjord = "nærøyfjord" in lower or "naeroyfjord" in lower or "fjord cruise" in lower
-    has_supplier_chain = all(
+    has_full_supplier_chain = all(
         marker in lower
         for marker in (
             "voss",
@@ -50,9 +50,21 @@ def is_source_backed_nutshell_route_package(text: str) -> bool:
             "myrdal",
         )
     ) or all(marker in lower for marker in ("voss", "gudvangen", "flam", "myrdal"))
+    has_endpoint_backed_chain = (
+        direct_major_route
+        and "gudvangen" in lower
+        and "myrdal" in lower
+        and ("flåm" in lower or "flam" in lower)
+    )
     has_ticketed_route = any(marker in lower for marker in ("e-tickets", "e tickets", "all tickets", "luggage transfer", "luggage porter"))
     has_day_route_context = bool(re.search(r"\bday\s+tour\b|\btravel\s+plan\b|\bperfect\s+day\s+tour\b", lower))
-    return has_flam_rail and has_fjord and has_supplier_chain and has_ticketed_route and has_day_route_context
+    return (
+        has_flam_rail
+        and has_fjord
+        and (has_full_supplier_chain or has_endpoint_backed_chain)
+        and has_ticketed_route
+        and has_day_route_context
+    )
 
 
 def _clean_nutshell_place(value: str) -> str:

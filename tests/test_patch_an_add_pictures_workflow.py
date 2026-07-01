@@ -27,12 +27,13 @@ def test_add_pictures_is_gated_by_explicit_apply_changes_commit():
 
 
 def test_visual_editor_picture_payload_uses_screen_sized_previews():
-    workflow = (ROOT / "visual_editor_component" / "editor_payload_builder.py").read_text(encoding="utf-8")
+    image_payloads = (ROOT / "visual_editor_component" / "editor_payload_images.py").read_text(encoding="utf-8")
     previews = (ROOT / "images" / "image_preview.py").read_text(encoding="utf-8")
 
-    assert '_editor_cover_image_payload' in workflow
-    assert 'image["data_uri"] = get_image_preview_for_path' in workflow
-    assert 'limit=12' in workflow
+    assert '_editor_cover_image_payload' in image_payloads
+    assert 'image["data_uri"] = get_image_preview_for_path' in image_payloads
+    assert 'DAY_REPLACEMENT_OPTION_LIMIT = 8' in image_payloads
+    assert 'OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT' in image_payloads
     assert 'max_size=(560, 380)' in previews
     assert 'quality=48' in previews
     assert 'max_size=(240, 170)' in previews

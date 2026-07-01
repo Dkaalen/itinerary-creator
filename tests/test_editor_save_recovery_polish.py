@@ -1,26 +1,9 @@
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "js/state.js",
-            "js/render.js",
-            "js/editor_dirty_state.js",
-            "js/editor_document_outline.js",
-            "js/editor_debug_shell.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-            "js/editing.js",
-        )
-    )
+    return frontend_source()
 
 
 def test_editor_exposes_save_and_recovery_status_panel():

@@ -1,4 +1,8 @@
-/** Responsibility split from state.js. */
+/** Browser-local editor draft persistence and recovery. */
+const LOCAL_DRAFT_SAVE_MODE_DELTA = 'local_delta';
+const LOCAL_DRAFT_SAVE_MODE_SNAPSHOT = 'local_snapshot';
+let lastLocalDraftStoragePayload = '';
+
 function draftStorageKey() {
   const fallback = [initialPayload?.cover?.trip_title || '', initialPayload?.cover?.trip_dates || '', (initialPayload?.days || []).length].join('|');
   return `itinerary-visual-editor-draft:${initialPayload?.draft_id || fallback}`;
@@ -16,37 +20,70 @@ function stripUploadBinaryForLocalDraft(value) {
   return copy;
 }
 
-function persistLocalDraft() {
+function localDraftTouchedKeys() {
+  return Array.from(touchedKeys || []).map(key => String(key || '')).filter(Boolean).sort();
+}
+
+function attachLocalDraftIdentity(payload, saveMode) {
+  payload.draft_id = model?.draft_id || initialPayload?.draft_id || '';
+  payload.meta = Object.assign({}, initialPayload?.meta || {}, model?.meta || {});
+  payload.workflow = Object.assign({}, initialPayload?.workflow || {}, model?.workflow || {});
+  payload.save_mode = saveMode;
+  payload.local_draft_touched_keys = localDraftTouchedKeys();
+  return payload;
+}
+
+function buildLocalDraftDeltaPayload() {
+  if (typeof collectTouched === 'function') collectTouched();
+  const payload = stripUploadBinaryForLocalDraft(pruneForSave(model));
+  return attachLocalDraftIdentity(payload, LOCAL_DRAFT_SAVE_MODE_DELTA);
+}
+
+function buildLocalDraftSnapshotPayload() {
+  if (typeof collect === 'function') collect();
+  const payload = stripUploadBinaryForLocalDraft(compactFullPayloadForCommit(model));
+  return attachLocalDraftIdentity(payload, LOCAL_DRAFT_SAVE_MODE_SNAPSHOT);
+}
+
+function buildLocalDraftPayload(options = {}) {
+  return options?.fullSnapshot ? buildLocalDraftSnapshotPayload() : buildLocalDraftDeltaPayload();
+}
+
+function persistLocalDraft(options = {}) {
   if (localDraftTimer) {
     clearTimeout(localDraftTimer);
     localDraftTimer = null;
   }
   if (!model || !initialPayload) return;
+  if (!options?.fullSnapshot && (!touchedKeys || !touchedKeys.size)) return;
   try {
-    if (typeof collectTouched === 'function') collectTouched();
-    const compact = stripUploadBinaryForLocalDraft(compactFullPayloadForCommit(model));
-    const snapshot = attachEditableDraft(compact);
-    localStorage.setItem(draftStorageKey(), JSON.stringify({
-      saved_at: Date.now(),
+    const snapshot = buildLocalDraftPayload(options);
+    const saveMode = snapshot.save_mode || (options?.fullSnapshot ? LOCAL_DRAFT_SAVE_MODE_SNAPSHOT : LOCAL_DRAFT_SAVE_MODE_DELTA);
+    const storageBody = {
       source_signature: initialPayload?.meta?.source_signature || '',
       draft_schema_version: initialPayload?.meta?.draft_schema_version || 1,
+      save_mode: saveMode,
       model: snapshot
-    }));
+    };
+    const stableStoragePayload = JSON.stringify(storageBody);
+    if (!options?.fullSnapshot && stableStoragePayload === lastLocalDraftStoragePayload) return;
+    localStorage.setItem(draftStorageKey(), JSON.stringify(Object.assign({saved_at: Date.now()}, storageBody)));
+    lastLocalDraftStoragePayload = stableStoragePayload;
     saveState.localDraftAt = Date.now();
   } catch (err) {}
 }
 
-function scheduleLocalDraftPersist(delayMs = LOCAL_DRAFT_SAVE_DELAY_MS) {
+function scheduleLocalDraftPersist(delayMs = LOCAL_DRAFT_SAVE_DELAY_MS, options = {}) {
   if (localDraftTimer) clearTimeout(localDraftTimer);
   localDraftTimer = setTimeout(() => {
     localDraftTimer = null;
-    persistLocalDraft();
+    persistLocalDraft(options);
   }, Math.max(0, Number(delayMs) || 0));
 }
 
 function sameDraftDay(a, b, fallbackIndex) {
-  const left = String(a?.day || a?.label || fallbackIndex || '').trim();
-  const right = String(b?.day || b?.label || fallbackIndex || '').trim();
+  const left = String(a?.day || a?.day_id || a?.label || fallbackIndex || '').trim();
+  const right = String(b?.day || b?.day_id || b?.label || fallbackIndex || '').trim();
   return left && right && left === right;
 }
 
@@ -57,51 +94,95 @@ function findServerDayForLocalDraft(mergedDays, localDay, fallbackIndex) {
   return mergedDays[fallbackIndex] || null;
 }
 
+function mergeDraftImageOntoServer(serverImage, localImage) {
+  const merged = Object.assign({}, serverImage || {}, localImage || {});
+  if (!merged.data_uri && serverImage?.data_uri) merged.data_uri = serverImage.data_uri;
+  if (!merged.auto_data_uri && serverImage?.auto_data_uri) merged.auto_data_uri = serverImage.auto_data_uri;
+  if (!merged.options && serverImage?.options) merged.options = serverImage.options;
+  return merged;
+}
+
+function mergeTopLevelObjectFields(target, source) {
+  if (!source || typeof source !== 'object') return;
+  Object.keys(source).forEach(key => {
+    target[key] = JSON.parse(JSON.stringify(source[key]));
+  });
+}
+
+function localDraftHasFields(value) {
+  return value && typeof value === 'object' && Object.keys(value).length > 0;
+}
+
+function mergeFinalPagesForLocalDraft(merged, localDraft, isSnapshot) {
+  const localFinalPages = localDraft.final_pages || {};
+  if (!localDraftHasFields(localFinalPages)) return;
+  if (isSnapshot) {
+    merged.final_pages = JSON.parse(JSON.stringify(localFinalPages));
+    return;
+  }
+  if (!merged.final_pages || typeof merged.final_pages !== 'object') merged.final_pages = {};
+  Object.keys(localFinalPages).forEach(key => {
+    merged.final_pages[key] = JSON.parse(JSON.stringify(localFinalPages[key]));
+  });
+}
+
+function mergeEditorDraftForLocalDraft(merged, localDraft, isSnapshot) {
+  if (isSnapshot && localDraft.editor_draft) {
+    merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
+    return;
+  }
+  if (typeof buildEditableDraftFromPayload === 'function') {
+    merged.editor_draft = buildEditableDraftFromPayload(merged);
+  }
+}
+
 function mergeLocalDraftOntoServerPayload(localDraft) {
   const merged = JSON.parse(JSON.stringify(initialPayload || {}));
+  const saveMode = String(localDraft?.save_mode || '').trim();
+  const isSnapshot = saveMode !== LOCAL_DRAFT_SAVE_MODE_DELTA;
   const serverPicturesAdded = !!initialPayload?.workflow?.pictures_added;
   const localPicturesAdded = !!localDraft.workflow?.pictures_added;
   if (localDraft.cover) {
+    if (!merged.cover || typeof merged.cover !== 'object') merged.cover = {};
     const serverCover = merged.cover || {};
-    merged.cover = Object.assign({}, serverCover, localDraft.cover);
-    ['cover_image', 'summary_image'].forEach(key => {
-      if (localDraft.cover?.[key]) {
-        // Local drafts intentionally omit heavy preview data URIs. Preserve the
-        // server image contract so picture-review preview stays in parity with
-        // the PDF after a browser/local-draft restore.
-        merged.cover[key] = Object.assign({}, serverCover[key] || {}, localDraft.cover[key] || {});
-        if (!merged.cover[key].data_uri && serverCover[key]?.data_uri) merged.cover[key].data_uri = serverCover[key].data_uri;
-        if (!merged.cover[key].auto_data_uri && serverCover[key]?.auto_data_uri) merged.cover[key].auto_data_uri = serverCover[key].auto_data_uri;
-        if (!merged.cover[key].options && serverCover[key]?.options) merged.cover[key].options = serverCover[key].options;
+    Object.keys(localDraft.cover).forEach(key => {
+      if (key === 'cover_image' || key === 'summary_image') {
+        merged.cover[key] = mergeDraftImageOntoServer(serverCover[key] || {}, localDraft.cover[key] || {});
+      } else {
+        merged.cover[key] = JSON.parse(JSON.stringify(localDraft.cover[key]));
       }
     });
     if (!merged.cover.cover_background_data_uri && serverCover.cover_background_data_uri) {
       merged.cover.cover_background_data_uri = serverCover.cover_background_data_uri;
     }
   }
-  if (localDraft.summary) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
+  if (localDraft.summary) {
+    if (!merged.summary || typeof merged.summary !== 'object') merged.summary = {};
+    if (isSnapshot) merged.summary = JSON.parse(JSON.stringify(localDraft.summary));
+    else mergeTopLevelObjectFields(merged.summary, localDraft.summary);
+  }
   const localDays = Array.isArray(localDraft.days) ? localDraft.days : [];
   if (!Array.isArray(merged.days)) merged.days = [];
   localDays.forEach((localDay, idx) => {
     let targetDay = findServerDayForLocalDraft(merged.days, localDay, idx);
     if (!targetDay) {
-      targetDay = {day: localDay.day || `Day ${idx + 1}`};
+      targetDay = {day: localDay.day || localDay.day_id || `Day ${idx + 1}`};
       merged.days.push(targetDay);
     }
-    ['day','label','date','title','city','intro','blocks_html','blocks'].forEach(field => {
-      if (field in localDay) targetDay[field] = localDay[field];
+    ['day','day_id','label','date','title','city','intro','blocks_html','blocks','intro_generated_value','intro_generator_version','intro_source_signature','intro_manual_override','blocks_html_generated_value','blocks_html_generator_version','blocks_manual_override'].forEach(field => {
+      if (field in localDay) targetDay[field] = JSON.parse(JSON.stringify(localDay[field]));
     });
     if (serverPicturesAdded && localPicturesAdded && localDay.image) {
-      targetDay.image = Object.assign({}, targetDay.image || {}, localDay.image);
+      targetDay.image = mergeDraftImageOntoServer(targetDay.image || {}, localDay.image);
     }
   });
-  if (localDraft.final_pages) merged.final_pages = JSON.parse(JSON.stringify(localDraft.final_pages));
+  mergeFinalPagesForLocalDraft(merged, localDraft, isSnapshot);
   if (Array.isArray(localDraft.document_pages)) {
     merged.document_pages = JSON.parse(JSON.stringify(localDraft.document_pages));
-  } else if (Array.isArray(localDraft.editor_draft?.document_pages)) {
+  } else if (isSnapshot && Array.isArray(localDraft.editor_draft?.document_pages)) {
     merged.document_pages = JSON.parse(JSON.stringify(localDraft.editor_draft.document_pages));
   }
-  if (localDraft.editor_draft) merged.editor_draft = JSON.parse(JSON.stringify(localDraft.editor_draft));
+  mergeEditorDraftForLocalDraft(merged, localDraft, isSnapshot);
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));
   merged.workflow = JSON.parse(JSON.stringify(initialPayload?.workflow || {pictures_added: false}));
   // Server workflow state is authoritative. Browser-local drafts may restore
@@ -138,5 +219,6 @@ function restoreLocalDraftIfAvailable() {
 }
 
 function clearLocalDraft() {
+  lastLocalDraftStoragePayload = '';
   try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
 }

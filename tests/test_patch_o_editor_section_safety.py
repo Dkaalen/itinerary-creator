@@ -10,7 +10,6 @@ def _editor_html() -> str:
     for relative in (
         "styles/editor.css",
         "js/state.js",
-        "js/style_presets.js",
         "js/style_preset_data.js",
         "js/images.js",
         "js/editor_debug_shell.js",

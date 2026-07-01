@@ -6,14 +6,16 @@ def _read(relative: str) -> str:
 
 
 def test_cleanup1_keeps_review_navigation_logic_centralized():
-    readiness_js = _read("visual_editor_component/frontend/js/editor_readiness.js")
+    warning_model_js = _read("visual_editor_component/frontend/js/editor_warning_model.js")
+    debug_readiness_js = _read("visual_editor_component/frontend/js/editor_debug_readiness.js")
     render_js = _read("visual_editor_component/frontend/js/render.js")
 
-    assert readiness_js.count("function warningActionLabel") == 1
-    assert readiness_js.count("warningActionLabel(pageId)") >= 2
+    assert debug_readiness_js.count("function warningActionLabel") == 1
+    assert debug_readiness_js.count("warningActionLabel(pageId)") >= 2
+    assert "function warningActionLabel" not in warning_model_js
     assert "function warningActionLabel" not in render_js
-    assert "Go to page</button>" not in readiness_js
-    assert "Review page</button>" not in readiness_js
+    assert "Go to page</button>" not in debug_readiness_js
+    assert "Review page</button>" not in debug_readiness_js
 
 
 def test_cleanup1_selection_reveal_does_not_mutate_document_model():

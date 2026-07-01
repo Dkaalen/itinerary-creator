@@ -166,8 +166,23 @@ def test_save_pdf_file_falls_back_for_unsupported_visual_editor_html(monkeypatch
     assert render_document_requires_html_fallback(context.render_document, {}) is True
 
 
-def test_save_pdf_file_still_falls_back_for_day_body_html():
+def test_save_pdf_file_still_falls_back_when_supported_day_html_is_not_in_render_document():
     assert render_document_requires_html_fallback(
         RenderDocument(),
         {"days": {"Day 1": {"blocks_html": "<div>Edited day body</div>"}}},
     ) is True
+
+
+def test_save_pdf_file_still_falls_back_for_unsupported_day_body_html():
+    assert render_document_requires_html_fallback(
+        RenderDocument(),
+        {"days": {"Day 1": {"blocks_html": "<table><tr><td>Unsupported day layout</td></tr></table>"}}},
+    ) is True
+
+
+def test_render_context_moves_supported_manual_day_html_into_typed_document():
+    context = _context({"days": {"Day 1": {"blocks_html": "<div class=\"content-block\"><div class=\"body-text\">Typed edited day</div></div>"}}})
+
+    assert context.render_document.days[0].blocks[0].kind == "manual_day_html"
+    assert "Typed edited day" in context.render_document.days[0].blocks[0].content_html
+    assert render_document_requires_html_fallback(context.render_document, context.output_edits) is False

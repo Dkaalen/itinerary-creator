@@ -35,7 +35,7 @@ def _section_items(sections, title):
     return []
 
 
-def test_nutshell_timetable_route_uses_premium_no_arrow_format():
+def test_nutshell_timetable_route_uses_premium_route_and_clean_inclusions():
     raw = """
 Day 1	Transfer	02/01/2027						Oslo	"Norway in a NUtshell | Bergen to Oslo |08:30 - 22:30 | Including luggage porter service
 
@@ -62,8 +62,8 @@ Day 1	Transfer	02/01/2027						Oslo	"Norway in a NUtshell | Bergen to Oslo |08:3
     block = build_travel_arrangements_block(grouped["Day 1"])
     html = block["html"]
     assert "Norway in a Nutshell from Bergen to Oslo" in html
-    assert "Route highlights: Bergen, Voss, Gudvangen, Flåm, Myrdal and Oslo" in html
-    assert "→" not in html
+    assert "Bergen → Voss → Gudvangen → Flåm → Myrdal → Oslo" in html
+    assert "Route highlights:" not in html
     assert "22:30 to Oslo" not in html
 
     sections = create_categorized_inclusions(rows, grouped)

@@ -1,21 +1,11 @@
 from pathlib import Path
 
 from visual_editor_component.editor_payload_warnings import _client_output_warnings_for_payload
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "js/render.js",
-            "js/editor_readiness.js",
-            "js/editor_warning_model.js",
-            "js/editor_debug_readiness.js",
-            "js/editor_warnings.js",
-        )
-    )
+    return frontend_source()
 
 
 def test_review3_groups_warnings_and_uses_export_check_language():

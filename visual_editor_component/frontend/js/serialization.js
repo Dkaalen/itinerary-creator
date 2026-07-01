@@ -171,7 +171,10 @@ function pruneForSave(value) {
   });
 
   if (touchedKeys.size) {
-    payload.document_pages = Array.isArray(full.document_pages) ? JSON.parse(JSON.stringify(full.document_pages)) : [];
+    const documentPagesTouched = Array.from(touchedKeys || []).some(key => key === 'document_pages' || String(key || '').startsWith('document_pages.'));
+    if (documentPagesTouched) {
+      payload.document_pages = Array.isArray(full.document_pages) ? JSON.parse(JSON.stringify(full.document_pages)) : [];
+    }
     payload.editor_draft = buildEditableDraftFromPayload(payload);
   }
   return payload;

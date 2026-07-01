@@ -4,6 +4,9 @@ import streamlit as st
 
 from app_modules.app_header import _render_app_header, _stage_panel
 from app_modules.debug_mode import is_debug_mode
+from app_modules.itinerary_name_state import sync_itinerary_name_from_input
+from app_modules.itinerary_name_ui import render_itinerary_name_input
+from app_modules.project_file_ui import render_open_project_file_action
 from app_modules.project_io import load_project_json
 from app_modules.validation_gate import block_generation, render_blocking_issues, render_warning_issues
 from app_modules.workflow_actions import generate_itinerary
@@ -17,6 +20,7 @@ def _set_stage(stage: str) -> None:
 
 
 def _generate_itinerary(raw_text: str, output_brand: str = "agent") -> bool:
+    sync_itinerary_name_from_input(st.session_state)
     st.session_state["requested_output_brand"] = output_brand
     result = generate_itinerary(st.session_state, raw_text)
     if not result.ok:
@@ -50,6 +54,9 @@ def render_input_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
 
+    render_open_project_file_action()
+    render_itinerary_name_input()
+
     raw_text = st.text_area(
         "Supplier text",
         height=430,
@@ -74,9 +81,9 @@ def render_input_page(app_version: str) -> None:
 
     if is_debug_mode(st.session_state):
         with st.container(border=True):
-            st.markdown("**Load saved project**")
-            uploaded_project = st.file_uploader("Load editable project JSON", type=["json"], label_visibility="collapsed")
-            if uploaded_project is not None and st.button("Load project", use_container_width=True):
-                load_project_json(uploaded_project)
-                _set_stage("pictures" if pictures_are_added(st.session_state.get("output_edits", {})) else "edit")
-                st.rerun()
+            st.markdown("**Load legacy editable project JSON**")
+            uploaded_project = st.file_uploader("Load legacy editable project JSON", type=["json"], label_visibility="collapsed")
+            if uploaded_project is not None and st.button("Load legacy project", use_container_width=True):
+                if load_project_json(uploaded_project):
+                    _set_stage("pictures" if pictures_are_added(st.session_state.get("output_edits", {})) else "edit")
+                    st.rerun()

@@ -10,16 +10,53 @@ def _visual_editor_frontend_source() -> str:
     for relative in (
         "styles/editor.css",
         "js/state.js",
+        "js/editor_assets.js",
+        "js/editor_html_utils.js",
+        "js/editor_save_state.js",
+        "js/editor_scroll_state.js",
+        "js/editor_local_draft.js",
+        "js/editor_editable_markup.js",
+        "js/editor_image_labels.js",
+        "js/style_preset_data.js",
+        "js/style_preset_lookup.js",
+        "js/editor_block_templates.js",
+        "js/editor_warning_model.js",
+        "js/editor_debug_readiness.js",
+        "js/editor_shell.js",
+        "js/editor_render_summary.js",
+        "js/editor_render_final_pages.js",
+        "js/editor_document_outline.js",
+        "js/editor_render_manual_pages.js",
         "js/images.js",
+        "js/editor_image_tools.js",
+        "js/editor_readiness.js",
+        "js/editor_debug_shell.js",
         "js/render.js",
         "js/serialization.js",
         "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
+        "js/editor_text_dom.js",
+        "js/editor_text_history.js",
+        "js/editor_text_selection.js",
+        "js/editor_text_formatting.js",
+        "js/editor_insert_blocks.js",
+        "js/editor_paste_sanitizer.js",
+        "js/editor_text_tools.js",
+        "js/editor_pages_model.js",
+        "js/editor_blocks_model.js",
+        "js/editor_selection_model.js",
+        "js/editor_layout_overrides.js",
+        "js/editor_manual_pages.js",
+        "js/editor_document_model.js",
+        "js/editor_inspector_selection.js",
+        "js/editor_inspector_fields.js",
+        "js/editor_inspector_text_panel.js",
+        "js/editor_inspector_layout_panel.js",
+        "js/editor_inspector.js",
+        "js/editor_page_actions.js",
+        "js/editor_warnings.js",
+        "js/commands.js",
+        "js/editor_page_event_handlers.js",
+        "js/editor_image_event_handlers.js",
         "js/editing.js",
         "js/streamlit_bridge.js",
     ):
@@ -275,7 +312,9 @@ def test_cover_route_html_keeps_final_pair_together_for_preview():
 def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
     editor_html = _visual_editor_frontend_source()
     bridge_py = (ROOT / "visual_editor_component" / "editor_bridge.py").read_text(encoding="utf-8")
-    main_view_py = (ROOT / "app_modules" / "main_view.py").read_text(encoding="utf-8")
+    preview_step_py = (ROOT / "app_modules" / "preview_step.py").read_text(encoding="utf-8")
+    export_artifacts_py = (ROOT / "app_modules" / "export_pdf_artifacts.py").read_text(encoding="utf-8")
+    workflow_copy_py = (ROOT / "app_modules" / "workflow_config.py").read_text(encoding="utf-8")
 
     assert_not_contains(editor_html, "function scheduleAutosave()", "Visual editor should not trigger expensive Streamlit autosaves while typing.")
     assert_not_contains(editor_html, "setTimeout(saveChanges, 2200)", "Text edits should stay local instead of using a delayed autosave rerun.")
@@ -285,7 +324,8 @@ def test_visual_editor_keeps_edits_pending_until_save_or_pdf_export():
     assert_contains(editor_html, "shouldCommitPendingEdits", "PDF export should commit browser edits before any redraw can wipe them.")
     assert_contains(editor_html, "Do not redraw", "The commit path should document why it returns before draw().")
     assert_contains(bridge_py, "requests a commit before PDF export", "Python bridge docs should describe the PDF-export commit flow.")
-    assert_contains(main_view_py, "Create PDF applies pending page edits first", "Export copy should explain the pending-edit workflow.")
-    assert_contains(main_view_py, "preview_signature", "Preview should use a signature to avoid expensive rebuilds on ordinary reruns.")
-    assert_contains(main_view_py, "PDF already up to date", "PDF export should reuse an unchanged PDF instead of rebuilding it every time.")
-    assert_contains(main_view_py, "editor_applied", "Editor saves should not be followed by a stale extra preview rebuild.")
+    assert_contains(workflow_copy_py, "The current saved document and picture choices are used for export", "Export copy should explain the pending-edit workflow.")
+    assert_contains(workflow_copy_py, "PDF is already up to date", "Export copy should explain current PDF reuse.")
+    assert_contains(preview_step_py, "preview_signature", "Preview should use a signature to avoid expensive rebuilds on ordinary reruns.")
+    assert_contains(export_artifacts_py, "pdf_signature", "PDF export should reuse an unchanged PDF instead of rebuilding it every time.")
+    assert_contains(preview_step_py, "editor_applied", "Editor saves should not be followed by a stale extra preview rebuild.")

@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import types
 
+from tests.support.frontend_assets import frontend_source
 streamlit_stub = types.SimpleNamespace(
     warning=lambda *args, **kwargs: None,
     success=lambda *args, **kwargs: None,
@@ -25,22 +26,8 @@ import visual_editor_component.editor_workflow as editor_workflow
 from visual_editor_component.editor_workflow import apply_visual_editor_result
 
 
-def _frontend_source():
-    frontend = Path("visual_editor_component/frontend")
-    files = [
-        "js/state.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-        "js/editing.js",
-        "js/render.js",
-    ]
-    return "\n".join((frontend / name).read_text(encoding="utf-8") for name in files)
+def _frontend_source() -> str:
+    return frontend_source()
 
 
 def test_autosave_payload_is_persisted_and_loaded(tmp_path):

@@ -50,22 +50,28 @@ def test_patch_bq_controlled_classes_have_single_registry_source():
 
 def test_patch_bq_frontend_uses_registry_for_toolbar_and_sanitizer():
     index_html = Path("visual_editor_component/frontend/index.html").read_text(encoding="utf-8")
+    asset_loader = Path("visual_editor_component/frontend/js/editor_assets.js").read_text(encoding="utf-8")
     inspector_js = (
         Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
         + "\n"
         + Path("visual_editor_component/frontend/js/editor_inspector_text_panel.js").read_text(encoding="utf-8")
     )
-    text_tools_js = Path("visual_editor_component/frontend/js/editor_text_tools.js").read_text(encoding="utf-8")
+    text_formatting_js = Path("visual_editor_component/frontend/js/editor_text_formatting.js").read_text(encoding="utf-8")
+    paste_sanitizer_js = Path("visual_editor_component/frontend/js/editor_paste_sanitizer.js").read_text(encoding="utf-8")
+    insert_blocks_js = Path("visual_editor_component/frontend/js/editor_insert_blocks.js").read_text(encoding="utf-8")
 
-    assert '<script src="js/style_presets.js"></script>' in index_html
+    assert '<script src="js/editor_assets.js"></script>' in index_html
+    assert "style_preset_data.js" in asset_loader
+    assert "style_preset_lookup.js" in asset_loader
+    assert "editor_block_templates.js" in asset_loader
     assert "controlledPresetOptionsHtml('font_families'" in inspector_js
     assert "controlledPresetOptionsHtml('font_sizes'" in inspector_js
     assert "controlledPresetOptionsHtml('text_styles'" in inspector_js
     assert "controlledPresetOptionsHtml('colors'" in inspector_js
-    assert "controlledPresetClassMap('text_styles')" in text_tools_js
-    assert "controlledEditorAllowedClasses()" in text_tools_js
-    assert "controlledBlockTemplate('note')" in text_tools_js
-    assert "controlledBlockTemplate('divider')" in text_tools_js
+    assert "controlledPresetClassMap('text_styles')" in text_formatting_js
+    assert "controlledEditorAllowedClasses()" in paste_sanitizer_js
+    assert "controlledBlockTemplate('note')" in insert_blocks_js
+    assert "controlledBlockTemplate('divider')" in insert_blocks_js
 
 
 def test_patch_bq_pdf_uses_registry_for_controlled_classes():

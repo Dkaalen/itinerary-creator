@@ -1,4 +1,3 @@
-/** Render split breadcrumbs: summaryStyle -> editor_render_summary.js. */
 function render(payload, commitNonce = null) {
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {

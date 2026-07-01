@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping, MutableMapping
 from typing import Any
 
 from app_modules.editor_commit import add_pictures_editor_commit_ready, clear_add_pictures_editor_commit_request
+from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.image_gateway import connect_image_bank_for_picture_stage
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state, mark_pdf_dirty, set_workflow_stage
@@ -116,6 +117,7 @@ def enter_picture_stage(
     clear_add_pictures_editor_commit_request(state)
     mark_pdf_dirty(state, status="Needs refresh")
     rebuild_preview_func(mark_pdf_dirty=True, force=True, save_html=True)
+    refresh_active_saved_project_current_snapshot(state)
     stage = set_workflow_stage(state, "pictures")
     message = "Pictures added." if not unmatched_days else f"Pictures added. {len(unmatched_days)} day(s) still need image review."
     return WorkflowActionResult(ok=True, stage=stage, message=message, payload={"matches": matches, "unmatched_days": unmatched_days})

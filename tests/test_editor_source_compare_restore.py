@@ -1,27 +1,13 @@
-from pathlib import Path
-
 from visual_editor_component.editor_payload_builder import build_visual_editor_payload
+from tests.support.frontend_assets import frontend_script_names, frontend_source
+
+
+def _frontend_script_names() -> tuple[str, ...]:
+    return frontend_script_names()
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "js/state.js",
-            "js/render.js",
-            "js/serialization.js",
-            "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-            "js/editing.js",
-        )
-    )
+    return frontend_source()
 
 
 def test_payload_carries_source_rows_and_generated_value_snapshot():
@@ -49,6 +35,18 @@ def test_payload_carries_source_rows_and_generated_value_snapshot():
     assert payload["generated_values"]["days"][0]["title"] == "Guided walking tour"
     assert payload["generated_values"]["cover"]["route_label"] == "Route"
     assert payload["generated_values"]["final_pages"]["whats_included_title"] == "What’s included"
+
+
+
+
+def test_compare_restore_split_modules_are_loaded_by_editor_assets():
+    script_names = _frontend_script_names()
+
+    assert "editor_assets.js" in script_names
+    assert "editor_text_history.js" in script_names
+    assert "editor_inspector_selection.js" in script_names
+    assert script_names.index("editor_text_history.js") < script_names.index("editor_inspector_fields.js")
+    assert script_names.index("editor_inspector_selection.js") < script_names.index("editor_inspector.js")
 
 
 def test_frontend_exposes_compare_and_restore_to_generated_tools():

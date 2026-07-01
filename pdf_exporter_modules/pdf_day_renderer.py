@@ -8,6 +8,7 @@ from pdf_exporter_modules.day_page_guard import measure_day_story, one_page_day_
 from pdf_exporter_modules.html_utils import clean_text
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable
+from pdf_exporter_modules.pdf_supported_html_renderer import render_supported_html_fragment
 from pdf_exporter_modules.pdf_branding import is_booknordics_pdf
 from pdf_exporter_modules.story import add_bullets, add_paragraph
 from itinerary_generation.render_model import RenderBlock, RenderDay
@@ -37,6 +38,10 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
     """Build flowables for one block."""
 
     block_story = []
+    if block.kind == "manual_day_html":
+        render_supported_html_fragment(block.content_html, block_story, styles)
+        return block_story
+
     if block.section_title:
         add_paragraph(block_story, block.section_title, styles["section"])
     if block.title:

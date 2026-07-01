@@ -5,6 +5,7 @@ from typing import Any
 
 from app_modules.editor_commit import clear_pdf_editor_commit_request
 from app_modules.export_job_state import request_auto_pdf_create
+from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import set_workflow_stage
 
@@ -23,6 +24,7 @@ def enter_export_stage(
     """
 
     clear_pdf_editor_commit_request(state)
+    refresh_active_saved_project_current_snapshot(state)
     if auto_create_pdf:
         request_auto_pdf_create(state)
     stage = set_workflow_stage(state, "export")

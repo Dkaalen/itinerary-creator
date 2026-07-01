@@ -121,7 +121,3 @@ def render_edit_page(app_version: str) -> None:
         st.rerun()
     st.button("Add pictures", disabled=True, use_container_width=True)
     st.caption("Apply changes before adding pictures so image matching uses the latest committed itinerary.")
-
-def render_final_preview_step():
-    """Legacy hook retained so older UI regression tests find the new boundary."""
-    return None

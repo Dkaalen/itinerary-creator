@@ -65,7 +65,7 @@ def test_normal_editor_shell_does_not_render_debug_review_status_bloat():
 
 def test_debug_review_bloat_is_behind_explicit_debug_boundary():
     debug_source = (FRONTEND_JS / "editor_debug_shell.js").read_text(encoding="utf-8")
-    readiness_source = (FRONTEND_JS / "editor_readiness.js").read_text(encoding="utf-8")
+    readiness_source = (FRONTEND_JS / "editor_debug_readiness.js").read_text(encoding="utf-8")
 
     assert "function editorDebugModeEnabled" in debug_source
     assert "return reviewCenterHtml();" in debug_source

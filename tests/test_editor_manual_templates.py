@@ -1,56 +1,104 @@
+import json
 from pathlib import Path
+import subprocess
+import textwrap
 
 from app_modules.itinerary_html import build_itinerary_html
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from itinerary_generation.editable_draft import normalise_editable_draft
+from tests.support.frontend_assets import frontend_source
 
 
 def _frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    return "\n".join(
-        (frontend / relative).read_text(encoding="utf-8")
-        for relative in (
-            "styles/editor.css",
-            "js/state.js",
-            "js/render.js",
-            "js/serialization.js",
-            "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-            "js/editing.js",
-        )
+    return frontend_source()
+
+
+def _manual_template_snapshot() -> dict:
+    script = textwrap.dedent(
+        r"""
+        const fs = require('fs');
+        const vm = require('vm');
+        const context = {
+          console,
+          window: {},
+          Date: {now: () => 1700000000000},
+          document: {querySelector: () => null, querySelectorAll: () => []},
+          CSS: {escape: (value) => String(value)},
+          requestAnimationFrame: (fn) => fn(),
+          model: {document_pages: [{page_id: 'cover', page_type: 'cover', title: 'Cover', sort_order: 1, is_hidden: false}]},
+          activePageId: null,
+          activeBlockId: null,
+          activeFieldKey: null,
+          touched: [],
+          messages: [],
+          notifyEditor: (message) => context.messages.push(message),
+          updateRightInspector: () => {},
+          collect: () => {},
+          draw: () => {},
+          scrollToPage: () => {},
+          markTouched: (key) => context.touched.push(key),
+        };
+        vm.createContext(context);
+        [
+          'visual_editor_component/frontend/js/editor_html_utils.js',
+          'visual_editor_component/frontend/js/editor_pages_model.js',
+          'visual_editor_component/frontend/js/editor_layout_overrides.js',
+          'visual_editor_component/frontend/js/editor_document_model.js',
+          'visual_editor_component/frontend/js/editor_blocks_model.js',
+          'visual_editor_component/frontend/js/editor_selection_model.js',
+          'visual_editor_component/frontend/js/editor_inspector_selection.js',
+          'visual_editor_component/frontend/js/editor_page_actions.js',
+          'visual_editor_component/frontend/js/editor_manual_pages.js',
+        ].forEach((file) => vm.runInContext(fs.readFileSync(file, 'utf8'), context, {filename: file}));
+        context.scrollToPage = () => {};
+
+        const catalog = context.manualPageTemplateCatalog();
+        const infoPage = context.manualPageFromTemplate('info');
+        const imageBlock = context.manualBlockTemplate('image');
+        const infoBlock = context.manualBlockTemplate('info');
+        context.model.document_pages.push(infoPage);
+        context.activePageId = infoPage.page_id;
+        context.activeBlockId = infoPage.manual_blocks[0].block_id;
+        context.activeFieldKey = 'document_pages.1.manual_blocks.0.editable_fields.content_html';
+        context.addManualBlockToSelectedPage('image');
+        console.log(JSON.stringify({
+          labels: Object.fromEntries(Object.entries(catalog).map(([key, value]) => [key, value.label])),
+          pageOptions: context.manualPageTemplateOptionsHtml('info'),
+          blockOptions: context.manualBlockTemplateOptionsHtml('image'),
+          infoPage,
+          imageBlock,
+          infoBlock,
+          activeFieldKey: context.activeFieldKey,
+          touched: context.touched,
+          blockCount: context.model.document_pages[1].manual_blocks.length,
+        }));
+        """
     )
+    return json.loads(subprocess.check_output(["node", "-e", script], text=True))
 
 
 def test_manual_page_templates_are_available_from_inspector_and_page_headers():
-    source = _frontend_source()
+    snapshot = _manual_template_snapshot()
 
-    assert "manualPageTemplateCatalog" in source
-    assert "manualPageTemplateOptionsHtml" in source
-    assert "inspectorManualPageTemplate" in source
-    assert "inspectorAddTemplatePageBtn" in source
-    assert "addManualPageAfter" in source
-    assert "Text page" in source
-    assert "Image page" in source
-    assert "Notes page" in source
-    assert "Info page" in source
+    assert snapshot["labels"]["text"] == "Text page"
+    assert snapshot["labels"]["image"] == "Image page"
+    assert snapshot["labels"]["notes"] == "Notes page"
+    assert snapshot["labels"]["info"] == "Info page"
+    assert '<option value="info" selected>Info page</option>' in snapshot["pageOptions"]
+    assert snapshot["infoPage"]["page_type"] == "manual"
+    assert snapshot["infoPage"]["editable_fields"]["template_id"] == "info"
+    assert snapshot["infoPage"]["page_actions"]["duplicate"] is True
 
 
 def test_manual_block_templates_can_be_inserted_from_inspector():
-    source = _frontend_source()
+    snapshot = _manual_template_snapshot()
 
-    assert "manualBlockTemplateOptionsHtml" in source
-    assert "manualBlockTemplate" in source
-    assert "addManualBlockToSelectedPage" in source
-    assert "inspectorManualBlockTemplate" in source
-    assert "inspectorInsertManualBlockBtn" in source
-    assert "manual_image" in source
-    assert "manual_info" in source
-    assert "manual_note" in source
+    assert '<option value="image" selected>Image placeholder block</option>' in snapshot["blockOptions"]
+    assert snapshot["imageBlock"]["type"] == "manual_image"
+    assert snapshot["infoBlock"]["type"] == "manual_info"
+    assert snapshot["blockCount"] == 3
+    assert snapshot["activeFieldKey"] == "document_pages.1.manual_blocks.2.editable_fields.content_html"
+    assert "document_pages" in snapshot["touched"]
 
 
 def test_manual_template_content_uses_pdf_safe_html_contract():

@@ -32,6 +32,7 @@ from pdf_exporter_modules.pdf_final_section_renderer import render_final_section
 from pdf_exporter_modules.pdf_final_section_renderer import render_important_notes_final_page as _render_important_notes_final_page
 from pdf_exporter_modules.pdf_final_section_renderer import render_supported_final_html as _render_supported_final_html
 from pdf_exporter_modules.pdf_html_fallback import _any_final_html_requires_fallback
+from pdf_exporter_modules.pdf_html_fallback import _day_content_html_supported
 from pdf_exporter_modules.pdf_html_fallback import _final_content_html_supported
 from pdf_exporter_modules.pdf_html_fallback import _iter_html_values
 from pdf_exporter_modules.pdf_html_fallback import render_document_requires_html_fallback
@@ -151,6 +152,7 @@ __all__ = [
     "_day_image_has_layout_budget",
     "_day_label",
     "_ellipsize_text",
+    "_day_content_html_supported",
     "_final_content_html_supported",
     "_image_path_from_match",
     "_iter_html_values",

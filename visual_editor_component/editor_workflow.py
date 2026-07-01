@@ -16,6 +16,7 @@ from app_modules.editor_commit import (
     PDF_COMMIT_REQUEST_KEY,
     PDF_COMMIT_READY_KEY,
 )
+from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from visual_editor_component.editor_autosave import try_apply_server_autosave
 from visual_editor_component.editor_status import autosave_status as _autosave_status
 from visual_editor_component.editor_bridge import render_visual_page_editor
@@ -81,7 +82,9 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
                 st.session_state[PDF_COMMIT_READY_KEY] = True
             elif applied_nonce and str(applied_nonce) == str(st.session_state.get(ADD_PICTURES_COMMIT_REQUEST_KEY, "")):
                 st.session_state[ADD_PICTURES_COMMIT_READY_KEY] = True
-            else:
+            if not st.session_state.get("_visual_editor_last_result_was_autosave"):
+                refresh_active_saved_project_current_snapshot(st.session_state)
+            if not applied_nonce:
                 # Autosaves should feel invisible. Manual Save keeps the visible success message.
                 if st.session_state.get("_visual_editor_last_result_changed") and not st.session_state.get("_visual_editor_last_result_was_autosave"):
                     st.success("Edits saved to preview and PDF export.")

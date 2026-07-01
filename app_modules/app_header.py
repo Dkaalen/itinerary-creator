@@ -4,6 +4,7 @@ from html import escape
 
 import streamlit as st
 
+from app_modules.project_file_ui import render_save_project_file_action
 from app_modules.project_io import rebuild_current_preview, reset_project_state
 from app_modules.workflow_config import FLOW_STAGES, STAGE_COPY, STAGE_LABELS
 from app_modules.workflow_shell import build_project_metrics, project_route_label, project_title
@@ -64,12 +65,15 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
     _render_top_nav(stage)
 
 def _render_stage_actions(stage: str) -> None:
-    left, right = st.columns([1, 1])
+    left, middle, right = st.columns([1, 1, 1])
     with left:
         if st.button("Start over", use_container_width=True):
             reset_project_state(clear_raw_text=True)
             set_workflow_stage(st.session_state, "input")
             st.rerun()
+    with middle:
+        if stage != "input":
+            render_save_project_file_action(key_suffix=stage)
     with right:
         if stage != "input" and st.button("Refresh itinerary", use_container_width=True):
             rebuild_current_preview(mark_pdf_dirty=True, force=True, save_html=True)

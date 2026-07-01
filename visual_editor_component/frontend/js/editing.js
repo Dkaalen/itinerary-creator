@@ -10,7 +10,7 @@ function safeSendComponentValue(serialized, stateName = 'saving') {
     Streamlit.setComponentValue(serialized);
     return true;
   } catch (err) {
-    persistLocalDraft();
+    persistLocalDraft({fullSnapshot: true});
     updateSaveState('failed', {
       error: `Could not send save to app: ${err?.message || err || 'unknown error'}`,
       lastAttemptAt: Date.now()
@@ -69,7 +69,7 @@ function saveRestoredLocalDraftToServer() {
   lastSavedPayload = serialized;
   lastServerAutosavePayload = serialized;
   lastServerAutosaveAt = Date.now();
-  persistLocalDraft();
+  persistLocalDraft({fullSnapshot: true});
   if (safeSendComponentValue(serialized, 'recovered')) {
     updateSaveState('recovered', {message: 'Recovered browser draft synced', lastAttemptAt: Date.now(), recovered: true});
   }
@@ -89,7 +89,7 @@ function saveChanges(commitNonce = null) {
   lastServerAutosavePayload = serialized;
   pendingServerSaveKeys = new Set(touchedKeys);
   pendingServerSavePayload = serialized;
-  persistLocalDraft();
+  persistLocalDraft({fullSnapshot: true});
   updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Saving…', lastAttemptAt: Date.now(), error: ''});
   if (!safeSendComponentValue(serialized, commitNonce ? 'exporting' : 'saving')) return;
   if (!pendingServerSaveKeys.size) {
@@ -156,6 +156,6 @@ function attachHandlers() {
 window.addEventListener('beforeunload', () => {
   if (touchedKeys.size) {
     collect();
-    persistLocalDraft();
+    persistLocalDraft({fullSnapshot: true});
   }
 });

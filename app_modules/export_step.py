@@ -17,6 +17,7 @@ from app_modules.export_job_state import (
     reset_export_job,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
+from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
 from app_modules.image_bank_status_cache import get_cached_image_bank_status
@@ -88,6 +89,7 @@ def _request_pdf_creation() -> None:
 
     _clear_stale_pdf_editor_state()
     if _create_pdf_now():
+        refresh_active_saved_project_current_snapshot(st.session_state)
         st.success("PDF created. Use the download button.")
         st.rerun()
 

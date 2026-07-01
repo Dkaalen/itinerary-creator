@@ -1,4 +1,3 @@
-/** Document model responsibility breadcrumbs: function documentPages -> editor_pages_model.js; function manualPageFromTemplate -> editor_manual_pages.js; function pageLayoutClasses -> editor_layout_overrides.js; function blockLayoutClasses -> editor_layout_overrides.js; function selectEditorPage -> editor_selection_model.js. */
 /** Shared editor document-model utilities. Page/block/selection/manual/layout responsibilities live in split modules. */
 function pageObjectAt(index) {
   const pages = Array.isArray(model.final_pages?.whats_included_pages_html) ? model.final_pages.whats_included_pages_html : [];
