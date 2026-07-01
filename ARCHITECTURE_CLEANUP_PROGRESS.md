@@ -2613,3 +2613,48 @@ Completed in Batch 35:
 [x] Deleted obsolete no-wait legacy PDF editor-save/commit compatibility modules
 [x] Updated export/image/inclusion regressions for the new sync boundary and clean final-page title policy
 ```
+
+---
+
+# Batch 36: Transport route facts repair
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Fix route-origin pollution and establish one canonical route-facts path for transport titles, day travel lines and final inclusions.
+```
+
+Completed in Batch 36:
+
+```text
+[x] Added TransportRouteFacts as the canonical route-facts wrapper for transport rows
+[x] Routed transport phrase generation and transport summaries through the shared route-facts path
+[x] Stripped supplier product/mode wording from route origins such as Domestic flight from Bergen, Overnight coastal cruise from Bergen, Eurostar train London and Night train Stockholm
+[x] Preserved via points, route destinations and transport mode facts for titles/rendering/inclusions
+[x] Fixed checked-bag detail wording so included flight baggage renders as checked luggage
+[x] Added regression coverage for polluted transport origins and explicit route facts
+```
+
+Validation snapshot:
+
+```text
+Focused transport route/inclusion regressions: passed
+Adjacent transport, cruise, rail, Finland and messy-input regressions: passed
+Fast validation targets excluding documented pre-existing expectation failures: passed
+Architecture validation targets excluding documented pre-existing source-contract failure: passed
+Full Python compilation: passed
+Frontend JavaScript syntax validation: passed
+Architecture guards: passed
+Import smoke: optional skips=24, failures=0
+git diff --check: passed
+```
+
+Pre-existing failures observed in the uploaded baseline and still unresolved:
+
+```text
+[x] tests/test_patch_k_transport_preview_quality.py::test_nutshell_timetable_route_uses_premium_no_arrow_format
+[x] tests/test_transport_render_split.py::test_nutshell_domain_and_parsing_do_not_import_transport_facade_or_each_other
+[x] tests/test_nordic_quality_sample.py::test_nordic_quality_sample_matches_key_quality_target_markers
+```

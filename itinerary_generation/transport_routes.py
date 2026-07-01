@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from itinerary_generation.transport_domain.routes import (
+    TransportRouteFacts,
     _ROUTE_PREFIX_ORIGINS,
     _clean_route_place,
     _route_destination_from_text,
@@ -10,9 +11,11 @@ from itinerary_generation.transport_domain.routes import (
     _via_suffix,
     get_route_points_for_transport,
     get_route_via_points,
+    get_transport_route_facts,
 )
 
 __all__ = [
+    "TransportRouteFacts",
     "_ROUTE_PREFIX_ORIGINS",
     "_clean_route_place",
     "_route_destination_from_text",
@@ -20,4 +23,5 @@ __all__ = [
     "_via_suffix",
     "get_route_points_for_transport",
     "get_route_via_points",
+    "get_transport_route_facts",
 ]

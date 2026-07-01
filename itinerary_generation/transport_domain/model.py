@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from itinerary_generation.common import get_row_type, is_self_arranged
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport, get_route_via_points
+from itinerary_generation.transport_domain.routes import get_transport_route_facts
 from itinerary_generation.transport_domain.titles import get_transport_route_phrase, get_transfer_travel_title
 
 
@@ -44,8 +44,7 @@ def build_transport_summary(row: dict, *, include_drive: bool = False) -> Transp
 
     row_type = get_row_type(row)
     source_text = get_transport_source_text(row)
-    origin, destination = get_route_points_for_transport(row)
-    via = tuple(get_route_via_points(row, origin, destination) or ())
+    facts = get_transport_route_facts(row)
     route_phrase = get_transport_route_phrase(row)
     transfer_title = get_transfer_travel_title(row)
     from itinerary_generation.transport_detection import is_route_transfer
@@ -58,7 +57,7 @@ def build_transport_summary(row: dict, *, include_drive: bool = False) -> Transp
     return TransportSummary(
         row_type=row_type,
         source_text=source_text,
-        route=TransportRoute(origin=origin, destination=destination, via=via, phrase=route_phrase),
+        route=TransportRoute(origin=facts.origin, destination=facts.destination, via=facts.via, phrase=route_phrase),
         client_title=route_phrase or transfer_title or str(row.get("title") or ""),
         transfer_title=transfer_title,
         is_transport_like=is_transport_like_row(row, include_drive=include_drive),

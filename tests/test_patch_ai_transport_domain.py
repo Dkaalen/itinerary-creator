@@ -2,6 +2,7 @@ from itinerary_generation.transport_domain.model import build_transport_summary
 from itinerary_generation.transport_domain.render import get_travel_arrangement_line as domain_travel_line
 from itinerary_generation.transport_domain.titles import get_transport_route_phrase as domain_route_phrase
 from itinerary_generation.transport_routes import get_route_points_for_transport as legacy_route_points
+from itinerary_generation.transport_routes import get_transport_route_facts
 from itinerary_generation.transport_titles import get_transport_route_phrase as legacy_route_phrase
 from itinerary_generation.travel_sequence_blocks import get_travel_arrangement_line as legacy_travel_line
 from parser_modules.transport_titles import standardize_private_transfer_title
@@ -60,3 +61,58 @@ def test_transport_exclusion_notice_uses_domain_flight_logic():
 
     assert self_arranged_flight_notice(row) == domain_flight_notice(row)
     assert self_arranged_flight_notice(row) == "Self-arranged flight to Bergen (not included)"
+
+
+def test_transport_route_facts_strip_product_words_from_origins():
+    cases = [
+        (
+            {
+                "type": "Transfer",
+                "effective_type": "Flight",
+                "title": "Flight to Oslo via Stavanger",
+                "details": "Domestic flight from Bergen to Oslo via Stavanger - Luggage included",
+                "original_title": "Domestic flight from Bergen to Oslo via Stavanger - Luggage included",
+                "city": "Oslo",
+            },
+            ("Bergen", "Oslo", ("Stavanger",), "flight"),
+        ),
+        (
+            {
+                "type": "Cruise",
+                "effective_type": "Cruise",
+                "title": "Cruise to Trondheim",
+                "details": "Overnight coastal cruise from Bergen to Trondheim - 2 x Outside Cabin - Breakfast included",
+                "original_title": "Overnight coastal cruise from Bergen to Trondheim - 2 x Outside Cabin - Breakfast included",
+                "city": "Trondheim",
+            },
+            ("Bergen", "Trondheim", (), "cruise"),
+        ),
+        (
+            {
+                "type": "Train",
+                "effective_type": "Train",
+                "title": "Train to Paris",
+                "details": "Eurostar train London to Paris - 09:00 - 12:20 - 2 x Standard Premier seats - train tickets included",
+                "original_title": "Eurostar train London to Paris",
+                "city": "Paris",
+            },
+            ("London", "Paris", (), "train"),
+        ),
+        (
+            {
+                "type": "Transfer",
+                "effective_type": "Train",
+                "title": "Overnight Train to Narvik",
+                "details": "Night train Stockholm to Narvik - 2 x private sleeper compartment - breakfast included",
+                "original_title": "Night train Stockholm to Narvik - 2 x private sleeper compartment - breakfast included",
+                "city": "Narvik",
+            },
+            ("Stockholm", "Narvik", (), "train"),
+        ),
+    ]
+
+    for row, expected in cases:
+        facts = get_transport_route_facts(row)
+
+        assert (facts.origin, facts.destination, facts.via, facts.mode) == expected
+        assert facts.confidence == "explicit"

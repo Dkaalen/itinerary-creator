@@ -29,6 +29,7 @@ from itinerary_generation.transport_norway import (
     has_norway_in_a_nutshell,
 )
 from itinerary_generation.transport_domain.routes import (
+    TransportRouteFacts,
     _ROUTE_PREFIX_ORIGINS,
     _clean_route_place,
     _route_destination_from_text,
@@ -36,6 +37,7 @@ from itinerary_generation.transport_domain.routes import (
     _via_suffix,
     get_route_points_for_transport,
     get_route_via_points,
+    get_transport_route_facts,
 )
 from itinerary_generation.transport_domain.titles import (
     get_first_transfer_title,
@@ -50,6 +52,7 @@ __all__ = [
     "TRANSPORT_CORE_FIELDS",
     "TRANSPORT_SOURCE_FIELDS",
     "TransportRowContext",
+    "TransportRouteFacts",
     "_ROUTE_PREFIX_ORIGINS",
     "_clean_route_place",
     "_is_norway_in_a_nutshell_text",
@@ -68,6 +71,7 @@ __all__ = [
     "get_transport_route_phrase",
     "get_route_points_for_transport",
     "get_route_via_points",
+    "get_transport_route_facts",
     "get_transfer_travel_title",
     "has_airport_arrival_transfer",
     "has_airport_departure_transfer",

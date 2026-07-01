@@ -117,6 +117,7 @@ def format_flight_luggage_detail(source: str) -> str:
         return ""
     prefix = (match.group(1) or "").strip()
     item = match.group(2).lower().replace("baggage", "luggage")
+    item = re.sub(r"^checked\s+bag$", "checked luggage", item)
     return f"{prefix} {item} included".strip()
 
 

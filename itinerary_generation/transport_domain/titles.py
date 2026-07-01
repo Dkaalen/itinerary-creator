@@ -15,7 +15,7 @@ from itinerary_generation.transport_domain.routes import (
     _clean_route_place,
     _via_suffix,
     get_route_points_for_transport,
-    get_route_via_points,
+    get_transport_route_facts,
     _route_destination_from_text,
 )
 
@@ -29,8 +29,10 @@ def get_transport_route_phrase(row):
     if nutshell_journey is not None:
         return nutshell_journey.client_title
 
-    origin, destination = get_route_points_for_transport(row)
-    via = get_route_via_points(row, origin, destination)
+    route_facts = get_transport_route_facts(row)
+    origin = route_facts.origin
+    destination = route_facts.destination
+    via = list(route_facts.via)
 
     if row_type == "Transfer" and has_local_transfer_marker(lower) and not is_route_transfer(row):
         return polish_title(row.get("title", "") or "Transfer")
