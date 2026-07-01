@@ -119,7 +119,7 @@ def test_frontend_contains_quiet_server_autosave_contract():
     assert "buildServerAutosaveEnvelope" in source
     assert "autosave: true" in source
     assert "sendServerAutosaveNow" in source
-    assert "Changes autosave quietly while you work" in source
+    assert "Browser recovery saves while you work" in source
     assert "Autosaving…" in source
 
 

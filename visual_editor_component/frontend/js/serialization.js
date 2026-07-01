@@ -23,6 +23,18 @@ function collect() {
   return model;
 }
 
+function collectTouched() {
+  if (!touchedKeys || !touchedKeys.size) return model;
+  touchedKeys.forEach(key => {
+    const el = document.querySelector(`[data-edit-key="${cssEscapeValue(key)}"]`);
+    if (el) setByPath(model, key, editableValue(el));
+  });
+  Object.keys(uploadedImages).forEach(idx => {
+    if (model.days[idx]) model.days[idx].image.upload = uploadedImages[idx];
+  });
+  return model;
+}
+
 function compactImage(image) {
   const copy = JSON.parse(JSON.stringify(image || {}));
   delete copy.data_uri;
@@ -180,8 +192,9 @@ function compactFullPayloadForCommit(value) {
   return full;
 }
 function buildSaveEnvelope(commitNonce = null) {
-  collect();
   const isPdfCommit = commitNonce !== null && commitNonce !== undefined && commitNonce !== '';
+  if (isPdfCommit) collect();
+  else collectTouched();
   // PDF export is the hard commit point. Send the full visible editor model,
   // not only keys that browser input events noticed, so the PDF cannot miss
   // a direct preview edit. Normal "Save for now" remains minimal.
@@ -193,7 +206,7 @@ function buildSaveEnvelope(commitNonce = null) {
 }
 
 function buildServerAutosaveEnvelope() {
-  collect();
+  collectTouched();
   const payload = pruneForSave(model);
   // Server autosave is intentionally delta-based. Keep only changed fields plus
   // the small identity metadata needed for safe recovery/merge. PDF export still

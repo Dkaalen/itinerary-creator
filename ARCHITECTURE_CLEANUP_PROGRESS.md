@@ -2563,3 +2563,27 @@ Completed in Batch 33:
 [x] Reused cached picture-stage image matches during PDF image-contract preparation when valid
 [x] Added regression tests for no-wait export and image-edit hot-path stability
 ```
+---
+
+# Batch 34: Editor image/save workflow recovery
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Recover from the Batch 33 image-edit regression by keeping normal editor edits local and non-blocking, making manual Save a compact sync, and deferring heavy preview/PDF refresh work to explicit workflow boundaries.
+```
+
+Completed in Batch 34:
+
+```text
+[x] Stopped normal image replacement/crop/upload actions from scheduling forced server autosave or Streamlit component commits
+[x] Changed normal edit dirty-state handling to save browser recovery drafts locally without triggering automatic Streamlit reruns
+[x] Debounced browser-local draft persistence so typing/image changes do not rewrite the full recovery snapshot on every single interaction
+[x] Changed recovered browser drafts to wait for explicit Save instead of immediately sending a server payload on component render
+[x] Added a touched-field collection path so normal Save only reads changed editor fields instead of collecting the whole document
+[x] Kept full visible-model collection for hard commit boundaries such as Apply Changes / legacy commit nonce flows
+[x] Removed synchronous preview/render-context rebuild from normal editor Save; Add Pictures and PDF export remain the explicit refresh boundaries
+[x] Updated editor messaging and regression tests so picture edits and normal saves stay local/non-blocking until the user chooses to sync
+```

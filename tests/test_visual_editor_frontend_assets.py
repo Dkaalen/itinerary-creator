@@ -143,7 +143,7 @@ def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
     assert "Save changes to refresh the preview image" not in inspector
 
 
-def test_server_autosave_waits_for_editor_idle_instead_of_interrupting_scroll():
+def test_server_autosave_waits_for_editor_idle_when_explicitly_scheduled():
     state = (FRONTEND / "js/state.js").read_text(encoding="utf-8")
     save_state = (FRONTEND / "js/editor_save_state.js").read_text(encoding="utf-8")
     editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
@@ -151,9 +151,13 @@ def test_server_autosave_waits_for_editor_idle_instead_of_interrupting_scroll():
     assert "AUTOSAVE_IDLE_GRACE_MS" in state
     assert "function noteEditorInteraction" in save_state
     assert "function editorIsActivelyInUse" in save_state
+    dirty_state = (FRONTEND / "js/editor_dirty_state.js").read_text(encoding="utf-8")
+
     assert "editorIsActivelyInUse(now)" in editing
     assert "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)" in editing
     assert "addEventListener('scroll', noteEditorInteraction" in editing
+    assert "if (options.serverAutosave === true) scheduleServerAutosave()" in dirty_state
+    assert "scheduleServerAutosave()" not in dirty_state.split("if (options.serverAutosave === true)", 1)[0]
 
 
 def test_image_edits_refresh_only_the_affected_image_surface():
@@ -163,7 +167,8 @@ def test_image_edits_refresh_only_the_affected_image_surface():
     assert "function replaceCoverImagePanel" in image_handlers
     assert "refreshImageEditSurface('day', idx)" in image_handlers
     assert "refreshImageEditSurface('cover', key)" in image_handlers
-    assert "scheduleServerAutosave(autosaveDelayMs, true)" in image_handlers
+    assert "markTouched(key, {serverAutosave: false})" in image_handlers
+    assert "scheduleServerAutosave(autosaveDelayMs, true)" not in image_handlers
 
     day_action_block = image_handlers.split("root.querySelectorAll('[data-img-action]')", 1)[1].split("root.querySelectorAll('[data-img-focus]')", 1)[0]
     cover_action_block = image_handlers.split("root.querySelectorAll('[data-cover-img-action]')", 1)[1].split("root.querySelectorAll('[data-cover-img-focus]')", 1)[0]

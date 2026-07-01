@@ -17,8 +17,13 @@ function stripUploadBinaryForLocalDraft(value) {
 }
 
 function persistLocalDraft() {
+  if (localDraftTimer) {
+    clearTimeout(localDraftTimer);
+    localDraftTimer = null;
+  }
   if (!model || !initialPayload) return;
   try {
+    if (typeof collectTouched === 'function') collectTouched();
     const compact = stripUploadBinaryForLocalDraft(compactFullPayloadForCommit(model));
     const snapshot = attachEditableDraft(compact);
     localStorage.setItem(draftStorageKey(), JSON.stringify({
@@ -29,6 +34,14 @@ function persistLocalDraft() {
     }));
     saveState.localDraftAt = Date.now();
   } catch (err) {}
+}
+
+function scheduleLocalDraftPersist(delayMs = LOCAL_DRAFT_SAVE_DELAY_MS) {
+  if (localDraftTimer) clearTimeout(localDraftTimer);
+  localDraftTimer = setTimeout(() => {
+    localDraftTimer = null;
+    persistLocalDraft();
+  }, Math.max(0, Number(delayMs) || 0));
 }
 
 function sameDraftDay(a, b, fallbackIndex) {

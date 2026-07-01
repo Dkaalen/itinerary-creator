@@ -71,8 +71,11 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
     if result and result != st.session_state.get("_last_visual_editor_result"):
         st.session_state["_last_visual_editor_result"] = result
         if apply_visual_editor_result(result, output_edits, mark_dirty=mark_dirty):
-            if rebuild_preview:
-                rebuild_preview(mark_pdf_dirty=True)
+            # Keep Save nearly instant: applying a compact editor delta must not
+            # synchronously rebuild the full HTML/PDF render context on the same
+            # Streamlit rerun.  The editor payload is rebuilt from output_edits
+            # on the next render, while Add Pictures / PDF export explicitly
+            # refresh the preview when they need committed server state.
             applied_nonce = st.session_state.get("_visual_editor_last_applied_commit_nonce")
             if applied_nonce and str(applied_nonce) == str(st.session_state.get(PDF_COMMIT_REQUEST_KEY, "")):
                 st.session_state[PDF_COMMIT_READY_KEY] = True

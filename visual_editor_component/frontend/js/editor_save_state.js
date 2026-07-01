@@ -23,10 +23,10 @@ function saveStatusLabel() {
 
 function saveStatusDetail() {
   if (saveState.error) return saveState.error;
-  if (saveState.state === 'dirty') return 'Browser recovery draft is saved locally. Server autosave will run shortly.';
+  if (saveState.state === 'dirty') return 'Browser recovery draft is saved locally. Use Save changes when you want to sync to the app.';
   if (saveState.state === 'saving' || saveState.state === 'autosaving') return 'Sending a compact editor delta to the app.';
-  if (saveState.state === 'recovered') return 'A matching browser draft was restored and queued for server autosave.';
-  if (saveState.state === 'local_draft') return 'The browser has a local recovery copy. Keep this tab open until saving succeeds.';
+  if (saveState.state === 'recovered') return 'A matching browser draft was restored and can be synced with Save changes.';
+  if (saveState.state === 'local_draft') return 'The browser has a local recovery copy. Use Save changes before leaving this project.';
   if (saveState.state === 'failed') return 'Your local recovery draft is still kept in this browser.';
   if (saveState.serverOk === false) return saveState.serverReason || 'Last server autosave was rejected.';
   const savedAt = humanTime(saveState.lastSavedAt || saveState.serverSavedAt || saveState.localDraftAt);

@@ -1,8 +1,8 @@
-function markTouched(key) {
+function markTouched(key, options = {}) {
   if (key) touchedKeys.add(key);
-  persistLocalDraft();
+  scheduleLocalDraftPersist();
   updateSaveState('dirty', {message: 'Unsaved edits', error: ''});
-  scheduleServerAutosave();
+  if (options.serverAutosave === true) scheduleServerAutosave();
   updateEditorStats();
 }
 function dirtyKeysForPage(pageId) {

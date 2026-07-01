@@ -131,9 +131,11 @@ function compressUploadedImage(file, callback) {
   reader.readAsDataURL(file);
 }
 
-function touchImageField(key, autosaveDelayMs = 1500) {
-  markTouched(key);
-  scheduleServerAutosave(autosaveDelayMs, true);
+function touchImageField(key) {
+  // Image edits must stay local and non-blocking.  Sending a Streamlit
+  // component value here mutes the parent page and interrupts picture review.
+  // Manual Save / Apply Changes / PDF export are the server-sync boundaries.
+  markTouched(key, {serverAutosave: false});
 }
 
 function attachImageEventHandlers(root = document) {

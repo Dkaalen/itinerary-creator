@@ -71,13 +71,17 @@ function saveRestoredLocalDraftToServer() {
   lastServerAutosaveAt = Date.now();
   persistLocalDraft();
   if (safeSendComponentValue(serialized, 'recovered')) {
-    updateSaveState('recovered', {message: 'Recovered browser draft and saved it', lastAttemptAt: Date.now(), recovered: true});
+    updateSaveState('recovered', {message: 'Recovered browser draft synced', lastAttemptAt: Date.now(), recovered: true});
   }
   updateEditorStats();
 }
 
 function saveChanges(commitNonce = null) {
   if (serverAutosaveTimer) { clearTimeout(serverAutosaveTimer); serverAutosaveTimer = null; }
+  if (restoredLocalDraftPendingSave && !commitNonce && !touchedKeys.size) {
+    saveRestoredLocalDraftToServer();
+    return;
+  }
   if (!touchedKeys.size && !commitNonce) return;
   const serialized = buildSaveEnvelope(commitNonce);
   if (!commitNonce && serialized === lastSavedPayload) return;

@@ -41,3 +41,10 @@ def test_legacy_editor_workflow_import_path_stays_stable():
     assert editor_payload_builder.build_visual_editor_payload is build_visual_editor_payload
     assert editor_result_applier.apply_visual_editor_result is apply_visual_editor_result
     assert callable(editor_autosave.try_apply_server_autosave)
+
+
+def test_visual_editor_save_does_not_synchronously_rebuild_preview():
+    source = (ROOT / "visual_editor_component" / "editor_workflow.py").read_text(encoding="utf-8")
+
+    assert "Keep Save nearly instant" in source
+    assert "rebuild_preview(mark_pdf_dirty=True)" not in source

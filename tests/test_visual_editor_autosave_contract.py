@@ -353,7 +353,7 @@ def test_visual_editor_frontend_has_autosave_and_text_first_contract():
     editor_html = _visual_editor_frontend_source()
 
     assert "Edit itinerary text" in editor_html
-    assert "Autosaving" in editor_html
+    assert "Browser recovery saves while you work" in editor_html
     assert "localStorage.setItem" in editor_html
     assert "beforeunload" in editor_html
     assert "picturesAdded" in editor_html
@@ -367,14 +367,15 @@ def test_visual_editor_text_mode_cover_uses_high_contrast_edit_skin():
     assert "cover-page.editor-text-cover .cover-title" in editor_html
     assert "picturesAdded() ? '' : 'editor-text-cover'" in editor_html
 
-def test_visual_editor_recovered_browser_draft_is_saved_back_to_streamlit():
+def test_visual_editor_recovered_browser_draft_waits_for_explicit_save():
     editor_html = _visual_editor_frontend_source()
 
     assert "restoredLocalDraftPendingSave" in editor_html
     assert "saveRestoredLocalDraftToServer" in editor_html
-    assert "Recovered browser draft and saved it" in editor_html
+    assert "Recovered browser draft. Use Save changes to sync it." in editor_html
+    assert "Recovered browser draft synced" in editor_html
     assert "serverSnapshot === localSnapshot" in editor_html
-    assert "setTimeout(saveRestoredLocalDraftToServer, 0)" in editor_html
+    assert "setTimeout(saveRestoredLocalDraftToServer, 0)" not in editor_html
 
 
 def test_visual_editor_payload_includes_source_signature_for_draft_recovery():

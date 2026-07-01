@@ -27,7 +27,7 @@ function render(payload, commitNonce = null) {
   lastSavedPayload = '';
   draw();
   if (restoredLocalDraftPendingSave) {
-    setTimeout(saveRestoredLocalDraftToServer, 0);
+    updateSaveState('recovered', {message: 'Recovered browser draft. Use Save changes to sync it.', recovered: true});
   }
 }
 function draw() {
@@ -37,7 +37,7 @@ function draw() {
   let h = editorShellOpenHtml(brand) + `
     <div class="editor-toolbar">
       <div class="toolbar-main">
-        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Changes autosave quietly while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · hover an image to edit it on the canvas' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
+        <div class="toolbar-copy compact"><strong>Editor</strong><span>${picturesAdded() ? 'Pictures added · review pages and save when done.' : 'Edit on the page · Browser recovery saves while you work'}</span><span class="toolbar-legacy-label">${picturesAdded() ? 'Review itinerary with pictures · hover an image to edit it on the canvas' : 'Edit itinerary text · use the formatting inspector for font, size, and color'}</span></div>
       </div>
       <div class="toolbar-stack">
         <div class="toolbar-actions">
