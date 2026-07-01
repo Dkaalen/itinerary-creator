@@ -10,6 +10,7 @@ from app_modules.output_brand import output_brand_id
 
 from .day_page_guard import one_page_day_flowable
 from .pdf_branding import configure_pdf_brand
+from .pdf_reportlab_config import configure_reportlab_for_fast_pdf
 from .renderers import render_cover_page, render_general_page, render_glance_page
 from .styles import (
     apply_pdf_palette,
@@ -24,6 +25,7 @@ def export_html_to_pdf(html_path, pdf_path):
     Converts the generated itinerary HTML into an A4 PDF without browser dependencies.
     """
 
+    configure_reportlab_for_fast_pdf()
     html_path = Path(html_path).resolve()
     pdf_path = Path(pdf_path).resolve()
     pdf_path.parent.mkdir(parents=True, exist_ok=True)

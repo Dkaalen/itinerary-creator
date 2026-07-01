@@ -11,6 +11,21 @@ def test_export_step_uses_shared_recoverable_pdf_job_flow():
     assert "Applying pending editor changes" not in source
     assert "visual_editor_export_commit_ready" not in source
     assert "current_export_job" in source
+    assert "auto_pdf_create_requested" in source
+    assert "PDF creation is queued" in source
+    assert "request_pdf_editor_commit(st.session_state)" in source
+    assert "mark_export_waiting_for_editor" in source
+    assert "Applying the latest editor changes before creating the PDF" in source
+
+
+def test_pdf_export_configures_reportlab_for_fast_image_streams():
+    config_source = Path("pdf_exporter_modules/pdf_reportlab_config.py").read_text(encoding="utf-8")
+    typed_source = Path("pdf_exporter_modules/typed_exporter.py").read_text(encoding="utf-8")
+    fallback_source = Path("pdf_exporter_modules/exporter.py").read_text(encoding="utf-8")
+
+    assert "rl_config.useA85 = 0" in config_source
+    assert "configure_reportlab_for_fast_pdf()" in typed_source
+    assert "configure_reportlab_for_fast_pdf()" in fallback_source
 
 
 def test_picture_page_create_pdf_enters_export_with_one_shot_auto_request():

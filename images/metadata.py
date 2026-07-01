@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 import re
 import unicodedata
@@ -116,6 +117,7 @@ class ImageCandidate:
     seasons: tuple[str, ...]
 
 
+@lru_cache(maxsize=32768)
 def normalize_keyword(value: str) -> str:
     text = str(value or "").strip().lower()
     text = text.replace("ø", "o").replace("æ", "ae").replace("å", "a")
@@ -137,36 +139,57 @@ def tokenize(value: str) -> set[str]:
     return tokens
 
 
+@lru_cache(maxsize=1)
+def _city_alias_lookup() -> dict[str, frozenset[str]]:
+    """Return normalized city aliases keyed by every normalized alias.
+
+    Image matching asks for the same destination variants many times while
+    ranking selected images, replacement options and PDF/editor payloads.  Build
+    the alias map once so each call avoids re-normalizing the full registry.
+    """
+
+    lookup: dict[str, frozenset[str]] = {}
+    for original, aliases in CITY_ALIASES.items():
+        normalized_group = {normalize_keyword(original)}
+        normalized_group.update(normalize_keyword(alias) for alias in aliases)
+        frozen_group = frozenset(value for value in normalized_group if value)
+        for value in frozen_group:
+            existing = lookup.get(value)
+            lookup[value] = frozenset(set(existing or ()) | set(frozen_group))
+    return lookup
+
+
 def city_variants(value: str) -> set[str]:
     key = normalize_keyword(value)
     if not key:
         return set()
-    variants = {key}
-    for original, aliases in CITY_ALIASES.items():
-        normalized_original = normalize_keyword(original)
-        normalized_aliases = {normalize_keyword(alias) for alias in aliases}
-        if key == normalized_original or key in normalized_aliases:
-            variants.add(normalized_original)
-            variants.update(normalized_aliases)
-    return {variant for variant in variants if variant}
+    return set(_city_alias_lookup().get(key, frozenset({key})))
+
+
+@lru_cache(maxsize=1)
+def _normalized_theme_aliases() -> dict[str, frozenset[str]]:
+    return {
+        theme: frozenset(normalize_keyword(alias) for alias in aliases if normalize_keyword(alias))
+        for theme, aliases in THEME_ALIASES.items()
+    }
+
+
+@lru_cache(maxsize=1)
+def _normalized_season_aliases() -> dict[str, frozenset[str]]:
+    return {
+        season: frozenset(normalize_keyword(alias) for alias in aliases if normalize_keyword(alias))
+        for season, aliases in SEASON_ALIASES.items()
+    }
 
 
 def infer_themes(tokens: set[str]) -> set[str]:
-    themes = set()
-    for theme, aliases in THEME_ALIASES.items():
-        normalized_aliases = {normalize_keyword(alias) for alias in aliases}
-        if tokens & normalized_aliases:
-            themes.add(theme)
-    return themes
+    token_set = set(tokens or set())
+    return {theme for theme, aliases in _normalized_theme_aliases().items() if token_set & aliases}
 
 
 def infer_seasons(tokens: set[str]) -> set[str]:
-    seasons = set()
-    for season, aliases in SEASON_ALIASES.items():
-        normalized_aliases = {normalize_keyword(alias) for alias in aliases}
-        if tokens & normalized_aliases:
-            seasons.add(season)
-    return seasons
+    token_set = set(tokens or set())
+    return {season for season, aliases in _normalized_season_aliases().items() if token_set & aliases}
 
 
 def infer_primary_month_from_rows(rows: list[dict]) -> int | None:

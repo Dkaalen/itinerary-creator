@@ -190,4 +190,4 @@ def test_replacement_options_all_receive_small_previews():
     payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
 
     assert "DAY_REPLACEMENT_OPTION_LIMIT = 8" in payload
-    assert "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT" in payload
+    assert "OPTION_PREVIEW_LIMIT = 2" in payload

@@ -24,7 +24,6 @@ except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallb
 
     st = _NoStreamlit()
 
-from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
 from pdf_exporter_modules.export_profiles import pdf_filename, resolve_pdf_export_profile
 
 
@@ -73,6 +72,8 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
 
         outputs_folder = Path("outputs")
         outputs_folder.mkdir(exist_ok=True)
+
+        from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
 
         profile = resolve_pdf_export_profile(output_edits or None)
         base_name = "itinerary_preview_booknordics" if str((output_edits or {}).get("output_brand") or "agent") == "booknordics_customer" else "itinerary_preview"

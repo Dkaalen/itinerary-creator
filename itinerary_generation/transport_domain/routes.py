@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from parser_modules.common import extract_route_points
 from place_aliases import canonicalize_place_name
@@ -308,7 +309,7 @@ def _scheduled_route_points_from_source(source_text: str) -> tuple[str, str]:
             return origin, destination
     return "", ""
 
-def get_route_points_for_transport(row):
+def _get_route_points_for_transport_uncached(row):
     """Return normalized (origin, destination) for a transport row.
 
     This is route-based rather than fixture-based. It looks across title,
@@ -415,6 +416,62 @@ def get_route_points_for_transport(row):
     return "", _clean_route_place(row.get("city", ""))
 
 
+
+def _route_row_signature(row) -> tuple[str, ...]:
+    if not isinstance(row, dict):
+        return (str(row),)
+    return (
+        str(row.get("row_id") or row.get("line_number") or ""),
+        str(row.get("type") or ""),
+        str(row.get("effective_type") or ""),
+        str(row.get("city") or ""),
+        str(row.get("title") or ""),
+        str(row.get("original_title") or ""),
+        str(row.get("details") or ""),
+        str(row.get("raw") or row.get("raw_text") or ""),
+        str(row.get("route_origin") or ""),
+        str(row.get("route_destination") or ""),
+    )
+
+
+def _row_from_route_signature(signature: tuple[str, ...]) -> dict:
+    if len(signature) == 1:
+        return {"title": signature[0]}
+    (
+        row_id,
+        row_type,
+        effective_type,
+        city,
+        title,
+        original_title,
+        details,
+        raw,
+        route_origin,
+        route_destination,
+    ) = signature
+    return {
+        "row_id": row_id,
+        "type": row_type,
+        "effective_type": effective_type,
+        "city": city,
+        "title": title,
+        "original_title": original_title,
+        "details": details,
+        "raw": raw,
+        "route_origin": route_origin,
+        "route_destination": route_destination,
+    }
+
+
+@lru_cache(maxsize=2048)
+def _cached_route_points_for_transport(signature: tuple[str, ...]) -> tuple[str, str]:
+    return _get_route_points_for_transport_uncached(_row_from_route_signature(signature))
+
+
+def get_route_points_for_transport(row):
+    """Return normalized (origin, destination) for a transport row."""
+
+    return _cached_route_points_for_transport(_route_row_signature(row))
 
 def _scheduled_via_points_from_source(source_text: str, origin: str = "", destination: str = "") -> list[str]:
     """Return intermediate arrival places from timetable prose."""

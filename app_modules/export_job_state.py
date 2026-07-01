@@ -83,10 +83,16 @@ def request_auto_pdf_create(state: MutableMapping[str, Any]) -> None:
     state[PDF_AUTO_CREATE_REQUEST_KEY] = True
 
 
-def consume_auto_pdf_create_request(state: MutableMapping[str, Any]) -> bool:
-    """Return and clear the one-shot automatic PDF request flag."""
+def auto_pdf_create_requested(state: Mapping[str, Any]) -> bool:
+    """Return whether a queued automatic PDF request is still waiting."""
 
-    requested = bool(state.get(PDF_AUTO_CREATE_REQUEST_KEY))
+    return bool(state.get(PDF_AUTO_CREATE_REQUEST_KEY))
+
+
+def consume_auto_pdf_create_request(state: MutableMapping[str, Any]) -> bool:
+    """Return and clear the automatic PDF request flag."""
+
+    requested = auto_pdf_create_requested(state)
     state[PDF_AUTO_CREATE_REQUEST_KEY] = False
     return requested
 

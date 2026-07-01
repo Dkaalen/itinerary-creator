@@ -22,7 +22,8 @@ from itinerary_generation.cover_assets import resolve_cover_background
 
 
 DAY_REPLACEMENT_OPTION_LIMIT = 8
-OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT
+# Keep the replacement list useful while avoiding 8 eager base64 previews per day.
+OPTION_PREVIEW_LIMIT = 2
 EDITOR_IMAGE_PAYLOAD_CACHE_LIMIT = 18
 
 _IMAGE_PAYLOAD_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()

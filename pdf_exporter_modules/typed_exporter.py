@@ -39,6 +39,7 @@ from pdf_exporter_modules.pdf_html_fallback import render_document_requires_html
 from pdf_exporter_modules.pdf_image_renderer import image_path_from_match as _image_path_from_match
 from pdf_exporter_modules.pdf_image_renderer import render_day_image_flowable as _render_day_image_flowable
 from pdf_exporter_modules.pdf_image_prewarm import prewarm_pdf_day_images
+from pdf_exporter_modules.pdf_reportlab_config import configure_reportlab_for_fast_pdf
 from pdf_exporter_modules.styles import apply_pdf_palette, make_styles, page_background
 from pdf_exporter_modules.pdf_branding import configure_pdf_brand
 
@@ -61,6 +62,7 @@ def export_render_document_to_pdf(
 ):
     """Export a typed RenderDocument to PDF without parsing generated HTML."""
 
+    configure_reportlab_for_fast_pdf()
     pdf_path = Path(pdf_path).resolve()
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     apply_pdf_palette(color_data or None)

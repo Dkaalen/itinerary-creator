@@ -1,5 +1,6 @@
 from app_modules.editor_commit import clear_pdf_editor_commit_request, request_pdf_editor_commit
 from app_modules.export_job_state import (
+    auto_pdf_create_requested,
     consume_auto_pdf_create_request,
     current_export_job,
     mark_export_failed,
@@ -15,7 +16,9 @@ def test_pdf_export_auto_create_request_is_one_shot():
 
     request_auto_pdf_create(state)
 
+    assert auto_pdf_create_requested(state) is True
     assert consume_auto_pdf_create_request(state) is True
+    assert auto_pdf_create_requested(state) is False
     assert consume_auto_pdf_create_request(state) is False
 
 

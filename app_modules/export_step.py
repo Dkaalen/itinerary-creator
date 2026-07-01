@@ -7,13 +7,21 @@ from app_modules.export_actions import (
     create_pdf_from_current_preview,
     current_pdf_bytes,
 )
-from app_modules.editor_commit import clear_pdf_editor_commit_request
+from app_modules.editor_commit import (
+    PDF_COMMIT_REQUEST_KEY,
+    clear_pdf_editor_commit_request,
+    pdf_editor_commit_ready,
+    request_pdf_editor_commit,
+)
 from app_modules.export_job_state import (
+    auto_pdf_create_requested,
     consume_auto_pdf_create_request,
     current_export_job,
     mark_export_failed,
+    mark_export_waiting_for_editor,
     mark_export_ready,
     mark_exporting,
+    request_auto_pdf_create,
     reset_export_job,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
@@ -84,6 +92,17 @@ def _clear_stale_pdf_editor_state() -> None:
     reset_export_job(st.session_state)
 
 
+
+def _pdf_editor_commit_pending() -> bool:
+    return bool(st.session_state.get(PDF_COMMIT_REQUEST_KEY)) and not pdf_editor_commit_ready(st.session_state)
+
+
+def _queue_synced_pdf_creation() -> None:
+    nonce = request_pdf_editor_commit(st.session_state)
+    mark_export_waiting_for_editor(st.session_state, commit_nonce=nonce)
+    request_auto_pdf_create(st.session_state)
+    st.rerun()
+
 def _request_pdf_creation() -> None:
     """Create the PDF from the current committed preview state."""
 
@@ -114,17 +133,25 @@ def render_export_step(app_version: str) -> None:
     if readiness.pdf_ready:
         return
 
-    auto_create = consume_auto_pdf_create_request(st.session_state)
+    auto_create = auto_pdf_create_requested(st.session_state)
+    commit_pending = _pdf_editor_commit_pending()
+    if auto_create and commit_pending:
+        st.info("Applying the latest editor changes before creating the PDF…")
+        st.button("Create PDF", disabled=True, use_container_width=True)
+        return
     if auto_create and readiness.can_create_pdf:
+        consume_auto_pdf_create_request(st.session_state)
         _request_pdf_creation()
         return
+    if auto_create:
+        st.info("PDF creation is queued and will start as soon as the current preview is ready.")
 
     job = current_export_job(st.session_state)
     if job.failed and job.error:
         st.warning("The last PDF attempt did not complete. You can retry without restarting the itinerary.")
 
     if st.button("Create PDF", type="primary", use_container_width=True, disabled=not readiness.can_create_pdf):
-        _request_pdf_creation()
+        _queue_synced_pdf_creation()
 
 
 __all__ = ["render_export_step", "render_pdf_download_station"]
