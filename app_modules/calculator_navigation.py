@@ -49,8 +49,13 @@ def close_calculator_page(state: MutableMapping[str, Any]) -> None:
 
 
 def render_calculator_entry_button() -> None:
-    """Render the front-page calculator entry action."""
+    """Render a compact calculator entry action."""
 
-    if st.button("Calculate itinerary", type="primary", use_container_width=True):
+    action_col, help_col = st.columns([0.22, 0.78], vertical_alignment="center")
+    with action_col:
+        open_requested = st.button("Open calculator", type="primary", use_container_width=True)
+    with help_col:
+        st.caption("Build, price, export, and generate an itinerary from the in-app spreadsheet.")
+    if open_requested:
         open_calculator_page(st.session_state)
         st.rerun()

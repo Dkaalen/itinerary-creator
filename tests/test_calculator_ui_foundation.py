@@ -261,7 +261,8 @@ def test_calculator_component_uses_debounced_non_intrusive_suggestions_and_formu
     assert "SUGGESTION_DEBOUNCE_MS" in app_source
     assert "renderSuggestionPanelOnly" in app_source
     assert "requestAnimationFrame(setCalculatorFrameHeight);" not in app_source.split("function renderSuggestionPanelOnly", 1)[1].split("function submitAction", 1)[0]
-    assert ".suggestion-panel { position: fixed" in css_source
+    assert ".suggestion-panel" in css_source
+    assert "position: fixed;" in css_source
     assert "calculator_grid_formula_input.js" in index_source
     assert "class NumericExpressionParser" in parser_source
     assert "eval(" not in parser_source
@@ -349,7 +350,7 @@ def test_calculator_grid_uses_dynamic_widths_and_full_page_css() -> None:
     assert "maxWidth" in columns_source
     assert "fitChars" in columns_source
     assert "section.main > div.block-container" in page_source
-    assert "max-width: 100vw" in page_source
+    assert "max-width: min(100% - 1.6rem, 1920px)" in page_source
 
 
 def test_calculator_currency_defaults_and_full_width_layout_are_locked() -> None:
@@ -360,7 +361,7 @@ def test_calculator_currency_defaults_and_full_width_layout_are_locked() -> None
     assert "NOK: 1" in math_source
     assert "USD: 10" in math_source
     assert "GBP: 13" in math_source
-    assert "width: 100vw" in page_source
+    assert "width: min(100% - 1.6rem, 1920px)" in page_source
     assert 'iframe[title="calculator_grid"]' in page_source
 
 

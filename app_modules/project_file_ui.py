@@ -12,10 +12,9 @@ from app_modules.saved_project_validation import SavedProjectError
 
 
 def render_open_project_file_action() -> None:
-    """Render the user-facing saved-project upload action."""
+    """Render a compact saved-project upload action."""
 
-    with st.container(border=True):
-        st.markdown("**Open Project File**")
+    with st.expander("Open saved project", expanded=False):
         render_saved_project_storage_note()
         uploaded_project = st.file_uploader(
             "Upload a saved .itinerary.json project file",

@@ -66,12 +66,14 @@ def test_removed_duplicate_visual_editor_app_shells_stay_deleted():
     assert all(not path.exists() for path in removed)
 
 
-def test_styles_do_not_hide_legacy_workflow_or_force_sidebar_theme():
+def test_styles_remove_legacy_header_without_sidebar_theme():
     styles = "\n".join(path.read_text() for path in Path("ui").glob("style_*.py"))
 
     assert "workflow-step-grid { display: none" not in styles
     assert "data-testid=\"stSidebar\"" not in styles
     assert ".document-stage-panel" in styles
+    assert ".flow-nav" in styles
+    assert "display: none !important" in styles
 
 
 def test_replacement_options_do_not_show_default_only_bank(tmp_path):

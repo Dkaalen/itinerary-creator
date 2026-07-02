@@ -81,15 +81,17 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 
 
 def _render_top_actions() -> None:
-    back_col, library_col = st.columns([1, 1])
+    back_col, library_col, spacer = st.columns([0.16, 0.18, 0.66])
     with back_col:
-        if st.button("Back to itinerary creator", use_container_width=True):
+        if st.button("Back", use_container_width=True):
             close_calculator_page(st.session_state)
             st.rerun()
     with library_col:
         if st.button("Manage Local Library", use_container_width=True):
             open_local_library_page(st.session_state)
             st.rerun()
+    with spacer:
+        st.caption("Calculator workspace")
 
 
 def _render_backend_action(
@@ -137,7 +139,7 @@ def _render_backup_controls(state: CalculatorState) -> None:
 
 
 def _render_calculator_page_width_css() -> None:
-    """Let the browser-side calculator use the full available screen width."""
+    """Let the calculator use the page width while keeping refined gutters."""
 
     st.markdown(
         """
@@ -145,23 +147,27 @@ def _render_calculator_page_width_css() -> None:
         section.main > div.block-container,
         .main .block-container,
         [data-testid="stAppViewContainer"] .block-container {
-            max-width: 100vw !important;
-            width: 100vw !important;
+            max-width: min(100% - 1.6rem, 1920px) !important;
+            width: min(100% - 1.6rem, 1920px) !important;
             padding-left: 0 !important;
             padding-right: 0 !important;
         }
         div[data-testid="stCustomComponentV1"],
         div[data-testid="element-container"]:has(iframe[title="calculator_grid"]),
         div:has(> iframe[title="calculator_grid"]) {
-            width: 100vw !important;
-            max-width: 100vw !important;
-            margin-left: calc(50% - 50vw) !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
             margin-right: 0 !important;
         }
         iframe[title="calculator_grid"],
         div[data-testid="stCustomComponentV1"] iframe {
-            width: 100vw !important;
-            max-width: 100vw !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border-radius: 16px !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: var(--shadow-card) !important;
+            background: var(--paper) !important;
         }
         </style>
         """,
