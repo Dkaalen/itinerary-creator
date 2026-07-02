@@ -123,8 +123,7 @@ def _render_grid_travel_element_suggestions(
     state: CalculatorState,
     read_result: LocalLibraryReadResult,
 ) -> CalculatorState | None:
-    if read_result.message:
-        st.caption(read_result.message)
+    st.caption(_library_read_status(read_result))
 
     groups = find_travel_element_suggestion_groups(state.rows, read_result.rows)
     if not groups:
@@ -132,7 +131,7 @@ def _render_grid_travel_element_suggestions(
         return None
 
     group = groups[0]
-    st.markdown(f"**Local Library suggestions for row {group.row_id}:** {group.query}")
+    st.markdown(f"**Local Library suggestions for row {group.row_id}:** `{group.query}`")
     selected_library_id = st.selectbox(
         "Suggestions",
         options=[result.row.library_id for result in group.results],
@@ -144,7 +143,7 @@ def _render_grid_travel_element_suggestions(
         return None
 
     st.caption(_compact_library_preview(selected_result.row))
-    if not st.button(f"Fill row {group.row_id} from selected suggestion", type="primary", use_container_width=True):
+    if not st.button(f"Fetch selected line into row {group.row_id}", type="primary", use_container_width=True):
         return None
     return fetch_library_line_into_row_preserving_context(state, selected_result.row, group.row_id)
 
@@ -228,6 +227,14 @@ def _render_backup_controls(state: CalculatorState) -> None:
     _store_calculator_state(imported_state, refresh_grid=True)
     st.success("Calculator backup reopened.")
     st.rerun()
+
+
+def _library_read_status(read_result: LocalLibraryReadResult) -> str:
+    fetchable_count = sum(1 for row in read_result.rows if row.is_available_for_fetch)
+    if read_result.source == "google_sheets" and not read_result.read_only:
+        return f"Local Library: Google Sheets connected ({fetchable_count} fetchable lines)."
+    message = read_result.message or "Using bundled read-only Local Library fixture."
+    return f"Local Library: {message} ({fetchable_count} fallback lines)."
 
 
 def _selected_library_result(

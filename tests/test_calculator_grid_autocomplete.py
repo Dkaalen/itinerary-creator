@@ -23,9 +23,9 @@ def test_grid_autocomplete_suggests_rows_from_typed_travel_element() -> None:
     assert groups[0].results[0].row.library_id == "hotel_oslo"
 
 
-def test_grid_autocomplete_skips_priced_or_fetched_rows() -> None:
+def test_grid_autocomplete_allows_context_and_manual_values_while_typing() -> None:
     rows = (
-        CalculatorRow(row_id="1", travel_element="hotel", gross_price_per_unit=100),
+        CalculatorRow(row_id="1", day="Day 1", type="Hotel", travel_element="hotel", gross_price_per_unit=100),
         CalculatorRow(row_id="2", travel_element="walking tour", supplier="Manual supplier"),
     )
     library_rows = (
@@ -33,7 +33,10 @@ def test_grid_autocomplete_skips_priced_or_fetched_rows() -> None:
         LocalLibraryRow(library_id="walk", type="Activity", travel_element="Walking tour"),
     )
 
-    assert find_travel_element_suggestion_groups(rows, library_rows) == ()
+    groups = find_travel_element_suggestion_groups(rows, library_rows, max_rows=2)
+
+    assert [group.row_id for group in groups] == ["1", "2"]
+    assert groups[0].results[0].row.library_id == "hotel_oslo"
 
 
 def test_grid_autocomplete_limits_to_first_active_row_by_default() -> None:

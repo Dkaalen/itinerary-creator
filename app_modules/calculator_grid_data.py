@@ -7,6 +7,7 @@ from datetime import date, datetime
 from typing import Any, Iterable, Mapping
 
 from calculator.calculations import calculate_row
+from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
 from calculator.row_model import ADVANCED_FIELD_KEYS, BASIC_FIELD_KEYS, FORMULA_FIELD_KEYS, CalculatorRow
 
 _ROW_FIELDS = {field.name for field in fields(CalculatorRow)}
@@ -23,6 +24,8 @@ _NUMERIC_FIELDS = {
 }
 _BOOLEAN_FIELDS = {"manual_booking", "non_refundable", "refundable"}
 _OPTIONAL_NUMERIC_FIELDS = {"sales_price_per_unit"}
+_BLANK_NUMERIC_MARKERS = {"", "none", "nan", "null"}
+_DEFAULT_ONLY_TEXT_FIELDS = {"row_id", "supplier_currency", "sales_currency"}
 
 
 def rows_to_table_data(rows: Iterable[CalculatorRow], *, show_advanced: bool) -> list[dict[str, Any]]:
@@ -48,6 +51,8 @@ def table_data_to_rows(
             values[field_name] = _field_value(field_name, item.get(field_name))
         if not values.get("row_id"):
             values["row_id"] = row_id
+        values["supplier_currency"] = _currency_or_default(values.get("supplier_currency"))
+        values["sales_currency"] = _currency_or_default(values.get("sales_currency"))
         rows.append(CalculatorRow(**values))
     return tuple(rows)
 
@@ -61,12 +66,20 @@ def visible_grid_fields(show_advanced: bool) -> tuple[str, ...]:
 
 def _row_to_table_data(row: CalculatorRow, visible_fields: Iterable[str]) -> dict[str, Any]:
     calculated = calculate_row(row)
+    row_is_blank = _row_has_no_user_values(row)
     data: dict[str, Any] = {}
     for field_name in visible_fields:
         if field_name in FORMULA_FIELD_KEYS:
-            data[field_name] = getattr(calculated, field_name)
-        else:
-            data[field_name] = getattr(row, field_name)
+            data[field_name] = None if row_is_blank else getattr(calculated, field_name)
+            continue
+        value = getattr(row, field_name)
+        if field_name == "sales_price_per_unit" and value is None:
+            data[field_name] = ""
+            continue
+        if row_is_blank and field_name in _NUMERIC_FIELDS:
+            data[field_name] = None
+            continue
+        data[field_name] = value
     return data
 
 
@@ -85,11 +98,15 @@ def _text_value(value: Any) -> str:
         return ""
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    return str(value).strip()
+    text = str(value).strip()
+    return "" if text.casefold() in _BLANK_NUMERIC_MARKERS else text
 
 
 def _number_value(value: Any) -> float:
-    if value in (None, ""):
+    if value is None:
+        return 0.0
+    text = str(value).strip()
+    if text.casefold() in _BLANK_NUMERIC_MARKERS:
         return 0.0
     try:
         return float(value)
@@ -98,7 +115,10 @@ def _number_value(value: Any) -> float:
 
 
 def _optional_number_value(value: Any) -> float | None:
-    if value in (None, ""):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.casefold() in _BLANK_NUMERIC_MARKERS:
         return None
     return _number_value(value)
 
@@ -109,3 +129,27 @@ def _bool_value(value: Any) -> bool:
     if value is None:
         return False
     return str(value).strip().lower() in {"1", "true", "yes", "y", "checked"}
+
+
+def _currency_or_default(value: object) -> str:
+    text = _text_value(value).upper()
+    return text or DEFAULT_CALCULATOR_CURRENCY
+
+
+def _row_has_no_user_values(row: CalculatorRow) -> bool:
+    for field in fields(CalculatorRow):
+        field_name = field.name
+        if field_name in _DEFAULT_ONLY_TEXT_FIELDS:
+            continue
+        value = getattr(row, field_name)
+        if _value_has_content(value):
+            return False
+    return True
+
+
+def _value_has_content(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return float(value) != 0.0
+    return bool(str(value or "").strip())

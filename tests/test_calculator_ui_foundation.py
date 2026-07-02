@@ -54,6 +54,63 @@ def test_calculator_table_round_trip_preserves_hidden_advanced_fields() -> None:
     assert rows[0].comments == "Hidden comment"
 
 
+def test_calculator_table_shows_clean_blank_rows_without_formula_noise() -> None:
+    table_data = rows_to_table_data((CalculatorRow(row_id="1"),), show_advanced=True)
+
+    row = table_data[0]
+
+    assert row["gross_price_per_unit"] is None
+    assert row["units"] is None
+    assert row["sales_price_per_unit"] == ""
+    assert row["gross_price"] is None
+    assert row["supplier_x_rate"] is None
+    assert row["sales_x_rate"] is None
+
+
+def test_calculator_table_recalculates_formula_fields_for_filled_rows() -> None:
+    table_data = rows_to_table_data(
+        (
+            CalculatorRow(
+                row_id="1",
+                travel_element="Oslo hotel",
+                gross_price_per_unit=200,
+                units=1,
+                supplier_currency="EUR",
+                sales_currency="EUR",
+            ),
+        ),
+        show_advanced=False,
+    )
+
+    row = table_data[0]
+
+    assert row["gross_price"] == 200
+    assert row["net_price"] == 200
+    assert row["calculated_sales_price_per_unit"] == 200
+    assert row["price"] == 200
+    assert row["sales_price_nok_total"] == 2260
+    assert row["gp_nok"] == 0
+
+
+def test_calculator_table_treats_text_none_as_blank_sales_override() -> None:
+    rows = table_data_to_rows(
+        (
+            {
+                "row_id": "1",
+                "travel_element": "Oslo hotel",
+                "gross_price_per_unit": "200",
+                "units": "1",
+                "sales_price_per_unit": "None",
+            },
+        ),
+        (),
+    )
+
+    assert rows[0].gross_price_per_unit == 200
+    assert rows[0].units == 1
+    assert rows[0].sales_price_per_unit is None
+
+
 def test_calculator_download_action_returns_xlsx_payload() -> None:
     state = CalculatorState(
         itinerary_name="Tromsø Northern Lights 2026",

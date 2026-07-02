@@ -10,15 +10,6 @@ from calculator.library_search import LocalLibrarySearchResult, search_library_r
 from calculator.row_model import CalculatorRow
 
 MIN_TRAVEL_ELEMENT_QUERY_LENGTH = 2
-_FETCHED_SIGNAL_FIELDS = (
-    "type",
-    "supplier",
-    "url",
-    "comments",
-    "gross_price_per_unit",
-    "units",
-    "sales_price_per_unit",
-)
 
 
 @dataclass(frozen=True)
@@ -37,7 +28,13 @@ def find_travel_element_suggestion_groups(
     limit_per_row: int = 8,
     max_rows: int = 1,
 ) -> tuple[TravelElementSuggestionGroup, ...]:
-    """Return library suggestions for typed Travel element cells."""
+    """Return library suggestions for typed Travel element cells.
+
+    A calculator line may already contain day/date/type/price context when the
+    user is trying to fetch a library line. Those context fields must not block
+    suggestions; the selected fetch action will preserve the useful context and
+    replace the line details.
+    """
 
     available_library_rows = tuple(library_rows)
     if not available_library_rows:
@@ -46,7 +43,7 @@ def find_travel_element_suggestion_groups(
     groups: list[TravelElementSuggestionGroup] = []
     for row in rows:
         query = row.travel_element.strip()
-        if not _row_should_show_suggestions(row, query):
+        if len(query) < MIN_TRAVEL_ELEMENT_QUERY_LENGTH:
             continue
         results = search_library_rows(available_library_rows, query, limit=limit_per_row)
         if not results:
@@ -55,17 +52,3 @@ def find_travel_element_suggestion_groups(
         if len(groups) >= max_rows:
             break
     return tuple(groups)
-
-
-def _row_should_show_suggestions(row: CalculatorRow, query: str) -> bool:
-    if len(query) < MIN_TRAVEL_ELEMENT_QUERY_LENGTH:
-        return False
-    return not any(_has_value(getattr(row, field_name)) for field_name in _FETCHED_SIGNAL_FIELDS)
-
-
-def _has_value(value: object) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return float(value) != 0.0
-    return bool(str(value or "").strip())
