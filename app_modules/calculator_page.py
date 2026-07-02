@@ -11,6 +11,7 @@ from app_modules.calculator_editor_sync import calculator_grid_widget_key, store
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_grid_config import calculator_column_config
 from app_modules.calculator_grid_data import rows_to_table_data, table_data_to_rows
+from app_modules.calculator_library_cache import read_cached_local_library
 from app_modules.calculator_navigation import (
     CALCULATOR_STATE_KEY,
     close_calculator_page,
@@ -27,22 +28,17 @@ from calculator.calculator_state import (
 )
 from calculator.fetch_lines import (
     autofill_exact_travel_element_matches,
-    fetch_library_line_into_first_available_row,
+    fetch_library_line_into_row_preserving_context,
 )
+from calculator.grid_autocomplete import TravelElementSuggestionGroup, find_travel_element_suggestion_groups
 from calculator.library_model import LocalLibraryRow
-from calculator.library_search import (
-    LocalLibrarySearchResult,
-    library_result_label,
-    library_result_preview,
-    search_library_rows,
-)
-from calculator.library_store import LocalLibraryReadResult, LocalLibraryStore
+from calculator.library_search import LocalLibrarySearchResult, library_result_label, library_result_preview
+from calculator.library_store import LocalLibraryReadResult
 from calculator.row_model import FORMULA_FIELD_KEYS, CalculatorRow
 
 _ADVANCED_TOGGLE_KEY = "calculator_show_advanced"
 _ROW_ACTION_KEY = "calculator_selected_row_id"
-_AUTOCOMPLETE_QUERY_KEY = "calculator_travel_element_autocomplete_query"
-_AUTOCOMPLETE_RESULT_KEY = "calculator_travel_element_autocomplete_result_id"
+_GRID_SUGGESTION_KEY = "calculator_grid_travel_element_suggestion"
 _DISABLED_COLUMNS = ("row_id", *FORMULA_FIELD_KEYS)
 
 
@@ -50,7 +46,7 @@ def render_calculator_page(app_version: str) -> None:
     """Render the standalone calculator page."""
 
     state = _calculator_state_from_session()
-    library_read = LocalLibraryStore().list_rows()
+    library_read = read_cached_local_library(st.session_state)
     _render_app_header(app_version, stage="input")
     _stage_panel(CALCULATOR_COPY["panel_title"], CALCULATOR_COPY["panel_text"])
     _render_top_actions()
@@ -63,22 +59,26 @@ def render_calculator_page(app_version: str) -> None:
     state = state.with_itinerary_name(itinerary_name)
     _store_calculator_state(state)
 
-    state = _render_travel_element_autocomplete(state, library_read)
-
     show_advanced = st.toggle("Show advanced columns", key=_ADVANCED_TOGGLE_KEY)
-    edited_rows = _render_grid(state, show_advanced=show_advanced)
-    if edited_rows is not None:
-        state = CalculatorState(itinerary_name=itinerary_name, rows=tuple(edited_rows))
-        state = autofill_exact_travel_element_matches(state, library_read.rows)
-        _store_calculator_state(state, refresh_grid=True)
+    draft_rows, saved = _render_grid(state, show_advanced=show_advanced)
+    draft_state = CalculatorState(itinerary_name=itinerary_name, rows=tuple(draft_rows))
+
+    filled_state = _render_grid_travel_element_suggestions(draft_state, library_read)
+    if filled_state is not None:
+        _store_calculator_state(filled_state, refresh_grid=True)
+        st.rerun()
+
+    if saved:
+        saved_state = autofill_exact_travel_element_matches(draft_state, library_read.rows)
+        _store_calculator_state(saved_state, refresh_grid=True)
         st.success("Calculator edits saved.")
         st.rerun()
 
-    _render_row_actions(state)
-    _render_totals(state)
-    render_calculation_download_button(state)
-    _render_generation_actions(state)
-    _render_backup_controls(state)
+    _render_row_actions(draft_state)
+    _render_totals(draft_state)
+    render_calculation_download_button(draft_state)
+    _render_generation_actions(draft_state)
+    _render_backup_controls(draft_state)
 
 
 def _calculator_state_from_session() -> CalculatorState:
@@ -101,65 +101,52 @@ def _render_top_actions() -> None:
             close_calculator_page(st.session_state)
             st.rerun()
     with right:
-        st.caption("Use autocomplete for library lines, or type directly in the grid and save edits.")
+        st.caption("Type directly in the Travel element cells; matching Local Library lines appear below the grid.")
 
 
-def _render_travel_element_autocomplete(
+def _render_grid(state: CalculatorState, *, show_advanced: bool) -> tuple[tuple[CalculatorRow, ...], bool]:
+    data = rows_to_table_data(state.rows, show_advanced=show_advanced)
+    edited = st.data_editor(
+        data,
+        hide_index=True,
+        use_container_width=True,
+        num_rows="fixed",
+        disabled=_DISABLED_COLUMNS,
+        column_config=calculator_column_config(show_advanced),
+        key=calculator_grid_widget_key(st.session_state),
+    )
+    saved = st.button("Save calculator edits", use_container_width=True)
+    return table_data_to_rows(edited, state.rows), saved
+
+
+def _render_grid_travel_element_suggestions(
     state: CalculatorState,
     read_result: LocalLibraryReadResult,
-) -> CalculatorState:
-    st.subheader("Travel element autocomplete")
+) -> CalculatorState | None:
     if read_result.message:
         st.caption(read_result.message)
 
-    query = st.text_input(
-        "Start typing a travel element",
-        key=_AUTOCOMPLETE_QUERY_KEY,
-        placeholder="Example: walking tour, hotel, fjord cruise, transfer...",
-    )
-    if len(query.strip()) < 2:
-        st.caption("Start typing at least 2 characters to see library suggestions.")
-        return state
+    groups = find_travel_element_suggestion_groups(state.rows, read_result.rows)
+    if not groups:
+        st.caption("Type at least 2 characters in a Travel element cell to see Local Library suggestions.")
+        return None
 
-    results = search_library_rows(read_result.rows, query, limit=10)
-    if not results:
-        st.caption("No matching library suggestions yet.")
-        return state
-
+    group = groups[0]
+    st.markdown(f"**Local Library suggestions for row {group.row_id}:** {group.query}")
     selected_library_id = st.selectbox(
         "Suggestions",
-        options=[result.row.library_id for result in results],
-        format_func=lambda library_id: _library_option_label(results, library_id),
-        key=_AUTOCOMPLETE_RESULT_KEY,
+        options=[result.row.library_id for result in group.results],
+        format_func=lambda library_id: _library_option_label(group.results, library_id),
+        key=f"{_GRID_SUGGESTION_KEY}_{group.row_id}_{group.query}",
     )
-    selected_result = _selected_library_result(results, str(selected_library_id))
+    selected_result = _selected_library_result(group.results, str(selected_library_id))
     if selected_result is None:
-        return state
+        return None
 
     st.caption(_compact_library_preview(selected_result.row))
-    if st.button("Use selected suggestion", type="primary", use_container_width=True):
-        updated_state = fetch_library_line_into_first_available_row(state, selected_result.row)
-        _store_calculator_state(updated_state, refresh_grid=True)
-        st.rerun()
-    return state
-
-
-def _render_grid(state: CalculatorState, *, show_advanced: bool) -> tuple[CalculatorRow, ...] | None:
-    data = rows_to_table_data(state.rows, show_advanced=show_advanced)
-    with st.form("calculator_grid_form"):
-        edited = st.data_editor(
-            data,
-            hide_index=True,
-            use_container_width=True,
-            num_rows="fixed",
-            disabled=_DISABLED_COLUMNS,
-            column_config=calculator_column_config(show_advanced),
-            key=calculator_grid_widget_key(st.session_state),
-        )
-        saved = st.form_submit_button("Save calculator edits", use_container_width=True)
-    if not saved:
+    if not st.button(f"Fill row {group.row_id} from selected suggestion", type="primary", use_container_width=True):
         return None
-    return table_data_to_rows(edited, state.rows)
+    return fetch_library_line_into_row_preserving_context(state, selected_result.row, group.row_id)
 
 
 def _render_row_actions(state: CalculatorState) -> str | None:

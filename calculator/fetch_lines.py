@@ -54,10 +54,23 @@ def fetch_library_line_into_first_available_row(
     target = next((row for row in state.rows if _row_is_empty(row)), None)
     if target is None:
         return fetch_library_line_into_row(state, library_row, None)
+    return fetch_library_line_into_row_preserving_context(state, library_row, target.row_id)
+
+
+def fetch_library_line_into_row_preserving_context(
+    state: CalculatorState,
+    library_row: LocalLibraryRow,
+    target_row_id: str,
+) -> CalculatorState:
+    """Fill an existing calculator row while preserving day/date/time context."""
+
+    target = next((row for row in state.rows if row.row_id == target_row_id), None)
+    if target is None:
+        return fetch_library_line_into_row(state, library_row, target_row_id)
     fetched_row = _merge_fetched_row_with_context(target, library_row)
     return replace(
         state,
-        rows=tuple(fetched_row if row.row_id == target.row_id else row for row in state.rows),
+        rows=tuple(fetched_row if row.row_id == target_row_id else row for row in state.rows),
     )
 
 

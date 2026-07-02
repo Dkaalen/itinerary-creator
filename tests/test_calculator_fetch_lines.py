@@ -6,6 +6,7 @@ from calculator.fetch_lines import (
     calculator_row_from_library_line,
     fetch_library_line_into_first_available_row,
     fetch_library_line_into_row,
+    fetch_library_line_into_row_preserving_context,
 )
 from calculator.library_model import LocalLibraryRow
 from calculator.row_model import CalculatorRow
@@ -121,3 +122,19 @@ def test_autofill_does_not_overwrite_manually_priced_rows() -> None:
     updated = autofill_exact_travel_element_matches(state, (library_row,))
 
     assert updated == state
+
+
+def test_fetch_library_line_into_row_preserving_context_keeps_dates() -> None:
+    state = CalculatorState(
+        itinerary_name="Trip",
+        rows=(CalculatorRow(row_id="1", day="Day 4", from_date="2026-02-01", travel_element="hotel"),),
+    )
+    library_row = LocalLibraryRow(type="Hotel", supplier="RateHawk", travel_element="Fetched hotel")
+
+    updated = fetch_library_line_into_row_preserving_context(state, library_row, "1")
+
+    assert updated.rows[0].day == "Day 4"
+    assert updated.rows[0].from_date == "2026-02-01"
+    assert updated.rows[0].type == "Hotel"
+    assert updated.rows[0].supplier == "RateHawk"
+    assert updated.rows[0].travel_element == "Fetched hotel"

@@ -85,3 +85,12 @@ def test_calculator_keeps_main_workflow_contract_locked() -> None:
     assert 'FLOW_STAGES = ("input", "edit", "pictures", "export")' in config_source
     assert "render_calculator_entry_button" in input_source
     assert "calculator_page_is_active" in main_view_source
+
+
+def test_calculator_page_uses_grid_travel_element_suggestions_not_separate_search_box() -> None:
+    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+
+    assert "Start typing a travel element" not in source
+    assert "Travel element autocomplete" not in source
+    assert "Type directly in the Travel element cells" in source
+    assert "Local Library suggestions for row" in source

@@ -33,5 +33,5 @@ STAGE_COPY = {
 
 CALCULATOR_COPY = {
     "panel_title": "Calculate itinerary",
-    "panel_text": "Build calculation rows in an Excel-like grid, use Travel element autocomplete, download the calculation workbook, or generate an itinerary from the calculated rows.",
+    "panel_text": "Build calculation rows in an Excel-like grid, use Travel element cell suggestions, download the calculation workbook, or generate an itinerary from the calculated rows.",
 }
