@@ -20,14 +20,14 @@ def test_calculate_row_matches_core_kalk_formulas_with_default_sales_price() -> 
 
     assert calculated.gross_price == 200
     assert calculated.net_price == 180
-    assert calculated.supplier_x_rate == 11.3
-    assert isclose(calculated.net_price_nok, 2034)
+    assert calculated.supplier_x_rate == 11
+    assert isclose(calculated.net_price_nok, 1980)
     assert calculated.calculated_sales_price_per_unit == 100
     assert calculated.price == 200
     assert calculated.sales_x_rate == 1
     assert calculated.sales_price_nok_total == 200
-    assert isclose(calculated.gp_nok, -1834)
-    assert isclose(calculated.gp_percent, -9.17)
+    assert isclose(calculated.gp_nok, -1780)
+    assert isclose(calculated.gp_percent, -8.9)
 
 
 def test_calculate_row_uses_sales_price_override_and_sales_currency() -> None:
@@ -48,10 +48,10 @@ def test_calculate_row_uses_sales_price_override_and_sales_currency() -> None:
     assert calculated.net_price_nok == 240
     assert calculated.calculated_sales_price_per_unit == 150
     assert calculated.price == 450
-    assert calculated.sales_x_rate == 11.3
-    assert isclose(calculated.sales_price_nok_total, 5085)
-    assert isclose(calculated.gp_nok, 4845)
-    assert isclose(calculated.gp_percent, 4845 / 5085)
+    assert calculated.sales_x_rate == 11
+    assert isclose(calculated.sales_price_nok_total, 4950)
+    assert isclose(calculated.gp_nok, 4710)
+    assert isclose(calculated.gp_percent, 4710 / 4950)
 
 
 def test_price_override_recalculates_sales_nok_and_gp_from_actual_price() -> None:
@@ -69,10 +69,10 @@ def test_price_override_recalculates_sales_nok_and_gp_from_actual_price() -> Non
 
     assert isclose(calculated.net_price, 147.2)
     assert calculated.price == 230
-    assert isclose(calculated.sales_price_nok_total, 2599)
-    assert isclose(calculated.net_price_nok, 1663.36)
-    assert isclose(calculated.gp_nok, 935.64)
-    assert isclose(calculated.gp_percent, 935.64 / 2599)
+    assert isclose(calculated.sales_price_nok_total, 2530)
+    assert isclose(calculated.net_price_nok, 1619.2)
+    assert isclose(calculated.gp_nok, 910.8)
+    assert isclose(calculated.gp_percent, 910.8 / 2530)
 
 
 def test_unknown_currency_rate_falls_back_to_zero_like_template() -> None:

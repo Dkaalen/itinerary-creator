@@ -2,20 +2,20 @@
 
 CSS = r"""
 :root {
-                --app-bg: #f5f1ea;
-                --paper: #fffdf8;
+                --app-bg: #f6f8fb;
+                --paper: #ffffff;
                 --surface: #ffffff;
                 --surface-soft: #f8fafc;
-                --ink: #132033;
-                --ink-soft: #344054;
-                --muted: #5b6678;
-                --line: #d8e0ea;
+                --ink: #111827;
+                --ink-soft: #374151;
+                --muted: #4b5563;
+                --line: #d6dee8;
                 --line-strong: #b9c7d6;
-                --navy: #081527;
-                --navy-2: #102d46;
-                --teal: #007f79;
-                --teal-dark: #005f5b;
-                --gold: #a86f16;
+                --navy: #0f172a;
+                --navy-2: #1e293b;
+                --teal: #0f766e;
+                --teal-dark: #115e59;
+                --gold: #b7791f;
                 --warning: #b45309;
                 --danger: #b42318;
                 --success: #087443;

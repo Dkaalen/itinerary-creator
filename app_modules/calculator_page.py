@@ -141,17 +141,26 @@ def _render_calculator_page_width_css() -> None:
     st.markdown(
         """
         <style>
-        section.main > div.block-container {
-            max-width: none;
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
+        section.main > div.block-container,
+        .main .block-container,
+        [data-testid="stAppViewContainer"] .block-container {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
         }
-        div[data-testid="stCustomComponentV1"] {
-            width: 100%;
-            max-width: none;
+        div[data-testid="stCustomComponentV1"],
+        div[data-testid="element-container"]:has(iframe[title="calculator_grid"]),
+        div:has(> iframe[title="calculator_grid"]) {
+            width: calc(100vw - 1.5rem) !important;
+            max-width: calc(100vw - 1.5rem) !important;
+            margin-left: calc(50% - 50vw + 0.75rem) !important;
+            margin-right: 0 !important;
         }
+        iframe[title="calculator_grid"],
         div[data-testid="stCustomComponentV1"] iframe {
-            width: 100%;
+            width: calc(100vw - 1.5rem) !important;
+            max-width: calc(100vw - 1.5rem) !important;
         }
         </style>
         """,

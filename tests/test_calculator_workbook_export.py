@@ -99,9 +99,11 @@ def test_build_workbook_fills_rows_and_preserves_core_formulas() -> None:
 
     expected = expected_row_formulas(7)
     for column, formula in expected.items():
-        if column == "Y":
+        if column in {"Y", "W", "AB"}:
             continue
         assert sheet[f"{column}7"].value == formula
+    assert sheet["W7"].value == 11
+    assert sheet["AB7"].value == 1
 
     assert sheet["Z101"].value == TOTAL_FORMULAS["Z101"]
     assert sheet["AC101"].value == TOTAL_FORMULAS["AC101"]
@@ -125,9 +127,9 @@ def test_exported_workbook_preserves_template_structure_and_styles() -> None:
     assert inspect_template_structure().hidden_column_ranges == ADVANCED_COLUMN_RANGES
     assert sheet.column_dimensions["G"].hidden is True
     assert sheet.column_dimensions["G"].outlineLevel == 1
-    assert sheet.column_dimensions["J"].collapsed is False
-    assert sheet.column_dimensions["P"].collapsed is False
-    assert sheet.sheet_view.showOutlineSymbols is False
+    assert sheet.column_dimensions["J"].collapsed is True
+    assert sheet.column_dimensions["P"].collapsed is True
+    assert sheet.sheet_view.showOutlineSymbols is True
     assert sheet["B6"].value == "ID"
     assert sheet["B6"].fill.fill_type is not None
     assert sheet["S7"].value == "=+Q7*R7"
@@ -151,3 +153,28 @@ def test_export_rejects_more_rows_than_template_can_hold() -> None:
 
     with pytest.raises(ValueError, match="at most 93 rows"):
         build_calculation_workbook(CalculatorState(rows=rows))
+
+
+def test_exported_workbook_writes_default_currency_table_and_xrates() -> None:
+    state = CalculatorState(
+        itinerary_name="Currency Test",
+        rows=(
+            CalculatorRow(row_id="1", gross_price_per_unit=100, units=1, supplier_currency="EUR", sales_currency="USD"),
+            CalculatorRow(row_id="2", gross_price_per_unit=100, units=1, supplier_currency="NOK", sales_currency="GBP"),
+        ),
+    )
+
+    workbook = build_calculation_workbook(state)
+    curr = workbook["Curr"]
+    sheet = workbook["Kalk"]
+
+    assert curr["B2"].value == "NOK"
+    assert curr["C2"].value == 1
+    assert curr["B3"].value == "EUR"
+    assert curr["C3"].value == 11
+    assert curr["B4"].value == "USD"
+    assert curr["C4"].value == 10
+    assert sheet["W7"].value == 11
+    assert sheet["AB7"].value == 10
+    assert sheet["W8"].value == 1
+    assert sheet["AB8"].value == 13

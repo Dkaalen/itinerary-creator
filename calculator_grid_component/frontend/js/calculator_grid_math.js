@@ -1,6 +1,5 @@
-const DEFAULT_RATES = {EUR: 11.3, SEK: 1.02, DKK: 1.5, ISK: 0.075, NOK: 1, USD: 10.6};
+const DEFAULT_RATES = {NOK: 1, EUR: 11, USD: 10, GBP: 13, DKK: 1.5, SEK: 1, ISK: 0.08, CHF: 12, CAD: 7.5, AUD: 7, PLN: 2.5, JPY: 0.07};
 const DEFAULT_CURRENCY = 'EUR';
-const DEFAULT_SUPPLIER_COMMISSION_PERCENT = 20;
 
 function numberValue(value) {
   const parsed = parseNumericInput(value);
@@ -55,7 +54,6 @@ function calculateRow(row, rates) {
   const grossPerUnit = numberValue(row.gross_price_per_unit);
   applyDefaultUnits(row, grossPerUnit);
   const units = numberValue(row.units);
-  applyDefaultSupplierCommission(row, grossPerUnit);
   const supplierCommissionDecimal = numberValue(row.supplier_commission) / 100;
   const grossPrice = formulaValue(row, 'gross_price', grossPerUnit * units);
   const netPrice = formulaValue(row, 'net_price', grossPrice * (1 - supplierCommissionDecimal));
@@ -88,13 +86,6 @@ function applyDefaultUnits(row, grossPerUnit) {
   if (grossPerUnit <= 0) return;
   const current = optionalNumberValue(row.units);
   if (current === null || current === 0) row.units = 1;
-}
-
-function applyDefaultSupplierCommission(row, grossPerUnit) {
-  if (row._supplier_commission_touched) return;
-  if (grossPerUnit <= 0) return;
-  const current = optionalNumberValue(row.supplier_commission);
-  if (current === null || current === 0) row.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT;
 }
 
 function salesPricePerUnit(row, grossPerUnit) {

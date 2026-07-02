@@ -12,13 +12,15 @@ from openpyxl.workbook.workbook import Workbook
 from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TOTALS_ROW
 from calculator.filename_sanitizer import calculation_workbook_filename
+from calculator.calculations import calculate_row
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES
 from calculator.formula_map import expected_row_formulas
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.workbook_template import load_calculation_template
 
 _MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
 _QUOTE_CELL = "Z103"
-_COLLAPSED_GROUP_MARKERS = ("J", "P", "AK")
+_CURRENCY_START_ROW = 2
 _ROW_VALUE_COLUMNS = {
     "B": "row_id",
     "C": "day",
@@ -95,11 +97,12 @@ def build_calculation_workbook(
         raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
 
     workbook = load_calculation_template(template_path)
+    _write_default_currency_rates(workbook)
     sheet = workbook[KALK_SHEET_NAME]
     for row_number, row in zip(_data_row_numbers(), rows):
         _write_row(sheet, row_number, row)
     sheet[_QUOTE_CELL] = f"=Z{TOTALS_ROW}"
-    _clean_export_view(sheet)
+    _restore_excel_advanced_view(sheet)
     return workbook
 
 
@@ -108,10 +111,11 @@ def _data_row_numbers() -> Iterable[int]:
 
 
 def _write_row(sheet: object, row_number: int, row: CalculatorRow) -> None:
+    calculated = calculate_row(row)
     for column, field_name in _ROW_VALUE_COLUMNS.items():
         sheet[f"{column}{row_number}"] = _cell_value(row, field_name)
     _write_sales_price_cell(sheet, row_number, row)
-    _restore_formula_cells(sheet, row_number, row)
+    _restore_formula_cells(sheet, row_number, row, calculated)
 
 
 def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) -> None:
@@ -123,7 +127,7 @@ def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) 
     cell.value = value
 
 
-def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow) -> None:
+def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow, calculated: object) -> None:
     formulas = expected_row_formulas(row_number)
     field_by_column = {
         "S": "gross_price",
@@ -138,6 +142,12 @@ def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow) -
     }
     for column, formula in formulas.items():
         if column == "Y":
+            continue
+        if column == "W":
+            sheet[f"{column}{row_number}"] = calculated.supplier_x_rate
+            continue
+        if column == "AB":
+            sheet[f"{column}{row_number}"] = calculated.sales_x_rate
             continue
         field_name = field_by_column.get(column, "")
         override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
@@ -154,10 +164,17 @@ def _cell_value(row: CalculatorRow, field_name: str) -> object:
     return value
 
 
-def _clean_export_view(sheet: object) -> None:
-    """Remove collapsed-group markers that render as ugly vertical artifacts."""
+def _write_default_currency_rates(workbook: Workbook) -> None:
+    """Write editable default NOK exchange rates into the Curr lookup sheet."""
 
-    for column in _COLLAPSED_GROUP_MARKERS:
-        if column in sheet.column_dimensions:
-            sheet.column_dimensions[column].collapsed = False
-    sheet.sheet_view.showOutlineSymbols = False
+    sheet = workbook["Curr"]
+    for offset, (code, rate) in enumerate(DEFAULT_CURRENCY_RATES.items()):
+        row_number = _CURRENCY_START_ROW + offset
+        sheet[f"B{row_number}"] = code
+        sheet[f"C{row_number}"] = rate
+
+
+def _restore_excel_advanced_view(sheet: object) -> None:
+    """Keep the template's grouped hidden columns expandable in Excel."""
+
+    sheet.sheet_view.showOutlineSymbols = True

@@ -185,6 +185,8 @@ function handleCellBlur(event) {
     cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
   } else if (['formula', 'formulaPercent'].includes(columnKind(key))) {
     cell.textContent = formatFormula(row[key], columnKind(key));
+  } else if (key === 'supplier_currency' || key === 'sales_currency') {
+    cell.textContent = row[key] || '';
   }
 }
 
@@ -214,9 +216,15 @@ function updateRowValue(rowIndex, key, rawValue) {
     row[formulaOverrideKey(key)] = formulaOverrideValue(rawValue, kind);
   } else if (kind === 'percent') row[key] = rawValue === '' ? '' : percentPointInputValue(rawValue);
   else if (kind === 'number') row[key] = rawValue === '' ? '' : numberValue(rawValue);
-  else row[key] = String(rawValue || '').trim();
+  else row[key] = normalizedTextValue(key, rawValue);
   if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
   calculateRow(row, calculatorState.currencyRates);
+}
+
+function normalizedTextValue(key, rawValue) {
+  const text = String(rawValue || '').trim();
+  if (key === 'supplier_currency' || key === 'sales_currency') return text.toUpperCase();
+  return text;
 }
 
 function formulaOverrideValue(rawValue, kind) {

@@ -60,9 +60,6 @@ function findLibrarySuggestions(libraryRows, query, limit = 8) {
 function applyLibrarySuggestion(row, suggestion) {
   const fetched = {...(suggestion.row_data || {})};
   const grossPerUnit = numberValue(fetched.gross_price_per_unit);
-  if (grossPerUnit > 0 && optionalNumberValue(fetched.supplier_commission) === 0) {
-    fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT;
-  }
   if (grossPerUnit > 0 && optionalNumberValue(fetched.sales_price_per_unit) === 0) {
     fetched.sales_price_per_unit = '';
   }

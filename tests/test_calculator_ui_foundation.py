@@ -87,7 +87,7 @@ def test_calculator_table_recalculates_formula_fields_for_filled_rows() -> None:
     assert row["gross_price"] == 200
     assert row["net_price"] == 200
     assert row["price"] == 200
-    assert row["sales_price_nok_total"] == 2260
+    assert row["sales_price_nok_total"] == 2200
     assert row["gp_nok"] == 0
 
 
@@ -306,19 +306,20 @@ def test_calculator_browser_grid_has_fullscreen_control_and_fixed_width_cells() 
     assert "dynamicColumnWidth" in render_source
     assert "max-width:${width}px" in render_source
     assert "setCalculatorHostFullscreen" in Path("calculator_grid_component/frontend/js/streamlit_bridge.js").read_text(encoding="utf-8")
-    assert "text-overflow: ellipsis" in css_source
+    assert "text-overflow: ellipsis" not in css_source
+    assert "text-overflow: clip" in css_source
 
 
 def test_calculator_browser_grid_defaults_sales_and_commission_without_user_override() -> None:
     math_source = Path("calculator_grid_component/frontend/js/calculator_grid_math.js").read_text(encoding="utf-8")
     library_source = Path("calculator_grid_component/frontend/js/calculator_grid_library.js").read_text(encoding="utf-8")
 
-    assert "DEFAULT_SUPPLIER_COMMISSION_PERCENT" in math_source or "DEFAULT_SUPPLIER_COMMISSION_PERCENT" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
-    assert "applyDefaultSupplierCommission(row, grossPerUnit);" in math_source
+    assert "DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in math_source
+    assert "applyDefaultSupplierCommission" not in math_source
     assert "refreshDefaultedEditableCells(rowIndex);" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
     assert "row.sales_price_per_unit = grossPerUnit" in math_source
     assert "_sales_price_per_unit_touched" in math_source
-    assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" in library_source
+    assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in library_source
     assert "fetched.sales_price_per_unit = '';" in library_source
     assert "applyDefaultUnits(row, grossPerUnit);" in math_source
     assert "percentPointInputValue" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
@@ -346,4 +347,16 @@ def test_calculator_grid_uses_dynamic_widths_and_full_page_css() -> None:
     assert "maxWidth" in columns_source
     assert "fitChars" in columns_source
     assert "section.main > div.block-container" in page_source
-    assert "max-width: none" in page_source
+    assert "max-width: 100vw" in page_source
+
+
+def test_calculator_currency_defaults_and_full_width_layout_are_locked() -> None:
+    math_source = Path("calculator_grid_component/frontend/js/calculator_grid_math.js").read_text(encoding="utf-8")
+    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+
+    assert "EUR: 11" in math_source
+    assert "NOK: 1" in math_source
+    assert "USD: 10" in math_source
+    assert "GBP: 13" in math_source
+    assert "calc(100vw - 1.5rem)" in page_source
+    assert 'iframe[title="calculator_grid"]' in page_source

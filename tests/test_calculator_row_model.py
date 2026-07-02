@@ -103,5 +103,5 @@ def test_sales_price_per_unit_zero_defaults_to_gross_price_for_calculation() -> 
 
     assert calculated.calculated_sales_price_per_unit == 252
     assert calculated.price == 252
-    assert calculated.sales_price_nok_total == pytest.approx(2847.6)
-    assert calculated.gp_nok == pytest.approx(569.52)
+    assert calculated.sales_price_nok_total == pytest.approx(2772.0)
+    assert calculated.gp_nok == pytest.approx(554.4)

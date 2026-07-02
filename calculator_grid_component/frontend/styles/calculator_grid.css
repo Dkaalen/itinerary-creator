@@ -28,12 +28,12 @@ body { margin: 0; background: transparent; color: var(--text); font-family: Inte
 .advanced-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; padding: 0 4px; }
 .calculator-status-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: var(--muted); background: #11141c; border-left: 1px solid var(--border); border-right: 1px solid var(--border); padding: 8px 10px; font-size: 0.88rem; }
 .calculator-status-row strong { color: var(--text); }
-.calculator-grid-scroll { width: 100%; max-width: 100%; max-height: 560px; overflow: auto; border: 1px solid var(--border); background: var(--bg); }
+.calculator-grid-scroll { width: 100%; max-width: 100%; max-height: 600px; overflow: auto; border: 1px solid var(--border); background: var(--bg); }
 .calculator-grid-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 100%; }
 th { position: sticky; top: 0; z-index: 2; background: #242938; color: #eef2fb; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border-strong); padding: 8px 7px; text-align: left; white-space: nowrap; overflow: visible; text-overflow: clip; font-size: 0.78rem; line-height: 1.15; }
-td.cell { height: 34px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 7px; background: var(--cell); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.86rem; }
+td.cell { height: 34px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 7px; background: var(--cell); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: 0.86rem; }
 td.editable { cursor: text; }
-td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: #171b25; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: #171b25; white-space: nowrap; overflow: visible; text-overflow: clip; position: relative; z-index: 4; }
 td.readonly { color: #d5dbe9; background: var(--cell-readonly); }
 td.formula-cell { text-align: right; font-variant-numeric: tabular-nums; }
 td.checkbox-cell { text-align: center; }
@@ -45,7 +45,7 @@ tr.selected-row td.readonly { background-color: rgba(213, 166, 50, 0.12); }
 .suggestion-item { display: block; width: 100%; text-align: left; border: 1px solid var(--border); background: #11141c; color: var(--text); border-radius: 9px; padding: 9px 10px; margin-bottom: 7px; cursor: pointer; }
 .suggestion-item:hover { border-color: var(--accent); background: #191e2b; }
 .suggestion-item strong { display: block; margin-bottom: 3px; }
-.suggestion-item span { color: var(--muted); font-size: 0.84rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggestion-item span { color: var(--muted); font-size: 0.84rem; display: block; overflow: hidden; text-overflow: clip; white-space: normal; }
 .suggestion-empty, .component-error { color: #ffd6d6; padding: 10px; background: rgba(192, 86, 86, 0.12); border: 1px solid rgba(192, 86, 86, 0.3); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .calculator-toolbar { align-items: stretch; } .calculator-toolbar-left, .calculator-toolbar-right { width: 100%; } .calc-btn { flex: 1; } }
 .component-loading { color: var(--muted); padding: 14px; background: rgba(31, 35, 48, 0.9); border: 1px solid var(--border); border-radius: 10px; }

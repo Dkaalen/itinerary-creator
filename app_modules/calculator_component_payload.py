@@ -7,7 +7,7 @@ import json
 from typing import Any
 
 from app_modules.calculator_grid_data import rows_to_table_data
-from calculator.calculations import DEFAULT_CURRENCY_RATES
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES
 from calculator.calculator_state import CalculatorState
 from calculator.library_model import LocalLibraryRow
 from calculator.library_read_summary import summarize_local_library_read

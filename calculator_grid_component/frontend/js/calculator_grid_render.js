@@ -49,7 +49,7 @@ function buildTableHtml(state) {
   }).join('');
   return `
     <div class="calculator-grid-scroll">
-      <table class="calculator-grid-table" style="width:max(100%, ${tableWidth(columns)}px)">
+      <table class="calculator-grid-table" style="width:${tableWidth(columns)}px; min-width:${tableWidth(columns)}px">
         <colgroup>${colgroup}</colgroup>
         <thead><tr>${headers}</tr></thead>
         <tbody>${body}</tbody>
@@ -62,8 +62,8 @@ function tableWidth(columns) {
 }
 
 function dynamicColumnWidth(column, rows) {
-  const headerWidth = Math.ceil(String(column.label || '').length * 7.2 + 24);
-  const cellWidth = Math.ceil(maxVisibleCellChars(column, rows) * 7.2 + 24);
+  const headerWidth = Math.ceil(String(column.label || '').length * 6.4 + 30);
+  const cellWidth = Math.ceil(maxVisibleCellChars(column, rows) * 6.9 + 28);
   const minimum = Number(column.minWidth || column.width || headerWidth);
   const maximum = Number(column.maxWidth || column.width || minimum);
   return Math.max(minimum, Math.min(maximum, Math.max(headerWidth, cellWidth)));

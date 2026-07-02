@@ -5,17 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalized_currency_code
 from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import CalculatorRow, CalculatedRow
-
-DEFAULT_CURRENCY_RATES: dict[str, float] = {
-    "EUR": 11.3,
-    "SEK": 1.02,
-    "DKK": 1.5,
-    "ISK": 0.075,
-    "NOK": 1.0,
-    "USD": 10.6,
-}
 
 
 @dataclass(frozen=True)
@@ -98,7 +90,7 @@ def lookup_currency_rate(code: str, currency_rates: Mapping[str, float] | None =
     """Return a currency rate using the same zero fallback as the template."""
 
     rates = currency_rates or DEFAULT_CURRENCY_RATES
-    normalized_code = str(code or "").strip().upper()
+    normalized_code = normalized_currency_code(code, default="")
     return _number(rates.get(normalized_code, 0.0))
 
 

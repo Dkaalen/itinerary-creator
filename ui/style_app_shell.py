@@ -2,16 +2,14 @@
 
 CSS = r"""
 html, body, [data-testid="stAppViewContainer"] {
-                background:
-                    radial-gradient(circle at top left, rgba(0, 127, 121, 0.10), transparent 34rem),
-                    linear-gradient(180deg, #fffdf8 0%, var(--app-bg) 100%) !important;
+                background: var(--app-bg) !important;
                 color: var(--ink) !important;
             }
 
             .block-container {
-                max-width: 1380px;
-                padding-top: 1.4rem;
-                padding-bottom: 5rem;
+                max-width: min(100% - 2rem, 1600px);
+                padding-top: 0.85rem;
+                padding-bottom: 3.5rem;
             }
 
             h1, h2, h3, h4, h5, h6 {
@@ -31,17 +29,14 @@ html, body, [data-testid="stAppViewContainer"] {
 .luxury-hero {
                 position: relative;
                 display: grid;
-                grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.75fr);
-                gap: 1.3rem;
-                align-items: stretch;
-                padding: clamp(1.4rem, 3vw, 2.25rem);
-                border-radius: 32px;
-                background:
-                    radial-gradient(circle at 85% 15%, rgba(168, 111, 22, 0.34), transparent 16rem),
-                    radial-gradient(circle at 16% 35%, rgba(0, 127, 121, 0.28), transparent 17rem),
-                    linear-gradient(135deg, #081527 0%, #143652 66%, #0b7b78 135%);
-                border: 1px solid rgba(255,255,255,0.18);
-                box-shadow: var(--shadow-soft);
+                grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.65fr);
+                gap: 1rem;
+                align-items: center;
+                padding: 1rem 1.15rem;
+                border-radius: 20px;
+                background: linear-gradient(135deg, #0f172a 0%, #1e3a4a 68%, #115e59 130%);
+                border: 1px solid rgba(255,255,255,0.16);
+                box-shadow: 0 10px 28px rgba(17, 24, 39, 0.12);
                 overflow: hidden;
             }
 
@@ -49,7 +44,7 @@ html, body, [data-testid="stAppViewContainer"] {
                 content: "";
                 position: absolute;
                 inset: 0;
-                background: linear-gradient(90deg, rgba(255,255,255,.10), transparent 46%);
+                background: linear-gradient(90deg, rgba(255,255,255,.06), transparent 48%);
                 pointer-events: none;
             }
 
@@ -61,18 +56,18 @@ html, body, [data-testid="stAppViewContainer"] {
 
             .hero-eyebrow,
             .section-kicker {
-                color: #d7b56d !important;
-                font-size: 0.78rem;
+                color: #f2c66d !important;
+                font-size: 0.72rem;
                 font-weight: 900;
-                letter-spacing: .16em;
+                letter-spacing: .14em;
                 text-transform: uppercase;
-                margin-bottom: .55rem;
+                margin-bottom: .35rem;
             }
 
             .luxury-hero h1 {
                 color: #ffffff !important;
-                font-size: clamp(2.3rem, 5vw, 4.65rem);
-                line-height: .95;
+                font-size: clamp(1.7rem, 2.7vw, 2.85rem);
+                line-height: 1.02;
                 margin: 0;
                 max-width: 880px;
             }
@@ -80,17 +75,17 @@ html, body, [data-testid="stAppViewContainer"] {
             .luxury-hero p {
                 color: #e6eff7 !important;
                 max-width: 760px;
-                margin: 1rem 0 0;
-                font-size: 1.06rem;
-                line-height: 1.55;
+                margin: .55rem 0 0;
+                font-size: .98rem;
+                line-height: 1.45;
             }
 
             .hero-summary-card {
                 align-self: end;
                 background: rgba(255,255,255,0.14);
                 border: 1px solid rgba(255,255,255,0.24);
-                border-radius: 24px;
-                padding: 1rem 1.1rem;
+                border-radius: 16px;
+                padding: .65rem .8rem;
                 backdrop-filter: blur(14px);
             }
 
@@ -98,7 +93,7 @@ html, body, [data-testid="stAppViewContainer"] {
                 display: flex;
                 justify-content: space-between;
                 gap: 1rem;
-                padding: .58rem 0;
+                padding: .36rem 0;
                 border-bottom: 1px solid rgba(255,255,255,0.13);
             }
 
@@ -118,7 +113,7 @@ html, body, [data-testid="stAppViewContainer"] {
 
             .app-version-pill {
                 display: inline-flex;
-                margin: .8rem 0 1.1rem;
+                margin: .55rem 0 .8rem;
                 padding: .35rem .7rem;
                 border: 1px solid var(--line);
                 border-radius: 999px;
