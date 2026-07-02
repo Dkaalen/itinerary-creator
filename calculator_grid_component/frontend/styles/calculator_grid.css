@@ -48,3 +48,5 @@ tr.selected-row td.readonly { background-color: rgba(213, 166, 50, 0.12); }
 .suggestion-item span { color: var(--muted); font-size: 0.84rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suggestion-empty, .component-error { color: #ffd6d6; padding: 10px; background: rgba(192, 86, 86, 0.12); border: 1px solid rgba(192, 86, 86, 0.3); border-radius: 8px; }
 @media (max-width: 900px) { .calculator-toolbar { align-items: stretch; } .calculator-toolbar-left, .calculator-toolbar-right { width: 100%; } .calc-btn { flex: 1; } }
+.component-loading { color: var(--muted); padding: 14px; background: rgba(31, 35, 48, 0.9); border: 1px solid var(--border); border-radius: 10px; }
+.component-loading strong { color: var(--text); }

@@ -210,8 +210,11 @@ function renderError(error) {
   requestAnimationFrame(setCalculatorFrameHeight);
 }
 
-window.addEventListener('message', (event) => {
+let componentHasReceivedRender = false;
+
+function handleStreamlitRender(event) {
   if (!event.data || event.data.type !== 'streamlit:render') return;
+  componentHasReceivedRender = true;
   try {
     initializeState((event.data.args || {}).payload || {});
     rerender();
@@ -219,4 +222,18 @@ window.addEventListener('message', (event) => {
     console.error(error);
     renderError(error);
   }
-});
+}
+
+function startCalculatorGridComponent() {
+  renderComponentBootMessage('Loading calculator grid…');
+  window.addEventListener('message', handleStreamlitRender);
+  Streamlit.setComponentReady();
+  requestAnimationFrame(setCalculatorFrameHeight);
+  window.setTimeout(() => {
+    if (!componentHasReceivedRender) {
+      renderComponentBootMessage('Waiting for calculator data from Streamlit…');
+    }
+  }, 2000);
+}
+
+startCalculatorGridComponent();

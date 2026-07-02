@@ -25,5 +25,17 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-Streamlit.setComponentReady();
+function renderComponentBootMessage(message) {
+  const root = document.getElementById('root');
+  if (!root) return;
+  root.innerHTML = `
+    <div class="calculator-grid-shell">
+      <div class="component-loading">
+        <strong>${escapeHtml(message)}</strong><br>
+        If this stays visible, the calculator component loaded but did not receive data from Streamlit.
+      </div>
+    </div>`;
+  requestAnimationFrame(setCalculatorFrameHeight);
+}
+
 window.addEventListener('resize', () => requestAnimationFrame(setCalculatorFrameHeight));

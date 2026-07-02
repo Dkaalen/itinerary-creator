@@ -17,3 +17,6 @@ persistent_drafts/
 CHANGED_FILES_MANIFEST.md
 DELETION_MANIFEST.md
 _patch_metadata/
+
+# Local Streamlit secrets
+.streamlit/secrets.toml
