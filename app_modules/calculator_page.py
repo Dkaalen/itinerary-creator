@@ -28,6 +28,7 @@ _COMPONENT_KEY = "calculator_browser_grid"
 def render_calculator_page(app_version: str) -> None:
     """Render the standalone calculator page."""
 
+    _render_calculator_page_width_css()
     state = _calculator_state_from_session()
     _render_app_header(app_version, stage="input")
     _stage_panel(CALCULATOR_COPY["panel_title"], CALCULATOR_COPY["panel_text"])
@@ -131,3 +132,28 @@ def _render_backup_controls(state: CalculatorState) -> None:
     _store_calculator_state(imported_state)
     st.success("Calculator backup reopened.")
     st.rerun()
+
+
+
+def _render_calculator_page_width_css() -> None:
+    """Let the browser-side calculator use the full available screen width."""
+
+    st.markdown(
+        """
+        <style>
+        section.main > div.block-container {
+            max-width: none;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+        div[data-testid="stCustomComponentV1"] {
+            width: 100%;
+            max-width: none;
+        }
+        div[data-testid="stCustomComponentV1"] iframe {
+            width: 100%;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )

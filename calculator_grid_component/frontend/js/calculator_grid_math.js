@@ -53,6 +53,7 @@ function calculateRow(row, rates) {
     return row;
   }
   const grossPerUnit = numberValue(row.gross_price_per_unit);
+  applyDefaultUnits(row, grossPerUnit);
   const units = numberValue(row.units);
   applyDefaultSupplierCommission(row, grossPerUnit);
   const supplierCommissionDecimal = numberValue(row.supplier_commission) / 100;
@@ -62,9 +63,11 @@ function calculateRow(row, rates) {
   const netPriceNok = formulaValue(row, 'net_price_nok', netPrice * supplierRate);
   const salesPerUnit = salesPricePerUnit(row, grossPerUnit);
   row.sales_price_per_unit = grossPerUnit === 0 && !row._sales_price_per_unit_touched ? '' : salesPerUnit;
-  const price = formulaValue(row, 'price', salesPerUnit * units);
+  const calculatedPrice = salesPerUnit * units;
+  const price = formulaValue(row, 'price', calculatedPrice);
   const salesRate = formulaValue(row, 'sales_x_rate', currencyRate(row.sales_currency, rates));
-  const salesNok = formulaValue(row, 'sales_price_nok_total', salesPerUnit * salesRate * units);
+  const calculatedSalesNok = price * salesRate;
+  const salesNok = formulaValue(row, 'sales_price_nok_total', calculatedSalesNok);
   const gpNok = formulaValue(row, 'gp_nok', salesNok - netPriceNok);
   const gpPercent = formulaValue(row, 'gp_percent', salesNok === 0 ? 0 : gpNok / salesNok);
 
@@ -78,6 +81,13 @@ function calculateRow(row, rates) {
   row.gp_nok = gpNok;
   row.gp_percent = gpPercent;
   return row;
+}
+
+function applyDefaultUnits(row, grossPerUnit) {
+  if (row._units_touched) return;
+  if (grossPerUnit <= 0) return;
+  const current = optionalNumberValue(row.units);
+  if (current === null || current === 0) row.units = 1;
 }
 
 function applyDefaultSupplierCommission(row, grossPerUnit) {

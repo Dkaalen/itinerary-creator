@@ -34,7 +34,7 @@ def build_calculator_grid_payload(
         "library_source": library_read.source,
         "library_read_only": library_read.read_only,
         "library_message": library_read.message,
-        "library_rows": [_library_row_payload(row) for row in library_read.rows if row.is_available_for_fetch],
+        "library_rows": [_library_row_payload(row) for row in _autocomplete_rows(library_read)],
     }
 
 
@@ -71,3 +71,17 @@ def _library_read_status(read_result: LocalLibraryReadResult) -> str:
 
 def _compact_preview(row: LocalLibraryRow) -> str:
     return library_result_preview(row).replace("\n", " • ")[:450]
+
+
+
+def _autocomplete_rows(read_result: LocalLibraryReadResult) -> tuple[LocalLibraryRow, ...]:
+    """Return rows available to the browser autocomplete.
+
+    Google Sheets keeps the explicit fetchable filter. The bundled Cheat Sheet fallback
+    also includes section/header rows because users need the whole 501-item cheat sheet
+    searchable while offline/read-only.
+    """
+
+    if read_result.source == "fixture":
+        return tuple(row for row in read_result.rows if not row.is_deleted and (row.search_text or row.travel_element))
+    return tuple(row for row in read_result.rows if row.is_available_for_fetch)

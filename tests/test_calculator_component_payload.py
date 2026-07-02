@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app_modules.calculator_component_payload import build_calculator_grid_payload
+from calculator.library_fixture import fallback_library_rows
 from calculator.calculator_state import CalculatorState
 from calculator.library_model import LocalLibraryRow
 from calculator.library_store import LocalLibraryReadResult
@@ -56,3 +57,18 @@ def test_calculator_component_payload_revision_changes_when_rows_change() -> Non
 
     assert first_payload["state_revision"] == repeat_payload["state_revision"]
     assert first_payload["state_revision"] != second_payload["state_revision"]
+
+
+
+def test_calculator_component_payload_exposes_all_bundled_fallback_rows() -> None:
+    library_read = LocalLibraryReadResult(
+        rows=fallback_library_rows(),
+        source="fixture",
+        read_only=True,
+        message="Local Library secrets are missing.",
+    )
+
+    payload = build_calculator_grid_payload(CalculatorState(), library_read)
+
+    assert len(payload["library_rows"]) == 501
+    assert payload["library_status"] == "Local Library fallback active (501 bundled lines). Local Library secrets are missing."

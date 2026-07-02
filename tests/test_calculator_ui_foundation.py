@@ -238,7 +238,7 @@ def test_calculator_table_accepts_spreadsheet_style_numeric_expressions() -> Non
                 "travel_element": "Activity",
                 "gross_price_per_unit": "100/10*0.8",
                 "units": "=2+1",
-                "supplier_commission": "20",
+                "supplier_commission": "20%",
                 "price": "=30*2",
             },
         ),
@@ -303,7 +303,9 @@ def test_calculator_browser_grid_has_fullscreen_control_and_fixed_width_cells() 
     assert "requestFullscreen" in app_source
     assert "calculator-grid-shell.fullscreen" in css_source
     assert "tableWidth(columns)" in render_source
-    assert "max-width:${column.width}px" in render_source
+    assert "dynamicColumnWidth" in render_source
+    assert "max-width:${width}px" in render_source
+    assert "setCalculatorHostFullscreen" in Path("calculator_grid_component/frontend/js/streamlit_bridge.js").read_text(encoding="utf-8")
     assert "text-overflow: ellipsis" in css_source
 
 
@@ -318,3 +320,30 @@ def test_calculator_browser_grid_defaults_sales_and_commission_without_user_over
     assert "_sales_price_per_unit_touched" in math_source
     assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" in library_source
     assert "fetched.sales_price_per_unit = '';" in library_source
+    assert "applyDefaultUnits(row, grossPerUnit);" in math_source
+    assert "percentPointInputValue" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+
+
+
+def test_calculator_grid_autofills_dates_from_day_one_arrival() -> None:
+    date_source = Path("calculator_grid_component/frontend/js/calculator_grid_dates.js").read_text(encoding="utf-8")
+    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
+
+    assert "function autofillDatesFromArrival" in date_source
+    assert "parseDayNumber" in date_source
+    assert "formatGridDate(addDays(context.date, dayNumber - 1), context.format)" in date_source
+    assert "key === 'day' || key === 'from_date'" in app_source
+    assert "refreshDateCells" in app_source
+    assert "calculator_grid_dates.js" in index_source
+
+
+def test_calculator_grid_uses_dynamic_widths_and_full_page_css() -> None:
+    columns_source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
+    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+
+    assert "minWidth" in columns_source
+    assert "maxWidth" in columns_source
+    assert "fitChars" in columns_source
+    assert "section.main > div.block-container" in page_source
+    assert "max-width: none" in page_source

@@ -23,7 +23,7 @@ def summarize_local_library_read(read_result: LocalLibraryReadResult) -> LocalLi
     """Return concise UI copy that makes Google Sheets fallback visible."""
 
     total_rows = len(read_result.rows)
-    fetchable_rows = sum(1 for row in read_result.rows if row.is_available_for_fetch)
+    fetchable_rows = _autocomplete_row_count(read_result)
     if read_result.source == "google_sheets" and not read_result.read_only:
         return LocalLibraryReadSummary(
             level="success",
@@ -37,9 +37,15 @@ def summarize_local_library_read(read_result: LocalLibraryReadResult) -> LocalLi
     reason = read_result.message or "Google Sheets is not configured."
     return LocalLibraryReadSummary(
         level="warning",
-        headline=f"Local Library fallback active · {fetchable_rows}/{total_rows} bundled lines.",
+        headline=f"Local Library fallback active · {fetchable_rows} bundled lines.",
         detail=f"Autocomplete is using the bundled read-only fixture because {reason}",
         component_text=f"Local Library fallback active ({fetchable_rows} bundled lines). {reason}",
         total_rows=total_rows,
         fetchable_rows=fetchable_rows,
     )
+
+
+def _autocomplete_row_count(read_result: LocalLibraryReadResult) -> int:
+    if read_result.source == "fixture":
+        return sum(1 for row in read_result.rows if not row.is_deleted and (row.search_text or row.travel_element))
+    return sum(1 for row in read_result.rows if row.is_available_for_fetch)

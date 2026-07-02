@@ -52,7 +52,7 @@ def calculate_row(
     sales_x_rate = _override(row.sales_x_rate_override, lookup_currency_rate(row.sales_currency, rates))
     sales_price_nok_total = _override(
         row.sales_price_nok_total_override,
-        calculated_sales_price_per_unit * sales_x_rate * units,
+        price * sales_x_rate,
     )
     gp_nok = _override(row.gp_nok_override, sales_price_nok_total - net_price_nok)
     gp_percent = _override(row.gp_percent_override, _safe_ratio(gp_nok, sales_price_nok_total))

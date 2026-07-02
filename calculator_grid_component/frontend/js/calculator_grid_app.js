@@ -120,6 +120,7 @@ function handleCellInput(event) {
   const key = cell.dataset.key;
   updateRowValue(rowIndex, key, cell.textContent || '');
   markLocalDraft();
+  if (key === 'day' || key === 'from_date') refreshDateCells();
   refreshDefaultedEditableCells(rowIndex);
   refreshFormulaCells(rowIndex);
   refreshTotalsOnly();
@@ -205,20 +206,35 @@ function updateRowValue(rowIndex, key, rawValue) {
   if (!row) return;
   const kind = columnKind(key);
   if (key === 'supplier_commission') row._supplier_commission_touched = true;
+  if (key === 'units') row._units_touched = true;
   if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = true;
   if (kind === 'checkbox') row[key] = Boolean(rawValue);
   else if (kind === 'numberOptional') row[key] = optionalNumberValue(rawValue);
   else if (kind === 'formula' || kind === 'formulaPercent') {
     row[formulaOverrideKey(key)] = formulaOverrideValue(rawValue, kind);
-  } else if (kind === 'number' || kind === 'percent') row[key] = rawValue === '' ? '' : numberValue(rawValue);
+  } else if (kind === 'percent') row[key] = rawValue === '' ? '' : percentPointInputValue(rawValue);
+  else if (kind === 'number') row[key] = rawValue === '' ? '' : numberValue(rawValue);
   else row[key] = String(rawValue || '').trim();
+  if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
   calculateRow(row, calculatorState.currencyRates);
 }
 
 function formulaOverrideValue(rawValue, kind) {
   if (rawValue === null || rawValue === undefined || String(rawValue).trim() === '') return null;
-  if (kind === 'formulaPercent') return numberValue(rawValue) / 100;
+  if (kind === 'formulaPercent') return percentInputValue(rawValue);
   return numberValue(rawValue);
+}
+
+function percentInputValue(rawValue) {
+  const text = String(rawValue || '').trim();
+  const number = numberValue(rawValue);
+  return text.includes('%') ? number : number / 100;
+}
+
+function percentPointInputValue(rawValue) {
+  const text = String(rawValue || '').trim();
+  const number = numberValue(rawValue);
+  return text.includes('%') ? number * 100 : number;
 }
 
 function scheduleSuggestions(rowIndex, query) {
@@ -255,7 +271,9 @@ function applySuggestion(index) {
   const active = calculatorState.activeSuggestion;
   if (!active || !active.results[index]) return;
   const row = calculatorState.rows[active.rowIndex];
-  calculatorState.rows[active.rowIndex] = calculateRow(applyLibrarySuggestion(row, active.results[index].item), calculatorState.currencyRates);
+  calculatorState.rows[active.rowIndex] = applyLibrarySuggestion(row, active.results[index].item);
+  autofillDatesFromArrival(calculatorState.rows);
+  calculatorState.rows[active.rowIndex] = calculateRow(calculatorState.rows[active.rowIndex], calculatorState.currencyRates);
   calculatorState.activeSuggestion = null;
   markLocalDraft();
   rerender();
@@ -267,10 +285,18 @@ function markSelectedRow(rowIndex) {
 }
 
 
+function refreshDateCells() {
+  for (let index = 0; index < calculatorState.rows.length; index += 1) {
+    const cell = document.querySelector(`td[data-row-index="${index}"][data-key="from_date"]`);
+    if (!cell || document.activeElement === cell) continue;
+    cell.textContent = calculatorState.rows[index].from_date || '';
+  }
+}
+
 function refreshDefaultedEditableCells(rowIndex) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
-  for (const key of ['supplier_commission', 'sales_price_per_unit']) {
+  for (const key of ['units', 'supplier_commission', 'sales_price_per_unit']) {
     const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${key}"]`);
     if (!cell || document.activeElement === cell) continue;
     const value = row[key];
@@ -310,10 +336,11 @@ function toggleCalculatorFullscreen() {
   const shell = document.querySelector('.calculator-grid-shell');
   if (!shell) return;
   shell.classList.toggle('fullscreen', calculatorFullscreen);
+  setCalculatorHostFullscreen(calculatorFullscreen);
   updateFullscreenButton();
   if (calculatorFullscreen && shell.requestFullscreen && !document.fullscreenElement) {
     shell.requestFullscreen().catch(() => {
-      // Browser or iframe refused native fullscreen; keep the CSS overlay fallback active.
+      // Browser or iframe refused native fullscreen; keep the host iframe fullscreen fallback active.
     });
   } else if (!calculatorFullscreen && document.fullscreenElement && document.exitFullscreen) {
     document.exitFullscreen().catch(() => {});
@@ -330,6 +357,7 @@ function handleFullscreenChange() {
   if (!document.fullscreenElement && calculatorFullscreen) {
     calculatorFullscreen = false;
     document.querySelector('.calculator-grid-shell')?.classList.remove('fullscreen');
+    setCalculatorHostFullscreen(false);
     updateFullscreenButton();
     requestAnimationFrame(setCalculatorFrameHeight);
   }

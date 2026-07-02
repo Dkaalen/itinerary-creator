@@ -36,9 +36,12 @@ function buildToolbarHtml(state) {
 }
 
 function buildTableHtml(state) {
-  const columns = visibleColumns(state.showAdvanced);
-  const colgroup = columns.map((column) => `<col style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px">`).join('');
-  const headers = columns.map((column) => `<th style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
+  const columns = visibleColumns(state.showAdvanced).map((column) => ({
+    ...column,
+    renderedWidth: dynamicColumnWidth(column, state.rows)
+  }));
+  const colgroup = columns.map((column) => `<col style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px">`).join('');
+  const headers = columns.map((column) => `<th style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
   const body = state.rows.map((row, rowIndex) => {
     const selectedClass = rowIndex === state.selectedRowIndex ? ' selected-row' : '';
     const cells = columns.map((column) => cellHtml(row, rowIndex, column)).join('');
@@ -46,7 +49,7 @@ function buildTableHtml(state) {
   }).join('');
   return `
     <div class="calculator-grid-scroll">
-      <table class="calculator-grid-table" style="width:${tableWidth(columns)}px">
+      <table class="calculator-grid-table" style="width:max(100%, ${tableWidth(columns)}px)">
         <colgroup>${colgroup}</colgroup>
         <thead><tr>${headers}</tr></thead>
         <tbody>${body}</tbody>
@@ -55,13 +58,33 @@ function buildTableHtml(state) {
 }
 
 function tableWidth(columns) {
-  return columns.reduce((total, column) => total + Number(column.width || 100), 0);
+  return columns.reduce((total, column) => total + Number(column.renderedWidth || column.width || 100), 0);
+}
+
+function dynamicColumnWidth(column, rows) {
+  const headerWidth = Math.ceil(String(column.label || '').length * 7.2 + 24);
+  const cellWidth = Math.ceil(maxVisibleCellChars(column, rows) * 7.2 + 24);
+  const minimum = Number(column.minWidth || column.width || headerWidth);
+  const maximum = Number(column.maxWidth || column.width || minimum);
+  return Math.max(minimum, Math.min(maximum, Math.max(headerWidth, cellWidth)));
+}
+
+function maxVisibleCellChars(column, rows) {
+  const cap = Number(column.fitChars || 10);
+  let longest = 0;
+  for (const row of rows || []) {
+    const text = cellTitle(row[column.key], column);
+    if (!text) continue;
+    longest = Math.max(longest, Math.min(cap, String(text).length));
+  }
+  return longest;
 }
 
 function cellHtml(row, rowIndex, column) {
   const raw = row[column.key];
   const common = `data-row-index="${rowIndex}" data-key="${column.key}"`;
-  const widthStyle = `style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px"`;
+  const width = column.renderedWidth || column.width;
+  const widthStyle = `style="width:${width}px; min-width:${width}px; max-width:${width}px"`;
   const title = `title="${escapeHtml(cellTitle(raw, column))}"`;
   if (column.formula) {
     return `<td class="cell editable formula-cell" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;

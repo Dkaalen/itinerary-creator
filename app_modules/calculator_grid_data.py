@@ -159,10 +159,13 @@ def _optional_number_value(value: Any) -> float | None:
 def _percent_to_decimal(value: Any) -> float:
     """Convert UI percentage input to the decimal value used by formulas."""
 
+    if value is None:
+        return 0.0
+    text = str(value).strip()
     number = _number_value(value)
     if number == 0:
         return 0.0
-    return number / 100
+    return number if "%" in text else number / 100
 
 
 def _decimal_to_percent(value: Any) -> float:
