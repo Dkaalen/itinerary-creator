@@ -44,6 +44,8 @@ BANNED_SESSION_KEYS = frozenset(
         "_pdf_export_job",
         "_pdf_auto_create_requested",
         "_pdf_export_timings",
+        "_performance_telemetry",
+        "_project_file_download_cache",
         "_pdf_image_contract_cache",
     }
 )

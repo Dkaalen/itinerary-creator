@@ -19,11 +19,12 @@ from images.app_image_selection import (
 )
 from images.scanner import get_image_bank_index
 from itinerary_generation.cover_assets import resolve_cover_background
+from visual_editor_component.editor_image_payload_options import metadata_first_image_options
 
 
 DAY_REPLACEMENT_OPTION_LIMIT = 8
-# Keep the replacement list useful while avoiding 8 eager base64 previews per day.
-OPTION_PREVIEW_LIMIT = 2
+# Replacement options are metadata-first; the selected/current image keeps its preview.
+OPTION_PREVIEW_LIMIT = 0
 EDITOR_IMAGE_PAYLOAD_CACHE_LIMIT = 18
 
 _IMAGE_PAYLOAD_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
@@ -141,16 +142,9 @@ def _cache_set(key: str, value: dict[str, Any]) -> dict[str, Any]:
 
 
 def _with_option_previews(options, *, preview_limit: int = OPTION_PREVIEW_LIMIT):
-    enriched = []
-    for index, option in enumerate(options or []):
-        item = dict(option or {})
-        path = item.get("path")
-        if path and not item.get("preview_data_uri") and index < preview_limit:
-            item["preview_data_uri"] = get_image_preview_for_path(path, option=True)
-        else:
-            item.setdefault("preview_data_uri", "")
-        enriched.append(item)
-    return enriched
+    """Return metadata-first replacement options without eager base64 previews."""
+
+    return metadata_first_image_options(options, limit=None)
 
 
 def _editor_cover_image_payload(parsed_rows, output_edits, key: str, *, pictures_added: bool) -> dict:

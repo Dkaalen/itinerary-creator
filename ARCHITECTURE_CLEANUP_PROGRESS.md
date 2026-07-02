@@ -3103,3 +3103,27 @@ Python compile: passed
 Import smoke: passed
 Architecture guards: passed
 Whitespace diff check: passed
+
+---
+
+# Batch 19: Optimization and product foundation patches A-G
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Add internal performance visibility, reduce editor image payload bloat, harden PDF identity/reuse, reduce avoidable rerun work, and establish language, tone and browser E2E foundations without creating parallel itinerary systems.
+```
+
+Completed in Batch 19:
+
+```text
+[x] Added hidden workflow timing telemetry for parse, normalize, generation/render, pictures/image matching, editor payload/save, PDF and download readiness
+[x] Switched replacement image options to metadata-first payloads while keeping current/selected image previews
+[x] Added stable PDF export identity that includes current preview plus export-relevant image/presentation state
+[x] Added session-local saved-project download caching and cache invalidation on generated/reopened projects
+[x] Added presentation-layer static labels for English, Norwegian, German, French and Spanish
+[x] Added controlled tone presets for generated prose/title polish without changing parser/editor/image/PDF structure
+[x] Added opt-in pytest-playwright browser E2E foundation for the real Streamlit workflow
+```

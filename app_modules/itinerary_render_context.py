@@ -12,6 +12,7 @@ from app_modules.render_context_final_data import build_final_context_data
 from app_modules.render_context_final_sections import build_final_sections_for_pdf
 from app_modules.render_context_summary import build_render_summary
 from app_modules.render_context_summary_data import build_summary_context_data
+from app_modules.presentation_language import presentation_labels, presentation_language_from_output_edits
 from itinerary_generation.client_sanitizer import sanitize_render_document_client_output
 from itinerary_generation.editor_page_contract import (
     final_section_is_hidden as contract_final_section_is_hidden,
@@ -76,6 +77,8 @@ class ItineraryRenderContext:
     final_section_titles: dict[str, str]
     manual_pages: list[dict[str, Any]]
     hidden_page_ids: set[str]
+    presentation_language: str
+    presentation_labels: dict[str, str]
 
 
 def _page_is_hidden(context: ItineraryRenderContext, page_id: str) -> bool:
@@ -99,6 +102,13 @@ def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str])
 
 
 def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
+    context.render_document.presentation_language = context.presentation_language
+    context.render_document.labels = dict(context.presentation_labels)
+    for render_day in context.render_document.days or []:
+        render_day.day_label_prefix = context.presentation_labels.get("day", "DAY")
+        render_day.labels = dict(context.presentation_labels)
+        for block in render_day.blocks or []:
+            block.labels = dict(context.presentation_labels)
     context.render_document.cover = build_render_cover(context)
     context.render_document.summary = build_render_summary(context)
     context.render_document.final_sections = build_final_sections_for_pdf(context)
@@ -123,6 +133,8 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     """Build the shared preview/PDF render context from parsed itinerary data."""
 
     output_edits = output_edits or {}
+    language_code = presentation_language_from_output_edits(output_edits)
+    labels = presentation_labels(language_code).labels
     editor_draft = output_edits.get("editor_draft") if isinstance(output_edits, dict) else {}
     editor_draft = editor_draft if isinstance(editor_draft, dict) else {}
 
@@ -155,6 +167,8 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         render_document=document_data["render_document"],
         manual_pages=contract_manual_pages_from_draft(editor_draft, document_data["hidden_page_ids"]),
         hidden_page_ids=document_data["hidden_page_ids"],
+        presentation_language=language_code,
+        presentation_labels=dict(labels),
         **cover_data,
         **summary_data,
         **final_data,

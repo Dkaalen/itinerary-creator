@@ -6,6 +6,7 @@ from typing import Any
 import re
 
 from app_modules.render_context_cover_data import _safe_label
+from app_modules.presentation_language import label_for
 from itinerary_generation.client_sanitizer import normalize_important_note_paragraphs, sanitize_client_list
 from itinerary_generation.editable_draft import section_by_id
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
@@ -63,10 +64,10 @@ def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
         generated_inclusion_pages,
     )
     final_section_titles = {
-        "whats_included": _safe_label(typed_inclusions.get("title") if typed_inclusions else output_edits.get("whats_included_title"), "What’s included"),
-        "whats_not_included": _safe_label(typed_exclusions.get("title") if typed_exclusions else output_edits.get("whats_not_included_title"), "What’s not included"),
-        "important_travel_notes": _safe_label(typed_notes.get("title") if typed_notes else output_edits.get("important_travel_notes_title"), "Important travel notes"),
-        "optional_experiences": _safe_label(output_edits.get("optional_experiences_title"), "Optional Experiences"),
+        "whats_included": _safe_label(typed_inclusions.get("title") if typed_inclusions else output_edits.get("whats_included_title"), label_for(output_edits, "whats_included", "What’s included")),
+        "whats_not_included": _safe_label(typed_exclusions.get("title") if typed_exclusions else output_edits.get("whats_not_included_title"), label_for(output_edits, "whats_not_included", "What’s not included")),
+        "important_travel_notes": _safe_label(typed_notes.get("title") if typed_notes else output_edits.get("important_travel_notes_title"), label_for(output_edits, "important_travel_notes", "Important travel notes")),
+        "optional_experiences": _safe_label(output_edits.get("optional_experiences_title"), label_for(output_edits, "optional_experiences", "Optional Experiences")),
     }
 
     return {

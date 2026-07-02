@@ -87,6 +87,7 @@ class RenderBlock:
     css_class: str = ""
     source_row_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -100,6 +101,8 @@ class RenderDay:
     blocks: list[RenderBlock] = field(default_factory=list)
     source_row_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    day_label_prefix: str = "DAY"
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -114,3 +117,5 @@ class RenderDocument:
     final_sections: list[RenderFinalSection] = field(default_factory=list)
     hidden_page_ids: list[str] = field(default_factory=list)
     page_order: list[str] = field(default_factory=list)
+    presentation_language: str = "en"
+    labels: dict[str, str] = field(default_factory=dict)

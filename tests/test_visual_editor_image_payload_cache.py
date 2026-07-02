@@ -61,7 +61,7 @@ def test_visual_editor_image_payload_bundle_reuses_heavy_image_work(monkeypatch)
     assert calls["select"] == 1
     assert calls["audit"] == 1
     assert calls["options"] == 1
-    assert calls["preview"] == 2
+    assert calls["preview"] == 1
     assert calls["cover:cover_image"] == 1
     assert calls["cover:summary_image"] == 1
 

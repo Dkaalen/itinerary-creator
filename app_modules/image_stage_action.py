@@ -7,6 +7,7 @@ from app_modules.editor_commit import add_pictures_editor_commit_ready, clear_ad
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.image_gateway import connect_image_bank_for_picture_stage
 from app_modules.workflow_result import WorkflowActionResult
+from app_modules.performance_telemetry import measure_timing
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state, mark_pdf_dirty, set_workflow_stage
 from images.day_image_selection import normalize_day_image_matches
 from images.image_workflow_review import build_image_workflow_review
@@ -20,7 +21,8 @@ def retry_image_bank_connection(
 ) -> WorkflowActionResult:
     """Retry the separate image-bank connection without entering picture review."""
 
-    gateway = connect_image_bank_for_picture_stage(status_func, connect_func).as_dict()
+    with measure_timing(state, "add_pictures"):
+        gateway = connect_image_bank_for_picture_stage(status_func, connect_func).as_dict()
     state["image_bank_gateway"] = gateway
     state["image_bank_status"] = gateway.get("status", {})
     return WorkflowActionResult(
@@ -56,7 +58,8 @@ def enter_picture_stage(
             payload={"requires_apply_changes": True},
         )
 
-    gateway = connect_image_bank_for_picture_stage(status_func, connect_func).as_dict()
+    with measure_timing(state, "add_pictures"):
+        gateway = connect_image_bank_for_picture_stage(status_func, connect_func).as_dict()
     state["image_bank_gateway"] = gateway
     state["image_bank_status"] = gateway.get("status", {})
 
@@ -77,7 +80,8 @@ def enter_picture_stage(
     # connected while still producing zero usable matches because destination
     # names, folder aliases or bank contents do not line up.  In that case the
     # user needs an actionable warning instead of a false "Pictures added" state.
-    matches = normalize_day_image_matches(select_images_func(image_grouped_days, output_edits))
+    with measure_timing(state, "image_matching", count=len(image_grouped_days or {})):
+        matches = normalize_day_image_matches(select_images_func(image_grouped_days, output_edits))
     matched_days = [day for day, match in (matches or {}).items() if isinstance(match, Mapping) and (match.get("path") or match.get("data_uri"))]
     unmatched_days = [day for day in (image_grouped_days or {}) if day not in matched_days]
 

@@ -129,14 +129,14 @@ def test_visual_editor_toolbar_uses_simple_default_actions():
     assert ".advanced-tools .toolbar-tools" in css
 
 
-def test_image_replacement_uses_instant_option_preview_not_muted_placeholder():
+def test_image_replacement_uses_metadata_first_option_payload_not_eager_preview():
     inspector = (FRONTEND / "js/editor_inspector.js").read_text(encoding="utf-8")
     image_handlers = (FRONTEND / "js/editor_image_event_handlers.js").read_text(encoding="utf-8")
     images = (FRONTEND / "js/images.js").read_text(encoding="utf-8")
     payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
 
-    assert "preview_data_uri" in payload
-    assert "get_image_preview_for_path(path, option=True)" in payload
+    assert "metadata_first_image_options" in payload
+    assert "get_image_preview_for_path(path, option=True)" not in payload
     assert "selected.preview_data_uri || selected.data_uri" not in inspector
     assert "selected.preview_data_uri || selected.data_uri" in image_handlers
     assert "Replacement selected — save to update preview" not in images
@@ -186,8 +186,8 @@ def test_local_draft_strips_uploaded_image_binary_from_browser_storage():
     assert "data_omitted" in local_draft
 
 
-def test_replacement_options_all_receive_small_previews():
+def test_replacement_options_are_metadata_first_by_default():
     payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
 
     assert "DAY_REPLACEMENT_OPTION_LIMIT = 8" in payload
-    assert "OPTION_PREVIEW_LIMIT = 2" in payload
+    assert "OPTION_PREVIEW_LIMIT = 0" in payload

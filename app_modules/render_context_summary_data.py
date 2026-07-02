@@ -6,6 +6,7 @@ from typing import Any
 
 from itinerary_generation.summaries import create_journey_arc, create_trip_glance, sanitize_journey_arc_experience
 from app_modules.render_context_cover_data import _safe_label
+from app_modules.presentation_language import label_for
 
 
 def _saved_journey_arc_is_usable(saved_journey_arc: Any) -> bool:
@@ -36,9 +37,9 @@ def build_summary_context_data(parsed_rows, grouped_days, output_edits: dict[str
     raw_arc_columns = typed_summary.get("journey_arc_columns") if isinstance(typed_summary.get("journey_arc_columns"), dict) else output_edits.get("journey_arc_columns")
     raw_arc_columns = raw_arc_columns if isinstance(raw_arc_columns, dict) else {}
     journey_arc_columns = {
-        "chapter": _safe_label(raw_arc_columns.get("chapter"), "Chapter"),
-        "days": _safe_label(raw_arc_columns.get("days"), "Days"),
-        "experience": _safe_label(raw_arc_columns.get("experience"), "What You’ll Experience"),
+        "chapter": _safe_label(raw_arc_columns.get("chapter"), label_for(output_edits, "chapter", "Chapter")),
+        "days": _safe_label(raw_arc_columns.get("days"), label_for(output_edits, "days", "Days")),
+        "experience": _safe_label(raw_arc_columns.get("experience"), label_for(output_edits, "experience", "What You’ll Experience")),
     }
 
     trip_glance = create_trip_glance(parsed_rows, grouped_days)
@@ -67,9 +68,9 @@ def build_summary_context_data(parsed_rows, grouped_days, output_edits: dict[str
         journey_arc = create_journey_arc(grouped_days)
 
     return {
-        "trip_glance_title": _safe_label(typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title"), "Your Trip at a Glance"),
+        "trip_glance_title": _safe_label(typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title"), label_for(output_edits, "trip_glance", "Your Trip at a Glance")),
         "trip_glance": trip_glance,
-        "journey_arc_title": _safe_label(typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title"), "Your Journey Arc"),
+        "journey_arc_title": _safe_label(typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title"), label_for(output_edits, "journey_arc", "Your Journey Arc")),
         "journey_arc_columns": journey_arc_columns,
         "journey_arc": journey_arc,
     }

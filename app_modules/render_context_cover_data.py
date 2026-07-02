@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app_modules.display_settings import get_color_preset, get_color_preset_name
+from app_modules.presentation_language import label_for
 from app_modules.itinerary_html_sections import balanced_cover_subtitle_html
 from app_modules.output_brand import logo_data_uri, output_brand_id
 from app_modules.output_brand_cover import apply_output_brand_cover_palette
@@ -49,8 +50,8 @@ def build_cover_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
         "colors": get_color_preset(output_edits),
         "colors_json": "",
         "cover_theme": cover_theme,
-        "cover_kicker": typed_cover.get("cover_kicker") or output_edits.get("cover_kicker") or "Travel Itinerary",
-        "cover_route_label": _safe_label(typed_cover.get("route_label") or output_edits.get("route_label"), "Route"),
+        "cover_kicker": typed_cover.get("cover_kicker") or output_edits.get("cover_kicker") or label_for(output_edits, "travel_itinerary", "Travel Itinerary"),
+        "cover_route_label": _safe_label(typed_cover.get("route_label") or output_edits.get("route_label"), label_for(output_edits, "route", "Route")),
         "cover_title_class": cover_title_class,
         "trip_title": trip_title,
         "trip_subtitle": trip_subtitle,

@@ -13,6 +13,7 @@ from app_modules.editor_commit import (
     pdf_editor_commit_ready,
     request_pdf_editor_commit,
 )
+from app_modules.export_identity import export_signature_for_state
 from app_modules.export_job_state import (
     auto_pdf_create_requested,
     consume_auto_pdf_create_request,
@@ -67,7 +68,7 @@ def _session_state_snapshot() -> dict:
 
 
 def _create_pdf_now() -> bool:
-    mark_exporting(st.session_state, signature=st.session_state.get("preview_signature"))
+    mark_exporting(st.session_state, signature=export_signature_for_state(st.session_state))
     ok = False
     try:
         with st.spinner("Creating PDF…"):
@@ -81,7 +82,7 @@ def _create_pdf_now() -> bool:
             st.exception(error)
         return False
     if ok:
-        mark_export_ready(st.session_state, signature=st.session_state.get("preview_signature"))
+        mark_export_ready(st.session_state, signature=export_signature_for_state(st.session_state))
     else:
         mark_export_failed(st.session_state, error=st.session_state.get("pdf_status") or "PDF export failed.")
     return ok

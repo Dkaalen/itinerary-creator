@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.project_io import load_project_json
+from app_modules.project_file_download_cache import cached_project_file_payload
 from app_modules.saved_project_file_action import PROJECT_FILE_MIME, prepare_saved_project_file_download
 from app_modules.saved_project_storage_ui import render_saved_project_storage_note
 from app_modules.saved_project_validation import SavedProjectError
@@ -36,7 +37,16 @@ def render_save_project_file_action(*, key_suffix: str = "current") -> None:
     if not st.session_state.get("parsed_rows") or not st.session_state.get("output_edits"):
         return
     try:
-        project_file = prepare_saved_project_file_download(st.session_state)
+        signature = ":".join([
+            str(st.session_state.get("preview_signature") or ""),
+            str(st.session_state.get("active_saved_project_id") or ""),
+            str(st.session_state.get("itinerary_name") or ""),
+        ])
+        project_file = cached_project_file_payload(
+            st.session_state,
+            signature,
+            lambda: prepare_saved_project_file_download(st.session_state),
+        )
     except SavedProjectError as error:
         st.button("Save Project File", disabled=True, use_container_width=True, key=f"save_project_file_disabled_{key_suffix}")
         st.caption(str(error))

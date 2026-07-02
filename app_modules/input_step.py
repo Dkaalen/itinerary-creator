@@ -6,6 +6,8 @@ from app_modules.app_header import _render_app_header, _stage_panel
 from app_modules.debug_mode import is_debug_mode
 from app_modules.itinerary_name_state import sync_itinerary_name_from_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
+from app_modules.presentation_language_ui import render_presentation_language_selector
+from app_modules.tone_preset_ui import render_tone_preset_selector
 from app_modules.project_file_ui import render_open_project_file_action
 from app_modules.project_io import load_project_json
 from app_modules.validation_gate import block_generation, render_blocking_issues, render_warning_issues
@@ -22,6 +24,8 @@ def _set_stage(stage: str) -> None:
 def _generate_itinerary(raw_text: str, output_brand: str = "agent") -> bool:
     sync_itinerary_name_from_input(st.session_state)
     st.session_state["requested_output_brand"] = output_brand
+    st.session_state["requested_presentation_language"] = st.session_state.get("presentation_language")
+    st.session_state["requested_tone_preset"] = st.session_state.get("tone_preset")
     result = generate_itinerary(st.session_state, raw_text)
     if not result.ok:
         validation_report = (result.payload or {}).get("validation_report")
@@ -56,6 +60,11 @@ def render_input_page(app_version: str) -> None:
 
     render_open_project_file_action()
     render_itinerary_name_input()
+    settings_col_a, settings_col_b = st.columns(2)
+    with settings_col_a:
+        render_presentation_language_selector()
+    with settings_col_b:
+        render_tone_preset_selector()
 
     raw_text = st.text_area(
         "Supplier text",

@@ -44,6 +44,11 @@ def _data_row_attr(block: RenderBlock) -> str:
 
 
 
+def _label(block: RenderBlock, key: str, fallback: str) -> str:
+    labels = block.labels if isinstance(getattr(block, "labels", None), dict) else {}
+    return str(labels.get(key) or fallback)
+
+
 def render_block_to_html(block: RenderBlock) -> dict:
     if block.kind == "manual_day_html":
         return {"kind": block.kind, "row_id": block.row_id, "html": clean_visual_editor_html(block.content_html)}
@@ -62,18 +67,18 @@ def render_block_to_html(block: RenderBlock) -> dict:
 
     if block.kind in {"activity", "group_tour_day"}:
         if block.includes:
-            included_label = "Included on This Tour Day" if block.kind == "group_tour_day" else "Included With This Experience"
+            included_label = _label(block, "included_tour_day", "Included on This Tour Day") if block.kind == "group_tour_day" else _label(block, "included_experience", "Included With This Experience")
             html_text += f'<div class="section-title small-section">{esc(included_label)}</div>'
             html_text += render_list_items(block.includes)
         if block.description:
-            html_text += '<div class="section-title small-section">Description</div>'
+            html_text += f'<div class="section-title small-section">{esc(_label(block, "description", "Description"))}</div>'
             html_text += f'<div class="body-text muted-note">{esc(block.description)}</div>'
         if block.notable_sights:
-            html_text += '<div class="section-title small-section">Notable Sights</div>'
+            html_text += f'<div class="section-title small-section">{esc(_label(block, "notable_sights", "Notable Sights"))}</div>'
             html_text += render_list_items(block.notable_sights)
     elif block.kind == "transport":
         if block.includes:
-            html_text += '<div class="section-title small-section">Includes</div>'
+            html_text += f'<div class="section-title small-section">{esc(_label(block, "includes", "Includes"))}</div>'
             html_text += render_list_items(block.includes)
         if block.description:
             html_text += f'<div class="body-text muted-note">{esc(block.description)}</div>'

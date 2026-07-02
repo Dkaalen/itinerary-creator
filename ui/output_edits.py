@@ -23,6 +23,13 @@ from itinerary_generation.day_text import create_day_intro, create_travel_route_
 from itinerary_generation.copy.visit_context import build_day_visit_contexts
 from itinerary_generation.generated_ownership import INTRO_GENERATOR_VERSION, day_source_signature
 from itinerary_generation.inclusions import create_whats_included
+from itinerary_generation.tone_presets import (
+    DEFAULT_TONE_PRESET,
+    apply_tone_to_intro,
+    apply_tone_to_title,
+    normalize_tone_preset,
+    tone_preset as resolve_tone_preset,
+)
 from itinerary_generation.titles import (
     create_client_activity_title,
     create_day_title,
@@ -126,7 +133,9 @@ def apply_rich_writing_to_all_days(parsed_rows, output_edits):
     return output_edits
 
 
-def make_output_edit_state(parsed_rows, grouped_days):
+def make_output_edit_state(parsed_rows, grouped_days, *, tone_preset=None):
+    selected_tone = normalize_tone_preset(tone_preset or st.session_state.get("tone_preset", DEFAULT_TONE_PRESET))
+    selected_tone_detail = resolve_tone_preset(selected_tone).detail_level
     edits = {
         "draft_id": uuid.uuid4().hex,
         "cover_kicker": "Travel Itinerary",
@@ -136,7 +145,8 @@ def make_output_edit_state(parsed_rows, grouped_days):
         "trip_subtitle": create_trip_subtitle(parsed_rows, grouped_days),
         "destinations_line": create_destinations_line(parsed_rows),
         "color_preset": st.session_state.get("color_preset", "Classic Agent"),
-        "detail_level": "Rich descriptive",
+        "detail_level": selected_tone_detail,
+        "tone_preset": selected_tone,
         "day_page_layout": st.session_state.get("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT),
         # New projects start in stable text-editing mode. Pictures are added
         # only after the user explicitly enters picture-review mode.
@@ -154,9 +164,9 @@ def make_output_edit_state(parsed_rows, grouped_days):
 
     visit_contexts = build_day_visit_contexts(grouped_days)
     for day, rows in grouped_days.items():
-        intro = create_day_intro(rows, detail_level=edits["detail_level"], visit_context=visit_contexts.get(str(day)))
+        intro = apply_tone_to_intro(create_day_intro(rows, detail_level=edits["detail_level"], visit_context=visit_contexts.get(str(day))), selected_tone)
         edits["days"][day] = {
-            "title": create_day_title(rows, visit_context=visit_contexts.get(str(day))),
+            "title": apply_tone_to_title(create_day_title(rows, visit_context=visit_contexts.get(str(day))), selected_tone),
             "intro": intro,
             "intro_generated_value": intro,
             "intro_generator_version": INTRO_GENERATOR_VERSION,
@@ -168,6 +178,7 @@ def make_output_edit_state(parsed_rows, grouped_days):
         for row in rows:
             row_id = row.get("row_id") or f'line_{row.get("line_number", len(edits["rows"]))}'
             title = create_client_activity_title(row) if get_row_type(row) == "Activity" else row.get("title", "")
+            title = apply_tone_to_title(title, selected_tone)
 
             edits["rows"][row_id] = {
                 "title": title,

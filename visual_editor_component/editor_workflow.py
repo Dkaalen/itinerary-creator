@@ -17,6 +17,7 @@ from app_modules.editor_commit import (
     PDF_COMMIT_READY_KEY,
 )
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
+from app_modules.performance_telemetry import measure_timing
 from visual_editor_component.editor_autosave import try_apply_server_autosave
 from visual_editor_component.editor_status import autosave_status as _autosave_status
 from visual_editor_component.editor_bridge import render_visual_page_editor
@@ -60,18 +61,22 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
     Returns True only when a saved editor payload was applied. The app can then
     skip any additional rebuild based on the pre-save rows from the same rerun.
     """
-    payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
+    with measure_timing(st.session_state, "build_editor_payload", count=len(parsed_rows or [])):
+        payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
     st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
     st.session_state["latest_client_output_warnings"] = list(payload.get("client_output_warnings") or [])
     if _try_apply_server_autosave(payload, output_edits, mark_dirty=mark_dirty):
-        payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
+        with measure_timing(st.session_state, "build_editor_payload", count=len(parsed_rows or []), note="after_autosave"):
+            payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
         st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
         st.session_state["latest_client_output_warnings"] = list(payload.get("client_output_warnings") or [])
     commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
     result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
     if result and result != st.session_state.get("_last_visual_editor_result"):
         st.session_state["_last_visual_editor_result"] = result
-        if apply_visual_editor_result(result, output_edits, mark_dirty=mark_dirty):
+        with measure_timing(st.session_state, "apply_editor_changes"):
+            applied_result = apply_visual_editor_result(result, output_edits, mark_dirty=mark_dirty)
+        if applied_result:
             # Keep Save nearly instant: applying a compact editor delta must not
             # synchronously rebuild the full HTML/PDF render context on the same
             # Streamlit rerun.  The editor payload is rebuilt from output_edits

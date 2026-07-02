@@ -14,6 +14,13 @@ from pdf_exporter_modules.story import add_bullets, add_paragraph
 from itinerary_generation.render_model import RenderBlock, RenderDay
 
 
+def _label(source, key: str, fallback: str) -> str:
+    labels = getattr(source, "labels", {})
+    if isinstance(labels, dict):
+        return str(labels.get(key) or fallback)
+    return fallback
+
+
 def ellipsize_text(value: str, limit: int) -> str:
     """Return a compact sentence-safe text fragment for overflow fallback."""
 
@@ -69,14 +76,14 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
             notable_sights = []
 
         if includes:
-            included_label = "Included on This Tour Day" if block.kind == "group_tour_day" else "Included With This Experience"
+            included_label = _label(block, "included_tour_day", "Included on This Tour Day") if block.kind == "group_tour_day" else _label(block, "included_experience", "Included With This Experience")
             add_paragraph(block_story, included_label, styles["section"])
             add_bullets(block_story, includes, styles)
         if description:
-            add_paragraph(block_story, "Description", styles["section"])
+            add_paragraph(block_story, _label(block, "description", "Description"), styles["section"])
             add_paragraph(block_story, description, styles["body"])
         if notable_sights:
-            add_paragraph(block_story, "Notable Sights", styles["section"])
+            add_paragraph(block_story, _label(block, "notable_sights", "Notable Sights"), styles["section"])
             add_bullets(block_story, notable_sights, styles)
         for section in extra_sections:
             if section.items:
@@ -88,7 +95,7 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
 
     if block.kind == "transport":
         if block.includes:
-            add_paragraph(block_story, "Includes", styles["section"])
+            add_paragraph(block_story, _label(block, "includes", "Includes"), styles["section"])
             add_bullets(block_story, block.includes, styles)
         if block.description:
             add_paragraph(block_story, ellipsize_text(block.description, 180) if compact_level >= 3 else block.description, styles["body"])
@@ -112,7 +119,7 @@ def block_story(block: RenderBlock, styles, *, compact_level: int = 0) -> list:
 
 def day_label(day: RenderDay) -> str:
     separator = "•" if is_booknordics_pdf() else "✦"
-    kicker = f"DAY {day.number}"
+    kicker = f"{_label(day, 'day', getattr(day, 'day_label_prefix', 'DAY'))} {day.number}"
     if day.city:
         kicker += f" {separator} {str(day.city).upper()}"
     if getattr(day, "date", ""):

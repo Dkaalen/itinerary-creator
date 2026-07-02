@@ -12,6 +12,7 @@ import sys
 from typing import Any
 
 from ui.app_constants import COLOR_PRESETS
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET, normalize_tone_preset
 
 
 def _streamlit_session_value(key: str, default: Any) -> Any:
@@ -55,3 +56,9 @@ def get_detail_level_name(output_edits=None):
     detail level should never break itinerary rendering.
     """
     return "Rich descriptive"
+
+
+def get_tone_preset_name(output_edits=None):
+    """Return the selected controlled tone preset."""
+
+    return normalize_tone_preset((output_edits or {}).get("tone_preset") or _streamlit_session_value("tone_preset", DEFAULT_TONE_PRESET))

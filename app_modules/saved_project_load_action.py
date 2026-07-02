@@ -12,10 +12,13 @@ from app_modules.render_context_cache import store_render_context
 from app_modules.saved_project_cleaning import clean_output_edits, clean_parsed_rows
 from app_modules.saved_project_image_state import apply_image_state_to_output_edits
 from app_modules.saved_project_model import SavedItineraryProject
+from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE, normalize_presentation_language
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET, normalize_tone_preset
 from app_modules.saved_project_serialization import saved_project_from_dict, saved_project_to_dict
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.project_file_download_cache import clear_project_file_download_cache
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
@@ -48,6 +51,8 @@ _TRANSIENT_REOPEN_KEYS = (
     "_pdf_export_job",
     "_pdf_auto_create_requested",
     "_pdf_export_timings",
+    "_performance_telemetry",
+    "_project_file_download_cache",
 )
 
 
@@ -68,6 +73,8 @@ def load_saved_project(
     output_edits["output_brand"] = output_brand
     output_edits["detail_level"] = str(snapshot.detail_level or output_edits.get("detail_level") or "Rich descriptive")
     output_edits["day_page_layout"] = str(snapshot.day_page_layout or output_edits.get("day_page_layout") or DEFAULT_DAY_PAGE_LAYOUT)
+    output_edits["presentation_language"] = normalize_presentation_language(output_edits.get("presentation_language") or DEFAULT_PRESENTATION_LANGUAGE)
+    output_edits["tone_preset"] = normalize_tone_preset(output_edits.get("tone_preset") or DEFAULT_TONE_PRESET)
 
     validation_report = validate_for_generation(parsed_rows)
     if validation_report.is_blocked:
@@ -84,6 +91,8 @@ def load_saved_project(
     state["output_edits"] = output_edits
     state["detail_level"] = output_edits["detail_level"]
     state["day_page_layout"] = output_edits["day_page_layout"]
+    state["presentation_language"] = output_edits["presentation_language"]
+    state["tone_preset"] = output_edits["tone_preset"]
     state["last_generated_raw_text"] = saved_project.source.source_input
     state["raw_text_input"] = saved_project.source.source_input
     state["parser_diagnostics"] = []
@@ -94,6 +103,7 @@ def load_saved_project(
     state["itinerary_name"] = saved_project.metadata.itinerary_name
     state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
     clear_pdf_artifacts(state, status="Not created")
+    clear_project_file_download_cache(state)
 
     render_signature = _rebuild_preview_state(state, parsed_rows, output_edits)
     stage = set_workflow_stage(state, "pictures" if pictures_are_added(output_edits) else "edit")

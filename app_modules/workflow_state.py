@@ -14,6 +14,8 @@ from itinerary_generation.common import group_rows_by_day, is_optional_row
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
+from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 
 
 WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
@@ -39,6 +41,8 @@ DEFAULT_WORKFLOW_SESSION_STATE: dict[str, Any] = {
     "export_pdf_signature": None,
     "detail_level": "Rich descriptive",
     "day_page_layout": DEFAULT_DAY_PAGE_LAYOUT,
+    "presentation_language": DEFAULT_PRESENTATION_LANGUAGE,
+    "tone_preset": DEFAULT_TONE_PRESET,
     "itinerary_validation_report": None,
     "app_stage": "input",
 }
@@ -81,6 +85,8 @@ RESET_PROJECT_KEYS = (
     "_pdf_export_job",
     "_pdf_auto_create_requested",
     "_pdf_export_timings",
+    "_performance_telemetry",
+    "_project_file_download_cache",
 )
 
 

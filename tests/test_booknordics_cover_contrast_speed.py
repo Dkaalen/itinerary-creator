@@ -76,7 +76,7 @@ def test_booknordics_preview_and_editor_css_remove_cover_card():
     assert "_append_booknordics_cover_text" in pdf_cover
 
 
-def test_option_previews_are_capped_for_faster_add_pictures(monkeypatch):
+def test_option_previews_are_metadata_first_for_faster_add_pictures(monkeypatch):
     calls = []
 
     def fake_preview(path, option=False):
@@ -88,12 +88,10 @@ def test_option_previews_are_capped_for_faster_add_pictures(monkeypatch):
 
     enriched = editor_payload_images._with_option_previews(options, preview_limit=2)
 
-    assert [item["preview_data_uri"] for item in enriched[:2]] == [
-        "preview:/bank/image-0.jpg:True",
-        "preview:/bank/image-1.jpg:True",
-    ]
-    assert [item["preview_data_uri"] for item in enriched[2:]] == ["", "", "", ""]
-    assert len(calls) == 2
+    assert all("preview_data_uri" not in item for item in enriched)
+    assert all("data_uri" not in item for item in enriched)
+    assert [item["path"] for item in enriched[:2]] == ["/bank/image-0.jpg", "/bank/image-1.jpg"]
+    assert calls == []
 
 
 def test_pdf_image_variants_reuse_persistent_cache_across_temp_dirs(tmp_path, monkeypatch):
