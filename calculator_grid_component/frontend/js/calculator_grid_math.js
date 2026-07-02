@@ -1,5 +1,6 @@
 const DEFAULT_RATES = {EUR: 11.3, SEK: 1.02, DKK: 1.5, ISK: 0.075, NOK: 1, USD: 10.6};
 const DEFAULT_CURRENCY = 'EUR';
+const DEFAULT_SUPPLIER_COMMISSION_PERCENT = 20;
 
 function numberValue(value) {
   const parsed = parseNumericInput(value);
@@ -53,13 +54,14 @@ function calculateRow(row, rates) {
   }
   const grossPerUnit = numberValue(row.gross_price_per_unit);
   const units = numberValue(row.units);
+  applyDefaultSupplierCommission(row, grossPerUnit);
   const supplierCommissionDecimal = numberValue(row.supplier_commission) / 100;
   const grossPrice = formulaValue(row, 'gross_price', grossPerUnit * units);
   const netPrice = formulaValue(row, 'net_price', grossPrice * (1 - supplierCommissionDecimal));
   const supplierRate = formulaValue(row, 'supplier_x_rate', currencyRate(row.supplier_currency, rates));
   const netPriceNok = formulaValue(row, 'net_price_nok', netPrice * supplierRate);
-  const salesOverride = optionalNumberValue(row.sales_price_per_unit);
-  const salesPerUnit = salesOverride === null ? grossPerUnit : salesOverride;
+  const salesPerUnit = salesPricePerUnit(row, grossPerUnit);
+  row.sales_price_per_unit = grossPerUnit === 0 && !row._sales_price_per_unit_touched ? '' : salesPerUnit;
   const price = formulaValue(row, 'price', salesPerUnit * units);
   const salesRate = formulaValue(row, 'sales_x_rate', currencyRate(row.sales_currency, rates));
   const salesNok = formulaValue(row, 'sales_price_nok_total', salesPerUnit * salesRate * units);
@@ -76,6 +78,21 @@ function calculateRow(row, rates) {
   row.gp_nok = gpNok;
   row.gp_percent = gpPercent;
   return row;
+}
+
+function applyDefaultSupplierCommission(row, grossPerUnit) {
+  if (row._supplier_commission_touched) return;
+  if (grossPerUnit <= 0) return;
+  const current = optionalNumberValue(row.supplier_commission);
+  if (current === null || current === 0) row.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT;
+}
+
+function salesPricePerUnit(row, grossPerUnit) {
+  const salesOverride = optionalNumberValue(row.sales_price_per_unit);
+  if (!row._sales_price_per_unit_touched && (salesOverride === null || salesOverride === 0) && grossPerUnit > 0) {
+    return grossPerUnit;
+  }
+  return salesOverride === null ? grossPerUnit : salesOverride;
 }
 
 function calculateRows(rows, rates) {

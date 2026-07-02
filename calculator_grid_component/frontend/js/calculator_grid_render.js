@@ -10,6 +10,7 @@ function buildToolbarHtml(state) {
         <button class="calc-btn" data-action="duplicate">Duplicate row</button>
         <button class="calc-btn danger" data-action="delete">Delete row</button>
         <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Show advanced columns</label>
+        <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen calculator'}</button>
       </div>
       <div class="calculator-toolbar-right">
         <button class="calc-btn primary" data-action="download">Prepare Excel download</button>
@@ -36,7 +37,8 @@ function buildToolbarHtml(state) {
 
 function buildTableHtml(state) {
   const columns = visibleColumns(state.showAdvanced);
-  const headers = columns.map((column) => `<th style="min-width:${column.width}px">${escapeHtml(column.label)}</th>`).join('');
+  const colgroup = columns.map((column) => `<col style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px">`).join('');
+  const headers = columns.map((column) => `<th style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
   const body = state.rows.map((row, rowIndex) => {
     const selectedClass = rowIndex === state.selectedRowIndex ? ' selected-row' : '';
     const cells = columns.map((column) => cellHtml(row, rowIndex, column)).join('');
@@ -44,25 +46,37 @@ function buildTableHtml(state) {
   }).join('');
   return `
     <div class="calculator-grid-scroll">
-      <table class="calculator-grid-table">
+      <table class="calculator-grid-table" style="width:${tableWidth(columns)}px">
+        <colgroup>${colgroup}</colgroup>
         <thead><tr>${headers}</tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>`;
 }
 
+function tableWidth(columns) {
+  return columns.reduce((total, column) => total + Number(column.width || 100), 0);
+}
+
 function cellHtml(row, rowIndex, column) {
   const raw = row[column.key];
   const common = `data-row-index="${rowIndex}" data-key="${column.key}"`;
+  const widthStyle = `style="width:${column.width}px; min-width:${column.width}px; max-width:${column.width}px"`;
+  const title = `title="${escapeHtml(cellTitle(raw, column))}"`;
   if (column.formula) {
-    return `<td class="cell editable formula-cell" contenteditable="true" spellcheck="false" ${common}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;
+    return `<td class="cell editable formula-cell" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;
   }
   if (column.kind === 'checkbox') {
-    return `<td class="cell checkbox-cell" ${common}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
+    return `<td class="cell checkbox-cell" ${common} ${widthStyle}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
   }
   const value = raw === null || raw === undefined ? '' : String(raw);
   const autocompleteClass = column.autocomplete ? ' autocomplete-cell' : '';
-  return `<td class="cell editable${autocompleteClass}" contenteditable="true" spellcheck="false" ${common}>${escapeHtml(value)}</td>`;
+  return `<td class="cell editable${autocompleteClass}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}</td>`;
+}
+
+function cellTitle(value, column) {
+  if (column.formula) return formatFormula(value, column.kind);
+  return value === null || value === undefined ? '' : String(value);
 }
 
 function buildSuggestionHtml(state) {
@@ -89,7 +103,7 @@ function buildSuggestionHtml(state) {
 function renderShell(state) {
   const root = document.getElementById('root');
   root.innerHTML = `
-    <div class="calculator-grid-shell">
+    <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}">
       <div class="calculator-grid-hint">Edit directly in the sheet. Use arrow keys, Enter, Tab, and Shift+Tab to move between cells. Type at least 3 characters in Travel element to show Local Library suggestions. Numeric cells accept simple formulas like =100/10*0.8.</div>
       ${buildToolbarHtml(state)}
       ${buildTableHtml(state)}

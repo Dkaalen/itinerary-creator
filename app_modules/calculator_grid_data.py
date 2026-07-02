@@ -101,7 +101,10 @@ def _row_to_table_data(row: CalculatorRow, visible_fields: Iterable[str]) -> dic
             continue
         value = getattr(row, field_name)
         if field_name == "sales_price_per_unit" and value is None:
-            data[field_name] = ""
+            data[field_name] = "" if row_is_blank else calculated.calculated_sales_price_per_unit
+            continue
+        if field_name == "sales_price_per_unit" and _number_value(value) == 0 and _number_value(row.gross_price_per_unit) > 0:
+            data[field_name] = calculated.calculated_sales_price_per_unit
             continue
         if row_is_blank and field_name in _NUMERIC_FIELDS:
             data[field_name] = None

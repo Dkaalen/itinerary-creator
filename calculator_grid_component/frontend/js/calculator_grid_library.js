@@ -59,6 +59,13 @@ function findLibrarySuggestions(libraryRows, query, limit = 8) {
 
 function applyLibrarySuggestion(row, suggestion) {
   const fetched = {...(suggestion.row_data || {})};
+  const grossPerUnit = numberValue(fetched.gross_price_per_unit);
+  if (grossPerUnit > 0 && optionalNumberValue(fetched.supplier_commission) === 0) {
+    fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT;
+  }
+  if (grossPerUnit > 0 && optionalNumberValue(fetched.sales_price_per_unit) === 0) {
+    fetched.sales_price_per_unit = '';
+  }
   const preserved = {
     row_id: row.row_id,
     day: row.day || fetched.day || '',
@@ -67,5 +74,5 @@ function applyLibrarySuggestion(row, suggestion) {
     from_time: row.from_time || fetched.from_time || '',
     to_time: row.to_time || fetched.to_time || ''
   };
-  return {...fetched, ...preserved};
+  return {...fetched, ...preserved, _supplier_commission_touched: false, _sales_price_per_unit_touched: false};
 }

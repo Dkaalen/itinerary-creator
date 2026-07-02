@@ -266,3 +266,55 @@ def test_calculator_component_uses_debounced_non_intrusive_suggestions_and_formu
     assert "class NumericExpressionParser" in parser_source
     assert "eval(" not in parser_source
     assert "new Function" not in parser_source
+
+
+def test_calculator_browser_grid_hides_excel_advanced_columns_by_default() -> None:
+    columns_source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
+
+    assert "advanced: true" in columns_source
+    assert "return CALCULATOR_COLUMNS.filter((column) => showAdvanced || !column.advanced);" in columns_source
+    for key in (
+        "from_time",
+        "to_time",
+        "supplier",
+        "manual_booking",
+        "status",
+        "comments",
+        "non_refundable",
+        "refundable",
+        "url",
+        "vat25",
+        "vat15",
+        "vat12",
+        "vat0_domestic",
+        "vat0_international",
+    ):
+        assert f"key: '{key}'" in columns_source
+
+
+def test_calculator_browser_grid_has_fullscreen_control_and_fixed_width_cells() -> None:
+    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
+    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
+
+    assert "Fullscreen calculator" in render_source
+    assert "data-action=\"toggle-fullscreen\"" in render_source
+    assert "function toggleCalculatorFullscreen" in app_source
+    assert "requestFullscreen" in app_source
+    assert "calculator-grid-shell.fullscreen" in css_source
+    assert "tableWidth(columns)" in render_source
+    assert "max-width:${column.width}px" in render_source
+    assert "text-overflow: ellipsis" in css_source
+
+
+def test_calculator_browser_grid_defaults_sales_and_commission_without_user_override() -> None:
+    math_source = Path("calculator_grid_component/frontend/js/calculator_grid_math.js").read_text(encoding="utf-8")
+    library_source = Path("calculator_grid_component/frontend/js/calculator_grid_library.js").read_text(encoding="utf-8")
+
+    assert "DEFAULT_SUPPLIER_COMMISSION_PERCENT" in math_source or "DEFAULT_SUPPLIER_COMMISSION_PERCENT" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    assert "applyDefaultSupplierCommission(row, grossPerUnit);" in math_source
+    assert "refreshDefaultedEditableCells(rowIndex);" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    assert "row.sales_price_per_unit = grossPerUnit" in math_source
+    assert "_sales_price_per_unit_touched" in math_source
+    assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" in library_source
+    assert "fetched.sales_price_per_unit = '';" in library_source

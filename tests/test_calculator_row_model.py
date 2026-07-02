@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from calculator.row_model import (
     ADVANCED_FIELD_KEYS,
     BASIC_FIELD_KEYS,
@@ -81,3 +82,26 @@ def test_calculator_row_with_changes_returns_updated_copy() -> None:
     assert row.travel_element == "Old"
     assert updated.travel_element == "New"
     assert updated.units == 2
+
+
+def test_sales_price_per_unit_zero_defaults_to_gross_price_for_calculation() -> None:
+    from calculator.calculations import calculate_row
+    from calculator.row_model import CalculatorRow
+
+    calculated = calculate_row(
+        CalculatorRow(
+            row_id="1",
+            travel_element="Activity",
+            gross_price_per_unit=252,
+            units=1,
+            supplier_commission=0.2,
+            supplier_currency="EUR",
+            sales_price_per_unit=0,
+            sales_currency="EUR",
+        )
+    )
+
+    assert calculated.calculated_sales_price_per_unit == 252
+    assert calculated.price == 252
+    assert calculated.sales_price_nok_total == pytest.approx(2847.6)
+    assert calculated.gp_nok == pytest.approx(569.52)

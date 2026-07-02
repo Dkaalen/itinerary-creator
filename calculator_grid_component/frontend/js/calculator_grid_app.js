@@ -3,6 +3,7 @@ let activeCell = null;
 let activeBackendRevision = null;
 let hasLocalDraft = false;
 let suggestionDebounceTimer = null;
+let calculatorFullscreen = false;
 const SUGGESTION_MIN_QUERY_LENGTH = 3;
 const SUGGESTION_DEBOUNCE_MS = 180;
 
@@ -76,6 +77,7 @@ function bindEvents() {
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
   document.querySelector('[data-action="generate-agent"]')?.addEventListener('click', () => submitAction('generate_agent'));
   document.querySelector('[data-action="generate-customer"]')?.addEventListener('click', () => submitAction('generate_customer'));
+  document.querySelector('[data-action="toggle-fullscreen"]')?.addEventListener('click', toggleCalculatorFullscreen);
 
   document.querySelectorAll('.calc-row').forEach((rowElement) => {
     rowElement.addEventListener('mousedown', () => {
@@ -118,6 +120,7 @@ function handleCellInput(event) {
   const key = cell.dataset.key;
   updateRowValue(rowIndex, key, cell.textContent || '');
   markLocalDraft();
+  refreshDefaultedEditableCells(rowIndex);
   refreshFormulaCells(rowIndex);
   refreshTotalsOnly();
   if (key === 'travel_element') {
@@ -201,6 +204,8 @@ function updateRowValue(rowIndex, key, rawValue) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
   const kind = columnKind(key);
+  if (key === 'supplier_commission') row._supplier_commission_touched = true;
+  if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = true;
   if (kind === 'checkbox') row[key] = Boolean(rawValue);
   else if (kind === 'numberOptional') row[key] = optionalNumberValue(rawValue);
   else if (kind === 'formula' || kind === 'formulaPercent') {
@@ -261,6 +266,18 @@ function markSelectedRow(rowIndex) {
   document.querySelector(`.calc-row[data-row-index="${rowIndex}"]`)?.classList.add('selected-row');
 }
 
+
+function refreshDefaultedEditableCells(rowIndex) {
+  const row = calculatorState.rows[rowIndex];
+  if (!row) return;
+  for (const key of ['supplier_commission', 'sales_price_per_unit']) {
+    const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${key}"]`);
+    if (!cell || document.activeElement === cell) continue;
+    const value = row[key];
+    cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
+  }
+}
+
 function refreshFormulaCells(rowIndex) {
   const row = calculatorState.rows[rowIndex];
   for (const column of FORMULA_COLUMNS) {
@@ -288,6 +305,36 @@ function refreshTotalsOnly() {
     <span>VAT0-I: <strong>${formatNumber(totals.vat0_international, 0)}</strong></span>`;
 }
 
+function toggleCalculatorFullscreen() {
+  calculatorFullscreen = !calculatorFullscreen;
+  const shell = document.querySelector('.calculator-grid-shell');
+  if (!shell) return;
+  shell.classList.toggle('fullscreen', calculatorFullscreen);
+  updateFullscreenButton();
+  if (calculatorFullscreen && shell.requestFullscreen && !document.fullscreenElement) {
+    shell.requestFullscreen().catch(() => {
+      // Browser or iframe refused native fullscreen; keep the CSS overlay fallback active.
+    });
+  } else if (!calculatorFullscreen && document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+  requestAnimationFrame(setCalculatorFrameHeight);
+}
+
+function updateFullscreenButton() {
+  const button = document.querySelector('[data-action="toggle-fullscreen"]');
+  if (button) button.textContent = calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen calculator';
+}
+
+function handleFullscreenChange() {
+  if (!document.fullscreenElement && calculatorFullscreen) {
+    calculatorFullscreen = false;
+    document.querySelector('.calculator-grid-shell')?.classList.remove('fullscreen');
+    updateFullscreenButton();
+    requestAnimationFrame(setCalculatorFrameHeight);
+  }
+}
+
 function renderSuggestionPanelOnly() {
   const oldPanel = document.querySelector('.suggestion-panel');
   if (oldPanel) oldPanel.remove();
@@ -301,6 +348,7 @@ function renderSuggestionPanelOnly() {
     });
   });
 }
+
 
 function submitAction(action) {
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
@@ -335,6 +383,7 @@ function handleStreamlitRender(event) {
 function startCalculatorGridComponent() {
   renderComponentBootMessage('Loading calculator grid…');
   window.addEventListener('message', handleStreamlitRender);
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
   Streamlit.setComponentReady();
   requestAnimationFrame(setCalculatorFrameHeight);
   window.setTimeout(() => {

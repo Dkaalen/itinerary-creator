@@ -103,9 +103,13 @@ def lookup_currency_rate(code: str, currency_rates: Mapping[str, float] | None =
 
 
 def _sales_price_per_unit(row: CalculatorRow) -> float:
+    gross_price_per_unit = _number(row.gross_price_per_unit)
     if row.sales_price_per_unit is None:
-        return _number(row.gross_price_per_unit)
-    return _number(row.sales_price_per_unit)
+        return gross_price_per_unit
+    sales_price_per_unit = _number(row.sales_price_per_unit)
+    if sales_price_per_unit == 0 and gross_price_per_unit > 0:
+        return gross_price_per_unit
+    return sales_price_per_unit
 
 
 def _safe_ratio(numerator: float, denominator: float) -> float:
