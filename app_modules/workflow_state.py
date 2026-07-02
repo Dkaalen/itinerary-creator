@@ -84,6 +84,8 @@ RESET_PROJECT_KEYS = (
     "calculator_show_advanced",
     "calculator_itinerary_name_input",
     "calculator_selected_row_id",
+    "calculator_travel_element_autocomplete_query",
+    "calculator_travel_element_autocomplete_result_id",
     "calculator_grid_revision",
     "calculator_backup_upload",
     "image_bank_status",

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
+from calculator.defaults import DEFAULT_CALCULATOR_ROW_COUNT
 from calculator.row_model import CalculatorRow
 
 
@@ -27,6 +28,16 @@ def create_calculator_state(itinerary_name: str = "") -> CalculatorState:
     return CalculatorState(itinerary_name=itinerary_name)
 
 
+def create_initial_calculator_state(
+    itinerary_name: str = "",
+    *,
+    row_count: int = DEFAULT_CALCULATOR_ROW_COUNT,
+) -> CalculatorState:
+    """Create a startup calculator state with blank editable rows."""
+
+    return add_rows(create_calculator_state(itinerary_name), row_count)
+
+
 def add_row(state: CalculatorState, row: CalculatorRow | None = None) -> CalculatorState:
     """Append a row and assign a stable row id when missing."""
 
@@ -34,6 +45,15 @@ def add_row(state: CalculatorState, row: CalculatorRow | None = None) -> Calcula
     if not new_row.row_id:
         new_row = new_row.with_changes(row_id=next_row_id(state))
     return replace(state, rows=(*state.rows, new_row))
+
+
+def add_rows(state: CalculatorState, count: int) -> CalculatorState:
+    """Append several blank rows and return the updated state."""
+
+    updated = state
+    for _ in range(max(0, int(count))):
+        updated = add_row(updated)
+    return updated
 
 
 def update_row(state: CalculatorState, row_id: str, **changes: Any) -> CalculatorState:

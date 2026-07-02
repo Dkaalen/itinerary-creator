@@ -16,6 +16,8 @@ def test_reset_workflow_state_clears_calculator_backup_widget_state() -> None:
         "calculator_state": object(),
         "calculator_grid_revision": 7,
         "calculator_backup_upload": object(),
+        "calculator_travel_element_autocomplete_query": "hotel",
+        "calculator_travel_element_autocomplete_result_id": "lib-1",
         "raw_text_input": "Keep?",
     }
 
@@ -24,4 +26,6 @@ def test_reset_workflow_state_clears_calculator_backup_widget_state() -> None:
     assert state["calculator_state"] is None
     assert state["calculator_grid_revision"] == 0
     assert "calculator_backup_upload" not in state
+    assert "calculator_travel_element_autocomplete_query" not in state
+    assert "calculator_travel_element_autocomplete_result_id" not in state
     assert state["raw_text_input"] == ""

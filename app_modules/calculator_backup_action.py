@@ -42,24 +42,24 @@ def read_calculator_backup(uploaded_file: object) -> CalculatorState:
 def render_calculator_backup_controls(state: CalculatorState) -> CalculatorState | None:
     """Render calculator backup controls and return imported state when provided."""
 
-    with st.expander("Save / reopen calculator", expanded=False):
+    with st.expander("Advanced: backup / reopen calculator", expanded=False):
         backup = prepare_calculator_backup_download(state)
         st.download_button(
-            label="Download calculator backup",
+            label="Download backup to reopen later",
             data=backup.content,
             file_name=backup.filename,
             mime=CALCULATOR_BACKUP_MIME,
             use_container_width=True,
         )
         uploaded_file = st.file_uploader(
-            "Reopen calculator backup",
+            "Choose calculator backup JSON",
             type=("json",),
             accept_multiple_files=False,
             key="calculator_backup_upload",
         )
         if uploaded_file is None:
             return None
-        if not st.button("Open calculator backup", use_container_width=True):
+        if not st.button("Reopen selected backup", use_container_width=True):
             return None
         try:
             return read_calculator_backup(uploaded_file)

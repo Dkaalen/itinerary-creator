@@ -125,6 +125,9 @@ def test_exported_workbook_preserves_template_structure_and_styles() -> None:
     assert inspect_template_structure().hidden_column_ranges == ADVANCED_COLUMN_RANGES
     assert sheet.column_dimensions["G"].hidden is True
     assert sheet.column_dimensions["G"].outlineLevel == 1
+    assert sheet.column_dimensions["J"].collapsed is False
+    assert sheet.column_dimensions["P"].collapsed is False
+    assert sheet.sheet_view.showOutlineSymbols is False
     assert sheet["B6"].value == "ID"
     assert sheet["B6"].fill.fill_type is not None
     assert sheet["S7"].value == "=+Q7*R7"

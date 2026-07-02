@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from calculator.calculator_state import (
     add_row,
+    add_rows,
     create_calculator_state,
+    create_initial_calculator_state,
     delete_row,
     duplicate_row,
     next_row_id,
     update_row,
 )
+from calculator.defaults import DEFAULT_CALCULATOR_ROW_COUNT
 from calculator.row_model import CalculatorRow
 
 
@@ -16,6 +19,16 @@ def test_create_calculator_state_keeps_itinerary_name() -> None:
 
     assert state.itinerary_name == "Tromso Northern Lights 2026"
     assert state.rows == ()
+
+
+def test_create_initial_calculator_state_starts_with_default_blank_rows() -> None:
+    state = create_initial_calculator_state("Trip")
+
+    assert state.itinerary_name == "Trip"
+    assert len(state.rows) == DEFAULT_CALCULATOR_ROW_COUNT
+    assert state.rows[0].row_id == "1"
+    assert state.rows[-1].row_id == str(DEFAULT_CALCULATOR_ROW_COUNT)
+    assert {row.supplier_currency for row in state.rows} == {"EUR"}
 
 
 def test_add_row_assigns_next_row_id_without_mutating_original_state() -> None:
@@ -27,6 +40,12 @@ def test_add_row_assigns_next_row_id_without_mutating_original_state() -> None:
     assert updated.rows[0].row_id == "1"
     assert updated.rows[0].travel_element == "Airport transfer"
     assert next_row_id(updated) == "2"
+
+
+def test_add_rows_appends_requested_number_of_blank_rows() -> None:
+    state = add_rows(create_calculator_state(), 5)
+
+    assert [row.row_id for row in state.rows] == ["1", "2", "3", "4", "5"]
 
 
 def test_add_row_preserves_existing_row_id() -> None:

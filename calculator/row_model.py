@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
+from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
+
 BASIC_FIELD_KEYS = (
     "row_id",
     "day",
@@ -78,9 +80,9 @@ class CalculatorRow:
     gross_price_per_unit: float = 0.0
     units: float = 0.0
     supplier_commission: float = 0.0
-    supplier_currency: str = "NOK"
+    supplier_currency: str = DEFAULT_CALCULATOR_CURRENCY
     sales_price_per_unit: float | None = None
-    sales_currency: str = "NOK"
+    sales_currency: str = DEFAULT_CALCULATOR_CURRENCY
     vat25: float = 0.0
     vat15: float = 0.0
     vat12: float = 0.0

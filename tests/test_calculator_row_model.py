@@ -13,8 +13,8 @@ def test_calculator_row_defaults_are_safe_for_new_blank_lines() -> None:
     row = CalculatorRow()
 
     assert row.row_id == ""
-    assert row.supplier_currency == "NOK"
-    assert row.sales_currency == "NOK"
+    assert row.supplier_currency == "EUR"
+    assert row.sales_currency == "EUR"
     assert row.sales_price_per_unit is None
     assert row.gross_price_per_unit == 0
     assert row.units == 0

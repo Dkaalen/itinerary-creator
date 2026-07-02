@@ -18,6 +18,7 @@ from calculator.workbook_template import load_calculation_template
 
 _MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
 _QUOTE_CELL = "Z103"
+_COLLAPSED_GROUP_MARKERS = ("J", "P", "AK")
 _ROW_VALUE_COLUMNS = {
     "B": "row_id",
     "C": "day",
@@ -98,6 +99,7 @@ def build_calculation_workbook(
     for row_number, row in zip(_data_row_numbers(), rows):
         _write_row(sheet, row_number, row)
     sheet[_QUOTE_CELL] = f"=Z{TOTALS_ROW}"
+    _clean_export_view(sheet)
     return workbook
 
 
@@ -136,3 +138,12 @@ def _cell_value(row: CalculatorRow, field_name: str) -> object:
     if field_name in {"supplier_currency", "sales_currency"}:
         return str(value or "EUR").upper()
     return value
+
+
+def _clean_export_view(sheet: object) -> None:
+    """Remove collapsed-group markers that render as ugly vertical artifacts."""
+
+    for column in _COLLAPSED_GROUP_MARKERS:
+        if column in sheet.column_dimensions:
+            sheet.column_dimensions[column].collapsed = False
+    sheet.sheet_view.showOutlineSymbols = False

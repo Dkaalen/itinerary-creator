@@ -6,7 +6,7 @@ from typing import Any, MutableMapping
 
 import streamlit as st
 
-from calculator.calculator_state import add_row, create_calculator_state
+from calculator.calculator_state import create_initial_calculator_state
 
 APP_PAGE_KEY = "active_app_page"
 WORKFLOW_PAGE = "workflow"
@@ -21,12 +21,12 @@ def calculator_page_is_active(state: MutableMapping[str, Any]) -> bool:
 
 
 def open_calculator_page(state: MutableMapping[str, Any]) -> None:
-    """Route the app to the calculator and create a first row if needed."""
+    """Route the app to the calculator and create startup rows if needed."""
 
     state[APP_PAGE_KEY] = CALCULATOR_PAGE
     if state.get(CALCULATOR_STATE_KEY) is None:
         itinerary_name = str(state.get("itinerary_name") or state.get("itinerary_name_input") or "")
-        state[CALCULATOR_STATE_KEY] = add_row(create_calculator_state(itinerary_name))
+        state[CALCULATOR_STATE_KEY] = create_initial_calculator_state(itinerary_name)
 
 
 def close_calculator_page(state: MutableMapping[str, Any]) -> None:

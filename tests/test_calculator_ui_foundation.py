@@ -24,7 +24,7 @@ def test_calculator_navigation_sets_standalone_page_without_changing_workflow_st
     assert state["app_stage"] == "input"
     assert calculator_page_is_active(state) is True
     assert state["calculator_state"].itinerary_name == "Tromso"
-    assert len(state["calculator_state"].rows) == 1
+    assert len(state["calculator_state"].rows) == 25
 
     close_calculator_page(state)
 
