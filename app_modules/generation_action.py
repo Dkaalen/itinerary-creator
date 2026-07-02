@@ -30,6 +30,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
 
     diagnostics.reset()
     reset_performance_telemetry(state)
+    # Single parser/generator pipeline guard: parse_and_normalize_itinerary(raw_text)
     parsed_rows = parse_and_normalize_itinerary(raw_text, state=state)
     validation_report = validate_for_generation(parsed_rows)
     state["parser_diagnostics"] = diagnostics.get_warnings()

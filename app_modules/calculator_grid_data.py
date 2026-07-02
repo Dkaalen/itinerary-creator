@@ -8,6 +8,7 @@ from typing import Any, Iterable, Mapping
 
 from calculator.calculations import calculate_row
 from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
+from calculator.numeric_input import optional_numeric_input, parse_numeric_input
 from calculator.row_model import (
     ADVANCED_FIELD_KEYS,
     BASIC_FIELD_KEYS,
@@ -145,24 +146,11 @@ def _text_value(value: Any) -> str:
 
 
 def _number_value(value: Any) -> float:
-    if value is None:
-        return 0.0
-    text = str(value).strip().replace("%", "")
-    if text.casefold() in _BLANK_NUMERIC_MARKERS:
-        return 0.0
-    try:
-        return float(text)
-    except (TypeError, ValueError):
-        return 0.0
+    return parse_numeric_input(value)
 
 
 def _optional_number_value(value: Any) -> float | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    if text.casefold() in _BLANK_NUMERIC_MARKERS:
-        return None
-    return _number_value(value)
+    return optional_numeric_input(value)
 
 
 def _percent_to_decimal(value: Any) -> float:

@@ -24,6 +24,21 @@ function selectedPageValidationHtml(page) {
   return `<ul class="inspector-warning-list">${issues.slice(0, 6).map(issue => `<li><strong>${esc(humanizeEditorToken(issue.kind))}</strong><span>${esc(readinessIssueText(issue))}</span><em>${esc(issue.label || 'Review item')}</em>${warningSourceChipsHtml(issue.sourceRowIds || [])}</li>`).join('')}</ul>`;
 }
 
+function warningActionLabel(pageId) {
+  const id = String(pageId || '');
+  if (id.startsWith('day-')) return 'Open day page';
+  if (id.startsWith('final-')) return 'Open final page';
+  if (id === 'cover') return 'Open cover';
+  if (id === 'summary') return 'Open summary';
+  return 'Open page';
+}
+
+function warningSourceChipsHtml(sourceRowIds) {
+  const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
+  if (!ids.length) return '';
+  return `<div class="warning-source-row">Source row: ${ids.slice(0, 3).map(id => `<span class="source-chip">${esc(String(id))}</span>`).join('')}</div>`;
+}
+
 function warningLocationLabel(warning) {
   const text = String(warning?.excerpt || warning?.message || '');
   const code = String(warning?.code || 'warning');
@@ -49,20 +64,6 @@ function warningExplanation(warning) {
   return 'Review this item before exporting the final PDF.';
 }
 
-function warningActionLabel(pageId) {
-  const id = String(pageId || '');
-  if (id.startsWith('day-')) return 'Open day page';
-  if (id.startsWith('final-')) return 'Open final page';
-  if (id === 'cover') return 'Open cover';
-  if (id === 'summary') return 'Open summary';
-  return 'Open page';
-}
-
-function warningSourceChipsHtml(sourceRowIds) {
-  const ids = Array.isArray(sourceRowIds) ? sourceRowIds : [];
-  if (!ids.length) return '';
-  return `<div class="warning-source-row">Source row: ${ids.slice(0, 3).map(id => `<span class="source-chip">${esc(String(id))}</span>`).join('')}</div>`;
-}
 
 function warningGroupRowsHtml(warnings) {
   return warnings.slice(0, 8).map((warning) => {

@@ -90,7 +90,7 @@ function renderShell(state) {
   const root = document.getElementById('root');
   root.innerHTML = `
     <div class="calculator-grid-shell">
-      <div class="calculator-grid-hint">Edit directly in the sheet. Use arrow keys, Enter, Tab, and Shift+Tab to move between cells. Travel element cells search the Local Library while you type. Formula cells update instantly but can be manually overridden.</div>
+      <div class="calculator-grid-hint">Edit directly in the sheet. Use arrow keys, Enter, Tab, and Shift+Tab to move between cells. Type at least 3 characters in Travel element to show Local Library suggestions. Numeric cells accept simple formulas like =100/10*0.8.</div>
       ${buildToolbarHtml(state)}
       ${buildTableHtml(state)}
       ${buildSuggestionHtml(state)}

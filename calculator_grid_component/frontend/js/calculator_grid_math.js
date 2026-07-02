@@ -2,18 +2,15 @@ const DEFAULT_RATES = {EUR: 11.3, SEK: 1.02, DKK: 1.5, ISK: 0.075, NOK: 1, USD: 
 const DEFAULT_CURRENCY = 'EUR';
 
 function numberValue(value) {
-  if (value === null || value === undefined || value === '') return 0;
-  const text = String(value).trim().replace('%', '').replace(',', '.');
-  if (['none', 'nan', 'null'].includes(text.toLowerCase())) return 0;
-  const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : 0;
+  const parsed = parseNumericInput(value);
+  return parsed === null ? 0 : parsed;
 }
 
 function optionalNumberValue(value) {
   if (value === null || value === undefined || value === '') return null;
   const text = String(value).trim();
   if (['none', 'nan', 'null'].includes(text.toLowerCase())) return null;
-  return numberValue(value);
+  return parseNumericInput(value);
 }
 
 function currencyCode(value) {

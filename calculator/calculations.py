@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
+from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import CalculatorRow, CalculatedRow
 
 DEFAULT_CURRENCY_RATES: dict[str, float] = {
@@ -114,12 +115,7 @@ def _safe_ratio(numerator: float, denominator: float) -> float:
 
 
 def _number(value: object) -> float:
-    if value in (None, ""):
-        return 0.0
-    try:
-        return float(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return 0.0
+    return parse_numeric_input(value)
 
 
 def _override(value: float | None, calculated: float) -> float:

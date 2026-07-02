@@ -20,6 +20,7 @@ from itinerary_generation.nutshell_journey_builder import (
     resolve_nutshell_journey,
 )
 from itinerary_generation.nutshell_model import NutshellJourney, NutshellLeg
+from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package
 from itinerary_generation.nutshell_route_parser import (
     _direct_route_endpoints,
     _direction,
@@ -59,6 +60,7 @@ __all__ = [
     "build_nutshell_journey",
     "has_nutshell_journey",
     "is_nutshell_row",
+    "is_source_backed_nutshell_route_package",
     "nutshell_journey_from_row",
     "resolve_nutshell_journey",
 ]

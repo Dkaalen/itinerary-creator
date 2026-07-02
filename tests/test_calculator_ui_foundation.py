@@ -228,3 +228,41 @@ def test_local_library_controls_keep_refresh_separate_from_cache_logic() -> None
     assert "Refresh Local Library" in source
     assert "read_cached_local_library" not in source
     assert "summarize_local_library_read" in source
+
+
+def test_calculator_table_accepts_spreadsheet_style_numeric_expressions() -> None:
+    rows = table_data_to_rows(
+        (
+            {
+                "row_id": "1",
+                "travel_element": "Activity",
+                "gross_price_per_unit": "100/10*0.8",
+                "units": "=2+1",
+                "supplier_commission": "20",
+                "price": "=30*2",
+            },
+        ),
+        (),
+    )
+
+    assert rows[0].gross_price_per_unit == 8
+    assert rows[0].units == 3
+    assert rows[0].supplier_commission == 0.2
+    assert rows[0].price_override == 60
+
+
+def test_calculator_component_uses_debounced_non_intrusive_suggestions_and_formula_parser() -> None:
+    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
+    index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
+    parser_source = Path("calculator_grid_component/frontend/js/calculator_grid_formula_input.js").read_text(encoding="utf-8")
+
+    assert "SUGGESTION_MIN_QUERY_LENGTH = 3" in app_source
+    assert "SUGGESTION_DEBOUNCE_MS" in app_source
+    assert "renderSuggestionPanelOnly" in app_source
+    assert "requestAnimationFrame(setCalculatorFrameHeight);" not in app_source.split("function renderSuggestionPanelOnly", 1)[1].split("function submitAction", 1)[0]
+    assert ".suggestion-panel { position: fixed" in css_source
+    assert "calculator_grid_formula_input.js" in index_source
+    assert "class NumericExpressionParser" in parser_source
+    assert "eval(" not in parser_source
+    assert "new Function" not in parser_source

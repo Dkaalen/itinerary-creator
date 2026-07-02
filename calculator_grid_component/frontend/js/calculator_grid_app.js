@@ -2,6 +2,9 @@ let calculatorState = null;
 let activeCell = null;
 let activeBackendRevision = null;
 let hasLocalDraft = false;
+let suggestionDebounceTimer = null;
+const SUGGESTION_MIN_QUERY_LENGTH = 3;
+const SUGGESTION_DEBOUNCE_MS = 180;
 
 function initializeState(payload) {
   const incomingRevision = String(payload.state_revision || '');
@@ -105,7 +108,7 @@ function handleCellFocus(event) {
   const key = cell.dataset.key;
   calculatorState.selectedRowIndex = rowIndex;
   activeCell = {rowIndex, key};
-  if (key === 'travel_element') updateSuggestions(rowIndex, cell.textContent || '');
+  if (key === 'travel_element') scheduleSuggestions(rowIndex, cell.textContent || '');
   markSelectedRow(rowIndex);
 }
 
@@ -118,8 +121,7 @@ function handleCellInput(event) {
   refreshFormulaCells(rowIndex);
   refreshTotalsOnly();
   if (key === 'travel_element') {
-    updateSuggestions(rowIndex, cell.textContent || '');
-    renderSuggestionPanelOnly();
+    scheduleSuggestions(rowIndex, cell.textContent || '');
   }
 }
 
@@ -214,9 +216,26 @@ function formulaOverrideValue(rawValue, kind) {
   return numberValue(rawValue);
 }
 
+function scheduleSuggestions(rowIndex, query) {
+  window.clearTimeout(suggestionDebounceTimer);
+  const text = String(query || '').trim();
+  if (text.length < SUGGESTION_MIN_QUERY_LENGTH) {
+    calculatorState.activeSuggestion = null;
+    renderSuggestionPanelOnly();
+    return;
+  }
+  suggestionDebounceTimer = window.setTimeout(() => {
+    if (!activeCell || activeCell.rowIndex !== rowIndex || activeCell.key !== 'travel_element') return;
+    const focused = document.activeElement;
+    if (!focused || focused.dataset?.rowIndex !== String(rowIndex) || focused.dataset?.key !== 'travel_element') return;
+    updateSuggestions(rowIndex, focused.textContent || text);
+    renderSuggestionPanelOnly();
+  }, SUGGESTION_DEBOUNCE_MS);
+}
+
 function updateSuggestions(rowIndex, query) {
   const text = String(query || '').trim();
-  if (text.length < 2) {
+  if (text.length < SUGGESTION_MIN_QUERY_LENGTH) {
     calculatorState.activeSuggestion = null;
     return;
   }
@@ -246,7 +265,9 @@ function refreshFormulaCells(rowIndex) {
   const row = calculatorState.rows[rowIndex];
   for (const column of FORMULA_COLUMNS) {
     const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${column.key}"]`);
-    if (cell) cell.textContent = formatFormula(row[column.key], column.kind);
+    if (cell && !(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === column.key && document.activeElement === cell)) {
+      cell.textContent = formatFormula(row[column.key], column.kind);
+    }
   }
 }
 
@@ -279,7 +300,6 @@ function renderSuggestionPanelOnly() {
       applySuggestion(Number(button.dataset.suggestionIndex || 0));
     });
   });
-  requestAnimationFrame(setCalculatorFrameHeight);
 }
 
 function submitAction(action) {

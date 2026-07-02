@@ -183,12 +183,20 @@ def _route_points(source: str) -> tuple[str, ...]:
     return tuple(result)
 
 
+def _source_attraction_display(source: str, place: str, match: re.Match[str]) -> str:
+    display = canonicalize_place_name(place)
+    suffix_window = source[match.end(): match.end() + 16]
+    if re.match(r"\s+waterfalls?\b", suffix_window, flags=re.IGNORECASE) and "waterfall" not in display.casefold():
+        return f"{display} waterfall"
+    return display
+
+
 def _source_attractions(source: str) -> tuple[str, ...]:
     matches: list[tuple[int, str]] = []
     for place in _ICELAND_DAY_ATTRACTIONS:
         match = re.search(rf"(?<!\w){re.escape(place)}(?!\w)", source, flags=re.IGNORECASE)
         if match:
-            matches.append((match.start(), canonicalize_place_name(place)))
+            matches.append((match.start(), _source_attraction_display(source, place, match)))
     result: list[str] = []
     seen: set[str] = set()
     for _, place in sorted(matches):

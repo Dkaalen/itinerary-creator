@@ -95,6 +95,15 @@ def normalize_room_category(value: str) -> str:
     return result
 
 
+def _strip_occupancy_suffix_when_beds_are_explicit(room: str, source_fragment: str) -> str:
+    """Remove category suffixes like "- Double" when the same fragment says "Double bed"."""
+
+    source_lower = source_fragment.lower()
+    if not re.search(r"\b(?:double|twin|single)\s+beds?\b", source_lower):
+        return room
+    return clean_space(re.sub(r"\s+-\s+(?:Double|Twin|Single)\s*$", "", room, flags=re.IGNORECASE))
+
+
 def extract_room_category_from_source(source: str) -> str:
     matches = []
     for fragment in room_fragment_candidates(source):
@@ -103,6 +112,7 @@ def extract_room_category_from_source(source: str) -> str:
         if not re.search(rf"\b{ROOM_UNIT_PATTERN}\b", fragment, flags=re.IGNORECASE): continue
         if not (re.search(r"\d+\s*x", fragment, flags=re.IGNORECASE) or re.search(ROOM_DESCRIPTOR_PATTERN, fragment, flags=re.IGNORECASE)): continue
         cleaned = _strip_bed_fragments(normalize_room_category(fragment))
+        cleaned = _strip_occupancy_suffix_when_beds_are_explicit(cleaned, fragment)
         if cleaned: matches.append(cleaned)
     return ", ".join(dict.fromkeys(matches))
 
