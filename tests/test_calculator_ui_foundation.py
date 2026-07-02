@@ -180,14 +180,13 @@ def test_calculator_keeps_main_workflow_contract_locked() -> None:
     assert "calculator_page_is_active" in main_view_source
 
 
-def test_calculator_page_uses_grid_travel_element_suggestions_not_separate_search_box() -> None:
+def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> None:
     source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
 
-    assert "Start typing a travel element" not in source
-    assert "Travel element autocomplete" not in source
-    assert "Type directly in the Travel element cells" in source
-    assert "Suggestions for row" in source
-    assert "Recalculate / save edits" in source
+    assert "st.data_editor" not in source
+    assert "Recalculate / save edits" not in source
+    assert "render_calculator_grid" in source
+    assert "browser-side mini spreadsheet" in source
 
 
 def test_calculator_grid_config_labels_supplier_commission_as_percent() -> None:
