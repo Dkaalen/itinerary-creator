@@ -49,7 +49,7 @@ function buildTableHtml(state) {
   }).join('');
   return `
     <div class="calculator-grid-scroll">
-      <table class="calculator-grid-table" style="width:${tableWidth(columns)}px; min-width:${tableWidth(columns)}px">
+      <table class="calculator-grid-table" style="min-width:max(100%, ${tableWidth(columns)}px)">
         <colgroup>${colgroup}</colgroup>
         <thead><tr>${headers}</tr></thead>
         <tbody>${body}</tbody>
@@ -127,7 +127,6 @@ function renderShell(state) {
   const root = document.getElementById('root');
   root.innerHTML = `
     <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}">
-      <div class="calculator-grid-hint">Edit directly in the sheet. Use arrow keys, Enter, Tab, and Shift+Tab to move between cells. Type at least 3 characters in Travel element to show Local Library suggestions. Numeric cells accept simple formulas like =100/10*0.8.</div>
       ${buildToolbarHtml(state)}
       ${buildTableHtml(state)}
       ${buildSuggestionHtml(state)}

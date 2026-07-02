@@ -35,7 +35,7 @@ function setCalculatorHostFullscreen(active) {
     frame.style.maxHeight = '100vh';
     frame.style.zIndex = '2147483000';
     frame.style.border = '0';
-    frame.style.background = '#0f1117';
+    frame.style.background = '#f4f7fb';
     frame.style.display = 'block';
     return;
   }

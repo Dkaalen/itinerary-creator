@@ -178,3 +178,20 @@ def test_exported_workbook_writes_default_currency_table_and_xrates() -> None:
     assert sheet["AB7"].value == 10
     assert sheet["W8"].value == 1
     assert sheet["AB8"].value == 13
+
+
+def test_exported_workbook_uses_edited_currency_rates() -> None:
+    state = CalculatorState(
+        itinerary_name="Edited Currency Test",
+        rows=(CalculatorRow(row_id="1", gross_price_per_unit=100, units=1, supplier_currency="EUR", sales_currency="USD"),),
+    )
+
+    workbook = build_calculation_workbook(state, currency_rates={"EUR": 12.25, "USD": 9.75, "NOK": 1})
+    curr = workbook["Curr"]
+    sheet = workbook["Kalk"]
+
+    assert curr["C2"].value == 1
+    assert curr["C3"].value == 12.25
+    assert curr["C4"].value == 9.75
+    assert sheet["W7"].value == 12.25
+    assert sheet["AB7"].value == 9.75

@@ -36,33 +36,32 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
         st.session_state.get("parsed_rows", []),
         st.session_state.get("output_edits", {}),
     )
-    title = project_title(st.session_state.get("output_edits", {}), "Create itinerary")
+    title = project_title(st.session_state.get("output_edits", {}), "Itinerary Creator")
     copy = STAGE_COPY[stage]
-    headline = copy.get("headline") or title
-    subtitle = copy["subtitle"]
+    label = STAGE_LABELS.get(stage, "Workflow")
 
     route = project_route_label(metrics)
-    duration = f"{metrics['days']} days" if metrics["days"] else "Not generated yet"
+    duration = f"{metrics['days']} days" if metrics["days"] else "Not generated"
     image_status = "Pictures added" if metrics["pictures_added"] else "Text only"
-    pdf_status = str(st.session_state.get("pdf_status", "Not created") or "Not created")
+    pdf_status = str(st.session_state.get("pdf_status", "No PDF") or "No PDF")
 
     st.html(
-        '<div class="luxury-hero">'
-        '<div class="luxury-hero-main">'
-        '<div class="hero-eyebrow">Itinerary App</div>'
-        f'<h1>{escape(headline)}</h1>'
-        f'<p>{escape(subtitle)}</p>'
+        '<div class="luxury-hero compact-app-header">'
+        '<div class="luxury-hero-main compact-app-title">'
+        f'<div class="hero-eyebrow">{escape(label)}</div>'
+        f'<h1>{escape(title)}</h1>'
+        f'<p>{escape(copy["subtitle"])}</p>'
         '</div>'
-        '<div class="hero-summary-card">'
+        '<div class="hero-summary-card compact-status-card">'
         f'<div><span>Route</span><strong>{escape(route)}</strong></div>'
         f'<div><span>Duration</span><strong>{escape(duration)}</strong></div>'
         f'<div><span>Imagery</span><strong>{escape(image_status)}</strong></div>'
         f'<div><span>PDF</span><strong>{escape(pdf_status)}</strong></div>'
         '</div>'
         '</div>'
-        f'<div class="app-version-pill">Version {escape(str(app_version))}</div>'
     )
     _render_top_nav(stage)
+
 
 def _render_stage_actions(stage: str) -> None:
     left, middle, right = st.columns([1, 1, 1])

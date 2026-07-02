@@ -8,6 +8,7 @@ from app_modules.app_header import _render_app_header, _stage_panel
 from app_modules.calculator_backup_action import render_calculator_backup_controls
 from app_modules.calculator_component_payload import build_calculator_grid_payload
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
+from app_modules.calculator_currency_controls import render_currency_rate_editor
 from app_modules.calculator_download_action import render_calculation_download_button
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_library_cache import read_cached_local_library
@@ -31,8 +32,8 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_page_width_css()
     state = _calculator_state_from_session()
     _render_app_header(app_version, stage="input")
-    _stage_panel(CALCULATOR_COPY["panel_title"], CALCULATOR_COPY["panel_text"])
     _render_top_actions()
+    currency_rates = render_currency_rate_editor(st.session_state)
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
     render_local_library_status(library_read, refreshed=refresh_library)
@@ -49,13 +50,14 @@ def render_calculator_page(app_version: str) -> None:
         state,
         library_read,
         show_advanced=bool(st.session_state.get(_ADVANCED_TOGGLE_STATE_KEY, False)),
+        currency_rates=currency_rates,
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
     if parsed_result is not None:
         state = _apply_component_result(parsed_result)
 
-    _render_backend_action(parsed_result, state)
+    _render_backend_action(parsed_result, state, currency_rates)
     _render_backup_controls(state)
 
 
@@ -79,7 +81,7 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 
 
 def _render_top_actions() -> None:
-    back_col, library_col, text_col = st.columns([1, 1, 2])
+    back_col, library_col = st.columns([1, 1])
     with back_col:
         if st.button("Back to itinerary creator", use_container_width=True):
             close_calculator_page(st.session_state)
@@ -88,19 +90,18 @@ def _render_top_actions() -> None:
         if st.button("Manage Local Library", use_container_width=True):
             open_local_library_page(st.session_state)
             st.rerun()
-    with text_col:
-        st.caption(
-            "Calculator editing now runs in a browser-side mini spreadsheet: "
-            "smooth typing, in-grid Travel element suggestions, and instant formula refresh."
-        )
 
 
-def _render_backend_action(result: CalculatorGridResult | None, state: CalculatorState) -> None:
+def _render_backend_action(
+    result: CalculatorGridResult | None,
+    state: CalculatorState,
+    currency_rates: dict[str, float],
+) -> None:
     if result is None:
         return
     if result.action == "download":
         st.success("Excel export is ready.")
-        render_calculation_download_button(state)
+        render_calculation_download_button(state, currency_rates=currency_rates)
         return
     if result.action == "generate_agent":
         _render_generation_result(state, output_brand="agent")
@@ -146,21 +147,21 @@ def _render_calculator_page_width_css() -> None:
         [data-testid="stAppViewContainer"] .block-container {
             max-width: 100vw !important;
             width: 100vw !important;
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
         }
         div[data-testid="stCustomComponentV1"],
         div[data-testid="element-container"]:has(iframe[title="calculator_grid"]),
         div:has(> iframe[title="calculator_grid"]) {
-            width: calc(100vw - 1.5rem) !important;
-            max-width: calc(100vw - 1.5rem) !important;
-            margin-left: calc(50% - 50vw + 0.75rem) !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            margin-left: calc(50% - 50vw) !important;
             margin-right: 0 !important;
         }
         iframe[title="calculator_grid"],
         div[data-testid="stCustomComponentV1"] iframe {
-            width: calc(100vw - 1.5rem) !important;
-            max-width: calc(100vw - 1.5rem) !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
         }
         </style>
         """,

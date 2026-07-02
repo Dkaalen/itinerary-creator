@@ -185,7 +185,7 @@ def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> N
     assert "st.data_editor" not in source
     assert "Recalculate / save edits" not in source
     assert "render_calculator_grid" in source
-    assert "browser-side mini spreadsheet" in source
+    assert "render_currency_rate_editor" in source
 
 
 def test_calculator_component_column_model_uses_template_labels_and_percent_commission() -> None:
@@ -204,7 +204,7 @@ def test_calculator_component_supports_keyboard_navigation_and_totals_panel() ->
     render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
 
     assert "ArrowRight" in app_source
-    assert "Shift+Tab" in render_source
+    assert "calculator-grid-hint" not in render_source
     assert "calculator-totals-panel" in render_source
     assert "Total net NOK" in render_source
     assert "Earnings / GP NOK" in render_source
@@ -358,5 +358,22 @@ def test_calculator_currency_defaults_and_full_width_layout_are_locked() -> None
     assert "NOK: 1" in math_source
     assert "USD: 10" in math_source
     assert "GBP: 13" in math_source
-    assert "calc(100vw - 1.5rem)" in page_source
+    assert "width: 100vw" in page_source
     assert 'iframe[title="calculator_grid"]' in page_source
+
+
+def test_calculator_exposes_visible_currency_rate_editor() -> None:
+    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+    controls_source = Path("app_modules/calculator_currency_controls.py").read_text(encoding="utf-8")
+
+    assert "render_currency_rate_editor" in page_source
+    assert "Currency rates" in controls_source
+    assert "Base currency is NOK" in controls_source
+    assert "Reset currency rates" in controls_source
+
+
+def test_calculator_component_removed_permanent_instruction_banner() -> None:
+    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
+
+    assert "Edit directly in the sheet" not in render_source
+    assert "calculator-grid-hint" not in render_source

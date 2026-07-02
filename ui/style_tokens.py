@@ -2,24 +2,24 @@
 
 CSS = r"""
 :root {
-                --app-bg: #f6f8fb;
+                --app-bg: #f4f7fb;
                 --paper: #ffffff;
                 --surface: #ffffff;
-                --surface-soft: #f8fafc;
-                --ink: #111827;
-                --ink-soft: #374151;
-                --muted: #4b5563;
-                --line: #d6dee8;
-                --line-strong: #b9c7d6;
-                --navy: #0f172a;
-                --navy-2: #1e293b;
+                --surface-soft: #eef4f8;
+                --ink: #162033;
+                --ink-soft: #334155;
+                --muted: #64748b;
+                --line: #cbd7e3;
+                --line-strong: #9fb0c3;
+                --navy: #173047;
+                --navy-2: #24384f;
                 --teal: #0f766e;
-                --teal-dark: #115e59;
+                --teal-dark: #0f5f59;
                 --gold: #b7791f;
                 --warning: #b45309;
                 --danger: #b42318;
                 --success: #087443;
-                --shadow-soft: 0 22px 55px rgba(16, 32, 51, 0.12);
-                --shadow-card: 0 12px 30px rgba(16, 32, 51, 0.09);
+                --shadow-soft: 0 18px 45px rgba(30, 48, 76, 0.10);
+                --shadow-card: 0 10px 24px rgba(30, 48, 76, 0.08);
             }
 """

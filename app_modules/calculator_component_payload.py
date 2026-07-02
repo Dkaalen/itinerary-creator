@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, Mapping
 
 from app_modules.calculator_grid_data import rows_to_table_data
-from calculator.currency_rates import DEFAULT_CURRENCY_RATES
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
 from calculator.calculator_state import CalculatorState
 from calculator.library_model import LocalLibraryRow
 from calculator.library_read_summary import summarize_local_library_read
@@ -21,34 +21,39 @@ def build_calculator_grid_payload(
     library_read: LocalLibraryReadResult,
     *,
     show_advanced: bool = False,
+    currency_rates: Mapping[str, float] | None = None,
 ) -> dict[str, Any]:
     """Return the JSON-serializable component payload for the calculator grid."""
 
+    active_rates = normalize_currency_rates(currency_rates)
     return {
         "itinerary_name": state.itinerary_name,
-        "rows": rows_to_table_data(state.rows, show_advanced=True),
-        "state_revision": _calculator_state_revision(state),
+        "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
+        "state_revision": _calculator_state_revision(state, active_rates),
         "show_advanced": show_advanced,
-        "currency_rates": dict(DEFAULT_CURRENCY_RATES),
+        "currency_rates": active_rates,
         "library_status": _library_read_status(library_read),
         "library_source": library_read.source,
         "library_read_only": library_read.read_only,
         "library_message": library_read.message,
-        "library_rows": [_library_row_payload(row) for row in _autocomplete_rows(library_read)],
+        "library_rows": [_library_row_payload(row, active_rates) for row in _autocomplete_rows(library_read)],
     }
 
 
-def _calculator_state_revision(state: CalculatorState) -> str:
+def _calculator_state_revision(state: CalculatorState, currency_rates: Mapping[str, float]) -> str:
     """Return a stable row-state revision for browser draft protection."""
 
-    payload = rows_to_table_data(state.rows, show_advanced=True)
+    payload = {
+        "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=currency_rates),
+        "currency_rates": dict(currency_rates),
+    }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
-def _library_row_payload(row: LocalLibraryRow) -> dict[str, Any]:
+def _library_row_payload(row: LocalLibraryRow, currency_rates: Mapping[str, float]) -> dict[str, Any]:
     calculator_row = library_row_to_calculator_row(row, row_id="")
-    table_row = rows_to_table_data((calculator_row,), show_advanced=True)[0]
+    table_row = rows_to_table_data((calculator_row,), show_advanced=True, currency_rates=currency_rates)[0]
     return {
         "library_id": row.library_id,
         "label": library_result_label(row),

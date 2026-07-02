@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalized_currency_code
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates, normalized_currency_code
 from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import CalculatorRow, CalculatedRow
 
@@ -31,7 +31,7 @@ def calculate_row(
 ) -> CalculatedRow:
     """Apply the Kalk row formulas to one calculator row."""
 
-    rates = currency_rates or DEFAULT_CURRENCY_RATES
+    rates = normalize_currency_rates(currency_rates)
     gross_price_per_unit = _number(row.gross_price_per_unit)
     units = _number(row.units)
     supplier_commission = _number(row.supplier_commission)
@@ -69,7 +69,8 @@ def calculate_totals(
 ) -> CalculatorTotals:
     """Calculate workbook-style totals across calculator rows."""
 
-    calculated_rows = [calculate_row(row, currency_rates) for row in rows]
+    rates = normalize_currency_rates(currency_rates)
+    calculated_rows = [calculate_row(row, rates) for row in rows]
     price = sum(row.price for row in calculated_rows)
     sales_price_nok_total = sum(row.sales_price_nok_total for row in calculated_rows)
     gp_nok = sum(row.gp_nok for row in calculated_rows)
@@ -89,7 +90,7 @@ def calculate_totals(
 def lookup_currency_rate(code: str, currency_rates: Mapping[str, float] | None = None) -> float:
     """Return a currency rate using the same zero fallback as the template."""
 
-    rates = currency_rates or DEFAULT_CURRENCY_RATES
+    rates = normalize_currency_rates(currency_rates)
     normalized_code = normalized_currency_code(code, default="")
     return _number(rates.get(normalized_code, 0.0))
 

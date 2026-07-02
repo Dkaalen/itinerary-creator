@@ -9,7 +9,7 @@ from calculator.library_normalize import (
     library_row_to_calculator_row,
     normalize_library_mapping,
 )
-from calculator.library_seed_import import import_cheat_sheet_workbook, import_local_library_workbook
+from calculator.library_seed_import import import_cheat_sheet_workbook, import_clean_inputs_workbook, import_local_library_workbook
 
 
 def test_local_library_headers_match_google_ready_schema() -> None:
@@ -151,6 +151,29 @@ def test_import_cheat_sheet_workbook_enriches_source_metadata(tmp_path) -> None:
     assert rows[0].gross_price_per_unit == 25.0
 
 
+def test_import_clean_inputs_workbook_reads_general_inputs_block(tmp_path) -> None:
+    workbook_path = tmp_path / "Clean Inputs.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Clean Inputs"
+    sheet.append(["General Inputs", None, None, None, None, None, None])
+    sheet.append(["Type", "City / Area", "Details", "URL", "Gross P", "Unit P", "Supp Margin"])
+    sheet.append(["Hotel", "Oslo", "Oslo: Check in to your accommodation", "https://example.com", "=20/0.8", 0, 0.2])
+    workbook.save(workbook_path)
+
+    rows = import_clean_inputs_workbook(workbook_path)
+
+    assert len(rows) == 1
+    assert rows[0].source_workbook == "Clean Inputs.xlsx"
+    assert rows[0].source_sheet == "General Inputs"
+    assert rows[0].category == "General Inputs"
+    assert rows[0].type == "Hotel"
+    assert rows[0].gross_price_per_unit == 25
+    assert rows[0].supplier_commission == 0.2
+    assert rows[0].supplier_currency == "NOK"
+    assert rows[0].sales_currency == "NOK"
+
+
 def test_library_row_can_be_converted_to_calculator_row_without_metadata() -> None:
     library_row = LocalLibraryRow(
         library_id="lib_1",
@@ -174,16 +197,18 @@ def test_library_row_can_be_converted_to_calculator_row_without_metadata() -> No
     assert calculator_row.sales_price_per_unit == 75
 
 
-def test_fallback_fixture_uses_bundled_cheat_sheet_rows() -> None:
+def test_fallback_fixture_uses_bundled_cheat_sheet_and_clean_input_rows() -> None:
     rows = fallback_library_rows()
     fetchable_rows = [row for row in rows if row.is_available_for_fetch]
 
-    assert len(rows) >= 400
-    assert len(fetchable_rows) >= 350
+    assert len(rows) >= 1100
+    assert len(fetchable_rows) >= 1000
     assert any("Finntastic Walking Tour" in row.travel_element for row in fetchable_rows)
     assert any(row.source_sheet == "NO" for row in fetchable_rows)
     assert any(row.source_sheet == "FI" for row in fetchable_rows)
-    assert all(row.updated_by == "bundled_cheat_sheet" for row in rows)
+    assert any(row.source_workbook == "Clean Inputs.xlsx" for row in fetchable_rows)
+    assert any("Check in to your accommodation" in row.travel_element for row in fetchable_rows)
+    assert {"bundled_cheat_sheet", "bundled_clean_inputs"}.issubset({row.updated_by for row in rows})
 
 
 def _local_library_values(library_id: str, fetchable: str, travel_element: str) -> list[object]:

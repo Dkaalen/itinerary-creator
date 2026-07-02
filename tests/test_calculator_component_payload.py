@@ -70,5 +70,6 @@ def test_calculator_component_payload_exposes_all_bundled_fallback_rows() -> Non
 
     payload = build_calculator_grid_payload(CalculatorState(), library_read)
 
-    assert len(payload["library_rows"]) == 501
-    assert payload["library_status"] == "Local Library fallback active (501 bundled lines). Local Library secrets are missing."
+    assert len(payload["library_rows"]) == 1145
+    assert payload["library_status"] == "Local Library fallback active (1145 bundled lines). Local Library secrets are missing."
+    assert any("Check in to your accommodation" in row["travel_element"] for row in payload["library_rows"])

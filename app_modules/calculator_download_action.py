@@ -10,16 +10,24 @@ from calculator.workbook_export import WorkbookExport, export_calculation_workbo
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-def prepare_calculation_download(state: CalculatorState) -> WorkbookExport:
+def prepare_calculation_download(
+    state: CalculatorState,
+    *,
+    currency_rates: dict[str, float] | None = None,
+) -> WorkbookExport:
     """Build the Excel download payload for the current calculator state."""
 
-    return export_calculation_workbook(state)
+    return export_calculation_workbook(state, currency_rates=currency_rates)
 
 
-def render_calculation_download_button(state: CalculatorState) -> None:
+def render_calculation_download_button(
+    state: CalculatorState,
+    *,
+    currency_rates: dict[str, float] | None = None,
+) -> None:
     """Render the Excel download button for the calculator page."""
 
-    export = prepare_calculation_download(state)
+    export = prepare_calculation_download(state, currency_rates=currency_rates)
     st.download_button(
         label="Download Excel",
         data=export.content,

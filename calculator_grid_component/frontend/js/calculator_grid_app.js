@@ -208,6 +208,8 @@ function updateRowValue(rowIndex, key, rawValue) {
   if (!row) return;
   const kind = columnKind(key);
   if (key === 'supplier_commission') row._supplier_commission_touched = true;
+  if (key === 'supplier_currency') row.supplier_x_rate_override = null;
+  if (key === 'sales_currency') row.sales_x_rate_override = null;
   if (key === 'units') row._units_touched = true;
   if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = true;
   if (kind === 'checkbox') row[key] = Boolean(rawValue);

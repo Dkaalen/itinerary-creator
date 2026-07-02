@@ -14,6 +14,15 @@ from calculator.library_model import LOCAL_LIBRARY_HEADERS, LOCAL_LIBRARY_SHEET_
 from calculator.library_normalize import normalize_library_mapping, normalize_library_rows
 
 _IGNORED_CHEAT_SHEETS = {"curr"}
+
+_CLEAN_INPUTS_SHEET_NAME = "Clean Inputs"
+_CLEAN_INPUT_BLOCKS = {
+    "General Inputs": (1, 7),
+    "Activities": (9, 15),
+    "Group Tours": (20, 26),
+}
+_CLEAN_INPUT_HEADER_ROW = 2
+_CLEAN_INPUT_DATA_START_ROW = 3
 _XML_NS = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 _OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
@@ -25,6 +34,9 @@ def import_seed_workbook(path: str | Path) -> tuple[LocalLibraryRow, ...]:
     local_library_rows = import_local_library_workbook(workbook_path)
     if local_library_rows:
         return local_library_rows
+    clean_input_rows = import_clean_inputs_workbook(workbook_path)
+    if clean_input_rows:
+        return clean_input_rows
     return import_cheat_sheet_workbook(workbook_path)
 
 
@@ -38,6 +50,28 @@ def import_local_library_workbook(
     if not raw_rows or not _looks_like_local_library(raw_rows[0].keys()):
         return ()
     return normalize_library_rows(raw_rows)
+
+
+def import_clean_inputs_workbook(
+    path: str | Path,
+    *,
+    blocks: Iterable[str] = ("General Inputs",),
+) -> tuple[LocalLibraryRow, ...]:
+    """Import rows from the Clean Inputs workbook's named source blocks."""
+
+    workbook = load_workbook(Path(path), data_only=False)
+    if _CLEAN_INPUTS_SHEET_NAME not in workbook.sheetnames:
+        return ()
+    sheet = workbook[_CLEAN_INPUTS_SHEET_NAME]
+    selected_blocks = tuple(blocks)
+    rows: list[LocalLibraryRow] = []
+    for block_name in selected_blocks:
+        if block_name not in _CLEAN_INPUT_BLOCKS:
+            continue
+        start_column, end_column = _CLEAN_INPUT_BLOCKS[block_name]
+        for source_row, raw_row in _clean_input_block_rows(sheet, block_name, start_column, end_column):
+            rows.append(normalize_library_mapping(raw_row | {"source_row": source_row}))
+    return tuple(rows)
 
 
 def import_cheat_sheet_workbook(
@@ -121,6 +155,61 @@ def _cheat_sheet_rows(sheet_name: str, raw_rows: tuple[Mapping[str, object], ...
         enriched.setdefault("is_fetchable", True)
         rows.append(enriched)
     return tuple(rows)
+
+
+def _clean_input_block_rows(
+    sheet: Worksheet,
+    block_name: str,
+    start_column: int,
+    end_column: int,
+) -> tuple[tuple[int, Mapping[str, object]], ...]:
+    headers = [sheet.cell(_CLEAN_INPUT_HEADER_ROW, column).value for column in range(start_column, end_column + 1)]
+    rows: list[tuple[int, Mapping[str, object]]] = []
+    for row_number in range(_CLEAN_INPUT_DATA_START_ROW, sheet.max_row + 1):
+        values = [sheet.cell(row_number, column).value for column in range(start_column, end_column + 1)]
+        mapped = {str(header).strip(): value for header, value in zip(headers, values) if header}
+        if not _clean_input_row_has_content(mapped):
+            continue
+        rows.append((row_number, _clean_input_mapping(block_name, mapped)))
+    return tuple(rows)
+
+
+def _clean_input_mapping(block_name: str, row: Mapping[str, object]) -> Mapping[str, object]:
+    city = row.get("City / Area")
+    details = row.get("Details")
+    row_type = row.get("Type")
+    price = row.get("Unit P") if row.get("Unit P") not in (None, "", 0) else row.get("Gross P")
+    return {
+        "schema_version": "local_library_v1",
+        "source_workbook": "Clean Inputs.xlsx",
+        "source_sheet": block_name,
+        "country": _clean_input_country(block_name, city),
+        "category": block_name,
+        "record_type": "line",
+        "is_deleted": False,
+        "is_fetchable": True,
+        "Type": row_type,
+        "Supplier": "",
+        "Travel element": details,
+        "Comments": f"{block_name} · {city or ''}".strip(" ·"),
+        "URL": row.get("URL"),
+        "Gross P per unit": price,
+        "Units": 1 if price not in (None, "", 0) else 0,
+        "Supp Comm": row.get("Supp Margin"),
+        "Supp curr": "NOK",
+        "Sales curr": "NOK",
+        "updated_by": "bundled_clean_inputs",
+    }
+
+
+def _clean_input_country(block_name: str, city: object) -> str:
+    if block_name == "General Inputs":
+        return "General Inputs"
+    return str(city or block_name).strip()
+
+
+def _clean_input_row_has_content(row: Mapping[str, object]) -> bool:
+    return bool(str(row.get("Details") or "").strip() or str(row.get("Type") or "").strip())
 
 
 def _looks_like_local_library(headers: Iterable[str]) -> bool:

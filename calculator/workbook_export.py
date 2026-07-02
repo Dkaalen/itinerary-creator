@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from openpyxl.workbook.workbook import Workbook
 
@@ -13,7 +13,7 @@ from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TOTALS_ROW
 from calculator.filename_sanitizer import calculation_workbook_filename
 from calculator.calculations import calculate_row
-from calculator.currency_rates import DEFAULT_CURRENCY_RATES
+from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
 from calculator.formula_map import expected_row_formulas
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.workbook_template import load_calculation_template
@@ -61,10 +61,12 @@ class WorkbookExport:
 def export_calculation_workbook(
     state: CalculatorState,
     template_path: str | Path | None = None,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
 ) -> WorkbookExport:
     """Return an XLSX payload for the supplied calculator state."""
 
-    workbook = build_calculation_workbook(state, template_path)
+    workbook = build_calculation_workbook(state, template_path, currency_rates=currency_rates)
     buffer = BytesIO()
     workbook.save(buffer)
     return WorkbookExport(
@@ -77,10 +79,12 @@ def save_calculation_workbook(
     state: CalculatorState,
     output_dir: str | Path,
     template_path: str | Path | None = None,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
 ) -> Path:
     """Write the exported calculation workbook to a directory."""
 
-    export = export_calculation_workbook(state, template_path)
+    export = export_calculation_workbook(state, template_path, currency_rates=currency_rates)
     output_path = Path(output_dir) / export.filename
     output_path.write_bytes(export.content)
     return output_path
@@ -89,18 +93,21 @@ def save_calculation_workbook(
 def build_calculation_workbook(
     state: CalculatorState,
     template_path: str | Path | None = None,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
 ) -> Workbook:
     """Fill a fresh template workbook with calculator rows."""
 
     rows = tuple(state.rows)
+    active_rates = normalize_currency_rates(currency_rates)
     if len(rows) > _MAX_DATA_ROWS:
         raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
 
     workbook = load_calculation_template(template_path)
-    _write_default_currency_rates(workbook)
+    _write_default_currency_rates(workbook, active_rates)
     sheet = workbook[KALK_SHEET_NAME]
     for row_number, row in zip(_data_row_numbers(), rows):
-        _write_row(sheet, row_number, row)
+        _write_row(sheet, row_number, row, active_rates)
     sheet[_QUOTE_CELL] = f"=Z{TOTALS_ROW}"
     _restore_excel_advanced_view(sheet)
     return workbook
@@ -110,8 +117,8 @@ def _data_row_numbers() -> Iterable[int]:
     return range(DATA_START_ROW, DATA_END_ROW + 1)
 
 
-def _write_row(sheet: object, row_number: int, row: CalculatorRow) -> None:
-    calculated = calculate_row(row)
+def _write_row(sheet: object, row_number: int, row: CalculatorRow, currency_rates: Mapping[str, float]) -> None:
+    calculated = calculate_row(row, currency_rates)
     for column, field_name in _ROW_VALUE_COLUMNS.items():
         sheet[f"{column}{row_number}"] = _cell_value(row, field_name)
     _write_sales_price_cell(sheet, row_number, row)
@@ -164,11 +171,12 @@ def _cell_value(row: CalculatorRow, field_name: str) -> object:
     return value
 
 
-def _write_default_currency_rates(workbook: Workbook) -> None:
+def _write_default_currency_rates(workbook: Workbook, currency_rates: Mapping[str, float]) -> None:
     """Write editable default NOK exchange rates into the Curr lookup sheet."""
 
     sheet = workbook["Curr"]
-    for offset, (code, rate) in enumerate(DEFAULT_CURRENCY_RATES.items()):
+    active_rates = normalize_currency_rates(currency_rates)
+    for offset, (code, rate) in enumerate(active_rates.items()):
         row_number = _CURRENCY_START_ROW + offset
         sheet[f"B{row_number}"] = code
         sheet[f"C{row_number}"] = rate

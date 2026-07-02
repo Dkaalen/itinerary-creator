@@ -14,6 +14,7 @@ from calculator.library_model import (
     LOCAL_LIBRARY_SCHEMA_VERSION,
     LocalLibraryRow,
 )
+from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import CalculatorRow
 
 _FIELD_NAMES = {field.name for field in fields(LocalLibraryRow)}
@@ -187,15 +188,7 @@ def _optional_float(value: object) -> float | None:
 
 
 def _float(value: object) -> float:
-    if value in (None, ""):
-        return 0.0
-    if isinstance(value, (int, float)):
-        return float(value)
-    text = _text(value).replace(" ", "").replace(",", ".")
-    try:
-        return float(text)
-    except ValueError:
-        return 0.0
+    return parse_numeric_input(value)
 
 
 def _int_or_none(value: object) -> int | None:

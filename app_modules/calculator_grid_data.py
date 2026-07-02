@@ -38,11 +38,16 @@ _DEFAULT_ONLY_TEXT_FIELDS = {"row_id", "supplier_currency", "sales_currency"}
 _PERCENT_UI_FIELDS = {"supplier_commission"}
 
 
-def rows_to_table_data(rows: Iterable[CalculatorRow], *, show_advanced: bool) -> list[dict[str, Any]]:
+def rows_to_table_data(
+    rows: Iterable[CalculatorRow],
+    *,
+    show_advanced: bool,
+    currency_rates: Mapping[str, float] | None = None,
+) -> list[dict[str, Any]]:
     """Return table-editor dictionaries for calculator rows."""
 
     visible_fields = visible_grid_fields(show_advanced)
-    return [_row_to_table_data(row, visible_fields) for row in rows]
+    return [_row_to_table_data(row, visible_fields, currency_rates) for row in rows]
 
 
 def table_data_to_rows(
@@ -88,8 +93,12 @@ def visible_grid_fields(show_advanced: bool) -> tuple[str, ...]:
     return (*BASIC_FIELD_KEYS, *advanced, *FORMULA_FIELD_KEYS)
 
 
-def _row_to_table_data(row: CalculatorRow, visible_fields: Iterable[str]) -> dict[str, Any]:
-    calculated = calculate_row(row)
+def _row_to_table_data(
+    row: CalculatorRow,
+    visible_fields: Iterable[str],
+    currency_rates: Mapping[str, float] | None,
+) -> dict[str, Any]:
+    calculated = calculate_row(row, currency_rates)
     row_is_blank = _row_has_no_user_values(row)
     data: dict[str, Any] = {}
     for field_name in visible_fields:
