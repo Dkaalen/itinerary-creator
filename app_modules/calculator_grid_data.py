@@ -8,7 +8,14 @@ from typing import Any, Iterable, Mapping
 
 from calculator.calculations import calculate_row
 from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
-from calculator.row_model import ADVANCED_FIELD_KEYS, BASIC_FIELD_KEYS, FORMULA_FIELD_KEYS, CalculatorRow
+from calculator.row_model import (
+    ADVANCED_FIELD_KEYS,
+    BASIC_FIELD_KEYS,
+    FORMULA_FIELD_KEYS,
+    FORMULA_OVERRIDE_FIELD_BY_KEY,
+    FORMULA_OVERRIDE_FIELDS,
+    CalculatorRow,
+)
 
 _ROW_FIELDS = {field.name for field in fields(CalculatorRow)}
 _NUMERIC_FIELDS = {
@@ -21,6 +28,7 @@ _NUMERIC_FIELDS = {
     "vat12",
     "vat0_domestic",
     "vat0_international",
+    *FORMULA_OVERRIDE_FIELDS,
 }
 _BOOLEAN_FIELDS = {"manual_booking", "non_refundable", "refundable"}
 _OPTIONAL_NUMERIC_FIELDS = {"sales_price_per_unit"}
@@ -48,8 +56,13 @@ def table_data_to_rows(
         row_id = _text_value(item.get("row_id")) or str(index)
         base_row = previous_by_id.get(row_id, CalculatorRow(row_id=row_id))
         values = {field.name: getattr(base_row, field.name) for field in fields(CalculatorRow)}
-        for field_name in _ROW_FIELDS.intersection(item.keys()):
-            values[field_name] = _field_value(field_name, item.get(field_name))
+        for field_name, raw_value in item.items():
+            if field_name in _ROW_FIELDS:
+                values[field_name] = _field_value(field_name, raw_value)
+                continue
+            override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(str(field_name))
+            if override_field:
+                values[override_field] = _formula_override_value(str(field_name), raw_value)
         if not values.get("row_id"):
             values["row_id"] = row_id
         values["supplier_currency"] = _currency_or_default(values.get("supplier_currency"))
@@ -80,7 +93,10 @@ def _row_to_table_data(row: CalculatorRow, visible_fields: Iterable[str]) -> dic
     data: dict[str, Any] = {}
     for field_name in visible_fields:
         if field_name in FORMULA_FIELD_KEYS:
-            data[field_name] = None if row_is_blank else getattr(calculated, field_name)
+            override_field = FORMULA_OVERRIDE_FIELD_BY_KEY[field_name]
+            override_value = getattr(row, override_field)
+            data[field_name] = None if row_is_blank and override_value is None else getattr(calculated, field_name)
+            data[override_field] = override_value
             continue
         value = getattr(row, field_name)
         if field_name == "sales_price_per_unit" and value is None:
@@ -106,6 +122,17 @@ def _field_value(field_name: str, value: Any) -> Any:
     if field_name in _NUMERIC_FIELDS:
         return _number_value(value)
     return _text_value(value)
+
+
+def _formula_override_value(field_name: str, value: Any) -> float | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.casefold() in _BLANK_NUMERIC_MARKERS:
+        return None
+    if field_name == "gp_percent":
+        return _percent_to_decimal(text)
+    return _number_value(text)
 
 
 def _text_value(value: Any) -> str:

@@ -18,6 +18,8 @@ def test_calculator_row_defaults_are_safe_for_new_blank_lines() -> None:
     assert row.sales_price_per_unit is None
     assert row.gross_price_per_unit == 0
     assert row.units == 0
+    assert row.gross_price_override is None
+    assert row.gp_percent_override is None
 
 
 def test_calculator_row_field_groups_are_locked() -> None:
@@ -63,7 +65,6 @@ def test_calculator_row_field_groups_are_locked() -> None:
         "net_price",
         "supplier_x_rate",
         "net_price_nok",
-        "calculated_sales_price_per_unit",
         "price",
         "sales_x_rate",
         "sales_price_nok_total",

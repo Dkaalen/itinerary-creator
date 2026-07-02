@@ -91,6 +91,12 @@ def _transport_title(rows: list[dict]) -> str:
         ):
             phrase = get_transport_route_phrase(row)
             if phrase:
+                if row_type == "Cruise" and row.get("is_render_only") and "arrival" in phrase.lower():
+                    _, destination = get_route_points_for_transport(row)
+                    destination = polish_title(destination)
+                    if destination:
+                        destination = re.sub(r"\s+Port$", "", destination, flags=re.IGNORECASE).strip()
+                        return f"Arrival in {destination}"
                 if row_type == "Train" and "norway in a nutshell" not in row_text.lower():
                     _, destination = get_route_points_for_transport(row)
                     if destination:

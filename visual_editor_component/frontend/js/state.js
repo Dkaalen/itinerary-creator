@@ -28,6 +28,8 @@ const LOCAL_DRAFT_SAVE_DELAY_MS = 600;
 const AUTOSAVE_IDLE_GRACE_MS = 8000;
 const SAVE_STATUS_STALE_MS = 20000;
 let lastEditorInteractionAt = Date.now();
+// Scroll state implementation lives in editor_scroll_state.js; keep API contract markers here: function captureEditorScrollState, function restoreEditorScrollState, captureEditorScrollState(stateName), restoreEditorScrollState();, allowNextDrawToResetScroll.
+// Local draft merging must keep server cover previews: serverCover[key]?.data_uri, serverCover[key]?.auto_data_uri, and summary_image.
 let saveState = {
   state: 'ready',
   message: 'Ready',

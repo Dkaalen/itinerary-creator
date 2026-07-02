@@ -156,7 +156,7 @@ def _row_data_warnings(row: dict) -> tuple[ModelWarning, ...]:
 
     if row_type == "Hotel":
         hotel_name = str(row.get("hotel_name") or "").strip()
-        generic_hotel_name = bool(re.fullmatch(r"(?:\d\s*[- ]?star\s+)?hotel", hotel_name, flags=re.IGNORECASE))
+        generic_hotel_name = bool(re.fullmatch(r"(?:\d\s*[- ]?star\s+)?hotel(?:\s+in\s+.+)?", hotel_name, flags=re.IGNORECASE))
         if not hotel_name or generic_hotel_name:
             warnings.append(ModelWarning(
                 code="missing_hotel_name",

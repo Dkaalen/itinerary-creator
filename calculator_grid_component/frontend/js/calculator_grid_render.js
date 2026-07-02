@@ -19,10 +19,18 @@ function buildToolbarHtml(state) {
     </div>
     <div class="calculator-status-row">
       <span>${escapeHtml(libraryText)}</span>
-      <span>Price: <strong>${formatNumber(totals.price, 0)}</strong></span>
-      <span>Sales NOK: <strong>${formatNumber(totals.sales_price_nok_total, 0)}</strong></span>
-      <span>GP NOK: <strong>${formatNumber(totals.gp_nok, 0)}</strong></span>
+    </div>
+    <div class="calculator-totals-panel">
+      <span>Total price: <strong>${formatNumber(totals.price, 0)}</strong></span>
+      <span>Total sales NOK: <strong>${formatNumber(totals.sales_price_nok_total, 0)}</strong></span>
+      <span>Total net NOK: <strong>${formatNumber(totals.net_price_nok, 0)}</strong></span>
+      <span>Earnings / GP NOK: <strong>${formatNumber(totals.gp_nok, 0)}</strong></span>
       <span>GP %: <strong>${(totals.gp_percent * 100).toFixed(1)}%</strong></span>
+      <span>VAT25: <strong>${formatNumber(totals.vat25, 0)}</strong></span>
+      <span>VAT15: <strong>${formatNumber(totals.vat15, 0)}</strong></span>
+      <span>VAT12: <strong>${formatNumber(totals.vat12, 0)}</strong></span>
+      <span>VAT0-D: <strong>${formatNumber(totals.vat0_domestic, 0)}</strong></span>
+      <span>VAT0-I: <strong>${formatNumber(totals.vat0_international, 0)}</strong></span>
     </div>`;
 }
 
@@ -46,8 +54,8 @@ function buildTableHtml(state) {
 function cellHtml(row, rowIndex, column) {
   const raw = row[column.key];
   const common = `data-row-index="${rowIndex}" data-key="${column.key}"`;
-  if (column.readonly || column.kind === 'formula' || column.kind === 'formulaPercent') {
-    return `<td class="cell readonly formula-cell" ${common}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;
+  if (column.formula) {
+    return `<td class="cell editable formula-cell" contenteditable="true" spellcheck="false" ${common}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;
   }
   if (column.kind === 'checkbox') {
     return `<td class="cell checkbox-cell" ${common}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
@@ -82,7 +90,7 @@ function renderShell(state) {
   const root = document.getElementById('root');
   root.innerHTML = `
     <div class="calculator-grid-shell">
-      <div class="calculator-grid-hint">Edit directly in the sheet. Travel element cells search the Local Library while you type. Formulas update instantly in the browser.</div>
+      <div class="calculator-grid-hint">Edit directly in the sheet. Use arrow keys, Enter, Tab, and Shift+Tab to move between cells. Travel element cells search the Local Library while you type. Formula cells update instantly but can be manually overridden.</div>
       ${buildToolbarHtml(state)}
       ${buildTableHtml(state)}
       ${buildSuggestionHtml(state)}

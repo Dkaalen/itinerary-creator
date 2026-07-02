@@ -40,6 +40,7 @@ jobs:
           python -m pytest
           tests/test_calculator_*.py
           tests/test_patch_ak_cleanup_hygiene.py
+          tests/test_handoff_zip_workflow.py
           tests/test_ci_workflow_guards.py
           -q
 
@@ -54,6 +55,5 @@ jobs:
       - name: Diff whitespace check
         run: git --no-pager diff --check
 
-      - name: Known legacy Nordic sample check
-        continue-on-error: true
+      - name: Nordic quality sample
         run: python -m pytest tests/test_nordic_quality_sample.py -q

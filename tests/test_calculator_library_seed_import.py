@@ -174,16 +174,16 @@ def test_library_row_can_be_converted_to_calculator_row_without_metadata() -> No
     assert calculator_row.sales_price_per_unit == 75
 
 
-def test_fallback_fixture_contains_only_fetchable_active_rows() -> None:
+def test_fallback_fixture_uses_bundled_cheat_sheet_rows() -> None:
     rows = fallback_library_rows()
+    fetchable_rows = [row for row in rows if row.is_available_for_fetch]
 
-    assert rows
-    assert all(row.is_available_for_fetch for row in rows)
-    assert {row.library_id for row in rows} == {
-        "fixture_oslo_hotel",
-        "fixture_helsinki_walk",
-        "fixture_self_transfer",
-    }
+    assert len(rows) >= 400
+    assert len(fetchable_rows) >= 350
+    assert any("Finntastic Walking Tour" in row.travel_element for row in fetchable_rows)
+    assert any(row.source_sheet == "NO" for row in fetchable_rows)
+    assert any(row.source_sheet == "FI" for row in fetchable_rows)
+    assert all(row.updated_by == "bundled_cheat_sheet" for row in rows)
 
 
 def _local_library_values(library_id: str, fetchable: str, travel_element: str) -> list[object]:

@@ -49,6 +49,11 @@ def _rows_months(parsed_rows) -> set[int]:
 def _contextual_default_notes(parsed_rows=None) -> list[str]:
     if parsed_rows is None:
         return list(DEFAULT_IMPORTANT_TRAVEL_NOTES)
+    # A single row is not enough context to safely remove default guidance.
+    # Keep the complete note set for simple/manual test cases and let larger
+    # itineraries receive contextual trimming.
+    if len(parsed_rows or []) <= 1:
+        return list(DEFAULT_IMPORTANT_TRAVEL_NOTES)
     text = _rows_text(parsed_rows)
     months = _rows_months(parsed_rows)
     winter_months = {12, 1, 2, 3}

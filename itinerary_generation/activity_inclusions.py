@@ -145,23 +145,23 @@ def prioritize_inline_inclusions(items, max_items=6):
             return 99
         if "meteorological" in lower or "observation" in lower:
             return 98
-        if "pick" in lower or "drop" in lower or "transfer" in lower:
+        if "pick" in lower or "drop" in lower:
             return 0
-        if "reindeer" in lower or "snowmobile" in lower or "santa claus" in lower or "husky" in lower:
-            return 1
-        if any(marker in lower for marker in ["thermal", "overall", "winter clothes", "winter equipment", "equipment", "boots", "gloves", "balaclava", "helmet", "survival suit", "floating suit", "frozen sea"]):
-            return 2
-        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower or "barbecue" in lower or "bbq" in lower or "berry juice" in lower:
-            return 3
         if "hike" in lower or "canyon" in lower or "waterfall" in lower or "museum" in lower or "arktikum" in lower:
+            return 1
+        if "reindeer" in lower or "snowmobile" in lower or "santa claus" in lower or "husky" in lower:
+            return 2
+        if any(marker in lower for marker in ["thermal", "overall", "winter clothes", "winter equipment", "equipment", "boots", "gloves", "balaclava", "helmet", "survival suit", "floating suit", "frozen sea"]):
+            return 3
+        if "meal" in lower or "lunch" in lower or "dinner" in lower or "drink" in lower or "snack" in lower or "cookies" in lower or "barbecue" in lower or "bbq" in lower or "berry juice" in lower:
             return 4
         if "photo" in lower or "camera" in lower or "dslr" in lower:
             return 5
         if "ticket" in lower or "entrance" in lower or "ferry" in lower or "certificate" in lower:
             return 6
         if "guide" in lower or "guided" in lower or "certified" in lower:
-            return 1
-        if "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
+            return 7
+        if "transfer" in lower or "transport" in lower or "coach" in lower or "minivan" in lower or "bus" in lower:
             return 8
         return 10
 

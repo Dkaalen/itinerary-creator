@@ -86,7 +86,6 @@ def test_calculator_table_recalculates_formula_fields_for_filled_rows() -> None:
 
     assert row["gross_price"] == 200
     assert row["net_price"] == 200
-    assert row["calculated_sales_price_per_unit"] == 200
     assert row["price"] == 200
     assert row["sales_price_nok_total"] == 2260
     assert row["gp_nok"] == 0
@@ -189,13 +188,26 @@ def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> N
     assert "browser-side mini spreadsheet" in source
 
 
-def test_calculator_component_column_model_labels_supplier_commission_as_percent() -> None:
+def test_calculator_component_column_model_uses_template_labels_and_percent_commission() -> None:
     source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
 
     assert "app_modules/calculator_grid_config.py" not in source
     assert "supplier_commission" in source
-    assert "Supp Comm %" in source
+    assert "Supp Comm" in source
+    assert "Sales P per unit" in source
+    assert "Sales/unit calc" not in source
     assert "kind: 'percent'" in source
+
+
+def test_calculator_component_supports_keyboard_navigation_and_totals_panel() -> None:
+    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
+
+    assert "ArrowRight" in app_source
+    assert "Shift+Tab" in render_source
+    assert "calculator-totals-panel" in render_source
+    assert "Total net NOK" in render_source
+    assert "Earnings / GP NOK" in render_source
 
 
 def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:

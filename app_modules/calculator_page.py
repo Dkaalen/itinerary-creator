@@ -15,7 +15,7 @@ from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
     render_local_library_status,
 )
-from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, close_calculator_page
+from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, close_calculator_page, open_local_library_page
 from app_modules.validation_gate import block_generation, render_blocking_issues
 from app_modules.workflow_config import CALCULATOR_COPY
 from calculator.calculator_state import CalculatorState, create_initial_calculator_state
@@ -78,12 +78,16 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 
 
 def _render_top_actions() -> None:
-    left, right = st.columns([1, 3])
-    with left:
+    back_col, library_col, text_col = st.columns([1, 1, 2])
+    with back_col:
         if st.button("Back to itinerary creator", use_container_width=True):
             close_calculator_page(st.session_state)
             st.rerun()
-    with right:
+    with library_col:
+        if st.button("Manage Local Library", use_container_width=True):
+            open_local_library_page(st.session_state)
+            st.rerun()
+    with text_col:
         st.caption(
             "Calculator editing now runs in a browser-side mini spreadsheet: "
             "smooth typing, in-grid Travel element suggestions, and instant formula refresh."

@@ -98,6 +98,8 @@ def enrich_parsed_row(
 
     row["title"] = clean_title(main_text)
     row["original_title"] = row["title"]
+    if re.search(r"\b(?:norway\s+in\s+a\s+nutshell|fl[åa]m\s+train|n[æa]r[øo]yfjord)\b", main_text, flags=re.IGNORECASE):
+        row["original_title"] = clean_space(main_text)
     row["time"] = extract_time_from_description(main_text)
     row["duration"] = extract_duration_from_description(main_text)
     row["meeting_point"] = extract_meeting_point_from_description(main_text)

@@ -128,7 +128,7 @@ def extract_route_points(text):
     )
     if bare_mode_route:
         origin = normalize_place_name(bare_mode_route.group("origin"))
-        destination = normalize_place_name(bare_mode_route.group("destination"))
+        destination = normalize_place_name(re.sub(r"^(?:from|to)\s+", "", bare_mode_route.group("destination"), flags=re.IGNORECASE))
         if origin and destination and origin.lower() != destination.lower():
             return origin, destination
 

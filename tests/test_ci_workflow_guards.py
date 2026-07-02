@@ -28,6 +28,7 @@ def test_ci_workflow_runs_fast_quality_gates() -> None:
         "python scripts/architecture_guards.py",
         "tests/test_calculator_*.py",
         "tests/test_patch_ak_cleanup_hygiene.py",
+        "tests/test_handoff_zip_workflow.py",
         "tests/test_ci_workflow_guards.py",
         "python -m compileall -q .",
         "node --check calculator_grid_component/frontend/js/*.js",
@@ -37,19 +38,19 @@ def test_ci_workflow_runs_fast_quality_gates() -> None:
         assert marker in text
 
 
-def test_ci_workflow_does_not_make_known_full_suite_failure_mandatory() -> None:
+def test_ci_workflow_keeps_full_suite_out_of_fast_gate() -> None:
     text = _workflow_text()
-    mandatory_section = text.split("Known legacy Nordic sample check", maxsplit=1)[0]
+    mandatory_section = text.split("Nordic quality sample", maxsplit=1)[0]
 
     assert "python -m pytest tests/\n" not in mandatory_section
     assert "python -m pytest tests/ " not in mandatory_section
     assert "python -m pytest tests/ -q" not in mandatory_section
 
 
-def test_known_nordic_quality_sample_is_documented_as_non_blocking() -> None:
+def test_nordic_quality_sample_is_a_required_gate() -> None:
     text = _workflow_text()
-    start = text.index("Known legacy Nordic sample check")
-    step = text[start : start + 220]
+    start = text.index("Nordic quality sample")
+    step = text[start : start + 180]
 
-    assert "continue-on-error: true" in step
+    assert "continue-on-error: true" not in step
     assert "tests/test_nordic_quality_sample.py" in step

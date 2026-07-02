@@ -49,13 +49,24 @@ FORMULA_FIELD_KEYS = (
     "net_price",
     "supplier_x_rate",
     "net_price_nok",
-    "calculated_sales_price_per_unit",
     "price",
     "sales_x_rate",
     "sales_price_nok_total",
     "gp_nok",
     "gp_percent",
 )
+FORMULA_OVERRIDE_FIELD_BY_KEY = {
+    "gross_price": "gross_price_override",
+    "net_price": "net_price_override",
+    "supplier_x_rate": "supplier_x_rate_override",
+    "net_price_nok": "net_price_nok_override",
+    "price": "price_override",
+    "sales_x_rate": "sales_x_rate_override",
+    "sales_price_nok_total": "sales_price_nok_total_override",
+    "gp_nok": "gp_nok_override",
+    "gp_percent": "gp_percent_override",
+}
+FORMULA_OVERRIDE_FIELDS = tuple(FORMULA_OVERRIDE_FIELD_BY_KEY.values())
 
 
 @dataclass(frozen=True)
@@ -88,6 +99,15 @@ class CalculatorRow:
     vat12: float = 0.0
     vat0_domestic: float = 0.0
     vat0_international: float = 0.0
+    gross_price_override: float | None = None
+    net_price_override: float | None = None
+    supplier_x_rate_override: float | None = None
+    net_price_nok_override: float | None = None
+    price_override: float | None = None
+    sales_x_rate_override: float | None = None
+    sales_price_nok_total_override: float | None = None
+    gp_nok_override: float | None = None
+    gp_percent_override: float | None = None
 
     def with_changes(self, **changes: Any) -> "CalculatorRow":
         """Return a copy of this row with selected fields changed."""

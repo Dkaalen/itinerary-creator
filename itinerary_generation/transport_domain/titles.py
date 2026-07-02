@@ -187,7 +187,9 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
     if "ferry" in lower:
         return f"Ferry to {destination}"
     if "cruise" in lower:
-        return f"Cruise arrival to {destination}" if "arrival" in lower else f"Cruise to {destination}"
+        if "arrival" in lower:
+            return f"Arrival in {destination}" if row.get("is_render_only") else f"Cruise arrival to {destination}"
+        return f"Cruise to {destination}"
     return polish_title(route_phrase)
 
 

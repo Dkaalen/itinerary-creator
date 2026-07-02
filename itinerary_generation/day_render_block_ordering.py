@@ -54,8 +54,7 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
     row_lookup = rows_by_source_id(rows)
     main_rows = [row for row in rows if not is_optional_row(row)] or list(rows)
     day_plan = plan_day(main_rows)
-    if day_plan.consolidate_travel:
-        sequence_by_first_row = {}
+    if day_plan.consolidate_travel and not sequence_by_first_row:
         sequence_row_ids = set()
     departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
     has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in main_rows)

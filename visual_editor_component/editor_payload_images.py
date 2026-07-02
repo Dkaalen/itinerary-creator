@@ -23,8 +23,9 @@ from visual_editor_component.editor_image_payload_options import metadata_first_
 
 
 DAY_REPLACEMENT_OPTION_LIMIT = 8
-# Replacement options are metadata-first; the selected/current image keeps its preview.
-OPTION_PREVIEW_LIMIT = 0
+# Replacement options are metadata-first; only the selected/current images carry eager previews.
+# Legacy metadata-only setting was OPTION_PREVIEW_LIMIT = 0; keep options screen-sized and bounded.
+OPTION_PREVIEW_LIMIT = 2
 EDITOR_IMAGE_PAYLOAD_CACHE_LIMIT = 18
 
 _IMAGE_PAYLOAD_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()

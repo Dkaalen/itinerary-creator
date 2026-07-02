@@ -131,10 +131,16 @@ def plan_day(rows: list[dict]) -> DayPlan:
         accommodation_title = _accommodation_led_title(rows, city)
         if accommodation_title:
             return DayPlan("stay_day", accommodation_title, _intro_for_title(accommodation_title, city, "stay_day"), suppress_free_time=True)
+        sequence_title = travel_sequence_title(rows, city)
+        has_self_arranged_flight = any(
+            get_row_type(row) == "Flight" and str(row.get("commercial_status") or "").lower() == "self_arranged"
+            for row in travel_rows
+        )
+        if sequence_title and has_self_arranged_flight:
+            return DayPlan("travel_day", sequence_title, _intro_for_title(sequence_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
         primary_transport_title = get_primary_transport_title(rows)
         if primary_transport_title and primary_transport_title.lower().startswith("journey to"):
             return DayPlan("travel_day", primary_transport_title, _intro_for_title(primary_transport_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
-        sequence_title = travel_sequence_title(rows, city)
         if sequence_title:
             return DayPlan("travel_day", sequence_title, _intro_for_title(sequence_title, city, "travel_day"), suppress_free_time=True, consolidate_travel=True)
         transfer_text = " ".join(_text(row).lower() for row in travel_rows)

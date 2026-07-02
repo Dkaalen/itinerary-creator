@@ -28,15 +28,17 @@ python -m compileall -q .
 
 See `docs/testing-workflow.md` for the full tiered workflow.
 
-## Build a clean ZIP
+## Build a clean handoff ZIP
 
-For ChatGPT handoff or lightweight backups, build a source-only ZIP without Git metadata, caches, generated outputs, or old patch archives:
+For ChatGPT handoff or lightweight backups, do not manually compress the whole working tree. Build the standard source-only package instead:
 
 ```powershell
-python scripts/build_clean_zip.py --output ..\itinerary-creator-git-clean.zip
+python scripts/build_handoff_zip.py --output "..\itinerary-creator-git-handoff.zip"
 ```
 
-This keeps uploads much smaller while preserving the project files needed for inspection and patching.
+The handoff ZIP excludes Git metadata, caches, generated outputs, old ZIP files, and local credential files while keeping source files and safe examples such as `.streamlit/secrets.example.toml`.
+
+When a patch deletes files, apply the deletion with `git rm "path\to\file.py"` before committing so the file is removed locally and on GitHub after push.
 
 ## Quality principles
 

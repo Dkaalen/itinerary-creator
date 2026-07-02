@@ -51,6 +51,7 @@ def _compact_route_destination(destination: str, fallback_city: str = "") -> str
         maxsplit=1,
         flags=re.IGNORECASE,
     )[0].strip(" -:|,.")
+    cleaned = re.sub(r"^(?:from|to)\s+", "", cleaned, flags=re.IGNORECASE).strip(" -:|,.")
     if ":" in cleaned:
         before_colon = cleaned.split(":", 1)[0].strip(" -:|,.")
         normalized_before = normalize_transport_place(before_colon)
@@ -197,9 +198,9 @@ def standardize_self_transfer_title(title, details, city):
 
     if "bus station" in lower or "bustation" in lower:
         if "hotel to" in lower or "to bus" in lower:
-            return f"Self-arranged transfer from your hotel to {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'}"
+            return "Self transfer from your hotel to the bus station"
         if "to hotel" in lower or "to accommodation" in lower or "station to" in lower:
-            return f"Self-arranged transfer from {normalize_transport_place((city + ' Bus Station').strip()) if city else 'the bus station'} to your accommodation"
+            return "Self transfer from the bus station to your accommodation"
 
     if "hotel to station" in lower or "to station" in lower:
         return f"Self-arranged transfer from your hotel to {normalize_transport_place((city + ' Railway Station').strip()) if city else 'the railway station'}"

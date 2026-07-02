@@ -42,16 +42,19 @@ def calculate_row(
     gross_price_per_unit = _number(row.gross_price_per_unit)
     units = _number(row.units)
     supplier_commission = _number(row.supplier_commission)
-    gross_price = gross_price_per_unit * units
-    net_price = gross_price * (1 - supplier_commission)
-    supplier_x_rate = lookup_currency_rate(row.supplier_currency, rates)
-    net_price_nok = net_price * supplier_x_rate
+    gross_price = _override(row.gross_price_override, gross_price_per_unit * units)
+    net_price = _override(row.net_price_override, gross_price * (1 - supplier_commission))
+    supplier_x_rate = _override(row.supplier_x_rate_override, lookup_currency_rate(row.supplier_currency, rates))
+    net_price_nok = _override(row.net_price_nok_override, net_price * supplier_x_rate)
     calculated_sales_price_per_unit = _sales_price_per_unit(row)
-    price = calculated_sales_price_per_unit * units
-    sales_x_rate = lookup_currency_rate(row.sales_currency, rates)
-    sales_price_nok_total = calculated_sales_price_per_unit * sales_x_rate * units
-    gp_nok = sales_price_nok_total - net_price_nok
-    gp_percent = _safe_ratio(gp_nok, sales_price_nok_total)
+    price = _override(row.price_override, calculated_sales_price_per_unit * units)
+    sales_x_rate = _override(row.sales_x_rate_override, lookup_currency_rate(row.sales_currency, rates))
+    sales_price_nok_total = _override(
+        row.sales_price_nok_total_override,
+        calculated_sales_price_per_unit * sales_x_rate * units,
+    )
+    gp_nok = _override(row.gp_nok_override, sales_price_nok_total - net_price_nok)
+    gp_percent = _override(row.gp_percent_override, _safe_ratio(gp_nok, sales_price_nok_total))
     return CalculatedRow(
         source=row,
         gross_price=gross_price,
@@ -117,3 +120,9 @@ def _number(value: object) -> float:
         return float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return 0.0
+
+
+def _override(value: float | None, calculated: float) -> float:
+    if value is None:
+        return calculated
+    return _number(value)

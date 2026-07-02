@@ -3,7 +3,7 @@ function cloneRows(rows) {
 }
 
 function createBlankRow(rowId) {
-  return {
+  const row = {
     row_id: String(rowId),
     day: '',
     type: '',
@@ -31,6 +31,8 @@ function createBlankRow(rowId) {
     vat0_domestic: '',
     vat0_international: ''
   };
+  for (const column of FORMULA_COLUMNS) row[formulaOverrideKey(column.key)] = null;
+  return row;
 }
 
 function nextRowId(rows) {

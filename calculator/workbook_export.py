@@ -13,7 +13,7 @@ from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TOTALS_ROW
 from calculator.filename_sanitizer import calculation_workbook_filename
 from calculator.formula_map import expected_row_formulas
-from calculator.row_model import CalculatorRow
+from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.workbook_template import load_calculation_template
 
 _MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
@@ -111,7 +111,7 @@ def _write_row(sheet: object, row_number: int, row: CalculatorRow) -> None:
     for column, field_name in _ROW_VALUE_COLUMNS.items():
         sheet[f"{column}{row_number}"] = _cell_value(row, field_name)
     _write_sales_price_cell(sheet, row_number, row)
-    _restore_formula_cells(sheet, row_number)
+    _restore_formula_cells(sheet, row_number, row)
 
 
 def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) -> None:
@@ -123,12 +123,26 @@ def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) 
     cell.value = value
 
 
-def _restore_formula_cells(sheet: object, row_number: int) -> None:
+def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow) -> None:
     formulas = expected_row_formulas(row_number)
+    field_by_column = {
+        "S": "gross_price",
+        "U": "net_price",
+        "W": "supplier_x_rate",
+        "X": "net_price_nok",
+        "Z": "price",
+        "AB": "sales_x_rate",
+        "AC": "sales_price_nok_total",
+        "AD": "gp_nok",
+        "AE": "gp_percent",
+    }
     for column, formula in formulas.items():
         if column == "Y":
             continue
-        sheet[f"{column}{row_number}"] = formula
+        field_name = field_by_column.get(column, "")
+        override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
+        override_value = getattr(row, override_field, None) if override_field else None
+        sheet[f"{column}{row_number}"] = formula if override_value is None else override_value
 
 
 def _cell_value(row: CalculatorRow, field_name: str) -> object:

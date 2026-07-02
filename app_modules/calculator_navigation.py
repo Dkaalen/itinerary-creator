@@ -11,6 +11,7 @@ from calculator.calculator_state import create_initial_calculator_state
 APP_PAGE_KEY = "active_app_page"
 WORKFLOW_PAGE = "workflow"
 CALCULATOR_PAGE = "calculator"
+LOCAL_LIBRARY_PAGE = "local_library"
 CALCULATOR_STATE_KEY = "calculator_state"
 
 
@@ -27,6 +28,18 @@ def open_calculator_page(state: MutableMapping[str, Any]) -> None:
     if state.get(CALCULATOR_STATE_KEY) is None:
         itinerary_name = str(state.get("itinerary_name") or state.get("itinerary_name_input") or "")
         state[CALCULATOR_STATE_KEY] = create_initial_calculator_state(itinerary_name)
+
+
+def local_library_page_is_active(state: MutableMapping[str, Any]) -> bool:
+    """Return whether the Local Library management page route is active."""
+
+    return state.get(APP_PAGE_KEY, WORKFLOW_PAGE) == LOCAL_LIBRARY_PAGE
+
+
+def open_local_library_page(state: MutableMapping[str, Any]) -> None:
+    """Route the app to Local Library management."""
+
+    state[APP_PAGE_KEY] = LOCAL_LIBRARY_PAGE
 
 
 def close_calculator_page(state: MutableMapping[str, Any]) -> None:

@@ -15,6 +15,13 @@ def _fact_description(segment: GroupTourDay) -> str:
     source = polish_client_text(segment.description)
     if source:
         sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", source) if item.strip()]; useful = []
+        raw_supplier_markers = (
+            "prepare to explore amazing things",
+            "thirsty?",
+            "instant foot wetness",
+        )
+        if any(marker in source.casefold() for marker in raw_supplier_markers):
+            return ""
         for sentence in sentences:
             if any(marker in sentence.casefold() for marker in ("book this", "check availability", "what are you waiting", "price is per")): continue
             useful.append(sentence)

@@ -58,6 +58,7 @@ function collectTouched() {
   return model;
 }
 
+// Do not redraw during explicit PDF commit; the bridge returns before draw() so browser-local edits cannot be wiped.
 function collectCommitDelta() {
   syncVisibleEditableFields({trackChanges: true});
   syncUploadedImages({trackChanges: true});
@@ -227,7 +228,7 @@ function buildSaveEnvelope(commitNonce = null) {
   const isPdfCommit = commitNonce !== null && commitNonce !== undefined && commitNonce !== '';
   if (isPdfCommit) collectCommitDelta();
   else collectTouched();
-  // PDF export is the hard sync point, but it must stay fast. Scan the visible
+  // PDF export is the hard commit point, but it must stay fast. Scan the visible
   // editor for any missed browser-side edits, then send only the changed fields
   // (or a tiny no-op acknowledgement) instead of the full itinerary model.
   const payload = pruneForSave(model);
