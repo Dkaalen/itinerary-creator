@@ -66,3 +66,23 @@ def test_generatable_rows_require_type_and_travel_element() -> None:
     assert row_is_generatable(missing_type) is False
     assert row_is_generatable(missing_text) is False
     assert generatable_row_count((valid, missing_type, missing_text)) == 1
+
+
+def test_calculator_raw_input_removes_library_placeholders_and_metadata() -> None:
+    row = CalculatorRow(
+        row_id="1",
+        day="Day 1",
+        type="Transfer",
+        from_date="20.09.2026",
+        supplier="General Inputs",
+        travel_element="Private transfer to [Destination] - General Inputs · Reykjavík",
+        comments="URL",
+        url="URL",
+    )
+
+    raw_input = calculator_rows_to_raw_input((row,))
+
+    assert "[Destination]" not in raw_input
+    assert "General Inputs" not in raw_input
+    assert " - URL" not in raw_input
+    assert raw_input.endswith("Private transfer Reykjavík")

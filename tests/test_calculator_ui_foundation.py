@@ -334,7 +334,9 @@ def test_calculator_grid_autofills_dates_from_day_one_arrival() -> None:
     assert "function autofillDatesFromArrival" in date_source
     assert "parseDayNumber" in date_source
     assert "formatGridDate(addDays(context.date, dayNumber - 1), context.format)" in date_source
-    assert "key === 'day' || key === 'from_date'" in app_source
+    assert "markDayChanged(row)" in app_source
+    assert "markDateManualState(row, key, rawValue)" in app_source
+    assert "_from_date_auto" in date_source
     assert "refreshDateCells" in app_source
     assert "calculator_grid_dates.js" in index_source
 

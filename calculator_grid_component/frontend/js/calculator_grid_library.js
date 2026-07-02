@@ -28,30 +28,45 @@ function librarySearchFields(item) {
   ];
 }
 
-function scoreLibraryItem(item, query) {
+function scoreLibraryItem(item, query, context = {}) {
   const normalizedQuery = normalizeSearchText(query);
   if (normalizedQuery.length < 2) return 0;
   const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
-  const fieldWeights = [60, 38, 25, 25, 25, 15, 10, 5, 10, 8];
+  const fieldWeights = [70, 42, 25, 28, 34, 12, 10, 3, 12, 8];
   let score = 0;
   librarySearchFields(item).forEach((field, index) => {
     const text = normalizeSearchText(field);
     if (!text) return;
     let fieldScore = 0;
     for (const token of tokens) {
-      if (text === token) fieldScore += 5;
-      else if (text.startsWith(token)) fieldScore += 4;
+      if (text === token) fieldScore += 6;
+      else if (text.startsWith(token)) fieldScore += 5;
       else if (text.includes(token)) fieldScore += 2;
     }
-    if (text.includes(normalizedQuery)) fieldScore += 5;
+    if (text.includes(normalizedQuery)) fieldScore += 6;
     score += fieldScore * fieldWeights[index];
   });
+  return score + contextScore(item, context);
+}
+
+function contextScore(item, context = {}) {
+  let score = 0;
+  const rowType = normalizeSearchText(context.type);
+  const itemType = normalizeSearchText(item.type || item.category);
+  if (rowType && itemType) {
+    if (itemType === rowType) score += 900;
+    else if (itemType.includes(rowType) || rowType.includes(itemType)) score += 450;
+    else score -= 160;
+  }
+  const rowText = normalizeSearchText([context.travel_element, context.supplier, context.comments].filter(Boolean).join(' '));
+  const country = normalizeSearchText(item.country);
+  if (country && rowText.includes(country)) score += 120;
   return score;
 }
 
-function findLibrarySuggestions(libraryRows, query, limit = 8) {
+function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}) {
   return (libraryRows || [])
-    .map((item) => ({item, score: scoreLibraryItem(item, query)}))
+    .map((item) => ({item, score: scoreLibraryItem(item, query, context)}))
     .filter((result) => result.score > 0)
     .sort((a, b) => b.score - a.score || String(a.item.label || '').localeCompare(String(b.item.label || '')))
     .slice(0, limit);

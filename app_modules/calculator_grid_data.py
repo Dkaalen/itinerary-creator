@@ -63,6 +63,9 @@ def table_data_to_rows(
         base_row = previous_by_id.get(row_id, CalculatorRow(row_id=row_id))
         values = {field.name: getattr(base_row, field.name) for field in fields(CalculatorRow)}
         for field_name, raw_value in item.items():
+            if field_name in FORMULA_OVERRIDE_FIELDS:
+                values[field_name] = _formula_override_value(field_name, raw_value)
+                continue
             if field_name in _ROW_FIELDS:
                 values[field_name] = _field_value(field_name, raw_value)
                 continue
@@ -143,7 +146,7 @@ def _formula_override_value(field_name: str, value: Any) -> float | None:
     text = str(value).strip()
     if text.casefold() in _BLANK_NUMERIC_MARKERS:
         return None
-    if field_name == "gp_percent":
+    if field_name in {"gp_percent", "gp_percent_override"}:
         return _percent_to_decimal(text)
     return _number_value(text)
 

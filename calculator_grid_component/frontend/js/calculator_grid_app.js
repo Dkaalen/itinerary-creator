@@ -212,6 +212,8 @@ function updateRowValue(rowIndex, key, rawValue) {
   if (key === 'sales_currency') row.sales_x_rate_override = null;
   if (key === 'units') row._units_touched = true;
   if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = true;
+  if (key === 'day') markDayChanged(row);
+  if (key === 'from_date') markDateManualState(row, key, rawValue);
   if (kind === 'checkbox') row[key] = Boolean(rawValue);
   else if (kind === 'numberOptional') row[key] = optionalNumberValue(rawValue);
   else if (kind === 'formula' || kind === 'formulaPercent') {
@@ -273,7 +275,7 @@ function updateSuggestions(rowIndex, query) {
   calculatorState.activeSuggestion = {
     rowIndex,
     query: text,
-    results: findLibrarySuggestions(calculatorState.libraryRows, text, 8)
+    results: findLibrarySuggestions(calculatorState.libraryRows, text, 8, calculatorState.rows[rowIndex] || {})
   };
 }
 

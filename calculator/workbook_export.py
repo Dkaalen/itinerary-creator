@@ -14,7 +14,7 @@ from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TO
 from calculator.filename_sanitizer import calculation_workbook_filename
 from calculator.calculations import calculate_row
 from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
-from calculator.formula_map import expected_row_formulas
+from calculator.formula_map import PAYMENT_FORMULAS, TOTAL_FORMULAS, expected_row_formulas
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.workbook_template import load_calculation_template
 
@@ -108,7 +108,8 @@ def build_calculation_workbook(
     sheet = workbook[KALK_SHEET_NAME]
     for row_number, row in zip(_data_row_numbers(), rows):
         _write_row(sheet, row_number, row, active_rates)
-    sheet[_QUOTE_CELL] = f"=Z{TOTALS_ROW}"
+    _restore_total_and_payment_formulas(sheet)
+    _prepare_workbook_recalculation(workbook)
     _restore_excel_advanced_view(sheet)
     return workbook
 
@@ -181,6 +182,22 @@ def _write_default_currency_rates(workbook: Workbook, currency_rates: Mapping[st
         sheet[f"B{row_number}"] = code
         sheet[f"C{row_number}"] = rate
 
+
+
+
+def _restore_total_and_payment_formulas(sheet: object) -> None:
+    """Restore template total/payment formulas even if a previous export dirtied cells."""
+
+    for cell, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: f"=Z{TOTALS_ROW}"}.items():
+        sheet[cell] = formula
+
+
+def _prepare_workbook_recalculation(workbook: Workbook) -> None:
+    """Tell Excel/Sheets to recalculate formula cells after opening the export."""
+
+    workbook.calculation.fullCalcOnLoad = True
+    workbook.calculation.forceFullCalc = True
+    workbook.calculation.calcMode = "auto"
 
 def _restore_excel_advanced_view(sheet: object) -> None:
     """Keep the template's grouped hidden columns expandable in Excel."""

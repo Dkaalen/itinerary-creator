@@ -10,6 +10,9 @@ from calculator.row_model import CalculatorRow
 
 _EMPTY_TYPES = {"", "total", "subtotal", "sub total"}
 _DAY_RE = re.compile(r"^day\s+\d+", re.IGNORECASE)
+_PLACEHOLDER_RE = re.compile(r"\[[^\]]+\]")
+_METADATA_TOKENS = {"general inputs", "url"}
+_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 
 
 def calculator_state_to_raw_input(state: CalculatorState) -> str:
@@ -52,22 +55,24 @@ def _row_to_raw_line(row: CalculatorRow, index: int) -> str:
         _clean(row.to_date),
         _clean(row.from_time),
         _clean(row.to_time),
-        _clean(row.supplier),
+        _clean_supplier(row.supplier),
         description,
     ]
     return "\t".join(cells).rstrip("\t")
 
 
 def _build_description(row: CalculatorRow) -> str:
-    title = _clean(row.travel_element)
+    title = _clean_client_text(row.travel_element)
     details = []
     time_text = _time_text(row.from_time, row.to_time)
     if time_text:
         details.append(f"Time: {time_text}")
-    if _clean(row.comments):
-        details.append(_clean(row.comments))
-    if _clean(row.url):
-        details.append(f"URL: {_clean(row.url)}")
+    comments = _clean_client_text(row.comments)
+    if comments:
+        details.append(comments)
+    url = _clean(row.url)
+    if _URL_RE.match(url):
+        details.append(f"URL: {url}")
     if not details:
         return title
     return f"{title} - " + " - ".join(details)
@@ -88,6 +93,29 @@ def _time_text(from_time: object, to_time: object) -> str:
     if start and end:
         return f"{start} - {end}"
     return start or end
+
+
+def _clean_client_text(value: object) -> str:
+    text = _clean(value)
+    if not text:
+        return ""
+    text = _PLACEHOLDER_RE.sub("", text)
+    parts = []
+    for part in re.split(r"\s+-\s+|\s+·\s+", text):
+        cleaned = _clean(part)
+        if not cleaned or cleaned.casefold() in _METADATA_TOKENS:
+            continue
+        parts.append(cleaned)
+    if not parts:
+        return ""
+    text = " - ".join(parts)
+    text = re.sub(r"\bto\s*(?:-|$)", "", text, flags=re.IGNORECASE).strip(" -")
+    return _clean(text)
+
+
+def _clean_supplier(value: object) -> str:
+    text = _clean(value)
+    return "" if text.casefold() in _METADATA_TOKENS else text
 
 
 def _clean(value: object) -> str:

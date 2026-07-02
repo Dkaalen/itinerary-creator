@@ -5,18 +5,18 @@ CSS = r"""
             .stDownloadButton > button,
             button[kind="primary"],
             [data-testid="stBaseButton-primary"] {
-                min-height: 3.15rem !important;
-                border-radius: 999px !important;
-                font-weight: 850 !important;
-                letter-spacing: 0.01em !important;
-                border: 1px solid rgba(255,255,255,0.14) !important;
-                box-shadow: 0 14px 28px rgba(0, 95, 91, 0.18) !important;
+                min-height: 2.65rem !important;
+                border-radius: 12px !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.005em !important;
+                border: 1px solid var(--line-strong) !important;
+                box-shadow: none !important;
             }
 
             .stButton > button[kind="primary"],
             .stDownloadButton > button[kind="primary"],
             [data-testid="stBaseButton-primary"] {
-                background: linear-gradient(135deg, var(--teal-dark), var(--teal)) !important;
+                background: var(--teal-dark) !important;
                 color: #ffffff !important;
             }
 
@@ -31,7 +31,7 @@ CSS = r"""
                 background: #ffffff !important;
                 color: var(--ink) !important;
                 border: 1px solid var(--line-strong) !important;
-                box-shadow: 0 8px 18px rgba(16, 32, 51, 0.06) !important;
+                box-shadow: none !important;
             }
 
             .stButton > button:disabled,
@@ -47,9 +47,9 @@ CSS = r"""
             div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                 background: #ffffff !important;
                 color: var(--ink) !important;
-                border: 1.5px solid var(--line-strong) !important;
-                border-radius: 18px !important;
-                box-shadow: 0 10px 24px rgba(16, 32, 51, 0.06) !important;
+                border: 1px solid var(--line-strong) !important;
+                border-radius: 12px !important;
+                box-shadow: none !important;
             }
 
             div[data-testid="stTextArea"] textarea {
@@ -61,7 +61,7 @@ CSS = r"""
             div[data-testid="stTextArea"] textarea:focus,
             div[data-testid="stTextInput"] input:focus {
                 border-color: var(--teal) !important;
-                box-shadow: 0 0 0 4px rgba(0, 127, 121, 0.16) !important;
+                box-shadow: 0 0 0 3px rgba(14, 111, 107, 0.14) !important;
             }
 
             div[data-testid="stTextArea"] textarea::placeholder,

@@ -20,47 +20,23 @@ def _stage_panel(title: str, body: str) -> None:
     )
 
 def _render_top_nav(stage: str) -> None:
-    current_index = FLOW_STAGES.index(stage)
-    items = []
-    for index, item in enumerate(FLOW_STAGES):
-        status = "done" if index < current_index else "current" if item == stage else "locked"
-        items.append(
-            f'<div class="flow-nav-item flow-nav-{status}">'
-            f'<span>{index + 1}</span><strong>{escape(STAGE_LABELS[item])}</strong>'
-            f'</div>'
-        )
-    st.html(f'<div class="flow-nav" aria-label="Itinerary workflow">{"".join(items)}</div>')
+    """Keep the old workflow-nav hook as a no-op.
+
+    The app is now a working tool, not a landing page; the large stage header and
+    route/status card were visually noisy and consumed too much vertical space.
+    """
+
+    return None
+
 
 def _render_app_header(app_version: str, *, stage: str) -> None:
-    metrics = build_project_metrics(
-        st.session_state.get("parsed_rows", []),
-        st.session_state.get("output_edits", {}),
-    )
-    title = project_title(st.session_state.get("output_edits", {}), "Itinerary Creator")
-    copy = STAGE_COPY[stage]
-    label = STAGE_LABELS.get(stage, "Workflow")
+    """Render no persistent top header.
 
-    route = project_route_label(metrics)
-    duration = f"{metrics['days']} days" if metrics["days"] else "Not generated"
-    image_status = "Pictures added" if metrics["pictures_added"] else "Text only"
-    pdf_status = str(st.session_state.get("pdf_status", "No PDF") or "No PDF")
+    Individual pages own their controls and status messages. This keeps the
+    itinerary/calculator work area compact and removes the old hero/status card.
+    """
 
-    st.html(
-        '<div class="luxury-hero compact-app-header">'
-        '<div class="luxury-hero-main compact-app-title">'
-        f'<div class="hero-eyebrow">{escape(label)}</div>'
-        f'<h1>{escape(title)}</h1>'
-        f'<p>{escape(copy["subtitle"])}</p>'
-        '</div>'
-        '<div class="hero-summary-card compact-status-card">'
-        f'<div><span>Route</span><strong>{escape(route)}</strong></div>'
-        f'<div><span>Duration</span><strong>{escape(duration)}</strong></div>'
-        f'<div><span>Imagery</span><strong>{escape(image_status)}</strong></div>'
-        f'<div><span>PDF</span><strong>{escape(pdf_status)}</strong></div>'
-        '</div>'
-        '</div>'
-    )
-    _render_top_nav(stage)
+    return None
 
 
 def _render_stage_actions(stage: str) -> None:

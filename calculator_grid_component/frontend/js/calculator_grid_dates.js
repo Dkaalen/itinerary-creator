@@ -51,16 +51,33 @@ function arrivalDateContext(rows) {
   return null;
 }
 
+function markDateManualState(row, key, rawValue) {
+  if (key !== 'from_date') return;
+  row._from_date_manual = String(rawValue || '').trim() !== '';
+  row._from_date_auto = false;
+}
+
+function markDayChanged(row) {
+  row._from_date_auto = Boolean(row._from_date_auto || !String(row.from_date || '').trim());
+}
+
 function autofillDatesFromArrival(rows) {
   const context = arrivalDateContext(rows);
   if (!context) return false;
   let changed = false;
   for (const row of rows || []) {
-    if (String(row.from_date || '').trim()) continue;
     const dayNumber = parseDayNumber(row.day);
     if (!dayNumber) continue;
-    row.from_date = formatGridDate(addDays(context.date, dayNumber - 1), context.format);
-    changed = true;
+    if (row._from_date_manual) continue;
+    const current = String(row.from_date || '').trim();
+    if (current && !row._from_date_auto && dayNumber === 1) continue;
+    if (current && !row._from_date_auto && dayNumber !== 1) continue;
+    const next = formatGridDate(addDays(context.date, dayNumber - 1), context.format);
+    if (row.from_date !== next) {
+      row.from_date = next;
+      row._from_date_auto = dayNumber !== 1;
+      changed = true;
+    }
   }
   return changed;
 }
