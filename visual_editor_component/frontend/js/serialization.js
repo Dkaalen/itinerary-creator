@@ -11,27 +11,56 @@ function setByPath(obj, path, value) {
   if (Array.isArray(cur)) cur[Number(last)] = value;
   else cur[last] = value;
 }
-function collect() {
+function saveComparableValue(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+function syncUploadedImages(options = {}) {
+  const trackChanges = options?.trackChanges === true;
+  Object.keys(uploadedImages || {}).forEach(idx => {
+    if (!model.days?.[idx]) return;
+    if (!model.days[idx].image) model.days[idx].image = {};
+    model.days[idx].image.upload = uploadedImages[idx];
+    if (trackChanges) touchedKeys.add(`days.${idx}.image`);
+  });
+}
+
+function syncVisibleEditableFields(options = {}) {
+  const trackChanges = options?.trackChanges === true;
   document.querySelectorAll('[data-edit-key]').forEach(el => {
     const key = el.getAttribute('data-edit-key');
+    if (!key) return;
     const value = editableValue(el);
+    const previous = getByPath(model, key);
+    if (trackChanges && saveComparableValue(value) !== saveComparableValue(previous)) {
+      touchedKeys.add(key);
+    }
     setByPath(model, key, value);
   });
-  Object.keys(uploadedImages).forEach(idx => {
-    if (model.days[idx]) model.days[idx].image.upload = uploadedImages[idx];
-  });
+}
+
+function collect() {
+  syncVisibleEditableFields();
+  syncUploadedImages();
   return model;
 }
 
 function collectTouched() {
-  if (!touchedKeys || !touchedKeys.size) return model;
-  touchedKeys.forEach(key => {
-    const el = document.querySelector(`[data-edit-key="${cssEscapeValue(key)}"]`);
-    if (el) setByPath(model, key, editableValue(el));
-  });
-  Object.keys(uploadedImages).forEach(idx => {
-    if (model.days[idx]) model.days[idx].image.upload = uploadedImages[idx];
-  });
+  if (touchedKeys && touchedKeys.size) {
+    touchedKeys.forEach(key => {
+      const el = document.querySelector(`[data-edit-key="${cssEscapeValue(key)}"]`);
+      if (el) setByPath(model, key, editableValue(el));
+    });
+  }
+  syncUploadedImages({trackChanges: true});
+  return model;
+}
+
+function collectCommitDelta() {
+  syncVisibleEditableFields({trackChanges: true});
+  syncUploadedImages({trackChanges: true});
   return model;
 }
 
@@ -196,13 +225,16 @@ function compactFullPayloadForCommit(value) {
 }
 function buildSaveEnvelope(commitNonce = null) {
   const isPdfCommit = commitNonce !== null && commitNonce !== undefined && commitNonce !== '';
-  if (isPdfCommit) collect();
+  if (isPdfCommit) collectCommitDelta();
   else collectTouched();
-  // PDF export is the hard commit point. Send the full visible editor model,
-  // not only keys that browser input events noticed, so the PDF cannot miss
-  // a direct preview edit. Normal "Save for now" remains minimal.
-  const payload = isPdfCommit ? compactFullPayloadForCommit(model) : pruneForSave(model);
+  // PDF export is the hard sync point, but it must stay fast. Scan the visible
+  // editor for any missed browser-side edits, then send only the changed fields
+  // (or a tiny no-op acknowledgement) instead of the full itinerary model.
+  const payload = pruneForSave(model);
   if (isPdfCommit) {
+    payload.meta = model.meta || {};
+    payload.workflow = model.workflow || {};
+    payload.save_mode = touchedKeys && touchedKeys.size ? 'commit_delta' : 'commit_noop';
     return JSON.stringify({commit_nonce: String(commitNonce), payload});
   }
   return JSON.stringify(payload);
@@ -212,8 +244,8 @@ function buildServerAutosaveEnvelope() {
   collectTouched();
   const payload = pruneForSave(model);
   // Server autosave is intentionally delta-based. Keep only changed fields plus
-  // the small identity metadata needed for safe recovery/merge. PDF export still
-  // sends the full visible model through compactFullPayloadForCommit().
+  // the small identity metadata needed for safe recovery/merge. PDF export uses
+  // the same changed-field contract after scanning the visible editor for misses.
   payload.draft_id = model.draft_id || '';
   payload.meta = model.meta || {};
   payload.workflow = model.workflow || {};

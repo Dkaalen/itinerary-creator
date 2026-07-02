@@ -34,7 +34,7 @@ def request_visual_editor_commit(
     request_key: str,
     ready_key: str,
 ) -> str:
-    """Ask the frontend editor to commit its full visible model.
+    """Ask the frontend editor to commit its current visible edits.
 
     A single ``_visual_editor_commit_nonce`` is rendered into the component. The
     target-specific request and ready keys let the server tell whether that

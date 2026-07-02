@@ -21,6 +21,7 @@ from app_modules.performance_telemetry import measure_timing
 from visual_editor_component.editor_autosave import try_apply_server_autosave
 from visual_editor_component.editor_status import autosave_status as _autosave_status
 from visual_editor_component.editor_bridge import render_visual_page_editor
+from visual_editor_component.editor_commit_signal import build_editor_commit_signal_payload
 from visual_editor_component.editor_payload_builder import (
     _build_generated_exclusions_html,
     _build_generated_inclusion_page_htmls,
@@ -55,12 +56,13 @@ def _try_apply_server_autosave(payload, output_edits, mark_dirty=None):
     )
 
 
-def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_preview=None, mark_dirty=None):
-    """Render and process the direct editable A4-page editor.
+def _payload_for_editor_render(parsed_rows, grouped_days, output_edits, mark_dirty=None):
+    commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
+    if commit_nonce:
+        return build_editor_commit_signal_payload(
+            st.session_state.get("_visual_editor_current_source_signature")
+        )
 
-    Returns True only when a saved editor payload was applied. The app can then
-    skip any additional rebuild based on the pre-save rows from the same rerun.
-    """
     with measure_timing(st.session_state, "build_editor_payload", count=len(parsed_rows or [])):
         payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
     st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
@@ -70,6 +72,16 @@ def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_previe
             payload = build_visual_editor_payload(parsed_rows, grouped_days, output_edits)
         st.session_state["_visual_editor_current_source_signature"] = str((payload.get("meta") or {}).get("source_signature") or "")
         st.session_state["latest_client_output_warnings"] = list(payload.get("client_output_warnings") or [])
+    return payload
+
+
+def render_visual_editor(parsed_rows, grouped_days, output_edits, rebuild_preview=None, mark_dirty=None):
+    """Render and process the direct editable A4-page editor.
+
+    Returns True only when a saved editor payload was applied. The app can then
+    skip any additional rebuild based on the pre-save rows from the same rerun.
+    """
+    payload = _payload_for_editor_render(parsed_rows, grouped_days, output_edits, mark_dirty=mark_dirty)
     commit_nonce = st.session_state.get("_visual_editor_commit_nonce")
     result = render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=commit_nonce)
     if result and result != st.session_state.get("_last_visual_editor_result"):

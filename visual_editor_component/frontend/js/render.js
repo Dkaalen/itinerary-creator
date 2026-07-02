@@ -1,13 +1,16 @@
 function render(payload, commitNonce = null) {
+  const commitSignalOnly = !!payload?.workflow?.commit_signal_only;
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {
     lastCommitNonce = commitNonce;
-    // Streamlit asks for this when the user clicks Create PDF. Do not redraw
-    // from the server payload first, because that would overwrite unsaved
-    // browser-side text edits before collect() can read them.
+    // Streamlit asks for this when the user clicks Create PDF/Add Pictures. Do
+    // not redraw from the server payload first, because that would overwrite
+    // unsaved browser-side edits before collectCommitDelta() can read them.
+    if (!model) model = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
     setTimeout(() => saveChanges(commitNonce), 0);
     return;
   }
+  if (commitSignalOnly) return;
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
   acknowledgeServerSaveFromPayload(initialPayload);
   hydrateSaveStateFromPayload(initialPayload);
