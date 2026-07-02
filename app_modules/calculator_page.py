@@ -10,7 +10,7 @@ from app_modules.calculator_download_action import render_calculation_download_b
 from app_modules.calculator_editor_sync import calculator_grid_widget_key, store_calculator_state
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_grid_config import calculator_column_config
-from app_modules.calculator_grid_data import rows_to_table_data, table_data_to_rows
+from app_modules.calculator_grid_data import rows_have_user_edit_changes, rows_to_table_data, table_data_to_rows
 from app_modules.calculator_library_cache import read_cached_local_library
 from app_modules.calculator_navigation import (
     CALCULATOR_STATE_KEY,
@@ -32,7 +32,7 @@ from calculator.fetch_lines import (
 )
 from calculator.grid_autocomplete import TravelElementSuggestionGroup, find_travel_element_suggestion_groups
 from calculator.library_model import LocalLibraryRow
-from calculator.library_search import LocalLibrarySearchResult, library_result_label, library_result_preview
+from calculator.library_search import library_result_label, library_result_preview
 from calculator.library_store import LocalLibraryReadResult
 from calculator.row_model import FORMULA_FIELD_KEYS, CalculatorRow
 
@@ -60,8 +60,12 @@ def render_calculator_page(app_version: str) -> None:
     _store_calculator_state(state)
 
     show_advanced = st.toggle("Show advanced columns", key=_ADVANCED_TOGGLE_KEY)
-    draft_rows, saved = _render_grid(state, show_advanced=show_advanced)
+    draft_rows, grid_changed, saved = _render_grid(state, show_advanced=show_advanced)
     draft_state = CalculatorState(itinerary_name=itinerary_name, rows=tuple(draft_rows))
+
+    if grid_changed:
+        _store_calculator_state(draft_state, refresh_grid=True)
+        st.rerun()
 
     filled_state = _render_grid_travel_element_suggestions(draft_state, library_read)
     if filled_state is not None:
@@ -104,7 +108,11 @@ def _render_top_actions() -> None:
         st.caption("Type directly in the Travel element cells; matching Local Library lines appear below the grid.")
 
 
-def _render_grid(state: CalculatorState, *, show_advanced: bool) -> tuple[tuple[CalculatorRow, ...], bool]:
+def _render_grid(
+    state: CalculatorState,
+    *,
+    show_advanced: bool,
+) -> tuple[tuple[CalculatorRow, ...], bool, bool]:
     data = rows_to_table_data(state.rows, show_advanced=show_advanced)
     edited = st.data_editor(
         data,
@@ -115,37 +123,62 @@ def _render_grid(state: CalculatorState, *, show_advanced: bool) -> tuple[tuple[
         column_config=calculator_column_config(show_advanced),
         key=calculator_grid_widget_key(st.session_state),
     )
-    saved = st.button("Save calculator edits", use_container_width=True)
-    return table_data_to_rows(edited, state.rows), saved
+    edited_rows = table_data_to_rows(edited, state.rows)
+    grid_changed = rows_have_user_edit_changes(edited_rows, state.rows)
+    saved = st.button("Recalculate / save edits", use_container_width=True)
+    return edited_rows, grid_changed, saved
 
 
 def _render_grid_travel_element_suggestions(
     state: CalculatorState,
     read_result: LocalLibraryReadResult,
 ) -> CalculatorState | None:
-    st.caption(_library_read_status(read_result))
-
     groups = find_travel_element_suggestion_groups(state.rows, read_result.rows)
+    typed_rows = _typed_travel_element_rows(state)
+    _render_library_diagnostics(read_result, groups, typed_rows)
     if not groups:
         st.caption("Type at least 2 characters in a Travel element cell to see Local Library suggestions.")
         return None
 
     group = groups[0]
-    st.markdown(f"**Local Library suggestions for row {group.row_id}:** `{group.query}`")
-    selected_library_id = st.selectbox(
-        "Suggestions",
-        options=[result.row.library_id for result in group.results],
-        format_func=lambda library_id: _library_option_label(group.results, library_id),
-        key=f"{_GRID_SUGGESTION_KEY}_{group.row_id}_{group.query}",
-    )
-    selected_result = _selected_library_result(group.results, str(selected_library_id))
-    if selected_result is None:
-        return None
+    st.markdown(f"**Suggestions for row {group.row_id}:** `{group.query}`")
+    for index, result in enumerate(group.results[:5], start=1):
+        label = library_result_label(result.row)
+        st.caption(_compact_library_preview(result.row))
+        if st.button(
+            f"Use suggestion {index}: {label[:110]}",
+            key=f"{_GRID_SUGGESTION_KEY}_{group.row_id}_{group.query}_{result.row.library_id}",
+            use_container_width=True,
+        ):
+            return fetch_library_line_into_row_preserving_context(state, result.row, group.row_id)
+    return None
 
-    st.caption(_compact_library_preview(selected_result.row))
-    if not st.button(f"Fetch selected line into row {group.row_id}", type="primary", use_container_width=True):
-        return None
-    return fetch_library_line_into_row_preserving_context(state, selected_result.row, group.row_id)
+
+def _render_library_diagnostics(
+    read_result: LocalLibraryReadResult,
+    groups: tuple[TravelElementSuggestionGroup, ...],
+    typed_rows: tuple[CalculatorRow, ...],
+) -> None:
+    fetchable_count = sum(1 for row in read_result.rows if row.is_available_for_fetch)
+    if groups:
+        active = groups[0]
+        st.caption(
+            f"Local Library: {_library_read_status(read_result)} "
+            f"Active row {active.row_id}, query `{active.query}`, {len(active.results)} matches."
+        )
+        return
+    if typed_rows:
+        query = typed_rows[0].travel_element.strip()
+        st.caption(
+            f"Local Library: {_library_read_status(read_result)} "
+            f"Active query `{query}`, 0 matches from {fetchable_count} fetchable lines."
+        )
+        return
+    st.caption(f"Local Library: {_library_read_status(read_result)}")
+
+
+def _typed_travel_element_rows(state: CalculatorState) -> tuple[CalculatorRow, ...]:
+    return tuple(row for row in state.rows if len(row.travel_element.strip()) >= 2)
 
 
 def _render_row_actions(state: CalculatorState) -> str | None:
@@ -232,23 +265,9 @@ def _render_backup_controls(state: CalculatorState) -> None:
 def _library_read_status(read_result: LocalLibraryReadResult) -> str:
     fetchable_count = sum(1 for row in read_result.rows if row.is_available_for_fetch)
     if read_result.source == "google_sheets" and not read_result.read_only:
-        return f"Local Library: Google Sheets connected ({fetchable_count} fetchable lines)."
+        return f"Google Sheets connected ({fetchable_count} fetchable lines)."
     message = read_result.message or "Using bundled read-only Local Library fixture."
-    return f"Local Library: {message} ({fetchable_count} fallback lines)."
-
-
-def _selected_library_result(
-    results: tuple[LocalLibrarySearchResult, ...],
-    library_id: str,
-) -> LocalLibrarySearchResult | None:
-    return next((result for result in results if result.row.library_id == library_id), None)
-
-
-def _library_option_label(results: tuple[LocalLibrarySearchResult, ...], library_id: str) -> str:
-    selected_result = _selected_library_result(results, str(library_id))
-    if selected_result is None:
-        return str(library_id)
-    return library_result_label(selected_result.row)
+    return f"{message} ({fetchable_count} fallback lines)."
 
 
 def _compact_library_preview(row: LocalLibraryRow) -> str:

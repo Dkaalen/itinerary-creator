@@ -111,6 +111,42 @@ def test_calculator_table_treats_text_none_as_blank_sales_override() -> None:
     assert rows[0].sales_price_per_unit is None
 
 
+def test_calculator_table_displays_supplier_commission_as_percent() -> None:
+    table_data = rows_to_table_data(
+        (CalculatorRow(row_id="1", travel_element="Hotel", supplier_commission=0.15),),
+        show_advanced=False,
+    )
+
+    assert table_data[0]["supplier_commission"] == 15
+
+
+def test_calculator_table_converts_supplier_commission_percent_to_decimal() -> None:
+    rows = table_data_to_rows(
+        (
+            {
+                "row_id": "1",
+                "travel_element": "Hotel",
+                "gross_price_per_unit": "200",
+                "units": "1",
+                "supplier_commission": "15",
+            },
+        ),
+        (),
+    )
+
+    assert rows[0].supplier_commission == 0.15
+
+
+def test_calculator_table_detects_grid_user_edit_changes() -> None:
+    from app_modules.calculator_grid_data import rows_have_user_edit_changes
+
+    current = (CalculatorRow(row_id="1", travel_element="Hotel"),)
+    edited = (CalculatorRow(row_id="1", travel_element="Hotel", gross_price_per_unit=200),)
+
+    assert rows_have_user_edit_changes(edited, current) is True
+    assert rows_have_user_edit_changes(current, current) is False
+
+
 def test_calculator_download_action_returns_xlsx_payload() -> None:
     state = CalculatorState(
         itinerary_name="Tromsø Northern Lights 2026",
@@ -150,4 +186,12 @@ def test_calculator_page_uses_grid_travel_element_suggestions_not_separate_searc
     assert "Start typing a travel element" not in source
     assert "Travel element autocomplete" not in source
     assert "Type directly in the Travel element cells" in source
-    assert "Local Library suggestions for row" in source
+    assert "Suggestions for row" in source
+    assert "Recalculate / save edits" in source
+
+
+def test_calculator_grid_config_labels_supplier_commission_as_percent() -> None:
+    source = Path("app_modules/calculator_grid_config.py").read_text(encoding="utf-8")
+
+    assert "Supp Comm %" in source
+    assert "%.2f%%" in source

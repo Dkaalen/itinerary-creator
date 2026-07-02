@@ -26,6 +26,7 @@ _BOOLEAN_FIELDS = {"manual_booking", "non_refundable", "refundable"}
 _OPTIONAL_NUMERIC_FIELDS = {"sales_price_per_unit"}
 _BLANK_NUMERIC_MARKERS = {"", "none", "nan", "null"}
 _DEFAULT_ONLY_TEXT_FIELDS = {"row_id", "supplier_currency", "sales_currency"}
+_PERCENT_UI_FIELDS = {"supplier_commission"}
 
 
 def rows_to_table_data(rows: Iterable[CalculatorRow], *, show_advanced: bool) -> list[dict[str, Any]]:
@@ -57,6 +58,15 @@ def table_data_to_rows(
     return tuple(rows)
 
 
+def rows_have_user_edit_changes(
+    edited_rows: tuple[CalculatorRow, ...],
+    current_rows: tuple[CalculatorRow, ...],
+) -> bool:
+    """Return whether edited grid rows changed user-editable calculator data."""
+
+    return edited_rows != current_rows
+
+
 def visible_grid_fields(show_advanced: bool) -> tuple[str, ...]:
     """Return visible calculator grid fields in UI order."""
 
@@ -79,6 +89,9 @@ def _row_to_table_data(row: CalculatorRow, visible_fields: Iterable[str]) -> dic
         if row_is_blank and field_name in _NUMERIC_FIELDS:
             data[field_name] = None
             continue
+        if field_name in _PERCENT_UI_FIELDS:
+            data[field_name] = _decimal_to_percent(value)
+            continue
         data[field_name] = value
     return data
 
@@ -88,6 +101,8 @@ def _field_value(field_name: str, value: Any) -> Any:
         return _bool_value(value)
     if field_name in _OPTIONAL_NUMERIC_FIELDS:
         return _optional_number_value(value)
+    if field_name in _PERCENT_UI_FIELDS:
+        return _percent_to_decimal(value)
     if field_name in _NUMERIC_FIELDS:
         return _number_value(value)
     return _text_value(value)
@@ -105,11 +120,11 @@ def _text_value(value: Any) -> str:
 def _number_value(value: Any) -> float:
     if value is None:
         return 0.0
-    text = str(value).strip()
+    text = str(value).strip().replace("%", "")
     if text.casefold() in _BLANK_NUMERIC_MARKERS:
         return 0.0
     try:
-        return float(value)
+        return float(text)
     except (TypeError, ValueError):
         return 0.0
 
@@ -121,6 +136,21 @@ def _optional_number_value(value: Any) -> float | None:
     if text.casefold() in _BLANK_NUMERIC_MARKERS:
         return None
     return _number_value(value)
+
+
+def _percent_to_decimal(value: Any) -> float:
+    """Convert UI percentage input to the decimal value used by formulas."""
+
+    number = _number_value(value)
+    if number == 0:
+        return 0.0
+    return number / 100
+
+
+def _decimal_to_percent(value: Any) -> float:
+    """Convert formula decimal percentage to the visible grid percentage."""
+
+    return _number_value(value) * 100
 
 
 def _bool_value(value: Any) -> bool:

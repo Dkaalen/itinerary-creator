@@ -20,7 +20,7 @@ def calculator_column_config(show_advanced: bool) -> dict[str, Any]:
         "url": st.column_config.LinkColumn("URL"),
         "gross_price_per_unit": st.column_config.NumberColumn("Gross P per unit", format="%.2f"),
         "units": st.column_config.NumberColumn("Units", format="%.2f"),
-        "supplier_commission": st.column_config.NumberColumn("Supp Comm", format="%.4f"),
+        "supplier_commission": st.column_config.NumberColumn("Supp Comm %", format="%.2f%%", min_value=0.0, max_value=100.0),
         "supplier_currency": st.column_config.TextColumn("Supp curr"),
         "sales_price_per_unit": st.column_config.NumberColumn("Sales P per unit", format="%.2f"),
         "sales_currency": st.column_config.TextColumn("Sales curr"),
