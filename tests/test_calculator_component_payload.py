@@ -34,8 +34,25 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
 
     assert payload["itinerary_name"] == "Trip"
     assert payload["show_advanced"] is True
+    assert isinstance(payload["state_revision"], str)
+    assert len(payload["state_revision"]) == 16
     assert payload["rows"][0]["travel_element"] == "hotel"
     assert payload["rows"][0]["gross_price"] == 200
     assert payload["library_status"] == "Google Sheets connected (1 fetchable lines)."
+    assert payload["library_source"] == "google_sheets"
+    assert payload["library_read_only"] is False
     assert payload["library_rows"][0]["label"].startswith("NO · Hotel · Supplier")
     assert payload["library_rows"][0]["row_data"]["supplier_commission"] == 0
+
+
+def test_calculator_component_payload_revision_changes_when_rows_change() -> None:
+    library_read = LocalLibraryReadResult(rows=(), source="fixture", read_only=True)
+    first = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="hotel"),))
+    second = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="museum"),))
+
+    first_payload = build_calculator_grid_payload(first, library_read)
+    repeat_payload = build_calculator_grid_payload(first, library_read)
+    second_payload = build_calculator_grid_payload(second, library_read)
+
+    assert first_payload["state_revision"] == repeat_payload["state_revision"]
+    assert first_payload["state_revision"] != second_payload["state_revision"]

@@ -18,5 +18,15 @@ CHANGED_FILES_MANIFEST.md
 DELETION_MANIFEST.md
 _patch_metadata/
 
-# Local Streamlit secrets
+# Local credentials/secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
 .streamlit/secrets.toml
+credentials.json
+service-account.json
+service_account.json
+gcp-service-account.json
+google-service-account.json

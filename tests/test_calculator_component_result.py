@@ -10,6 +10,7 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
         {
             "action": "download",
             "show_advanced": True,
+            "client_state_revision": "abc123",
             "rows": [
                 {
                     "row_id": "1",
@@ -32,6 +33,7 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
     assert result.action == "download"
     assert result.show_advanced is True
     assert result.state.itinerary_name == "Trip"
+    assert result.client_state_revision == "abc123"
     assert result.state.rows[0].travel_element == "Oslo hotel"
     assert result.state.rows[0].supplier_commission == 0.15
 

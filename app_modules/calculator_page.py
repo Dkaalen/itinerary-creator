@@ -11,6 +11,10 @@ from app_modules.calculator_component_result import CalculatorGridResult, parse_
 from app_modules.calculator_download_action import render_calculation_download_button
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_library_cache import read_cached_local_library
+from app_modules.calculator_library_controls import (
+    render_local_library_refresh_control,
+    render_local_library_status,
+)
 from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, close_calculator_page
 from app_modules.validation_gate import block_generation, render_blocking_issues
 from app_modules.workflow_config import CALCULATOR_COPY
@@ -25,10 +29,12 @@ def render_calculator_page(app_version: str) -> None:
     """Render the standalone calculator page."""
 
     state = _calculator_state_from_session()
-    library_read = read_cached_local_library(st.session_state)
     _render_app_header(app_version, stage="input")
     _stage_panel(CALCULATOR_COPY["panel_title"], CALCULATOR_COPY["panel_text"])
     _render_top_actions()
+    refresh_library = render_local_library_refresh_control()
+    library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
+    render_local_library_status(library_read, refreshed=refresh_library)
 
     itinerary_name = st.text_input(
         "Itinerary name",

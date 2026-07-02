@@ -52,6 +52,15 @@ def test_gitignore_blocks_patch_artifact_noise():
         "CHANGED_FILES_MANIFEST.md",
         "DELETION_MANIFEST.md",
         "_patch_metadata/",
+        ".streamlit/secrets.toml",
+        ".env",
+        ".env.*",
+        "!.env.example",
+        "credentials.json",
+        "service-account.json",
+        "service_account.json",
+        "gcp-service-account.json",
+        "google-service-account.json",
     ):
         assert pattern in gitignore
 
@@ -75,6 +84,14 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
         tmp_path / "CHANGED_FILES_MANIFEST.md",
         tmp_path / "DELETION_MANIFEST.md",
         tmp_path / "_patch_metadata" / "manifest.json",
+        tmp_path / ".streamlit" / "secrets.toml",
+        tmp_path / ".env",
+        tmp_path / ".env.local",
+        tmp_path / "credentials.json",
+        tmp_path / "service-account.json",
+        tmp_path / "service_account.json",
+        tmp_path / "gcp-service-account.json",
+        tmp_path / "google-service-account.json",
     ]
     for path in noise_files:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -90,6 +107,13 @@ def test_artifact_hygiene_filters_generated_noise(tmp_path):
     assert is_artifact_noise_path("CHANGED_FILES_MANIFEST.md")
     assert is_artifact_noise_path("DELETION_MANIFEST.md")
     assert is_artifact_noise_path("_patch_metadata/manifest.json")
+    assert is_artifact_noise_path(".streamlit/secrets.toml")
+    assert is_artifact_noise_path(".env")
+    assert is_artifact_noise_path(".env.local")
+    assert is_artifact_noise_path("credentials.json")
+    assert is_artifact_noise_path("service-account.json")
+    assert not is_artifact_noise_path(".streamlit/secrets.example.toml")
+    assert not is_artifact_noise_path(".env.example")
     assert not is_artifact_noise_path("itinerary_generation/transport.py")
 
     assert list(iter_clean_artifact_files(tmp_path)) == [keep]
@@ -126,6 +150,36 @@ def test_clean_zip_builder_excludes_local_artifacts(tmp_path):
     assert file_count == 1
     with zipfile.ZipFile(output) as archive:
         assert archive.namelist() == ["app_modules/main_view.py"]
+
+
+def test_clean_zip_builder_keeps_secret_examples_but_excludes_real_secrets(tmp_path):
+    from scripts.build_clean_zip import build_clean_zip
+
+    root = tmp_path / "itinerary-creator-git"
+    example = root / ".streamlit" / "secrets.example.toml"
+    real_secret = root / ".streamlit" / "secrets.toml"
+    env_example = root / ".env.example"
+    env_secret = root / ".env.local"
+    service_account = root / "service-account.json"
+
+    example.parent.mkdir(parents=True)
+    example.write_text("[local_library]\nspreadsheet_id = \"example\"\n", encoding="utf-8")
+    real_secret.write_text(
+        "[gcp_service_account]\nprivate_key = \"-----BEGIN PRIVATE KEY-----\\nsecret\\n-----END PRIVATE KEY-----\\n\"\n",
+        encoding="utf-8",
+    )
+    env_example.write_text("PUBLIC_EXAMPLE=1\n", encoding="utf-8")
+    env_secret.write_text("TOKEN=secret\n", encoding="utf-8")
+    service_account.write_text('{"private_key": "secret"}\n', encoding="utf-8")
+
+    output, file_count = build_clean_zip(root, tmp_path / "clean.zip")
+
+    assert file_count == 2
+    with zipfile.ZipFile(output) as archive:
+        assert archive.namelist() == [".env.example", ".streamlit/secrets.example.toml"]
+        combined = "\n".join(archive.read(name).decode("utf-8") for name in archive.namelist())
+        assert "-----BEGIN PRIVATE KEY-----" not in combined
+        assert "TOKEN=secret" not in combined
 
 
 def test_bundled_default_images_are_right_sized_for_pdf_and_screen_use():

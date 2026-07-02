@@ -39,3 +39,29 @@ function renderComponentBootMessage(message) {
 }
 
 window.addEventListener('resize', () => requestAnimationFrame(setCalculatorFrameHeight));
+
+
+function renderCalculatorFrontendError(error) {
+  const root = document.getElementById('root');
+  const message = error && error.message ? error.message : error;
+  const stack = error && error.stack ? error.stack : '';
+  const details = stack || message || 'Unknown frontend error';
+  if (!root) return;
+  root.innerHTML = `
+    <div class="calculator-grid-shell">
+      <div class="component-error">
+        <strong>Calculator grid frontend error.</strong><br>
+        ${escapeCalculatorErrorHtml(details)}
+      </div>
+    </div>`;
+  requestAnimationFrame(setCalculatorFrameHeight);
+}
+
+function escapeCalculatorErrorHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#039;');
+}

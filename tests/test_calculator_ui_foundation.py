@@ -189,8 +189,30 @@ def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> N
     assert "browser-side mini spreadsheet" in source
 
 
-def test_calculator_grid_config_labels_supplier_commission_as_percent() -> None:
-    source = Path("app_modules/calculator_grid_config.py").read_text(encoding="utf-8")
+def test_calculator_component_column_model_labels_supplier_commission_as_percent() -> None:
+    source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
 
+    assert "app_modules/calculator_grid_config.py" not in source
+    assert "supplier_commission" in source
     assert "Supp Comm %" in source
-    assert "%.2f%%" in source
+    assert "kind: 'percent'" in source
+
+
+def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:
+    assert not Path("app_modules/calculator_grid_config.py").exists()
+
+
+def test_calculator_page_exposes_local_library_refresh_controls() -> None:
+    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+
+    assert "render_local_library_refresh_control" in source
+    assert "force_refresh=refresh_library" in source
+    assert "render_local_library_status" in source
+
+
+def test_local_library_controls_keep_refresh_separate_from_cache_logic() -> None:
+    source = Path("app_modules/calculator_library_controls.py").read_text(encoding="utf-8")
+
+    assert "Refresh Local Library" in source
+    assert "read_cached_local_library" not in source
+    assert "summarize_local_library_read" in source

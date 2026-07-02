@@ -32,9 +32,16 @@ ARTIFACT_EXCLUDED_FILENAMES = frozenset({
     "CHANGED_FILES_MANIFEST.md",
     "DELETION_MANIFEST.md",
     ".DS_Store",
+    "credentials.json",
+    "gcp-service-account.json",
+    "google-service-account.json",
+    "secrets.toml",
+    "service-account.json",
+    "service_account.json",
 })
 
 ARTIFACT_EXCLUDED_SUFFIXES = (".pyc", ".pyo", ".zip", ".tmp", ".bak")
+ENV_EXAMPLE_FILENAMES = frozenset({".env.example", ".env.sample", ".env.template"})
 EMPTY_LEGACY_DIRS = (
     Path("visual_editor_component/app_modules"),
     Path("visual_editor_component/ui"),
@@ -50,7 +57,16 @@ def is_artifact_noise_path(path: str | Path) -> bool:
         return True
     if candidate.name in ARTIFACT_EXCLUDED_FILENAMES:
         return True
+    if _is_local_env_file(candidate):
+        return True
     return candidate.name.endswith(ARTIFACT_EXCLUDED_SUFFIXES)
+
+
+def _is_local_env_file(path: Path) -> bool:
+    """Return True for local dotenv files while preserving shareable examples."""
+
+    name = path.name
+    return name.startswith(".env") and name not in ENV_EXAMPLE_FILENAMES
 
 
 def iter_clean_artifact_files(root: str | Path) -> Iterator[Path]:

@@ -1,7 +1,15 @@
 let calculatorState = null;
 let activeCell = null;
+let activeBackendRevision = null;
+let hasLocalDraft = false;
 
 function initializeState(payload) {
+  const incomingRevision = String(payload.state_revision || '');
+  if (shouldKeepBrowserDraft(incomingRevision)) {
+    mergeBackendPayloadWithoutRows(payload, incomingRevision);
+    return;
+  }
+
   const rows = calculateRows(cloneRows(payload.rows || []), payload.currency_rates || DEFAULT_RATES);
   calculatorState = {
     rows: rows.length ? rows : addRows([], 25),
@@ -12,6 +20,24 @@ function initializeState(payload) {
     selectedRowIndex: 0,
     activeSuggestion: null
   };
+  activeBackendRevision = incomingRevision;
+  hasLocalDraft = false;
+}
+
+function shouldKeepBrowserDraft(incomingRevision) {
+  return Boolean(calculatorState && hasLocalDraft && incomingRevision && incomingRevision === activeBackendRevision);
+}
+
+function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
+  calculatorState.libraryRows = payload.library_rows || calculatorState.libraryRows || [];
+  calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
+  calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
+  activeBackendRevision = incomingRevision;
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+}
+
+function markLocalDraft() {
+  hasLocalDraft = true;
 }
 
 function rerender() {
@@ -24,20 +50,24 @@ function bindEvents() {
   document.querySelectorAll('[data-action="add"]').forEach((button) => {
     button.addEventListener('click', () => {
       calculatorState.rows = calculateRows(addRows(calculatorState.rows, Number(button.dataset.count || 1)), calculatorState.currencyRates);
+      markLocalDraft();
       rerender();
     });
   });
   document.querySelector('[data-action="duplicate"]')?.addEventListener('click', () => {
     calculatorState.rows = calculateRows(duplicateRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
+    markLocalDraft();
     rerender();
   });
   document.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
     calculatorState.rows = calculateRows(deleteRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
     calculatorState.selectedRowIndex = Math.min(calculatorState.selectedRowIndex, calculatorState.rows.length - 1);
+    markLocalDraft();
     rerender();
   });
   document.querySelector('[data-action="toggle-advanced"]')?.addEventListener('change', (event) => {
     calculatorState.showAdvanced = Boolean(event.target.checked);
+    markLocalDraft();
     rerender();
   });
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
@@ -84,6 +114,7 @@ function handleCellInput(event) {
   const rowIndex = Number(cell.dataset.rowIndex || 0);
   const key = cell.dataset.key;
   updateRowValue(rowIndex, key, cell.textContent || '');
+  markLocalDraft();
   refreshFormulaCells(rowIndex);
   refreshTotalsOnly();
   if (key === 'travel_element') {
@@ -116,6 +147,7 @@ function handleCheckboxChange(event) {
   const rowIndex = Number(checkbox.dataset.rowIndex || 0);
   const key = checkbox.dataset.key;
   updateRowValue(rowIndex, key, Boolean(checkbox.checked));
+  markLocalDraft();
 }
 
 function columnKind(key) {
@@ -153,6 +185,7 @@ function applySuggestion(index) {
   const row = calculatorState.rows[active.rowIndex];
   calculatorState.rows[active.rowIndex] = calculateRow(applyLibrarySuggestion(row, active.results[index].item), calculatorState.currencyRates);
   calculatorState.activeSuggestion = null;
+  markLocalDraft();
   rerender();
 }
 
@@ -198,10 +231,12 @@ function renderSuggestionPanelOnly() {
 
 function submitAction(action) {
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  const rows = normalizeRowsForPython(calculatorState.rows);
   Streamlit.setComponentValue(JSON.stringify({
     action,
-    rows: normalizeRowsForPython(calculatorState.rows),
-    show_advanced: calculatorState.showAdvanced
+    rows,
+    show_advanced: calculatorState.showAdvanced,
+    client_state_revision: activeBackendRevision
   }));
 }
 

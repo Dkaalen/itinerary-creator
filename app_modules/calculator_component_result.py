@@ -17,6 +17,7 @@ class CalculatorGridResult:
     action: str
     state: CalculatorState
     show_advanced: bool = False
+    client_state_revision: str = ""
 
 
 _VALID_ACTIONS = {"download", "generate_agent", "generate_customer", "sync"}
@@ -38,6 +39,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         action=action,
         state=CalculatorState(itinerary_name=itinerary_name, rows=rows),
         show_advanced=bool(data.get("show_advanced")),
+        client_state_revision=str(data.get("client_state_revision") or ""),
     )
 
 
