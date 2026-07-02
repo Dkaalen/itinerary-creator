@@ -41,3 +41,13 @@ This keeps uploads much smaller while preserving the project files needed for in
 ## Quality principles
 
 The app should not render raw supplier/admin text directly into client-facing PDFs. Titles, descriptions, inclusions, exclusions, and route labels should pass through the parser, normalizer, content rules, sanitizers, and quality gates before rendering.
+
+## Local Library Google Sheets
+
+The calculator Local Library uses Google Sheets when Streamlit secrets are configured. Copy `.streamlit/secrets.example.toml` to `.streamlit/secrets.toml` locally, add the service account values, and share the spreadsheet with the service account email.
+
+If secrets are missing, the app uses the bundled read-only fixture instead of crashing.
+
+## Calculator backup
+
+The calculator page can export a JSON backup and reopen it later. This is separate from the Excel calculation export and is meant for restoring editable calculator rows before generating the itinerary.

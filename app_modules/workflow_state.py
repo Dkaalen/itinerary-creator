@@ -45,6 +45,10 @@ DEFAULT_WORKFLOW_SESSION_STATE: dict[str, Any] = {
     "tone_preset": DEFAULT_TONE_PRESET,
     "itinerary_validation_report": None,
     "app_stage": "input",
+    "active_app_page": "workflow",
+    "calculator_state": None,
+    "calculator_show_advanced": False,
+    "calculator_grid_revision": 0,
 }
 
 RESET_PROJECT_KEYS = (
@@ -75,6 +79,13 @@ RESET_PROJECT_KEYS = (
     "itinerary_name",
     "itinerary_name_input",
     "app_stage",
+    "active_app_page",
+    "calculator_state",
+    "calculator_show_advanced",
+    "calculator_itinerary_name_input",
+    "calculator_selected_row_id",
+    "calculator_grid_revision",
+    "calculator_backup_upload",
     "image_bank_status",
     "image_bank_gateway",
     "image_bank_prefetch_started",

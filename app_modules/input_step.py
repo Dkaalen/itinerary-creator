@@ -3,6 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.app_header import _render_app_header, _stage_panel
+from app_modules.calculator_navigation import render_calculator_entry_button
 from app_modules.debug_mode import is_debug_mode
 from app_modules.itinerary_name_state import sync_itinerary_name_from_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
@@ -58,6 +59,7 @@ def render_input_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
 
+    render_calculator_entry_button()
     render_open_project_file_action()
     render_itinerary_name_input()
     settings_col_a, settings_col_b = st.columns(2)
