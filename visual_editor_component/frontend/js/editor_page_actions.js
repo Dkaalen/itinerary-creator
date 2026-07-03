@@ -133,7 +133,8 @@ function pageChrome(pageId, label, bodyHtml, options = {}) {
   const page = ensureDocumentPage(pageId, options.pageType || 'generated', label, options.sortOrder || 999, options.extras || {});
   const isHidden = !!page.is_hidden;
   const canDuplicate = page.page_type === 'manual';
-  const moveControls = !isHidden ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}" title="Move page up">↑</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}" title="Move page down">↓</button>` : '';
+  const canMove = typeof documentPageCanMove === 'function' ? documentPageCanMove(page) : !isHidden;
+  const moveControls = canMove ? `<button class="ghost" type="button" data-doc-page-action="move-up" data-page-id-ref="${escAttr(pageId)}" title="Move page up">↑</button><button class="ghost" type="button" data-doc-page-action="move-down" data-page-id-ref="${escAttr(pageId)}" title="Move page down">↓</button>` : '';
   const duplicateControl = canDuplicate && !isHidden ? `<button class="ghost" type="button" data-doc-page-action="duplicate" data-page-id-ref="${escAttr(pageId)}" title="Duplicate manual page">Copy</button>` : '';
   const controls = `<div class="page-controls" aria-label="Page actions"><button class="ghost" type="button" data-doc-page-action="add-after" data-page-id-ref="${escAttr(pageId)}" title="Add blank page after this page">Add page</button>${moveControls}${isHidden ? `<button class="ghost" type="button" data-doc-page-action="restore" data-page-id-ref="${escAttr(pageId)}">Restore</button>` : `<button class="danger" type="button" data-doc-page-action="hide" data-page-id-ref="${escAttr(pageId)}" title="Hide this page from the itinerary">Delete</button>`}${duplicateControl}</div>`;
   if (isHidden) return '';

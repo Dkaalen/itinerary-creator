@@ -37,15 +37,19 @@ def _manual_blocks(existing: Mapping[str, Any]) -> tuple[EditorBlockContract, ..
 def _merge_page_overrides(page: EditorPageContract, existing: Mapping[str, Any] | None) -> EditorPageContract:
     if not isinstance(existing, Mapping):
         return page
+    page_actions = _as_dict(existing.get("page_actions")) or page.page_actions
+    if page.page_type == "generated_day":
+        page_actions = {**page_actions, "move": False, "duplicate": False}
     return EditorPageContract(
         page_id=page.page_id, page_type=page.page_type, title=str(existing.get("title") or page.title),
         source_day_id=page.source_day_id, source_section_id=page.source_section_id, source_row_ids=page.source_row_ids,
-        is_hidden=bool(existing.get("is_hidden", page.is_hidden)), sort_order=int(existing.get("sort_order", page.sort_order) or 0),
+        is_hidden=bool(existing.get("is_hidden", page.is_hidden)),
+        sort_order=page.sort_order if page.page_type == "generated_day" else int(existing.get("sort_order", page.sort_order) or 0),
         editable_fields=_as_dict(existing.get("editable_fields")) or page.editable_fields, generated_blocks=page.generated_blocks,
         manual_blocks=_manual_blocks(existing) or page.manual_blocks,
         style_overrides=_as_dict(existing.get("style_overrides")) or page.style_overrides,
         page_overrides=_as_dict(existing.get("page_overrides")) or page.page_overrides,
-        page_actions=_as_dict(existing.get("page_actions")) or page.page_actions,
+        page_actions=page_actions,
         validation_status=str(existing.get("validation_status") or page.validation_status),
     )
 
@@ -76,7 +80,7 @@ def _day_page(day: Mapping[str, Any], rows: Sequence[Mapping[str, Any]] | None, 
     return EditorPageContract(
         page_id=page_id, page_type="generated_day", title=title, source_day_id=day_id, source_row_ids=source_ids,
         sort_order=order, editable_fields={"title": title, "source_day_id": day_id}, generated_blocks=_day_blocks(page_id, day, source_ids),
-        page_actions={"hide": True, "restore": True, "move": True, "duplicate": False, "reset": True},
+        page_actions={"hide": True, "restore": True, "move": False, "duplicate": False, "reset": True},
     )
 
 

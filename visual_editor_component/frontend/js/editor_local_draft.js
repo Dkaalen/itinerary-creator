@@ -136,6 +136,81 @@ function mergeEditorDraftForLocalDraft(merged, localDraft, isSnapshot) {
   }
 }
 
+
+function localDraftDayIdentity(day, index) {
+  const identity = String(day?.day || day?.day_id || day?.label || '').trim();
+  return identity || `Day ${index + 1}`;
+}
+
+function localDraftEditorSlug(value) {
+  if (typeof editorSlug === 'function') return editorSlug(value);
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'page';
+}
+
+function localDraftDayPageId(day, index) {
+  if (typeof canonicalPageIdForDay === 'function') return canonicalPageIdForDay(day || {}, index);
+  return `day-${localDraftEditorSlug(localDraftDayIdentity(day || {}, index))}`;
+}
+
+function cloneLocalDraftValue(value) {
+  return JSON.parse(JSON.stringify(value || {}));
+}
+
+function pageMatchesLocalDraftDay(page, dayIdentity, pageId) {
+  if (!page || page.page_type !== 'generated_day') return false;
+  if (String(page?.page_id || '') === pageId) return true;
+  return String(page?.source_day_id || '').trim() === dayIdentity;
+}
+
+function generatedDayPageForLocalDraft(serverPages, localPages, day, index) {
+  const dayIdentity = localDraftDayIdentity(day || {}, index);
+  const pageId = localDraftDayPageId(day || {}, index);
+  const serverPage = (serverPages || []).find(page => pageMatchesLocalDraftDay(page, dayIdentity, pageId)) || {};
+  const localPage = (localPages || []).find(page => pageMatchesLocalDraftDay(page, dayIdentity, pageId)) || {};
+  const page = Object.assign({}, cloneLocalDraftValue(serverPage));
+  ['is_hidden', 'style_overrides', 'page_overrides', 'validation_status'].forEach(key => {
+    if (Object.prototype.hasOwnProperty.call(localPage, key)) page[key] = cloneLocalDraftValue(localPage[key]);
+  });
+  page.page_id = pageId;
+  page.page_type = 'generated_day';
+  page.title = String(serverPage.title || localPage.title || day?.title || dayIdentity);
+  page.source_day_id = dayIdentity;
+  page.sort_order = index + 3;
+  page.page_actions = Object.assign(
+    {hide: true, restore: true, move: false, duplicate: false, reset: true},
+    page.page_actions || {},
+    {move: false, duplicate: false}
+  );
+  return page;
+}
+
+function normaliseDocumentPagesForLocalDraftMerge(mergedPayload, localDocumentPages) {
+  const serverPages = Array.isArray(mergedPayload?.document_pages) ? mergedPayload.document_pages : [];
+  const localPages = Array.isArray(localDocumentPages) ? localDocumentPages : [];
+  if (!serverPages.length && !localPages.length) return [];
+
+  const byId = new Map();
+  serverPages.forEach(page => {
+    const pageId = String(page?.page_id || '').trim();
+    if (pageId) byId.set(pageId, cloneLocalDraftValue(page));
+  });
+  localPages.forEach(page => {
+    const pageId = String(page?.page_id || '').trim();
+    if (!pageId || page?.page_type === 'generated_day') return;
+    byId.set(pageId, Object.assign({}, byId.get(pageId) || {}, cloneLocalDraftValue(page)));
+  });
+
+  (Array.isArray(mergedPayload?.days) ? mergedPayload.days : []).forEach((day, index) => {
+    const page = generatedDayPageForLocalDraft(serverPages, localPages, day || {}, index);
+    byId.set(page.page_id, page);
+  });
+
+  return Array.from(byId.values()).sort((a, b) => Number(a?.sort_order || 0) - Number(b?.sort_order || 0));
+}
+
 function mergeLocalDraftOntoServerPayload(localDraft) {
   const merged = JSON.parse(JSON.stringify(initialPayload || {}));
   const saveMode = String(localDraft?.save_mode || '').trim();
@@ -178,9 +253,11 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
   });
   mergeFinalPagesForLocalDraft(merged, localDraft, isSnapshot);
   if (Array.isArray(localDraft.document_pages)) {
-    merged.document_pages = JSON.parse(JSON.stringify(localDraft.document_pages));
+    merged.document_pages = normaliseDocumentPagesForLocalDraftMerge(merged, localDraft.document_pages);
   } else if (isSnapshot && Array.isArray(localDraft.editor_draft?.document_pages)) {
-    merged.document_pages = JSON.parse(JSON.stringify(localDraft.editor_draft.document_pages));
+    merged.document_pages = normaliseDocumentPagesForLocalDraftMerge(merged, localDraft.editor_draft.document_pages);
+  } else if (Array.isArray(merged.document_pages)) {
+    merged.document_pages = normaliseDocumentPagesForLocalDraftMerge(merged, []);
   }
   mergeEditorDraftForLocalDraft(merged, localDraft, isSnapshot);
   if (Array.isArray(localDraft.issue_flags)) merged.issue_flags = JSON.parse(JSON.stringify(localDraft.issue_flags));

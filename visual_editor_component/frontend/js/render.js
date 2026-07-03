@@ -98,8 +98,10 @@ function draw() {
     if (html) addPageHtml(page.page_id, html);
   });
   const renderedPageIds = new Set();
-  sortedDocumentPages().forEach(page => {
-    const pageId = String(page?.page_id || '');
+  const renderOrder = typeof safeDocumentPageRenderOrder === 'function'
+    ? safeDocumentPageRenderOrder(pageHtmlById)
+    : sortedDocumentPages().map(page => String(page?.page_id || ''));
+  renderOrder.forEach(pageId => {
     if (pageHtmlById[pageId]) {
       h += pageHtmlById[pageId];
       renderedPageIds.add(pageId);

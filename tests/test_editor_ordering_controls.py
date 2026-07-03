@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from itinerary_generation.editor_page_contract import build_editor_document_pages
@@ -35,7 +36,7 @@ def test_manual_blocks_expose_drag_style_ordering_controls():
     assert "drag-over" in source
 
 
-def test_generated_pages_are_marked_as_movable_in_page_contract():
+def test_generated_pages_keep_canonical_order_and_are_not_movable_in_page_contract():
     pages = build_editor_document_pages(
         payload={
             "cover": {"trip_title": "Nordic Trip"},
@@ -49,7 +50,7 @@ def test_generated_pages_are_marked_as_movable_in_page_contract():
     movable = {page["page_id"]: page["page_actions"].get("move") for page in pages}
     assert movable["cover"] is True
     assert movable["summary"] is True
-    assert movable["day-day-1"] is True
+    assert movable["day-day-1"] is False
     assert movable["final-important-travel-notes"] is True
 
 
@@ -70,3 +71,43 @@ def test_render_document_uses_canonical_generated_page_order_for_pdf_export():
     context = build_itinerary_render_context(rows, {"Day 1": [rows[0]], "Day 2": [rows[1]]}, {"editor_draft": editor_draft})
 
     assert context.render_document.page_order[:4] == ["cover", "summary", "day-day-1", "day-day-2"]
+
+
+def test_visual_editor_uses_canonical_day_order_after_picture_stage_scatter():
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+
+const days = Array.from({length: 10}, (_, index) => ({day: `Day ${index + 1}`, title: `Title ${index + 1}`}));
+const scattered = ['day-day-1', 'day-day-2', 'day-day-4', 'day-day-5', 'day-day-3', 'day-day-6', 'day-day-7', 'day-day-9', 'day-day-8', 'day-day-10'];
+const context = {
+  console,
+  model: {
+    days,
+    document_pages: [
+      {page_id: 'cover', page_type: 'cover', title: 'Cover', sort_order: 1, is_hidden: false},
+      {page_id: 'summary', page_type: 'summary', title: 'Summary', sort_order: 2, is_hidden: false},
+      ...scattered.map((page_id, index) => ({page_id, page_type: 'generated_day', title: `Day ${index + 1}`, source_day_id: page_id.replace('day-day-', 'Day '), sort_order: index + 3, is_hidden: false, page_actions: {move: true}})),
+      {page_id: 'final-important-travel-notes', page_type: 'final_section', title: 'Notes', sort_order: 13, is_hidden: false},
+    ],
+  },
+};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/editor_html_utils.js', 'utf8'), context);
+vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/editor_pages_model.js', 'utf8'), context);
+
+const pageHtmlById = {cover: '<p>cover</p>', summary: '<p>summary</p>', 'final-important-travel-notes': '<p>notes</p>'};
+for (let index = 1; index <= 10; index += 1) pageHtmlById[`day-day-${index}`] = `<p>Day ${index}</p>`;
+
+assert.deepEqual(
+  days.map((day, index) => context.pageIdForDay(day, index)),
+  Array.from({length: 10}, (_, index) => `day-day-${index + 1}`),
+);
+assert.deepEqual(
+  context.safeDocumentPageRenderOrder(pageHtmlById).slice(0, 12),
+  ['cover', 'summary', 'day-day-1', 'day-day-2', 'day-day-3', 'day-day-4', 'day-day-5', 'day-day-6', 'day-day-7', 'day-day-8', 'day-day-9', 'day-day-10'],
+);
+assert.equal(context.documentPageCanMove(context.documentPageById('day-day-3')), false);
+"""
+    subprocess.run(["node", "-e", script], cwd=Path.cwd(), check=True)

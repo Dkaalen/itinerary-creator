@@ -131,3 +131,80 @@ assert.equal(merged.editor_draft.days.length, 3);
 assert.equal(merged.editor_draft.final_sections.find(section => section.section_id === 'whats_included').pages.length, 2);
 """
     subprocess.run(["node", "-e", script], cwd=Path.cwd(), check=True)
+
+
+def test_picture_stage_local_draft_cannot_restore_scattered_generated_day_order():
+    if not shutil.which("node"):
+        raise AssertionError("node is required for picture-stage draft order validation")
+
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+
+const days = Array.from({length: 10}, (_, index) => ({day: `Day ${index + 1}`, title: `Title ${index + 1}`}));
+const scattered = ['day-day-1', 'day-day-2', 'day-day-4', 'day-day-5', 'day-day-3', 'day-day-6', 'day-day-7', 'day-day-9', 'day-day-8', 'day-day-10'];
+const context = {
+  console,
+  document: {
+    querySelectorAll: () => [],
+    querySelector: () => null
+  },
+  CSS: {escape: value => String(value)},
+  localStorage: {setItem(){}, getItem(){return null;}, removeItem(){}},
+  saveState: {},
+  uploadedImages: {},
+  localDraftTimer: null,
+  updateSaveState: () => {},
+  clearTimeout,
+  setTimeout,
+  Date,
+  JSON,
+};
+context.cssEscapeValue = value => String(value);
+vm.createContext(context);
+[
+  'visual_editor_component/frontend/js/editor_html_utils.js',
+  'visual_editor_component/frontend/js/editor_pages_model.js',
+  'visual_editor_component/frontend/js/serialization.js',
+  'visual_editor_component/frontend/js/editor_local_draft.js',
+].forEach(file => vm.runInContext(fs.readFileSync(file, 'utf8'), context, {filename: file}));
+
+const initial = {
+  draft_id: 'picture-order-draft',
+  meta: {source_signature: 'picture-order-sig', draft_schema_version: 3},
+  workflow: {pictures_added: true},
+  cover: {trip_title: 'Nordic Trip'},
+  summary: {trip_glance_title: 'Glance'},
+  days,
+  final_pages: {important_travel_notes_text: 'Bring passport'},
+  document_pages: [
+    {page_id: 'cover', page_type: 'cover', title: 'Cover', sort_order: 1, is_hidden: false},
+    {page_id: 'summary', page_type: 'summary', title: 'Summary', sort_order: 2, is_hidden: false},
+    ...days.map((day, index) => ({page_id: `day-day-${index + 1}`, page_type: 'generated_day', source_day_id: day.day, title: day.day, sort_order: index + 3, is_hidden: false, page_actions: {move: false}})),
+    {page_id: 'final-important-travel-notes', page_type: 'final_section', title: 'Notes', sort_order: 13, is_hidden: false},
+  ],
+};
+const localDraft = {
+  save_mode: 'local_snapshot',
+  workflow: {pictures_added: true},
+  days,
+  document_pages: [
+    {page_id: 'cover', page_type: 'cover', title: 'Cover', sort_order: 1, is_hidden: false},
+    {page_id: 'summary', page_type: 'summary', title: 'Summary', sort_order: 2, is_hidden: false},
+    ...scattered.map((pageId, index) => ({page_id: pageId, page_type: 'generated_day', source_day_id: pageId.replace('day-day-', 'Day '), title: pageId, sort_order: index + 3, is_hidden: false, page_actions: {move: true}})),
+    {page_id: 'final-important-travel-notes', page_type: 'final_section', title: 'Notes', sort_order: 13, is_hidden: false},
+  ],
+};
+context.initialPayload = JSON.parse(JSON.stringify(initial));
+context.model = JSON.parse(JSON.stringify(initial));
+context.touchedKeys = new Set();
+
+const merged = context.mergeLocalDraftOntoServerPayload(localDraft);
+const generated = merged.document_pages.filter(page => page.page_type === 'generated_day');
+assert.deepEqual(generated.map(page => page.page_id), Array.from({length: 10}, (_, index) => `day-day-${index + 1}`));
+assert.deepEqual(generated.map(page => page.sort_order), Array.from({length: 10}, (_, index) => index + 3));
+assert.equal(generated.find(page => page.page_id === 'day-day-3').page_actions.move, false);
+assert.equal(merged.workflow.pictures_added, true);
+"""
+    subprocess.run(["node", "-e", script], cwd=Path.cwd(), check=True)
