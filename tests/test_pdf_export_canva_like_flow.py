@@ -5,14 +5,15 @@ def test_export_step_uses_shared_recoverable_pdf_job_flow():
     source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
 
     assert "request_editor_save_before_pdf(st.session_state)" not in source
-    assert "Create PDF from last saved version" not in source
+    assert "pdf_editor_commit_timed_out" in source
+    assert "Create PDF from last saved version" in source
     assert "Saving the latest editor changes before creating the PDF" not in source
     assert "_clear_stale_pdf_editor_state()" in source
     assert "Applying pending editor changes" not in source
     assert "visual_editor_export_commit_ready" not in source
     assert "current_export_job" in source
     assert "auto_pdf_create_requested" in source
-    assert "PDF creation is queued" in source
+    assert "PDF creation was stopped because the document is not ready" in source
     assert "request_pdf_editor_commit(st.session_state)" in source
     assert "mark_export_waiting_for_editor" in source
     assert "Applying the latest editor changes before creating the PDF" in source

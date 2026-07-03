@@ -56,4 +56,4 @@ def test_pdf_export_screen_has_bounded_editor_commit_before_export():
     assert "request_pdf_creation_after_visual_editor_commit" not in source
     assert "clear_pdf_editor_commit_request" not in export_page_source
     assert "pending_editor_commit" not in preflight_source
-    assert "pending_commit = False" in state_source
+    assert "pending_editor_commit" not in state_source

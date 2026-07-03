@@ -10,7 +10,9 @@ from app_modules.export_actions import (
 from app_modules.editor_commit import (
     PDF_COMMIT_REQUEST_KEY,
     clear_pdf_editor_commit_request,
+    pdf_editor_commit_elapsed_seconds,
     pdf_editor_commit_ready,
+    pdf_editor_commit_timed_out,
     request_pdf_editor_commit,
 )
 from app_modules.export_identity import export_signature_for_state
@@ -137,15 +139,35 @@ def render_export_step(app_version: str) -> None:
     auto_create = auto_pdf_create_requested(st.session_state)
     commit_pending = _pdf_editor_commit_pending()
     if auto_create and commit_pending:
-        st.info("Applying the latest editor changes before creating the PDF…")
-        st.button("Create PDF", disabled=True, use_container_width=True)
+        if pdf_editor_commit_timed_out(st.session_state):
+            waited = int(pdf_editor_commit_elapsed_seconds(st.session_state))
+            st.warning(f"The editor has not returned the latest changes after {waited} seconds.")
+            st.caption("Retry the save, create from the last saved version, or cancel this PDF request.")
+            retry_col, saved_col, cancel_col = st.columns(3)
+            with retry_col:
+                if st.button("Retry save", type="primary", use_container_width=True, key="retry_export_pdf_editor_commit"):
+                    _queue_synced_pdf_creation()
+            with saved_col:
+                if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_export_pdf_after_timeout", disabled=not readiness.can_create_pdf):
+                    consume_auto_pdf_create_request(st.session_state)
+                    clear_pdf_editor_commit_request(st.session_state)
+                    _request_pdf_creation()
+            with cancel_col:
+                if st.button("Cancel", use_container_width=True, key="cancel_export_pdf_editor_commit"):
+                    _clear_stale_pdf_editor_state()
+                    st.rerun()
+        else:
+            st.info("Applying the latest editor changes before creating the PDF…")
+            st.button("Create PDF", disabled=True, use_container_width=True)
         return
     if auto_create and readiness.can_create_pdf:
         consume_auto_pdf_create_request(st.session_state)
         _request_pdf_creation()
         return
     if auto_create:
-        st.info("PDF creation is queued and will start as soon as the current preview is ready.")
+        consume_auto_pdf_create_request(st.session_state)
+        reset_export_job(st.session_state)
+        st.warning("PDF creation was stopped because the document is not ready. Fix the blocker above, then click Create PDF again.")
 
     job = current_export_job(st.session_state)
     if job.failed and job.error:

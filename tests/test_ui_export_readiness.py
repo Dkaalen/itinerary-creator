@@ -79,7 +79,6 @@ def test_export_readiness_reuses_current_pdf_even_with_stale_editor_commit_state
         READY_IMAGE_BANK,
     )
 
-    assert readiness.pending_editor_commit is False
     assert readiness.pdf_ready is True
     assert readiness.can_create_pdf is False
     assert readiness.status_label == "PDF ready"
@@ -109,7 +108,6 @@ def test_export_readiness_ignores_stale_visual_editor_commit_request():
     )
 
     assert readiness.can_create_pdf is True
-    assert readiness.pending_editor_commit is False
     assert readiness.blocking_messages == ()
 
 

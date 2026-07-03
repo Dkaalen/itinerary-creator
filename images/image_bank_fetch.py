@@ -3,6 +3,7 @@
 from pathlib import Path, PurePosixPath
 import os as default_os
 import shutil as default_shutil
+import socket
 import subprocess as default_subprocess
 import tempfile
 import urllib.error as default_urllib_error
@@ -13,6 +14,7 @@ import zipfile
 from images.image_bank_bootstrap_status import setup_status
 from images.image_bank_discovery import valid_image_bank
 from images.image_bank_settings import SUPPORTED_IMAGE_EXTENSIONS, image_bank_repo_branch, image_bank_repo_url, repo_zip_url
+from images.remote_distribution_config import network_timeout_seconds
 
 
 def fetch_image_bank_with_git(
@@ -149,16 +151,23 @@ def fetch_image_bank_with_zip(
         tmp = Path(tmp_text)
         zip_path = tmp / "image-bank.zip"
         try:
-            urllib_request_module.urlretrieve(zip_url, zip_path)
-        except (OSError, urllib_error_module.URLError, ValueError) as error:
-            return setup_status(
+            previous_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(network_timeout_seconds())
+            try:
+                urllib_request_module.urlretrieve(zip_url, zip_path)
+            finally:
+                socket.setdefaulttimeout(previous_timeout)
+        except (OSError, urllib_error_module.URLError, ValueError, TimeoutError) as error:
+            status = setup_status(
                 False,
                 "zip_download_failed",
-                "Could not download the image bank ZIP from GitHub.",
+                "Could not download the image bank ZIP from GitHub within the network timeout.",
                 error=f"{type(error).__name__}: {error}",
                 method="zip",
                 warn=False,
             )
+            status["timeout_seconds"] = network_timeout_seconds()
+            return status
 
         try:
             staging_repo = Path(tempfile.mkdtemp(prefix=".image-bank-full-", dir=runtime_repo.parent))

@@ -17,7 +17,6 @@ class ExportReadiness:
     has_document: bool
     pictures_added: bool
     image_bank_ready: bool
-    pending_editor_commit: bool
     pdf_ready: bool
     can_create_pdf: bool
     blocking_messages: tuple[str, ...]
@@ -34,7 +33,6 @@ class ExportReadiness:
             "has_document": self.has_document,
             "pictures_added": self.pictures_added,
             "image_bank_ready": self.image_bank_ready,
-            "pending_editor_commit": self.pending_editor_commit,
             "pdf_ready": self.pdf_ready,
             "can_create_pdf": self.can_create_pdf,
             "blocking_messages": list(self.blocking_messages),
@@ -62,7 +60,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     output_edits = state.get("output_edits") or {}
     pictures = pictures_are_added(output_edits)
     image_ready = image_bank_is_ready_for_client_pictures(image_status)
-    pending_commit = False
     current_signature = state.get("preview_signature")
     pdf_ready = bool(
         current_signature
@@ -96,7 +93,6 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         has_document=has_document,
         pictures_added=pictures,
         image_bank_ready=image_ready,
-        pending_editor_commit=pending_commit,
         pdf_ready=pdf_ready,
         can_create_pdf=can_create,
         blocking_messages=tuple(blocking),

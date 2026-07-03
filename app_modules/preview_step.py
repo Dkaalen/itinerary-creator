@@ -5,7 +5,9 @@ import streamlit as st
 from app_modules.app_header import _render_app_header, _render_stage_actions, _stage_panel
 from app_modules.editor_commit import (
     ADD_PICTURES_COMMIT_REQUEST_KEY,
+    add_pictures_editor_commit_elapsed_seconds,
     add_pictures_editor_commit_ready,
+    add_pictures_editor_commit_timed_out,
     clear_add_pictures_editor_commit_request,
     request_add_pictures_editor_commit,
 )
@@ -63,6 +65,11 @@ def _activate_picture_stage() -> bool:
         audit_images_func=audit_day_image_matches,
         rebuild_preview_func=rebuild_current_preview,
     )
+    if result.ok:
+        st.session_state.pop("add_pictures_last_error", None)
+        st.session_state["add_pictures_last_message"] = result.message
+    else:
+        st.session_state["add_pictures_last_error"] = result.message or "Add Pictures could not start."
     return result.ok
 
 def _add_pictures_apply_ready() -> bool:
@@ -84,6 +91,10 @@ def render_edit_page(app_version: str) -> None:
             st.rerun()
 
     st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Apply the current preview changes, then add destination pictures from the committed itinerary.</span></div></div>')
+    last_error = st.session_state.get("add_pictures_last_error")
+    if last_error:
+        st.error(str(last_error))
+        st.caption("Retry Add Pictures after fixing the issue, or continue editing and apply changes again.")
     gateway_result = st.session_state.get("image_bank_gateway")
     if _image_bank_gateway_is_blocking(gateway_result):
         _render_image_bank_gateway_repair(gateway_result)
@@ -107,16 +118,37 @@ def render_edit_page(app_version: str) -> None:
         return
 
     if apply_pending:
-        st.info("Saving the latest editor changes before adding pictures…")
-        st.button("Add pictures", disabled=True, use_container_width=True)
-        if st.button("Add pictures from last saved version", use_container_width=True):
-            clear_add_pictures_editor_commit_request(st.session_state)
-            with st.spinner("Preparing destination pictures and finding the best matches…"):
-                _activate_picture_stage()
-            st.rerun()
+        if add_pictures_editor_commit_timed_out(st.session_state):
+            waited = int(add_pictures_editor_commit_elapsed_seconds(st.session_state))
+            st.warning(f"The editor has not returned the latest changes after {waited} seconds.")
+            st.caption("This usually means the browser editor did not answer the save request. You can retry, continue from the last saved version, or cancel and keep editing.")
+            retry_col, saved_col, cancel_col = st.columns(3)
+            with retry_col:
+                if st.button("Retry save", type="primary", use_container_width=True, key="retry_add_pictures_editor_commit"):
+                    request_add_pictures_editor_commit(st.session_state)
+                    st.rerun()
+            with saved_col:
+                if st.button("Add pictures from last saved version", use_container_width=True, key="fallback_add_pictures_after_timeout"):
+                    clear_add_pictures_editor_commit_request(st.session_state)
+                    with st.spinner("Preparing destination image packs and finding the best matches…"):
+                        _activate_picture_stage()
+                    st.rerun()
+            with cancel_col:
+                if st.button("Cancel", use_container_width=True, key="cancel_add_pictures_editor_commit"):
+                    clear_add_pictures_editor_commit_request(st.session_state)
+                    st.rerun()
+        else:
+            st.info("Saving the latest editor changes before adding pictures…")
+            st.button("Add pictures", disabled=True, use_container_width=True)
+            if st.button("Add pictures from last saved version", use_container_width=True):
+                clear_add_pictures_editor_commit_request(st.session_state)
+                with st.spinner("Preparing destination image packs and finding the best matches…"):
+                    _activate_picture_stage()
+                st.rerun()
         return
 
     if st.button("Apply Changes", type="primary", use_container_width=True):
+        st.session_state.pop("add_pictures_last_error", None)
         request_add_pictures_editor_commit(st.session_state)
         st.rerun()
     st.button("Add pictures", disabled=True, use_container_width=True)

@@ -6,7 +6,9 @@ from app_modules.app_header import _render_app_header, _render_stage_actions, _s
 from app_modules.editor_commit import (
     PDF_COMMIT_REQUEST_KEY,
     clear_pdf_editor_commit_request,
+    pdf_editor_commit_elapsed_seconds,
     pdf_editor_commit_ready,
+    pdf_editor_commit_timed_out,
     request_pdf_editor_commit,
 )
 from app_modules.export_actions import current_pdf_bytes
@@ -62,11 +64,29 @@ def render_picture_page(app_version: str) -> None:
         return
 
     if _pdf_commit_pending():
-        st.info("Applying the latest picture edits before creating the PDF…")
-        st.button("Create PDF", disabled=True, use_container_width=True)
-        if st.button("Create PDF from last saved version", use_container_width=True):
-            clear_pdf_editor_commit_request(st.session_state)
-            _start_synced_pdf_export()
+        if pdf_editor_commit_timed_out(st.session_state):
+            waited = int(pdf_editor_commit_elapsed_seconds(st.session_state))
+            st.warning(f"The editor has not returned the latest picture changes after {waited} seconds.")
+            st.caption("Retry the save, create the PDF from the last saved version, or cancel and keep reviewing pictures.")
+            retry_col, saved_col, cancel_col = st.columns(3)
+            with retry_col:
+                if st.button("Retry save", type="primary", use_container_width=True, key="retry_picture_pdf_editor_commit"):
+                    request_pdf_editor_commit(st.session_state)
+                    st.rerun()
+            with saved_col:
+                if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_picture_pdf_after_timeout"):
+                    clear_pdf_editor_commit_request(st.session_state)
+                    _start_synced_pdf_export()
+            with cancel_col:
+                if st.button("Cancel", use_container_width=True, key="cancel_picture_pdf_editor_commit"):
+                    clear_pdf_editor_commit_request(st.session_state)
+                    st.rerun()
+        else:
+            st.info("Applying the latest picture edits before creating the PDF…")
+            st.button("Create PDF", disabled=True, use_container_width=True)
+            if st.button("Create PDF from last saved version", use_container_width=True):
+                clear_pdf_editor_commit_request(st.session_state)
+                _start_synced_pdf_export()
         return
 
     if st.button("Create PDF", type="primary", use_container_width=True):
