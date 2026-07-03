@@ -24,6 +24,56 @@ class SessionState(dict):
         self[name] = value
 
 
+
+class _ContextManagerStub:
+    """Context manager returned by Streamlit layout/form helpers in tests."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def form_submit_button(self, *args: Any, **kwargs: Any) -> bool:
+        return False
+
+    def button(self, *args: Any, **kwargs: Any) -> bool:
+        return False
+
+
+def _context(*args: Any, **kwargs: Any) -> _ContextManagerStub:
+    return _ContextManagerStub()
+
+
+def _columns(spec: Any, *args: Any, **kwargs: Any) -> tuple[_ContextManagerStub, ...]:
+    count = spec if isinstance(spec, int) else len(spec) if hasattr(spec, "__len__") else 1
+    return tuple(_ContextManagerStub() for _ in range(max(0, int(count))))
+
+
+def _button(*args: Any, **kwargs: Any) -> bool:
+    return False
+
+
+def _file_uploader(*args: Any, **kwargs: Any) -> None:
+    return None
+
+
+def _selectbox(label: str, options: Any, *args: Any, **kwargs: Any) -> Any:
+    values = tuple(options or ())
+    if not values:
+        return None
+    index = int(kwargs.get("index", 0) or 0)
+    return values[max(0, min(len(values) - 1, index))]
+
+
+def _value_kwarg(*args: Any, **kwargs: Any) -> Any:
+    return kwargs.get("value", "")
+
+
+def _checkbox(*args: Any, **kwargs: Any) -> bool:
+    return bool(kwargs.get("value", False))
+
+
 def _noop(*args: Any, **kwargs: Any) -> None:
     return None
 
@@ -63,9 +113,29 @@ def install_streamlit_stub(*, force: bool = False):
         "toast",
         "rerun",
         "experimental_rerun",
+        "subheader",
+        "download_button",
     ):
         if not hasattr(streamlit, name):
             setattr(streamlit, name, _noop)
+
+    for name in ("container", "expander", "form"):
+        if not hasattr(streamlit, name):
+            setattr(streamlit, name, _context)
+    if not hasattr(streamlit, "columns"):
+        streamlit.columns = _columns
+    for name in ("button", "form_submit_button"):
+        if not hasattr(streamlit, name):
+            setattr(streamlit, name, _button)
+    if not hasattr(streamlit, "file_uploader"):
+        streamlit.file_uploader = _file_uploader
+    if not hasattr(streamlit, "selectbox"):
+        streamlit.selectbox = _selectbox
+    for name in ("text_input", "text_area", "number_input"):
+        if not hasattr(streamlit, name):
+            setattr(streamlit, name, _value_kwarg)
+    if not hasattr(streamlit, "checkbox"):
+        streamlit.checkbox = _checkbox
 
     components = None if force else sys.modules.get("streamlit.components")
     if components is None:

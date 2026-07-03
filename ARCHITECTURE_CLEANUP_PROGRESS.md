@@ -23,28 +23,39 @@ Anything that does not make this faster, easier, more reliable, or more presenta
 
 - Use the latest uploaded full repo ZIP only as source of truth.
 - Do not rely on previous patch claims unless verified in the current ZIP.
-- Do not start coding unless the user has uploaded the latest ZIP.
-- Patch one batch at a time.
-- Validate each patch.
-- Report briefly.
-- Stop and wait for the user's `ok` before continuing.
-- Do not send a ZIP after every patch unless it is the final patch in the agreed batch.
-- After a final batch patch, send one ZIP containing only changed/added files.
+- Do not start coding unless the user has uploaded the latest full repo ZIP.
+- Use **patch** for each implementation unit. Do not call an implementation unit a batch.
+- A user may group multiple patches into one delivery, but each patch still needs its own scope and validation.
+- Validate every changed area before saying work is complete.
+- Report briefly and honestly; state known issues instead of hiding them.
+- Return one ZIP containing only changed/added files at the final agreed delivery point.
 - Do not send a full repo ZIP unless explicitly requested.
 - Do not use `git add .`.
+- When deleting files, include the matching `git rm --ignore-unmatch -- "path/to/file"` command.
 - Keep reports concise.
+
+Historical sections below may still use older “Batch” headings as archive labels. New work should use patch names and patch numbers.
 
 Preferred final push format:
 
 ```powershell
 cd "C:\Users\DennisKålen\Desktop\itinerary_app\itinerary-creator-git"
 
-git status
+git --no-pager status --short
 
-git add <changed-file-1>
-git add <changed-file-2>
+$files = @(
+  "changed-file-1",
+  "changed-file-2"
+)
 
-git commit -m "<clear commit message>"
+git add -- $files
+
+git rm --ignore-unmatch -- "deleted-file-if-any"
+
+git --no-pager diff --cached --check
+git --no-pager status --short
+
+git commit -m "Clear relevant commit message"
 git push -u origin HEAD
 ```
 
@@ -74,7 +85,7 @@ If the existing module is already overloaded, split first, then patch.
 
 ## Progress overview
 
-Update this section after every completed patch batch.
+Update this section after every completed patch series.
 
 ```text
 Overall architecture cleanup:        [####################] 100%
@@ -300,7 +311,7 @@ True fatal error if PDF cannot be created
 
 ## Recommended implementation sequence
 
-Do not refactor the whole app at once. Use staged batches.
+Do not refactor the whole app at once. Use staged patches.
 
 Recommended sequence:
 
@@ -1895,7 +1906,7 @@ itinerary_generation/data/destinations_baltics.py
 
 # Required validation pattern
 
-For each patch batch, use focused tests first.
+For each patch series, use focused tests first.
 
 Recommended baseline:
 
@@ -1934,7 +1945,7 @@ Do not modify them unless intentionally cleaning fixture whitespace.
 Use this prompt when opening a new chat:
 
 ```text
-Read ARCHITECTURE_CLEANUP_PROGRESS.md first. Treat the latest uploaded ZIP as source of truth. Do not code until the ZIP is inspected. Continue from the first unchecked item in the progress file. Keep the staged patch workflow: patch one batch, validate, report briefly, stop for ok. The product rule is: anything that does not help create a client-ready PDF faster, easier, more reliably, or more presentably is bloat.
+Read ARCHITECTURE_CLEANUP_PROGRESS.md first. Treat the latest uploaded ZIP as source of truth. Do not code until the ZIP is inspected. Continue from the first unchecked item in the progress file. Keep the staged patch workflow: complete one focused patch, validate, report briefly, stop for ok unless the user explicitly grouped patches into one delivery. The product rule is: anything that does not help create a client-ready PDF faster, easier, more reliably, or more presentably is bloat.
 ```
 
 # How to update this file

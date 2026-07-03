@@ -6,6 +6,10 @@ from pathlib import Path
 FRONTEND_DIR = Path("calculator_grid_component/frontend")
 
 
+def _calculator_js_bundle_source() -> str:
+    return "\n".join(path.read_text(encoding="utf-8") for path in sorted((FRONTEND_DIR / "js").glob("calculator_grid_*.js")))
+
+
 def test_calculator_component_registers_message_listener_before_ready_signal() -> None:
     app_source = (FRONTEND_DIR / "js/calculator_grid_app.js").read_text(encoding="utf-8")
     bridge_source = (FRONTEND_DIR / "js/streamlit_bridge.js").read_text(encoding="utf-8")
@@ -55,11 +59,11 @@ def test_calculator_component_installs_global_frontend_diagnostics() -> None:
 
 
 def test_calculator_component_preserves_browser_draft_on_same_backend_revision() -> None:
-    app_source = (FRONTEND_DIR / "js/calculator_grid_app.js").read_text(encoding="utf-8")
+    source = _calculator_js_bundle_source()
 
-    assert "activeBackendRevision" in app_source
-    assert "hasLocalDraft" in app_source
-    assert "shouldKeepBrowserDraft(incomingRevision)" in app_source
-    assert "mergeBackendPayloadWithoutRows(payload, incomingRevision);" in app_source
-    assert "markLocalDraft();" in app_source
-    assert "client_state_revision: activeBackendRevision" in app_source
+    assert "activeBackendRevision" in source
+    assert "hasLocalDraft" in source
+    assert "shouldKeepBrowserDraft(incomingRevision)" in source
+    assert "mergeBackendPayloadWithoutRows(payload, incomingRevision);" in source
+    assert "markLocalDraft();" in source
+    assert "client_state_revision: activeBackendRevision" in source

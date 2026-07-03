@@ -15,6 +15,16 @@ from calculator.calculator_state import CalculatorState
 from calculator.row_model import CalculatorRow
 
 
+def _calculator_js_source(*names: str) -> str:
+    root = Path("calculator_grid_component/frontend/js")
+    return "\n".join((root / name).read_text(encoding="utf-8") for name in names)
+
+
+def _calculator_js_bundle_source() -> str:
+    root = Path("calculator_grid_component/frontend/js")
+    return "\n".join(path.read_text(encoding="utf-8") for path in sorted(root.glob("calculator_grid_*.js")))
+
+
 def test_calculator_navigation_sets_standalone_page_without_changing_workflow_stage() -> None:
     state = {"app_stage": "input", "itinerary_name": "Tromso"}
 
@@ -200,7 +210,7 @@ def test_calculator_component_column_model_uses_template_labels_and_percent_comm
 
 
 def test_calculator_component_supports_keyboard_navigation_and_totals_panel() -> None:
-    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    app_source = _calculator_js_source("calculator_grid_cell_editing.js")
     render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
 
     assert "ArrowRight" in app_source
@@ -252,7 +262,7 @@ def test_calculator_table_accepts_spreadsheet_style_numeric_expressions() -> Non
 
 
 def test_calculator_component_uses_debounced_non_intrusive_suggestions_and_formula_parser() -> None:
-    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    app_source = _calculator_js_source("calculator_grid_suggestions.js", "calculator_grid_actions.js")
     css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
     index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
     parser_source = Path("calculator_grid_component/frontend/js/calculator_grid_formula_input.js").read_text(encoding="utf-8")
@@ -295,7 +305,7 @@ def test_calculator_browser_grid_hides_excel_advanced_columns_by_default() -> No
 
 def test_calculator_browser_grid_has_fullscreen_control_and_fixed_width_cells() -> None:
     render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
-    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_fullscreen.js").read_text(encoding="utf-8")
     css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
 
     assert "Fullscreen calculator" in render_source
@@ -317,19 +327,19 @@ def test_calculator_browser_grid_defaults_sales_and_commission_without_user_over
 
     assert "DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in math_source
     assert "applyDefaultSupplierCommission" not in math_source
-    assert "refreshDefaultedEditableCells(rowIndex);" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    assert "refreshDefaultedEditableCells(rowIndex);" in _calculator_js_source("calculator_grid_cell_editing.js")
     assert "row.sales_price_per_unit = grossPerUnit" in math_source
     assert "_sales_price_per_unit_touched" in math_source
     assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in library_source
     assert "fetched.sales_price_per_unit = '';" in library_source
     assert "applyDefaultUnits(row, grossPerUnit);" in math_source
-    assert "percentPointInputValue" in Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    assert "percentPointInputValue" in _calculator_js_source("calculator_grid_cell_editing.js")
 
 
 
 def test_calculator_grid_autofills_dates_from_day_one_arrival() -> None:
     date_source = Path("calculator_grid_component/frontend/js/calculator_grid_dates.js").read_text(encoding="utf-8")
-    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_app.js").read_text(encoding="utf-8")
+    app_source = _calculator_js_source("calculator_grid_cell_editing.js")
     index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
 
     assert "function autofillDatesFromArrival" in date_source
@@ -380,3 +390,22 @@ def test_calculator_component_removed_permanent_instruction_banner() -> None:
 
     assert "Edit directly in the sheet" not in render_source
     assert "calculator-grid-hint" not in render_source
+
+
+def test_calculator_grid_app_shell_delegates_to_focused_modules() -> None:
+    frontend = Path("calculator_grid_component/frontend")
+    index_source = (frontend / "index.html").read_text(encoding="utf-8")
+    app_lines = (frontend / "js/calculator_grid_app.js").read_text(encoding="utf-8").splitlines()
+
+    for asset in (
+        "calculator_grid_state_controller.js",
+        "calculator_grid_cell_editing.js",
+        "calculator_grid_suggestions.js",
+        "calculator_grid_fullscreen.js",
+        "calculator_grid_actions.js",
+    ):
+        assert f"js/{asset}" in index_source
+        assert (frontend / "js" / asset).exists()
+    assert len(app_lines) < 80
+    assert "function bindEvents" not in "\n".join(app_lines)
+    assert "function handleCellInput" not in "\n".join(app_lines)

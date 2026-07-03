@@ -5,8 +5,9 @@ import sys
 import zipfile
 from pathlib import Path
 
-from scripts.artifact_hygiene import is_artifact_noise_path
+from scripts.artifact_hygiene import is_artifact_noise_path, sensitive_artifact_text_hits
 from scripts.build_handoff_zip import build_handoff_zip, default_handoff_output_path
+from scripts.validate_handoff_zip import validate_handoff_zip
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -86,4 +87,51 @@ def test_readme_documents_standard_handoff_zip_and_deletion_workflow() -> None:
 
     assert "python scripts/build_handoff_zip.py" in readme
     assert "do not manually compress the whole working tree" in readme
+    assert "python scripts/validate_handoff_zip.py" in readme
     assert "git rm" in readme
+
+
+def test_architecture_progress_uses_current_patch_delivery_standard() -> None:
+    progress = (ROOT / "ARCHITECTURE_CLEANUP_PROGRESS.md").read_text(encoding="utf-8")
+    workflow = progress.split("## Architecture principle", maxsplit=1)[0]
+
+    assert "Use **patch** for each implementation unit" in workflow
+    assert "git add -- $files" in workflow
+    assert "git rm --ignore-unmatch" in workflow
+    assert "git add ." in workflow
+    assert "Patch one batch at a time" not in workflow
+    assert "After a final batch patch" not in workflow
+
+
+def test_handoff_zip_validator_rejects_manual_zip_with_secrets_and_git_metadata(tmp_path) -> None:
+    manual_zip = tmp_path / "manual-full-working-tree.zip"
+    with zipfile.ZipFile(manual_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(".git/index", "git metadata")
+        archive.writestr("app_modules/__pycache__/main.cpython-312.pyc", "bytecode")
+        archive.writestr(".streamlit/secrets.toml", "private_key = '-----BEGIN PRIVATE KEY----- secret'")
+        archive.writestr("app_modules/main_view.py", "# source\n")
+
+    issues = validate_handoff_zip(manual_zip)
+
+    rendered = "\n".join(f"{issue.member}: {issue.reason}" for issue in issues)
+    assert ".git/index" in rendered
+    assert "__pycache__" in rendered
+    assert ".streamlit/secrets.toml" in rendered
+
+
+def test_handoff_zip_validator_passes_official_clean_zip(tmp_path) -> None:
+    project = tmp_path / "itinerary-creator-git"
+    source = project / "app_modules" / "main_view.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("# source\n", encoding="utf-8")
+    (project / ".streamlit").mkdir()
+    (project / ".streamlit" / "secrets.example.toml").write_text("[local_library]\n", encoding="utf-8")
+    output = tmp_path / "handoff.zip"
+
+    zip_path, _file_count = build_handoff_zip(project, output)
+
+    assert validate_handoff_zip(zip_path) == ()
+
+
+def test_sensitive_artifact_text_guard_detects_private_key_material() -> None:
+    assert sensitive_artifact_text_hits("token -----BEGIN PRIVATE KEY----- token") == ("-----BEGIN PRIVATE KEY-----",)

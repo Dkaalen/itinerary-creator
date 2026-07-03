@@ -18,10 +18,27 @@ def test_calculator_page_exposes_manage_local_library_button() -> None:
 
 
 def test_local_library_page_has_required_management_actions() -> None:
+    sources = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in (
+            "app_modules/local_library_page.py",
+            "app_modules/local_library_editor_form.py",
+            "app_modules/local_library_status_ui.py",
+        )
+    )
+
+    assert "Back to itinerary calculator" in sources
+    assert "Save Local Library row" in sources
+    assert "Remove Local Library row" in sources
+    assert "read_only" in sources
+    assert "Google Sheets secrets" in sources
+
+
+def test_local_library_page_is_split_by_responsibility() -> None:
     page = Path("app_modules/local_library_page.py").read_text(encoding="utf-8")
 
-    assert "Back to itinerary calculator" in page
-    assert "Save Local Library row" in page
-    assert "Remove Local Library row" in page
-    assert "read_only" in page
-    assert "Google Sheets secrets" in page
+    assert "render_local_library_source_status" in page
+    assert "render_local_library_row_selector" in page
+    assert "render_local_library_editor" in page
+    assert "LocalLibraryStore" not in page
+    assert "st.form" not in page

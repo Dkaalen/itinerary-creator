@@ -75,28 +75,6 @@ def _field(regex: re.Pattern[str], source: str) -> str:
     return _clean(match.group(1)) if match else ""
 
 
-def _package_pickup_time(master: Mapping[str, Any], source: str) -> str:
-    explicit = _field(_TIME_FIELD_RE, source) or _clean(master.get("time"))
-    if explicit:
-        return explicit
-    # Legacy supplier overviews often place the departure after a pipe without
-    # a Time label.  Treat it as a 30-minute hotel pick-up window, matching the
-    # existing client contract while keeping the value package-owned.
-    match = re.search(r"\|\s*(\d{1,2})(?::(\d{2}))?\s*([AaPp]\.?[Mm]\.?)\b", source)
-    if not match:
-        return ""
-    hour = int(match.group(1))
-    minute = int(match.group(2) or "0")
-    suffix = match.group(3).replace(".", "").upper()
-    end_hour = hour
-    end_minute = minute + 30
-    if end_minute >= 60:
-        end_hour += 1
-        end_minute -= 60
-    if end_hour > 12:
-        end_hour -= 12
-    return f"Between {hour}:{minute:02d} {suffix} and {end_hour}:{end_minute:02d} {suffix}"
-
 
 def _section(source: str, heading: str, stop_headings: Sequence[str]) -> str:
     stop = "|".join(re.escape(item) for item in stop_headings)

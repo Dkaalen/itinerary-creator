@@ -40,6 +40,17 @@ The handoff ZIP excludes Git metadata, caches, generated outputs, old ZIP files,
 
 When a patch deletes files, apply the deletion with `git rm "path\to\file.py"` before committing so the file is removed locally and on GitHub after push.
 
+
+## Patch handoff standard
+
+The uploaded ZIP is the source of truth for ChatGPT patch work. Use the clean handoff builder above instead of manual compression so local secrets, Git metadata, caches, bytecode, generated outputs, and old ZIP files stay out of the handoff. Before sharing or applying a handoff ZIP, it can be checked with:
+
+```powershell
+python scripts/validate_handoff_zip.py "..\itinerary-creator-git-handoff.zip"
+```
+
+Each completed patch should be validated, should list changed/new and deleted files, and should be applied with explicit file paths rather than `git add .`.
+
 ## Quality principles
 
 The app should not render raw supplier/admin text directly into client-facing PDFs. Titles, descriptions, inclusions, exclusions, and route labels should pass through the parser, normalizer, content rules, sanitizers, and quality gates before rendering.

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Sequence
 
 ARTIFACT_EXCLUDED_DIRS = frozenset({
     ".cache",
@@ -45,6 +45,12 @@ ENV_EXAMPLE_FILENAMES = frozenset({".env.example", ".env.sample", ".env.template
 EMPTY_LEGACY_DIRS = (
     Path("visual_editor_component/app_modules"),
     Path("visual_editor_component/ui"),
+)
+
+SENSITIVE_ARTIFACT_TEXT_MARKERS = (
+    "-----BEGIN PRIVATE KEY-----",
+    "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN EC PRIVATE KEY-----",
 )
 
 
@@ -89,3 +95,24 @@ def iter_clean_artifact_files(root: str | Path) -> Iterator[Path]:
                 clean_files.append(path)
 
     yield from sorted(clean_files, key=lambda path: path.relative_to(root_path).as_posix())
+
+
+def sensitive_artifact_text_hits(text: str, markers: Sequence[str] = SENSITIVE_ARTIFACT_TEXT_MARKERS) -> tuple[str, ...]:
+    """Return sensitive credential markers found in shareable artifact text.
+
+    File-name rules catch normal local secret files. This content-level guard is
+    a second line of defence for accidental credential material pasted into a
+    differently named source file or bundled into a manually-created ZIP.
+    """
+
+    return tuple(marker for marker in markers if marker in text)
+
+def read_text_safely(data: bytes, *, limit: int = 2_000_000) -> str:
+    """Return UTF-8 text for small archive members, otherwise an empty string."""
+
+    if len(data) > limit:
+        return ""
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return ""
