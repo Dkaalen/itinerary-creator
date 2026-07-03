@@ -3,6 +3,7 @@ let model = null;
 let uploadedImages = {};
 let touchedKeys = new Set();
 let lastCommitNonce = null;
+let activeCommitSourceSignature = "";
 let lastSavedPayload = '';
 let pendingServerSaveKeys = new Set();
 let pendingServerSavePayload = '';

@@ -2,15 +2,36 @@ function render(payload, commitNonce = null) {
   const commitSignalOnly = !!payload?.workflow?.commit_signal_only;
   const shouldCommitPendingEdits = !!(commitNonce && commitNonce !== lastCommitNonce);
   if (shouldCommitPendingEdits) {
-    lastCommitNonce = commitNonce;
     // Streamlit asks for this when the user clicks Create PDF/Add Pictures. Do
     // not redraw from the server payload first, because that would overwrite
-    // unsaved browser-side edits before collectCommitDelta() can read them.
+    // unsaved browser-side edits before collectCommitDelta() can read them. The
+    // commit signal still carries the server's current source signature so the
+    // compact browser delta can be accepted even if the visible model was built
+    // before a picture-stage refresh.
+    if (typeof activeCommitSourceSignature !== 'undefined') {
+      activeCommitSourceSignature = String(payload?.meta?.source_signature || model?.meta?.source_signature || initialPayload?.meta?.source_signature || '');
+    }
     if (!model) model = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
-    setTimeout(() => saveChanges(commitNonce), 0);
+    setTimeout(() => {
+      try {
+        const sent = saveChanges(commitNonce);
+        if (sent !== false) lastCommitNonce = commitNonce;
+      } catch (err) {
+        lastCommitNonce = null;
+        console.error('Visual editor commit failed', err);
+        if (typeof updateSaveState === 'function') {
+          updateSaveState('failed', {
+            message: 'Could not apply latest editor changes',
+            error: err?.message || String(err || 'Unknown editor commit error'),
+            lastAttemptAt: Date.now()
+          });
+        }
+      }
+    }, 0);
     return;
   }
   if (commitSignalOnly) return;
+  if (typeof activeCommitSourceSignature !== 'undefined') activeCommitSourceSignature = '';
   initialPayload = JSON.parse(JSON.stringify(payload || {cover:{},summary:{},days:[],final_pages:{}}));
   acknowledgeServerSaveFromPayload(initialPayload);
   hydrateSaveStateFromPayload(initialPayload);

@@ -80,24 +80,25 @@ function saveChanges(commitNonce = null) {
   if (serverAutosaveTimer) { clearTimeout(serverAutosaveTimer); serverAutosaveTimer = null; }
   if (restoredLocalDraftPendingSave && !commitNonce && !touchedKeys.size) {
     saveRestoredLocalDraftToServer();
-    return;
+    return true;
   }
-  if (!touchedKeys.size && !commitNonce) return;
+  if (!touchedKeys.size && !commitNonce) return false;
   const serialized = buildSaveEnvelope(commitNonce);
-  if (!commitNonce && serialized === lastSavedPayload) return;
+  if (!commitNonce && serialized === lastSavedPayload) return false;
   lastSavedPayload = serialized;
   lastServerAutosavePayload = serialized;
   pendingServerSaveKeys = new Set(touchedKeys);
   pendingServerSavePayload = serialized;
   persistLocalDraft({fullSnapshot: true});
   updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Saving…', lastAttemptAt: Date.now(), error: ''});
-  if (!safeSendComponentValue(serialized, commitNonce ? 'exporting' : 'saving')) return;
+  if (!safeSendComponentValue(serialized, commitNonce ? 'exporting' : 'saving')) return false;
   if (!pendingServerSaveKeys.size) {
     updateSaveState('saved', {message: commitNonce ? 'Changes applied' : 'Saved', lastSavedAt: Date.now(), error: ''});
   } else {
     updateSaveState(commitNonce ? 'exporting' : 'saving', {message: commitNonce ? 'Applying changes…' : 'Save sent', lastAttemptAt: Date.now(), error: ''});
   }
   updateEditorStats();
+  return true;
 }
 
 function attachHandlers() {

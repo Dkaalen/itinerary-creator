@@ -156,6 +156,86 @@ assert.equal(JSON.stringify(envelope).includes('data:image/png;base64,heavy'), f
     _run_node(script)
 
 
+
+def test_pdf_commit_uses_current_server_commit_signal_signature():
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+
+const context = {
+  console,
+  document: {querySelectorAll: () => [], querySelector: () => null},
+  CSS: {escape: value => String(value)},
+  uploadedImages: {},
+  JSON,
+};
+context.cssEscapeValue = value => String(value);
+context.editableValue = el => el.value || '';
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
+context.activeCommitSourceSignature = 'server-current-sig';
+context.model = {
+  meta: {source_signature: 'stale-browser-sig'},
+  workflow: {pictures_added: true},
+  cover: {},
+  summary: {},
+  days: [],
+  final_pages: {},
+  document_pages: [],
+};
+context.touchedKeys = new Set();
+const envelope = JSON.parse(context.buildSaveEnvelope('pdf-4'));
+assert.equal(envelope.payload.save_mode, 'commit_noop');
+assert.equal(envelope.payload.meta.source_signature, 'server-current-sig');
+"""
+    _run_node(script)
+
+
+def test_pdf_commit_creates_missing_nested_array_paths_without_throwing():
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+
+const fields = [
+  {key: 'final_pages.whats_included_pages_html.0.html', value: '<p>Included item</p>'},
+];
+const context = {
+  console,
+  document: {
+    querySelectorAll: selector => selector === '[data-edit-key]' ? fields.map(field => ({
+      getAttribute: name => name === 'data-edit-key' ? field.key : '',
+      innerHTML: field.value,
+      textContent: field.value,
+      value: field.value,
+    })) : [],
+    querySelector: () => null,
+  },
+  CSS: {escape: value => String(value)},
+  uploadedImages: {},
+  JSON,
+};
+context.cssEscapeValue = value => String(value);
+context.editableValue = el => el.value;
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
+context.model = {
+  meta: {source_signature: 'sig-fast'},
+  workflow: {pictures_added: true},
+  cover: {},
+  summary: {},
+  days: [],
+  final_pages: {},
+  document_pages: [],
+};
+context.touchedKeys = new Set();
+const envelope = JSON.parse(context.buildSaveEnvelope('pdf-5'));
+assert.equal(envelope.payload.save_mode, 'commit_delta');
+assert.equal(envelope.payload.final_pages.whats_included_pages_html[0].html, '<p>Included item</p>');
+"""
+    _run_node(script)
+
 def test_hard_commit_rerun_uses_tiny_frontend_signal_payload():
     from visual_editor_component.editor_commit_signal import build_editor_commit_signal_payload
 

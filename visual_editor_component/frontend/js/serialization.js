@@ -1,15 +1,28 @@
 function setByPath(obj, path, value) {
-  const parts = path.split('.');
+  const parts = String(path || '').split('.').filter(Boolean);
+  if (!parts.length || !obj || typeof obj !== 'object') return;
   let cur = obj;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    const nextPart = parts[i+1];
-    if (Array.isArray(cur)) cur = cur[Number(part)];
-    else cur = cur[part] ?? (cur[part] = /^\d+$/.test(nextPart) ? [] : {});
+    const nextPart = parts[i + 1];
+    const shouldCreateArray = /^\d+$/.test(nextPart || '');
+    if (Array.isArray(cur)) {
+      const index = Number(part);
+      if (!Number.isInteger(index) || index < 0) return;
+      if (!cur[index] || typeof cur[index] !== 'object') cur[index] = shouldCreateArray ? [] : {};
+      cur = cur[index];
+    } else {
+      if (!cur[part] || typeof cur[part] !== 'object') cur[part] = shouldCreateArray ? [] : {};
+      cur = cur[part];
+    }
   }
   const last = parts[parts.length - 1];
-  if (Array.isArray(cur)) cur[Number(last)] = value;
-  else cur[last] = value;
+  if (Array.isArray(cur)) {
+    const index = Number(last);
+    if (Number.isInteger(index) && index >= 0) cur[index] = value;
+  } else if (cur && typeof cur === 'object') {
+    cur[last] = value;
+  }
 }
 function saveComparableValue(value) {
   if (value === null || value === undefined) return '';
@@ -233,7 +246,9 @@ function buildSaveEnvelope(commitNonce = null) {
   // (or a tiny no-op acknowledgement) instead of the full itinerary model.
   const payload = pruneForSave(model);
   if (isPdfCommit) {
-    payload.meta = model.meta || {};
+    payload.meta = Object.assign({}, model.meta || {});
+    const commitSourceSignature = (typeof activeCommitSourceSignature !== 'undefined' && activeCommitSourceSignature) ? String(activeCommitSourceSignature) : '';
+    if (commitSourceSignature) payload.meta.source_signature = commitSourceSignature;
     payload.workflow = model.workflow || {};
     payload.save_mode = touchedKeys && touchedKeys.size ? 'commit_delta' : 'commit_noop';
     return JSON.stringify({commit_nonce: String(commitNonce), payload});
