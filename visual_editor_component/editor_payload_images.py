@@ -23,9 +23,9 @@ from visual_editor_component.editor_image_payload_options import metadata_first_
 
 
 DAY_REPLACEMENT_OPTION_LIMIT = 8
-# Replacement options are metadata-first; only the selected/current images carry eager previews.
-# Legacy metadata-only setting was OPTION_PREVIEW_LIMIT = 0; keep options screen-sized and bounded.
-OPTION_PREVIEW_LIMIT = 2
+# Replacement lists stay bounded, but each visible option includes a tiny preview
+# so selecting a new picture updates the canvas immediately without a rerun.
+OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT
 EDITOR_IMAGE_PAYLOAD_CACHE_LIMIT = 18
 
 _IMAGE_PAYLOAD_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
@@ -143,9 +143,22 @@ def _cache_set(key: str, value: dict[str, Any]) -> dict[str, Any]:
 
 
 def _with_option_previews(options, *, preview_limit: int = OPTION_PREVIEW_LIMIT):
-    """Return metadata-first replacement options without eager base64 previews."""
+    """Return bounded replacement options with tiny browser previews.
 
-    return metadata_first_image_options(options, limit=None)
+    The editor still avoids shipping original image bytes, but the user must be
+    able to see a replacement immediately after choosing it.  Only the small,
+    already-limited option list gets preview data URIs.
+    """
+
+    enriched = metadata_first_image_options(options, limit=None)
+    limit = max(0, int(preview_limit or 0))
+    for option in enriched[:limit]:
+        path = option.get("path")
+        if path:
+            preview = get_image_preview_for_path(path, option=True)
+            if preview:
+                option["preview_data_uri"] = preview
+    return enriched
 
 
 def _editor_cover_image_payload(parsed_rows, output_edits, key: str, *, pictures_added: bool) -> dict:

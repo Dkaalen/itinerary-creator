@@ -46,6 +46,12 @@ def _image_status_notice() -> None:
             st.success(f"Image bank connected: {status.get('destination_image_count', 0)} destination pictures available{suffix}.")
     elif status.get("default_image_count") or status.get("total_image_count"):
         st.warning("Using bundled fallback pictures. You can still review and export the itinerary, then replace images when the full destination bank is available.")
+        if st.button("Retry destination image-bank connection", key="retry_destination_image_bank_from_fallback", use_container_width=True):
+            with st.spinner("Preparing the required destination image packs…"):
+                retry = retry_image_bank_connection(st.session_state, _current_image_bank_status, _connect_current_image_bank)
+            if retry.ok:
+                st.success("Image bank connected. Click Add pictures again to select destination images.")
+            st.rerun()
     else:
         st.error(status.get("blocking_message") or "No usable itinerary images are available.")
         st.caption("Connect the destination image bank or add bundled fallback images before picture review.")

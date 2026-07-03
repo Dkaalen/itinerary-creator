@@ -33,7 +33,7 @@ def test_visual_editor_picture_payload_uses_screen_sized_previews():
     assert '_editor_cover_image_payload' in image_payloads
     assert 'image["data_uri"] = get_image_preview_for_path' in image_payloads
     assert 'DAY_REPLACEMENT_OPTION_LIMIT = 8' in image_payloads
-    assert 'OPTION_PREVIEW_LIMIT = 2' in image_payloads
+    assert 'OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT' in image_payloads
     assert 'max_size=(560, 380)' in previews
     assert 'quality=48' in previews
     assert 'max_size=(240, 170)' in previews

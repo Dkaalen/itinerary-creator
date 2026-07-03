@@ -2,7 +2,9 @@ from pathlib import Path
 
 from app_modules.image_gateway import (
     connect_image_bank_for_picture_stage,
+    destination_image_bank_is_ready_for_client_pictures,
     image_bank_is_ready_for_client_pictures,
+    image_bank_should_attempt_destination_connection,
 )
 from images.replacement_options import (
     list_replacement_image_options,
@@ -15,11 +17,20 @@ def _write_placeholder(path: Path) -> None:
     path.write_bytes(b"placeholder")
 
 
-def test_image_bank_gateway_accepts_real_bank_and_bundled_fallbacks():
-    assert image_bank_is_ready_for_client_pictures({"full_bank_found": True, "missing_full_bank": False})
-    assert image_bank_is_ready_for_client_pictures({"default_only": True, "missing_full_bank": True})
-    assert image_bank_is_ready_for_client_pictures({"full_bank_found": False, "missing_full_bank": True, "default_image_count": 3})
-    assert not image_bank_is_ready_for_client_pictures({"full_bank_found": False, "missing_full_bank": True, "default_image_count": 0, "total_image_count": 0})
+def test_image_bank_gateway_separates_destination_readiness_from_fallback_usability():
+    real_status = {"full_bank_found": True, "missing_full_bank": False, "destination_image_count": 8}
+    fallback_status = {"default_only": True, "missing_full_bank": True, "default_image_count": 3}
+    missing_status = {"full_bank_found": False, "missing_full_bank": True, "default_image_count": 0, "total_image_count": 0}
+
+    assert destination_image_bank_is_ready_for_client_pictures(real_status) is True
+    assert image_bank_should_attempt_destination_connection(real_status) is False
+    assert image_bank_is_ready_for_client_pictures(real_status) is True
+
+    assert destination_image_bank_is_ready_for_client_pictures(fallback_status) is False
+    assert image_bank_should_attempt_destination_connection(fallback_status) is True
+    assert image_bank_is_ready_for_client_pictures(fallback_status) is True
+
+    assert image_bank_is_ready_for_client_pictures(missing_status) is False
 
 
 def test_image_bank_gateway_does_not_connect_when_bank_is_ready():
@@ -51,7 +62,7 @@ def test_stale_default_only_gateway_result_is_not_blocking():
     assert _image_bank_gateway_is_blocking(result) is False
 
 
-def test_image_bank_gateway_allows_default_only_fallback_without_brand_specific_block():
+def test_image_bank_gateway_attempts_destination_connection_before_default_only_fallback():
     calls = {"connect": 0}
 
     def status_func():
@@ -59,6 +70,8 @@ def test_image_bank_gateway_allows_default_only_fallback_without_brand_specific_
             "full_bank_found": False,
             "missing_full_bank": True,
             "default_only": True,
+            "default_image_count": 2,
+            "total_image_count": 2,
             "blocking_message": "Full destination image bank is missing.",
         }
 
@@ -68,6 +81,8 @@ def test_image_bank_gateway_allows_default_only_fallback_without_brand_specific_
             "full_bank_found": False,
             "missing_full_bank": True,
             "default_only": True,
+            "default_image_count": 2,
+            "total_image_count": 2,
             "blocking_message": "Full destination image bank is missing.",
             "setup_status": {"ok": False, "code": "bootstrap_disabled"},
         }
@@ -75,9 +90,10 @@ def test_image_bank_gateway_allows_default_only_fallback_without_brand_specific_
     result = connect_image_bank_for_picture_stage(status_func, connect_func)
 
     assert result.ready is True
-    assert result.attempted_connection is False
-    assert calls["connect"] == 0
+    assert result.attempted_connection is True
+    assert calls["connect"] == 1
     assert result.message == ""
+    assert result.setup_status["code"] == "bootstrap_disabled"
 
 
 def test_image_bank_gateway_allows_picture_stage_after_connection_succeeds():
@@ -97,6 +113,27 @@ def test_image_bank_gateway_allows_picture_stage_after_connection_succeeds():
     assert result.ready is True
     assert result.attempted_connection is True
     assert result.status["destination_image_count"] == 12
+
+
+def test_image_bank_gateway_keeps_existing_fallback_when_connection_returns_setup_only():
+    def status_func():
+        return {
+            "full_bank_found": False,
+            "missing_full_bank": True,
+            "default_only": True,
+            "default_image_count": 2,
+            "total_image_count": 2,
+        }
+
+    def connect_func():
+        return {"setup_status": {"ok": False, "code": "network_error", "message": "Could not fetch image bank."}}
+
+    result = connect_image_bank_for_picture_stage(status_func, connect_func)
+
+    assert result.ready is True
+    assert result.attempted_connection is True
+    assert result.status["default_image_count"] == 2
+    assert result.setup_status["code"] == "network_error"
 
 
 def test_normal_replacement_lists_hide_default_images_even_when_full_bank_exists(tmp_path):

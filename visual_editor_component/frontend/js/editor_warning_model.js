@@ -103,7 +103,7 @@ function editorReadinessIssues() {
   if (touchedKeys.size) issues.push({kind: 'unsaved_edits', severity: 'review', label: `${touchedKeys.size} unsaved edit(s)`, pageId: activePageId || ''});
   editorClientWarnings().forEach((warning, index) => issues.push({kind: 'client_warning', severity: warningSeverityLabel(warning), label: warning.excerpt || warning.message || warning.code || 'Review warning', pageId: warningTargetPageId(warning), sourceRowIds: warning.source_row_ids || [], index}));
   editorImageWarnings().forEach(item => issues.push({kind: 'image_warning', severity: 'review', label: item.warning?.message || item.warning?.code || 'Review image quality', pageId: item.pageId}));
-  pendingImagePreviewIssues().forEach(item => issues.push({kind: 'pending_image', severity: 'review', label: `${item.label || 'Image'} replacement needs save to refresh preview`, pageId: item.pageId}));
+  pendingImagePreviewIssues().forEach(item => issues.push({kind: 'pending_image', severity: 'review', label: `${item.label || 'Image'} replacement preview is unavailable`, pageId: item.pageId}));
   hiddenPageIssues().forEach(item => issues.push({kind: 'hidden_page', severity: item.generated ? 'review' : 'info', label: `${item.label} is hidden from PDF`, pageId: item.pageId}));
   emptyManualPageIssues().forEach(item => issues.push({kind: 'empty_manual_page', severity: 'info', label: `${item.label} is blank`, pageId: item.pageId}));
   (Array.isArray(model?.issue_flags) ? model.issue_flags : []).forEach((flag, index) => issues.push({kind: 'flagged_issue', severity: 'review', label: flag?.label || flag?.key || `Flagged issue ${index + 1}`, pageId: warningTargetPageId(flag), index}));
@@ -123,7 +123,7 @@ function readinessIssueText(issue) {
   if (issue.kind === 'unsaved_edits') return 'Save or export to commit the latest editor changes.';
   if (issue.kind === 'client_warning') return 'Check source fidelity and wording before export.';
   if (issue.kind === 'image_warning') return 'Review image quality or replacement choice.';
-  if (issue.kind === 'pending_image') return 'Save changes so the PDF preview can refresh the replacement image.';
+  if (issue.kind === 'pending_image') return 'The replacement image path is saved, but the browser preview could not be generated.';
   if (issue.kind === 'hidden_page') return 'Confirm this page should be excluded from the final itinerary.';
   if (issue.kind === 'empty_manual_page') return 'Add content or delete/restore the page before final export.';
   if (issue.kind === 'flagged_issue') return 'Resolve or clear this manually flagged issue.';

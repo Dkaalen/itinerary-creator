@@ -9,7 +9,10 @@ import streamlit as st
 
 from app_modules.export_pdf_artifacts import clear_pdf_artifact
 from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
-from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
+from app_modules.image_gateway import (
+    image_bank_is_ready_for_client_pictures,
+    image_bank_should_attempt_destination_connection,
+)
 from app_modules.workflow_state import image_grouped_days_from_state
 from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
@@ -104,7 +107,7 @@ def prepare_pdf_image_contract() -> tuple[bool, dict, dict, dict]:
         required_destinations,
         image_bank_status,
     )
-    if grouped_days and not image_bank_is_ready_for_client_pictures(current_image_bank_status):
+    if grouped_days and image_bank_should_attempt_destination_connection(current_image_bank_status):
         current_image_bank_status = store_image_bank_status(
             st.session_state,
             required_destinations,

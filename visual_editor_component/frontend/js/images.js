@@ -11,7 +11,7 @@ function imageFocusOptionsHtml(focus) {
 function dayImageToolbarHtml(image, dayIndex) {
   const options = imageToolbarOptionsHtml(image);
   const hasOptions = !!options;
-  const pending = image?.pending_preview ? '<span class="image-pending-chip">Save to refresh</span>' : '';
+  const pending = image?.pending_preview ? '<span class="image-pending-chip">Preview unavailable</span>' : '';
   return `<div class="image-actions canvas-image-tools" aria-label="Image editing toolbar">
     <span class="image-crop-chip">${esc(imageFocusLabel(image?.crop_focus))}</span>
     ${pending}
@@ -35,7 +35,7 @@ function imageHtml(day, dayIndex) {
   const hasImage = !!img.data_uri;
   const warnings = Array.isArray(img.warnings) ? img.warnings : [];
   const warningHtml = warnings.length ? `<div class="image-warning-badge">Review: ${esc(warnings[0].message || warnings[0].code || 'picture warning')}</div>` : '';
-  const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : `<span>${img.pending_preview ? 'Replacement selected — preview unavailable until save' : 'No picture selected'}</span>`;
+  const src = hasImage ? `<img src="${esc(img.data_uri)}" style="object-position:${focusPos(img.crop_focus)}" alt="${esc(img.name || '')}">` : `<span>${img.pending_preview ? 'Replacement selected — preview unavailable' : 'No picture selected'}</span>`;
   return `<div class="image-stage ${hasImage ? '' : 'empty'}" data-day-index="${dayIndex}"${blockAttrs}>
       ${src}${warningHtml}
       ${dayImageToolbarHtml(img, dayIndex)}
