@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.app_header import _render_app_header
+from app_modules.input_workspace import render_studio_brand
 from app_modules.calculator_backup_action import render_calculator_backup_controls
 from app_modules.calculator_component_payload import build_calculator_grid_payload
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
@@ -88,7 +89,7 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 def _render_calculator_topbar() -> None:
     brand_col, back_col, library_col = st.columns([0.58, 0.20, 0.22], vertical_alignment="center")
     with brand_col:
-        st.html('<div class="studio-toolbar"><span class="studio-wordmark">Itinerary Studio</span></div>')
+        render_studio_brand()
     with back_col:
         if st.button("Back to workspace", use_container_width=True):
             close_calculator_page(st.session_state)

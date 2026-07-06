@@ -23,6 +23,9 @@ def test_input_workspace_helpers_remove_landing_page_bloat() -> None:
     source = Path("app_modules/input_workspace.py").read_text(encoding="utf-8")
 
     assert "Itinerary Studio" in source
+    assert "By Booknordics.com" in source
+    assert "https://booknordics.com/" in source
+    assert "BOOKNORDICS_SYMBOL_PATH" in source
     assert "New itinerary" in source
     assert "Supplier rows" in source
     assert "Build the travel document." not in source
@@ -66,5 +69,5 @@ def test_app_and_calculator_css_do_not_use_old_deep_green_or_dark_primary() -> N
         assert marker not in css
 
     assert "--accent: #9a8f7f;" in app_css
-    assert "--action: #e6ded1;" in app_css
-    assert ".calc-btn.primary { background: #e6ded1;" in calculator_css
+    assert "--primary-action: #233446;" in app_css
+    assert ".calc-btn.primary { background: #233446;" in calculator_css

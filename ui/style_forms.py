@@ -1,49 +1,108 @@
 """Shared Streamlit form and button styles."""
 
 CSS = r"""
-.stButton > button,
-.stDownloadButton > button,
+.stButton button,
+div[data-testid="stButton"] button,
+.stDownloadButton button,
+div[data-testid="stDownloadButton"] button,
+button[kind="secondary"],
+button[data-testid="baseButton-secondary"],
+[data-testid="stBaseButton-secondary"],
 button[kind="primary"],
+button[data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"] {
-    min-height: 2.5rem !important;
-    border-radius: 999px !important;
-    font-weight: 720 !important;
+    min-height: 2.9rem !important;
+    border-radius: 10px !important;
+    font-weight: 660 !important;
     letter-spacing: -0.006em !important;
     border: 1px solid var(--line-strong) !important;
-    box-shadow: none !important;
-    transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease !important;
+    box-shadow: var(--shadow-control) !important;
+    transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease, box-shadow .16s ease !important;
 }
 
-.stButton > button:hover,
-.stDownloadButton > button:hover {
+.stButton button:hover,
+div[data-testid="stButton"] button:hover,
+.stDownloadButton button:hover,
+div[data-testid="stDownloadButton"] button:hover {
     transform: translateY(-1px) !important;
-    border-color: rgba(111, 102, 91, 0.58) !important;
-    box-shadow: none !important;
+    border-color: rgba(118, 107, 94, 0.58) !important;
+    box-shadow: 0 8px 18px rgba(31, 38, 48, 0.07) !important;
 }
 
-.stButton > button[kind="primary"],
-.stDownloadButton > button[kind="primary"],
+.stButton button[kind="primary"],
+div[data-testid="stButton"] button[kind="primary"],
+.stDownloadButton button[kind="primary"],
+div[data-testid="stDownloadButton"] button[kind="primary"],
+button[data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"] {
+    background: var(--primary-action) !important;
+    color: var(--primary-action-text) !important;
+    border-color: rgba(35, 52, 70, 0.78) !important;
+}
+
+.stButton button[kind="primary"] *,
+div[data-testid="stButton"] button[kind="primary"] *,
+.stDownloadButton button[kind="primary"] *,
+div[data-testid="stDownloadButton"] button[kind="primary"] *,
+button[data-testid="baseButton-primary"] *,
+[data-testid="stBaseButton-primary"] * {
+    color: var(--primary-action-text) !important;
+}
+
+.stButton button[kind="primary"]:hover,
+div[data-testid="stButton"] button[kind="primary"]:hover,
+.stDownloadButton button[kind="primary"]:hover,
+div[data-testid="stDownloadButton"] button[kind="primary"]:hover,
+button[data-testid="baseButton-primary"]:hover,
+[data-testid="stBaseButton-primary"]:hover {
+    background: var(--primary-action-hover) !important;
+}
+
+.stButton button:not([kind="primary"]),
+div[data-testid="stButton"] button:not([kind="primary"]),
+.stDownloadButton button:not([kind="primary"]),
+div[data-testid="stDownloadButton"] button:not([kind="primary"]),
+button[data-testid="baseButton-secondary"],
+[data-testid="stBaseButton-secondary"] {
     background: var(--action) !important;
     color: var(--action-text) !important;
-    border-color: rgba(111, 102, 91, 0.46) !important;
+    border-color: rgba(207, 196, 179, 0.86) !important;
 }
 
-.stButton > button[kind="primary"] *,
-.stDownloadButton > button[kind="primary"] *,
-[data-testid="stBaseButton-primary"] * {
+.stButton button:not([kind="primary"]) *,
+div[data-testid="stButton"] button:not([kind="primary"]) *,
+.stDownloadButton button:not([kind="primary"]) *,
+div[data-testid="stDownloadButton"] button:not([kind="primary"]) *,
+button[data-testid="baseButton-secondary"] *,
+[data-testid="stBaseButton-secondary"] * {
     color: var(--action-text) !important;
 }
 
-.stButton > button:not([kind="primary"]),
-.stDownloadButton > button:not([kind="primary"]) {
-    background: rgba(255, 253, 248, 0.68) !important;
+/* Header toolbar buttons: calm, light, spacious. */
+div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) div[data-testid="stButton"] button,
+div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) .stButton button {
+    min-height: 3.35rem !important;
+    border-radius: 10px !important;
+    background: rgba(255, 253, 248, .72) !important;
     color: var(--ink) !important;
-    border: 1px solid rgba(224, 216, 202, 0.88) !important;
+    border: 1px solid rgba(207, 196, 179, .78) !important;
+    box-shadow: none !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-size: .98rem !important;
+    font-weight: 500 !important;
 }
 
-.stButton > button:disabled,
-.stDownloadButton > button:disabled,
+div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) div[data-testid="stButton"] button:hover,
+div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) .stButton button:hover {
+    background: #ffffff !important;
+    border-color: rgba(118, 107, 94, .45) !important;
+    box-shadow: 0 8px 18px rgba(31, 38, 48, .055) !important;
+}
+
+.stButton button:disabled,
+div[data-testid="stButton"] button:disabled,
+.stDownloadButton button:disabled,
+div[data-testid="stDownloadButton"] button:disabled,
 button:disabled,
 button[disabled] {
     background: #eeece6 !important;
@@ -58,12 +117,22 @@ div[data-testid="stTextArea"] textarea,
 div[data-testid="stTextInput"] input,
 div[data-testid="stNumberInput"] input,
 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-    background: rgba(255, 253, 248, 0.84) !important;
+    background: rgba(255, 253, 248, 0.72) !important;
     color: var(--ink) !important;
     border: 1px solid var(--line-strong) !important;
     border-radius: var(--radius-control) !important;
-    box-shadow: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72), var(--shadow-control) !important;
     outline: none !important;
+}
+
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    min-height: 3.55rem !important;
+    padding-left: 1.1rem !important;
+    padding-right: 1.1rem !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-size: 1rem !important;
 }
 
 div[data-baseweb="base-input"],
@@ -76,17 +145,17 @@ div[data-baseweb="base-input"],
 }
 
 div[data-testid="stTextArea"] textarea {
-    font-size: .98rem !important;
-    line-height: 1.58 !important;
-    padding: 1.22rem 1.25rem !important;
-    min-height: 455px !important;
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+    padding: 1.28rem 1.25rem !important;
+    min-height: 330px !important;
 }
 
 div[data-testid="stTextArea"] textarea:focus,
 div[data-testid="stTextInput"] input:focus,
 div[data-testid="stNumberInput"] input:focus {
-    border-color: var(--accent-dark) !important;
-    box-shadow: 0 0 0 3px rgba(154, 143, 127, 0.14) !important;
+    border-color: rgba(118, 107, 94, 0.72) !important;
+    box-shadow: 0 0 0 3px rgba(168, 153, 134, 0.15), inset 0 1px 0 rgba(255,255,255,.72) !important;
 }
 
 div[data-testid="stTextArea"] textarea::placeholder,

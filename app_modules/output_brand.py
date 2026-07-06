@@ -21,6 +21,7 @@ BOOKNORDICS_COLORS = {
 
 _ROOT = Path(__file__).resolve().parents[1]
 BOOKNORDICS_LOGO_PATH = _ROOT / "assets" / "brands" / "booknordics-logo.png"
+BOOKNORDICS_SYMBOL_PATH = _ROOT / "assets" / "brands" / "booknordics-symbol.png"
 DM_SANS_DIR = _ROOT / "assets" / "fonts" / "dm-sans"
 
 
