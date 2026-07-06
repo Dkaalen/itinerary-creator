@@ -5,6 +5,7 @@ from app_modules.calculator_session_state import (
     calculator_state_from_session,
     clear_calculator_project_state,
     store_calculator_state,
+    sync_calculator_itinerary_name_input,
     update_calculator_itinerary_name,
 )
 from app_modules.calculator_component_result import CalculatorGridResult
@@ -66,8 +67,32 @@ def test_update_calculator_itinerary_name_uses_same_state_authority() -> None:
     state = update_calculator_itinerary_name(session_state, "New")
 
     assert state.itinerary_name == "New"
-    assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "New"
+    assert CALCULATOR_ITINERARY_NAME_INPUT_KEY not in session_state
     assert CALCULATOR_READY_DOWNLOAD_KEY not in session_state
+
+
+def test_sync_calculator_itinerary_name_input_runs_before_widget_render_only() -> None:
+    session_state: dict[str, object] = {
+        CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Synced", rows=(CalculatorRow(row_id="1"),)),
+        CALCULATOR_ITINERARY_NAME_INPUT_KEY: "Old widget value",
+    }
+
+    sync_calculator_itinerary_name_input(session_state)
+
+    assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "Synced"
+
+
+def test_store_calculator_state_does_not_write_widget_owned_name_key() -> None:
+    session_state: dict[str, object] = {
+        CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Old", rows=(CalculatorRow(row_id="1"),)),
+        CALCULATOR_ITINERARY_NAME_INPUT_KEY: "Widget-owned",
+    }
+    changed = CalculatorState(itinerary_name="New", rows=(CalculatorRow(row_id="1"),))
+
+    store_calculator_state(session_state, changed)
+
+    assert session_state[CALCULATOR_STATE_KEY] == changed
+    assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "Widget-owned"
 
 
 def test_apply_calculator_grid_result_persists_rows_and_advanced_toggle() -> None:

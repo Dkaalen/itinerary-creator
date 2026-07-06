@@ -42,13 +42,25 @@ def store_calculator_state(
     *,
     clear_ready_download: bool = True,
 ) -> None:
-    """Persist calculator state and invalidate stale staged Excel downloads."""
+    """Persist calculator state and invalidate stale staged Excel downloads.
+
+    Do not write to the Streamlit text-input key here. Streamlit forbids
+    assigning to a widget-owned key after the widget has been instantiated in
+    the current run. The page renderer syncs that widget key before rendering
+    the widget instead.
+    """
 
     previous = state.get(CALCULATOR_STATE_KEY)
     state[CALCULATOR_STATE_KEY] = calculator_state
-    state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] = calculator_state.itinerary_name
     if clear_ready_download and previous != calculator_state:
         clear_ready_calculation_download(state)
+
+
+def sync_calculator_itinerary_name_input(state: MutableMapping[str, Any]) -> None:
+    """Sync the itinerary-name widget key before the text input is rendered."""
+
+    calculator_state = calculator_state_from_session(state)
+    state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] = calculator_state.itinerary_name
 
 
 def update_calculator_itinerary_name(state: MutableMapping[str, Any], itinerary_name: str) -> CalculatorState:
