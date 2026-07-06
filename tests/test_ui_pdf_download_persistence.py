@@ -2,7 +2,10 @@ from pathlib import Path
 
 
 def test_pdf_download_has_durable_top_and_bottom_stations():
-    export_source = Path("app_modules/export_step.py").read_text()
+    export_source = (
+        Path("app_modules/export_step.py").read_text()
+        + Path("app_modules/export_download_station.py").read_text()
+    )
     artifact_source = Path("app_modules/export_pdf_artifacts.py").read_text()
     main_source = Path("app_modules/picture_step.py").read_text() + Path("app_modules/export_page.py").read_text()
 

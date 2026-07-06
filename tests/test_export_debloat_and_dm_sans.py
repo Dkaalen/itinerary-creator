@@ -17,7 +17,10 @@ def _frontend_registry() -> dict:
 
 
 def test_normal_export_flow_is_direct_and_not_a_readiness_dashboard():
-    source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
+    source = (
+        Path("app_modules/export_step.py").read_text(encoding="utf-8")
+        + Path("app_modules/export_download_station.py").read_text(encoding="utf-8")
+    )
 
     assert "def _render_fatal_export_blockers" in source
     assert "Create PDF" in source

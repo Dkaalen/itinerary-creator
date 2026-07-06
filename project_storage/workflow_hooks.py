@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from collections.abc import MutableMapping
 from typing import Any
-
 from app_modules.project_identity import (
     active_project_id_from_state,
     ensure_active_project_id,
@@ -14,12 +13,15 @@ from app_modules.project_identity import (
 from calculator.calculator_state import CalculatorState
 from calculator.state_serialization import calculator_state_to_dict
 from project_storage.errors import clear_storage_error, record_storage_error
+from project_storage.file_writer import (
+    CALCULATION_XLSX_MIME,
+    PDF_MIME,
+    PROJECT_JSON_MIME,
+    save_unversioned_file,
+    save_versioned_file,
+)
 from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path
 from project_storage.runtime import get_project_storage_repository
-
-CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-PROJECT_JSON_MIME = "application/json"
-PDF_MIME = "application/pdf"
 
 
 def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
@@ -41,7 +43,7 @@ def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
         version_number = repository.next_version_number(itinerary_id, itinerary_type)
         content = json.dumps(project, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
         storage_path = itinerary_snapshot_path(itinerary_id, itinerary_type, version_number)
-        _save_versioned_file(
+        save_versioned_file(
             repository,
             itinerary_id=itinerary_id,
             version_number=version_number,
@@ -82,7 +84,7 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
         version_number = repository.next_version_number(itinerary_id, itinerary_type)
         content = json.dumps(project, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
         storage_path = itinerary_snapshot_path(itinerary_id, itinerary_type, version_number)
-        _save_versioned_file(
+        save_versioned_file(
             repository,
             itinerary_id=itinerary_id,
             version_number=version_number,
@@ -124,7 +126,7 @@ def save_calculation_workbook(
     try:
         repository.upsert_itinerary(itinerary_id, name=_state_itinerary_name(state, calculator_state.itinerary_name), status="draft")
         storage_path = calculator_workbook_path(itinerary_id, filename)
-        _save_unversioned_file(
+        save_unversioned_file(
             repository,
             itinerary_id=itinerary_id,
             file_type="calculator_xlsx",
@@ -159,7 +161,7 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
     try:
         repository.upsert_itinerary(itinerary_id, name=_state_itinerary_name(state), status="draft")
         storage_path = pdf_export_path(itinerary_id, output_brand, filename)
-        _save_unversioned_file(
+        save_unversioned_file(
             repository,
             itinerary_id=itinerary_id,
             file_type="pdf_export",
@@ -183,81 +185,6 @@ def ensure_storage_itinerary(state: MutableMapping[str, Any], *, name: str = "")
     if name and not state.get("itinerary_name"):
         state["itinerary_name"] = name
     return itinerary_id
-
-
-def _save_versioned_file(
-    repository: Any,
-    *,
-    itinerary_id: str,
-    version_number: int,
-    itinerary_type: str,
-    source_type: str,
-    payload: dict[str, Any],
-    file_type: str,
-    filename: str,
-    storage_path: str,
-    content: bytes,
-    content_type: str,
-) -> None:
-    """Save a versioned payload without leaving storage files when DB registration fails."""
-
-    version_id = ""
-    repository.upload_file(storage_path, content, content_type=content_type)
-    try:
-        version = repository.create_version(
-            itinerary_id=itinerary_id,
-            version_number=version_number,
-            itinerary_type=itinerary_type,
-            source_type=source_type,
-            payload=payload,
-        )
-        version_id = str(version.get("id") or "")
-        repository.register_file(
-            itinerary_id=itinerary_id,
-            version_id=version_id or None,
-            file_type=file_type,
-            filename=filename,
-            storage_path=storage_path,
-        )
-    except Exception:
-        _best_effort_cleanup(repository, storage_path=storage_path, version_id=version_id)
-        raise
-
-
-def _save_unversioned_file(
-    repository: Any,
-    *,
-    itinerary_id: str,
-    file_type: str,
-    filename: str,
-    storage_path: str,
-    content: bytes,
-    content_type: str,
-) -> None:
-    """Save a storage file and remove it if the file record cannot be registered."""
-
-    repository.upload_file(storage_path, content, content_type=content_type)
-    try:
-        repository.register_file(
-            itinerary_id=itinerary_id,
-            file_type=file_type,
-            filename=filename,
-            storage_path=storage_path,
-        )
-    except Exception:
-        _best_effort_cleanup(repository, storage_path=storage_path)
-        raise
-
-
-def _best_effort_cleanup(repository: Any, *, storage_path: str, version_id: str = "") -> None:
-    try:
-        repository.delete_storage_files([storage_path])
-    except Exception:
-        pass
-    try:
-        repository.delete_version(version_id)
-    except Exception:
-        pass
 
 
 def _state_itinerary_name(state: MutableMapping[str, Any], fallback: str = "") -> str:

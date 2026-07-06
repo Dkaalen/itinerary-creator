@@ -8,47 +8,34 @@ import streamlit as st
 
 from app_modules.export_image_validation import prepare_pdf_image_contract
 from app_modules.export_identity import export_signature_for_state
-from app_modules.export_issue_display import show_issue_list
 from app_modules.export_pdf_artifacts import clear_pdf_artifact, current_pdf_bytes, store_current_pdf_bytes
 from app_modules.export_render_context import day_image_crop_focus_for_grouped_days, pdf_render_context_for_signature
 from app_modules.export_timing import record_pdf_export_stage, reset_pdf_export_timings
 from project_storage.workflow_hooks import save_pdf_export
 from app_modules.performance_telemetry import measure_timing, record_timing
+from app_modules.pdf_export_blockers import client_safety_blocks_pdf, preview_contract_blocks_pdf
+from app_modules.pdf_export_preview_file import current_preview_html_path
 from app_modules.project_io import rebuild_current_preview
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from itinerary_generation.common import group_rows_by_day
-from itinerary_generation.output_contract import validate_output_layout_contract
-from itinerary_generation.quality_gate import evaluate_client_output_quality
 from ui.export_files import save_pdf_file
 
 
 def _current_preview_html_path() -> Path | None:
-    return Path(st.session_state.html_path) if st.session_state.get("html_path") else None
+    return current_preview_html_path(st.session_state)
 
 
 def _preview_contract_blocks_pdf(html: str, expected_day_count: int) -> bool:
-    contract_issues = validate_output_layout_contract(html, expected_day_count=expected_day_count)
-    blocking_contract_issues = [issue for issue in contract_issues if issue.severity == "error"]
-    if not blocking_contract_issues:
-        return False
-    clear_pdf_artifact("Blocked by preview structure")
-    show_issue_list("PDF export stopped because the preview structure is invalid.", blocking_contract_issues)
-    return True
+    return preview_contract_blocks_pdf(html, expected_day_count, clear_pdf_artifact=clear_pdf_artifact)
 
 
 def _client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_bank_status: dict) -> bool:
-    client_safety_report = evaluate_client_output_quality(
-        pdf_render_context.render_document,
-        day_images=image_matches,
-        image_bank_status=image_bank_status,
+    return client_safety_blocks_pdf(
+        pdf_render_context,
+        image_matches,
+        image_bank_status,
+        clear_pdf_artifact=clear_pdf_artifact,
     )
-    if not client_safety_report.is_blocked:
-        return False
-    clear_pdf_artifact("Blocked by client safety check")
-    st.error("PDF export stopped because client-facing output contains a fatal issue.")
-    for issue in client_safety_report.blocking_issues:
-        st.error(issue.message)
-    return True
 
 
 def create_pdf_from_current_preview() -> bool:

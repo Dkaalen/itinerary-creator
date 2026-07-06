@@ -7,6 +7,7 @@ CALCULATOR_DRAFT_NAMESPACE_KEY = "calculator_draft_namespace"
 CALCULATOR_ADVANCED_TOGGLE_KEY = "calculator_component_show_advanced"
 CALCULATOR_READY_DOWNLOAD_KEY = "calculator_ready_xlsx_download"
 CALCULATOR_ITINERARY_NAME_INPUT_KEY = "calculator_itinerary_name_input"
+CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY = "calculator_itinerary_name_sync_required"
 CALCULATOR_BACKUP_UPLOAD_KEY = "calculator_backup_upload"
 
 # Retired Streamlit-data-editor/autocomplete keys.  They are cleared at hard

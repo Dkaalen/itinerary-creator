@@ -118,8 +118,13 @@ def test_runtime_zip_fallback_download_is_bounded_by_network_timeout():
 
 def test_workflow_pages_surface_recovery_actions_for_commit_timeouts():
     preview_source = Path("app_modules/preview_step.py").read_text(encoding="utf-8")
-    picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
-    export_source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
+    pdf_gate_source = Path("app_modules/pdf_editor_commit_gate.py").read_text(encoding="utf-8")
+    picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8") + pdf_gate_source
+    export_source = (
+        Path("app_modules/export_step.py").read_text(encoding="utf-8")
+        + Path("app_modules/pdf_creation_request.py").read_text(encoding="utf-8")
+        + pdf_gate_source
+    )
 
     assert "workflow_transaction_state" in preview_source
     assert "Retry save" in preview_source

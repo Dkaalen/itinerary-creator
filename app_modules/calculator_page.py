@@ -148,7 +148,7 @@ def _render_backup_controls(state: CalculatorState) -> None:
     imported_state = render_calculator_backup_controls(state)
     if imported_state is None:
         return
-    store_calculator_state(st.session_state, imported_state)
+    store_calculator_state(st.session_state, imported_state, sync_name_input=True)
     st.success("Calculator backup reopened.")
     st.rerun()
 

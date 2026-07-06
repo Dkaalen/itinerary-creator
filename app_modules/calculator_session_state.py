@@ -11,6 +11,7 @@ from app_modules.calculator_state_keys import (
     CALCULATOR_BACKUP_UPLOAD_KEY,
     CALCULATOR_DRAFT_NAMESPACE_KEY,
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+    CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY,
     CALCULATOR_READY_DOWNLOAD_KEY,
     CALCULATOR_STATE_KEY,
     LEGACY_CALCULATOR_SESSION_KEYS,
@@ -41,6 +42,7 @@ def store_calculator_state(
     calculator_state: CalculatorState,
     *,
     clear_ready_download: bool = True,
+    sync_name_input: bool = False,
 ) -> None:
     """Persist calculator state and invalidate stale staged Excel downloads.
 
@@ -52,6 +54,8 @@ def store_calculator_state(
 
     previous = state.get(CALCULATOR_STATE_KEY)
     state[CALCULATOR_STATE_KEY] = calculator_state
+    if sync_name_input:
+        state[CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY] = True
     if clear_ready_download and previous != calculator_state:
         clear_ready_calculation_download(state)
 
@@ -60,7 +64,9 @@ def sync_calculator_itinerary_name_input(state: MutableMapping[str, Any]) -> Non
     """Sync the itinerary-name widget key before the text input is rendered."""
 
     calculator_state = calculator_state_from_session(state)
-    state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] = calculator_state.itinerary_name
+    sync_required = bool(state.pop(CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY, False))
+    if sync_required or CALCULATOR_ITINERARY_NAME_INPUT_KEY not in state:
+        state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] = calculator_state.itinerary_name
 
 
 def update_calculator_itinerary_name(state: MutableMapping[str, Any], itinerary_name: str) -> CalculatorState:
@@ -92,6 +98,7 @@ def clear_calculator_project_state(state: MutableMapping[str, Any]) -> None:
         CALCULATOR_STATE_KEY,
         CALCULATOR_ADVANCED_TOGGLE_KEY,
         CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+        CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY,
         CALCULATOR_BACKUP_UPLOAD_KEY,
         CALCULATOR_DRAFT_NAMESPACE_KEY,
         CALCULATOR_READY_DOWNLOAD_KEY,

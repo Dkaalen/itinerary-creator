@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from app_modules.calculator_currency_controls import CURRENCY_RATES_STATE_KEY
 from app_modules.calculator_navigation import CALCULATOR_STATE_KEY
+from app_modules.calculator_state_keys import CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY
 from app_modules.image_bank_readiness import image_bank_readiness_label, image_bank_readiness_message
 from app_modules.saved_project_builder import build_saved_project_from_state
 from app_modules.saved_project_calculator_state import apply_calculator_snapshot_to_state
@@ -75,6 +76,7 @@ def test_saved_project_preserves_and_restores_calculator_snapshot() -> None:
     restored_calculator = restored_state[CALCULATOR_STATE_KEY]
     assert isinstance(restored_calculator, CalculatorState)
     assert restored_calculator.itinerary_name == "Calculator Trip"
+    assert restored_state[CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY] is True
     assert restored_calculator.rows[0].travel_element == "Oslo walk"
     assert restored_state[CURRENCY_RATES_STATE_KEY]["EUR"] == 12.5
 

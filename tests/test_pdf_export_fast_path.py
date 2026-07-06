@@ -48,11 +48,14 @@ def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
 
 
 def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
-    source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
+    source = (
+        Path("app_modules/export_step.py").read_text(encoding="utf-8")
+        + Path("app_modules/pdf_creation_request.py").read_text(encoding="utf-8")
+    )
 
     assert "visual_editor_export_commit_ready" not in source
     assert "Applying pending editor changes" not in source
-    assert "_clear_stale_pdf_editor_state()" in source
+    assert "clear_stale_pdf_editor_state()" in source
     assert "request_editor_save_before_pdf(st.session_state)" not in source
     assert "create_pdf_from_current_preview()" in source
 

@@ -55,7 +55,7 @@ def apply_calculator_snapshot_to_state(state: MutableMapping[str, Any], payload:
 
     snapshot = normalize_calculator_snapshot(payload)
     calculator_state = calculator_state_from_snapshot(snapshot)
-    store_calculator_state(state, calculator_state)
+    store_calculator_state(state, calculator_state, sync_name_input=True)
     state[CURRENCY_RATES_STATE_KEY] = normalize_currency_rates(snapshot.get("currency_rates"))
 
 

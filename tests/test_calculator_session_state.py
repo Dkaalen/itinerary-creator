@@ -13,6 +13,7 @@ from app_modules.calculator_state_keys import (
     CALCULATOR_ADVANCED_TOGGLE_KEY,
     CALCULATOR_DRAFT_NAMESPACE_KEY,
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+    CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY,
     CALCULATOR_READY_DOWNLOAD_KEY,
     CALCULATOR_STATE_KEY,
 )
@@ -44,6 +45,7 @@ def test_store_calculator_state_clears_stale_prepared_excel_after_real_change() 
 
     assert session_state[CALCULATOR_STATE_KEY] == changed
     assert CALCULATOR_READY_DOWNLOAD_KEY not in session_state
+    assert CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY not in session_state
 
 
 def test_store_calculator_state_keeps_ready_excel_when_state_is_unchanged() -> None:
@@ -71,15 +73,38 @@ def test_update_calculator_itinerary_name_uses_same_state_authority() -> None:
     assert CALCULATOR_READY_DOWNLOAD_KEY not in session_state
 
 
-def test_sync_calculator_itinerary_name_input_runs_before_widget_render_only() -> None:
+def test_sync_calculator_itinerary_name_input_initializes_missing_widget_key() -> None:
     session_state: dict[str, object] = {
         CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Synced", rows=(CalculatorRow(row_id="1"),)),
-        CALCULATOR_ITINERARY_NAME_INPUT_KEY: "Old widget value",
     }
 
     sync_calculator_itinerary_name_input(session_state)
 
     assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "Synced"
+
+
+def test_sync_calculator_itinerary_name_input_does_not_overwrite_user_typing() -> None:
+    session_state: dict[str, object] = {
+        CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Stored", rows=(CalculatorRow(row_id="1"),)),
+        CALCULATOR_ITINERARY_NAME_INPUT_KEY: "User typed",
+    }
+
+    sync_calculator_itinerary_name_input(session_state)
+
+    assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "User typed"
+
+
+def test_sync_calculator_itinerary_name_input_applies_pending_programmatic_restore() -> None:
+    session_state: dict[str, object] = {
+        CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Restored", rows=(CalculatorRow(row_id="1"),)),
+        CALCULATOR_ITINERARY_NAME_INPUT_KEY: "Previous project",
+        CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY: True,
+    }
+
+    sync_calculator_itinerary_name_input(session_state)
+
+    assert session_state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] == "Restored"
+    assert CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY not in session_state
 
 
 def test_store_calculator_state_does_not_write_widget_owned_name_key() -> None:
@@ -114,6 +139,7 @@ def test_clear_calculator_project_state_removes_current_and_retired_keys() -> No
         CALCULATOR_ADVANCED_TOGGLE_KEY: True,
         CALCULATOR_DRAFT_NAMESPACE_KEY: "session:abc",
         CALCULATOR_READY_DOWNLOAD_KEY: {"content": b"xlsx"},
+        CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY: True,
         "calculator_grid_revision": 7,
         "calculator_grid_editor_7": [{"row_id": "old"}],
         "calculator_travel_element_autocomplete_query": "hotel",
@@ -126,6 +152,7 @@ def test_clear_calculator_project_state_removes_current_and_retired_keys() -> No
     assert CALCULATOR_ADVANCED_TOGGLE_KEY not in session_state
     assert CALCULATOR_DRAFT_NAMESPACE_KEY not in session_state
     assert CALCULATOR_READY_DOWNLOAD_KEY not in session_state
+    assert CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY not in session_state
     assert "calculator_grid_revision" not in session_state
     assert "calculator_grid_editor_7" not in session_state
     assert "calculator_travel_element_autocomplete_query" not in session_state
