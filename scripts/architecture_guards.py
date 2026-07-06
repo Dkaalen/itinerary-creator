@@ -350,6 +350,17 @@ def oversized_editor_css_files(limit: int = 500) -> tuple[SizeHit, ...]:
     return _oversized_files(root, frozenset({".css"}), limit)
 
 
+def oversized_streamlit_style_files(limit: int = 260) -> tuple[SizeHit, ...]:
+    """Return Streamlit style modules that have absorbed too many responsibilities."""
+
+    root = REPO_ROOT / "ui"
+    return tuple(
+        hit
+        for hit in _oversized_files(root, frozenset({".py"}), limit)
+        if Path(hit.path).name.startswith("style_")
+    )
+
+
 def root_patch_artifact_hits() -> tuple[str, ...]:
     hits = [name for name in ROOT_PATCH_ARTIFACT_NAMES if (REPO_ROOT / name).exists()]
     hits.extend(name for name in PATCH_METADATA_DIR_NAMES if (REPO_ROOT / name).exists())
@@ -555,6 +566,10 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck(
             "Editor CSS file size",
             lambda: _fail_if_any("oversized editor CSS", oversized_editor_css_files()),
+        ),
+        ArchitectureCheck(
+            "Streamlit style module size",
+            lambda: _fail_if_any("oversized Streamlit style module", oversized_streamlit_style_files()),
         ),
         ArchitectureCheck(
             "Core-named Python file size",

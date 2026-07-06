@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 
 def test_workspace_shell_does_not_disable_page_scroll() -> None:
-    css = Path("ui/style_app_shell.py").read_text(encoding="utf-8")
+    from ui import style_app_shell
+
+    css = style_app_shell.CSS
 
     assert "overflow-y: auto !important;" in css
     assert ".block-container:has(.studio-brand-link)" in css

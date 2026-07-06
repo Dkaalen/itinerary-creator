@@ -15,6 +15,7 @@ from scripts.architecture_guards import (
     oversized_editor_css_files,
     oversized_frontend_js_files,
     oversized_python_functions,
+    oversized_streamlit_style_files,
     oversized_workflow_python_files,
     patch_history_name_hits,
     root_patch_artifact_hits,
@@ -34,6 +35,7 @@ def test_file_size_guards_protect_recently_split_frontend_and_workflow_files() -
     assert oversized_workflow_python_files() == ()
     assert oversized_core_python_files() == ()
     assert oversized_editor_css_files() == ()
+    assert oversized_streamlit_style_files() == ()
     assert oversized_core_named_python_files() == ()
     assert oversized_cleaned_generation_core_facades() == ()
 
