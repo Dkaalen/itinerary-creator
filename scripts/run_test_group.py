@@ -16,6 +16,8 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.test_groups import (
     GROUPS,
     GROUP_ORDER,
+    HEALTH_CHECK_GROUPS,
+    RELEASE_CANDIDATE_GROUPS,
     CHUNKED_GROUP_STAGE_SIZES,
     chunked_group_stages,
     build_full_stages,
@@ -28,7 +30,7 @@ DEFAULT_PYTEST_FLAGS = ("-q", "--durations=10")
 DEFAULT_STAGE_TIMEOUT_SECONDS = int(
     os.environ.get("ITINERARY_TEST_STAGE_TIMEOUT_SECONDS", "300")
 )
-RUNNER_GROUPS = (*GROUP_ORDER, "full")
+RUNNER_GROUPS = (*GROUP_ORDER, "health", "release", "full")
 
 
 def _split_extra_pytest_args(extra_args: list[str]) -> list[str]:
@@ -109,9 +111,7 @@ def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[
     return result.returncode
 
 
-def _stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
-    if group_name == "full":
-        return build_full_stages(REPO_ROOT)
+def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if group_name == "slow":
         return build_slow_stages()
     if group_name in {"fast", "quality", *CHUNKED_GROUP_STAGE_SIZES}:
@@ -121,6 +121,23 @@ def _stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...
             stage_size=CHUNKED_GROUP_STAGE_SIZES.get(group_name, 4),
         )
     return ((group_name, GROUPS[group_name]),)
+
+
+def _group_sequence_stages(group_names: tuple[str, ...]) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    stages: list[tuple[str, tuple[str, ...]]] = []
+    for group_name in group_names:
+        stages.extend(_base_stages_for_group(group_name))
+    return tuple(stages)
+
+
+def _stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    if group_name == "full":
+        return build_full_stages(REPO_ROOT)
+    if group_name == "health":
+        return _group_sequence_stages(HEALTH_CHECK_GROUPS)
+    if group_name == "release":
+        return _group_sequence_stages(RELEASE_CANDIDATE_GROUPS)
+    return _base_stages_for_group(group_name)
 
 
 def _print_group_plan(group_name: str) -> None:
@@ -155,8 +172,8 @@ def run_named_group(group_name: str, extra_args: list[str]) -> int:
 
     stages = _stages_for_group(group_name)
 
-    if group_name == "full":
-        print(f"Full suite plan: {len(stages)} progress-tracked stages", flush=True)
+    if group_name in {"health", "release", "full"}:
+        print(f"{group_name.title()} suite plan: {len(stages)} progress-tracked stages", flush=True)
 
     for stage_name, pytest_paths in stages:
         code = _run_pytest(stage_name, tuple(pytest_paths), extra_args)

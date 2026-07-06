@@ -13,14 +13,18 @@ from scripts.run_test_group import (
 from scripts.test_groups import (
     GROUPS,
     GROUP_ORDER,
+    HEALTH_CHECK_GROUPS,
+    RELEASE_CANDIDATE_GROUPS,
     build_full_stages,
     build_slow_stages,
+    fast_module_names,
     focused_group_names,
     group_descriptions,
     empty_legacy_test_modules,
     missing_group_paths,
     pdf_module_names,
     quality_module_names,
+    slow_direct_targets,
     slow_module_names,
 )
 
@@ -49,7 +53,7 @@ def test_full_test_plan_covers_every_test_module() -> None:
 
     assert set(planned) == discovered
 
-    split_modules = {"test_regressions_fixture_quality.py"}
+    split_modules = slow_module_names()
     unsplit_modules = [module for module in planned if module not in split_modules]
     assert len(unsplit_modules) == len(set(unsplit_modules))
 
@@ -69,6 +73,16 @@ def test_marker_sets_stay_aligned_with_named_groups() -> None:
     assert {_module_name(path) for path in GROUPS["quality"]}.issubset(quality_module_names())
 
 
+def test_fast_group_is_free_of_pdf_slow_and_large_quality_modules() -> None:
+    heavy_modules = pdf_module_names() | slow_module_names() | quality_module_names()
+
+    assert fast_module_names().isdisjoint(heavy_modules)
+
+
+def test_pdf_group_excludes_isolated_slow_modules() -> None:
+    assert pdf_module_names().isdisjoint(slow_module_names())
+
+
 def test_powershell_runners_delegate_to_shared_python_runner() -> None:
     expected_scripts = {
         "fast": "run_fast_tests.ps1",
@@ -83,18 +97,23 @@ def test_powershell_runners_delegate_to_shared_python_runner() -> None:
         "workflow": "run_workflow_tests.ps1",
         "quality": "run_quality_tests.ps1",
         "pdf": "run_pdf_tests.ps1",
+        "health": "run_health_check.ps1",
+        "release": "run_release_candidate_tests.ps1",
         "full": "run_full_tests.ps1",
     }
 
     for group, script in expected_scripts.items():
         text = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8")
-        assert "run_test_group.py" in text
-        assert f"run_test_group.py {group}" in text
+        assert "run_test_group.py" in text or f"run_{group}" in text
+        if group in GROUPS or group == "full":
+            assert f"run_test_group.py {group}" in text
 
 
 def test_runner_accepts_every_documented_group() -> None:
-    assert RUNNER_GROUPS == (*GROUP_ORDER, "full")
-    assert set(group_descriptions()) == set(GROUPS)
+    assert RUNNER_GROUPS == (*GROUP_ORDER, "health", "release", "full")
+    assert set(GROUPS).issubset(group_descriptions())
+    assert "health" in group_descriptions()
+    assert "release" in group_descriptions()
 
 
 def test_focused_groups_exist_for_common_patch_areas() -> None:
@@ -114,6 +133,25 @@ def test_focused_groups_exist_for_common_patch_areas() -> None:
         assert name in group_descriptions()
 
 
+def test_health_and_release_groups_have_clear_scope() -> None:
+    assert HEALTH_CHECK_GROUPS == ("fast",)
+    assert RELEASE_CANDIDATE_GROUPS == (
+        "fast",
+        "calculator",
+        "storage",
+        "workflow",
+        "parser",
+        "activity",
+        "architecture",
+        "editor",
+        "images",
+        "ui",
+        "quality",
+        "pdf",
+    )
+    assert "slow" not in RELEASE_CANDIDATE_GROUPS
+
+
 def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
     fast_stages = _stages_for_group("fast")
 
@@ -129,9 +167,18 @@ def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
     assert len(_stages_for_group("ui")) > 1
     assert len(_stages_for_group("pdf")) > 1
     assert all(len(paths) <= 3 for _name, paths in _stages_for_group("pdf"))
+    assert _stages_for_group("health") == _stages_for_group("fast")
     assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
     assert _stages_for_group("slow") == build_slow_stages()
 
+
+def test_release_plan_is_composed_from_timeout_safe_groups() -> None:
+    release_stages = _stages_for_group("release")
+    release_targets = [path for _name, paths in release_stages for path in paths]
+
+    assert release_stages
+    assert not any(path.startswith("tests/test_real_fixture_quality_gate.py::") for path in release_targets)
+    assert not any(name.startswith("slow ") for name, _paths in release_stages)
 
 
 def test_runner_plan_flags_do_not_leak_into_pytest_args() -> None:
@@ -143,12 +190,14 @@ def test_runner_plan_flags_do_not_leak_into_pytest_args() -> None:
         False,
     )
 
+
 def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     stages = build_slow_stages()
     flattened_targets = [paths[0] for _name, paths in stages]
 
-    assert len(stages) > len(GROUPS["slow"])
-    assert "tests/test_broad_logic_stress_regressions.py" in flattened_targets
+    assert flattened_targets == list(slow_direct_targets(REPO_ROOT))
+    assert len(stages) == 29
+    assert "tests/test_broad_logic_stress_regressions.py::test_daytime_train_preserves_seat_quantity_without_raw_supplier_title" in flattened_targets
     assert "tests/test_regressions_fixture_quality.py::test_v36c57_real_uploaded_inputs_quality_gate" in flattened_targets
     assert all(len(paths) == 1 for _name, paths in stages)
     assert all(name.startswith("slow ") for name, _paths in stages)
@@ -179,9 +228,7 @@ def test_runner_respects_explicit_pytest_plugin_autoload_env(monkeypatch) -> Non
     assert _pytest_env()["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "0"
 
 
-def test_slow_harness_uses_configured_slow_modules() -> None:
+def test_slow_harness_uses_exact_slow_direct_targets() -> None:
     from scripts.run_slow_tests import _slow_targets
 
-    discovered_modules = {target[0] for target in _slow_targets()}
-
-    assert discovered_modules == set(GROUPS["slow"])
+    assert [f"{path}::{name}" for path, name in _slow_targets()] == list(slow_direct_targets(REPO_ROOT))

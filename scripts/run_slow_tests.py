@@ -1,17 +1,14 @@
 """Run slow quality checks with process-chain isolation.
 
-The slow lane exercises large real fixtures and rendered PDFs. A single pytest
-session can hang when renderer/PDF globals and pytest teardown interact. A
-long-lived Python launcher can also become unreliable after repeatedly spawning
-heavy render tests in constrained environments. This runner therefore restarts
-itself between slow targets: each launcher process runs one no-fixture test in a
-fresh worker, then ``exec``-replaces itself with the next launcher.
+The slow lane exercises large real fixtures and rendered PDFs. Each direct
+no-fixture test target is executed in a fresh worker process, then the launcher
+``exec``-replaces itself with the next target. This keeps renderer/PDF globals
+from leaking across slow checks and makes timeouts fail honestly.
 """
 
 from __future__ import annotations
 
 import argparse
-import ast
 import os
 import subprocess
 import sys
@@ -22,30 +19,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.test_groups import SLOW_TESTS
+from scripts.test_groups import slow_direct_targets
 
 WORKER = "scripts/run_test_function_direct.py"
 TEST_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_SLOW_TEST_TIMEOUT_SECONDS", "120"))
 STARTED_ENV = "ITINERARY_SLOW_CHAIN_STARTED"
 
 
-def _test_names(relative_path: str) -> list[str]:
-    tree = ast.parse((REPO_ROOT / relative_path).read_text(encoding="utf-8"))
-    return [
-        node.name
-        for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-        and node.name.startswith("test_")
-        and not node.args.args
-    ]
-
-
 def _slow_targets() -> list[tuple[str, str]]:
-    return [
-        (relative_path, test_name)
-        for relative_path in SLOW_TESTS
-        for test_name in _test_names(relative_path)
-    ]
+    targets: list[tuple[str, str]] = []
+    for target in slow_direct_targets(REPO_ROOT):
+        relative_path, separator, test_name = target.partition("::")
+        if not separator or not test_name:
+            raise ValueError(f"Slow target must be a direct test function: {target}")
+        targets.append((relative_path, test_name))
+    return targets
 
 
 def _worker_env() -> dict[str, str]:

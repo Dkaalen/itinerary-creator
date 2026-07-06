@@ -26,9 +26,6 @@ CHUNKED_GROUP_STAGE_SIZES = {
 }
 
 FAST_TESTS = (
-    "tests/test_sync_regression_suite1.py",
-    "tests/test_destination_copy_profiles3_regression.py",
-    "tests/test_output_qa1_client_risk_quality.py",
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
     "tests/test_date_resolver.py",
@@ -36,57 +33,19 @@ FAST_TESTS = (
     "tests/test_commercial_status_helpers.py",
     "tests/test_normalizer_context_architecture.py",
     "tests/test_transport_model_architecture.py",
-    "tests/test_patch_ai_transport_domain.py",
-    "tests/test_patch_ak_cleanup_hygiene.py",
-    "tests/test_patch_bz1f_dead_code_packaging.py",
-    "tests/test_patch_al_editor_preview_ownership.py",
-    "tests/test_patch_am_client_output_quality.py",
-    "tests/test_patch_an_add_pictures_workflow.py",
-    "tests/test_patch_bl_editor_styling.py",
-    "tests/test_patch_bp_editor_workflow_split.py",
-    "tests/test_patch_bq_style_registry.py",
-    "tests/test_patch_bo_state_ownership.py",
-    "tests/test_patch_bs_architecture_boundaries.py",
     "tests/test_runtime_alignment.py",
     "tests/test_regressions_parser_normalizer.py",
-    "tests/test_patch_ih3_iceland_group_tour_parsing.py",
-    "tests/test_stress_logic_followups.py",
-    "tests/test_itinerary_health_report.py",
     "tests/test_content_validator_scoping.py",
-    "tests/test_fixture_quality_polish.py",
-    "tests/test_nordic_quality_sample.py",
-    "tests/test_compound_experience_transport_timing.py",
-    "tests/test_accommodation_stress_fixtures.py",
-    "tests/test_activity_compound_stress_fixtures.py",
-    "tests/test_patch_bx1_hot_path_caching.py",
-    "tests/test_patch_by_destination_image_delivery.py",
-    "tests/test_patch_bz1e_correctness_diagnostics.py",
     "tests/test_leisure_arrival_metadata_cleanup.py",
-    "tests/test_patch_k_transport_preview_quality.py",
     "tests/test_messy_transport_safety_net.py",
-    "tests/test_visual_editor_autosave_contract.py",
-    "tests/test_visual_editor_typed_draft.py",
-    "tests/test_patch_n_editor_image_safety.py",
-    "tests/test_patch_o_editor_section_safety.py",
     "tests/test_structured_core_model.py",
     "tests/test_structured_html_source_identity.py",
     "tests/test_output_layout_contract.py",
     "tests/test_image_match_audit.py",
-    "tests/test_patch_bt_nutshell_cover_toolbar.py",
-    "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_text_cleanup_caching.py",
-    "tests/test_input7_supplier_review_workflow.py",
-    "tests/test_input8_supplier_correction_workflow.py",
-    "tests/test_input9_accept_supplier_corrections.py",
-    "tests/test_editor4_selection_refinement.py",
-    "tests/test_review4_actionable_review_center.py",
-    "tests/test_cleanup1_editor_review_contract.py",
-    "tests/test_cleanup_regression_suite1.py",
-    "tests/test_copy1_premium_day_intro_engine.py",
-    "tests/test_image_qa1_service_aware_matching.py",
-    "tests/test_pdf8_luxury_day_layout.py",
-    "tests/test_review5_client_readiness_export_gate.py",
-    "tests/test_brand1_proposal_profiles.py",
+    "tests/test_patch_bx1_hot_path_caching.py",
+    "tests/test_patch_by_destination_image_delivery.py",
+    "tests/test_fixture_quality_polish.py",
 )
 
 PARSER_TESTS = (
@@ -318,14 +277,11 @@ QUALITY_TESTS = (
 PDF_TESTS = (
     "tests/test_sync_regression_suite1.py",
     "tests/test_patch_aj_pdf_render_model.py",
-    "tests/test_pdf.py",
     "tests/test_pdf6_luxury_proposal.py",
     "tests/test_pdf7_proposal_footer.py",
     "tests/test_pdf_export_fast_path.py",
     "tests/test_preview_pdf_parity.py",
     "tests/test_regressions_pdf_inclusions.py",
-    "tests/test_rendered_pdf_quality.py",
-    "tests/test_self_drive_pdf_preview_parity.py",
     "tests/test_patch_bt_nutshell_cover_toolbar.py",
     "tests/test_patch_bu_nutshell_fjordtours.py",
     "tests/test_patch_bz1c_nutshell_consumer_parity.py",
@@ -420,8 +376,38 @@ GROUPS = {
 
 GROUP_ORDER = tuple(GROUPS)
 
+# Short, timeout-safe confidence paths.  These are intentionally explicit so
+# CI, PowerShell runners, and release validation cannot silently drift apart.
+HEALTH_CHECK_GROUPS = ("fast",)
+RELEASE_CANDIDATE_GROUPS = (
+    "fast",
+    "calculator",
+    "storage",
+    "workflow",
+    "parser",
+    "activity",
+    "architecture",
+    "editor",
+    "images",
+    "ui",
+    "quality",
+    "pdf",
+)
+CI_MATRIX_GROUPS = (
+    "fast",
+    "calculator",
+    "storage",
+    "workflow",
+    "architecture",
+    "parser",
+    "activity",
+    "editor",
+    "images",
+    "ui",
+)
+
 GROUP_DESCRIPTIONS = {
-    "fast": "small everyday safety gate for most patches",
+    "fast": "small everyday safety gate with PDF/slow/large quality checks excluded",
     "parser": "text cleanup, date/time, extractor, and normalizer regressions",
     "activity": "activity product rules, catalogue matching, source fidelity, and QA warnings",
     "architecture": "structured model boundaries, render ownership, and test-runner infrastructure",
@@ -434,6 +420,8 @@ GROUP_DESCRIPTIONS = {
     "quality": "medium itinerary quality and content/rendering regressions",
     "pdf": "PDF export and preview/PDF parity checks",
     "slow": "isolated large-fixture and PDF-heavy stability checks",
+    "health": "quick local health check: compile/import/collect plus the fast lane",
+    "release": "strong timeout-safe release candidate check without the isolated slow harness",
 }
 
 SLOW_TEST_SPLITS = {
@@ -563,13 +551,15 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
 
 
 def _expand_slow_targets(paths: tuple[str, ...]) -> tuple[str, ...]:
+    if tuple(paths) == SLOW_TESTS:
+        return slow_direct_targets()
+
+    root = Path(__file__).resolve().parents[1]
     targets: list[str] = []
     for path in paths:
-        split_tests = SLOW_TEST_SPLITS.get(path)
-        if split_tests:
-            targets.extend(f"{path}::{test_name}" for test_name in split_tests)
-        else:
-            targets.append(path)
+        explicit_tests = SLOW_TEST_SPLITS.get(path)
+        names = explicit_tests or _no_arg_test_function_names(root, path)
+        targets.extend(f"{path}::{test_name}" for test_name in names)
     return tuple(targets)
 
 
@@ -602,6 +592,53 @@ def group_descriptions() -> dict[str, str]:
     """Return human-readable descriptions for every named test lane."""
 
     return dict(GROUP_DESCRIPTIONS)
+
+
+
+
+def group_module_names() -> dict[str, set[str]]:
+    """Return test module names keyed by runner group."""
+
+    return {name: {_module_name(path) for path in paths} for name, paths in GROUPS.items()}
+
+
+def module_group_names(module_name: str) -> tuple[str, ...]:
+    """Return runner groups that include a test module."""
+
+    groups = group_module_names()
+    return tuple(name for name in GROUP_ORDER if module_name in groups[name])
+
+
+def fast_module_names() -> set[str]:
+    return {_module_name(path) for path in FAST_TESTS}
+
+
+def _no_arg_test_function_names(repo_root: Path, relative_path: str) -> tuple[str, ...]:
+    """Return direct-callable no-fixture test functions from a test module."""
+
+    import ast
+
+    tree = ast.parse((repo_root / relative_path).read_text(encoding="utf-8"))
+    names = [
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name.startswith("test_")
+        and not node.args.args
+    ]
+    return tuple(names)
+
+
+def slow_direct_targets(repo_root: Path | None = None) -> tuple[str, ...]:
+    """Return the exact isolated slow-test targets used by the slow harness."""
+
+    root = repo_root or Path(__file__).resolve().parents[1]
+    targets: list[str] = []
+    for path in SLOW_TESTS:
+        explicit_tests = SLOW_TEST_SPLITS.get(path)
+        names = explicit_tests or _no_arg_test_function_names(root, path)
+        targets.extend(f"{path}::{name}" for name in names)
+    return tuple(targets)
 
 
 def pdf_module_names() -> set[str]:

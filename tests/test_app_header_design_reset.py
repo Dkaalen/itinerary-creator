@@ -44,14 +44,40 @@ def test_app_header_renders_compact_workspace_shell_for_active_itinerary(monkeyp
     assert "Unsaved changes" in calls[0][1]
 
 
-def test_input_page_uses_compact_project_upload_and_calculator_entry():
-    project_source = __import__("pathlib").Path("app_modules/project_browser_ui.py").read_text()
-    nav_source = __import__("pathlib").Path("app_modules/calculator_navigation.py").read_text()
+def test_input_page_uses_compact_project_upload_and_calculator_entry(monkeypatch):
+    from app_modules import calculator_navigation, project_browser_ui
 
-    assert 'st.button("Open project", use_container_width=True' in project_source
-    assert '@st.dialog("Open project")' in project_source
-    assert 'st.expander("Open saved project", expanded=False)' not in project_source
-    assert 'st.container(border=True)' not in project_source
-    assert '"Open calculator"' in nav_source
-    assert 'st.button("Open calculator", type="primary"' not in nav_source
-    assert '"Calculate itinerary", type="primary", use_container_width=True' not in nav_source
+    project_calls = []
+    fake_project_st = SimpleNamespace(
+        button=lambda *args, **kwargs: project_calls.append((args, kwargs)) or True,
+    )
+    dialog_calls = []
+    monkeypatch.setattr(project_browser_ui, "st", fake_project_st)
+    monkeypatch.setattr(project_browser_ui, "_render_open_project_dialog", lambda: dialog_calls.append("opened"))
+
+    project_browser_ui.render_open_project_file_action()
+
+    assert project_calls == [(("Open project",), {"use_container_width": True, "help": "Open a saved cloud project or backup file."})]
+    assert dialog_calls == ["opened"]
+
+    nav_calls = []
+    fake_nav_st = SimpleNamespace(
+        session_state={},
+        button=lambda *args, **kwargs: nav_calls.append(("button", args, kwargs)) or False,
+        caption=lambda *args, **kwargs: nav_calls.append(("caption", args, kwargs)),
+        rerun=lambda: nav_calls.append(("rerun", (), {})),
+    )
+    monkeypatch.setattr(calculator_navigation, "st", fake_nav_st)
+
+    calculator_navigation.render_calculator_entry_button()
+
+    assert nav_calls[0] == (
+        "button",
+        ("Open calculator",),
+        {
+            "use_container_width": True,
+            "help": "Build, price, export, and generate an itinerary from the in-app spreadsheet.",
+        },
+    )
+    assert nav_calls[1][0] == "caption"
+    assert not any(call[0] == "rerun" for call in nav_calls)
