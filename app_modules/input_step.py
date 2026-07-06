@@ -5,6 +5,12 @@ import streamlit as st
 from app_modules.app_header import _render_app_header, _stage_panel
 from app_modules.calculator_navigation import render_calculator_entry_button
 from app_modules.debug_mode import is_debug_mode
+from app_modules.input_workspace import (
+    render_generation_action_bar,
+    render_input_hero,
+    render_section_header,
+    render_source_guidance,
+)
 from app_modules.itinerary_name_state import sync_itinerary_name_from_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
 from app_modules.presentation_language_ui import render_presentation_language_selector
@@ -36,6 +42,7 @@ def _generate_itinerary(raw_text: str, output_brand: str = "agent") -> bool:
         return False
     return True
 
+
 def _render_generation_messages() -> None:
     if not is_debug_mode(st.session_state):
         return
@@ -55,33 +62,70 @@ def _render_generation_messages() -> None:
     if validation_report:
         render_warning_issues(validation_report)
 
+
 def render_input_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
+    render_input_hero()
 
-    render_calculator_entry_button()
-    render_open_project_file_action()
-    render_itinerary_name_input()
-    settings_col_a, settings_col_b = st.columns(2)
-    with settings_col_a:
-        render_presentation_language_selector()
-    with settings_col_b:
-        render_tone_preset_selector()
+    main_col, tool_col = st.columns([0.68, 0.32], gap="large")
+    with main_col:
+        render_section_header(
+            "Itinerary details",
+            "Set the document name and output style before pasting rows.",
+            kicker="Document",
+        )
+        render_itinerary_name_input()
+        settings_col_a, settings_col_b = st.columns(2)
+        with settings_col_a:
+            render_presentation_language_selector()
+        with settings_col_b:
+            render_tone_preset_selector()
 
-    raw_text = st.text_area(
-        "Supplier text",
-        height=430,
-        placeholder="Paste itinerary rows here…",
-        key="raw_text_input",
-        label_visibility="collapsed",
-    )
+        render_source_guidance()
+        raw_text = st.text_area(
+            "Supplier text",
+            height=390,
+            placeholder="Paste itinerary rows here…",
+            key="raw_text_input",
+            label_visibility="collapsed",
+        )
+    with tool_col:
+        st.html(
+            """
+            <div class="workspace-tool-card">
+              <span class="tool-card-title">Start from calculator</span>
+              <p class="tool-card-description">Build pricing rows first, then generate the itinerary from the spreadsheet.</p>
+            </div>
+            """
+        )
+        render_calculator_entry_button()
+        st.html(
+            """
+            <div class="workspace-tool-card">
+              <span class="tool-card-title">Continue saved work</span>
+              <p class="tool-card-description">Open a project file when you want to return to edits, images, or export state.</p>
+            </div>
+            """
+        )
+        render_open_project_file_action()
+        st.html(
+            """
+            <div class="workspace-help-card">
+              <span class="tool-card-title">Cleaner output starts here</span>
+              <p class="tool-card-description">Use the agent version for internal review. Generate the customer version when the content is ready for client wording.</p>
+            </div>
+            """
+        )
 
-    agent_col, customer_col = st.columns(2)
+    render_generation_action_bar()
+    agent_col, customer_col, spacer_col = st.columns([0.34, 0.34, 0.32])
     generate_agent = agent_col.button("Generate Agent Itinerary", type="primary", use_container_width=True)
     generate_customer = customer_col.button("Generate Customer Itinerary", use_container_width=True)
+    spacer_col.caption("The generated itinerary opens in the editor for review before pictures and PDF export.")
     if generate_agent or generate_customer:
         if not raw_text.strip():
-            st.warning("Please paste supplier text first.")
+            st.warning("Paste the supplier rows first, then generate the itinerary.")
             return
         output_brand = "booknordics_customer" if generate_customer else "agent"
         with st.spinner("Building your itinerary…"):

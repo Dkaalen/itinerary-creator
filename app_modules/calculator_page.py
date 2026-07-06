@@ -32,6 +32,7 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_page_width_css()
     state = _calculator_state_from_session()
     _render_app_header(app_version, stage="input")
+    _render_calculator_hero()
     _render_top_actions()
     currency_rates = render_currency_rate_editor(st.session_state)
     refresh_library = render_local_library_refresh_control()
@@ -85,18 +86,30 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
     return result.state
 
 
+def _render_calculator_hero() -> None:
+    st.html(
+        """
+        <section class="calculator-hero">
+          <span class="calculator-kicker">Calculator workspace</span>
+          <h1 class="calculator-title">Price the itinerary before it becomes a document.</h1>
+          <p class="calculator-description">Use spreadsheet rows, Local Library autocomplete, and Excel export before generating the agent or customer itinerary.</p>
+        </section>
+        """
+    )
+
+
 def _render_top_actions() -> None:
-    back_col, library_col, spacer = st.columns([0.16, 0.18, 0.66])
+    back_col, library_col, status_col = st.columns([0.18, 0.22, 0.60], vertical_alignment="center")
     with back_col:
-        if st.button("Back", use_container_width=True):
+        if st.button("Back to workspace", use_container_width=True):
             close_calculator_page(st.session_state)
             st.rerun()
     with library_col:
-        if st.button("Manage Local Library", use_container_width=True):
+        if st.button("Local Library", use_container_width=True):
             open_local_library_page(st.session_state)
             st.rerun()
-    with spacer:
-        st.caption("Calculator workspace")
+    with status_col:
+        st.html('<p class="calculator-status-caption">Drafts are saved to this browser and synced to the current project when possible.</p>')
 
 
 def _render_backend_action(

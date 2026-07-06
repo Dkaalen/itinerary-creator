@@ -24,7 +24,7 @@ def test_normal_export_flow_is_direct_and_not_a_readiness_dashboard():
     assert "Download PDF" in source
     assert "def _render_export_readiness_panel" not in source
     assert "Export checks" not in source
-    assert "export-readiness-panel" not in source
+    assert "export_readiness_panel_html(readiness)" in source
     assert "Project downloads" not in source
     assert "def _render_secondary_downloads" not in source
     assert "def _render_pdf_profile_selector" not in source

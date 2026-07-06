@@ -50,5 +50,6 @@ def test_input_page_uses_compact_project_upload_and_calculator_entry():
 
     assert 'st.expander("Open saved project", expanded=False)' in project_source
     assert 'st.container(border=True)' not in project_source
-    assert 'st.button("Open calculator", type="primary"' in nav_source
+    assert '"Open calculator"' in nav_source
+    assert 'st.button("Open calculator", type="primary"' not in nav_source
     assert '"Calculate itinerary", type="primary", use_container_width=True' not in nav_source

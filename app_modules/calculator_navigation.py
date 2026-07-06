@@ -77,13 +77,14 @@ def close_calculator_page(state: MutableMapping[str, Any]) -> None:
 
 
 def render_calculator_entry_button() -> None:
-    """Render a compact calculator entry action."""
+    """Render a calm calculator entry action for the input workspace."""
 
-    action_col, help_col = st.columns([0.22, 0.78], vertical_alignment="center")
-    with action_col:
-        open_requested = st.button("Open calculator", type="primary", use_container_width=True)
-    with help_col:
-        st.caption("Build, price, export, and generate an itinerary from the in-app spreadsheet.")
+    open_requested = st.button(
+        "Open calculator",
+        use_container_width=True,
+        help="Build, price, export, and generate an itinerary from the in-app spreadsheet.",
+    )
+    st.caption("Pricing, Local Library autocomplete, Excel export, then itinerary generation.")
     if open_requested:
         open_calculator_page(st.session_state)
         st.rerun()

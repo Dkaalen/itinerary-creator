@@ -15,7 +15,6 @@ def render_open_project_file_action() -> None:
     """Render a compact saved-project upload action."""
 
     with st.expander("Open saved project", expanded=False):
-        st.markdown("**Open Project File**")
         render_saved_project_storage_note()
         uploaded_project = st.file_uploader(
             "Upload a saved .itinerary.json project file",

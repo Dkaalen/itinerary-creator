@@ -20,6 +20,7 @@ def render_local_library_page(app_version: str) -> None:
         "Local Library",
         "Add, edit, or remove reusable calculator rows. Google Sheets powers shared editing; the bundled library keeps autocomplete available offline.",
     )
+    _render_local_library_hero()
     _render_top_actions()
 
     library_read = read_cached_local_library(st.session_state, force_refresh=st.button("Refresh Local Library"))
@@ -29,7 +30,23 @@ def render_local_library_page(app_version: str) -> None:
     render_local_library_editor(selected_row, library_read)
 
 
+def _render_local_library_hero() -> None:
+    st.html(
+        """
+        <section class="local-library-hero">
+          <span class="local-library-kicker">Reusable rows</span>
+          <h1 class="local-library-title">Keep common services ready for autocomplete.</h1>
+          <p class="local-library-description">Manage the rows the calculator can fetch while pricing. Shared Google Sheets data is used when configured; the bundled library remains available as a fallback.</p>
+        </section>
+        """
+    )
+
+
 def _render_top_actions() -> None:
-    if st.button("Back to itinerary calculator", use_container_width=True):
-        open_calculator_page(st.session_state)
-        st.rerun()
+    action_col, help_col = st.columns([0.22, 0.78], vertical_alignment="center")
+    with action_col:
+        if st.button("Back to calculator", use_container_width=True):
+            open_calculator_page(st.session_state)
+            st.rerun()
+    with help_col:
+        st.caption("Changes here are reflected in calculator autocomplete after refresh.")
