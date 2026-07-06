@@ -22,7 +22,9 @@ def create_generated_baseline_project_if_named(state: MutableMapping[str, Any]) 
             state.pop(key, None)
         return False
 
-    project = build_saved_project_from_state(state, itinerary_name=itinerary_name)
+    project_id = str(state.get("active_project_storage_id") or "").strip() or None
+    project = build_saved_project_from_state(state, itinerary_name=itinerary_name, project_id=project_id)
     state["active_saved_project"] = saved_project_to_dict(project)
     state["active_saved_project_id"] = project.metadata.project_id
+    state["active_project_storage_id"] = project.metadata.project_id
     return True

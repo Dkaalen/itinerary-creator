@@ -12,6 +12,7 @@ from app_modules.export_issue_display import show_issue_list
 from app_modules.export_pdf_artifacts import clear_pdf_artifact, current_pdf_bytes, store_current_pdf_bytes
 from app_modules.export_render_context import day_image_crop_focus_for_grouped_days, pdf_render_context_for_signature
 from app_modules.export_timing import record_pdf_export_stage, reset_pdf_export_timings
+from project_storage.workflow_hooks import save_pdf_export
 from app_modules.performance_telemetry import measure_timing, record_timing
 from app_modules.project_io import rebuild_current_preview
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
@@ -122,7 +123,9 @@ def create_pdf_from_current_preview() -> bool:
         return False
 
     with record_pdf_export_stage(st.session_state, "store_pdf_bytes"):
-        store_current_pdf_bytes(Path(pdf_path).read_bytes(), current_pdf_signature, filename=Path(pdf_path).name)
+        pdf_bytes = Path(pdf_path).read_bytes()
+        store_current_pdf_bytes(pdf_bytes, current_pdf_signature, filename=Path(pdf_path).name)
+        save_pdf_export(st.session_state, content=pdf_bytes, filename=Path(pdf_path).name)
         record_timing(st.session_state, "pdf_download_ready", 0.0)
     return True
 

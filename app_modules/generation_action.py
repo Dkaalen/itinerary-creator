@@ -12,6 +12,7 @@ from app_modules.performance_telemetry import measure_timing, reset_performance_
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE, normalize_presentation_language
 from app_modules.render_context_cache import store_render_context
 from app_modules.saved_project_generation import create_generated_baseline_project_if_named
+from project_storage.workflow_hooks import save_generated_project_snapshot
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
@@ -79,7 +80,8 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     state["generation_overflow_warnings"] = get_overflow_warnings(edited_grouped_days)
     with measure_timing(state, "generate_itinerary", count=len(parsed_rows or [])):
         state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
-    create_generated_baseline_project_if_named(state)
+    if create_generated_baseline_project_if_named(state):
+        save_generated_project_snapshot(state)
     stage = set_workflow_stage(state, "edit")
 
     return WorkflowActionResult(

@@ -6,6 +6,7 @@ import streamlit as st
 
 from calculator.calculator_state import CalculatorState
 from calculator.workbook_export import WorkbookExport, export_calculation_workbook
+from project_storage.workflow_hooks import save_calculation_workbook
 
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -35,4 +36,21 @@ def render_calculation_download_button(
         mime=CALCULATION_XLSX_MIME,
         use_container_width=True,
         disabled=not bool(state.rows),
+        on_click=_save_calculation_workbook,
+        args=(state, export.content, export.filename, currency_rates or {}),
+    )
+
+
+def _save_calculation_workbook(
+    state: CalculatorState,
+    content: bytes,
+    filename: str,
+    currency_rates: dict[str, float],
+) -> None:
+    save_calculation_workbook(
+        st.session_state,
+        state,
+        content=content,
+        filename=filename,
+        currency_rates=currency_rates,
     )

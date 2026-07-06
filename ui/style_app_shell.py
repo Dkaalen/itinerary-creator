@@ -2,6 +2,7 @@
 
 CSS = r"""
 html, body, [data-testid="stAppViewContainer"] {
+    overflow-y: auto !important;
     background:
         radial-gradient(circle at 18% 0%, rgba(255, 253, 248, 0.82) 0, rgba(255, 253, 248, 0) 31rem),
         linear-gradient(180deg, #f7f4ee 0%, var(--app-bg) 100%) !important;
@@ -27,7 +28,7 @@ footer {
 
 .block-container:has(.studio-brand-link) {
     position: relative !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     margin-top: 1.15rem !important;
     background:
         linear-gradient(180deg, rgba(255, 253, 248, 0.97) 0%, rgba(255, 253, 248, 0.93) 100%) !important;
