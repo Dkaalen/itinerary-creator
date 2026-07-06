@@ -8,6 +8,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised in lightweight test 
     st = None
 
 from itinerary_generation.quality_gate import ItineraryQualityGateReport, evaluate_itinerary_quality
+from app_modules.workflow_state import clear_pdf_artifacts
 
 
 BLOCKED_STATUS = "Blocked by validation"
@@ -25,10 +26,7 @@ def block_generation(report: ItineraryQualityGateReport) -> None:
     st.session_state.parsed_rows = []
     st.session_state.output_edits = {}
     st.session_state.itinerary_html = ""
-    st.session_state.pdf_bytes = None
-    st.session_state.export_pdf_bytes = None
-    st.session_state.pdf_signature = None
-    st.session_state.export_pdf_signature = None
+    clear_pdf_artifacts(st.session_state, status=BLOCKED_STATUS)
     st.session_state.preview_signature = None
     st.session_state.html_path = None
     st.session_state.pdf_status = BLOCKED_STATUS

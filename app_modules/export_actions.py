@@ -93,7 +93,7 @@ def create_pdf_from_current_preview() -> bool:
     if not images_ready:
         return False
 
-    pdf_is_current = bool(st.session_state.get("pdf_bytes")) and st.session_state.get("export_pdf_signature") == current_pdf_signature
+    pdf_is_current = current_pdf_bytes() is not None
     if pdf_is_current:
         st.session_state.pdf_status = "Ready"
         return True

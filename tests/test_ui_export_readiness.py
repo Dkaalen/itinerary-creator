@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from app_modules.export_identity import export_signature_for_state
 from app_modules.export_state import export_readiness_from_state
 
 
@@ -31,6 +32,16 @@ def _ready_state(**overrides):
     state.update(overrides)
     return state
 
+def _with_current_pdf_artifact(state):
+    signature = export_signature_for_state(state)
+    return {
+        **state,
+        "pdf_bytes": b"%PDF",
+        "pdf_signature": signature,
+        "export_pdf_bytes": b"%PDF",
+        "export_pdf_signature": signature,
+    }
+
 
 def test_export_readiness_allows_create_after_document_pictures_and_image_source():
     readiness = export_readiness_from_state(_ready_state(), READY_IMAGE_BANK)
@@ -58,10 +69,7 @@ def test_export_readiness_allows_default_only_fallback_image_bank():
 
 
 def test_export_readiness_tracks_persistent_pdf_artifact_by_signature():
-    readiness = export_readiness_from_state(
-        _ready_state(export_pdf_bytes=b"%PDF", export_pdf_signature="sig-1"),
-        READY_IMAGE_BANK,
-    )
+    readiness = export_readiness_from_state(_with_current_pdf_artifact(_ready_state()), READY_IMAGE_BANK)
 
     assert readiness.pdf_ready is True
     assert readiness.status_label == "PDF ready"
@@ -70,11 +78,11 @@ def test_export_readiness_tracks_persistent_pdf_artifact_by_signature():
 
 def test_export_readiness_reuses_current_pdf_even_with_stale_editor_commit_state():
     readiness = export_readiness_from_state(
-        _ready_state(
-            export_pdf_bytes=b"%PDF",
-            export_pdf_signature="sig-1",
-            _pdf_after_visual_edit_commit_nonce="2",
-            _visual_editor_export_commit_ready=False,
+        _with_current_pdf_artifact(
+            _ready_state(
+                _pdf_after_visual_edit_commit_nonce="2",
+                _visual_editor_export_commit_ready=False,
+            )
         ),
         READY_IMAGE_BANK,
     )

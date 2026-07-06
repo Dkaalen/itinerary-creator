@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timezone
 
+from app_modules.export_identity import export_signature_for_state
 from app_modules.saved_project_builder import build_saved_project_from_state
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.saved_project_file_action import prepare_saved_project_file_download
@@ -141,8 +142,9 @@ def test_pdf_boundary_saves_export_state_without_saving_pdf_bytes() -> None:
     state = _named_saved_state()
     _apply_current_text_and_image_edits(state)
     state["preview_signature"] = "sig-current"
-    state["pdf_signature"] = "sig-current"
-    state["export_pdf_signature"] = "sig-current"
+    current_export_signature = export_signature_for_state(state)
+    state["pdf_signature"] = current_export_signature
+    state["export_pdf_signature"] = current_export_signature
     state["pdf_bytes"] = b"%PDF"
     state["export_pdf_bytes"] = b"%PDF"
     state["pdf_status"] = "Ready"
@@ -196,8 +198,10 @@ def test_update_helper_keeps_previous_last_export_time_until_pdf_ready_again() -
         {
             **state,
             "preview_signature": "sig-ready",
-            "pdf_signature": "sig-ready",
+            "pdf_signature": export_signature_for_state({**state, "preview_signature": "sig-ready"}),
+            "export_pdf_signature": export_signature_for_state({**state, "preview_signature": "sig-ready"}),
             "pdf_bytes": b"%PDF",
+            "export_pdf_bytes": b"%PDF",
             "pdf_status": "Ready",
         },
         clock=_later_clock,

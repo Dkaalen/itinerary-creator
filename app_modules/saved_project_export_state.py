@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from app_modules.saved_project_model import SavedProjectExportState
+from app_modules.pdf_artifact_state import pdf_artifact_is_current
 
 _READY_STATUSES = frozenset({"Ready", "PDF ready"})
 
@@ -26,11 +27,6 @@ def export_state_from_workflow_state(
 
 
 def _current_pdf_is_ready(state: Mapping[str, Any], pdf_status: str) -> bool:
-    signature = state.get("preview_signature")
-    if not signature:
-        return False
-    if state.get("pdf_bytes") and state.get("pdf_signature") == signature:
+    if pdf_artifact_is_current(state):
         return True
-    if state.get("export_pdf_bytes") and state.get("export_pdf_signature") == signature:
-        return True
-    return pdf_status in _READY_STATUSES and bool(state.get("pdf_signature") or state.get("export_pdf_signature"))
+    return pdf_status in _READY_STATUSES and bool(state.get("export_pdf_signature"))

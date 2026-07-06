@@ -5,7 +5,8 @@ def test_export_step_uses_shared_recoverable_pdf_job_flow():
     source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
 
     assert "request_editor_save_before_pdf(st.session_state)" not in source
-    assert "pdf_editor_commit_timed_out" in source
+    assert "workflow_transaction_state" in source
+    assert "transaction_timeout_copy" in source
     assert "Create PDF from last saved version" in source
     assert "Saving the latest editor changes before creating the PDF" not in source
     assert "_clear_stale_pdf_editor_state()" in source
@@ -14,9 +15,9 @@ def test_export_step_uses_shared_recoverable_pdf_job_flow():
     assert "current_export_job" in source
     assert "auto_pdf_create_requested" in source
     assert "PDF creation was stopped because the document is not ready" in source
-    assert "request_pdf_editor_commit(st.session_state)" in source
-    assert "mark_export_waiting_for_editor" in source
-    assert "Applying the latest editor changes before creating the PDF" in source
+    assert "start_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF, auto_create_pdf=True)" in source
+    assert "mark_exporting" in source
+    assert "Saving your latest document and picture edits before creating the PDF" in Path("app_modules/workflow_transactions.py").read_text(encoding="utf-8")
 
 
 def test_pdf_export_configures_reportlab_for_fast_image_streams():
@@ -33,7 +34,7 @@ def test_picture_page_create_pdf_enters_export_with_one_shot_auto_request():
     picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
     action_source = Path("app_modules/export_stage_action.py").read_text(encoding="utf-8")
 
-    assert "request_pdf_editor_commit(st.session_state)" in picture_source
+    assert "start_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF)" in picture_source
     assert "enter_export_stage(st.session_state, auto_create_pdf=True)" in picture_source
     assert "auto_create_pdf: bool = False" in action_source
     assert "request_auto_pdf_create(state)" in action_source

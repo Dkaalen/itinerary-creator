@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app_modules.export_identity import export_signature_for_state
 from app_modules.saved_project_baseline_restore import (
     SavedProjectBaselineRestoreError,
     restore_baseline_snapshot_as_current,
@@ -199,7 +200,8 @@ def test_reopen_then_create_pdf_uses_reopened_state(monkeypatch, tmp_path) -> No
     assert export_actions.create_pdf_from_current_preview() is True
 
     assert st.session_state["pdf_bytes"] == b"%PDF-reopened-state"
-    assert st.session_state["pdf_signature"] == st.session_state["preview_signature"]
+    assert st.session_state["pdf_signature"] == export_signature_for_state(st.session_state)
+    assert st.session_state["export_pdf_signature"] == export_signature_for_state(st.session_state)
     assert "Edited Oslo fjord title" in captured["titles"]
     assert "Edited private transfers" in captured["final_html"]
     assert captured["day_images"]["Day 1"]["path"] == "images/oslo-replaced.webp"

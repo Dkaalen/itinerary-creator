@@ -18,16 +18,10 @@ from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from app_modules.calculator_session_state import clear_calculator_project_state
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
+from app_modules.pdf_artifact_state import PDF_ARTIFACT_KEYS, clear_pdf_artifact_state
 
 
 WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
-PDF_ARTIFACT_KEYS = (
-    "pdf_bytes",
-    "export_pdf_bytes",
-    "pdf_signature",
-    "export_pdf_signature",
-)
-
 DEFAULT_WORKFLOW_SESSION_STATE: dict[str, Any] = {
     "itinerary_html": "",
     "html_path": None,
@@ -126,11 +120,9 @@ def session_stage_from_state(state: Mapping[str, Any]) -> str:
 
 
 def clear_pdf_artifacts(state: MutableMapping[str, Any], status: str = "Not created") -> None:
-    """Drop all cached PDF bytes/signatures and set a user-facing status."""
+    """Drop cached PDF bytes/signatures and export-only transient caches."""
 
-    for key in PDF_ARTIFACT_KEYS:
-        state[key] = None
-    state["pdf_status"] = status
+    clear_pdf_artifact_state(state, status=status)
 
 
 def mark_pdf_dirty(state: MutableMapping[str, Any], status: str = "Needs refresh") -> None:

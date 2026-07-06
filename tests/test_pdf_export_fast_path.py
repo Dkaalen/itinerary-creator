@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from app_modules import export_actions
+from app_modules.export_identity import export_signature_for_state
 from tests.support.streamlit_stub import install_streamlit_stub
 
 
@@ -10,10 +11,18 @@ def test_current_pdf_creation_is_a_noop_fast_path(monkeypatch):
     st.session_state.update(
         {
             "preview_signature": "current-preview",
-            "pdf_signature": "current-preview",
-            "pdf_bytes": b"%PDF-current",
             "pdf_status": "Ready",
             "parsed_rows": [{"day": "1", "type": "activity", "title": "Walk Oslo"}],
+            "output_edits": {"pictures_added": True},
+        }
+    )
+    current_signature = export_signature_for_state(st.session_state)
+    st.session_state.update(
+        {
+            "pdf_signature": current_signature,
+            "pdf_bytes": b"%PDF-current",
+            "export_pdf_signature": current_signature,
+            "export_pdf_bytes": b"%PDF-current",
         }
     )
 
@@ -70,15 +79,42 @@ def test_current_pdf_bytes_ignores_stale_editor_pdf_commit_state():
     st.session_state.update(
         {
             "preview_signature": "sig-1",
-            "pdf_signature": "sig-1",
-            "pdf_bytes": b"%PDF-current",
+            "output_edits": {"pictures_added": True},
             "_pdf_after_visual_edit_commit_nonce": "2",
             "_visual_editor_export_commit_ready": False,
+        }
+    )
+    current_signature = export_signature_for_state(st.session_state)
+    st.session_state.update(
+        {
+            "pdf_signature": current_signature,
+            "pdf_bytes": b"%PDF-current",
+            "export_pdf_signature": current_signature,
+            "export_pdf_bytes": b"%PDF-current",
         }
     )
 
     assert export_actions.current_pdf_bytes() == b"%PDF-current"
 
+
+
+
+def test_current_pdf_bytes_rejects_preview_signed_pdf_after_image_state_changes():
+    st = install_streamlit_stub()
+    st.session_state.clear()
+    st.session_state.update(
+        {
+            "preview_signature": "sig-1",
+            "pdf_signature": "sig-1",
+            "pdf_bytes": b"%PDF-preview-only",
+            "output_edits": {
+                "pictures_added": True,
+                "day_images": {"Day 1": {"mode": "none", "path": "", "crop_focus": "center"}},
+            },
+        }
+    )
+
+    assert export_actions.current_pdf_bytes() is None
 
 def test_export_readiness_does_not_reuse_unsigned_pdf_bytes():
     from app_modules.export_state import export_readiness_from_state

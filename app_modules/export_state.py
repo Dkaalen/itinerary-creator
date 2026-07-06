@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
+from app_modules.pdf_artifact_state import pdf_artifact_is_current
 from app_modules.pdf_preflight import build_pdf_preflight_report
 from ui.picture_workflow import pictures_are_added
 
@@ -60,14 +61,7 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
     output_edits = state.get("output_edits") or {}
     pictures = pictures_are_added(output_edits)
     image_ready = image_bank_is_ready_for_client_pictures(image_status)
-    current_signature = state.get("preview_signature")
-    pdf_ready = bool(
-        current_signature
-        and (
-            (state.get("pdf_bytes") and state.get("pdf_signature") == current_signature)
-            or (state.get("export_pdf_bytes") and state.get("export_pdf_signature") == current_signature)
-        )
-    )
+    pdf_ready = pdf_artifact_is_current(state)
 
     blocking: list[str] = []
     if not has_document:
