@@ -33,7 +33,9 @@ jobs:
         run: python scripts/import_smoke.py
 
       - name: Architecture guards
-        run: python scripts/architecture_guards.py
+        run: |
+          python scripts/architecture_guards.py
+          python -m pytest tests/test_architecture_guard_system.py -q
 
       - name: Calculator and artifact regression tests
         run: >-

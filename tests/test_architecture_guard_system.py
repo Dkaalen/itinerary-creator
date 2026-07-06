@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts import architecture_guards
 from scripts.architecture_guards import (
     duplicate_shared_clean_space_hits,
     duplicate_test_path_hits,
@@ -94,3 +95,25 @@ def test_shared_clean_space_is_the_single_source_of_truth() -> None:
 
 def test_cleaned_generation_facades_do_not_reabsorb_implementation_imports() -> None:
     assert generation_implementation_core_import_hits() == ()
+
+
+def test_architecture_guard_cli_passes_current_tree(capsys) -> None:
+    assert architecture_guards.main(()) == 0
+
+    captured = capsys.readouterr()
+    assert "Architecture guards passed." in captured.out
+    assert captured.err == ""
+
+
+def test_architecture_guard_cli_reports_failures(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        architecture_guards,
+        "forbidden_normal_ui_hits",
+        lambda: (architecture_guards.SourceHit("app_modules/main_view.py", "Advanced tools"),),
+    )
+
+    assert architecture_guards.main(()) == 1
+
+    captured = capsys.readouterr()
+    assert "Architecture guards failed:" in captured.err
+    assert "Advanced tools" in captured.err

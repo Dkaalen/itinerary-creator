@@ -26,6 +26,7 @@ def test_ci_workflow_runs_fast_quality_gates() -> None:
     for marker in (
         "python scripts/import_smoke.py",
         "python scripts/architecture_guards.py",
+        "python -m pytest tests/test_architecture_guard_system.py -q",
         "tests/test_calculator_*.py",
         "tests/test_patch_ak_cleanup_hygiene.py",
         "tests/test_handoff_zip_workflow.py",
