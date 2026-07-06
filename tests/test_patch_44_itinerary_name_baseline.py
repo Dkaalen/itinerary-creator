@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-from app_modules.input_step import _generate_itinerary
+from app_modules.input_generation_action import generate_supplier_itinerary
 from app_modules.itinerary_name_state import clean_itinerary_name, seed_itinerary_name_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
 from app_modules.saved_project_file_action import prepare_saved_project_file_download
@@ -135,9 +135,9 @@ def test_generate_button_syncs_itinerary_name_before_shared_pipeline(monkeypatch
         calls.append((dict(state), raw_text))
         return WorkflowActionResult(ok=True, stage="edit", message="ok")
 
-    monkeypatch.setattr("app_modules.input_step.generate_itinerary", fake_generate_itinerary)
+    monkeypatch.setattr("app_modules.input_generation_action.generate_itinerary", fake_generate_itinerary)
 
-    assert _generate_itinerary("raw supplier rows", "agent") is True
+    assert generate_supplier_itinerary(st.session_state, "raw supplier rows", "agent") is True
 
     assert st.session_state["itinerary_name"] == "Norway Winter Group"
     assert st.session_state["requested_output_brand"] == "agent"

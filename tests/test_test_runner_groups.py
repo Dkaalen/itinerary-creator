@@ -75,9 +75,12 @@ def test_powershell_runners_delegate_to_shared_python_runner() -> None:
         "parser": "run_parser_tests.ps1",
         "activity": "run_activity_tests.ps1",
         "architecture": "run_architecture_tests.ps1",
+        "calculator": "run_calculator_tests.ps1",
         "editor": "run_editor_tests.ps1",
         "images": "run_image_tests.ps1",
+        "storage": "run_storage_tests.ps1",
         "ui": "run_ui_tests.ps1",
+        "workflow": "run_workflow_tests.ps1",
         "quality": "run_quality_tests.ps1",
         "pdf": "run_pdf_tests.ps1",
         "full": "run_full_tests.ps1",
@@ -99,9 +102,12 @@ def test_focused_groups_exist_for_common_patch_areas() -> None:
         "parser",
         "activity",
         "architecture",
+        "calculator",
         "editor",
         "images",
+        "storage",
         "ui",
+        "workflow",
     )
     for name in focused_group_names():
         assert GROUPS[name]
@@ -115,6 +121,9 @@ def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
     assert all(name.startswith("fast") for name, _paths in fast_stages)
     assert _stages_for_group("activity") == (("activity", GROUPS["activity"]),)
     assert len(_stages_for_group("architecture")) > 1
+    assert len(_stages_for_group("calculator")) > 1
+    assert len(_stages_for_group("storage")) > 1
+    assert len(_stages_for_group("workflow")) > 1
     assert len(_stages_for_group("editor")) > 1
     assert len(_stages_for_group("images")) > 1
     assert len(_stages_for_group("ui")) > 1

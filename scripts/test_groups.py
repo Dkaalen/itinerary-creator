@@ -16,9 +16,12 @@ TIERED_STAGE_SIZE = 4
 PDF_STAGE_SIZE = 3
 CHUNKED_GROUP_STAGE_SIZES = {
     "architecture": 4,
+    "calculator": 5,
     "editor": 4,
     "images": 4,
+    "storage": 4,
     "ui": 4,
+    "workflow": 4,
     "pdf": PDF_STAGE_SIZE,
 }
 
@@ -44,6 +47,7 @@ FAST_TESTS = (
     "tests/test_patch_bq_style_registry.py",
     "tests/test_patch_bo_state_ownership.py",
     "tests/test_patch_bs_architecture_boundaries.py",
+    "tests/test_runtime_alignment.py",
     "tests/test_regressions_parser_normalizer.py",
     "tests/test_patch_ih3_iceland_group_tour_parsing.py",
     "tests/test_stress_logic_followups.py",
@@ -137,6 +141,7 @@ ACTIVITY_TESTS = (
 ARCHITECTURE_TESTS = (
     "tests/test_architecture_consolidation.py",
     "tests/test_architecture_guard_system.py",
+    "tests/test_runtime_alignment.py",
     "tests/test_patch_bz1f_dead_code_packaging.py",
     "tests/test_canonical_block_renderers.py",
     "tests/test_canonical_boundary.py",
@@ -337,6 +342,57 @@ PDF_TESTS = (
     "tests/test_brand1_proposal_profiles.py",
 )
 
+
+CALCULATOR_TESTS = (
+    "tests/test_calculator_backup_action.py",
+    "tests/test_calculator_calculations.py",
+    "tests/test_calculator_cleanup_state.py",
+    "tests/test_calculator_component_mounting.py",
+    "tests/test_calculator_component_payload.py",
+    "tests/test_calculator_component_result.py",
+    "tests/test_calculator_fetch_lines.py",
+    "tests/test_calculator_formula_map.py",
+    "tests/test_calculator_generation_action.py",
+    "tests/test_calculator_grid_autocomplete.py",
+    "tests/test_calculator_grid_values.py",
+    "tests/test_calculator_library_cache.py",
+    "tests/test_calculator_library_read_summary.py",
+    "tests/test_calculator_library_search.py",
+    "tests/test_calculator_library_seed_import.py",
+    "tests/test_calculator_library_store.py",
+    "tests/test_calculator_numeric_input.py",
+    "tests/test_calculator_row_model.py",
+    "tests/test_calculator_session_state.py",
+    "tests/test_calculator_state.py",
+    "tests/test_calculator_state_serialization.py",
+    "tests/test_calculator_template_structure.py",
+    "tests/test_calculator_to_itinerary_input.py",
+    "tests/test_calculator_ui_foundation.py",
+    "tests/test_calculator_workbook_export.py",
+)
+
+STORAGE_TESTS = (
+    "tests/test_project_identity_state.py",
+    "tests/test_project_storage_file_writer.py",
+    "tests/test_project_storage_foundation.py",
+    "tests/test_patch_43_project_file_mvp.py",
+    "tests/test_patch_45_current_edited_version_save.py",
+    "tests/test_patch_47_saved_project_hardening.py",
+    "tests/test_patch_4c_project_browser_and_downloads.py",
+)
+
+WORKFLOW_TESTS = (
+    "tests/test_batch1_workflow_reliability.py",
+    "tests/test_batch2_hosted_workflow_guardrails.py",
+    "tests/test_ui_workflow_shell.py",
+    "tests/test_ui_workflow_state_actions.py",
+    "tests/test_ui_export_readiness.py",
+    "tests/test_ui_pdf_download_persistence.py",
+    "tests/test_review5_client_readiness_export_gate.py",
+    "tests/test_visual_editor_autosave_contract.py",
+    "tests/test_visual_editor_typed_draft.py",
+)
+
 SLOW_TESTS = (
     "tests/test_broad_logic_stress_regressions.py",
     "tests/test_pdf.py",
@@ -351,9 +407,12 @@ GROUPS = {
     "parser": PARSER_TESTS,
     "activity": ACTIVITY_TESTS,
     "architecture": ARCHITECTURE_TESTS,
+    "calculator": CALCULATOR_TESTS,
     "editor": EDITOR_TESTS,
     "images": IMAGE_TESTS,
+    "storage": STORAGE_TESTS,
     "ui": UI_TESTS,
+    "workflow": WORKFLOW_TESTS,
     "quality": QUALITY_TESTS,
     "pdf": PDF_TESTS,
     "slow": SLOW_TESTS,
@@ -366,9 +425,12 @@ GROUP_DESCRIPTIONS = {
     "parser": "text cleanup, date/time, extractor, and normalizer regressions",
     "activity": "activity product rules, catalogue matching, source fidelity, and QA warnings",
     "architecture": "structured model boundaries, render ownership, and test-runner infrastructure",
+    "calculator": "calculator state, grid payloads, local library, and workbook export",
     "editor": "typed draft ownership, autosave, visual editor, and editor/PDF state safety",
     "images": "image-bank paths, matching, auditing, destination pictures, and image QA",
+    "storage": "project identity, Supabase repository, file save/load, and cloud browser behavior",
     "ui": "Streamlit workflow shell, export readiness, image gateway, and UI boundary tests",
+    "workflow": "hosted app flow, stage transitions, editor/export state, and runtime guardrails",
     "quality": "medium itinerary quality and content/rendering regressions",
     "pdf": "PDF export and preview/PDF parity checks",
     "slow": "isolated large-fixture and PDF-heavy stability checks",
@@ -533,7 +595,7 @@ def build_slow_stages(
 def focused_group_names() -> tuple[str, ...]:
     """Return non-tiered convenience lanes for targeted patch validation."""
 
-    return ("parser", "activity", "architecture", "editor", "images", "ui")
+    return ("parser", "activity", "architecture", "calculator", "editor", "images", "storage", "ui", "workflow")
 
 
 def group_descriptions() -> dict[str, str]:

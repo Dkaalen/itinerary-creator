@@ -15,7 +15,7 @@ def test_ci_workflow_exists_and_uses_supported_runtimes() -> None:
 
     assert "actions/checkout@v4" in text
     assert "actions/setup-python@v5" in text
-    assert "python-version: '3.11'" in text
+    assert "python-version: '3.14'" in text
     assert "actions/setup-node@v4" in text
     assert "node-version: '20'" in text
 
@@ -27,9 +27,7 @@ def test_ci_workflow_runs_fast_quality_gates() -> None:
         "python scripts/import_smoke.py",
         "python scripts/architecture_guards.py",
         "python -m pytest tests/test_architecture_guard_system.py -q",
-        "tests/test_calculator_*.py",
-        "tests/test_patch_ak_cleanup_hygiene.py",
-        "tests/test_handoff_zip_workflow.py",
+        "tests/test_test_runner_groups.py",
         "tests/test_ci_workflow_guards.py",
         "python -m compileall -q .",
         "node --check calculator_grid_component/frontend/js/*.js",
@@ -37,6 +35,16 @@ def test_ci_workflow_runs_fast_quality_gates() -> None:
         "git --no-pager diff --check",
     ):
         assert marker in text
+
+
+def test_ci_workflow_splits_timeout_sensitive_test_groups() -> None:
+    text = _workflow_text()
+
+    assert "strategy:" in text
+    assert "matrix:" in text
+    for group in ("fast", "calculator", "storage", "workflow", "architecture"):
+        assert f"- {group}" in text
+    assert "python scripts/run_test_group.py ${{ matrix.group }}" in text
 
 
 def test_ci_workflow_keeps_full_suite_out_of_fast_gate() -> None:

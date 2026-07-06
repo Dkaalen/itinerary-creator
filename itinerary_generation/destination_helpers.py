@@ -5,26 +5,9 @@ from __future__ import annotations
 import re
 
 from place_aliases import canonicalize_place_name, country_for_place, is_likely_service_text
+from itinerary_generation.destination_validation import is_valid_destination_city, strip_service_suffix
 from itinerary_generation.common_constants import TRANSPORT_TYPES
 from itinerary_generation.row_filters import get_row_type, is_optional_row
-
-
-_SERVICE_SUFFIX_RE = re.compile(
-    r"^\s*(?:private|shared|guided|self[-\s]?guided|optional|transfer|transport|flight|train|cruise|ferry|arrival|departure)\b",
-    flags=re.IGNORECASE,
-)
-
-
-def _strip_service_suffix(value: str) -> str:
-    """Remove parser bleed such as ``Tromsø: Private`` from a city label."""
-
-    text = str(value or "").strip()
-    if ":" not in text:
-        return text
-    left, right = [part.strip() for part in text.split(":", 1)]
-    if left and right and _SERVICE_SUFFIX_RE.search(right):
-        return left
-    return text
 
 
 def _looks_like_rental_vehicle_row(row: dict) -> bool:
@@ -76,64 +59,6 @@ def overnight_destination_cities(parsed_rows) -> list[str]:
     return cities
 
 
-def is_valid_destination_city(city):
-    city = canonicalize_place_name(str(city or "").strip())
-    if not city:
-        return False
-    lower = city.lower()
-    invalid_markers = [
-        "private hotel",
-        "private airport",
-        "hotel to airport",
-        "airport to hotel",
-        "your hotel",
-        "your accommodation",
-        "your new accommodation",
-        "optional addon",
-        "optional add",
-        "optinal addon",
-        "addon on request",
-        "flight ",
-    ]
-    invalid_exact = {
-        "accommodation",
-        "hotel",
-        "train",
-        "flight",
-        "cruise",
-        "departure",
-        "arrival",
-        "car",
-        "drive",
-        "self drive",
-        "self-drive",
-        "the",
-        "the airport",
-        "airport",
-        "the station",
-        "station",
-        "the hotel",
-        "your hotel",
-        "the accommodation",
-        "your accommodation",
-        "shuttle / flybus",
-        "shuttle flybus",
-        "flybus",
-        "city centre",
-        "city center",
-    }
-    if lower in invalid_exact:
-        return False
-    if any(re.search(pattern, lower) for pattern in [r"\bshower\b", r"\bsink\b", r"\bwc in carriage\b", r"\bbenefits\b", r"\bmade bed\b", r"women's", r"men's compartment"]):
-        return False
-    if is_likely_service_text(city):
-        return False
-    if any(marker in lower for marker in invalid_markers):
-        return False
-    if " to " in lower and any(word in lower for word in ["airport", "hotel", "station", "bergen", "copenhagen", "svol"]):
-        return False
-    return True
-
 
 def clean_client_title(value):
     """Small client-facing title cleanup used after parsing."""
@@ -165,7 +90,7 @@ def get_display_destination_city(city):
     "Vík area" or "Höfn area". The cover/glance route should keep the travel
     route clean, so those area suffixes are collapsed to the destination name.
     """
-    value = _strip_service_suffix(str(city or "").strip())
+    value = strip_service_suffix(str(city or "").strip())
     value = canonicalize_place_name(value)
     value = re.sub(r"\s+area$", "", value, flags=re.IGNORECASE).strip()
     return value

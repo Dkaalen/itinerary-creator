@@ -8,6 +8,7 @@ REQUIRED_TOP_LEVEL_FACADES = {
     "normalizer": "normalizer_modules",
     "text_polish": "text_polish_modules",
     "image_matcher": "images",
+    "pdf_exporter": "pdf_exporter_modules",
 }
 
 REQUIRED_UI_FACADES = {

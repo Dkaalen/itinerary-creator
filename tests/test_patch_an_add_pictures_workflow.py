@@ -7,18 +7,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_add_pictures_is_gated_by_explicit_apply_changes_commit():
     edit_page = (ROOT / "app_modules" / "preview_step.py").read_text(encoding="utf-8")
-    helper = edit_page[edit_page.index('def _activate_picture_stage'): edit_page.index('def _add_pictures_apply_ready')]
+    cta_source = (ROOT / "app_modules" / "add_pictures_cta.py").read_text(encoding="utf-8")
 
     action_source = (ROOT / "app_modules" / "image_stage_action.py").read_text(encoding="utf-8")
     commit_source = (ROOT / "app_modules" / "editor_commit.py").read_text(encoding="utf-8")
 
-    assert 'start_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in edit_page
-    assert 'workflow_transaction_state(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in edit_page
-    assert 'if apply_ready:' in edit_page
-    assert 'st.button("Add pictures", disabled=True' in edit_page
-    assert 'Apply changes before adding pictures' in edit_page
-    assert '_activate_picture_stage()' in edit_page
-    assert 'enter_picture_stage(' in helper
+    assert 'start_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in cta_source
+    assert 'workflow_transaction_state(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in cta_source
+    assert 'if add_pictures_apply_ready():' in cta_source
+    assert 'st.button("Add pictures", disabled=True' in cta_source
+    assert 'Apply changes before adding pictures' in cta_source
+    assert 'activate_picture_stage()' in cta_source
+    assert 'enter_picture_stage(' in cta_source
     assert 'if not add_pictures_editor_commit_ready(state):' in action_source
     assert 'payload={"requires_apply_changes": True}' in action_source
     assert 'ADD_PICTURES_COMMIT_REQUEST_KEY' in commit_source

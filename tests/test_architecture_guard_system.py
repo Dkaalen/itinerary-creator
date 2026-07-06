@@ -4,6 +4,7 @@ from pathlib import Path
 
 from scripts import architecture_guards
 from scripts.architecture_guards import (
+    destination_transport_cycle_hits,
     duplicate_shared_clean_space_hits,
     duplicate_test_path_hits,
     forbidden_normal_ui_hits,
@@ -51,13 +52,13 @@ def test_patch_history_and_vague_names_do_not_return_to_high_value_source_dirs()
 
 def test_debug_review_imports_are_lazy_behind_debug_boundaries() -> None:
     assert import_from_hits("app_modules/main_view.py", ("ui.diagnostics_panel", "ui.input_review_panel")) == ()
-    assert import_from_hits("app_modules/input_step.py", ("ui.input_review_panel",)) == ()
+    assert import_from_hits("app_modules/generation_messages.py", ("ui.input_review_panel",)) == ()
     assert import_from_hits("app_modules/debug_tools.py", ("ui.diagnostics_panel",)) == ()
 
     assert source_contains("app_modules/debug_tools.py", "if not is_debug_mode(st.session_state):")
     assert source_contains("app_modules/debug_tools.py", "from ui.diagnostics_panel import")
-    assert source_contains("app_modules/input_step.py", "if not is_debug_mode(st.session_state):")
-    assert source_contains("app_modules/input_step.py", "from ui.input_review_panel import")
+    assert source_contains("app_modules/generation_messages.py", "if not is_debug_mode(state):")
+    assert source_contains("app_modules/generation_messages.py", "from ui.input_review_panel import")
 
 
 def test_pdf_internal_review_appendix_is_lazy_loaded_only_when_enabled() -> None:
@@ -98,6 +99,10 @@ def test_shared_clean_space_is_the_single_source_of_truth() -> None:
 
 def test_top_level_compatibility_facades_stay_thin() -> None:
     assert top_level_compatibility_facade_hits() == ()
+
+
+def test_destination_transport_import_cycle_does_not_return() -> None:
+    assert destination_transport_cycle_hits() == ()
 
 
 def test_cleaned_generation_facades_do_not_reabsorb_implementation_imports() -> None:

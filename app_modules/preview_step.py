@@ -3,31 +3,20 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.app_header import _render_app_header, _render_stage_actions, _stage_panel
-from app_modules.workflow_transactions import (
-    WorkflowTransactionTarget,
-    clear_workflow_transaction,
-    retry_workflow_transaction,
-    start_workflow_transaction,
-    transaction_timeout_copy,
-    transaction_wait_copy,
-    workflow_transaction_state,
+from app_modules.add_pictures_cta import (
+    add_pictures_apply_pending,
+    add_pictures_apply_ready,
+    maybe_rerun_after_editor_commit,
+    render_add_pictures_cta,
 )
-from app_modules.image_gateway_ui import (
-    _connect_current_image_bank,
-    _current_image_bank_status,
-    _image_bank_gateway_is_blocking,
-    _render_image_bank_gateway_repair,
-)
-from app_modules.input_step import _render_generation_messages
+from app_modules.generation_messages import render_generation_messages
 from app_modules.project_io import rebuild_current_preview
-from app_modules.workflow_actions import enter_picture_stage
 from app_modules.workflow_config import STAGE_COPY
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
 from ui.output_edits import apply_output_edits, mark_output_dirty
 from ui.render_cache import make_render_signature
 from visual_editor_component.editor_workflow import render_visual_editor
-from images.app_image_selection import audit_day_image_matches, select_day_images_with_overrides
 
 
 def _render_document_editor(*, pictures_active: bool) -> None:
@@ -57,103 +46,15 @@ def _render_document_editor(*, pictures_active: bool) -> None:
     elif not st.session_state.get("html_path"):
         st.session_state.html_path = save_html_file(st.session_state.itinerary_html)
 
-def _activate_picture_stage() -> bool:
-    result = enter_picture_stage(
-        st.session_state,
-        status_func=_current_image_bank_status,
-        connect_func=_connect_current_image_bank,
-        select_images_func=select_day_images_with_overrides,
-        audit_images_func=audit_day_image_matches,
-        rebuild_preview_func=rebuild_current_preview,
-    )
-    if result.ok:
-        st.session_state.pop("add_pictures_last_error", None)
-        st.session_state["add_pictures_last_message"] = result.message
-    else:
-        st.session_state["add_pictures_last_error"] = result.message or "Add Pictures could not start."
-    return result.ok
-
-def _add_pictures_transaction():
-    return workflow_transaction_state(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-
-def _add_pictures_apply_ready() -> bool:
-    return _add_pictures_transaction().ready
-
-def _add_pictures_apply_pending() -> bool:
-    return _add_pictures_transaction().pending or _add_pictures_transaction().timed_out
-
 def render_edit_page(app_version: str) -> None:
     _render_app_header(app_version, stage="edit")
-    _render_generation_messages()
+    render_generation_messages(st.session_state)
     _render_stage_actions("edit")
     _stage_panel(STAGE_COPY["edit"]["panel_title"], STAGE_COPY["edit"]["panel_text"])
 
-    was_waiting_for_apply = _add_pictures_apply_pending()
-    if not _add_pictures_apply_ready():
+    was_waiting_for_apply = add_pictures_apply_pending()
+    if not add_pictures_apply_ready():
         _render_document_editor(pictures_active=False)
-        if was_waiting_for_apply and _add_pictures_apply_ready():
-            st.rerun()
+        maybe_rerun_after_editor_commit(was_waiting_for_apply)
 
-    st.html('<div class="bottom-cta"><div><strong>Text ready?</strong><span>Apply the current preview changes, then add destination pictures from the committed itinerary.</span></div></div>')
-    last_error = st.session_state.get("add_pictures_last_error")
-    if last_error:
-        st.error(str(last_error))
-        st.caption("Retry Add Pictures after fixing the issue, or continue editing and apply changes again.")
-    gateway_result = st.session_state.get("image_bank_gateway")
-    if _image_bank_gateway_is_blocking(gateway_result):
-        _render_image_bank_gateway_repair(gateway_result)
-        return
-
-    apply_ready = _add_pictures_apply_ready()
-    apply_pending = _add_pictures_apply_pending()
-
-    if apply_ready:
-        st.success("Changes applied. Add pictures is ready to run from the committed itinerary.")
-        left, right = st.columns(2)
-        with left:
-            if st.button("Edit again", use_container_width=True):
-                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-                st.rerun()
-        with right:
-            if st.button("Add pictures", type="primary", use_container_width=True):
-                with st.spinner("Preparing destination pictures and finding the best matches…"):
-                    _activate_picture_stage()
-                st.rerun()
-        return
-
-    if apply_pending:
-        transaction = _add_pictures_transaction()
-        if transaction.timed_out:
-            st.warning(transaction_timeout_copy(transaction))
-            st.caption("Retry the save, add pictures from the last saved version, or cancel and keep editing.")
-            retry_col, saved_col, cancel_col = st.columns(3)
-            with retry_col:
-                if st.button("Retry save", type="primary", use_container_width=True, key="retry_add_pictures_editor_commit"):
-                    retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-                    st.rerun()
-            with saved_col:
-                if st.button("Add pictures from last saved version", use_container_width=True, key="fallback_add_pictures_after_timeout"):
-                    clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-                    with st.spinner("Preparing destination image packs and finding the best matches…"):
-                        _activate_picture_stage()
-                    st.rerun()
-            with cancel_col:
-                if st.button("Cancel", use_container_width=True, key="cancel_add_pictures_editor_commit"):
-                    clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-                    st.rerun()
-        else:
-            st.info(transaction_wait_copy(_add_pictures_transaction()))
-            st.button("Add pictures", disabled=True, use_container_width=True)
-            if st.button("Add pictures from last saved version", use_container_width=True):
-                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-                with st.spinner("Preparing destination image packs and finding the best matches…"):
-                    _activate_picture_stage()
-                st.rerun()
-        return
-
-    if st.button("Apply Changes", type="primary", use_container_width=True):
-        st.session_state.pop("add_pictures_last_error", None)
-        start_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-        st.rerun()
-    st.button("Add pictures", disabled=True, use_container_width=True)
-    st.caption("Apply changes before adding pictures so image matching uses the latest committed itinerary.")
+    render_add_pictures_cta()

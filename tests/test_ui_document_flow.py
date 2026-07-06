@@ -26,7 +26,7 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     input_source = Path("app_modules/input_step.py").read_text()
     assert "Generate agent itinerary" in input_source
     assert "Generate customer itinerary" in input_source
-    assert "Add pictures" in Path("app_modules/preview_step.py").read_text()
+    assert "Add pictures" in Path("app_modules/add_pictures_cta.py").read_text()
     assert "Create PDF" in Path("app_modules/picture_pdf_cta.py").read_text()
     assert "def render_export_page" in Path("app_modules/export_page.py").read_text()
     assert "enter_export_stage" in Path("app_modules/picture_pdf_cta.py").read_text()
@@ -35,7 +35,7 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
 
 def test_edit_page_stops_duplicate_add_pictures_button_after_gateway_block():
     source = Path("app_modules/image_gateway_ui.py").read_text()
-    edit_source = Path("app_modules/preview_step.py").read_text()
+    edit_source = Path("app_modules/add_pictures_cta.py").read_text()
 
     assert "def _image_bank_gateway_is_blocking" in source
     assert "if _image_bank_gateway_is_blocking(gateway_result):" in edit_source

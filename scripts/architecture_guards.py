@@ -354,6 +354,34 @@ def _module_matches(module: str, forbidden_modules: tuple[str, ...]) -> bool:
     return any(module == forbidden or module.startswith(f"{forbidden}.") for forbidden in forbidden_modules)
 
 
+def all_import_hits(path: str, forbidden_modules: tuple[str, ...]) -> tuple[str, ...]:
+    """Return forbidden imports anywhere in a module, including lazy imports."""
+
+    source_path = REPO_ROOT / path
+    tree = ast.parse(_read(source_path))
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        module = ""
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module = alias.name
+                if _module_matches(module, forbidden_modules):
+                    offenders.append(f"{path}:{node.lineno}:{module}")
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if _module_matches(module, forbidden_modules):
+                offenders.append(f"{path}:{node.lineno}:{module}")
+    return tuple(offenders)
+
+
+def destination_transport_cycle_hits() -> tuple[str, ...]:
+    """Return direct imports that would recreate the destination/transport cycle."""
+
+    hits: list[str] = []
+    hits.extend(all_import_hits("itinerary_generation/transport_detection.py", ("itinerary_generation.destination_helpers",)))
+    return tuple(sorted(hits))
+
+
 def oversized_editor_css_files(limit: int = 500) -> tuple[SizeHit, ...]:
     root = REPO_ROOT / "visual_editor_component/frontend/styles"
     return _oversized_files(root, frozenset({".css"}), limit)
@@ -513,7 +541,7 @@ def _debug_review_lazy_load_failures() -> tuple[str, ...]:
     failures.extend(
         _fail_if_any(
             "input review imports must stay lazy",
-            import_from_hits("app_modules/input_step.py", ("ui.input_review_panel",)),
+            import_from_hits("app_modules/generation_messages.py", ("ui.input_review_panel",)),
         )
     )
     failures.extend(
@@ -528,8 +556,8 @@ def _debug_review_lazy_load_failures() -> tuple[str, ...]:
             "if not is_debug_mode(st.session_state):",
             "from ui.diagnostics_panel import",
         ),
-        "app_modules/input_step.py": (
-            "if not is_debug_mode(st.session_state):",
+        "app_modules/generation_messages.py": (
+            "if not is_debug_mode(state):",
             "from ui.input_review_panel import",
         ),
     }
@@ -642,6 +670,10 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck(
             "Top-level compatibility facade scope",
             lambda: _fail_if_any("compatibility facade grew implementation logic", top_level_compatibility_facade_hits()),
+        ),
+        ArchitectureCheck(
+            "Destination/transport import cycle",
+            lambda: _fail_if_any("destination transport cycle", destination_transport_cycle_hits()),
         ),
         ArchitectureCheck(
             "Generation core facade dependency direction",

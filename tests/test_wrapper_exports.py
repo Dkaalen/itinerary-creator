@@ -8,5 +8,8 @@ def test_pdf_exporter_wrapper_uses_explicit_exports():
     source = (ROOT / "pdf_exporter.py").read_text(encoding="utf-8")
 
     assert "import *" not in source
+    assert "pdf_exporter_modules.public_api" in source
     assert "__all__" in source
-    assert "export_html_to_pdf" in source
+
+    public_api = (ROOT / "pdf_exporter_modules" / "public_api.py").read_text(encoding="utf-8")
+    assert "export_html_to_pdf" in public_api

@@ -40,14 +40,19 @@ Use these when a patch touches a specific architecture area:
 .\scripts\run_parser_tests.ps1
 .\scripts\run_activity_tests.ps1
 .\scripts\run_architecture_tests.ps1
+.\scripts\run_calculator_tests.ps1
 .\scripts\run_editor_tests.ps1
 .\scripts\run_image_tests.ps1
+.\scripts\run_storage_tests.ps1
 .\scripts\run_ui_tests.ps1
+.\scripts\run_workflow_tests.ps1
 ```
 
 These lanes are convenience validation gates. They may overlap with `fast` or
 `quality`; overlap is intentional because a focused patch should be able to run
-one clear command for the subsystem it changed.
+one clear command for the subsystem it changed. The calculator, storage, and
+workflow lanes exist so hosted-app regressions do not depend on a raw full-suite
+pytest run finishing before timeout.
 
 ## Medium quality tests
 
@@ -85,6 +90,12 @@ stability targets so failures are easier to locate.
 Raw full-suite pytest can exceed short timeout limits in hosted patch-review
 environments, so a timeout there does not automatically mean the app is broken.
 Use the fast and focused scripts to isolate failures quickly.
+
+## Runtime policy
+
+The app, CI, and local version files target Python 3.14. Keep `runtime.txt`,
+`.python-version`, and `.github/workflows/tests.yml` aligned when changing the
+hosted runtime.
 
 ## Marker policy
 

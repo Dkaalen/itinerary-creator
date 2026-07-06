@@ -29,15 +29,12 @@ def test_main_view_is_stage_router_not_workflow_dumping_ground():
 
 
 def test_normal_generation_messages_are_debug_only():
-    source = _read("input_step.py")
+    source = _read("generation_messages.py")
 
-    assert "def _render_generation_messages" in source
-    assert "if not is_debug_mode(st.session_state):" in source
+    assert "def render_generation_messages" in source
+    assert "if not is_debug_mode(state):" in source
     assert "render_structured_input_review_panel" in source
-    function_body = source[source.index("def _render_generation_messages"):source.index("def render_input_page")]
-    assert function_body.index("if not is_debug_mode(st.session_state):") < function_body.index(
-        "render_structured_input_review_panel"
-    )
+    assert source.index("if not is_debug_mode(state):") < source.index("render_structured_input_review_panel")
 
 
 def test_debug_tools_have_single_real_boundary():

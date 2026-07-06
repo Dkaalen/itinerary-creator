@@ -3,20 +3,12 @@
 from images.image_bank import (
     APP_ROOT,
     clean_space,
-    connect_remote_image_bank_if_missing as _connect_remote_image_bank_if_missing,
     destination_requests_from_rows,
     esc,
-    ensure_runtime_image_bank as _ensure_runtime_image_bank,
-    ensure_runtime_image_bank_status as _ensure_runtime_image_bank_status,
-    get_image_bank_path as _get_image_bank_path,
-    get_image_bank_paths as _get_image_bank_paths,
-    get_image_bank_scan_paths as _get_image_bank_scan_paths,
-    image_bank_status as _image_bank_status,
-    infer_country_for_city as _infer_country_for_city,
     normalize_path_key,
-    prefetch_image_bank_for_rows as _prefetch_image_bank_for_rows,
     slugify_filename,
 )
+from images import app_image_bank as _app_image_bank
 from images.image_overrides import (
     CROP_FOCUS_LABELS,
     CROP_FOCUS_OBJECT_POSITIONS,
@@ -47,70 +39,44 @@ from images.image_match_audit import audit_day_image_matches as _audit_day_image
 
 
 
-
 def ensure_runtime_image_bank(required_destinations=None):
-    return _ensure_runtime_image_bank(APP_ROOT, required_destinations=required_destinations)
+    return _app_image_bank.ensure_runtime_image_bank(required_destinations, root=APP_ROOT)
 
 
 def ensure_runtime_image_bank_status(required_destinations=None):
-    return _ensure_runtime_image_bank_status(APP_ROOT, required_destinations=required_destinations)
+    return _app_image_bank.ensure_runtime_image_bank_status(required_destinations, root=APP_ROOT)
 
 
 def connect_remote_image_bank_if_missing(required_destinations=None):
-    return _connect_remote_image_bank_if_missing(APP_ROOT, required_destinations=required_destinations)
+    return _app_image_bank.connect_remote_image_bank_if_missing(required_destinations, root=APP_ROOT)
 
 
 def image_bank_status(required_destinations=None):
-    return _image_bank_status(APP_ROOT, required_destinations=required_destinations)
+    return _app_image_bank.image_bank_status(required_destinations, root=APP_ROOT)
 
 
 def image_bank_storage_signature():
-    """Return a lightweight signature for the active image-bank storage."""
-
-    image_suffixes = {".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
-    parts = []
-    for path in get_image_bank_scan_paths():
-        try:
-            resolved = path.resolve()
-        except OSError:
-            resolved = path
-        if not path.exists() or not path.is_dir():
-            parts.append((str(resolved), "missing", 0, 0, 0))
-            continue
-        count = 0
-        total_size = 0
-        newest_mtime = 0
-        for candidate in path.rglob("*"):
-            if not candidate.is_file() or candidate.suffix.lower() not in image_suffixes:
-                continue
-            try:
-                stat = candidate.stat()
-            except OSError:
-                continue
-            count += 1
-            total_size += int(stat.st_size)
-            newest_mtime = max(newest_mtime, int(stat.st_mtime_ns))
-        parts.append((str(resolved), "present", count, total_size, newest_mtime))
-    return repr(parts)
+    return _app_image_bank.image_bank_storage_signature(root=APP_ROOT)
 
 
 def prefetch_image_bank_for_rows(rows_or_grouped_days):
-    return _prefetch_image_bank_for_rows(rows_or_grouped_days, APP_ROOT)
+    return _app_image_bank.prefetch_image_bank_for_rows(rows_or_grouped_days, root=APP_ROOT)
+
 
 def get_image_bank_paths():
-    return _get_image_bank_paths(APP_ROOT)
+    return _app_image_bank.get_image_bank_paths(root=APP_ROOT)
 
 
 def get_image_bank_path():
-    return _get_image_bank_path(APP_ROOT)
+    return _app_image_bank.get_image_bank_path(root=APP_ROOT)
 
 
 def get_image_bank_scan_paths():
-    return _get_image_bank_scan_paths(APP_ROOT)
+    return _app_image_bank.get_image_bank_scan_paths(root=APP_ROOT)
 
 
 def infer_country_for_city(city):
-    return _infer_country_for_city(city, APP_ROOT)
+    return _app_image_bank.infer_country_for_city(city, root=APP_ROOT)
 
 
 def select_day_images_with_overrides(grouped_days, output_edits=None):
