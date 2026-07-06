@@ -138,13 +138,13 @@ def test_open_project_file_reports_wrong_schema_safely(monkeypatch) -> None:
 
 
 def test_save_project_file_ui_renders_download_button(monkeypatch) -> None:
-    import app_modules.project_file_ui as project_file_ui
+    import app_modules.project_save_ui as project_save_ui
 
     st.session_state = SessionState(_generated_state())
     calls: list[dict] = []
-    monkeypatch.setattr(project_file_ui.st, "download_button", lambda **kwargs: calls.append(kwargs), raising=False)
+    monkeypatch.setattr(project_save_ui.st, "download_button", lambda **kwargs: calls.append(kwargs), raising=False)
 
-    project_file_ui.render_save_project_file_action(key_suffix="test")
+    project_save_ui.render_save_project_file_action(key_suffix="test")
 
     assert len(calls) == 1
     assert calls[0]["label"] == "Download backup file"

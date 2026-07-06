@@ -109,25 +109,25 @@ def test_patch_46_project_file_guard_rejects_accidental_backlog_payload() -> Non
 
 
 def test_patch_46_open_project_ui_renders_storage_note_without_backlog_controls(monkeypatch) -> None:
-    import app_modules.project_file_ui as project_file_ui
+    import app_modules.project_browser_ui as project_browser_ui
 
     st.session_state = SessionState()
     captions: list[str] = []
     labels: list[str] = []
     upload_labels: list[str] = []
     button_calls = iter((True, False))
-    monkeypatch.setattr(project_file_ui.st, "container", lambda **kwargs: _Container(), raising=False)
-    monkeypatch.setattr(project_file_ui.st, "html", lambda value: labels.append(str(value)), raising=False)
-    monkeypatch.setattr(project_file_ui.st, "caption", lambda value: captions.append(str(value)), raising=False)
-    monkeypatch.setattr(project_file_ui.st, "button", lambda *args, **kwargs: next(button_calls, False), raising=False)
+    monkeypatch.setattr(project_browser_ui.st, "container", lambda **kwargs: _Container(), raising=False)
+    monkeypatch.setattr(project_browser_ui.st, "html", lambda value: labels.append(str(value)), raising=False)
+    monkeypatch.setattr(project_browser_ui.st, "caption", lambda value: captions.append(str(value)), raising=False)
+    monkeypatch.setattr(project_browser_ui.st, "button", lambda *args, **kwargs: next(button_calls, False), raising=False)
     monkeypatch.setattr(
-        project_file_ui.st,
+        project_browser_ui.st,
         "file_uploader",
         lambda label, *args, **kwargs: upload_labels.append(str(label)) or None,
         raising=False,
     )
 
-    project_file_ui.render_open_project_file_action()
+    project_browser_ui.render_open_project_file_action()
     rendered = "\n".join(labels + captions + upload_labels)
 
     assert "Open saved itinerary" in rendered

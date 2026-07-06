@@ -45,7 +45,7 @@ def test_app_header_renders_compact_workspace_shell_for_active_itinerary(monkeyp
 
 
 def test_input_page_uses_compact_project_upload_and_calculator_entry():
-    project_source = __import__("pathlib").Path("app_modules/project_file_ui.py").read_text()
+    project_source = __import__("pathlib").Path("app_modules/project_browser_ui.py").read_text()
     nav_source = __import__("pathlib").Path("app_modules/calculator_navigation.py").read_text()
 
     assert 'st.button("Open project", use_container_width=True' in project_source

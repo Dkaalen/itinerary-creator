@@ -53,12 +53,12 @@ def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default(
 
 def test_normal_input_flow_exposes_project_file_open_and_keeps_legacy_loader_debug_only():
     source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
-    project_file_ui = Path("app_modules/project_file_ui.py").read_text(encoding="utf-8")
+    project_browser_ui = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
 
     assert "Generate agent itinerary" in source
     assert "Generate customer itinerary" in source
     assert "Supplier text" in source
     assert "render_open_project_file_action()" in source
-    assert "Open uploaded backup" in project_file_ui
+    assert "Open uploaded backup" in project_browser_ui
     assert "Load legacy editable project JSON" in source
     assert source.index("if is_debug_mode(st.session_state):") < source.index("Load legacy editable project JSON")

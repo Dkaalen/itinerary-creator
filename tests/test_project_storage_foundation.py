@@ -175,7 +175,7 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
 
 def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:
     source = Path("project_storage/project_browser.py").read_text(encoding="utf-8")
-    ui_source = Path("app_modules/project_file_ui.py").read_text(encoding="utf-8")
+    ui_source = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
 
     assert "search: str = """ in source
     assert "list_cloud_calculation_files" in source

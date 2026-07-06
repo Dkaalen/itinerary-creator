@@ -18,7 +18,7 @@ def test_calculator_no_longer_auto_clicks_browser_downloads() -> None:
 
 
 def test_open_project_dialog_has_search_delete_files_and_contrast_css() -> None:
-    ui_source = Path("app_modules/project_file_ui.py").read_text(encoding="utf-8")
+    ui_source = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
     from ui import style_app_shell
 
     css = style_app_shell.CSS
