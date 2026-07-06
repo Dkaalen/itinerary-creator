@@ -22,10 +22,36 @@ class ProjectStorageRepository:
     def upsert_itinerary(self, itinerary_id: str, *, name: str, status: str = "draft") -> dict[str, Any]:
         rows = self._client.rest_insert(
             "itineraries",
-            {"id": itinerary_id, "name": name or "Untitled itinerary", "status": status},
+            {
+                "id": itinerary_id,
+                "name": name or "Untitled itinerary",
+                "status": status,
+            },
             upsert=True,
         )
         return rows[0] if rows else {}
+
+    def list_itineraries(self, *, limit: int = 30) -> list[dict[str, Any]]:
+        return self._client.rest_get(
+            "itineraries",
+            {
+                "select": "id,name,status,created_at,updated_at",
+                "order": "created_at.desc",
+                "limit": str(max(1, min(int(limit), 100))),
+            },
+        )
+
+    def latest_version(self, itinerary_id: str) -> dict[str, Any] | None:
+        rows = self._client.rest_get(
+            "itinerary_versions",
+            {
+                "select": "id,itinerary_id,version_number,itinerary_type,source_type,payload,created_at",
+                "itinerary_id": f"eq.{itinerary_id}",
+                "order": "created_at.desc",
+                "limit": "1",
+            },
+        )
+        return rows[0] if rows else None
 
     def next_version_number(self, itinerary_id: str, itinerary_type: str) -> int:
         rows = self._client.rest_get(

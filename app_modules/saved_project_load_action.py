@@ -74,9 +74,10 @@ def load_saved_project(
     state["itinerary_validation_report"] = validation_report
     state["active_saved_project"] = saved_project_to_dict(saved_project)
     state["active_saved_project_id"] = saved_project.metadata.project_id
+    state["active_project_storage_id"] = saved_project.metadata.project_id
     state["itinerary_name"] = saved_project.metadata.itinerary_name
     state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
-    apply_calculator_snapshot_to_state(state, saved_project.calculator_snapshot.__dict__)
+    apply_calculator_snapshot_to_state(state, _calculator_snapshot_payload(saved_project.calculator_snapshot))
     clear_pdf_artifacts(state, status="Not created")
     clear_project_file_download_cache(state)
 
@@ -121,3 +122,9 @@ def _rebuild_preview_state(
     store_render_context(state, signature=render_signature, context=render_context)
     state["html_path"] = save_html_file(state["itinerary_html"])
     return render_signature
+
+
+def _calculator_snapshot_payload(snapshot: object) -> dict:
+    if isinstance(snapshot, dict):
+        return snapshot
+    return dict(getattr(snapshot, "__dict__", {}) or {})

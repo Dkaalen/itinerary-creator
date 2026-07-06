@@ -10,9 +10,6 @@ import streamlit as st
 
 from app_modules.output_brand import BOOKNORDICS_SYMBOL_PATH
 
-BOOKNORDICS_HOME_URL = "https://booknordics.com/"
-
-
 @lru_cache(maxsize=1)
 def _booknordics_logo_data_uri() -> str:
     """Return the embedded Booknordics symbol for the app workspace header."""
@@ -24,19 +21,19 @@ def _booknordics_logo_data_uri() -> str:
 
 
 def render_studio_brand() -> None:
-    """Render the linked Booknordics workspace brand block."""
+    """Render the non-clickable Booknordics workspace brand block."""
 
     logo_src = _booknordics_logo_data_uri()
     logo_html = f'<img src="{escape(logo_src)}" alt="Booknordics.com symbol" />' if logo_src else ""
     st.html(
         f"""
-        <a class="studio-brand-link" href="{BOOKNORDICS_HOME_URL}" target="_blank" rel="noopener noreferrer">
+        <div class="studio-brand-link studio-brand-static" aria-label="Itinerary Studio by Booknordics.com">
           <span class="studio-brand-logo">{logo_html}</span>
           <span class="studio-brand-copy">
             <strong>Itinerary Studio</strong>
             <span>By Booknordics.com</span>
           </span>
-        </a>
+        </div>
         """
     )
 

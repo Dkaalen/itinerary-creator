@@ -24,7 +24,8 @@ def test_input_workspace_helpers_remove_landing_page_bloat() -> None:
 
     assert "Itinerary Studio" in source
     assert "By Booknordics.com" in source
-    assert "https://booknordics.com/" in source
+    assert "studio-brand-static" in source
+    assert "href=" not in source
     assert "BOOKNORDICS_SYMBOL_PATH" in source
     assert "New itinerary" in source
     assert "Supplier rows" in source

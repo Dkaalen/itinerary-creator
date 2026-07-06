@@ -59,6 +59,49 @@ def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
         return False
 
 
+def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict[str, Any], *, source_type: str = "manual_save") -> bool:
+    """Persist a saved-project payload as the latest cloud project version."""
+
+    repository = get_project_storage_repository()
+    if repository is None or not isinstance(project, dict):
+        return False
+    metadata = project.get("metadata") if isinstance(project.get("metadata"), dict) else {}
+    itinerary_id = str(metadata.get("project_id") or state.get("active_project_storage_id") or state.get("active_saved_project_id") or "").strip()
+    if not itinerary_id:
+        itinerary_id = ensure_storage_itinerary(state, name=str(metadata.get("itinerary_name") or ""))
+    itinerary_name = str(metadata.get("itinerary_name") or _state_itinerary_name(state) or "Untitled itinerary")
+    itinerary_type = str(project.get("output_brand") or project.get("mode") or "agent")
+
+    try:
+        repository.upsert_itinerary(itinerary_id, name=itinerary_name, status=str(metadata.get("status") or "draft"))
+        version_number = repository.next_version_number(itinerary_id, itinerary_type)
+        version = repository.create_version(
+            itinerary_id=itinerary_id,
+            version_number=version_number,
+            itinerary_type=itinerary_type,
+            source_type=source_type,
+            payload=project,
+        )
+        content = json.dumps(project, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+        storage_path = itinerary_snapshot_path(itinerary_id, itinerary_type, version_number)
+        repository.upload_file(storage_path, content, content_type=PROJECT_JSON_MIME)
+        repository.register_file(
+            itinerary_id=itinerary_id,
+            version_id=str(version.get("id") or "") or None,
+            file_type="saved_project_json",
+            filename=storage_path.rsplit("/", 1)[-1],
+            storage_path=storage_path,
+        )
+        state["active_project_storage_id"] = itinerary_id
+        state["active_saved_project_id"] = itinerary_id
+        state["project_storage_last_saved_snapshot_path"] = storage_path
+        state.pop("project_storage_last_error", None)
+        return True
+    except Exception as exc:
+        _record_storage_error(state, exc)
+        return False
+
+
 def save_calculation_workbook(
     state: MutableMapping[str, Any],
     calculator_state: CalculatorState,

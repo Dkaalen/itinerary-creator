@@ -7,7 +7,7 @@ import streamlit as st
 from app_modules.project_file_ui import render_save_project_file_action
 from app_modules.project_io import rebuild_current_preview, reset_project_state
 from app_modules.workflow_config import STAGE_LABELS
-from app_modules.workflow_shell import build_project_metrics, project_next_action_label, project_route_label, project_title
+from app_modules.workflow_shell import build_project_metrics, project_title
 from app_modules.workflow_state import set_workflow_stage
 
 
@@ -38,24 +38,16 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
     output_edits = session_state.get("output_edits") or {}
     metrics = build_project_metrics(parsed_rows, output_edits)
     title = str(session_state.get("itinerary_name") or project_title(output_edits)).strip() or "New itinerary"
-    route = project_route_label(metrics)
     stage_label = STAGE_LABELS.get(stage, str(stage).title())
     day_label = f"{metrics['days']} day" if metrics["days"] == 1 else f"{metrics['days']} days"
-    picture_label = "Pictures ready" if metrics.get("pictures_added") else "Text stage"
-    action_label = project_next_action_label(stage, metrics)
+    saved_label = "Cloud saved" if session_state.get("project_storage_last_saved_snapshot_path") else "Unsaved changes"
 
     st.html(
         '<div class="workspace-shell">'
         '<div class="workspace-shell-main">'
         f'<span class="workspace-eyebrow">{escape(stage_label)}</span>'
         f'<strong>{escape(title)}</strong>'
-        f'<span>{escape(route)}</span>'
-        '</div>'
-        '<div class="workspace-shell-meta">'
-        f'<span>{escape(day_label)}</span>'
-        f'<span class="workspace-action-chip">{escape(action_label)}</span>'
-        f'<span>{escape(picture_label)}</span>'
-        f'<span>{escape(str(app_version))}</span>'
+        f'<span>{escape(day_label)} · {escape(saved_label)}</span>'
         '</div>'
         '</div>'
     )

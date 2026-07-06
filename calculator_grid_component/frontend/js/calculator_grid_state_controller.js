@@ -22,6 +22,7 @@ function initializeState(payload) {
     libraryRows: payload.library_rows || [],
     currencyRates: payload.currency_rates || DEFAULT_RATES,
     libraryStatus: payload.library_status || '',
+    pendingDownload: payload.pending_download || null,
     showAdvanced: useStoredDraft ? Boolean(storedDraft.showAdvanced) : Boolean(payload.show_advanced),
     selectedRowIndex: useStoredDraft ? Number(storedDraft.selectedRowIndex || 0) : 0,
     activeSuggestion: null
@@ -47,6 +48,7 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   calculatorState.libraryRows = payload.library_rows || calculatorState.libraryRows || [];
   calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
   calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
+  calculatorState.pendingDownload = payload.pending_download || null;
   activeBackendRevision = incomingRevision;
   activeDraftStorageKey = getCalculatorDraftStorageKey();
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);

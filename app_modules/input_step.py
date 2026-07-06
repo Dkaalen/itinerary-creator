@@ -12,6 +12,7 @@ from app_modules.input_workspace import (
 )
 from app_modules.itinerary_name_state import sync_itinerary_name_from_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
+from app_modules.input_preview_table import render_supplier_rows_preview
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.project_file_ui import render_open_project_file_action
@@ -91,11 +92,12 @@ def render_input_page(app_version: str) -> None:
     render_source_label()
     raw_text = st.text_area(
         "Supplier text",
-        height=440,
+        height=360,
         placeholder="Paste itinerary rows here…",
         key="raw_text_input",
         label_visibility="collapsed",
     )
+    render_supplier_rows_preview(raw_text)
 
     agent_col, customer_col, spacer_col = st.columns([0.26, 0.30, 0.44])
     generate_agent = agent_col.button("Generate agent itinerary", type="primary", use_container_width=True)

@@ -147,7 +147,7 @@ def test_save_project_file_ui_renders_download_button(monkeypatch) -> None:
     project_file_ui.render_save_project_file_action(key_suffix="test")
 
     assert len(calls) == 1
-    assert calls[0]["label"] == "Save Project File"
+    assert calls[0]["label"] == "Download backup file"
     assert calls[0]["file_name"].endswith(PROJECT_FILE_SUFFIX)
     assert calls[0]["mime"] == "application/json"
     assert json.loads(calls[0]["data"].decode("utf-8"))["kind"] == "itinerary_project"

@@ -69,7 +69,7 @@ def test_name_input_seeds_from_loaded_project_name(monkeypatch) -> None:
     render_itinerary_name_input()
 
     assert st.session_state["itinerary_name_input"] == "Saved Oslo Project"
-    assert calls[0]["args"] == ("Itinerary Name",)
+    assert calls[0]["args"] == ("Itinerary name",)
     assert calls[0]["kwargs"]["key"] == "itinerary_name_input"
 
 

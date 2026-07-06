@@ -65,6 +65,7 @@ body {
 .calc-btn.primary { background: #233446; border-color: rgba(35, 52, 70, 0.78); color: #ffffff; }
 .calc-btn.primary:hover { background: #2d4357; border-color: rgba(35, 52, 70, 0.88); }
 .calc-btn.danger { border-color: rgba(200, 95, 86, 0.28); color: var(--red-dark); background: #fff8f6; }
+.calc-btn.ready { border-color: rgba(102, 126, 96, 0.38); color: #394f36; background: #f3f7ef; }
 .advanced-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.86rem; padding: 0 4px; }
 .calculator-status-row {
   display: flex;

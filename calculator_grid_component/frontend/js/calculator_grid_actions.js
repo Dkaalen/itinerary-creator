@@ -23,6 +23,7 @@ function bindEvents() {
     rerender();
   });
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
+  document.querySelector('[data-action="download-ready"]')?.addEventListener('click', () => triggerPendingDownload(calculatorState, true));
   document.querySelector('[data-action="generate-agent"]')?.addEventListener('click', () => submitAction('generate_agent'));
   document.querySelector('[data-action="generate-customer"]')?.addEventListener('click', () => submitAction('generate_customer'));
   document.querySelector('[data-action="toggle-fullscreen"]')?.addEventListener('click', toggleCalculatorFullscreen);

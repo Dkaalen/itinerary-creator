@@ -39,9 +39,9 @@ def test_app_header_renders_compact_workspace_shell_for_active_itinerary(monkeyp
     assert calls[0][0] == "html"
     assert "workspace-shell" in calls[0][1]
     assert "Norway Winter" in calls[0][1]
-    assert "Oslo → Bergen" in calls[0][1]
+    assert "2 days" in calls[0][1]
     assert "Add pictures" in calls[0][1]
-    assert "Next · review images" in calls[0][1]
+    assert "Unsaved changes" in calls[0][1]
 
 
 def test_input_page_uses_compact_project_upload_and_calculator_entry():

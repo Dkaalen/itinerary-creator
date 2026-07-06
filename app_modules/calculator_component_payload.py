@@ -24,6 +24,7 @@ def build_calculator_grid_payload(
     show_advanced: bool = False,
     currency_rates: Mapping[str, float] | None = None,
     draft_namespace: str = "",
+    pending_download: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the JSON-serializable component payload for the calculator grid."""
 
@@ -40,6 +41,7 @@ def build_calculator_grid_payload(
         "library_read_only": library_read.read_only,
         "library_message": library_read.message,
         "library_rows": [_library_row_payload(row, active_rates) for row in _autocomplete_rows(library_read)],
+        "pending_download": dict(pending_download or {}),
     }
 
 

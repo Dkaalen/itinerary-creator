@@ -20,7 +20,7 @@ class CalculatorGridResult:
     client_state_revision: str = ""
 
 
-_VALID_ACTIONS = {"download", "generate_agent", "generate_customer", "sync"}
+_VALID_ACTIONS = {"download", "download_ack", "generate_agent", "generate_customer", "sync"}
 
 
 def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> CalculatorGridResult | None:

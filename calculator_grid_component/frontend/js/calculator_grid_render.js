@@ -13,6 +13,7 @@ function buildToolbarHtml(state) {
         <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen calculator'}</button>
       </div>
       <div class="calculator-toolbar-right">
+        ${state.pendingDownload ? '<button class="calc-btn ready" data-action="download-ready">Excel ready</button>' : ''}
         <button class="calc-btn primary" data-action="download">Download Excel</button>
         <button class="calc-btn" data-action="generate-agent">Generate agent itinerary</button>
         <button class="calc-btn" data-action="generate-customer">Generate customer itinerary</button>
@@ -132,4 +133,29 @@ function renderShell(state) {
       ${buildSuggestionHtml(state)}
     </div>`;
   requestAnimationFrame(setCalculatorFrameHeight);
+  requestAnimationFrame(() => triggerPendingDownload(state));
+}
+
+function triggerPendingDownload(state, force = false) {
+  const payload = state && state.pendingDownload ? state.pendingDownload : null;
+  if (!payload || !payload.id || !payload.base64 || !payload.filename) return;
+  const storageKey = `itineraryCalculatorDownloaded.${payload.id}`;
+  if (!force && sessionStorage.getItem(storageKey)) return;
+  try {
+    const binary = atob(String(payload.base64));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    const blob = new Blob([bytes], {type: payload.mime || 'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = String(payload.filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    sessionStorage.setItem(storageKey, '1');
+  } catch (error) {
+    console.error('Automatic calculator download failed', error);
+  }
 }
