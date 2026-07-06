@@ -12,9 +12,18 @@ from app_modules.project_io import load_project_json
 from app_modules.saved_project_file_action import PROJECT_FILE_MIME, prepare_saved_project_file_download
 from app_modules.saved_project_load_action import load_saved_project
 from app_modules.saved_project_validation import SavedProjectError
-from project_storage.project_browser import list_cloud_itineraries, load_latest_cloud_project_payload
+from project_storage.project_browser import (
+    delete_cloud_itinerary,
+    download_cloud_project_file,
+    list_cloud_calculation_files,
+    list_cloud_itineraries,
+    load_latest_cloud_project_payload,
+)
 from project_storage.runtime import project_storage_is_configured
-from project_storage.workflow_hooks import save_project_payload_snapshot
+from project_storage.workflow_hooks import CALCULATION_XLSX_MIME, save_project_payload_snapshot
+
+_DELETE_CANDIDATE_KEY = "open_project_delete_candidate_id"
+_DELETE_NAME_KEY = "open_project_delete_candidate_name"
 
 
 @st.dialog("Open project")
@@ -25,7 +34,7 @@ def _render_open_project_dialog() -> None:
         """
         <div class="open-project-copy">
           <strong>Open saved itinerary</strong>
-          <span>Choose a cloud project, or upload a backup project file.</span>
+          <span>Choose a cloud project, download saved calculator files, or upload a backup file.</span>
         </div>
         """
     )
@@ -39,14 +48,20 @@ def _render_open_project_dialog() -> None:
 def _render_cloud_project_browser() -> None:
     """Render cloud projects from Supabase."""
 
+    search = st.text_input(
+        "Search projects",
+        value=str(st.session_state.get("open_project_search") or ""),
+        key="open_project_search",
+        placeholder="Search by itinerary name…",
+    )
     try:
-        projects = list_cloud_itineraries(limit=30)
+        projects = list_cloud_itineraries(limit=50, search=search)
     except Exception as error:
         st.warning("Could not read cloud projects from Supabase.")
         st.caption(str(error))
         return
     if not projects:
-        st.caption("No cloud projects saved yet.")
+        st.caption("No matching cloud projects." if search else "No cloud projects saved yet.")
         return
     st.html('<div class="cloud-project-list">')
     for project in projects:
@@ -56,18 +71,100 @@ def _render_cloud_project_browser() -> None:
 
 def _render_cloud_project_card(project: dict[str, Any]) -> None:
     project_id = str(project.get("id") or "")
+    if not project_id:
+        return
     name = str(project.get("name") or "Untitled itinerary")
     updated = _short_time(project.get("updated_at") or project.get("created_at"))
     st.html(
         f"""
         <div class="cloud-project-card">
           <strong>{escape(name)}</strong>
-          <span>{escape(updated)} · {escape(project_id[:8])}</span>
+          <span>Last saved {escape(updated)} · {escape(project_id[:8])}</span>
         </div>
         """
     )
-    if st.button(f"Open {name}", key=f"open_cloud_project_{project_id}", use_container_width=True):
-        _open_cloud_project(project_id)
+    open_col, delete_col = st.columns([0.68, 0.32])
+    with open_col:
+        if st.button(f"Open {name}", key=f"open_cloud_project_{project_id}", use_container_width=True):
+            _open_cloud_project(project_id)
+    with delete_col:
+        if st.button("Delete", key=f"delete_cloud_project_{project_id}", use_container_width=True):
+            st.session_state[_DELETE_CANDIDATE_KEY] = project_id
+            st.session_state[_DELETE_NAME_KEY] = name
+            st.rerun()
+    _render_delete_confirmation(project_id, name)
+    _render_calculation_files(project_id)
+
+
+def _render_delete_confirmation(project_id: str, name: str) -> None:
+    if st.session_state.get(_DELETE_CANDIDATE_KEY) != project_id:
+        return
+    st.html(
+        f"""
+        <div class="cloud-project-delete-warning">
+          <strong>Delete {escape(name)}?</strong>
+          <span>This removes saved itinerary versions, calculator files, and PDFs.</span>
+        </div>
+        """
+    )
+    cancel_col, confirm_col = st.columns(2)
+    with cancel_col:
+        if st.button("Cancel", key=f"cancel_delete_cloud_project_{project_id}", use_container_width=True):
+            _clear_delete_confirmation()
+            st.rerun()
+    with confirm_col:
+        if st.button("Delete permanently", key=f"confirm_delete_cloud_project_{project_id}", use_container_width=True):
+            try:
+                if delete_cloud_itinerary(project_id):
+                    _clear_deleted_project_from_session(project_id)
+                    _clear_delete_confirmation()
+                    st.success(f"Deleted {name}.")
+                    st.rerun()
+                    return
+                st.warning("Cloud storage is unavailable. Project was not deleted.")
+            except Exception as error:
+                st.error("Project could not be deleted.")
+                st.caption(str(error))
+
+
+def _render_calculation_files(project_id: str) -> None:
+    try:
+        files = list_cloud_calculation_files(project_id, limit=8)
+    except Exception as error:
+        st.caption(f"Calculator files unavailable: {error}")
+        return
+    if not files:
+        st.caption("No calculator files saved for this itinerary yet.")
+        return
+    with st.expander(f"Calculator files ({len(files)})", expanded=False):
+        for index, item in enumerate(files):
+            filename = str(item.get("filename") or "calculation.xlsx")
+            created = _short_time(item.get("created_at"))
+            storage_path = str(item.get("storage_path") or "")
+            st.html(
+                f"""
+                <div class="cloud-file-row">
+                  <strong>{escape(filename)}</strong>
+                  <span>{escape(created)}</span>
+                </div>
+                """
+            )
+            prepared_key = f"cloud_calculator_file_payload_{project_id}_{index}"
+            if st.button("Prepare calculator file", key=f"prepare_cloud_calculator_{project_id}_{index}", use_container_width=True):
+                try:
+                    st.session_state[prepared_key] = download_cloud_project_file(storage_path)
+                except Exception as error:
+                    st.caption(f"Could not prepare {filename}: {error}")
+            content = st.session_state.get(prepared_key)
+            if content:
+                st.download_button(
+                    "Download calculator file",
+                    data=bytes(content),
+                    file_name=filename,
+                    mime=CALCULATION_XLSX_MIME,
+                    key=f"download_cloud_calculator_{project_id}_{index}",
+                    use_container_width=True,
+                )
 
 
 def _open_cloud_project(project_id: str) -> None:
@@ -77,6 +174,8 @@ def _open_cloud_project(project_id: str) -> None:
         return
     result = load_saved_project(st.session_state, payload)
     if result.ok:
+        st.session_state["active_project_storage_id"] = project_id
+        st.session_state["active_saved_project_id"] = project_id
         st.success(result.message or "Cloud project opened.")
         st.rerun()
     else:
@@ -154,6 +253,25 @@ def _render_backup_project_download(*, key_suffix: str) -> None:
         use_container_width=True,
         key=f"save_project_file_{key_suffix}",
     )
+
+
+def _clear_deleted_project_from_session(project_id: str) -> None:
+    if str(st.session_state.get("active_project_storage_id") or "") != project_id:
+        return
+    for key in (
+        "active_project_storage_id",
+        "active_saved_project_id",
+        "active_saved_project",
+        "project_storage_last_saved_snapshot_path",
+        "project_storage_last_calculator_file_path",
+        "project_storage_last_pdf_path",
+    ):
+        st.session_state.pop(key, None)
+
+
+def _clear_delete_confirmation() -> None:
+    st.session_state.pop(_DELETE_CANDIDATE_KEY, None)
+    st.session_state.pop(_DELETE_NAME_KEY, None)
 
 
 def _short_time(value: object) -> str:

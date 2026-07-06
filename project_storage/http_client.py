@@ -30,10 +30,27 @@ class SupabaseHttpClient:
             prefer = "resolution=merge-duplicates,return=representation"
         return self._json_request("POST", f"/rest/v1/{table}", payload=payload, prefer=prefer)
 
+    def rest_delete(self, table: str, params: dict[str, str]) -> list[dict[str, Any]]:
+        query = parse.urlencode(params)
+        return self._json_request("DELETE", f"/rest/v1/{table}?{query}", prefer="return=representation")
+
     def storage_upload(self, bucket: str, storage_path: str, content: bytes, *, content_type: str) -> None:
         encoded_path = parse.quote(storage_path.strip("/"), safe="/")
         headers = {"Content-Type": content_type, "x-upsert": "true"}
         self._request("POST", f"/storage/v1/object/{bucket}/{encoded_path}", data=content, headers=headers)
+
+    def storage_download(self, bucket: str, storage_path: str) -> bytes:
+        encoded_path = parse.quote(storage_path.strip("/"), safe="/")
+        return self._request("GET", f"/storage/v1/object/{bucket}/{encoded_path}")
+
+    def storage_delete(self, bucket: str, storage_paths: list[str]) -> None:
+        cleaned_paths = [path.strip("/") for path in storage_paths if str(path or "").strip("/")]
+        if not cleaned_paths:
+            return
+        payload = {"prefixes": cleaned_paths}
+        data = json.dumps(payload).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        self._request("DELETE", f"/storage/v1/object/{bucket}", data=data, headers=headers)
 
     def _json_request(
         self,

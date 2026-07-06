@@ -6,14 +6,44 @@ from typing import Any
 
 from project_storage.runtime import get_project_storage_repository
 
+CALCULATOR_FILE_TYPE = "calculator_xlsx"
 
-def list_cloud_itineraries(*, limit: int = 30) -> tuple[dict[str, Any], ...]:
+
+def list_cloud_itineraries(*, limit: int = 30, search: str = "") -> tuple[dict[str, Any], ...]:
     """Return saved itinerary records, newest first."""
 
     repository = get_project_storage_repository()
     if repository is None:
         return ()
-    return tuple(repository.list_itineraries(limit=limit))
+    return tuple(repository.list_itineraries(limit=limit, search=search))
+
+
+def list_cloud_calculation_files(itinerary_id: str, *, limit: int = 12) -> tuple[dict[str, Any], ...]:
+    """Return saved calculator workbook records for an itinerary."""
+
+    repository = get_project_storage_repository()
+    if repository is None:
+        return ()
+    return tuple(repository.list_files(str(itinerary_id or "").strip(), file_type=CALCULATOR_FILE_TYPE, limit=limit))
+
+
+def download_cloud_project_file(storage_path: str) -> bytes | None:
+    """Return file bytes from private Supabase storage."""
+
+    repository = get_project_storage_repository()
+    if repository is None:
+        return None
+    return repository.download_file(str(storage_path or "").strip())
+
+
+def delete_cloud_itinerary(itinerary_id: str) -> bool:
+    """Delete an itinerary record and its registered storage files."""
+
+    repository = get_project_storage_repository()
+    if repository is None:
+        return False
+    repository.delete_itinerary(str(itinerary_id or "").strip())
+    return True
 
 
 def load_latest_cloud_project_payload(itinerary_id: str) -> dict[str, Any] | None:

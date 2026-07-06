@@ -14,6 +14,9 @@ class FakeClient:
         self.rest_inserts = []
         self.rest_gets = []
         self.uploads = []
+        self.downloads = []
+        self.storage_deletes = []
+        self.rest_deletes = []
 
     def rest_insert(self, table, payload, *, upsert=False):
         self.rest_inserts.append((table, payload, upsert))
@@ -27,6 +30,17 @@ class FakeClient:
 
     def storage_upload(self, bucket, storage_path, content, *, content_type):
         self.uploads.append((bucket, storage_path, content, content_type))
+
+    def storage_download(self, bucket, storage_path):
+        self.downloads.append((bucket, storage_path))
+        return b"downloaded"
+
+    def storage_delete(self, bucket, storage_paths):
+        self.storage_deletes.append((bucket, storage_paths))
+
+    def rest_delete(self, table, params):
+        self.rest_deletes.append((table, params))
+        return []
 
 
 def test_supabase_config_accepts_flat_streamlit_secrets_and_strips_rest_suffix() -> None:
@@ -86,11 +100,13 @@ def test_repository_writes_itinerary_versions_and_file_records() -> None:
         storage_path="itineraries/itinerary-id/snapshots/agent-v004.json",
     )
 
-    assert fake.rest_inserts[0] == (
-        "itineraries",
-        {"id": "itinerary-id", "name": "Norway Winter", "status": "draft"},
-        True,
-    )
+    table, payload, upsert = fake.rest_inserts[0]
+    assert table == "itineraries"
+    assert payload["id"] == "itinerary-id"
+    assert payload["name"] == "Norway Winter"
+    assert payload["status"] == "draft"
+    assert "updated_at" in payload
+    assert upsert is True
     assert fake.uploads[0][0] == "itinerary-files"
     assert fake.rest_inserts[-1][0] == "itinerary_files"
 
@@ -127,3 +143,38 @@ def test_saved_project_generation_reuses_storage_id() -> None:
 
     assert "active_project_storage_id" in source
     assert "project_id=project_id" in source
+
+
+def test_repository_lists_downloads_and_deletes_project_files() -> None:
+    from project_storage.config import SupabaseStorageConfig
+
+    fake = FakeClient()
+    fake.rest_get = lambda table, params: (
+        [{"storage_path": "itineraries/itinerary-id/calculator/test.xlsx"}]
+        if table == "itinerary_files"
+        else []
+    )
+    repository = ProjectStorageRepository(
+        SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
+        client=fake,
+    )
+
+    assert repository.download_file("itineraries/itinerary-id/calculator/test.xlsx") == b"downloaded"
+    repository.delete_itinerary("itinerary-id")
+
+    assert fake.downloads == [("itinerary-files", "itineraries/itinerary-id/calculator/test.xlsx")]
+    assert fake.storage_deletes == [("itinerary-files", ["itineraries/itinerary-id/calculator/test.xlsx"])]
+    assert fake.rest_deletes == [("itineraries", {"id": "eq.itinerary-id"})]
+
+
+def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:
+    source = Path("project_storage/project_browser.py").read_text(encoding="utf-8")
+    ui_source = Path("app_modules/project_file_ui.py").read_text(encoding="utf-8")
+
+    assert "search: str = """ in source
+    assert "list_cloud_calculation_files" in source
+    assert "download_cloud_project_file" in source
+    assert "delete_cloud_itinerary" in source
+    assert "Search projects" in ui_source
+    assert "Delete permanently" in ui_source
+    assert "Calculator files" in ui_source

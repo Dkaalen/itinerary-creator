@@ -11,10 +11,8 @@ from app_modules.calculator_component_payload import build_calculator_grid_paylo
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
 from app_modules.calculator_currency_controls import render_currency_rate_editor
 from app_modules.calculator_download_action import (
-    browser_calculation_download_payload,
-    clear_browser_calculation_download,
-    prepare_browser_calculation_download,
-    render_calculation_download_button,
+    prepare_staged_calculation_download,
+    render_ready_calculation_download,
 )
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_library_cache import read_cached_local_library
@@ -58,7 +56,7 @@ def render_calculator_page(app_version: str) -> None:
         show_advanced=bool(st.session_state.get(_ADVANCED_TOGGLE_STATE_KEY, False)),
         currency_rates=currency_rates,
         draft_namespace=_calculator_draft_namespace(),
-        pending_download=browser_calculation_download_payload(st.session_state),
+        pending_download=None,
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
@@ -66,6 +64,7 @@ def render_calculator_page(app_version: str) -> None:
         state = _apply_component_result(parsed_result)
 
     _render_backend_action(parsed_result, state, currency_rates)
+    render_ready_calculation_download(st.session_state)
     _render_backup_controls(state)
 
 
@@ -125,11 +124,8 @@ def _render_backend_action(
     if result is None:
         return
     if result.action == "download":
-        prepare_browser_calculation_download(st.session_state, state, currency_rates=currency_rates)
+        prepare_staged_calculation_download(st.session_state, state, currency_rates=currency_rates)
         st.rerun()
-        return
-    if result.action == "download_ack":
-        clear_browser_calculation_download(st.session_state)
         return
     if result.action == "generate_agent":
         _render_generation_result(state, output_brand="agent")

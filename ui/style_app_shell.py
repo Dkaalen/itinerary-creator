@@ -553,6 +553,124 @@ iframe[title="visual_page_editor"] {
     margin-top: .16rem;
 }
 
+
+/* Open Project dialog: dark chrome must use light text; cards stay light with dark text. */
+div[role="dialog"],
+div[data-baseweb="modal"] div[role="dialog"],
+[data-testid="stDialog"] {
+    color: #f8f6f1 !important;
+}
+
+div[role="dialog"] .open-project-copy strong,
+div[role="dialog"] h1,
+div[role="dialog"] h2,
+div[role="dialog"] h3,
+div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
+    color: #fffdf8 !important;
+}
+
+div[role="dialog"] .open-project-copy span,
+div[role="dialog"] p,
+div[role="dialog"] label,
+div[role="dialog"] [data-testid="stWidgetLabel"] p,
+div[role="dialog"] [data-testid="stMarkdownContainer"] p,
+div[role="dialog"] [data-testid="stCaptionContainer"],
+div[role="dialog"] [data-testid="stCaptionContainer"] * {
+    color: #d9d4c9 !important;
+}
+
+div[role="dialog"] div[data-testid="stTextInput"] input,
+div[role="dialog"] div[data-testid="stTextArea"] textarea {
+    background: #fffdf8 !important;
+    color: #1f2630 !important;
+    border-color: rgba(224, 216, 202, .88) !important;
+}
+
+div[role="dialog"] div[data-testid="stTextInput"] input::placeholder,
+div[role="dialog"] div[data-testid="stTextArea"] textarea::placeholder {
+    color: #827c73 !important;
+    opacity: 1 !important;
+}
+
+div[role="dialog"] .cloud-project-list {
+    gap: .8rem;
+    margin-top: .8rem;
+}
+
+div[role="dialog"] .cloud-project-card {
+    background: #fffdf8 !important;
+    border-color: rgba(224, 216, 202, .90) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .16) !important;
+}
+
+div[role="dialog"] .cloud-project-card strong,
+div[role="dialog"] .cloud-file-row strong {
+    color: #1f2630 !important;
+}
+
+div[role="dialog"] .cloud-project-card span,
+div[role="dialog"] .cloud-file-row span {
+    color: #5f625f !important;
+}
+
+div[role="dialog"] [data-testid="stExpander"] {
+    background: rgba(255, 253, 248, .08) !important;
+    border-color: rgba(255, 253, 248, .20) !important;
+}
+
+div[role="dialog"] [data-testid="stExpander"] summary,
+div[role="dialog"] [data-testid="stExpander"] summary * {
+    color: #fffdf8 !important;
+}
+
+.cloud-file-row {
+    display: grid;
+    gap: .12rem;
+    padding: .55rem 0 .35rem;
+}
+
+.cloud-file-row strong {
+    font-size: .88rem;
+    font-weight: 760;
+}
+
+.cloud-file-row span {
+    font-size: .76rem;
+}
+
+.cloud-project-delete-warning {
+    display: grid;
+    gap: .22rem;
+    margin: .6rem 0 .55rem;
+    padding: .72rem .85rem;
+    border: 1px solid rgba(239, 120, 120, .34);
+    border-radius: 12px;
+    background: rgba(149, 77, 70, .18);
+}
+
+.cloud-project-delete-warning strong {
+    color: #fffdf8 !important;
+}
+
+.cloud-project-delete-warning span {
+    color: #e7d7d3 !important;
+    font-size: .84rem;
+}
+
+div[role="dialog"] [data-testid="stFileUploaderDropzone"] {
+    background: #fffdf8 !important;
+    border-color: rgba(224, 216, 202, .88) !important;
+}
+
+div[role="dialog"] [data-testid="stFileUploaderDropzone"] *,
+div[role="dialog"] [data-testid="stFileUploader"] section * {
+    color: #1f2630 !important;
+}
+
+.calculator-download-ready-panel {
+    margin: 1rem clamp(1.5rem, 3vw, 2.65rem) 0;
+}
+
 @media (max-width: 620px) {
     .input-page-heading,
     .workspace-page-heading,
