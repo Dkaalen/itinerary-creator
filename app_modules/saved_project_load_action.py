@@ -9,6 +9,7 @@ from app_modules.itinerary_html import build_itinerary_html_from_context
 from app_modules.itinerary_name_state import ITINERARY_NAME_INPUT_KEY
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from app_modules.render_context_cache import store_render_context
+from app_modules.saved_project_calculator_state import apply_calculator_snapshot_to_state
 from app_modules.saved_project_cleaning import clean_output_edits, clean_parsed_rows
 from app_modules.saved_project_image_state import apply_image_state_to_output_edits
 from app_modules.saved_project_model import SavedItineraryProject
@@ -102,6 +103,7 @@ def load_saved_project(
     state["active_saved_project_id"] = saved_project.metadata.project_id
     state["itinerary_name"] = saved_project.metadata.itinerary_name
     state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
+    apply_calculator_snapshot_to_state(state, saved_project.calculator_snapshot.__dict__)
     clear_pdf_artifacts(state, status="Not created")
     clear_project_file_download_cache(state)
 

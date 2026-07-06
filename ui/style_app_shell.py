@@ -58,6 +58,71 @@ label, [data-testid="stWidgetLabel"] p {
     display: none !important;
 }
 
+.workspace-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: .15rem 0 .9rem;
+    padding: .82rem .95rem;
+    border: 1px solid rgba(199, 208, 202, 0.72);
+    border-radius: 20px;
+    background: rgba(255, 253, 248, 0.72);
+    box-shadow: var(--shadow-control);
+    backdrop-filter: blur(10px);
+}
+
+.workspace-shell-main {
+    min-width: 0;
+    display: grid;
+    gap: .12rem;
+}
+
+.workspace-shell-main strong {
+    color: var(--ink) !important;
+    font-size: 1.02rem;
+    font-weight: 880;
+    letter-spacing: -.018em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-shell-main span:not(.workspace-eyebrow) {
+    color: var(--ink-soft) !important;
+    font-size: .88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-eyebrow {
+    color: var(--teal-dark) !important;
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.workspace-shell-meta {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.workspace-shell-meta span {
+    color: var(--ink-soft) !important;
+    font-size: .76rem;
+    font-weight: 760;
+    border: 1px solid rgba(199, 208, 202, .70);
+    background: rgba(248, 245, 238, .82);
+    border-radius: 999px;
+    padding: .28rem .52rem;
+}
+
 /* Streamlit containers become quiet work surfaces instead of high-contrast boxes. */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border: 1px solid rgba(199, 208, 202, 0.72) !important;

@@ -25,7 +25,8 @@ def open_calculator_page(state: MutableMapping[str, Any]) -> None:
     """Route the app to the calculator and create startup rows if needed."""
 
     state[APP_PAGE_KEY] = CALCULATOR_PAGE
-    if state.get(CALCULATOR_STATE_KEY) is None:
+    calculator_state = state.get(CALCULATOR_STATE_KEY)
+    if calculator_state is None or not getattr(calculator_state, "rows", ()):
         itinerary_name = str(state.get("itinerary_name") or state.get("itinerary_name_input") or "")
         state[CALCULATOR_STATE_KEY] = create_initial_calculator_state(itinerary_name)
 

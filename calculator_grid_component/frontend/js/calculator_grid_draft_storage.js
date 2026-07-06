@@ -1,9 +1,14 @@
-const CALCULATOR_DRAFT_STORAGE_KEY = 'itineraryCalculatorBrowserDraft.v2';
+let calculatorDraftStorageKey = 'itineraryCalculatorBrowserDraft.v3.global';
 const CALCULATOR_DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+
+function setCalculatorDraftStorageKey(key) {
+  const value = String(key || '').trim();
+  calculatorDraftStorageKey = value || 'itineraryCalculatorBrowserDraft.v3.global';
+}
 
 function loadCalculatorDraft() {
   try {
-    const raw = window.localStorage.getItem(CALCULATOR_DRAFT_STORAGE_KEY);
+    const raw = window.localStorage.getItem(calculatorDraftStorageKey);
     if (!raw) return null;
     const draft = JSON.parse(raw);
     if (!draft || !Array.isArray(draft.rows)) return null;
@@ -20,7 +25,7 @@ function loadCalculatorDraft() {
 function saveCalculatorDraft(state, backendRevision) {
   if (!state || !Array.isArray(state.rows)) return;
   try {
-    window.localStorage.setItem(CALCULATOR_DRAFT_STORAGE_KEY, JSON.stringify({
+    window.localStorage.setItem(calculatorDraftStorageKey, JSON.stringify({
       rows: normalizeRowsForPython(state.rows),
       showAdvanced: Boolean(state.showAdvanced),
       selectedRowIndex: Number(state.selectedRowIndex || 0),
@@ -34,7 +39,7 @@ function saveCalculatorDraft(state, backendRevision) {
 
 function clearCalculatorDraft() {
   try {
-    window.localStorage.removeItem(CALCULATOR_DRAFT_STORAGE_KEY);
+    window.localStorage.removeItem(calculatorDraftStorageKey);
   } catch (_error) {
     // No-op.
   }

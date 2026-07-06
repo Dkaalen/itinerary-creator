@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from app_modules.saved_project_calculator_state import calculator_snapshot_from_workflow_state
 from app_modules.saved_project_cleaning import clean_output_edits, clean_parsed_rows
 from app_modules.saved_project_export_state import export_state_from_workflow_state
 from app_modules.saved_project_image_state import image_state_from_output_edits
@@ -59,6 +60,7 @@ def build_saved_project_from_state(
         export_state=export_state_from_workflow_state(state, saved_at=now),
         output_brand=output_brand,
         mode=output_brand,
+        calculator_snapshot=calculator_snapshot_from_workflow_state(state),
     )
 
 

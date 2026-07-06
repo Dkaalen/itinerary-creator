@@ -9,11 +9,13 @@ from typing import Any
 from app_modules.saved_project_model import (
     SavedItineraryProject,
     SavedItinerarySnapshot,
+    SavedProjectCalculatorSnapshot,
     SavedProjectExportState,
     SavedProjectImageState,
     SavedProjectMetadata,
     SavedProjectSource,
 )
+from app_modules.saved_project_calculator_state import normalize_calculator_snapshot
 from app_modules.saved_project_validation import validate_saved_project_payload
 
 
@@ -40,6 +42,7 @@ def saved_project_from_dict(payload: dict[str, Any]) -> SavedItineraryProject:
         export_state=SavedProjectExportState(**payload["export_state"]),
         output_brand=str(payload.get("output_brand") or "agent"),
         mode=str(payload.get("mode") or "agent"),
+        calculator_snapshot=SavedProjectCalculatorSnapshot(**normalize_calculator_snapshot(payload.get("calculator_snapshot"))),
     )
 
 

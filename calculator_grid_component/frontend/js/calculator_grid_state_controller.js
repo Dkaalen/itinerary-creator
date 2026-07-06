@@ -4,6 +4,7 @@ let activeBackendRevision = null;
 let hasLocalDraft = false;
 
 function initializeState(payload) {
+  setCalculatorDraftStorageKey(payload.draft_storage_key);
   const incomingRevision = String(payload.state_revision || '');
   if (shouldKeepBrowserDraft(incomingRevision)) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);

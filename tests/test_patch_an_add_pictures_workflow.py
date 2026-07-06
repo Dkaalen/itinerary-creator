@@ -12,7 +12,8 @@ def test_add_pictures_is_gated_by_explicit_apply_changes_commit():
     action_source = (ROOT / "app_modules" / "image_stage_action.py").read_text(encoding="utf-8")
     commit_source = (ROOT / "app_modules" / "editor_commit.py").read_text(encoding="utf-8")
 
-    assert 'request_add_pictures_editor_commit(st.session_state)' in edit_page
+    assert 'start_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in edit_page
+    assert 'workflow_transaction_state(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)' in edit_page
     assert 'if apply_ready:' in edit_page
     assert 'st.button("Add pictures", disabled=True' in edit_page
     assert 'Apply changes before adding pictures' in edit_page

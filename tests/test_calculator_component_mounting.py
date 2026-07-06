@@ -74,7 +74,8 @@ def test_calculator_component_persists_browser_draft_across_page_changes() -> No
     index_source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
 
     assert "js/calculator_grid_draft_storage.js" in index_source
-    assert "itineraryCalculatorBrowserDraft.v2" in source
+    assert "itineraryCalculatorBrowserDraft.v3." in source
+    assert "setCalculatorDraftStorageKey(payload.draft_storage_key)" in source
     assert "saveCalculatorDraft(calculatorState, activeBackendRevision);" in source
     assert "loadCalculatorDraft()" in source
     assert "shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision)" in source

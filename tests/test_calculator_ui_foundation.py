@@ -42,6 +42,16 @@ def test_calculator_navigation_sets_standalone_page_without_changing_workflow_st
     assert calculator_page_is_active(state) is False
 
 
+def test_calculator_navigation_rehydrates_empty_saved_snapshot_with_blank_rows() -> None:
+    state = {"itinerary_name": "Saved Trip", "calculator_state": CalculatorState(itinerary_name="Saved Trip", rows=())}
+
+    open_calculator_page(state)
+
+    assert state["active_app_page"] == CALCULATOR_PAGE
+    assert state["calculator_state"].itinerary_name == "Saved Trip"
+    assert len(state["calculator_state"].rows) == 25
+
+
 def test_calculator_table_round_trip_preserves_hidden_advanced_fields() -> None:
     source_row = CalculatorRow(
         row_id="1",

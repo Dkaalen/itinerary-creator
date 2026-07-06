@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Any, Mapping
 
 from app_modules.calculator_grid_data import rows_to_table_data
@@ -22,6 +23,7 @@ def build_calculator_grid_payload(
     *,
     show_advanced: bool = False,
     currency_rates: Mapping[str, float] | None = None,
+    draft_namespace: str = "",
 ) -> dict[str, Any]:
     """Return the JSON-serializable component payload for the calculator grid."""
 
@@ -30,6 +32,7 @@ def build_calculator_grid_payload(
         "itinerary_name": state.itinerary_name,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
         "state_revision": _calculator_state_revision(state, active_rates),
+        "draft_storage_key": _draft_storage_key(draft_namespace),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
         "library_status": _library_read_status(library_read),
@@ -90,3 +93,10 @@ def _autocomplete_rows(read_result: LocalLibraryReadResult) -> tuple[LocalLibrar
     if read_result.source == "fixture":
         return tuple(row for row in read_result.rows if not row.is_deleted and (row.search_text or row.travel_element))
     return tuple(row for row in read_result.rows if row.is_available_for_fetch)
+
+
+def _draft_storage_key(namespace: str) -> str:
+    """Return a project-scoped browser draft key for the calculator grid."""
+
+    safe = re.sub(r"[^A-Za-z0-9_.:-]+", "_", str(namespace or "global")).strip("_")
+    return f"itineraryCalculatorBrowserDraft.v3.{safe or 'global'}"

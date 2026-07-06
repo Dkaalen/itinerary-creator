@@ -3,13 +3,14 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.app_header import _render_app_header, _render_stage_actions, _stage_panel
-from app_modules.editor_commit import (
-    ADD_PICTURES_COMMIT_REQUEST_KEY,
-    add_pictures_editor_commit_elapsed_seconds,
-    add_pictures_editor_commit_ready,
-    add_pictures_editor_commit_timed_out,
-    clear_add_pictures_editor_commit_request,
-    request_add_pictures_editor_commit,
+from app_modules.workflow_transactions import (
+    WorkflowTransactionTarget,
+    clear_workflow_transaction,
+    retry_workflow_transaction,
+    start_workflow_transaction,
+    transaction_timeout_copy,
+    transaction_wait_copy,
+    workflow_transaction_state,
 )
 from app_modules.image_gateway_ui import (
     _connect_current_image_bank,
@@ -72,11 +73,14 @@ def _activate_picture_stage() -> bool:
         st.session_state["add_pictures_last_error"] = result.message or "Add Pictures could not start."
     return result.ok
 
+def _add_pictures_transaction():
+    return workflow_transaction_state(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
+
 def _add_pictures_apply_ready() -> bool:
-    return add_pictures_editor_commit_ready(st.session_state)
+    return _add_pictures_transaction().ready
 
 def _add_pictures_apply_pending() -> bool:
-    return bool(st.session_state.get(ADD_PICTURES_COMMIT_REQUEST_KEY)) and not _add_pictures_apply_ready()
+    return _add_pictures_transaction().pending or _add_pictures_transaction().timed_out
 
 def render_edit_page(app_version: str) -> None:
     _render_app_header(app_version, stage="edit")
@@ -108,7 +112,7 @@ def render_edit_page(app_version: str) -> None:
         left, right = st.columns(2)
         with left:
             if st.button("Edit again", use_container_width=True):
-                clear_add_pictures_editor_commit_request(st.session_state)
+                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
                 st.rerun()
         with right:
             if st.button("Add pictures", type="primary", use_container_width=True):
@@ -118,30 +122,30 @@ def render_edit_page(app_version: str) -> None:
         return
 
     if apply_pending:
-        if add_pictures_editor_commit_timed_out(st.session_state):
-            waited = int(add_pictures_editor_commit_elapsed_seconds(st.session_state))
-            st.warning(f"The editor has not returned the latest changes after {waited} seconds.")
-            st.caption("This usually means the browser editor did not answer the save request. You can retry, continue from the last saved version, or cancel and keep editing.")
+        transaction = _add_pictures_transaction()
+        if transaction.timed_out:
+            st.warning(transaction_timeout_copy(transaction))
+            st.caption("Retry the save, add pictures from the last saved version, or cancel and keep editing.")
             retry_col, saved_col, cancel_col = st.columns(3)
             with retry_col:
                 if st.button("Retry save", type="primary", use_container_width=True, key="retry_add_pictures_editor_commit"):
-                    request_add_pictures_editor_commit(st.session_state)
+                    retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
                     st.rerun()
             with saved_col:
                 if st.button("Add pictures from last saved version", use_container_width=True, key="fallback_add_pictures_after_timeout"):
-                    clear_add_pictures_editor_commit_request(st.session_state)
+                    clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
                     with st.spinner("Preparing destination image packs and finding the best matches…"):
                         _activate_picture_stage()
                     st.rerun()
             with cancel_col:
                 if st.button("Cancel", use_container_width=True, key="cancel_add_pictures_editor_commit"):
-                    clear_add_pictures_editor_commit_request(st.session_state)
+                    clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
                     st.rerun()
         else:
-            st.info("Saving the latest editor changes before adding pictures…")
+            st.info(transaction_wait_copy(_add_pictures_transaction()))
             st.button("Add pictures", disabled=True, use_container_width=True)
             if st.button("Add pictures from last saved version", use_container_width=True):
-                clear_add_pictures_editor_commit_request(st.session_state)
+                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
                 with st.spinner("Preparing destination image packs and finding the best matches…"):
                     _activate_picture_stage()
                 st.rerun()
@@ -149,7 +153,7 @@ def render_edit_page(app_version: str) -> None:
 
     if st.button("Apply Changes", type="primary", use_container_width=True):
         st.session_state.pop("add_pictures_last_error", None)
-        request_add_pictures_editor_commit(st.session_state)
+        start_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
         st.rerun()
     st.button("Add pictures", disabled=True, use_container_width=True)
     st.caption("Apply changes before adding pictures so image matching uses the latest committed itinerary.")

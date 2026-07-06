@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from app_modules.editor_commit import clear_pdf_editor_commit_request
+from app_modules.workflow_transactions import WorkflowTransactionTarget, clear_workflow_transaction
 from app_modules.export_job_state import request_auto_pdf_create
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.workflow_result import WorkflowActionResult
@@ -23,7 +23,7 @@ def enter_export_stage(
     PDF job when ``auto_create_pdf`` is true.
     """
 
-    clear_pdf_editor_commit_request(state)
+    clear_workflow_transaction(state, WorkflowTransactionTarget.CREATE_PDF, clear_export_job=False)
     refresh_active_saved_project_current_snapshot(state)
     if auto_create_pdf:
         request_auto_pdf_create(state)

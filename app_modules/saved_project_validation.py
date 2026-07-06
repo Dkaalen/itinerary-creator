@@ -62,6 +62,7 @@ def validate_saved_project_payload(payload: Mapping[str, Any], *, max_bytes: int
     current = _mapping(payload.get("current_snapshot"), "current_snapshot")
     image_state = _mapping(payload.get("image_state"), "image_state")
     export_state = _mapping(payload.get("export_state"), "export_state")
+    calculator_snapshot = _optional_mapping(payload.get("calculator_snapshot"), "calculator_snapshot")
 
     _require_keys(metadata, REQUIRED_METADATA_KEYS, "metadata")
     _require_keys(source, REQUIRED_SOURCE_KEYS, "source")
@@ -69,6 +70,7 @@ def validate_saved_project_payload(payload: Mapping[str, Any], *, max_bytes: int
     _require_keys(current, REQUIRED_SNAPSHOT_KEYS, "current_snapshot")
     _require_keys(image_state, REQUIRED_IMAGE_KEYS, "image_state")
     _require_keys(export_state, REQUIRED_EXPORT_KEYS, "export_state")
+    _validate_calculator_snapshot(calculator_snapshot)
 
     if not str(metadata.get("project_id") or "").strip():
         raise SavedProjectError("Saved project project_id is required.")
@@ -97,6 +99,27 @@ def _mapping(value: Any, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise SavedProjectError(f"Saved project {label} must be an object.")
     return value
+
+
+def _optional_mapping(value: Any, label: str) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise SavedProjectError(f"Saved project {label} must be an object when present.")
+    return value
+
+
+def _validate_calculator_snapshot(snapshot: Mapping[str, Any] | None) -> None:
+    if snapshot is None:
+        return
+    if snapshot.get("kind") not in {None, "booknordics_calculator_state"}:
+        raise SavedProjectError("Saved project calculator snapshot kind is not supported.")
+    if int(snapshot.get("schema_version") or 1) != 1:
+        raise SavedProjectError("Saved project calculator snapshot schema version is not supported.")
+    if not isinstance(snapshot.get("rows", []), list):
+        raise SavedProjectError("Saved project calculator snapshot rows must be a list.")
+    if not isinstance(snapshot.get("currency_rates", {}), Mapping):
+        raise SavedProjectError("Saved project calculator snapshot currency rates must be an object.")
 
 
 def _enforce_payload_size(payload: Mapping[str, Any], *, max_bytes: int) -> None:

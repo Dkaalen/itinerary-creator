@@ -51,6 +51,7 @@ def render_calculator_page(app_version: str) -> None:
         library_read,
         show_advanced=bool(st.session_state.get(_ADVANCED_TOGGLE_STATE_KEY, False)),
         currency_rates=currency_rates,
+        draft_namespace=_calculator_draft_namespace(),
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
@@ -63,15 +64,24 @@ def render_calculator_page(app_version: str) -> None:
 
 def _calculator_state_from_session() -> CalculatorState:
     state = st.session_state.get(CALCULATOR_STATE_KEY)
-    if isinstance(state, CalculatorState):
+    if isinstance(state, CalculatorState) and state.rows:
         return state
-    new_state = create_initial_calculator_state()
+    new_state = create_initial_calculator_state(str(getattr(state, "itinerary_name", "") or st.session_state.get("itinerary_name") or ""))
     _store_calculator_state(new_state)
     return new_state
 
 
 def _store_calculator_state(state: CalculatorState) -> None:
     st.session_state[CALCULATOR_STATE_KEY] = state
+
+
+def _calculator_draft_namespace() -> str:
+    return str(
+        st.session_state.get("active_saved_project_id")
+        or st.session_state.get("itinerary_name")
+        or st.session_state.get("itinerary_name_input")
+        or "unsaved"
+    )
 
 
 def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:

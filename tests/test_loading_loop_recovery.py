@@ -121,12 +121,12 @@ def test_workflow_pages_surface_recovery_actions_for_commit_timeouts():
     picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
     export_source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
 
-    assert "add_pictures_editor_commit_timed_out" in preview_source
+    assert "workflow_transaction_state" in preview_source
     assert "Retry save" in preview_source
     assert "add_pictures_last_error" in preview_source
 
-    assert "pdf_editor_commit_timed_out" in picture_source
+    assert "workflow_transaction_state" in picture_source
     assert "Create PDF from last saved version" in picture_source
 
-    assert "pdf_editor_commit_timed_out" in export_source
+    assert "workflow_transaction_state" in export_source
     assert "PDF creation was stopped because the document is not ready" in export_source
