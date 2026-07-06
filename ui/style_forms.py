@@ -5,8 +5,8 @@ CSS = r"""
 .stDownloadButton > button,
 button[kind="primary"],
 [data-testid="stBaseButton-primary"] {
-    min-height: 2.42rem !important;
-    border-radius: var(--radius-control) !important;
+    min-height: 2.5rem !important;
+    border-radius: 999px !important;
     font-weight: 720 !important;
     letter-spacing: -0.006em !important;
     border: 1px solid var(--line-strong) !important;
@@ -37,9 +37,9 @@ button[kind="primary"],
 
 .stButton > button:not([kind="primary"]),
 .stDownloadButton > button:not([kind="primary"]) {
-    background: rgba(255, 253, 248, 0.74) !important;
+    background: rgba(255, 253, 248, 0.68) !important;
     color: var(--ink) !important;
-    border: 1px solid var(--line) !important;
+    border: 1px solid rgba(224, 216, 202, 0.88) !important;
 }
 
 .stButton > button:disabled,
@@ -78,8 +78,8 @@ div[data-baseweb="base-input"],
 div[data-testid="stTextArea"] textarea {
     font-size: .98rem !important;
     line-height: 1.58 !important;
-    padding: 1.05rem !important;
-    min-height: 420px !important;
+    padding: 1.22rem 1.25rem !important;
+    min-height: 455px !important;
 }
 
 div[data-testid="stTextArea"] textarea:focus,

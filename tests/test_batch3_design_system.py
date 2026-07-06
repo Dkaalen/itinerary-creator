@@ -9,6 +9,7 @@ def test_input_page_is_debloated_workspace_not_card_dashboard() -> None:
     assert "render_source_label()" in source
     assert "render_input_hero()" not in source
     assert "render_source_guidance()" not in source
+    assert "render_generation_action_bar" not in source
     assert "main_col, tool_col" not in source
     assert "render_presentation_language_selector" not in source
     assert "render_tone_preset_selector" not in source
@@ -28,23 +29,24 @@ def test_input_workspace_helpers_remove_landing_page_bloat() -> None:
     assert "Suggested flow" not in source
     assert "Alternate start" not in source
     assert "Rows can be messy" not in source
-    assert "Generate itinerary" in source
+    assert "Generate itinerary" not in source
 
 
 def test_calculator_and_local_library_have_plain_workspace_headers() -> None:
     calculator = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
     library = Path("app_modules/local_library_page.py").read_text(encoding="utf-8")
 
-    assert "_render_calculator_hero()" in calculator
+    assert "_render_calculator_header()" in calculator
     assert "Calculator workspace" in calculator
-    assert "<h1 class=\"calculator-title\">Calculator</h1>" in calculator
+    assert "<h1>Calculator</h1>" in calculator
     assert "Price the itinerary before it becomes a document" not in calculator
     assert "Back to workspace" in calculator
-    assert "_render_local_library_hero()" in library
+    assert "Manage Local Library" in calculator
+    assert "_render_local_library_header()" in library
     assert "Reusable rows" in library
-    assert "<h1 class=\"local-library-title\">Local Library</h1>" in library
+    assert "<h1>Local Library</h1>" in library
     assert "Keep common services ready" not in library
-    assert "Back to calculator" in library
+    assert "Back to itinerary calculator" in library
 
 
 def test_app_and_calculator_css_do_not_use_old_deep_green_or_dark_primary() -> None:

@@ -48,7 +48,9 @@ def test_input_page_uses_compact_project_upload_and_calculator_entry():
     project_source = __import__("pathlib").Path("app_modules/project_file_ui.py").read_text()
     nav_source = __import__("pathlib").Path("app_modules/calculator_navigation.py").read_text()
 
-    assert 'st.expander("Open saved project", expanded=False)' in project_source
+    assert 'st.button("Open project", use_container_width=True' in project_source
+    assert '@st.dialog("Open project")' in project_source
+    assert 'st.expander("Open saved project", expanded=False)' not in project_source
     assert 'st.container(border=True)' not in project_source
     assert '"Open calculator"' in nav_source
     assert 'st.button("Open calculator", type="primary"' not in nav_source

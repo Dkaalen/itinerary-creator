@@ -114,15 +114,23 @@ def test_patch_46_open_project_ui_renders_storage_note_without_backlog_controls(
     st.session_state = SessionState()
     captions: list[str] = []
     labels: list[str] = []
+    upload_labels: list[str] = []
+    button_calls = iter((True, False))
     monkeypatch.setattr(project_file_ui.st, "container", lambda **kwargs: _Container(), raising=False)
-    monkeypatch.setattr(project_file_ui.st, "markdown", lambda value: labels.append(str(value)), raising=False)
+    monkeypatch.setattr(project_file_ui.st, "html", lambda value: labels.append(str(value)), raising=False)
     monkeypatch.setattr(project_file_ui.st, "caption", lambda value: captions.append(str(value)), raising=False)
-    monkeypatch.setattr(project_file_ui.st, "file_uploader", lambda *args, **kwargs: None, raising=False)
+    monkeypatch.setattr(project_file_ui.st, "button", lambda *args, **kwargs: next(button_calls, False), raising=False)
+    monkeypatch.setattr(
+        project_file_ui.st,
+        "file_uploader",
+        lambda label, *args, **kwargs: upload_labels.append(str(label)) or None,
+        raising=False,
+    )
 
     project_file_ui.render_open_project_file_action()
-    rendered = "\n".join(labels + captions)
+    rendered = "\n".join(labels + captions + upload_labels)
 
-    assert "Open Project File" in rendered
+    assert "Open saved itinerary" in rendered
     assert ".itinerary.json" in rendered
     assert "Search" not in rendered
     assert "Duplicate" not in rendered

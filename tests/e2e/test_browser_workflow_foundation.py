@@ -23,7 +23,7 @@ Day 2	Activity	02/10/2026					Oslo	Oslo Fjord Sightseeing Cruise | 10:30 AM | 2 
 def test_generate_edit_create_pdf_first_click(e2e_app_url, page):
     page.goto(e2e_app_url, wait_until="networkidle")
     page.get_by_label("Supplier text").fill(SAMPLE_INPUT)
-    page.get_by_role("button", name="Generate Agent Itinerary").click()
+    page.get_by_role("button", name="Generate agent itinerary").click()
     page.get_by_text("Create PDF", exact=True).wait_for(timeout=60_000)
 
     page.get_by_role("button", name="Create PDF").click()

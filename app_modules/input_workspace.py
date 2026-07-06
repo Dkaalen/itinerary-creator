@@ -6,18 +6,9 @@ import streamlit as st
 
 
 def render_input_toolbar() -> None:
-    """Render a compact workspace identity strip without landing-page bloat."""
+    """Render the quiet workspace wordmark used by the top action row."""
 
-    st.html(
-        """
-        <div class="studio-toolbar">
-          <div>
-            <span class="studio-wordmark">Itinerary Studio</span>
-            <span class="studio-toolbar-note">Create, edit, picture, export.</span>
-          </div>
-        </div>
-        """
-    )
+    st.html('<div class="studio-toolbar"><span class="studio-wordmark">Itinerary Studio</span></div>')
 
 
 def render_input_header() -> None:
@@ -27,7 +18,6 @@ def render_input_header() -> None:
         """
         <header class="input-page-heading">
           <h1>New itinerary</h1>
-          <p>Paste supplier rows or start from the calculator. The generated itinerary opens in the editor.</p>
         </header>
         """
     )
@@ -36,23 +26,4 @@ def render_input_header() -> None:
 def render_source_label() -> None:
     """Render the quiet label above the raw itinerary input."""
 
-    st.html(
-        """
-        <div class="source-line">
-          <span>Supplier rows</span>
-          <small>Messy Excel or supplier text is fine.</small>
-        </div>
-        """
-    )
-
-
-def render_generation_action_bar() -> None:
-    """Render a minimal anchor above the generation actions."""
-
-    st.html(
-        """
-        <div class="generate-line">
-          <span>Generate itinerary</span>
-        </div>
-        """
-    )
+    st.html('<div class="source-line"><span>Supplier rows</span></div>')

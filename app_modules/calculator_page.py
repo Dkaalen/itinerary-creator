@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app_modules.app_header import _render_app_header, _stage_panel
+from app_modules.app_header import _render_app_header
 from app_modules.calculator_backup_action import render_calculator_backup_controls
 from app_modules.calculator_component_payload import build_calculator_grid_payload
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
@@ -18,7 +18,6 @@ from app_modules.calculator_library_controls import (
 )
 from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, calculator_draft_namespace, close_calculator_page, open_local_library_page
 from app_modules.validation_gate import block_generation, render_blocking_issues
-from app_modules.workflow_config import CALCULATOR_COPY
 from calculator.calculator_state import CalculatorState, create_initial_calculator_state
 from calculator_grid_component import render_calculator_grid
 
@@ -32,8 +31,8 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_page_width_css()
     state = _calculator_state_from_session()
     _render_app_header(app_version, stage="input")
-    _render_calculator_hero()
-    _render_top_actions()
+    _render_calculator_topbar()
+    _render_calculator_header()
     currency_rates = render_currency_rate_editor(st.session_state)
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
@@ -86,30 +85,29 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
     return result.state
 
 
-def _render_calculator_hero() -> None:
-    st.html(
-        """
-        <section class="calculator-hero">
-          <span class="calculator-kicker">Calculator workspace</span>
-          <h1 class="calculator-title">Calculator</h1>
-          <p class="calculator-description">Price rows, use Local Library autocomplete, export Excel, or generate the itinerary.</p>
-        </section>
-        """
-    )
-
-
-def _render_top_actions() -> None:
-    back_col, library_col, status_col = st.columns([0.18, 0.22, 0.60], vertical_alignment="center")
+def _render_calculator_topbar() -> None:
+    brand_col, back_col, library_col = st.columns([0.58, 0.20, 0.22], vertical_alignment="center")
+    with brand_col:
+        st.html('<div class="studio-toolbar"><span class="studio-wordmark">Itinerary Studio</span></div>')
     with back_col:
         if st.button("Back to workspace", use_container_width=True):
             close_calculator_page(st.session_state)
             st.rerun()
     with library_col:
-        if st.button("Local Library", use_container_width=True):
+        if st.button("Manage Local Library", use_container_width=True):
             open_local_library_page(st.session_state)
             st.rerun()
-    with status_col:
-        st.html('<p class="calculator-status-caption">Draft saved in this workspace.</p>')
+
+
+def _render_calculator_header() -> None:
+    st.html(
+        """
+        <section class="workspace-page-heading calculator-heading">
+          <span class="calculator-kicker">Calculator workspace</span>
+          <h1>Calculator</h1>
+        </section>
+        """
+    )
 
 
 def _render_backend_action(
@@ -155,9 +153,8 @@ def _render_backup_controls(state: CalculatorState) -> None:
     st.rerun()
 
 
-
 def _render_calculator_page_width_css() -> None:
-    """Let the calculator use the page width while keeping refined gutters."""
+    """Give the spreadsheet room without turning the page into an edge-to-edge strip."""
 
     st.markdown(
         """
@@ -165,8 +162,8 @@ def _render_calculator_page_width_css() -> None:
         section.main > div.block-container,
         .main .block-container,
         [data-testid="stAppViewContainer"] .block-container {
-            max-width: min(100% - 1.6rem, 1920px) !important;
-            width: min(100% - 1.6rem, 1920px) !important;
+            max-width: min(100% - 3rem, 1540px) !important;
+            width: min(100% - 3rem, 1540px) !important;
             padding-left: 0 !important;
             padding-right: 0 !important;
         }
@@ -182,9 +179,9 @@ def _render_calculator_page_width_css() -> None:
         div[data-testid="stCustomComponentV1"] iframe {
             width: 100% !important;
             max-width: 100% !important;
-            border-radius: 22px !important;
-            border: 1px solid rgba(199, 208, 202, 0.80) !important;
-            box-shadow: var(--shadow-card) !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(199, 188, 170, 0.62) !important;
+            box-shadow: none !important;
             background: var(--paper) !important;
         }
         </style>

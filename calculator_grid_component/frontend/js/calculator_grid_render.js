@@ -13,9 +13,9 @@ function buildToolbarHtml(state) {
         <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen calculator'}</button>
       </div>
       <div class="calculator-toolbar-right">
-        <button class="calc-btn primary" data-action="download">Prepare Excel download</button>
-        <button class="calc-btn" data-action="generate-agent">Generate Agent Itinerary</button>
-        <button class="calc-btn" data-action="generate-customer">Generate Customer Itinerary</button>
+        <button class="calc-btn primary" data-action="download">Download Excel</button>
+        <button class="calc-btn" data-action="generate-agent">Generate agent itinerary</button>
+        <button class="calc-btn" data-action="generate-customer">Generate customer itinerary</button>
       </div>
     </div>
     <div class="calculator-status-row">

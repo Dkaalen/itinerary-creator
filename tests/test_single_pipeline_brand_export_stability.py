@@ -29,8 +29,8 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
     source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
     generation_source = Path("app_modules/generation_action.py").read_text(encoding="utf-8")
 
-    assert "Generate Agent Itinerary" in source
-    assert "Generate Customer Itinerary" in source
+    assert "Generate agent itinerary" in source
+    assert "Generate customer itinerary" in source
     assert source.count("generate_itinerary(st.session_state, raw_text)") == 1
     assert 'output_brand = "booknordics_customer" if generate_customer else "agent"' in source
     assert "requested_output_brand" in source
@@ -51,7 +51,7 @@ def test_pdf_export_screen_has_bounded_editor_commit_before_export():
     picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
 
     assert "Applying pending editor changes" not in source
-    assert "Applying the latest picture edits before creating the PDF" in picture_source
+    assert "the PDF must be created from the exact visible editor state" in picture_source
     assert "Create PDF from last saved version" in picture_source
     assert "request_pdf_creation_after_visual_editor_commit" not in source
     assert "clear_pdf_editor_commit_request" not in export_page_source

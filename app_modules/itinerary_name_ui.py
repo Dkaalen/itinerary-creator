@@ -12,8 +12,7 @@ def render_itinerary_name_input() -> None:
 
     seed_itinerary_name_input(st.session_state)
     st.text_input(
-        "Itinerary Name",
+        "Itinerary name",
         key=ITINERARY_NAME_INPUT_KEY,
         placeholder="Norway Winter Group - Jan 2027",
-        help="Optional. Use this to save a named project; unnamed generation still works.",
     )

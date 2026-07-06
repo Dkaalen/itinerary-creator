@@ -18,16 +18,16 @@ footer {
 }
 
 .block-container {
-    max-width: min(100% - 4rem, 1180px) !important;
-    width: min(100% - 4rem, 1180px) !important;
-    padding: 2rem 0 4rem !important;
+    max-width: min(100% - 4rem, 1120px) !important;
+    width: min(100% - 4rem, 1120px) !important;
+    padding: 2.35rem 0 4.4rem !important;
 }
 
 @media (max-width: 740px) {
     .block-container {
-        max-width: min(100% - 1.25rem, 1180px) !important;
-        width: min(100% - 1.25rem, 1180px) !important;
-        padding-top: 1rem !important;
+        max-width: min(100% - 1.25rem, 1120px) !important;
+        width: min(100% - 1.25rem, 1120px) !important;
+        padding-top: 1.2rem !important;
     }
 }
 
@@ -45,6 +45,10 @@ label, [data-testid="stWidgetLabel"] p {
     font-weight: 720 !important;
 }
 
+div[data-testid="stHorizontalBlock"] {
+    gap: .78rem !important;
+}
+
 /* Old marketing shell and status elements are intentionally not part of the product workspace. */
 .luxury-hero,
 .compact-app-header,
@@ -58,7 +62,9 @@ label, [data-testid="stWidgetLabel"] p {
 .home-section,
 .workspace-help-card,
 .workspace-tool-card,
-.input-action-bar {
+.input-action-bar,
+.calculator-hero,
+.local-library-hero {
     display: none !important;
 }
 
@@ -67,9 +73,9 @@ label, [data-testid="stWidgetLabel"] p {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin: 0 0 1.4rem;
-    padding: .68rem 0 .9rem;
-    border-bottom: 1px solid var(--line);
+    margin: 0 0 1.25rem;
+    padding: .15rem 0 1rem;
+    border-bottom: 1px solid rgba(224, 216, 202, 0.72);
 }
 
 .workspace-shell-main {
@@ -99,7 +105,6 @@ label, [data-testid="stWidgetLabel"] p {
 .workspace-eyebrow,
 .studio-wordmark,
 .source-line span,
-.generate-line span,
 .calculator-kicker,
 .local-library-kicker {
     color: var(--muted) !important;
@@ -128,42 +133,30 @@ label, [data-testid="stWidgetLabel"] p {
     color: var(--ink) !important;
 }
 
-/* Input page: quiet workspace, not a landing page or card dashboard. */
 .studio-toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    margin: .1rem 0 .9rem;
-    padding-bottom: .72rem;
-    border-bottom: 1px solid var(--line);
+    align-items: center;
+    min-height: 2.42rem;
+    margin: 0;
 }
 
-.studio-toolbar-note {
-    color: var(--muted) !important;
-    font-size: .82rem;
-    margin-left: .65rem;
-}
-
-.input-page-heading {
-    margin: 2.05rem 0 1.2rem;
+.input-page-heading,
+.workspace-page-heading {
+    margin: 2.35rem 0 1.2rem;
     max-width: 760px;
 }
 
-.input-page-heading h1 {
-    color: var(--ink) !important;
-    font-size: clamp(2rem, 4vw, 3.3rem);
-    line-height: 1.02;
-    letter-spacing: -.065em;
-    margin: 0 0 .55rem;
+.workspace-page-heading {
+    margin-top: 2rem;
 }
 
-.input-page-heading p {
-    color: var(--ink-soft) !important;
-    font-size: 1rem;
-    line-height: 1.62;
+.input-page-heading h1,
+.workspace-page-heading h1 {
+    color: var(--ink) !important;
+    font-size: clamp(1.85rem, 3.2vw, 2.55rem);
+    line-height: 1.06;
+    letter-spacing: -.055em;
     margin: 0;
-    max-width: 680px;
 }
 
 .source-line {
@@ -171,70 +164,44 @@ label, [data-testid="stWidgetLabel"] p {
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-    margin: 1.55rem 0 .62rem;
+    margin: 1.5rem 0 .58rem;
 }
 
-.source-line small {
-    color: var(--muted) !important;
-    font-size: .82rem;
+.calculator-heading,
+.local-library-heading {
+    padding-bottom: .35rem;
 }
 
-.generate-line {
-    margin: 1.05rem 0 .58rem;
-    padding-top: .2rem;
-}
-
-.calculator-hero,
-.local-library-hero {
-    padding: .2rem 0 1rem;
-    margin: .2rem 0 .55rem;
-    border-bottom: 1px solid var(--line);
-}
-
-.calculator-title,
-.local-library-title {
-    color: var(--ink) !important;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1.04;
-    letter-spacing: -.06em;
-    margin: .25rem 0 .45rem;
-}
-
-.calculator-description,
-.local-library-description {
-    color: var(--ink-soft) !important;
-    font-size: .96rem;
-    line-height: 1.62;
-    margin: 0;
-    max-width: 720px;
-}
-
-.calculator-top-strip {
+.open-project-copy {
     display: grid;
-    grid-template-columns: minmax(120px, .18fr) minmax(180px, .22fr) minmax(0, 1fr);
-    gap: .58rem;
-    align-items: center;
-    margin: .65rem 0 .85rem;
+    gap: .35rem;
+    margin: .2rem 0 1rem;
 }
 
-.calculator-status-caption {
-    color: var(--muted) !important;
-    font-size: .82rem;
-    text-align: right;
+.open-project-copy strong {
+    color: var(--ink) !important;
+    font-size: 1.08rem;
+    letter-spacing: -.025em;
 }
 
-/* Streamlit native containers should not look like scattered boxed dashboards. */
+.open-project-copy span {
+    color: var(--ink-soft) !important;
+    font-size: .92rem;
+    line-height: 1.45;
+}
+
+/* Streamlit native containers should not become a boxed app frame. */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1px solid var(--line) !important;
-    border-radius: 18px !important;
-    background: rgba(255, 253, 248, 0.70) !important;
+    border: 1px solid rgba(224, 216, 202, 0.45) !important;
+    border-radius: 16px !important;
+    background: rgba(255, 253, 248, 0.48) !important;
     box-shadow: none !important;
 }
 
 [data-testid="stExpander"] {
     border-radius: 14px !important;
-    border: 1px solid var(--line) !important;
-    background: rgba(255, 253, 248, 0.64) !important;
+    border: 1px solid rgba(224, 216, 202, 0.68) !important;
+    background: rgba(255, 253, 248, 0.50) !important;
     box-shadow: none !important;
     overflow: hidden !important;
 }
@@ -243,6 +210,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 [data-testid="stExpander"] summary {
     background: transparent !important;
     color: var(--ink) !important;
+}
+
+[data-testid="stDialog"] > div {
+    background: var(--paper) !important;
+    border: 1px solid rgba(224, 216, 202, 0.86) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 24px 70px rgba(36, 37, 34, 0.14) !important;
 }
 
 [data-testid="stAlert"] {
@@ -260,21 +234,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 
 iframe[title="visual_page_editor"] {
     border-radius: 18px !important;
-    border: 1px solid var(--line) !important;
-    box-shadow: 0 18px 46px rgba(36, 37, 34, 0.06) !important;
+    border: 1px solid rgba(224, 216, 202, 0.76) !important;
+    box-shadow: none !important;
     background: var(--paper) !important;
 }
 
 @media (max-width: 980px) {
-    .calculator-top-strip {
-        grid-template-columns: 1fr;
-    }
-    .calculator-status-caption {
-        text-align: left;
-    }
-    .workspace-shell,
-    .studio-toolbar,
-    .source-line {
+    .workspace-shell {
         align-items: flex-start;
         flex-direction: column;
     }

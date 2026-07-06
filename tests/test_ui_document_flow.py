@@ -24,8 +24,8 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     assert "Step 5" not in source
 
     input_source = Path("app_modules/input_step.py").read_text()
-    assert "Generate Agent Itinerary" in input_source
-    assert "Generate Customer Itinerary" in input_source
+    assert "Generate agent itinerary" in input_source
+    assert "Generate customer itinerary" in input_source
     assert "Add pictures" in Path("app_modules/preview_step.py").read_text()
     assert "Create PDF" in Path("app_modules/picture_step.py").read_text()
     assert "def render_export_page" in Path("app_modules/export_page.py").read_text()

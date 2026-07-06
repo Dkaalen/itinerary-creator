@@ -55,10 +55,10 @@ def test_normal_input_flow_exposes_project_file_open_and_keeps_legacy_loader_deb
     source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
     project_file_ui = Path("app_modules/project_file_ui.py").read_text(encoding="utf-8")
 
-    assert "Generate Agent Itinerary" in source
-    assert "Generate Customer Itinerary" in source
+    assert "Generate agent itinerary" in source
+    assert "Generate customer itinerary" in source
     assert "Supplier text" in source
     assert "render_open_project_file_action()" in source
-    assert "Open Project File" in project_file_ui
+    assert "Open selected project" in project_file_ui
     assert "Load legacy editable project JSON" in source
     assert source.index("if is_debug_mode(st.session_state):") < source.index("Load legacy editable project JSON")
