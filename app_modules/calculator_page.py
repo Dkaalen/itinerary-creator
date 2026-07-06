@@ -20,12 +20,18 @@ from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
     render_local_library_status,
 )
-from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, calculator_draft_namespace, close_calculator_page, open_local_library_page
+from app_modules.calculator_navigation import calculator_draft_namespace, close_calculator_page, open_local_library_page
+from app_modules.calculator_session_state import (
+    apply_calculator_grid_result,
+    calculator_state_from_session,
+    store_calculator_state,
+    update_calculator_itinerary_name,
+)
+from app_modules.calculator_state_keys import CALCULATOR_ADVANCED_TOGGLE_KEY
 from app_modules.validation_gate import block_generation, render_blocking_issues
-from calculator.calculator_state import CalculatorState, create_initial_calculator_state
+from calculator.calculator_state import CalculatorState
 from calculator_grid_component import render_calculator_grid
 
-_ADVANCED_TOGGLE_STATE_KEY = "calculator_component_show_advanced"
 _COMPONENT_KEY = "calculator_browser_grid"
 
 
@@ -33,7 +39,7 @@ def render_calculator_page(app_version: str) -> None:
     """Render the standalone calculator page."""
 
     _render_calculator_page_width_css()
-    state = _calculator_state_from_session()
+    state = calculator_state_from_session(st.session_state)
     _render_app_header(app_version, stage="input")
     _render_calculator_topbar()
     _render_calculator_header()
@@ -47,13 +53,12 @@ def render_calculator_page(app_version: str) -> None:
         value=state.itinerary_name,
         key="calculator_itinerary_name_input",
     )
-    state = state.with_itinerary_name(itinerary_name)
-    _store_calculator_state(state)
+    state = update_calculator_itinerary_name(st.session_state, itinerary_name)
 
     payload = build_calculator_grid_payload(
         state,
         library_read,
-        show_advanced=bool(st.session_state.get(_ADVANCED_TOGGLE_STATE_KEY, False)),
+        show_advanced=bool(st.session_state.get(CALCULATOR_ADVANCED_TOGGLE_KEY, False)),
         currency_rates=currency_rates,
         draft_namespace=_calculator_draft_namespace(),
         pending_download=None,
@@ -68,27 +73,12 @@ def render_calculator_page(app_version: str) -> None:
     _render_backup_controls(state)
 
 
-def _calculator_state_from_session() -> CalculatorState:
-    state = st.session_state.get(CALCULATOR_STATE_KEY)
-    if isinstance(state, CalculatorState) and state.rows:
-        return state
-    new_state = create_initial_calculator_state(str(getattr(state, "itinerary_name", "") or st.session_state.get("itinerary_name") or ""))
-    _store_calculator_state(new_state)
-    return new_state
-
-
-def _store_calculator_state(state: CalculatorState) -> None:
-    st.session_state[CALCULATOR_STATE_KEY] = state
-
-
 def _calculator_draft_namespace() -> str:
     return calculator_draft_namespace(st.session_state)
 
 
 def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
-    st.session_state[_ADVANCED_TOGGLE_STATE_KEY] = result.show_advanced
-    _store_calculator_state(result.state)
-    return result.state
+    return apply_calculator_grid_result(st.session_state, result)
 
 
 def _render_calculator_topbar() -> None:
@@ -154,7 +144,7 @@ def _render_backup_controls(state: CalculatorState) -> None:
     imported_state = render_calculator_backup_controls(state)
     if imported_state is None:
         return
-    _store_calculator_state(imported_state)
+    store_calculator_state(st.session_state, imported_state)
     st.success("Calculator backup reopened.")
     st.rerun()
 

@@ -419,3 +419,16 @@ def test_calculator_grid_app_shell_delegates_to_focused_modules() -> None:
     assert len(app_lines) < 80
     assert "function bindEvents" not in "\n".join(app_lines)
     assert "function handleCellInput" not in "\n".join(app_lines)
+
+
+def test_calculator_page_uses_single_session_state_authority() -> None:
+    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+
+    assert "calculator_state_from_session" in source
+    assert "store_calculator_state" in source
+    assert "CALCULATOR_STATE_KEY" not in source
+    assert "def _store_calculator_state" not in source
+
+
+def test_legacy_streamlit_calculator_editor_sync_module_is_removed() -> None:
+    assert not Path("app_modules/calculator_editor_sync.py").exists()

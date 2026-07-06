@@ -9,10 +9,10 @@ import streamlit as st
 
 from calculator.calculator_state import CalculatorState
 from calculator.workbook_export import WorkbookExport, export_calculation_workbook
+from app_modules.calculator_state_keys import CALCULATOR_READY_DOWNLOAD_KEY
 from project_storage.workflow_hooks import save_calculation_workbook
 
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-_READY_DOWNLOAD_KEY = "calculator_ready_xlsx_download"
 
 
 def prepare_calculation_download(
@@ -41,7 +41,7 @@ def prepare_staged_calculation_download(
         filename=export.filename,
         currency_rates=currency_rates or {},
     )
-    session_state[_READY_DOWNLOAD_KEY] = {
+    session_state[CALCULATOR_READY_DOWNLOAD_KEY] = {
         "filename": export.filename,
         "mime": CALCULATION_XLSX_MIME,
         "content": export.content,
@@ -53,7 +53,7 @@ def prepare_staged_calculation_download(
 def render_ready_calculation_download(session_state: MutableMapping[str, Any]) -> None:
     """Render a user-clicked Streamlit download button to avoid browser-blocked popups."""
 
-    payload = session_state.get(_READY_DOWNLOAD_KEY)
+    payload = session_state.get(CALCULATOR_READY_DOWNLOAD_KEY)
     if not isinstance(payload, dict) or not payload.get("content"):
         return
     filename = str(payload.get("filename") or "itinerary-calculation.xlsx")
@@ -79,39 +79,4 @@ def render_ready_calculation_download(session_state: MutableMapping[str, Any]) -
 def clear_ready_calculation_download(session_state: MutableMapping[str, Any]) -> None:
     """Clear the staged calculator download."""
 
-    session_state.pop(_READY_DOWNLOAD_KEY, None)
-
-
-def render_calculation_download_button(
-    state: CalculatorState,
-    *,
-    currency_rates: dict[str, float] | None = None,
-) -> None:
-    """Render a safe Excel download button for the calculator page."""
-
-    export = prepare_calculation_download(state, currency_rates=currency_rates)
-    st.download_button(
-        label="Download Excel",
-        data=export.content,
-        file_name=export.filename,
-        mime=CALCULATION_XLSX_MIME,
-        use_container_width=True,
-        disabled=not bool(state.rows),
-        on_click=_save_calculation_workbook,
-        args=(state, export.content, export.filename, currency_rates or {}),
-    )
-
-
-def _save_calculation_workbook(
-    state: CalculatorState,
-    content: bytes,
-    filename: str,
-    currency_rates: dict[str, float],
-) -> None:
-    save_calculation_workbook(
-        st.session_state,
-        state,
-        content=content,
-        filename=filename,
-        currency_rates=currency_rates,
-    )
+    session_state.pop(CALCULATOR_READY_DOWNLOAD_KEY, None)

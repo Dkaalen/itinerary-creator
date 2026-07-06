@@ -6,7 +6,8 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from app_modules.calculator_currency_controls import CURRENCY_RATES_STATE_KEY
-from app_modules.calculator_navigation import CALCULATOR_STATE_KEY
+from app_modules.calculator_session_state import store_calculator_state
+from app_modules.calculator_state_keys import CALCULATOR_ITINERARY_NAME_INPUT_KEY, CALCULATOR_STATE_KEY
 from calculator.calculator_state import CalculatorState, create_calculator_state
 from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_from_dict, calculator_state_to_dict
@@ -54,8 +55,8 @@ def apply_calculator_snapshot_to_state(state: MutableMapping[str, Any], payload:
 
     snapshot = normalize_calculator_snapshot(payload)
     calculator_state = calculator_state_from_snapshot(snapshot)
-    state[CALCULATOR_STATE_KEY] = calculator_state
-    state["calculator_itinerary_name_input"] = calculator_state.itinerary_name
+    store_calculator_state(state, calculator_state)
+    state[CALCULATOR_ITINERARY_NAME_INPUT_KEY] = calculator_state.itinerary_name
     state[CURRENCY_RATES_STATE_KEY] = normalize_currency_rates(snapshot.get("currency_rates"))
 
 

@@ -15,6 +15,7 @@ from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
+from app_modules.calculator_session_state import clear_calculator_project_state
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
 
@@ -48,8 +49,6 @@ DEFAULT_WORKFLOW_SESSION_STATE: dict[str, Any] = {
     "app_stage": "input",
     "active_app_page": "workflow",
     "calculator_state": None,
-    "calculator_show_advanced": False,
-    "calculator_grid_revision": 0,
 }
 
 RESET_PROJECT_KEYS = (
@@ -73,15 +72,6 @@ RESET_PROJECT_KEYS = (
     "itinerary_name_input",
     "app_stage",
     "active_app_page",
-    "calculator_state",
-    "calculator_show_advanced",
-    "calculator_itinerary_name_input",
-    "calculator_selected_row_id",
-    "calculator_travel_element_autocomplete_query",
-    "calculator_travel_element_autocomplete_result_id",
-    "calculator_grid_revision",
-    "calculator_backup_upload",
-    "calculator_draft_namespace",
     *PROJECT_BOUNDARY_TRANSIENT_KEYS,
 )
 
@@ -104,6 +94,7 @@ def reset_workflow_state(state: MutableMapping[str, Any], *, clear_raw_text: boo
     for key in RESET_PROJECT_KEYS:
         if key in state:
             del state[key]
+    clear_calculator_project_state(state)
     for key, value in DEFAULT_WORKFLOW_SESSION_STATE.items():
         state[key] = _copy_default(value)
     if clear_raw_text:

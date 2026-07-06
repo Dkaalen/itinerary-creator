@@ -8,14 +8,13 @@ from uuid import uuid4
 import streamlit as st
 
 from app_modules.project_identity import active_project_id_from_state
-from calculator.calculator_state import create_initial_calculator_state
+from app_modules.calculator_session_state import calculator_state_from_session
+from app_modules.calculator_state_keys import CALCULATOR_DRAFT_NAMESPACE_KEY, CALCULATOR_STATE_KEY
 
 APP_PAGE_KEY = "active_app_page"
 WORKFLOW_PAGE = "workflow"
 CALCULATOR_PAGE = "calculator"
 LOCAL_LIBRARY_PAGE = "local_library"
-CALCULATOR_STATE_KEY = "calculator_state"
-CALCULATOR_DRAFT_NAMESPACE_KEY = "calculator_draft_namespace"
 
 
 def calculator_page_is_active(state: MutableMapping[str, Any]) -> bool:
@@ -53,10 +52,7 @@ def open_calculator_page(state: MutableMapping[str, Any]) -> None:
 
     state[APP_PAGE_KEY] = CALCULATOR_PAGE
     calculator_draft_namespace(state)
-    calculator_state = state.get(CALCULATOR_STATE_KEY)
-    if calculator_state is None or not getattr(calculator_state, "rows", ()):
-        itinerary_name = str(state.get("itinerary_name") or state.get("itinerary_name_input") or "")
-        state[CALCULATOR_STATE_KEY] = create_initial_calculator_state(itinerary_name)
+    calculator_state_from_session(state)
 
 
 def local_library_page_is_active(state: MutableMapping[str, Any]) -> bool:
