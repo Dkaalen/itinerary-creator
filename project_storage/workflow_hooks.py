@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
-import uuid
 from collections.abc import MutableMapping
 from typing import Any
 
+from app_modules.project_identity import (
+    active_project_id_from_state,
+    ensure_active_project_id,
+    set_active_project_id,
+)
 from calculator.calculator_state import CalculatorState
 from calculator.state_serialization import calculator_state_to_dict
 from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path
@@ -66,9 +70,11 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
     if repository is None or not isinstance(project, dict):
         return False
     metadata = project.get("metadata") if isinstance(project.get("metadata"), dict) else {}
-    itinerary_id = str(metadata.get("project_id") or state.get("active_project_storage_id") or state.get("active_saved_project_id") or "").strip()
+    itinerary_id = active_project_id_from_state(state) or str(metadata.get("project_id") or "").strip()
     if not itinerary_id:
         itinerary_id = ensure_storage_itinerary(state, name=str(metadata.get("itinerary_name") or ""))
+    else:
+        set_active_project_id(state, itinerary_id)
     itinerary_name = str(metadata.get("itinerary_name") or _state_itinerary_name(state) or "Untitled itinerary")
     itinerary_type = str(project.get("output_brand") or project.get("mode") or "agent")
 
@@ -92,8 +98,7 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
             filename=storage_path.rsplit("/", 1)[-1],
             storage_path=storage_path,
         )
-        state["active_project_storage_id"] = itinerary_id
-        state["active_saved_project_id"] = itinerary_id
+        set_active_project_id(state, itinerary_id)
         state["project_storage_last_saved_snapshot_path"] = storage_path
         state.pop("project_storage_last_error", None)
         return True
@@ -173,15 +178,10 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
 def ensure_storage_itinerary(state: MutableMapping[str, Any], *, name: str = "") -> str:
     """Return the current itinerary id, creating one in session state when needed."""
 
-    existing = str(state.get("active_project_storage_id") or state.get("active_saved_project_id") or "").strip()
-    if existing:
-        state["active_project_storage_id"] = existing
-        return existing
-    generated = str(uuid.uuid4())
-    state["active_project_storage_id"] = generated
+    itinerary_id = ensure_active_project_id(state)
     if name and not state.get("itinerary_name"):
         state["itinerary_name"] = name
-    return generated
+    return itinerary_id
 
 
 def _state_itinerary_name(state: MutableMapping[str, Any], fallback: str = "") -> str:

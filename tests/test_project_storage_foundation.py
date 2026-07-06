@@ -138,10 +138,10 @@ def test_workflow_hook_reuses_existing_itinerary_id(monkeypatch) -> None:
     assert fake.uploads[0][2] == b"xlsx"
 
 
-def test_saved_project_generation_reuses_storage_id() -> None:
+def test_saved_project_generation_uses_project_identity_authority() -> None:
     source = Path("app_modules/saved_project_generation.py").read_text(encoding="utf-8")
 
-    assert "active_project_storage_id" in source
+    assert "ensure_active_project_id" in source
     assert "project_id=project_id" in source
 
 
@@ -163,8 +163,8 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
     repository.delete_itinerary("itinerary-id")
 
     assert fake.downloads == [("itinerary-files", "itineraries/itinerary-id/calculator/test.xlsx")]
-    assert fake.storage_deletes == [("itinerary-files", ["itineraries/itinerary-id/calculator/test.xlsx"])]
     assert fake.rest_deletes == [("itineraries", {"id": "eq.itinerary-id"})]
+    assert fake.storage_deletes == [("itinerary-files", ["itineraries/itinerary-id/calculator/test.xlsx"])]
 
 
 def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:

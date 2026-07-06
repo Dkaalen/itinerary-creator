@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+from app_modules.project_identity import set_active_project_id
 from app_modules.saved_project_builder import Clock
 from app_modules.saved_project_model import SavedItineraryProject
 from app_modules.saved_project_serialization import saved_project_from_dict, saved_project_to_dict
@@ -25,7 +26,7 @@ def refresh_active_saved_project_current_snapshot(
     updated = update_saved_project_current_snapshot(project, state, clock=clock)
     payload = saved_project_to_dict(updated)
     state["active_saved_project"] = payload
-    state["active_saved_project_id"] = updated.metadata.project_id
+    set_active_project_id(state, updated.metadata.project_id)
     state["itinerary_name"] = updated.metadata.itinerary_name
     return True
 

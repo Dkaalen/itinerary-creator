@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from app_modules.itinerary_html import build_itinerary_html_from_context
+from app_modules.project_identity import project_payload_with_id, set_active_project_id
 from app_modules.itinerary_name_state import ITINERARY_NAME_INPUT_KEY
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from app_modules.render_context_cache import store_render_context
@@ -33,9 +34,13 @@ from ui.render_cache import make_render_signature
 def load_saved_project(
     state: MutableMapping[str, Any],
     project: SavedItineraryProject | Mapping[str, Any],
+    *,
+    project_id_override: str | None = None,
 ) -> WorkflowActionResult:
     """Load a saved project snapshot without reparsing or regenerating it."""
 
+    if project_id_override and isinstance(project, Mapping):
+        project = project_payload_with_id(project, project_id_override)
     saved_project = _coerce_saved_project(project)
     snapshot = saved_project.current_snapshot
     parsed_rows = clean_parsed_rows(snapshot.parsed_rows)
@@ -73,8 +78,7 @@ def load_saved_project(
     state["structured_input_review"] = build_structured_input_review(parsed_rows, parser_diagnostics=[])
     state["itinerary_validation_report"] = validation_report
     state["active_saved_project"] = saved_project_to_dict(saved_project)
-    state["active_saved_project_id"] = saved_project.metadata.project_id
-    state["active_project_storage_id"] = saved_project.metadata.project_id
+    set_active_project_id(state, saved_project.metadata.project_id)
     state["itinerary_name"] = saved_project.metadata.itinerary_name
     state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
     apply_calculator_snapshot_to_state(state, _calculator_snapshot_payload(saved_project.calculator_snapshot))

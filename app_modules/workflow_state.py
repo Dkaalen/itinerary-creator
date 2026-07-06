@@ -68,6 +68,7 @@ RESET_PROJECT_KEYS = (
     "itinerary_validation_report",
     "active_saved_project",
     "active_saved_project_id",
+    "active_project_storage_id",
     "itinerary_name",
     "itinerary_name_input",
     "app_stage",

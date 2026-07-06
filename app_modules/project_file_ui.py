@@ -8,6 +8,7 @@ from typing import Any
 import streamlit as st
 
 from app_modules.project_file_download_cache import cached_project_file_payload
+from app_modules.project_identity import clear_active_project_id, set_active_project_id
 from app_modules.project_io import load_project_json
 from app_modules.saved_project_file_action import PROJECT_FILE_MIME, prepare_saved_project_file_download
 from app_modules.saved_project_load_action import load_saved_project
@@ -172,10 +173,9 @@ def _open_cloud_project(project_id: str) -> None:
     if not payload:
         st.warning("This cloud project has no saved itinerary snapshot yet.")
         return
-    result = load_saved_project(st.session_state, payload)
+    result = load_saved_project(st.session_state, payload, project_id_override=project_id)
     if result.ok:
-        st.session_state["active_project_storage_id"] = project_id
-        st.session_state["active_saved_project_id"] = project_id
+        set_active_project_id(st.session_state, project_id)
         st.success(result.message or "Cloud project opened.")
         st.rerun()
     else:
@@ -259,14 +259,13 @@ def _clear_deleted_project_from_session(project_id: str) -> None:
     if str(st.session_state.get("active_project_storage_id") or "") != project_id:
         return
     for key in (
-        "active_project_storage_id",
-        "active_saved_project_id",
         "active_saved_project",
         "project_storage_last_saved_snapshot_path",
         "project_storage_last_calculator_file_path",
         "project_storage_last_pdf_path",
     ):
         st.session_state.pop(key, None)
+    clear_active_project_id(st.session_state)
 
 
 def _clear_delete_confirmation() -> None:

@@ -110,7 +110,9 @@ class ProjectStorageRepository:
         return self._client.storage_download(self.bucket, storage_path)
 
     def delete_storage_files(self, storage_paths: list[str]) -> None:
-        self._client.storage_delete(self.bucket, storage_paths)
+        paths = [path for path in (str(item or "").strip() for item in storage_paths) if path]
+        if paths:
+            self._client.storage_delete(self.bucket, paths)
 
     def register_file(
         self,
@@ -134,8 +136,9 @@ class ProjectStorageRepository:
 
     def delete_itinerary(self, itinerary_id: str) -> None:
         files = self.list_files(itinerary_id, limit=200)
-        self.delete_storage_files([str(item.get("storage_path") or "") for item in files])
+        storage_paths = [str(item.get("storage_path") or "") for item in files]
         self._client.rest_delete("itineraries", {"id": f"eq.{itinerary_id}"})
+        self.delete_storage_files(storage_paths)
 
 
 def _utc_now_iso() -> str:

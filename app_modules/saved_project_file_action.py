@@ -7,6 +7,7 @@ from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
 
+from app_modules.project_identity import active_project_id_from_state, set_active_project_id
 from app_modules.saved_project_builder import Clock, build_saved_project_from_state
 from app_modules.saved_project_model import SavedItineraryProject
 from app_modules.saved_project_current_state import active_saved_project_from_state
@@ -41,7 +42,7 @@ def prepare_saved_project_file_download(
         project = build_saved_project_from_state(
             state,
             itinerary_name=str(itinerary_name if itinerary_name is not None else state.get("itinerary_name") or ""),
-            project_id=str(state.get("active_saved_project_id") or "") or None,
+            project_id=active_project_id_from_state(state) or None,
             clock=clock,
         )
     else:
@@ -50,7 +51,7 @@ def prepare_saved_project_file_download(
     payload = saved_project_to_dict(project)
     assert_project_file_mode_payload(payload)
     state["active_saved_project"] = payload
-    state["active_saved_project_id"] = project.metadata.project_id
+    set_active_project_id(state, project.metadata.project_id)
     state["itinerary_name"] = project.metadata.itinerary_name
 
     return SavedProjectFileDownload(

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import streamlit as st
 
+from app_modules.project_identity import active_project_id_from_state
 from calculator.calculator_state import create_initial_calculator_state
 
 APP_PAGE_KEY = "active_app_page"
@@ -32,7 +33,7 @@ def calculator_draft_namespace(state: MutableMapping[str, Any]) -> str:
     leaking rows into another itinerary.
     """
 
-    project_id = str(state.get("active_saved_project_id") or "").strip()
+    project_id = active_project_id_from_state(state)
     if project_id:
         namespace = f"project:{project_id}"
         state[CALCULATOR_DRAFT_NAMESPACE_KEY] = namespace
