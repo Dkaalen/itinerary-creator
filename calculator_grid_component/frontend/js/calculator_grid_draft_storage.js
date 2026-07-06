@@ -4,6 +4,11 @@ const CALCULATOR_DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 function setCalculatorDraftStorageKey(key) {
   const value = String(key || '').trim();
   calculatorDraftStorageKey = value || 'itineraryCalculatorBrowserDraft.v3.global';
+  return calculatorDraftStorageKey;
+}
+
+function getCalculatorDraftStorageKey() {
+  return calculatorDraftStorageKey;
 }
 
 function loadCalculatorDraft() {

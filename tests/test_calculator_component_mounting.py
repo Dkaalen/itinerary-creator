@@ -63,7 +63,7 @@ def test_calculator_component_preserves_browser_draft_on_same_backend_revision()
 
     assert "activeBackendRevision" in source
     assert "hasLocalDraft" in source
-    assert "shouldKeepBrowserDraft(incomingRevision)" in source
+    assert "shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey)" in source
     assert "mergeBackendPayloadWithoutRows(payload, incomingRevision);" in source
     assert "markLocalDraft();" in source
     assert "client_state_revision: activeBackendRevision" in source
@@ -77,5 +77,7 @@ def test_calculator_component_persists_browser_draft_across_page_changes() -> No
     assert "itineraryCalculatorBrowserDraft.v3." in source
     assert "setCalculatorDraftStorageKey(payload.draft_storage_key)" in source
     assert "saveCalculatorDraft(calculatorState, activeBackendRevision);" in source
+    assert "activeDraftStorageKey" in source
+    assert "incomingDraftStorageKey === activeDraftStorageKey" in source
     assert "loadCalculatorDraft()" in source
     assert "shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision)" in source

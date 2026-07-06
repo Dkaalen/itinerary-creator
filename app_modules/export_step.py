@@ -27,6 +27,7 @@ from app_modules.export_job_state import (
     reset_export_job,
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
+from app_modules.export_readiness_ui import export_readiness_panel_html
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
@@ -128,6 +129,7 @@ def render_export_step(app_version: str) -> None:
     current_image_status = _current_image_bank_status_for_export()
     snapshot = _session_state_snapshot()
     readiness = export_readiness_from_state(snapshot, current_image_status)
+    st.html(export_readiness_panel_html(readiness))
     _render_fatal_export_blockers(readiness)
 
     if current_pdf_bytes():

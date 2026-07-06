@@ -51,3 +51,17 @@ def project_route_label(metrics: Mapping[str, Any]) -> str:
     if len(destinations) <= 3:
         return " → ".join(destinations)
     return f"{destinations[0]} → {destinations[1]} → {destinations[2]} + {len(destinations) - 3} more"
+
+
+def project_next_action_label(stage: str, metrics: Mapping[str, Any]) -> str:
+    """Return compact next-step copy for the workspace shell."""
+
+    normalized = str(stage or "input")
+    pictures_added = bool(metrics.get("pictures_added"))
+    if normalized == "edit":
+        return "Next · apply changes"
+    if normalized == "pictures":
+        return "Next · review images" if pictures_added else "Next · add pictures"
+    if normalized == "export":
+        return "Next · create PDF"
+    return "Next · paste text"

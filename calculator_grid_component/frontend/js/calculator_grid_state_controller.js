@@ -1,12 +1,13 @@
 let calculatorState = null;
 let activeCell = null;
 let activeBackendRevision = null;
+let activeDraftStorageKey = null;
 let hasLocalDraft = false;
 
 function initializeState(payload) {
-  setCalculatorDraftStorageKey(payload.draft_storage_key);
+  const incomingDraftStorageKey = setCalculatorDraftStorageKey(payload.draft_storage_key);
   const incomingRevision = String(payload.state_revision || '');
-  if (shouldKeepBrowserDraft(incomingRevision)) {
+  if (shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey)) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
     saveCalculatorDraft(calculatorState, activeBackendRevision);
     return;
@@ -26,12 +27,20 @@ function initializeState(payload) {
     activeSuggestion: null
   };
   activeBackendRevision = incomingRevision;
+  activeDraftStorageKey = incomingDraftStorageKey;
   hasLocalDraft = Boolean(useStoredDraft);
   if (useStoredDraft) saveCalculatorDraft(calculatorState, activeBackendRevision);
 }
 
-function shouldKeepBrowserDraft(incomingRevision) {
-  return Boolean(calculatorState && hasLocalDraft && incomingRevision && incomingRevision === activeBackendRevision);
+function shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey) {
+  return Boolean(
+    calculatorState
+    && hasLocalDraft
+    && incomingRevision
+    && incomingRevision === activeBackendRevision
+    && incomingDraftStorageKey
+    && incomingDraftStorageKey === activeDraftStorageKey
+  );
 }
 
 function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
@@ -39,6 +48,7 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
   calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
   activeBackendRevision = incomingRevision;
+  activeDraftStorageKey = getCalculatorDraftStorageKey();
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
 }
 

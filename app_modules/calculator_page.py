@@ -16,7 +16,7 @@ from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
     render_local_library_status,
 )
-from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, close_calculator_page, open_local_library_page
+from app_modules.calculator_navigation import CALCULATOR_STATE_KEY, calculator_draft_namespace, close_calculator_page, open_local_library_page
 from app_modules.validation_gate import block_generation, render_blocking_issues
 from app_modules.workflow_config import CALCULATOR_COPY
 from calculator.calculator_state import CalculatorState, create_initial_calculator_state
@@ -76,12 +76,7 @@ def _store_calculator_state(state: CalculatorState) -> None:
 
 
 def _calculator_draft_namespace() -> str:
-    return str(
-        st.session_state.get("active_saved_project_id")
-        or st.session_state.get("itinerary_name")
-        or st.session_state.get("itinerary_name_input")
-        or "unsaved"
-    )
+    return calculator_draft_namespace(st.session_state)
 
 
 def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:

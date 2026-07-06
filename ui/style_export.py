@@ -1,6 +1,74 @@
 """Direct PDF export and download station styles."""
 
 CSS = r"""
+
+.export-readiness-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: .8rem 0 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(199, 208, 202, .76);
+    border-radius: 22px;
+    background: rgba(255, 253, 248, .86);
+    box-shadow: var(--shadow-card);
+}
+
+.export-readiness-copy {
+    min-width: 0;
+}
+
+.export-readiness-copy span {
+    display: block;
+    color: var(--teal-dark) !important;
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.export-readiness-copy strong {
+    display: block;
+    color: var(--ink) !important;
+    font-size: 1.04rem;
+    font-weight: 900;
+    margin-top: .12rem;
+}
+
+.export-readiness-copy p {
+    color: var(--ink-soft) !important;
+    margin: .16rem 0 0;
+}
+
+.export-readiness-chips {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .42rem;
+}
+
+.export-readiness-chips span {
+    color: var(--ink-soft) !important;
+    font-size: .74rem;
+    font-weight: 760;
+    border: 1px solid rgba(199, 208, 202, .70);
+    background: rgba(248, 245, 238, .82);
+    border-radius: 999px;
+    padding: .28rem .52rem;
+}
+
+@media (max-width: 740px) {
+    .export-readiness-panel {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .export-readiness-chips {
+        justify-content: flex-start;
+    }
+}
+
 .pdf-ready-panel {
                 display: flex;
                 justify-content: space-between;

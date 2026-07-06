@@ -15,6 +15,7 @@ from app_modules.saved_project_generation import create_generated_baseline_proje
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.workflow_transients import clear_project_boundary_transients
 from app_modules.project_file_download_cache import clear_project_file_download_cache
 from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
@@ -29,6 +30,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     """Parse supplier text and build the first editable itinerary preview."""
 
     diagnostics.reset()
+    clear_project_boundary_transients(state)
     reset_performance_telemetry(state)
     # Single parser/generator pipeline guard: parse_and_normalize_itinerary(raw_text)
     parsed_rows = parse_and_normalize_itinerary(raw_text, state=state)

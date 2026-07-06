@@ -123,6 +123,12 @@ label, [data-testid="stWidgetLabel"] p {
     padding: .28rem .52rem;
 }
 
+.workspace-shell-meta .workspace-action-chip {
+    color: var(--teal-dark) !important;
+    border-color: rgba(15, 106, 95, .26);
+    background: rgba(233, 244, 241, .92);
+}
+
 /* Streamlit containers become quiet work surfaces instead of high-contrast boxes. */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border: 1px solid rgba(199, 208, 202, 0.72) !important;

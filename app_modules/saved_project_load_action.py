@@ -19,6 +19,7 @@ from app_modules.saved_project_serialization import saved_project_from_dict, sav
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.workflow_transients import clear_project_boundary_transients
 from app_modules.project_file_download_cache import clear_project_file_download_cache
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
@@ -27,34 +28,6 @@ from ui.export_files import save_html_file
 from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 from ui.render_cache import make_render_signature
-
-_TRANSIENT_REOPEN_KEYS = (
-    "parser_diagnostics",
-    "image_bank_status",
-    "image_bank_gateway",
-    "image_bank_prefetch_started",
-    "day_image_matches",
-    "image_match_unmatched_days",
-    "image_workflow_review",
-    "image_review_warnings",
-    "image_review_warning_count",
-    "generation_duplicate_count",
-    "generation_overflow_warnings",
-    "export_last_error",
-    "_last_visual_editor_result",
-    "_visual_editor_commit_nonce",
-    "_visual_editor_commit_counter",
-    "_visual_editor_last_applied_commit_nonce",
-    "_visual_editor_export_commit_ready",
-    "_visual_editor_add_pictures_commit_ready",
-    "_pdf_after_visual_edit_commit_nonce",
-    "_add_pictures_after_visual_edit_commit_nonce",
-    "_pdf_export_job",
-    "_pdf_auto_create_requested",
-    "_pdf_export_timings",
-    "_performance_telemetry",
-    "_project_file_download_cache",
-)
 
 
 def load_saved_project(
@@ -131,8 +104,7 @@ def _coerce_saved_project(project: SavedItineraryProject | Mapping[str, Any]) ->
 
 
 def _clear_reopen_transients(state: MutableMapping[str, Any]) -> None:
-    for key in _TRANSIENT_REOPEN_KEYS:
-        state.pop(key, None)
+    clear_project_boundary_transients(state)
 
 
 def _rebuild_preview_state(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, MutableMapping
+from uuid import uuid4
 
 import streamlit as st
 
@@ -13,6 +14,7 @@ WORKFLOW_PAGE = "workflow"
 CALCULATOR_PAGE = "calculator"
 LOCAL_LIBRARY_PAGE = "local_library"
 CALCULATOR_STATE_KEY = "calculator_state"
+CALCULATOR_DRAFT_NAMESPACE_KEY = "calculator_draft_namespace"
 
 
 def calculator_page_is_active(state: MutableMapping[str, Any]) -> bool:
@@ -21,10 +23,35 @@ def calculator_page_is_active(state: MutableMapping[str, Any]) -> bool:
     return state.get(APP_PAGE_KEY, WORKFLOW_PAGE) == CALCULATOR_PAGE
 
 
+def calculator_draft_namespace(state: MutableMapping[str, Any]) -> str:
+    """Return a stable browser-draft namespace for the current calculator workspace.
+
+    Unsaved itineraries need a namespace that survives itinerary-name edits in
+    the same browser session. Saved projects use their durable project id so a
+    reopened project can recover the matching local browser draft without
+    leaking rows into another itinerary.
+    """
+
+    project_id = str(state.get("active_saved_project_id") or "").strip()
+    if project_id:
+        namespace = f"project:{project_id}"
+        state[CALCULATOR_DRAFT_NAMESPACE_KEY] = namespace
+        return namespace
+
+    existing = str(state.get(CALCULATOR_DRAFT_NAMESPACE_KEY) or "").strip()
+    if existing:
+        return existing
+
+    namespace = f"session:{uuid4().hex}"
+    state[CALCULATOR_DRAFT_NAMESPACE_KEY] = namespace
+    return namespace
+
+
 def open_calculator_page(state: MutableMapping[str, Any]) -> None:
     """Route the app to the calculator and create startup rows if needed."""
 
     state[APP_PAGE_KEY] = CALCULATOR_PAGE
+    calculator_draft_namespace(state)
     calculator_state = state.get(CALCULATOR_STATE_KEY)
     if calculator_state is None or not getattr(calculator_state, "rows", ()):
         itinerary_name = str(state.get("itinerary_name") or state.get("itinerary_name_input") or "")

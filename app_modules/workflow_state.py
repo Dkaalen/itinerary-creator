@@ -16,6 +16,7 @@ from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
+from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
 
 
 WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
@@ -59,20 +60,11 @@ RESET_PROJECT_KEYS = (
     "parsed_rows",
     "output_edits",
     "last_generated_raw_text",
-    "parser_diagnostics",
     "preview_signature",
     "_preview_render_context",
     "_preview_render_context_signature",
     "pdf_signature",
     "export_pdf_signature",
-    "_last_visual_editor_result",
-    "_visual_editor_commit_nonce",
-    "_visual_editor_commit_counter",
-    "_visual_editor_last_applied_commit_nonce",
-    "_visual_editor_export_commit_ready",
-    "_visual_editor_add_pictures_commit_ready",
-    "_pdf_after_visual_edit_commit_nonce",
-    "_add_pictures_after_visual_edit_commit_nonce",
     "itinerary_validation_report",
     "active_saved_project",
     "active_saved_project_id",
@@ -88,18 +80,8 @@ RESET_PROJECT_KEYS = (
     "calculator_travel_element_autocomplete_result_id",
     "calculator_grid_revision",
     "calculator_backup_upload",
-    "image_bank_status",
-    "image_bank_gateway",
-    "image_bank_prefetch_started",
-    "image_review_warning_count",
-    "generation_duplicate_count",
-    "generation_overflow_warnings",
-    "export_last_error",
-    "_pdf_export_job",
-    "_pdf_auto_create_requested",
-    "_pdf_export_timings",
-    "_performance_telemetry",
-    "_project_file_download_cache",
+    "calculator_draft_namespace",
+    *PROJECT_BOUNDARY_TRANSIENT_KEYS,
 )
 
 
