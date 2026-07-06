@@ -20,6 +20,7 @@ from scripts.architecture_guards import (
     patch_history_name_hits,
     root_patch_artifact_hits,
     source_contains,
+    top_level_compatibility_facade_hits,
 )
 
 
@@ -93,6 +94,10 @@ def test_patch_artifacts_and_duplicate_tests_do_not_return() -> None:
 
 def test_shared_clean_space_is_the_single_source_of_truth() -> None:
     assert duplicate_shared_clean_space_hits() == ()
+
+
+def test_top_level_compatibility_facades_stay_thin() -> None:
+    assert top_level_compatibility_facade_hits() == ()
 
 
 def test_cleaned_generation_facades_do_not_reabsorb_implementation_imports() -> None:

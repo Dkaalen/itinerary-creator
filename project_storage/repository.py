@@ -7,6 +7,7 @@ from typing import Any
 
 from project_storage.config import SupabaseStorageConfig
 from project_storage.http_client import SupabaseHttpClient
+from project_storage.delete_result import ProjectDeleteResult
 
 
 class ProjectStorageRepository:
@@ -139,11 +140,35 @@ class ProjectStorageRepository:
         if clean_id:
             self._client.rest_delete("itinerary_versions", {"id": f"eq.{clean_id}"})
 
-    def delete_itinerary(self, itinerary_id: str) -> None:
-        files = self.list_files(itinerary_id, limit=200)
-        storage_paths = [str(item.get("storage_path") or "") for item in files]
-        self._client.rest_delete("itineraries", {"id": f"eq.{itinerary_id}"})
-        self.delete_storage_files(storage_paths)
+    def delete_itinerary(self, itinerary_id: str) -> ProjectDeleteResult:
+        clean_id = str(itinerary_id or "").strip()
+        if not clean_id:
+            return ProjectDeleteResult(itinerary_id="", record_deleted=False, storage_files_deleted=False)
+
+        files = self.list_files(clean_id, limit=200)
+        storage_paths = tuple(str(item.get("storage_path") or "").strip() for item in files)
+        storage_paths = tuple(path for path in storage_paths if path)
+        self._client.rest_delete("itineraries", {"id": f"eq.{clean_id}"})
+
+        if not storage_paths:
+            return ProjectDeleteResult(itinerary_id=clean_id, record_deleted=True, storage_files_deleted=True)
+
+        try:
+            self.delete_storage_files(list(storage_paths))
+        except Exception as exc:
+            return ProjectDeleteResult(
+                itinerary_id=clean_id,
+                storage_paths=storage_paths,
+                record_deleted=True,
+                storage_files_deleted=False,
+                storage_error=str(exc),
+            )
+        return ProjectDeleteResult(
+            itinerary_id=clean_id,
+            storage_paths=storage_paths,
+            record_deleted=True,
+            storage_files_deleted=True,
+        )
 
 
 def _utc_now_iso() -> str:

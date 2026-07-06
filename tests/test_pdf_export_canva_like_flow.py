@@ -36,12 +36,14 @@ def test_pdf_export_configures_reportlab_for_fast_image_streams():
 
 def test_picture_page_create_pdf_enters_export_with_one_shot_auto_request():
     picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
+    cta_source = Path("app_modules/picture_pdf_cta.py").read_text(encoding="utf-8")
     action_source = Path("app_modules/export_stage_action.py").read_text(encoding="utf-8")
     gate_source = Path("app_modules/pdf_editor_commit_gate.py").read_text(encoding="utf-8")
 
-    assert "start_pdf_editor_commit(st.session_state)" in picture_source
+    assert "render_picture_pdf_cta" in picture_source
+    assert "start_pdf_editor_commit(st.session_state)" in cta_source
     assert "start_workflow_transaction(state, WorkflowTransactionTarget.CREATE_PDF" in gate_source
-    assert "enter_export_stage(st.session_state, auto_create_pdf=True)" in picture_source
+    assert "enter_export_stage(st.session_state, auto_create_pdf=True)" in cta_source
     assert "auto_create_pdf: bool = False" in action_source
     assert "request_auto_pdf_create(state)" in action_source
     assert "request_pdf_commit_func" not in action_source

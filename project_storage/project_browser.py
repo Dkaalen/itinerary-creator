@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from project_storage.delete_result import ProjectDeleteResult
 from project_storage.runtime import get_project_storage_repository
 
 CALCULATOR_FILE_TYPE = "calculator_xlsx"
@@ -36,14 +37,20 @@ def download_cloud_project_file(storage_path: str) -> bytes | None:
     return repository.download_file(str(storage_path or "").strip())
 
 
-def delete_cloud_itinerary(itinerary_id: str) -> bool:
-    """Delete an itinerary record and its registered storage files."""
+def delete_cloud_itinerary_result(itinerary_id: str) -> ProjectDeleteResult | None:
+    """Delete an itinerary record and best-effort cleanup its registered files."""
 
     repository = get_project_storage_repository()
     if repository is None:
-        return False
-    repository.delete_itinerary(str(itinerary_id or "").strip())
-    return True
+        return None
+    return repository.delete_itinerary(str(itinerary_id or "").strip())
+
+
+def delete_cloud_itinerary(itinerary_id: str) -> bool:
+    """Compatibility wrapper returning whether the itinerary record was deleted."""
+
+    result = delete_cloud_itinerary_result(itinerary_id)
+    return bool(result and result.ok)
 
 
 def load_latest_cloud_project_payload(itinerary_id: str) -> dict[str, Any] | None:

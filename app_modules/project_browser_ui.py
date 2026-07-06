@@ -18,7 +18,7 @@ from app_modules.project_io import load_project_json
 from app_modules.saved_project_load_action import load_saved_project
 from project_storage.errors import storage_user_message
 from project_storage.project_browser import (
-    delete_cloud_itinerary,
+    delete_cloud_itinerary_result,
     download_cloud_project_file,
     list_cloud_calculation_files,
     list_cloud_itineraries,
@@ -56,6 +56,10 @@ def render_open_project_file_action() -> None:
 
 def _render_cloud_project_browser() -> None:
     """Render cloud projects from Supabase."""
+
+    cleanup_warning = st.session_state.pop("project_storage_delete_cleanup_warning", "")
+    if cleanup_warning:
+        st.warning(str(cleanup_warning))
 
     search = st.text_input(
         "Search projects",
@@ -122,9 +126,14 @@ def _render_delete_confirmation(project_id: str, name: str) -> None:
     with confirm_col:
         if st.button("Delete permanently", key=f"confirm_delete_cloud_project_{project_id}", use_container_width=True):
             try:
-                if delete_cloud_itinerary(project_id):
+                result = delete_cloud_itinerary_result(project_id)
+                if result and result.ok:
                     clear_deleted_project_from_session(st.session_state, project_id)
                     clear_delete_confirmation(st.session_state)
+                    if not result.storage_files_deleted:
+                        st.session_state["project_storage_delete_cleanup_warning"] = (
+                            "Project record was deleted, but one or more stored files could not be removed automatically."
+                        )
                     st.success(f"Deleted {name}.")
                     st.rerun()
                     return

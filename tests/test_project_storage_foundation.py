@@ -19,6 +19,7 @@ class FakeClient:
         self.rest_deletes = []
         self.fail_upload: Exception | None = None
         self.fail_register_file: Exception | None = None
+        self.fail_storage_delete: Exception | None = None
 
     def rest_insert(self, table, payload, *, upsert=False):
         if table == "itinerary_files" and self.fail_register_file is not None:
@@ -42,6 +43,8 @@ class FakeClient:
         return b"downloaded"
 
     def storage_delete(self, bucket, storage_paths):
+        if self.fail_storage_delete is not None:
+            raise self.fail_storage_delete
         self.storage_deletes.append((bucket, storage_paths))
 
     def rest_delete(self, table, params):
@@ -166,8 +169,11 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
     )
 
     assert repository.download_file("itineraries/itinerary-id/calculator/test.xlsx") == b"downloaded"
-    repository.delete_itinerary("itinerary-id")
+    result = repository.delete_itinerary("itinerary-id")
 
+    assert result.ok is True
+    assert result.complete is True
+    assert result.storage_paths == ("itineraries/itinerary-id/calculator/test.xlsx",)
     assert fake.downloads == [("itinerary-files", "itineraries/itinerary-id/calculator/test.xlsx")]
     assert fake.rest_deletes == [("itineraries", {"id": "eq.itinerary-id"})]
     assert fake.storage_deletes == [("itinerary-files", ["itineraries/itinerary-id/calculator/test.xlsx"])]
@@ -180,11 +186,37 @@ def test_project_browser_supports_search_delete_and_calculator_file_downloads() 
     assert "search: str = """ in source
     assert "list_cloud_calculation_files" in source
     assert "download_cloud_project_file" in source
-    assert "delete_cloud_itinerary" in source
+    assert "delete_cloud_itinerary_result" in source
     assert "Search projects" in ui_source
     assert "Delete permanently" in ui_source
     assert "Calculator files" in ui_source
 
+
+
+def test_repository_delete_keeps_record_deletion_when_storage_cleanup_fails() -> None:
+    from project_storage.config import SupabaseStorageConfig
+
+    fake = FakeClient()
+    fake.rest_get = lambda table, params: (
+        [{"storage_path": "itineraries/itinerary-id/exports/test.pdf"}]
+        if table == "itinerary_files"
+        else []
+    )
+    fake.fail_storage_delete = RuntimeError("storage cleanup failed")
+    repository = ProjectStorageRepository(
+        SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
+        client=fake,
+    )
+
+    result = repository.delete_itinerary("itinerary-id")
+
+    assert result.ok is True
+    assert result.complete is False
+    assert result.record_deleted is True
+    assert result.storage_files_deleted is False
+    assert "storage cleanup failed" in result.storage_error
+    assert fake.rest_deletes == [("itineraries", {"id": "eq.itinerary-id"})]
+    assert fake.storage_deletes == []
 
 def test_snapshot_save_does_not_create_version_when_upload_fails(monkeypatch) -> None:
     from project_storage.config import SupabaseStorageConfig

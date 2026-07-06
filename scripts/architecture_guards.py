@@ -122,6 +122,15 @@ ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MA
 PATCH_METADATA_DIR_NAMES = frozenset({"_patch_metadata"})
 DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
 
+TOP_LEVEL_COMPATIBILITY_FACADES = {
+    "generator.py": 90,
+    "image_matcher.py": 40,
+    "itinerary_parser.py": 40,
+    "normalizer.py": 20,
+    "pdf_exporter.py": 100,
+    "text_polish.py": 20,
+}
+
 
 CLEANED_GENERATION_CORE_FACADES = {
     "itinerary_generation/day_intro_engine_core.py": 80,
@@ -434,6 +443,34 @@ def oversized_cleaned_generation_core_facades() -> tuple[SizeHit, ...]:
     return tuple(hits)
 
 
+def top_level_compatibility_facade_hits() -> tuple[str, ...]:
+    """Return top-level compatibility wrappers that grew implementation logic."""
+
+    hits: list[str] = []
+    for relative, line_limit in TOP_LEVEL_COMPATIBILITY_FACADES.items():
+        path = REPO_ROOT / relative
+        if not path.exists():
+            continue
+        source = _read(path)
+        line_count = len(source.splitlines())
+        if line_count > line_limit:
+            hits.append(f"{relative}: {line_count} lines > limit {line_limit}")
+        try:
+            tree = ast.parse(source)
+        except SyntaxError as exc:
+            hits.append(f"{relative}: syntax error: {exc}")
+            continue
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                hits.append(f"{relative}:{node.lineno}: defines {node.name!r} instead of re-exporting")
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                module = ",".join(alias.name for alias in getattr(node, "names", ()))
+                imported_from = getattr(node, "module", "") or module
+                if _module_matches(imported_from, ("streamlit", "app_modules")):
+                    hits.append(f"{relative}:{node.lineno}: imports app/UI runtime module {imported_from!r}")
+    return tuple(sorted(hits))
+
+
 def generation_implementation_core_import_hits() -> tuple[str, ...]:
     """Return named generation implementation modules that still import cleaned core modules."""
 
@@ -601,6 +638,10 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck(
             "Shared clean_space ownership",
             lambda: _fail_if_any("duplicate clean_space definition", duplicate_shared_clean_space_hits()),
+        ),
+        ArchitectureCheck(
+            "Top-level compatibility facade scope",
+            lambda: _fail_if_any("compatibility facade grew implementation logic", top_level_compatibility_facade_hits()),
         ),
         ArchitectureCheck(
             "Generation core facade dependency direction",
