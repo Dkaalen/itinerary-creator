@@ -1,14 +1,14 @@
 :root {
   color-scheme: light;
-  --bg: #f5f2ea;
+  --bg: #f8f6f1;
   --panel: #fffdf8;
   --panel-soft: #f8f5ee;
-  --border: #e4ded2;
-  --border-strong: #cfc6b7;
+  --border: #e0d8ca;
+  --border-strong: #c7bcaa;
   --text: #242522;
-  --muted: #7d7c74;
-  --accent: #817769;
-  --accent-dark: #5f574d;
+  --muted: #85827a;
+  --accent: #9a8f7f;
+  --accent-dark: #6f665b;
   --red: #c85f56;
   --red-dark: #a9463e;
   --cell: #ffffff;
@@ -40,7 +40,7 @@ body {
   gap: 10px;
   flex-wrap: wrap;
   background: rgba(255, 253, 248, 0.92);
-  border: 1px solid rgba(199, 208, 202, 0.78);
+  border: 1px solid rgba(199, 188, 170, 0.72);
   border-radius: 20px 20px 0 0;
   padding: 11px 12px;
   box-shadow: var(--control-shadow);
@@ -52,7 +52,7 @@ body {
   flex-wrap: wrap;
 }
 .calc-btn {
-  border: 1px solid rgba(199, 208, 202, 0.88);
+  border: 1px solid rgba(199, 188, 170, 0.82);
   background: rgba(255, 253, 248, 0.92);
   color: var(--text);
   border-radius: 12px;
@@ -62,8 +62,8 @@ body {
   box-shadow: var(--control-shadow);
 }
 .calc-btn:hover { border-color: rgba(95, 87, 77, 0.62); background: #f5f1e8; }
-.calc-btn.primary { background: linear-gradient(180deg, #444640 0%, #2f302d 100%); border-color: #2f302d; color: #fffdf8; }
-.calc-btn.primary:hover { background: #20211f; border-color: #20211f; }
+.calc-btn.primary { background: #e6ded1; border-color: rgba(111, 102, 91, 0.46); color: #242522; }
+.calc-btn.primary:hover { background: #ddd3c4; border-color: rgba(111, 102, 91, 0.58); }
 .calc-btn.danger { border-color: rgba(200, 95, 86, 0.35); color: var(--red-dark); background: #fff8f6; }
 .advanced-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.86rem; padding: 0 4px; }
 .calculator-status-row {
@@ -72,7 +72,7 @@ body {
   flex-wrap: wrap;
   align-items: center;
   color: var(--muted);
-  background: rgba(248, 250, 247, 0.92);
+  background: rgba(255, 253, 248, 0.74);
   border-left: 1px solid rgba(199, 208, 202, 0.78);
   border-right: 1px solid rgba(199, 208, 202, 0.78);
   padding: 7px 10px;
@@ -88,18 +88,18 @@ body {
   background: rgba(247, 243, 235, 0.90);
   border-left: 1px solid rgba(199, 208, 202, 0.78);
   border-right: 1px solid rgba(199, 208, 202, 0.78);
-  border-top: 1px solid rgba(199, 208, 202, 0.70);
+  border-top: 1px solid rgba(199, 188, 170, 0.68);
   padding: 8px 10px;
   font-size: 0.86rem;
 }
-.calculator-totals-panel span { background: rgba(255, 253, 248, 0.96); border: 1px solid rgba(199, 208, 202, 0.74); border-radius: 999px; padding: 4px 8px; }
+.calculator-totals-panel span { background: rgba(255, 253, 248, 0.96); border: 1px solid rgba(199, 188, 170, 0.68); border-radius: 999px; padding: 4px 8px; }
 .calculator-totals-panel strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .calculator-grid-scroll {
   width: 100%;
   max-width: 100%;
   max-height: 640px;
   overflow: auto;
-  border: 1px solid rgba(199, 208, 202, 0.78);
+  border: 1px solid rgba(199, 188, 170, 0.72);
   background: var(--panel);
   border-radius: 0 0 20px 20px;
 }
@@ -117,8 +117,8 @@ th {
   z-index: 2;
   background: #efebe2;
   color: var(--text);
-  border-right: 1px solid rgba(199, 208, 202, 0.74);
-  border-bottom: 1px solid rgba(199, 208, 202, 0.92);
+  border-right: 1px solid rgba(199, 188, 170, 0.68);
+  border-bottom: 1px solid rgba(199, 188, 170, 0.82);
   padding: 7px 7px;
   text-align: left;
   white-space: nowrap;
@@ -129,8 +129,8 @@ th {
 }
 td.cell {
   height: 31px;
-  border-right: 1px solid rgba(226, 230, 225, 0.88);
-  border-bottom: 1px solid rgba(226, 230, 225, 0.88);
+  border-right: 1px solid rgba(224, 216, 202, 0.74);
+  border-bottom: 1px solid rgba(224, 216, 202, 0.74);
   padding: 5px 7px;
   background: var(--cell);
   color: var(--text);

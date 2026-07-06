@@ -2,10 +2,7 @@
 
 CSS = r"""
 html, body, [data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(circle at 14% -12%, rgba(129, 119, 105, 0.12), transparent 30rem),
-        radial-gradient(circle at 92% 2%, rgba(232, 223, 207, 0.46), transparent 34rem),
-        linear-gradient(180deg, #fbfaf6 0%, var(--app-bg) 100%) !important;
+    background: var(--app-bg) !important;
     color: var(--ink) !important;
 }
 
@@ -21,22 +18,22 @@ footer {
 }
 
 .block-container {
-    max-width: min(100% - 3.2rem, 1440px) !important;
-    width: min(100% - 3.2rem, 1440px) !important;
-    padding: 1.05rem 0 3.5rem !important;
+    max-width: min(100% - 4rem, 1180px) !important;
+    width: min(100% - 4rem, 1180px) !important;
+    padding: 2rem 0 4rem !important;
 }
 
 @media (max-width: 740px) {
     .block-container {
-        max-width: min(100% - 1rem, 1440px) !important;
-        width: min(100% - 1rem, 1440px) !important;
-        padding-top: .7rem !important;
+        max-width: min(100% - 1.25rem, 1180px) !important;
+        width: min(100% - 1.25rem, 1180px) !important;
+        padding-top: 1rem !important;
     }
 }
 
 h1, h2, h3, h4, h5, h6 {
     color: var(--ink) !important;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.045em;
 }
 
 p, li, label, [data-testid="stMarkdownContainer"] {
@@ -54,7 +51,14 @@ label, [data-testid="stWidgetLabel"] p {
 .hero-summary-card,
 .flow-nav,
 .document-stage-panel,
-.app-version-pill {
+.app-version-pill,
+.home-hero,
+.home-hero-main,
+.home-hero-side,
+.home-section,
+.workspace-help-card,
+.workspace-tool-card,
+.input-action-bar {
     display: none !important;
 }
 
@@ -63,13 +67,9 @@ label, [data-testid="stWidgetLabel"] p {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin: .15rem 0 1rem;
-    padding: .78rem .92rem;
-    border: 1px solid rgba(207, 198, 183, 0.76);
-    border-radius: 22px;
-    background: rgba(255, 253, 248, 0.74);
-    box-shadow: var(--shadow-control);
-    backdrop-filter: blur(12px);
+    margin: 0 0 1.4rem;
+    padding: .68rem 0 .9rem;
+    border-bottom: 1px solid var(--line);
 }
 
 .workspace-shell-main {
@@ -80,8 +80,8 @@ label, [data-testid="stWidgetLabel"] p {
 
 .workspace-shell-main strong {
     color: var(--ink) !important;
-    font-size: 1.02rem;
-    font-weight: 880;
+    font-size: 1rem;
+    font-weight: 820;
     letter-spacing: -.025em;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -90,17 +90,22 @@ label, [data-testid="stWidgetLabel"] p {
 
 .workspace-shell-main span:not(.workspace-eyebrow) {
     color: var(--ink-soft) !important;
-    font-size: .88rem;
+    font-size: .84rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.workspace-eyebrow {
-    color: var(--accent-dark) !important;
+.workspace-eyebrow,
+.studio-wordmark,
+.source-line span,
+.generate-line span,
+.calculator-kicker,
+.local-library-kicker {
+    color: var(--muted) !important;
     font-size: .68rem;
-    font-weight: 900;
-    letter-spacing: .13em;
+    font-weight: 850;
+    letter-spacing: .14em;
     text-transform: uppercase;
 }
 
@@ -108,7 +113,7 @@ label, [data-testid="stWidgetLabel"] p {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: .45rem;
+    gap: .52rem;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
@@ -116,186 +121,92 @@ label, [data-testid="stWidgetLabel"] p {
 .workspace-shell-meta span {
     color: var(--ink-soft) !important;
     font-size: .76rem;
-    font-weight: 760;
-    border: 1px solid rgba(207, 198, 183, .74);
-    background: rgba(247, 243, 235, .84);
-    border-radius: 999px;
-    padding: .28rem .52rem;
+    font-weight: 680;
 }
 
 .workspace-shell-meta .workspace-action-chip {
     color: var(--ink) !important;
-    border-color: rgba(47, 48, 45, .22);
-    background: rgba(239, 235, 226, .95);
 }
 
-/* Input page and workspace composition. */
-.home-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(260px, .7fr);
-    gap: 1rem;
-    align-items: stretch;
-    margin: .2rem 0 1.1rem;
-}
-
-.home-hero-main,
-.home-hero-side,
-.home-section,
-.workspace-tool-card,
-.workspace-help-card,
-.local-library-hero,
-.calculator-hero {
-    border: 1px solid rgba(207, 198, 183, .76);
-    border-radius: 28px;
-    background: rgba(255, 253, 248, .78);
-    box-shadow: var(--shadow-card);
-    backdrop-filter: blur(12px);
-}
-
-.home-hero-main {
-    padding: 1.35rem 1.45rem;
-}
-
-.home-hero-side {
-    padding: 1.05rem;
-    display: grid;
-    align-content: start;
-    gap: .72rem;
-}
-
-.home-kicker,
-.section-kicker,
-.calculator-kicker,
-.local-library-kicker {
-    display: inline-flex;
-    color: var(--accent-dark) !important;
-    font-size: .68rem;
-    font-weight: 900;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    margin-bottom: .32rem;
-}
-
-.home-title {
-    color: var(--ink) !important;
-    font-size: clamp(2.1rem, 4vw, 4.4rem);
-    line-height: .96;
-    letter-spacing: -.075em;
-    margin: .1rem 0 .7rem;
-    max-width: 13ch;
-}
-
-.home-description,
-.section-description,
-.tool-card-description,
-.calculator-description,
-.local-library-description {
-    color: var(--ink-soft) !important;
-    font-size: .98rem;
-    line-height: 1.62;
-    margin: 0;
-}
-
-.home-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .45rem;
-    margin-top: 1.05rem;
-}
-
-.home-meta-row span,
-.section-chip,
-.tool-chip {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid rgba(207, 198, 183, .78);
-    background: rgba(247, 243, 235, .88);
-    color: var(--ink-soft) !important;
-    border-radius: 999px;
-    padding: .32rem .58rem;
-    font-size: .76rem;
-    font-weight: 760;
-}
-
-.home-section {
-    padding: 1.08rem 1.12rem;
-    margin: .8rem 0;
-}
-
-.section-header {
+/* Input page: quiet workspace, not a landing page or card dashboard. */
+.studio-toolbar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: baseline;
     gap: 1rem;
-    margin-bottom: .72rem;
+    margin: .1rem 0 .9rem;
+    padding-bottom: .72rem;
+    border-bottom: 1px solid var(--line);
 }
 
-.section-title {
-    color: var(--ink) !important;
-    font-size: 1.18rem;
-    line-height: 1.05;
-    letter-spacing: -.04em;
-    font-weight: 900;
-    margin: 0;
-}
-
-.workspace-tool-card,
-.workspace-help-card {
-    padding: .92rem;
-    border-radius: 22px;
-    box-shadow: var(--shadow-control);
-}
-
-.tool-card-title {
-    display: block;
-    color: var(--ink) !important;
-    font-weight: 900;
-    letter-spacing: -.025em;
-    margin-bottom: .14rem;
-}
-
-.home-action-note {
+.studio-toolbar-note {
     color: var(--muted) !important;
     font-size: .82rem;
-    margin: .6rem 0 0;
+    margin-left: .65rem;
 }
 
-.input-action-bar {
-    margin: .9rem 0 .55rem;
-    padding: .82rem .95rem;
-    border: 1px solid rgba(207, 198, 183, .76);
-    border-radius: 24px;
-    background: rgba(255, 253, 248, .82);
-    box-shadow: var(--shadow-card);
+.input-page-heading {
+    margin: 2.05rem 0 1.2rem;
+    max-width: 760px;
 }
 
-.input-action-copy strong {
-    display: block;
+.input-page-heading h1 {
     color: var(--ink) !important;
-    font-size: .98rem;
-    font-weight: 900;
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    line-height: 1.02;
+    letter-spacing: -.065em;
+    margin: 0 0 .55rem;
 }
 
-.input-action-copy span {
+.input-page-heading p {
     color: var(--ink-soft) !important;
-    display: block;
-    font-size: .86rem;
-    margin-top: .08rem;
+    font-size: 1rem;
+    line-height: 1.62;
+    margin: 0;
+    max-width: 680px;
+}
+
+.source-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.55rem 0 .62rem;
+}
+
+.source-line small {
+    color: var(--muted) !important;
+    font-size: .82rem;
+}
+
+.generate-line {
+    margin: 1.05rem 0 .58rem;
+    padding-top: .2rem;
 }
 
 .calculator-hero,
 .local-library-hero {
-    padding: 1rem 1.08rem;
-    margin: .2rem 0 1rem;
+    padding: .2rem 0 1rem;
+    margin: .2rem 0 .55rem;
+    border-bottom: 1px solid var(--line);
 }
 
 .calculator-title,
 .local-library-title {
     color: var(--ink) !important;
-    font-size: clamp(1.75rem, 3vw, 3rem);
-    line-height: 1;
-    letter-spacing: -.065em;
-    margin: .12rem 0 .45rem;
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    line-height: 1.04;
+    letter-spacing: -.06em;
+    margin: .25rem 0 .45rem;
+}
+
+.calculator-description,
+.local-library-description {
+    color: var(--ink-soft) !important;
+    font-size: .96rem;
+    line-height: 1.62;
+    margin: 0;
+    max-width: 720px;
 }
 
 .calculator-top-strip {
@@ -312,20 +223,19 @@ label, [data-testid="stWidgetLabel"] p {
     text-align: right;
 }
 
-/* Streamlit containers become quiet work surfaces instead of high-contrast boxes. */
+/* Streamlit native containers should not look like scattered boxed dashboards. */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1px solid rgba(207, 198, 183, 0.76) !important;
-    border-radius: var(--radius-card) !important;
-    background: rgba(255, 253, 248, 0.80) !important;
-    box-shadow: var(--shadow-card) !important;
-    backdrop-filter: blur(10px) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 18px !important;
+    background: rgba(255, 253, 248, 0.70) !important;
+    box-shadow: none !important;
 }
 
 [data-testid="stExpander"] {
-    border-radius: 18px !important;
-    border: 1px solid rgba(207, 198, 183, 0.78) !important;
-    background: rgba(255, 253, 248, 0.80) !important;
-    box-shadow: var(--shadow-control) !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--line) !important;
+    background: rgba(255, 253, 248, 0.64) !important;
+    box-shadow: none !important;
     overflow: hidden !important;
 }
 
@@ -336,12 +246,12 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 [data-testid="stAlert"] {
-    background: rgba(255, 253, 248, 0.92) !important;
-    border: 1px solid rgba(207, 198, 183, 0.82) !important;
+    background: rgba(255, 253, 248, 0.90) !important;
+    border: 1px solid var(--line) !important;
     border-left: 3px solid var(--accent) !important;
-    border-radius: 16px !important;
+    border-radius: 14px !important;
     color: var(--ink) !important;
-    box-shadow: var(--shadow-control) !important;
+    box-shadow: none !important;
 }
 
 [data-testid="stAlert"] * {
@@ -349,20 +259,24 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 iframe[title="visual_page_editor"] {
-    border-radius: 22px !important;
-    border: 1px solid rgba(207, 198, 183, 0.82) !important;
-    box-shadow: var(--shadow-soft) !important;
+    border-radius: 18px !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: 0 18px 46px rgba(36, 37, 34, 0.06) !important;
     background: var(--paper) !important;
 }
 
 @media (max-width: 980px) {
-    .home-hero,
-    .input-action-bar,
     .calculator-top-strip {
         grid-template-columns: 1fr;
     }
     .calculator-status-caption {
         text-align: left;
+    }
+    .workspace-shell,
+    .studio-toolbar,
+    .source-line {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 """

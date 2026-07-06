@@ -91,8 +91,8 @@ def _render_calculator_hero() -> None:
         """
         <section class="calculator-hero">
           <span class="calculator-kicker">Calculator workspace</span>
-          <h1 class="calculator-title">Price the itinerary before it becomes a document.</h1>
-          <p class="calculator-description">Use spreadsheet rows, Local Library autocomplete, and Excel export before generating the agent or customer itinerary.</p>
+          <h1 class="calculator-title">Calculator</h1>
+          <p class="calculator-description">Price rows, use Local Library autocomplete, export Excel, or generate the itinerary.</p>
         </section>
         """
     )
@@ -109,7 +109,7 @@ def _render_top_actions() -> None:
             open_local_library_page(st.session_state)
             st.rerun()
     with status_col:
-        st.html('<p class="calculator-status-caption">Drafts are saved to this browser and synced to the current project when possible.</p>')
+        st.html('<p class="calculator-status-caption">Draft saved in this workspace.</p>')
 
 
 def _render_backend_action(

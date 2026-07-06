@@ -35,8 +35,8 @@ def _render_local_library_hero() -> None:
         """
         <section class="local-library-hero">
           <span class="local-library-kicker">Reusable rows</span>
-          <h1 class="local-library-title">Keep common services ready for autocomplete.</h1>
-          <p class="local-library-description">Manage the rows the calculator can fetch while pricing. Shared Google Sheets data is used when configured; the bundled library remains available as a fallback.</p>
+          <h1 class="local-library-title">Local Library</h1>
+          <p class="local-library-description">Manage reusable calculator rows for autocomplete.</p>
         </section>
         """
     )
@@ -49,4 +49,4 @@ def _render_top_actions() -> None:
             open_calculator_page(st.session_state)
             st.rerun()
     with help_col:
-        st.caption("Changes here are reflected in calculator autocomplete after refresh.")
+        st.empty()

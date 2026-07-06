@@ -3,18 +3,18 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.app_header import _render_app_header, _stage_panel
-from app_modules.calculator_navigation import render_calculator_entry_button
+from app_modules.calculator_navigation import open_calculator_page, open_local_library_page
 from app_modules.debug_mode import is_debug_mode
 from app_modules.input_workspace import (
     render_generation_action_bar,
-    render_input_hero,
-    render_section_header,
-    render_source_guidance,
+    render_input_header,
+    render_input_toolbar,
+    render_source_label,
 )
 from app_modules.itinerary_name_state import sync_itinerary_name_from_input
 from app_modules.itinerary_name_ui import render_itinerary_name_input
-from app_modules.presentation_language_ui import render_presentation_language_selector
-from app_modules.tone_preset_ui import render_tone_preset_selector
+from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.project_file_ui import render_open_project_file_action
 from app_modules.project_io import load_project_json
 from app_modules.validation_gate import block_generation, render_blocking_issues, render_warning_issues
@@ -31,8 +31,10 @@ def _set_stage(stage: str) -> None:
 def _generate_itinerary(raw_text: str, output_brand: str = "agent") -> bool:
     sync_itinerary_name_from_input(st.session_state)
     st.session_state["requested_output_brand"] = output_brand
-    st.session_state["requested_presentation_language"] = st.session_state.get("presentation_language")
-    st.session_state["requested_tone_preset"] = st.session_state.get("tone_preset")
+    st.session_state["presentation_language"] = DEFAULT_PRESENTATION_LANGUAGE
+    st.session_state["tone_preset"] = DEFAULT_TONE_PRESET
+    st.session_state["requested_presentation_language"] = DEFAULT_PRESENTATION_LANGUAGE
+    st.session_state["requested_tone_preset"] = DEFAULT_TONE_PRESET
     result = generate_itinerary(st.session_state, raw_text)
     if not result.ok:
         validation_report = (result.payload or {}).get("validation_report")
@@ -64,65 +66,39 @@ def _render_generation_messages() -> None:
 
 
 def render_input_page(app_version: str) -> None:
+    st.session_state["presentation_language"] = DEFAULT_PRESENTATION_LANGUAGE
+    st.session_state["tone_preset"] = DEFAULT_TONE_PRESET
+
     _render_app_header(app_version, stage="input")
     _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
-    render_input_hero()
+    render_input_toolbar()
 
-    main_col, tool_col = st.columns([0.68, 0.32], gap="large")
-    with main_col:
-        render_section_header(
-            "Itinerary details",
-            "Set the document name and output style before pasting rows.",
-            kicker="Document",
-        )
-        render_itinerary_name_input()
-        settings_col_a, settings_col_b = st.columns(2)
-        with settings_col_a:
-            render_presentation_language_selector()
-        with settings_col_b:
-            render_tone_preset_selector()
-
-        render_source_guidance()
-        raw_text = st.text_area(
-            "Supplier text",
-            height=390,
-            placeholder="Paste itinerary rows here…",
-            key="raw_text_input",
-            label_visibility="collapsed",
-        )
-    with tool_col:
-        st.html(
-            """
-            <div class="workspace-tool-card">
-              <span class="tool-card-title">Start from calculator</span>
-              <p class="tool-card-description">Build pricing rows first, then generate the itinerary from the spreadsheet.</p>
-            </div>
-            """
-        )
-        render_calculator_entry_button()
-        st.html(
-            """
-            <div class="workspace-tool-card">
-              <span class="tool-card-title">Continue saved work</span>
-              <p class="tool-card-description">Open a project file when you want to return to edits, images, or export state.</p>
-            </div>
-            """
-        )
+    tool_col_a, tool_col_b, tool_col_c, tool_spacer = st.columns([0.16, 0.16, 0.22, 0.46], vertical_alignment="center")
+    if tool_col_a.button("Calculator", use_container_width=True, help="Build pricing rows before generating an itinerary."):
+        open_calculator_page(st.session_state)
+        st.rerun()
+    if tool_col_b.button("Local Library", use_container_width=True, help="Manage reusable calculator rows."):
+        open_local_library_page(st.session_state)
+        st.rerun()
+    with tool_col_c:
         render_open_project_file_action()
-        st.html(
-            """
-            <div class="workspace-help-card">
-              <span class="tool-card-title">Cleaner output starts here</span>
-              <p class="tool-card-description">Use the agent version for internal review. Generate the customer version when the content is ready for client wording.</p>
-            </div>
-            """
-        )
+
+    render_input_header()
+    render_itinerary_name_input()
+    render_source_label()
+    raw_text = st.text_area(
+        "Supplier text",
+        height=440,
+        placeholder="Paste itinerary rows here…",
+        key="raw_text_input",
+        label_visibility="collapsed",
+    )
 
     render_generation_action_bar()
-    agent_col, customer_col, spacer_col = st.columns([0.34, 0.34, 0.32])
+    agent_col, customer_col, spacer_col = st.columns([0.36, 0.30, 0.34])
     generate_agent = agent_col.button("Generate Agent Itinerary", type="primary", use_container_width=True)
     generate_customer = customer_col.button("Generate Customer Itinerary", use_container_width=True)
-    spacer_col.caption("The generated itinerary opens in the editor for review before pictures and PDF export.")
+    spacer_col.empty()
     if generate_agent or generate_customer:
         if not raw_text.strip():
             st.warning("Paste the supplier rows first, then generate the itinerary.")
