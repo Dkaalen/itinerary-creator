@@ -67,3 +67,14 @@ def test_calculator_component_preserves_browser_draft_on_same_backend_revision()
     assert "mergeBackendPayloadWithoutRows(payload, incomingRevision);" in source
     assert "markLocalDraft();" in source
     assert "client_state_revision: activeBackendRevision" in source
+
+
+def test_calculator_component_persists_browser_draft_across_page_changes() -> None:
+    source = _calculator_js_bundle_source()
+    index_source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+
+    assert "js/calculator_grid_draft_storage.js" in index_source
+    assert "itineraryCalculatorBrowserDraft.v2" in source
+    assert "saveCalculatorDraft(calculatorState, activeBackendRevision);" in source
+    assert "loadCalculatorDraft()" in source
+    assert "shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision)" in source

@@ -235,7 +235,7 @@ def test_calculator_page_exposes_local_library_refresh_controls() -> None:
 def test_local_library_controls_keep_refresh_separate_from_cache_logic() -> None:
     source = Path("app_modules/calculator_library_controls.py").read_text(encoding="utf-8")
 
-    assert "Refresh Local Library" in source
+    assert "Refresh library" in source
     assert "read_cached_local_library" not in source
     assert "summarize_local_library_read" in source
 

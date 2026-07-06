@@ -18,7 +18,7 @@ def render_local_library_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _stage_panel(
         "Local Library",
-        "Add, edit, or remove reusable calculator rows. Google Sheets saves changes; bundled fallback is read-only.",
+        "Add, edit, or remove reusable calculator rows. Google Sheets powers shared editing; the bundled library keeps autocomplete available offline.",
     )
     _render_top_actions()
 

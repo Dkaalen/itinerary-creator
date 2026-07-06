@@ -20,11 +20,11 @@ def test_local_library_read_summary_reports_google_sheets_connection() -> None:
     assert summary.level == "success"
     assert summary.total_rows == 2
     assert summary.fetchable_rows == 1
-    assert "Google Sheets connected" in summary.headline
-    assert summary.component_text == "Google Sheets connected (1 fetchable lines)."
+    assert "Local Library connected" in summary.headline
+    assert summary.component_text == "Local Library connected (1 fetchable lines)."
 
 
-def test_local_library_read_summary_makes_fixture_fallback_visible() -> None:
+def test_local_library_read_summary_keeps_fixture_fallback_quiet() -> None:
     result = LocalLibraryReadResult(
         rows=(LocalLibraryRow(library_id="fallback", travel_element="Fallback hotel"),),
         source="fixture",
@@ -34,12 +34,12 @@ def test_local_library_read_summary_makes_fixture_fallback_visible() -> None:
 
     summary = summarize_local_library_read(result)
 
-    assert summary.level == "warning"
+    assert summary.level == "info"
     assert summary.fetchable_rows == 1
-    assert "fallback active" in summary.headline
-    assert "1 bundled lines" in summary.headline
+    assert "Bundled Local Library" in summary.headline
+    assert "1 autocomplete lines" in summary.headline
     assert "private_key" in summary.detail
-    assert "Local Library fallback active" in summary.component_text
+    assert "Bundled Local Library" in summary.component_text
 
 
 def test_local_library_read_summary_counts_fixture_sections_as_autocomplete_rows() -> None:
@@ -56,4 +56,18 @@ def test_local_library_read_summary_counts_fixture_sections_as_autocomplete_rows
 
     assert summary.total_rows == 2
     assert summary.fetchable_rows == 2
-    assert "2 bundled lines" in summary.component_text
+    assert "2 autocomplete lines" in summary.component_text
+
+
+def test_local_library_read_summary_does_not_show_secret_jargon_in_component_status() -> None:
+    result = LocalLibraryReadResult(
+        rows=(LocalLibraryRow(library_id="fallback", travel_element="Fallback hotel"),),
+        source="fixture",
+        read_only=True,
+        message="Google Sheets connection is not configured.",
+    )
+
+    summary = summarize_local_library_read(result)
+
+    assert "secret" not in summary.component_text.casefold()
+    assert "read-only" not in summary.component_text.casefold()

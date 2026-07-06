@@ -7,21 +7,26 @@ function initializeState(payload) {
   const incomingRevision = String(payload.state_revision || '');
   if (shouldKeepBrowserDraft(incomingRevision)) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
+    saveCalculatorDraft(calculatorState, activeBackendRevision);
     return;
   }
 
-  const rows = calculateRows(cloneRows(payload.rows || []), payload.currency_rates || DEFAULT_RATES);
+  const incomingRows = cloneRows(payload.rows || []);
+  const storedDraft = loadCalculatorDraft();
+  const useStoredDraft = shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision);
+  const rows = calculateRows(useStoredDraft ? cloneRows(storedDraft.rows) : incomingRows, payload.currency_rates || DEFAULT_RATES);
   calculatorState = {
     rows: rows.length ? rows : addRows([], 25),
     libraryRows: payload.library_rows || [],
     currencyRates: payload.currency_rates || DEFAULT_RATES,
     libraryStatus: payload.library_status || '',
-    showAdvanced: Boolean(payload.show_advanced),
-    selectedRowIndex: 0,
+    showAdvanced: useStoredDraft ? Boolean(storedDraft.showAdvanced) : Boolean(payload.show_advanced),
+    selectedRowIndex: useStoredDraft ? Number(storedDraft.selectedRowIndex || 0) : 0,
     activeSuggestion: null
   };
   activeBackendRevision = incomingRevision;
-  hasLocalDraft = false;
+  hasLocalDraft = Boolean(useStoredDraft);
+  if (useStoredDraft) saveCalculatorDraft(calculatorState, activeBackendRevision);
 }
 
 function shouldKeepBrowserDraft(incomingRevision) {
@@ -38,4 +43,5 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
 
 function markLocalDraft() {
   hasLocalDraft = true;
+  saveCalculatorDraft(calculatorState, activeBackendRevision);
 }

@@ -20,26 +20,26 @@ class LocalLibraryReadSummary:
 
 
 def summarize_local_library_read(read_result: LocalLibraryReadResult) -> LocalLibraryReadSummary:
-    """Return concise UI copy that makes Google Sheets fallback visible."""
+    """Return concise UI copy for the active Local Library source."""
 
     total_rows = len(read_result.rows)
     fetchable_rows = _autocomplete_row_count(read_result)
     if read_result.source == "google_sheets" and not read_result.read_only:
         return LocalLibraryReadSummary(
             level="success",
-            headline=f"Local Library: Google Sheets connected · {fetchable_rows}/{total_rows} fetchable lines.",
-            detail="Autocomplete suggestions are reading from the shared Google Sheet.",
-            component_text=f"Google Sheets connected ({fetchable_rows} fetchable lines).",
+            headline=f"Local Library connected · {fetchable_rows}/{total_rows} fetchable lines.",
+            detail="Autocomplete and management are using the shared Google Sheet.",
+            component_text=f"Local Library connected ({fetchable_rows} fetchable lines).",
             total_rows=total_rows,
             fetchable_rows=fetchable_rows,
         )
 
-    reason = read_result.message or "Google Sheets is not configured."
+    reason = read_result.message or "Google Sheets is not connected."
     return LocalLibraryReadSummary(
-        level="warning",
-        headline=f"Local Library fallback active · {fetchable_rows} bundled lines.",
-        detail=f"Autocomplete is using the bundled read-only fixture because {reason}",
-        component_text=f"Local Library fallback active ({fetchable_rows} bundled lines). {reason}",
+        level="info",
+        headline=f"Bundled Local Library · {fetchable_rows} autocomplete lines.",
+        detail=f"Using the built-in read-only library for autocomplete. Connect Google Sheets for shared editing. {reason}",
+        component_text=f"Bundled Local Library ({fetchable_rows} autocomplete lines).",
         total_rows=total_rows,
         fetchable_rows=fetchable_rows,
     )

@@ -14,11 +14,8 @@ def render_local_library_source_status(library_read: LocalLibraryReadResult) -> 
     summary = summarize_local_library_read(library_read)
     if summary.level == "success":
         st.success(summary.headline)
-    else:
-        st.warning(summary.headline)
-    st.caption(summary.detail)
-    if library_read.read_only:
-        st.info(
-            "Editing is disabled because the app is using the bundled fallback. "
-            "Add Streamlit Cloud Google Sheets secrets to enable persistent add/edit/remove."
-        )
+        st.caption(summary.detail)
+        return
+
+    st.info(summary.headline)
+    st.caption("Built-in autocomplete remains available. Add/edit/remove becomes active when Google Sheets is connected.")

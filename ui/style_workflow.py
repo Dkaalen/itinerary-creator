@@ -7,8 +7,8 @@ CSS = r"""
 }
 
 .bottom-cta {
-    background: var(--paper);
-    border: 1px solid var(--line);
+    background: rgba(255, 253, 248, 0.88);
+    border: 1px solid rgba(199, 208, 202, 0.76);
     border-radius: var(--radius-card);
     padding: 1rem 1.1rem;
     box-shadow: var(--shadow-card);
@@ -45,11 +45,11 @@ CSS = r"""
 .metric-card,
 .workflow-step-card,
 .quality-callout {
-    background: var(--paper);
+    background: rgba(255, 253, 248, 0.88);
     color: var(--ink) !important;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(199, 208, 202, 0.76);
     border-radius: var(--radius-card);
-    padding: .95rem;
+    padding: 1rem;
     box-shadow: var(--shadow-card);
 }
 
@@ -58,7 +58,7 @@ CSS = r"""
     color: var(--teal-dark) !important;
     font-weight: 820;
     text-transform: uppercase;
-    letter-spacing: .10em;
+    letter-spacing: .11em;
     font-size: .72rem;
 }
 

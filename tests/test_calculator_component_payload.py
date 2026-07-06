@@ -39,7 +39,7 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
     assert len(payload["state_revision"]) == 16
     assert payload["rows"][0]["travel_element"] == "hotel"
     assert payload["rows"][0]["gross_price"] == 200
-    assert payload["library_status"] == "Google Sheets connected (1 fetchable lines)."
+    assert payload["library_status"] == "Local Library connected (1 fetchable lines)."
     assert payload["library_source"] == "google_sheets"
     assert payload["library_read_only"] is False
     assert payload["library_rows"][0]["label"].startswith("NO · Hotel · Supplier")
@@ -71,5 +71,5 @@ def test_calculator_component_payload_exposes_all_bundled_fallback_rows() -> Non
     payload = build_calculator_grid_payload(CalculatorState(), library_read)
 
     assert len(payload["library_rows"]) == 1145
-    assert payload["library_status"] == "Local Library fallback active (1145 bundled lines). Local Library secrets are missing."
+    assert payload["library_status"] == "Bundled Local Library (1145 autocomplete lines)."
     assert any("Check in to your accommodation" in row["travel_element"] for row in payload["library_rows"])

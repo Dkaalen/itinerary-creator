@@ -54,6 +54,7 @@ function bindEvents() {
 
 function submitAction(action) {
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  saveCalculatorDraft(calculatorState, activeBackendRevision);
   const rows = normalizeRowsForPython(calculatorState.rows);
   Streamlit.setComponentValue(JSON.stringify({
     action,

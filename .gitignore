@@ -19,12 +19,12 @@ DELETION_MANIFEST.md
 _patch_metadata/
 
 # Local credentials/secrets
+# This app may intentionally commit .streamlit/secrets.toml for Streamlit Cloud.
 .env
 .env.*
 !.env.example
 !.env.sample
 !.env.template
-.streamlit/secrets.toml
 credentials.json
 service-account.json
 service_account.json

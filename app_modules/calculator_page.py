@@ -164,8 +164,8 @@ def _render_calculator_page_width_css() -> None:
         div[data-testid="stCustomComponentV1"] iframe {
             width: 100% !important;
             max-width: 100% !important;
-            border-radius: 16px !important;
-            border: 1px solid var(--line) !important;
+            border-radius: 22px !important;
+            border: 1px solid rgba(199, 208, 202, 0.80) !important;
             box-shadow: var(--shadow-card) !important;
             background: var(--paper) !important;
         }
