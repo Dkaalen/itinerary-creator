@@ -134,6 +134,11 @@ class ProjectStorageRepository:
         rows = self._client.rest_insert("itinerary_files", payload)
         return rows[0] if rows else {}
 
+    def delete_version(self, version_id: str) -> None:
+        clean_id = str(version_id or "").strip()
+        if clean_id:
+            self._client.rest_delete("itinerary_versions", {"id": f"eq.{clean_id}"})
+
     def delete_itinerary(self, itinerary_id: str) -> None:
         files = self.list_files(itinerary_id, limit=200)
         storage_paths = [str(item.get("storage_path") or "") for item in files]

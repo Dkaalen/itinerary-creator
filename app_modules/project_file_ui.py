@@ -20,6 +20,7 @@ from project_storage.project_browser import (
     list_cloud_itineraries,
     load_latest_cloud_project_payload,
 )
+from project_storage.errors import storage_user_message
 from project_storage.runtime import project_storage_is_configured
 from project_storage.workflow_hooks import CALCULATION_XLSX_MIME, save_project_payload_snapshot
 
@@ -57,9 +58,8 @@ def _render_cloud_project_browser() -> None:
     )
     try:
         projects = list_cloud_itineraries(limit=50, search=search)
-    except Exception as error:
-        st.warning("Could not read cloud projects from Supabase.")
-        st.caption(str(error))
+    except Exception:
+        st.warning(storage_user_message("list"))
         return
     if not projects:
         st.caption("No matching cloud projects." if search else "No cloud projects saved yet.")
@@ -123,16 +123,15 @@ def _render_delete_confirmation(project_id: str, name: str) -> None:
                     st.rerun()
                     return
                 st.warning("Cloud storage is unavailable. Project was not deleted.")
-            except Exception as error:
-                st.error("Project could not be deleted.")
-                st.caption(str(error))
+            except Exception:
+                st.error(storage_user_message("delete"))
 
 
 def _render_calculation_files(project_id: str) -> None:
     try:
         files = list_cloud_calculation_files(project_id, limit=8)
-    except Exception as error:
-        st.caption(f"Calculator files unavailable: {error}")
+    except Exception:
+        st.caption(storage_user_message("files"))
         return
     if not files:
         st.caption("No calculator files saved for this itinerary yet.")
@@ -154,8 +153,8 @@ def _render_calculation_files(project_id: str) -> None:
             if st.button("Prepare calculator file", key=f"prepare_cloud_calculator_{project_id}_{index}", use_container_width=True):
                 try:
                     st.session_state[prepared_key] = download_cloud_project_file(storage_path)
-                except Exception as error:
-                    st.caption(f"Could not prepare {filename}: {error}")
+                except Exception:
+                    st.caption(storage_user_message("download"))
             content = st.session_state.get(prepared_key)
             if content:
                 st.download_button(
@@ -223,9 +222,7 @@ def _render_cloud_save_project_action(*, key_suffix: str) -> None:
         if save_project_payload_snapshot(st.session_state, project_file.payload, source_type="manual_save"):
             st.success("Project saved to Supabase.")
             return
-        st.warning("Project was not saved to Supabase.")
-        if st.session_state.get("project_storage_last_error"):
-            st.caption(str(st.session_state.get("project_storage_last_error")))
+        st.warning(str(st.session_state.get("project_storage_last_error") or storage_user_message("save")))
 
 
 def _render_backup_project_download(*, key_suffix: str) -> None:
