@@ -28,18 +28,27 @@ from project_storage.runtime import project_storage_is_configured
 from project_storage.workflow_hooks import CALCULATION_XLSX_MIME
 
 
-@st.dialog("Open project")
-def _render_open_project_dialog() -> None:
-    """Render the saved-project browser/uploader in a modal workspace."""
+OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
+
+
+def _render_open_project_workspace() -> None:
+    """Render the saved-project browser/uploader inline, without Streamlit fragments."""
 
     st.html(
         """
-        <div class="open-project-copy">
-          <strong>Open saved itinerary</strong>
-          <span>Choose a cloud project, download saved calculator files, or upload a backup file.</span>
+        <div class="open-project-workspace">
+          <div class="open-project-copy">
+            <strong>Open saved itinerary</strong>
+            <span>Choose a cloud project, download saved calculator files, or upload a backup file.</span>
+          </div>
         </div>
         """
     )
+    close_col, _ = st.columns([0.22, 0.78])
+    with close_col:
+        if st.button("Close", key="close_open_project_browser", use_container_width=True):
+            st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
+            st.rerun()
     if project_storage_is_configured():
         _render_cloud_project_browser()
     else:
@@ -48,10 +57,12 @@ def _render_open_project_dialog() -> None:
 
 
 def render_open_project_file_action() -> None:
-    """Render the top-bar saved-project open action."""
+    """Render the top-bar saved-project open action and inline browser."""
 
     if st.button("Open project", use_container_width=True, help="Open a saved cloud project or backup file."):
-        _render_open_project_dialog()
+        st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = True
+    if st.session_state.get(OPEN_PROJECT_BROWSER_VISIBLE_KEY):
+        _render_open_project_workspace()
 
 
 def _render_cloud_project_browser() -> None:

@@ -5,7 +5,11 @@ import streamlit as st
 from app_modules.debug_mode import is_debug_mode
 from app_modules.image_bank_readiness import image_bank_readiness_label, image_bank_readiness_message, image_bank_repair_message
 from app_modules.image_gateway import image_bank_is_ready_for_client_pictures
-from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
+from app_modules.image_bank_status_cache import (
+    clear_image_bank_status_cache,
+    get_cached_image_bank_status,
+    store_image_bank_status,
+)
 from app_modules.workflow_actions import retry_image_bank_connection
 from app_modules.workflow_state import image_grouped_days_from_state
 from images.app_image_selection import (
@@ -13,6 +17,7 @@ from images.app_image_selection import (
     destination_requests_from_rows,
     image_bank_status,
 )
+from images.scanner import invalidate_image_bank_cache
 
 
 def _current_image_bank_requests():
@@ -28,7 +33,10 @@ def _current_image_bank_status() -> dict:
 
 def _connect_current_image_bank() -> dict:
     requests = _current_image_bank_requests()
+    clear_image_bank_status_cache(st.session_state)
+    invalidate_image_bank_cache()
     status = connect_remote_image_bank_if_missing(requests)
+    clear_image_bank_status_cache(st.session_state)
     return store_image_bank_status(
         st.session_state,
         requests,

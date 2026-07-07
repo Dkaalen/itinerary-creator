@@ -8,7 +8,7 @@ from collections.abc import Mapping
 import streamlit as st
 
 from app_modules.export_pdf_artifacts import clear_pdf_artifact
-from app_modules.image_bank_status_cache import get_cached_image_bank_status, store_image_bank_status
+from app_modules.image_bank_status_cache import clear_image_bank_status_cache, get_cached_image_bank_status, store_image_bank_status
 from app_modules.image_gateway import (
     image_bank_is_ready_for_client_pictures,
     image_bank_should_attempt_destination_connection,
@@ -108,6 +108,7 @@ def prepare_pdf_image_contract() -> tuple[bool, dict, dict, dict]:
         image_bank_status,
     )
     if grouped_days and image_bank_should_attempt_destination_connection(current_image_bank_status):
+        clear_image_bank_status_cache(st.session_state)
         current_image_bank_status = store_image_bank_status(
             st.session_state,
             required_destinations,

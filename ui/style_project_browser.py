@@ -47,73 +47,76 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
 }
 
 
-/* Open Project dialog: dark chrome must use light text; cards stay light with dark text. */
-div[role="dialog"]:has(.open-project-copy),
-div[data-baseweb="modal"] div[role="dialog"]:has(.open-project-copy),
-[data-testid="stDialog"] > div:has(.open-project-copy) {
+/* Open Project browser: inline workspace avoids Streamlit dialog fragments. */
+.open-project-workspace {
+    margin: .95rem 0 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(224, 216, 202, .72);
+    border-radius: 18px;
     background: #1f2630 !important;
     color: #f8f6f1 !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .18);
 }
 
-div[role="dialog"]:has(.open-project-copy) .open-project-copy strong,
-div[role="dialog"]:has(.open-project-copy) h1,
-div[role="dialog"]:has(.open-project-copy) h2,
-div[role="dialog"]:has(.open-project-copy) h3,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stMarkdownContainer"] strong {
+.open-project-workspace .open-project-copy strong,
+.open-project-workspace h1,
+.open-project-workspace h2,
+.open-project-workspace h3,
+.open-project-workspace [data-testid="stMarkdownContainer"] strong {
     color: #fffdf8 !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) .open-project-copy span,
-div[role="dialog"]:has(.open-project-copy) p,
-div[role="dialog"]:has(.open-project-copy) label,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stWidgetLabel"] p,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stMarkdownContainer"] p,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stCaptionContainer"],
-div[role="dialog"]:has(.open-project-copy) [data-testid="stCaptionContainer"] * {
+.open-project-workspace .open-project-copy span,
+.open-project-workspace p,
+.open-project-workspace label,
+.open-project-workspace [data-testid="stWidgetLabel"] p,
+.open-project-workspace [data-testid="stMarkdownContainer"] p,
+.open-project-workspace [data-testid="stCaptionContainer"],
+.open-project-workspace [data-testid="stCaptionContainer"] * {
     color: #d9d4c9 !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) div[data-testid="stTextInput"] input,
-div[role="dialog"]:has(.open-project-copy) div[data-testid="stTextArea"] textarea {
+.open-project-workspace div[data-testid="stTextInput"] input,
+.open-project-workspace div[data-testid="stTextArea"] textarea {
     background: #fffdf8 !important;
     color: #1f2630 !important;
     border-color: rgba(224, 216, 202, .88) !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) div[data-testid="stTextInput"] input::placeholder,
-div[role="dialog"]:has(.open-project-copy) div[data-testid="stTextArea"] textarea::placeholder {
+.open-project-workspace div[data-testid="stTextInput"] input::placeholder,
+.open-project-workspace div[data-testid="stTextArea"] textarea::placeholder {
     color: #827c73 !important;
     opacity: 1 !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) .cloud-project-list {
+.open-project-workspace .cloud-project-list {
     gap: .8rem;
     margin-top: .8rem;
 }
 
-div[role="dialog"]:has(.open-project-copy) .cloud-project-card {
+.open-project-workspace .cloud-project-card {
     background: #fffdf8 !important;
     border-color: rgba(224, 216, 202, .90) !important;
     box-shadow: 0 8px 22px rgba(0, 0, 0, .16) !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) .cloud-project-card strong,
-div[role="dialog"]:has(.open-project-copy) .cloud-file-row strong {
+.open-project-workspace .cloud-project-card strong,
+.open-project-workspace .cloud-file-row strong {
     color: #1f2630 !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) .cloud-project-card span,
-div[role="dialog"]:has(.open-project-copy) .cloud-file-row span {
+.open-project-workspace .cloud-project-card span,
+.open-project-workspace .cloud-file-row span {
     color: #5f625f !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) [data-testid="stExpander"] {
+.open-project-workspace [data-testid="stExpander"] {
     background: rgba(255, 253, 248, .08) !important;
     border-color: rgba(255, 253, 248, .20) !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) [data-testid="stExpander"] summary,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stExpander"] summary * {
+.open-project-workspace [data-testid="stExpander"] summary,
+.open-project-workspace [data-testid="stExpander"] summary * {
     color: #fffdf8 !important;
 }
 
@@ -151,13 +154,13 @@ div[role="dialog"]:has(.open-project-copy) [data-testid="stExpander"] summary * 
     font-size: .84rem;
 }
 
-div[role="dialog"]:has(.open-project-copy) [data-testid="stFileUploaderDropzone"] {
+.open-project-workspace [data-testid="stFileUploaderDropzone"] {
     background: #fffdf8 !important;
     border-color: rgba(224, 216, 202, .88) !important;
 }
 
-div[role="dialog"]:has(.open-project-copy) [data-testid="stFileUploaderDropzone"] *,
-div[role="dialog"]:has(.open-project-copy) [data-testid="stFileUploader"] section * {
+.open-project-workspace [data-testid="stFileUploaderDropzone"] *,
+.open-project-workspace [data-testid="stFileUploader"] section * {
     color: #1f2630 !important;
 }
 

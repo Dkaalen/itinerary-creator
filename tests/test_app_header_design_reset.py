@@ -48,17 +48,19 @@ def test_input_page_uses_compact_project_upload_and_calculator_entry(monkeypatch
     from app_modules import calculator_navigation, project_browser_ui
 
     project_calls = []
+    workspace_calls = []
     fake_project_st = SimpleNamespace(
+        session_state={},
         button=lambda *args, **kwargs: project_calls.append((args, kwargs)) or True,
     )
-    dialog_calls = []
     monkeypatch.setattr(project_browser_ui, "st", fake_project_st)
-    monkeypatch.setattr(project_browser_ui, "_render_open_project_dialog", lambda: dialog_calls.append("opened"))
+    monkeypatch.setattr(project_browser_ui, "_render_open_project_workspace", lambda: workspace_calls.append("opened"))
 
     project_browser_ui.render_open_project_file_action()
 
     assert project_calls == [(("Open project",), {"use_container_width": True, "help": "Open a saved cloud project or backup file."})]
-    assert dialog_calls == ["opened"]
+    assert fake_project_st.session_state[project_browser_ui.OPEN_PROJECT_BROWSER_VISIBLE_KEY] is True
+    assert workspace_calls == ["opened"]
 
     nav_calls = []
     fake_nav_st = SimpleNamespace(

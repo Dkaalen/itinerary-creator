@@ -18,7 +18,7 @@ def test_calculator_no_longer_auto_clicks_browser_downloads() -> None:
     assert "Download prepared Excel" in action_source
 
 
-def test_open_project_dialog_has_search_delete_files_and_contrast_css() -> None:
+def test_open_project_browser_has_search_delete_files_and_inline_contrast_css() -> None:
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
     from ui import style_app_shell
 
@@ -29,7 +29,9 @@ def test_open_project_dialog_has_search_delete_files_and_contrast_css() -> None:
     assert "Prepare calculator file" in ui_source
     assert "Download calculator file" in ui_source
     assert "list_cloud_calculation_files" in ui_source
-    assert "div[role=\"dialog\"]:has(.open-project-copy) .open-project-copy strong" in css
+    assert "@st.dialog" not in ui_source
+    assert "OPEN_PROJECT_BROWSER_VISIBLE_KEY" in ui_source
+    assert ".open-project-workspace .open-project-copy strong" in css
     assert "background: #1f2630 !important;" in css
     assert "color: #fffdf8 !important;" in css
-    assert "div[role=\"dialog\"]:has(.open-project-copy) [data-testid=\"stFileUploaderDropzone\"]" in css
+    assert '.open-project-workspace [data-testid="stFileUploaderDropzone"]' in css

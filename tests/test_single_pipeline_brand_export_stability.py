@@ -34,9 +34,9 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
 
     assert "Generate agent itinerary" in source
     assert "Generate customer itinerary" in source
-    assert source.count("generate_itinerary(st.session_state, raw_text)") == 1
+    assert "generate_supplier_itinerary(st.session_state, raw_text, output_brand)" in source
     assert 'output_brand = "booknordics_customer" if generate_customer else "agent"' in source
-    assert "requested_output_brand" in source
+    assert "output_brand" in source
 
     assert "parse_and_normalize_itinerary(raw_text)" in generation_source
     assert generation_source.count("parse_and_normalize_itinerary(raw_text)") == 1
@@ -55,8 +55,9 @@ def test_pdf_export_screen_has_bounded_editor_commit_before_export():
     picture_source = read_contract_text("app_modules/picture_step.py")
 
     assert "Applying pending editor changes" not in source
-    assert "the PDF must be created from the exact visible editor state" in picture_source
-    assert "Create PDF from last saved version" in picture_source
+    cta_source = read_contract_text("app_modules/picture_pdf_cta.py")
+    assert "the PDF must be created from the exact visible editor state" in cta_source
+    assert "Create PDF from last saved version" in cta_source
     assert "request_pdf_creation_after_visual_editor_commit" not in source
     assert "clear_pdf_editor_commit_request" not in export_page_source
     assert "pending_editor_commit" not in preflight_source

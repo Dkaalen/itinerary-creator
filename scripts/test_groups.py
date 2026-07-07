@@ -184,6 +184,7 @@ EDITOR_TESTS = (
 
 IMAGE_TESTS = (
     "tests/test_app_image_bank_paths.py",
+    "tests/test_image_bank_gateway_retry.py",
     "tests/test_image_match_audit.py",
     "tests/test_image_matcher_selection.py",
     "tests/test_hot_path_caching_regression.py",
@@ -228,6 +229,7 @@ UI_TESTS = (
     "tests/test_legacy_cleanup_regression_suite.py",
     "tests/test_ui_image_bank_gateway.py",
     "tests/test_ui_pdf_download_persistence.py",
+    "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_ui_style_contrast.py",
     "tests/test_ui_workflow_shell.py",
     "tests/test_ui_workflow_state_actions.py",
@@ -353,6 +355,7 @@ WORKFLOW_TESTS = (
     "tests/test_ui_workflow_state_actions.py",
     "tests/test_ui_export_readiness.py",
     "tests/test_ui_pdf_download_persistence.py",
+    "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_client_readiness_export_gate_regression.py",
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_visual_editor_typed_draft.py",
