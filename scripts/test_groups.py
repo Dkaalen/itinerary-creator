@@ -26,10 +26,10 @@ CHUNKED_GROUP_STAGE_SIZES = {
     "storage": 4,
     "ui": 4,
     "workflow": 4,
-    # Keep quality stages small: this lane contains several real-fixture
+    # Keep quality stages isolated: this lane contains several real-fixture
     # and render-quality modules that pass individually but can exceed hosted
-    # subprocess time limits when bundled too aggressively.
-    "quality": 2,
+    # subprocess time limits when bundled with neighbors.
+    "quality": 1,
     "pdf": PDF_STAGE_SIZE,
 }
 
@@ -111,6 +111,7 @@ ACTIVITY_TESTS = (
 
 ARCHITECTURE_TESTS = (
     "tests/test_architecture_consolidation.py",
+    "tests/test_foundation_cleanup_regression.py",
     "tests/test_architecture_guard_system.py",
     "tests/test_runtime_alignment.py",
     "tests/test_dead_code_packaging_regression.py",
@@ -256,6 +257,13 @@ UI_TESTS = (
     "tests/test_brand1_proposal_profiles.py",
 )
 
+DAY_BRAIN_TESTS = (
+    "tests/test_day_brain_copy.py",
+    "tests/test_day_brain_intelligence.py",
+    "tests/test_day_brain_proof_hardening.py",
+    "tests/test_day_sub_brains.py",
+)
+
 QUALITY_TESTS = (
     "tests/test_accommodation_wording.py",
     "tests/test_content_classification_priority.py",
@@ -274,6 +282,7 @@ QUALITY_TESTS = (
     "tests/test_output_quality_engine_regression.py",
     "tests/test_output_quality_and_images_regression.py",
     "tests/test_enforcement_gaps_regression.py",
+    *DAY_BRAIN_TESTS,
     "tests/test_image_bank_enforcement_regression.py",
     "tests/test_text_engine_consolidation_regression.py",
     "tests/test_reliability_diagnostics_regression.py",
@@ -493,10 +502,14 @@ def empty_legacy_test_modules() -> frozenset[str]:
 
 
 def missing_group_paths(repo_root: Path) -> tuple[str, ...]:
-    """Return configured group paths that no longer exist."""
+    """Return configured group paths that no longer exist.
+
+    Group entries may be either modules or explicit pytest node ids. Only the
+    file portion should be checked on disk.
+    """
 
     configured = sorted({path for paths in GROUPS.values() for path in paths})
-    return tuple(path for path in configured if not (repo_root / path).exists())
+    return tuple(path for path in configured if not (repo_root / path.partition("::")[0]).exists())
 
 
 

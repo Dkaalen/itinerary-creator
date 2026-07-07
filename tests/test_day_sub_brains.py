@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 import re
 
@@ -17,9 +18,16 @@ from itinerary_parser import parse_itinerary
 FIXTURE = Path(__file__).resolve().parent / "fixtures/real_inputs/norway_sub_brain_sample.txt"
 
 
+@lru_cache(maxsize=1)
 def _grouped():
     rows = parse_itinerary(FIXTURE.read_text(encoding="utf-8"))
     return rows, group_rows_by_day(rows)
+
+
+@lru_cache(maxsize=1)
+def _context():
+    rows, grouped = _grouped()
+    return build_itinerary_render_context(rows, grouped, {"output_brand": "booknordics_customer"})
 
 
 def test_accommodation_brain_preserves_source_star_range():
@@ -61,8 +69,7 @@ def test_supplier_cleanup_brain_repairs_common_supplier_noise():
 
 
 def test_trip_brain_avoids_western_norway_when_route_includes_tromso():
-    rows, grouped = _grouped()
-    context = build_itinerary_render_context(rows, grouped, {"output_brand": "booknordics_customer"})
+    context = _context()
 
     assert context.trip_title == "Norway Winter Highlights"
     assert "Western Norway" not in context.trip_title
@@ -70,8 +77,7 @@ def test_trip_brain_avoids_western_norway_when_route_includes_tromso():
 
 
 def test_render_context_uses_all_sub_brain_outputs():
-    rows, grouped = _grouped()
-    context = build_itinerary_render_context(rows, grouped, {"output_brand": "booknordics_customer"})
+    context = _context()
     by_day = {day.day: day for day in context.render_document.days}
 
     assert by_day["Day 1"].blocks[1].title.startswith("Centrally located 3/4-star hotel")

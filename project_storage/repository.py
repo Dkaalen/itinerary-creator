@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+import diagnostics
+
 from project_storage.config import SupabaseStorageConfig
 from project_storage.http_client import SupabaseHttpClient
 from project_storage.delete_result import ProjectDeleteResult
@@ -157,6 +159,13 @@ class ProjectStorageRepository:
         try:
             self.delete_storage_files([clean_storage_path])
         except Exception as exc:
+            diagnostics.warn_exception(
+                "project_storage_delete",
+                "Storage object could not be removed after deleting its file record.",
+                exc,
+                clean_storage_path,
+                source="project_storage.repository",
+            )
             return ProjectDeleteResult(
                 itinerary_id="",
                 storage_paths=(clean_storage_path,),
@@ -187,6 +196,13 @@ class ProjectStorageRepository:
         try:
             self.delete_storage_files(list(storage_paths))
         except Exception as exc:
+            diagnostics.warn_exception(
+                "project_storage_delete",
+                "One or more itinerary storage objects could not be removed after deleting the itinerary record.",
+                exc,
+                ", ".join(storage_paths),
+                source="project_storage.repository",
+            )
             return ProjectDeleteResult(
                 itinerary_id=clean_id,
                 storage_paths=storage_paths,

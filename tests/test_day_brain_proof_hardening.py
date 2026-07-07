@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
+from functools import lru_cache
 from pathlib import Path
 
 from app_modules.itinerary_html import build_itinerary_html_from_context
@@ -15,7 +14,7 @@ from itinerary_generation.day_intent import classify_day_intent
 from itinerary_generation.day_leisure_writer import write_leisure_copy
 from itinerary_generation.day_text import create_day_intro
 from itinerary_parser import parse_itinerary
-from scripts.smoke_hosted_generation_path import build_smoke_report
+from scripts.smoke_hosted_generation_path import build_smoke_report, main as smoke_main
 from scripts.test_groups import CHUNKED_GROUP_STAGE_SIZES, GROUPS, chunked_group_stages
 from tests.fixtures.day_brain_cases import ARRIVAL_ONWARD_ROWS, FULL_LEISURE_ROWS, SAME_CITY_ACCOMMODATION_CHANGE_ROWS
 from visual_editor_component.editor_payload_days import build_payload_days
@@ -24,13 +23,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EDGE_FIXTURE = REPO_ROOT / "tests/fixtures/real_inputs/day_brain_edge_cases.txt"
 
 
+@lru_cache(maxsize=1)
 def _edge_grouped_days():
     rows = parse_itinerary(EDGE_FIXTURE.read_text(encoding="utf-8"))
     return rows, group_rows_by_day(rows)
 
 
+@lru_cache(maxsize=1)
+def _smoke_report():
+    return tuple(build_smoke_report())
+
+
 def test_hosted_generation_smoke_exercises_client_and_agent_paths():
-    report = build_smoke_report()
+    report = _smoke_report()
 
     assert {item["output_brand"] for item in report} == {"agent", "booknordics_customer"}
     assert all(item["ok"] for item in report)
@@ -41,19 +46,12 @@ def test_hosted_generation_smoke_exercises_client_and_agent_paths():
     assert any("arrival_onward_travel" in item["day_brain_intents"] for item in report)
 
 
-def test_hosted_generation_smoke_script_returns_json_success():
-    completed = subprocess.run(
-        [sys.executable, "scripts/smoke_hosted_generation_path.py"],
-        cwd=REPO_ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=120,
-        check=False,
-    )
+def test_hosted_generation_smoke_script_returns_json_success(capsys):
+    return_code = smoke_main()
 
-    assert completed.returncode == 0, completed.stderr
-    payload = json.loads(completed.stdout)
+    completed = capsys.readouterr()
+    assert return_code == 0, completed.err
+    payload = json.loads(completed.out)
     assert len(payload) == 2
     assert all(item["ok"] for item in payload)
 
@@ -120,9 +118,9 @@ def test_day_brain_edge_fixture_copy_is_clean_for_all_days():
 
 
 def test_quality_runner_uses_smaller_timeout_safe_chunks():
-    assert CHUNKED_GROUP_STAGE_SIZES["quality"] == 2
+    assert CHUNKED_GROUP_STAGE_SIZES["quality"] == 1
     stages = chunked_group_stages("quality", GROUPS["quality"], stage_size=CHUNKED_GROUP_STAGE_SIZES["quality"])
 
     assert stages
-    assert all(len(paths) <= 2 for _stage, paths in stages)
+    assert all(len(paths) <= 1 for _stage, paths in stages)
     assert [path for _stage, paths in stages for path in paths] == list(GROUPS["quality"])

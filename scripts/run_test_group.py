@@ -70,64 +70,51 @@ def _pytest_env() -> dict[str, str]:
 
 
 def _process_kwargs() -> dict[str, object]:
-    """Start each stage in its own process group where the platform allows it."""
+    """Return subprocess options for pytest stages."""
 
-    if os.name == "nt":
-        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-    return {"start_new_session": True}
+    return {}
 
 
 def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
     """Best-effort cleanup so a timed-out pytest stage cannot hang the runner."""
 
-    if process.poll() is not None:
-        return
-
-    if os.name == "nt":
-        process.kill()
-        return
-
     try:
-        os.killpg(process.pid, signal.SIGTERM)
-        process.wait(timeout=5)
+        process.kill()
     except Exception:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except Exception:
-            process.kill()
+        return
 
 
-def _run_command_result(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS) -> StageRunResult:
+def _run_command_result(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS, *, env: dict[str, str] | None = None) -> StageRunResult:
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(cmd), flush=True)
     print(f"stage timeout: {timeout_seconds}s", flush=True)
     started = time.monotonic()
-    process = subprocess.Popen(
-        cmd,
-        cwd=REPO_ROOT,
-        env=_pytest_env(),
-        stdin=subprocess.DEVNULL,
-        **_process_kwargs(),
-    )
     try:
-        return_code = process.wait(timeout=timeout_seconds or None)
+        completed = subprocess.run(
+            cmd,
+            cwd=REPO_ROOT,
+            env=env or _pytest_env(),
+            stdin=subprocess.DEVNULL,
+            timeout=timeout_seconds or None,
+            check=False,
+        )
     except subprocess.TimeoutExpired:
         elapsed = time.monotonic() - started
-        _terminate_process_tree(process)
         print(
             f"=== {label}: timed out after {elapsed:.1f}s "
             f"(limit {timeout_seconds}s) ===",
             flush=True,
         )
         print(
-            "The timed-out stage was terminated as a process group. "
-            "Run with --plan to see the exact stage split, or increase "
-            "ITINERARY_TEST_STAGE_TIMEOUT_SECONDS for slower machines.",
+            "The timed-out stage was terminated. Run with --plan to see "
+            "the exact stage split, or increase ITINERARY_TEST_STAGE_TIMEOUT_SECONDS "
+            "for slower machines.",
             flush=True,
         )
         return StageRunResult(label=label, return_code=124, elapsed_seconds=elapsed)
 
     elapsed = time.monotonic() - started
+    return_code = completed.returncode
     status = "passed" if return_code == 0 else f"failed ({return_code})"
     print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
     return StageRunResult(label=label, return_code=return_code, elapsed_seconds=elapsed)
@@ -219,6 +206,20 @@ def _parse_stage_range(value: str | None, stage_count: int) -> slice:
         raise ValueError(f"Invalid --stage-range {value!r}; use 1:{stage_count}.")
     return slice(start - 1, end)
 
+def _child_runner_command(group_name: str, stage_number: int, extra_args: list[str]) -> list[str]:
+    """Return a fresh runner command for one stage.
+
+    Running each selected stage through a fresh runner process avoids rare
+    interpreter shutdown hangs after PDF/render-heavy pytest subprocesses while
+    keeping the normal stage plan and output format.
+    """
+
+    cmd = [sys.executable, str(Path(__file__).resolve()), group_name, "--stage-range", str(stage_number)]
+    if extra_args:
+        cmd.extend(["--", *extra_args])
+    return cmd
+
+
 def _print_stage_summary(results: list[StageRunResult]) -> None:
     """Print a compact summary so wrapper timeouts are easy to diagnose."""
 
@@ -254,11 +255,33 @@ def run_named_group(group_name: str, extra_args: list[str], *, stage_range: str 
         print(str(error), file=sys.stderr)
         return 2
     selected_stages = stages[stage_slice]
+    selected_indices = list(range(1, len(stages) + 1))[stage_slice]
 
     if group_name in {"health", "release", "full"}:
         print(f"{group_name.title()} suite plan: {len(stages)} progress-tracked stages", flush=True)
     if stage_range:
         print(f"Running stage range {stage_range}: {len(selected_stages)} of {len(stages)} stages", flush=True)
+
+    # Parent runner: delegate multi-stage ranges to fresh runner processes. This
+    # keeps long validation lanes resilient when a render/PDF-heavy pytest
+    # subprocess leaves shutdown work behind after reporting test success.
+    if len(selected_stages) > 1 and not os.environ.get("ITINERARY_TEST_RUNNER_CHILD"):
+        results: list[StageRunResult] = []
+        for stage_number, (stage_name, _pytest_paths) in zip(selected_indices, selected_stages):
+            env = _pytest_env()
+            env["ITINERARY_TEST_RUNNER_CHILD"] = "1"
+            result = _run_command_result(
+                f"{stage_name} runner",
+                _child_runner_command(group_name, stage_number, extra_args),
+                timeout_seconds=DEFAULT_STAGE_TIMEOUT_SECONDS + 60,
+                env=env,
+            )
+            results.append(result)
+            if result.return_code != 0:
+                _print_stage_summary(results)
+                return result.return_code
+        _print_stage_summary(results)
+        return 0
 
     results: list[StageRunResult] = []
     for stage_name, pytest_paths in selected_stages:

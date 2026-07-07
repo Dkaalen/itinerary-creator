@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import diagnostics
+
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 PROJECT_JSON_MIME = "application/json"
 PDF_MIME = "application/pdf"
@@ -78,9 +80,21 @@ def best_effort_cleanup(repository: Any, *, storage_path: str, version_id: str =
 
     try:
         repository.delete_storage_files([storage_path])
-    except Exception:
-        pass
+    except Exception as error:
+        diagnostics.warn_exception(
+            "project_storage_cleanup",
+            "Uploaded project file could not be removed after a failed save.",
+            error,
+            storage_path,
+            source="project_storage.file_writer",
+        )
     try:
         repository.delete_version(version_id)
-    except Exception:
-        pass
+    except Exception as error:
+        diagnostics.warn_exception(
+            "project_storage_cleanup",
+            "Project version row could not be removed after a failed save.",
+            error,
+            version_id,
+            source="project_storage.file_writer",
+        )

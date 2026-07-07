@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from collections.abc import MutableMapping
 from typing import Any
+
+import diagnostics
 from app_modules.project_identity import (
     active_project_id_from_state,
     ensure_active_project_id,
@@ -61,6 +63,12 @@ def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
         clear_storage_error(state)
         return True
     except Exception as exc:
+        diagnostics.warn_exception(
+            "project_storage_save",
+            "Generated project snapshot could not be saved to cloud storage.",
+            exc,
+            source="project_storage.workflow_hooks",
+        )
         record_storage_error(state, exc, action="save")
         return False
 
@@ -109,6 +117,12 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
         clear_storage_error(state)
         return True
     except Exception as exc:
+        diagnostics.warn_exception(
+            "project_storage_save",
+            "Project payload snapshot could not be saved to cloud storage.",
+            exc,
+            source="project_storage.workflow_hooks",
+        )
         record_storage_error(state, exc, action="save")
         return False
 
@@ -150,6 +164,13 @@ def save_calculation_workbook(
         clear_storage_error(state)
         return True
     except Exception as exc:
+        diagnostics.warn_exception(
+            "project_storage_save",
+            "Calculator workbook could not be saved to cloud storage.",
+            exc,
+            filename,
+            source="project_storage.workflow_hooks",
+        )
         record_storage_error(state, exc, action="save")
         return False
 
@@ -181,6 +202,13 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
         clear_storage_error(state)
         return True
     except Exception as exc:
+        diagnostics.warn_exception(
+            "project_storage_save",
+            "PDF export could not be saved to cloud storage.",
+            exc,
+            filename,
+            source="project_storage.workflow_hooks",
+        )
         record_storage_error(state, exc, action="save")
         return False
 

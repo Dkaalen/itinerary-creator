@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from html import unescape
 from pathlib import Path
 import re
@@ -32,6 +33,7 @@ def _sheet(name: str) -> dict:
     return next(item for item in iceland_reference_payload()["sheets"] if item["sheet_name"] == name)
 
 
+@lru_cache(maxsize=None)
 def _state(name: str):
     sheet = _sheet(name)
     rows = normalize_itinerary_rows(
@@ -49,6 +51,7 @@ def _state(name: str):
     return rows, grouped, package, context
 
 
+@lru_cache(maxsize=None)
 def _legacy_state(name: str):
     source = (Path(__file__).parent / "fixtures" / "real_inputs" / name).read_text(encoding="utf-8")
     rows = normalize_itinerary_rows(parse_itinerary(source))

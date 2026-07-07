@@ -52,6 +52,15 @@ class DayPlan:
     consolidate_travel: bool = False
     warnings: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        # DayPlan is now a structural/rendering-hint object only. Client-facing
+        # day intro copy is owned by the Day Brain writers. Legacy branches may
+        # still pass old intro snippets positionally; discard them here so they
+        # cannot leak back into preview/PDF output.
+        if self.intro:
+            self.warnings.append("legacy_planner_intro_discarded")
+            self.intro = ""
+
 
 ADMIN_TITLE_PATTERNS = [
     r"\bfinal timing\b",

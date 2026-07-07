@@ -7,153 +7,25 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_primary_city, get_row_type, is_optional_row
+from itinerary_generation.day_accommodation_facts import (
+    confirmed_check_in as _confirmed_check_in,
+    confirmed_check_out as _confirmed_check_out,
+    ACCOMMODATION_WORDS,
+    is_accommodation_change_row,
+)
 from itinerary_generation.day_accommodation_state import AccommodationState, build_accommodation_state
+from itinerary_generation.day_city_facts import (
+    add_unique_city,
+    arrival_departure_city,
+    canonical_city,
+    row_text,
+)
+from itinerary_generation.day_leisure_facts import has_leisure_markers, is_blank_activity_or_leisure
+from itinerary_generation.day_schedule_facts import DayScheduleProfile, build_schedule_facts
 from itinerary_generation.day_timeline_events import TimelineEvent, normalize_day_events
-from itinerary_generation.schedule_brain import DayScheduleProfile, build_day_schedule_profile
+from itinerary_generation.day_travel_facts import OVERNIGHT_MARKERS, TRAVEL_ROW_TYPES, is_local_transfer, route_points
 from itinerary_generation.day_travel_load import TravelLoadProfile, classify_travel_load
-from itinerary_generation.destination_validation import is_valid_destination_city
-from itinerary_generation.transport_detection import is_route_transfer
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport
-from itinerary_generation.transport_safety import base_destination_from_terminal
-from place_aliases import canonicalize_place_name
-from text_polish import polish_title
-
-TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus"}
-_STATION_WORDS = ("station", "airport", "harbour", "harbor", "port", "terminal", "pier", "dock")
-_ACCOMMODATION_WORDS = ("hotel", "accommodation", "resort", "cabin", "igloo", "lodge", "apartment")
-_LEISURE_MARKERS = ("leisure", "free time", "free day", "at your own pace", "open day", "own arrangements")
-_OVERNIGHT_MARKERS = ("overnight", "night train", "sleeper", "sleeping compartment", "night ferry", "night cruise")
-
-
-def _text(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
-
-
-def row_text(row: Mapping[str, Any]) -> str:
-    return _text(
-        " ".join(
-            str(row.get(key, "") or "")
-            for key in (
-                "type",
-                "effective_type",
-                "city",
-                "title",
-                "original_title",
-                "details",
-                "description",
-                "meeting_point",
-                "end_point",
-                "hotel_name",
-                "room_category",
-            )
-        )
-    )
-
-
-def _canonical_city(value: object) -> str:
-    raw = _text(value)
-    if not raw:
-        return ""
-    raw = base_destination_from_terminal(raw) or raw
-    raw = re.sub(
-        r"\s+(?:central\s+station|railway\s+station|train\s+station|bus\s+station|airport|ferry\s+terminal|cruise\s+terminal|terminal|harbou?r|port)$",
-        "",
-        raw,
-        flags=re.IGNORECASE,
-    ).strip(" -:|.,")
-    city = polish_title(canonicalize_place_name(raw) or raw)
-    if not city or not is_valid_destination_city(city):
-        return ""
-    return city
-
-
-
-def _city_from_arrival_departure_text(row: Mapping[str, Any], *, direction: str) -> str:
-    text = row_text(row)
-    patterns = (
-        r"\barrival\s+(?:in|at|to)\s+([^,|:;.-]+)",
-        r"\barrive\s+(?:in|at|to)\s+([^,|:;.-]+)",
-    ) if direction == "arrival" else (
-        r"\bdeparture\s+(?:from|in|at)\s+([^,|:;.-]+)",
-        r"\bdepart\s+(?:from|in|at)\s+([^,|:;.-]+)",
-    )
-    for pattern in patterns:
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if not match:
-            continue
-        phrase = match.group(1).strip(" -:|.,")
-        phrase = re.split(r"\b(?:arrival|arrive|departure|depart)\b", phrase, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
-        words = [word for word in phrase.split() if word]
-        for size in range(min(3, len(words)), 0, -1):
-            city = _canonical_city(" ".join(words[:size]))
-            if city:
-                return city
-    return ""
-
-def _add_unique(items: list[str], value: object) -> None:
-    city = _canonical_city(value)
-    if city and city not in items:
-        items.append(city)
-
-
-def _route_points(row: Mapping[str, Any]) -> tuple[str, str]:
-    row_type = get_row_type(row)
-    if row_type not in TRAVEL_ROW_TYPES:
-        return "", ""
-    if row_type == "Transfer" and not is_route_transfer(dict(row)):
-        return "", ""
-    origin, destination = get_route_points_for_transport(dict(row))
-    return _canonical_city(origin), _canonical_city(destination)
-
-
-
-def _arrival_departure_city(
-    rows: Sequence[Mapping[str, Any]],
-    row_type: str,
-    *,
-    direction: str,
-    primary_city: str,
-    route_origins: Sequence[str] = (),
-) -> str:
-    for row in rows:
-        if get_row_type(dict(row)) != row_type:
-            continue
-        detected = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction=direction)
-        if detected:
-            return detected
-        if direction == "arrival" and route_origins:
-            return route_origins[0]
-        return primary_city
-    return ""
-
-def _is_local_transfer(row: Mapping[str, Any]) -> bool:
-    if get_row_type(row) != "Transfer":
-        return False
-    text = row_text(row).lower()
-    if is_route_transfer(dict(row)):
-        return False
-    return any(marker in text for marker in (*_STATION_WORDS, *_ACCOMMODATION_WORDS, "private transfer", "self transfer"))
-
-
-def _is_blank_activity_or_leisure(row: Mapping[str, Any]) -> bool:
-    row_type = get_row_type(row)
-    text = row_text(row).lower()
-    if row_type == "Leisure":
-        return True
-    if row_type != "Activity":
-        return False
-    return any(marker in text for marker in _LEISURE_MARKERS) or not _text(row.get("title") or row.get("original_title") or row.get("details"))
-
-
-def _is_accommodation_change_row(row: Mapping[str, Any]) -> bool:
-    text = row_text(row).lower()
-    row_type = get_row_type(row)
-    if row_type == "Hotel":
-        return True
-    if row_type == "Transfer":
-        return any(marker in text for marker in ("to your accommodation", "to your hotel", "between accommodations", "hotel to hotel", "next stay"))
-    return False
-
+from itinerary_generation.day_visit_facts import build_visit_facts
 
 @dataclass(frozen=True)
 class DayFacts:
@@ -233,7 +105,7 @@ def build_day_facts(
     timeline_events = normalize_day_events(main_rows)
     accommodation_state = build_accommodation_state(timeline_events)
     travel_load = classify_travel_load(timeline_events)
-    schedule_profile = build_day_schedule_profile(main_rows)
+    schedule_profile = build_schedule_facts(main_rows)
     all_text = " ".join(row_text(row) for row in main_rows).lower()
 
     city_sequence: list[str] = []
@@ -254,8 +126,8 @@ def build_day_facts(
         row_type = get_row_type(dict(row))
         text = row_text(row)
         lower = text.lower()
-        explicit_city = _canonical_city(row.get("city", ""))
-        _add_unique(city_sequence, explicit_city)
+        explicit_city = canonical_city(row.get("city", ""))
+        add_unique_city(city_sequence, explicit_city)
 
         if row_type == "Arrival":
             has_arrival = True
@@ -263,21 +135,21 @@ def build_day_facts(
         elif row_type == "Departure":
             has_departure = True
             source_flags.add("departure")
-        elif row_type == "Activity" and not _is_blank_activity_or_leisure(row):
+        elif row_type == "Activity" and not is_blank_activity_or_leisure(row):
             has_activity = True
             source_flags.add("activity")
-            _add_unique(activity_cities, explicit_city)
+            add_unique_city(activity_cities, explicit_city)
         elif row_type == "Hotel":
             has_accommodation = True
             source_flags.add("accommodation")
-            _add_unique(hotel_cities, explicit_city)
-        elif row_type == "Leisure" or _is_blank_activity_or_leisure(row) or (row_type == "Cruise" and any(marker in lower for marker in _LEISURE_MARKERS)):
+            add_unique_city(hotel_cities, explicit_city)
+        elif row_type == "Leisure" or is_blank_activity_or_leisure(row) or (row_type == "Cruise" and has_leisure_markers(lower)):
             has_leisure_row = True
             source_flags.add("leisure")
 
         if row_type == "Transfer":
             has_transfer = True
-            if _is_local_transfer(row):
+            if is_local_transfer(row, accommodation_words=ACCOMMODATION_WORDS):
                 has_local_transfer = True
                 if explicit_city:
                     transfer_targets.append(explicit_city)
@@ -287,13 +159,13 @@ def build_day_facts(
                     source_flags.add("arrival_airport_transfer")
 
         if row_type in TRAVEL_ROW_TYPES:
-            origin, destination = _route_points(row)
+            origin, destination = route_points(row)
             if origin:
-                _add_unique(route_origins, origin)
-                _add_unique(city_sequence, origin)
+                add_unique_city(route_origins, origin)
+                add_unique_city(city_sequence, origin)
             if destination:
-                _add_unique(route_destinations, destination)
-                _add_unique(city_sequence, destination)
+                add_unique_city(route_destinations, destination)
+                add_unique_city(city_sequence, destination)
                 has_route_transport = True
             if row_type in set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus"}:
                 has_route_transport = has_route_transport or bool(destination or origin)
@@ -305,17 +177,17 @@ def build_day_facts(
                 has_ferry = True
             elif row_type == "Cruise":
                 has_cruise = True
-            if any(marker in lower for marker in _OVERNIGHT_MARKERS):
+            if any(marker in lower for marker in OVERNIGHT_MARKERS):
                 has_overnight_transport = True
 
-        if _is_accommodation_change_row(row):
+        if is_accommodation_change_row(row):
             accommodation_change_rows += 1
 
-    primary_city = _canonical_city(get_primary_city([dict(row) for row in main_rows]))
-    arrival_city = _arrival_departure_city(
+    primary_city = canonical_city(get_primary_city([dict(row) for row in main_rows]))
+    arrival_city = arrival_departure_city(
         main_rows, "Arrival", direction="arrival", primary_city=primary_city, route_origins=route_origins
     )
-    departure_city = _arrival_departure_city(main_rows, "Departure", direction="departure", primary_city=primary_city)
+    departure_city = arrival_departure_city(main_rows, "Departure", direction="departure", primary_city=primary_city)
 
     overnight_city = hotel_cities[-1] if hotel_cities else ""
     onward_destination = route_destinations[-1] if route_destinations else ""
@@ -325,14 +197,14 @@ def build_day_facts(
 
     transit_cities: list[str] = []
     if arrival_city and end_city and arrival_city.casefold() != end_city.casefold():
-        _add_unique(transit_cities, arrival_city)
+        add_unique_city(transit_cities, arrival_city)
     for city in city_sequence:
         if city and end_city and city.casefold() != end_city.casefold() and city not in transit_cities:
             if city not in hotel_cities and city not in activity_cities:
                 transit_cities.append(city)
 
     route_count = len(route_destinations)
-    non_leisure_rows = [row for row in main_rows if not _is_blank_activity_or_leisure(row)]
+    non_leisure_rows = [row for row in main_rows if not is_blank_activity_or_leisure(row)]
     has_only_leisure_rows = bool(main_rows) and not non_leisure_rows
     travel_heavy = bool(
         travel_load.is_travel_heavy
@@ -361,11 +233,12 @@ def build_day_facts(
         )
     )
 
-    return_visit = bool(getattr(visit_context, "is_return_visit", False))
-    visit_number = int(getattr(visit_context, "visit_number", 1) or 1)
-    previous_visit_days = tuple(getattr(visit_context, "previous_days", ()) or ())
-    confirmed_check_in = bool(accommodation_state.check_in_confirmed or (has_accommodation and not same_city_accommodation_change and (has_arrival or overnight_city or "check-in" in all_text or "check in" in all_text)))
-    confirmed_check_out = bool(accommodation_state.check_out_confirmed or (has_accommodation and (has_departure or "check-out" in all_text or "check out" in all_text)))
+    visit_facts = build_visit_facts(visit_context)
+    return_visit = visit_facts.return_visit
+    visit_number = visit_facts.visit_number
+    previous_visit_days = visit_facts.previous_visit_days
+    confirmed_check_in = _confirmed_check_in(has_accommodation, same_city_accommodation_change, has_arrival, overnight_city, all_text, accommodation_state)
+    confirmed_check_out = _confirmed_check_out(has_accommodation, has_departure, all_text, accommodation_state)
     source_flags.update(accommodation_state.flags)
     source_flags.update(travel_load.flags)
     source_flags.update(schedule_profile.flags)
