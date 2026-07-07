@@ -30,6 +30,12 @@ def test_clear_deleted_project_from_session_only_clears_active_project() -> None
         "project_storage_last_saved_snapshot_path": "snapshots/latest.json",
         "project_storage_last_calculator_file_path": "calculator/latest.xlsx",
         "project_storage_last_pdf_path": "pdf/latest.pdf",
+        "project_storage_last_calculator_snapshot": {"rows": []},
+        "project_storage_last_error": "bad",
+        "project_storage_last_error_detail": "technical",
+        "cloud_calculator_file_payload_active-1_0": b"xlsx",
+        "_project_file_download_cache": {"payload": b"json"},
+        "day_image_matches": {"Day 1": {"path": "old.jpg"}},
     }
 
     clear_deleted_project_from_session(state, "other-1")
@@ -45,3 +51,9 @@ def test_clear_deleted_project_from_session_only_clears_active_project() -> None
     assert "project_storage_last_saved_snapshot_path" not in state
     assert "project_storage_last_calculator_file_path" not in state
     assert "project_storage_last_pdf_path" not in state
+    assert "project_storage_last_calculator_snapshot" not in state
+    assert "project_storage_last_error" not in state
+    assert "project_storage_last_error_detail" not in state
+    assert "cloud_calculator_file_payload_active-1_0" not in state
+    assert "_project_file_download_cache" not in state
+    assert "day_image_matches" not in state

@@ -125,3 +125,31 @@ def test_pdf_identity_changes_when_export_critical_image_state_changes() -> None
     mark_pdf_dirty(state)
     assert state["pdf_status"] == "Needs refresh"
     assert state["pdf_bytes"] is None
+
+
+def test_pdf_crop_focus_read_is_pure_and_does_not_create_day_image_defaults() -> None:
+    from app_modules.export_render_context import day_image_crop_focus_for_grouped_days
+
+    output_edits = {"day_images": {"Day 1": {"path": "images/oslo.jpg", "crop_focus": "center"}}}
+
+    focus = day_image_crop_focus_for_grouped_days({"Day 1": [], "Day 2": []}, output_edits)
+
+    assert focus == {"Day 1": "center", "Day 2": "top"}
+    assert output_edits == {"day_images": {"Day 1": {"path": "images/oslo.jpg", "crop_focus": "center"}}}
+
+
+def test_pdf_identity_changes_when_export_layout_or_cover_state_changes() -> None:
+    state = _minimal_generated_state()
+    state["output_edits"] = {
+        **state["output_edits"],
+        "cover_image": {"path": "images/cover-a.jpg", "crop_focus": "top"},
+        "day_page_layout": "narrative",
+    }
+    signature_a = export_signature_for_state(state)
+
+    state["output_edits"]["cover_image"] = {"path": "images/cover-a.jpg", "crop_focus": "bottom"}
+    signature_b = export_signature_for_state(state)
+    state["output_edits"]["day_page_layout"] = "compact"
+
+    assert signature_a != signature_b
+    assert signature_b != export_signature_for_state(state)

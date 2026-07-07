@@ -10,6 +10,7 @@ import streamlit as st
 from calculator.calculator_state import CalculatorState
 from calculator.workbook_export import WorkbookExport, export_calculation_workbook
 from app_modules.calculator_state_keys import CALCULATOR_READY_DOWNLOAD_KEY
+from app_modules.calculator_session_state import clear_ready_calculation_download
 from project_storage.workflow_hooks import save_calculation_workbook
 
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -74,9 +75,3 @@ def render_ready_calculation_download(session_state: MutableMapping[str, Any]) -
         clear_ready_calculation_download(session_state)
         st.rerun()
     st.html("</div>")
-
-
-def clear_ready_calculation_download(session_state: MutableMapping[str, Any]) -> None:
-    """Clear the staged calculator download."""
-
-    session_state.pop(CALCULATOR_READY_DOWNLOAD_KEY, None)

@@ -19,6 +19,7 @@ from app_modules.calculator_session_state import clear_calculator_project_state
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
 from app_modules.pdf_artifact_state import PDF_ARTIFACT_KEYS, clear_pdf_artifact_state
+from app_modules.project_session_cleanup import clear_project_save_marker
 
 
 WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
@@ -126,9 +127,10 @@ def clear_pdf_artifacts(state: MutableMapping[str, Any], status: str = "Not crea
 
 
 def mark_pdf_dirty(state: MutableMapping[str, Any], status: str = "Needs refresh") -> None:
-    """Invalidate durable PDF artifacts after real content or picture changes."""
+    """Invalidate PDF artifacts and cloud-saved marker after real content changes."""
 
     clear_pdf_artifacts(state, status=status)
+    clear_project_save_marker(state)
 
 
 def session_state_snapshot(state: Mapping[str, Any]) -> dict[str, Any]:

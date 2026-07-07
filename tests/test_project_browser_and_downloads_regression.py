@@ -29,6 +29,7 @@ def test_open_project_dialog_has_search_delete_files_and_contrast_css() -> None:
     assert "Prepare calculator file" in ui_source
     assert "Download calculator file" in ui_source
     assert "list_cloud_calculation_files" in ui_source
-    assert "div[role=\"dialog\"] .open-project-copy strong" in css
+    assert "div[role=\"dialog\"]:has(.open-project-copy) .open-project-copy strong" in css
+    assert "background: #1f2630 !important;" in css
     assert "color: #fffdf8 !important;" in css
-    assert "div[role=\"dialog\"] [data-testid=\"stFileUploaderDropzone\"]" in css
+    assert "div[role=\"dialog\"]:has(.open-project-copy) [data-testid=\"stFileUploaderDropzone\"]" in css

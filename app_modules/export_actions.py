@@ -89,7 +89,10 @@ def create_pdf_from_current_preview() -> bool:
         with measure_timing(st.session_state, "build_render_context", note="pdf"):
             pdf_render_context = pdf_render_context_for_signature(current_preview_signature)
         grouped_days_for_pdf = pdf_render_context.grouped_days
-        day_image_crop_focus = day_image_crop_focus_for_grouped_days(grouped_days_for_pdf)
+        day_image_crop_focus = day_image_crop_focus_for_grouped_days(
+            grouped_days_for_pdf,
+            st.session_state.get("output_edits", {}) or {},
+        )
     with record_pdf_export_stage(st.session_state, "client_safety_check"):
         client_safety_blocked = _client_safety_blocks_pdf(pdf_render_context, image_matches, current_image_bank_status)
     if client_safety_blocked:

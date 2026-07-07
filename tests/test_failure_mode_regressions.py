@@ -146,3 +146,19 @@ def test_export_stage_refreshes_project_snapshot_and_requests_auto_pdf(monkeypat
     assert state["app_stage"] == "export"
     assert calls == ["snapshot", "auto_pdf"]
     assert active_project_id_from_state(state) == "project-1"
+
+
+def test_real_content_dirtying_clears_cloud_saved_marker() -> None:
+    from app_modules.workflow_state import mark_pdf_dirty
+
+    state = {
+        "pdf_bytes": b"old",
+        "export_pdf_bytes": b"old",
+        "project_storage_last_saved_snapshot_path": "snapshots/project/latest.json",
+    }
+
+    mark_pdf_dirty(state)
+
+    assert state["pdf_status"] == "Needs refresh"
+    assert state["pdf_bytes"] is None
+    assert "project_storage_last_saved_snapshot_path" not in state

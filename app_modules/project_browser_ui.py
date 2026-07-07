@@ -187,13 +187,18 @@ def _render_calculation_file(project_id: str, item: dict[str, Any], *, index: in
 
 
 def _open_cloud_project(project_id: str) -> None:
-    payload = load_latest_cloud_project_payload(project_id)
+    try:
+        payload = load_latest_cloud_project_payload(project_id)
+    except Exception:
+        st.error(storage_user_message("open"))
+        return
     if not payload:
         st.warning("This cloud project has no saved itinerary snapshot yet.")
         return
     result = load_saved_project(st.session_state, payload, project_id_override=project_id)
     if result.ok:
         set_active_project_id(st.session_state, project_id)
+        clear_delete_confirmation(st.session_state)
         st.success(result.message or "Cloud project opened.")
         st.rerun()
     else:

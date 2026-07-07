@@ -36,7 +36,7 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert ".studio-brand-link" in style_workspace_header.CSS
     assert ".supplier-preview-panel" in style_input_workspace.SUPPLIER_PREVIEW_CSS
     assert ".cloud-project-card" in style_project_browser.PROJECT_BROWSER_CSS
-    assert "div[role=\"dialog\"] .open-project-copy strong" in style_project_browser.PROJECT_BROWSER_CSS
+    assert "div[role=\"dialog\"]:has(.open-project-copy) .open-project-copy strong" in style_project_browser.PROJECT_BROWSER_CSS
 
 
 def test_composed_app_shell_preserves_all_split_sections_in_order() -> None:

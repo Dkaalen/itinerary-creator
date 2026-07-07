@@ -116,6 +116,45 @@ Status legend:
 ```
 
 
+
+## Patch 11: App health, state ownership, and stale-export cleanup
+
+Progress: `[####################] 100%`
+
+Goal:
+
+```text
+Reduce app-health risk in the areas most likely to create hosted-app regressions: stale export state, fragile Streamlit session ownership, duplicated calculator/project cleanup logic, overworked image/PDF paths, and contrast regressions.
+```
+
+Completed in Patch 11:
+
+```text
+[x] Removed stale patch-manifest artifacts and duplicate legacy test files from the working tree
+[x] Centralized cloud project/session cleanup for save/open/delete boundary changes
+[x] Reused calculator session cleanup helpers instead of duplicating download-state logic
+[x] Made PDF image crop-focus reads pure so export paths do not create default day-image state
+[x] Expanded PDF export identity to include output-only image/layout/brand state that can stale-cache PDFs
+[x] Cleared cloud saved markers whenever real itinerary/image/workflow content is dirtied
+[x] Hardened cloud project open errors so failed Supabase downloads show a user-facing storage message
+[x] Split the image review stage action into smaller responsibility-focused helpers
+[x] Simplified image-bank scanner cache/read logic and removed compressed legacy flow
+[x] Scoped open-project dialog styling to restore dark-background/light-text contrast without affecting other dialogs
+[x] Added focused regression coverage for PDF stale state, project cleanup, saved-marker clearing, and contrast selectors
+```
+
+Validation checkpoint:
+
+```text
+Fast health gate:              passed
+Critical product smoke lane:   passed
+Static test-suite audit:       passed
+Legacy patch test filenames:   0
+Raw source-contract tests:     0
+```
+
+---
+
 ## Post-cleanup product quality sprint
 
 Architecture cleanup is complete. The next phase is end-to-end itinerary quality using real supplier inputs.
