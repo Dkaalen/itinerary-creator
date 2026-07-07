@@ -74,14 +74,14 @@ PROFILE_HOOKS: dict[str, tuple[str, ...]] = {
 }
 
 ARRIVAL_TEMPLATES = (
-    "After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impressions of {identity}.",
-    "Once settled, keep the rest of the day relaxed, with time to get a first feel for {identity}.",
-    "After check-in, the day stays unhurried so you can settle in and begin getting a sense of {identity}.",
+    "After arrival, the day is kept simple, with time to settle in and get oriented around {identity}.",
+    "Once settled, keep the rest of the day relaxed, with time to get a feel for {identity}.",
+    "After arrival, the pace stays flexible so you can settle in and begin getting a sense of {identity}.",
 )
 LEISURE_TEMPLATES = (
-    "Use the remaining time in {city} at your own pace, whether you prefer {focus}.",
-    "Use the remaining time in {city} flexibly, with space for {focus}.",
-    "Use the remaining time in {city} unhurriedly, leaving room for {focus}.",
+    "Open time in {city} is left flexible, whether you prefer {focus}.",
+    "This part of the day in {city} is open for your own plans, with space for {focus}.",
+    "Independent time in {city} can be kept relaxed, leaving room for {focus}.",
 )
 DEPARTURE_TEMPLATES = (
     "After check-out, say farewell to {identity} before continuing your onward journey.",

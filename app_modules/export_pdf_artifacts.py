@@ -13,7 +13,7 @@ from app_modules.workflow_state import clear_pdf_artifacts
 
 
 def current_pdf_bytes() -> bytes | None:
-    """Return current PDF bytes only when they match current export identity."""
+    """Return current PDF bytes only when their pdf_signature matches export identity."""
 
     artifact = current_pdf_artifact(st.session_state)
     if artifact is None:

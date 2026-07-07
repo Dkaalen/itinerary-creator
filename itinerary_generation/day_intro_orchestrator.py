@@ -16,6 +16,9 @@ from itinerary_generation.common import (
 from itinerary_generation.content_engine import is_supplier_day_row
 from itinerary_generation.day_activity_text import get_client_activity_phrase
 from itinerary_generation.day_arrival_text import _arrival_display_destination, _arrival_transfer_phrase
+from itinerary_generation.day_facts import build_day_facts
+from itinerary_generation.day_intent import classify_day_intent
+from itinerary_generation.day_intro_writer import write_day_intro
 from itinerary_generation.day_group_tour_text import (
     _extract_group_tour_overview_start_time,
     _is_group_tour_start_day,
@@ -284,50 +287,24 @@ def _city_stay_intro(day_rows, city, detail_level, visit_context):
 
 
 def create_day_intro(day_rows, detail_level="Standard client itinerary", *, visit_context=None):
-    """Create a clear, client-facing day intro."""
+    """Create a clear, client-facing day intro from day facts and intent."""
 
     detail_level = normalize_detail_level(detail_level)
     city = get_primary_city(day_rows)
     city_text = city or "the experience area"
-
-    has_arrival = any(get_row_type(row) == "Arrival" for row in day_rows)
-    has_departure = any(get_row_type(row) == "Departure" for row in day_rows)
-
     activities = [row for row in day_rows if get_row_type(row) == "Activity"]
-    transports = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES]
-    transfers = [row for row in day_rows if get_row_type(row) == "Transfer"]
-    route_transfers = [row for row in transfers if is_route_transfer(row)]
-    leisure = [row for row in day_rows if get_row_type(row) == "Leisure"]
 
+    # Guided package start days have a separate factual group-tour model. Keep
+    # that specialist path, then use the day brain for normal daywise copy.
     if _is_group_tour_start_day(day_rows):
         return _group_tour_start_intro(day_rows, activities, city_text)
-    if has_only_departure_arrangements(day_rows) and city:
-        return _departure_only_intro(day_rows, city, detail_level)
-    if has_arrival and city:
-        return _arrival_intro(day_rows, city, city_text, activities, detail_level, visit_context)
-    if not transports and has_hotel(day_rows) and has_airport_arrival_transfer(day_rows) and city:
-        return _airport_hotel_arrival_intro(day_rows, city, detail_level, visit_context)
-    if has_departure and city:
-        return _departure_intro(day_rows, city, detail_level)
-    if activities:
-        activity_intro = _activity_led_intro(
-            day_rows,
-            activities,
-            transports,
-            route_transfers,
-            city,
-            city_text,
-            detail_level,
-            visit_context,
-        )
-        if activity_intro:
-            return activity_intro
-    if (transports or route_transfers) and city:
-        return _transport_led_intro(day_rows, transports, route_transfers, city, detail_level, visit_context)
-    if transfers and city:
-        return _transfer_led_intro(day_rows, transfers, city, detail_level)
-    if leisure and city:
-        return leisure_description(city, day_rows)
+
+    facts = build_day_facts(day_rows, visit_context=visit_context)
+    intent = classify_day_intent(facts)
+    intro = write_day_intro(facts, intent)
+    if intro:
+        return intro
+
     if city:
         return _city_stay_intro(day_rows, city, detail_level, visit_context)
     return "The day’s arrangements are listed below."

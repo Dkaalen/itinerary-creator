@@ -14,8 +14,8 @@ from typing import Any, Mapping, Sequence
 
 from bs4 import BeautifulSoup
 
-INTRO_GENERATOR_VERSION = "copy-engine-split1"
-BLOCKS_GENERATOR_VERSION = "blocks-ownership-v1"
+INTRO_GENERATOR_VERSION = "day-brain-copy-v1"
+BLOCKS_GENERATOR_VERSION = "day-brain-blocks-v1"
 
 _INTRO_MANUAL_KEY = "intro_manual_override"
 _INTRO_GENERATED_KEY = "intro_generated_value"
@@ -31,15 +31,28 @@ _GENERATED_INTRO_RE = re.compile(
     r"\bThe journey continues\b|"
     r"\bContinue your Norway in a Nutshell journey\b|"
     r"\bTravel (?:from|to|towards)\b|"
+    r"\bTravel overnight\b|"
+    r"\bArrive in\b|"
     r"\bSail from\b|"
     r"\bToday you explore\b|"
+    r"\bToday you move to your next stay\b|"
     r"\bThe day centres on\b|"
     r"\bBegin with Oslo from the water\b|"
     r"\bis the main arranged experience\b|"
     r"\bAfter check-out\b|"
+    r"\bAfter check-in\b|"
+    r"\bfirst impressions\b|"
+    r"\bunhurried(?:ly)?\b|"
+    r"\bUse the remaining time\b|"
     r"\bYour journey comes to a close\b|"
+    r"\bYour arrangements conclude\b|"
     r"\bWelcome to\b"
     r")",
+    flags=re.IGNORECASE,
+)
+
+_STALE_GENERATED_BLOCKS_RE = re.compile(
+    r"(?:\bunhurried(?:ly)?\b|\bUse the remaining time\b|\bfirst impressions\b|\bAfter check-in\b)",
     flags=re.IGNORECASE,
 )
 
@@ -93,6 +106,11 @@ def day_source_signature(rows: Sequence[Mapping[str, Any]] | None) -> str:
 def looks_generated_intro(value: Any) -> bool:
     text = normalize_copy_text(value)
     return bool(text and _GENERATED_INTRO_RE.search(text))
+
+
+def looks_stale_generated_blocks(value: Any) -> bool:
+    text = html_text(value) if "<" in _as_text(value) else normalize_copy_text(value)
+    return bool(text and _STALE_GENERATED_BLOCKS_RE.search(text))
 
 
 @dataclass(frozen=True)
@@ -236,6 +254,8 @@ def resolve_blocks_html(
         if stored_generated and html_equivalent(html, stored_generated):
             return ResolvedBlocksHtml(generated_blocks_html, False, generated_blocks_html)
         if html_equivalent(html, generated_blocks_html):
+            return ResolvedBlocksHtml(generated_blocks_html, False, generated_blocks_html)
+        if looks_stale_generated_blocks(html):
             return ResolvedBlocksHtml(generated_blocks_html, False, generated_blocks_html)
         # Legacy non-empty body HTML without ownership is treated as manual for
         # backward compatibility. New generated editor commits carry

@@ -12,9 +12,9 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     """Return intro copy for a pre-classified day-title pattern."""
 
     if pattern == "leisure_day":
-        return leisure_description(city, []) if city else "Use the day at your own pace, with time to relax, explore independently, or settle into the area."
+        return leisure_description(city, []) if city else "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
     if pattern == "stay_day":
-        return destination_stay_intro(city, "Rich descriptive") if city else "Use the day at your own pace, with time to relax, explore independently, or settle into the area."
+        return destination_stay_intro(city, "Rich descriptive") if city else "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
     if pattern == "multi_activity_day":
         title_text = str(title or "").lower()
         if "tallinn" in title_text:
@@ -41,7 +41,7 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
     if pattern == "self_drive_route_day":
         return "Today’s self-drive route is arranged to keep the journey clear and scenic, with suggested stops and overnight plans laid out in a simple way."
     if pattern == "hop_on_city_day":
-        return f"Use the day flexibly to explore {city} at your own pace, with sightseeing transport arranged to make the city’s main areas easy to reach." if city else "Use the day flexibly to explore at your own pace, with sightseeing transport arranged to make the main areas easy to reach."
+        return f"Use open time flexibly to explore {city} at your own pace, with sightseeing transport arranged to make the city’s main areas easy to reach." if city else "Use open time flexibly to explore at your own pace, with sightseeing transport arranged to make the main areas easy to reach."
     if pattern == "single_activity_day":
         return client_activity_intro(title, city)
     return ""

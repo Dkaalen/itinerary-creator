@@ -313,6 +313,8 @@ def route_intro_for_day(day_rows: Sequence[Mapping[str, object]], detail_level: 
         "self_drive": "by self-drive route",
     }.get(mode, "with the planned travel arrangements")
     if origin and destination and origin.lower() != destination.lower():
+        if mode == "coach":
+            return f"Travel from {origin} towards {destination} today {mode_label}, with arrival arrangements and the main journey details grouped below."
         return f"Travel from {origin} to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."
     if destination:
         return f"Continue to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."

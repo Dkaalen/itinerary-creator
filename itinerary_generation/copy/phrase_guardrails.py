@@ -16,6 +16,12 @@ BANNED_GENERATED_PHRASES: tuple[str, ...] = (
     "quiet outdoor rhythm",
     "rhythm of the voyage",
     "the destination",
+    "unhurried",
+    "unhurriedly",
+    "first impressions",
+    "After check-in",
+    "make your way to your accommodation",
+    "Use the remaining time",
 )
 
 _BANNED_RE = re.compile("|".join(re.escape(phrase) for phrase in BANNED_GENERATED_PHRASES), re.IGNORECASE)

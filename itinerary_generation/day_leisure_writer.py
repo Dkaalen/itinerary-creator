@@ -1,0 +1,81 @@
+"""Context-aware leisure/free-time copy writer."""
+
+from __future__ import annotations
+
+import re
+from typing import Any, Mapping, Sequence
+
+from itinerary_generation.day_facts import DayFacts, build_day_facts
+from itinerary_generation.day_intent import DayIntent, classify_day_intent
+from text_polish import polish_title
+
+
+def _clean_city(value: object) -> str:
+    return polish_title(str(value or "").strip())
+
+
+def _fallback_city(facts: DayFacts) -> str:
+    return _clean_city(facts.main_city or facts.end_city or facts.start_city or "the area")
+
+
+def _sentence(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
+    """Return free-time copy from day facts and intent."""
+
+    intent = intent or classify_day_intent(facts)
+    city = _fallback_city(facts)
+
+    if intent == DayIntent.CRUISE_DAY or facts.cruise_onboard_day:
+        return _sentence(
+            "Time onboard is open for you to enjoy the sailing, the ship facilities and the coastal views as the route continues."
+        )
+
+    if facts.travel_heavy or intent in {DayIntent.TRAVEL_DAY, DayIntent.OVERNIGHT_TRANSPORT_DAY, DayIntent.ARRIVAL_ONWARD_TRAVEL}:
+        return "Any free time today is limited and flexible around the travel arrangements."
+
+    if intent == DayIntent.FULL_LEISURE_DAY or facts.full_leisure_day:
+        if city and city != "the area":
+            return _sentence(
+                f"Today is open for independent time in {city}. "
+                "You may explore locally, keep the pace relaxed, or simply enjoy a quieter day between arranged experiences."
+            )
+        return "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
+
+    if intent == DayIntent.ACTIVITY_DAY or (facts.has_activity and not facts.has_travel):
+        return "After the included experience, the rest of the day is open for your own plans."
+
+    if intent == DayIntent.ACTIVITY_PLUS_TRAVEL or (facts.has_activity and facts.has_travel):
+        return "After the included arrangements, any free time can be kept flexible around the day’s timing."
+
+    if intent == DayIntent.ARRIVAL_STAY or facts.has_arrival:
+        return "After arrival, any remaining time is best kept simple, with space to settle in and get oriented."
+
+    if intent == DayIntent.SAME_CITY_ACCOMMODATION_CHANGE:
+        return "Outside the move between stays, the day can remain flexible around the listed arrangements."
+
+    if intent == DayIntent.RETURN_VISIT:
+        return "Once back in the area, any open time can be used flexibly around the listed arrangements."
+
+    if city and city != "the area":
+        return f"Any open time in {city} is left flexible for your own plans."
+    return "Any open time today is left flexible for your own plans."
+
+
+def create_leisure_copy(
+    rows: Sequence[Mapping[str, Any]] | None,
+    *,
+    visit_context: object | None = None,
+    facts: DayFacts | None = None,
+    intent: DayIntent | None = None,
+) -> str:
+    """Convenience wrapper used by renderers that only have source rows."""
+
+    facts = facts or build_day_facts(rows, visit_context=visit_context)
+    intent = intent or classify_day_intent(facts)
+    return write_leisure_copy(facts, intent)
+
+
+__all__ = ["create_leisure_copy", "write_leisure_copy"]

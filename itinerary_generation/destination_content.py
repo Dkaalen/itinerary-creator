@@ -329,7 +329,7 @@ def leisure_description(value: object, rows: Sequence[dict] | Iterable[dict] | N
     record = _record_for(value)
     name = _display_name(value, record)
     if not name:
-        return "Use the remaining time at your own pace, with room to relax, explore independently, or settle into the day."
+        return "Open time today is left flexible, with room to relax, explore independently, or settle into the day."
 
     context = _rows_text(rows)
     options = _choose_leisure_options(destination_copy(name).leisure_options, context)

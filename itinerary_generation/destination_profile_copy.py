@@ -41,7 +41,7 @@ def _format_focus(options: Sequence[str]) -> str:
 def destination_leisure_sentence(value: object, rows: Iterable[Mapping[str, object]] | None = None, options: Sequence[str] | None = None) -> str:
     profile = destination_profile_for(value)
     city = profile.name or polish_title(str(value or "").strip())
-    if not city: return "Use the remaining time at your own pace, with room to relax, explore independently, or settle into the day."
+    if not city: return "Open time today is left flexible, with room to rest, explore independently, or settle into the day."
     context = _rows_text(rows)
     source = list(options or profile.atmosphere)
     offset = stable_variant_index(f"{city}|{context}|leisure", count=len(source)) if source else 0
@@ -56,28 +56,24 @@ def _is_return_visit(visit_context: object | None) -> bool:
 
 def destination_arrival_intro(city: object, transfer_phrase: str, detail_level: str, *, display_destination: str | None = None, rows: Iterable[Mapping[str, object]] | None = None, visit_context: object | None = None) -> str:
     destination = str(display_destination or "").strip() or destination_profile_for(city).name or polish_title(str(city or "").strip()) or "this place"
-    transfer_phrase = re.sub(r"\s+", " ", str(transfer_phrase or "").strip()) or "After arrival, make your way to your accommodation."
+    transfer_phrase = re.sub(r"\s+", " ", str(transfer_phrase or "").strip()) or "After arrival, follow the listed transfer arrangements."
     return_visit = _is_return_visit(visit_context)
-    if detail_level == "Elegant concise": return f"{'Return to' if return_visit else 'Welcome to'} {destination}. {transfer_phrase}"
+    if detail_level == "Elegant concise": return f"{'Return to' if return_visit else 'Arrive in'} {destination}. {transfer_phrase}"
     if return_visit:
         profile = destination_profile_for(city); identity = profile.arrival_identity or profile.identity or destination
-        arrival_sentence = f"Back in {identity}, the rest of the day is kept relaxed after check-in, with time to settle back into familiar surroundings."
+        arrival_sentence = f"Back in {identity}, the rest of the day is kept relaxed, with time to settle back into familiar surroundings."
     elif destination.casefold() != str(city or "").strip().casefold() and destination:
-        arrival_sentence = f"After check-in, the rest of the day is yours to settle in, relax, and enjoy your first impressions of {destination}."
+        arrival_sentence = f"After arrival, the rest of the day is yours to settle in and get oriented around {destination}."
     else: arrival_sentence = select_arrival_sentence(city, rows)
-    connector = "Once settled," if "check in" in transfer_phrase.casefold() or "check-in" in transfer_phrase.casefold() else "After check-in,"
-    if arrival_sentence.startswith("After check-in,") and connector != "After check-in,":
-        arrival_sentence = connector + arrival_sentence[len("After check-in,"):]
-        arrival_sentence = arrival_sentence.replace("the rest of the day is yours to settle in, relax, and enjoy", "the rest of the day is yours to relax and enjoy")
-    return f"{'Return to' if return_visit else 'Welcome to'} {destination}. {transfer_phrase} {arrival_sentence}"
+    return f"{'Return to' if return_visit else 'Arrive in'} {destination}. {transfer_phrase} {arrival_sentence}"
 
 
 def destination_stay_intro(city: object, detail_level: str, rows: Iterable[Mapping[str, object]] | None = None, *, visit_context: object | None = None) -> str:
     destination = destination_profile_for(city).name or polish_title(str(city or "").strip()) or "this place"
     return_visit = _is_return_visit(visit_context)
     if detail_level == "Elegant concise":
-        return f"{'Return to' if return_visit else 'Welcome to'} {destination}. Time is kept relaxed after arrival so you can {'settle back in' if return_visit else 'settle in'}."
+        return f"{'Return to' if return_visit else 'Stay in'} {destination}. Time is kept flexible around the listed arrangements."
     if return_visit:
         profile = destination_profile_for(city); identity = profile.arrival_identity or profile.identity or destination
-        return f"Return to {destination}. After arrival, the day is kept relaxed so you can check in and settle back into your accommodation. Back in {identity}, use the remaining time at your own pace."
-    return f"Welcome to {destination}. After arrival, the day is kept relaxed so you can check in and settle into your accommodation. {select_arrival_sentence(city, rows)}"
+        return f"Return to {destination}. The day is kept flexible around the listed stay arrangements. Back in {identity}, any open time is yours to use at your own pace."
+    return f"This is part of your stay in {destination}, with the day’s arrangements listed below. {select_arrival_sentence(city, rows)}"

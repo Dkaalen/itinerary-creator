@@ -22,11 +22,11 @@ def _arrival_transfer_phrase(day_rows):
         title = get_first_transfer_title([row]) or row.get("title", "")
         lower = str(title).lower()
         if "self" in lower:
-            return "After arrival, make your own way to your accommodation."
+            return "After arrival, please follow the listed self-transfer arrangements."
         if "flybus" in lower or "shuttle" in lower:
             return "On arrival, your arranged Flybus transfer will take you from the airport towards your accommodation area."
         if "private" in lower or "transfer" in lower:
             return "On arrival, your arranged transfer will take you from the airport to your accommodation."
-    return "On arrival, make your way to your accommodation and check in."
+    return "On arrival, follow the listed transfer and stay arrangements."
 
 

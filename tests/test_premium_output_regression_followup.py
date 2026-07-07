@@ -43,8 +43,8 @@ def test_leisure_copy_is_city_specific_and_avoids_quiet_walk_filler():
 
     assert leisure_blocks
     assert "quiet walk nearby" not in descriptions
-    assert "Use the remaining time in Oslo" in descriptions
-    assert "Use the remaining time in Bergen" in descriptions
+    assert "After arrival, any remaining time is best kept simple" in descriptions
+    assert "Any free time today is limited and flexible around the travel arrangements" in descriptions
 
 
 def test_route_day_intros_are_not_generic_logistics_fillers():
