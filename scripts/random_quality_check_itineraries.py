@@ -5,20 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app_modules.itinerary_render_context import build_itinerary_render_context
-from generator import group_rows_by_day
-from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
-from itinerary_parser import parse_itinerary
 from scripts.real_excel_fixture_bank import (
     DEFAULT_MANIFEST,
     ExcelFixtureCandidate,
@@ -27,16 +22,7 @@ from scripts.real_excel_fixture_bank import (
     select_random_candidates,
     write_candidate_raw_text,
 )
-
-TYPO_LEAKS = (
-    "Date dependant",
-    "Funicual",
-    "Profesional",
-    "Free wifi",
-    "aiport",
-    "doulbe",
-    "milage",
-)
+from scripts.real_output_text_quality import OutputTextIssue, render_candidate_review
 
 
 @dataclass(frozen=True)
@@ -45,6 +31,7 @@ class RandomQualityIssue:
     severity: str
     message: str
     excerpt: str = ""
+    location: str = ""
 
 
 @dataclass(frozen=True)
@@ -54,115 +41,41 @@ class CandidateReview:
     rendered_day_count: int
     trip_title: str
     trip_subtitle: str
+    score: int
+    error_count: int
+    warning_count: int
     issue_count: int
     issues: tuple[RandomQualityIssue, ...]
 
     @property
     def ok(self) -> bool:
-        return not any(issue.severity == "error" for issue in self.issues)
+        return self.error_count == 0
 
 
-def _day_text(day: Any) -> str:
-    parts = [getattr(day, "title", ""), getattr(day, "intro", "")]
-    for block in getattr(day, "blocks", []) or []:
-        parts.extend([getattr(block, "title", ""), getattr(block, "description", "")])
-    return "\n".join(str(part or "") for part in parts if str(part or "").strip())
-
-
-def _full_context_text(context: Any) -> str:
-    parts = [getattr(context, "trip_title", ""), getattr(context, "trip_subtitle", "")]
-    parts.extend(_day_text(day) for day in getattr(context.render_document, "days", []) or [])
-    return "\n".join(str(part or "") for part in parts)
-
-
-def _contains_uncertain_star_upgrade(source_text: str, output_text: str) -> bool:
-    if "3/4-star" not in source_text:
-        return False
-    # A mixed fixture may contain both confirmed 4-star and uncertain 3/4-star
-    # stays. Treat it as unsafe only when the uncertain range disappears from
-    # the generated output entirely while definite 4-star hotel copy remains.
-    if "3/4-star" in output_text:
-        return False
-    return bool(re.search(r"(?<!3/)\b4-star hotel\b", output_text, flags=re.IGNORECASE))
-
-
-def _multi_activity_false_open_time(rows: Sequence[dict[str, Any]], days: Iterable[Any]) -> list[RandomQualityIssue]:
-    issues: list[RandomQualityIssue] = []
-    grouped_rows = group_rows_by_day(rows)
-    day_texts = {str(getattr(day, "day", "")): _day_text(day) for day in days}
-    for day, day_rows in grouped_rows.items():
-        activity_count = sum(1 for row in day_rows if str(row.get("type") or "").casefold() == "activity")
-        if activity_count < 2:
-            continue
-        text = day_texts.get(str(day), "")
-        if "rest of the day is open" in text.casefold():
-            issues.append(
-                RandomQualityIssue(
-                    "multi_activity_false_open_time",
-                    "error",
-                    "Multi-activity day says the rest of the day is open.",
-                    str(day),
-                )
-            )
-    return issues
+def _from_score_issue(issue: OutputTextIssue) -> RandomQualityIssue:
+    return RandomQualityIssue(
+        code=issue.code,
+        severity=issue.severity,
+        message=issue.message,
+        excerpt=issue.excerpt,
+        location=issue.location,
+    )
 
 
 def review_candidate(candidate: ExcelFixtureCandidate) -> CandidateReview:
-    issues: list[RandomQualityIssue] = []
-    try:
-        rows = parse_itinerary(candidate.raw_text)
-    except Exception as exc:  # pragma: no cover - defensive CLI boundary
-        return CandidateReview(
-            fixture=candidate.summary(),
-            parsed_row_count=0,
-            rendered_day_count=0,
-            trip_title="",
-            trip_subtitle="",
-            issue_count=1,
-            issues=(RandomQualityIssue("parse_crash", "error", f"Parser crashed: {type(exc).__name__}: {exc}"),),
-        )
-
-    if not rows:
-        issues.append(RandomQualityIssue("no_parsed_rows", "error", "No itinerary rows parsed from fixture."))
-        return CandidateReview(candidate.summary(), 0, 0, "", "", len(issues), tuple(issues))
-
-    try:
-        grouped = group_rows_by_day(rows)
-        context = build_itinerary_render_context(rows, grouped, {"output_brand": "booknordics_customer"})
-    except Exception as exc:  # pragma: no cover - defensive CLI boundary
-        return CandidateReview(
-            fixture=candidate.summary(),
-            parsed_row_count=len(rows),
-            rendered_day_count=0,
-            trip_title="",
-            trip_subtitle="",
-            issue_count=1,
-            issues=(RandomQualityIssue("render_crash", "error", f"Render context crashed: {type(exc).__name__}: {exc}"),),
-        )
-
-    output_text = _full_context_text(context)
-    rendered_days = tuple(getattr(context.render_document, "days", []) or ())
-    if not rendered_days:
-        issues.append(RandomQualityIssue("no_rendered_days", "error", "Render context produced no days."))
-    if contains_banned_generated_phrase(output_text):
-        issues.append(RandomQualityIssue("banned_generated_phrase", "error", "Generated output contains a banned weak phrase."))
-    if _contains_uncertain_star_upgrade(candidate.raw_text, output_text):
-        issues.append(RandomQualityIssue("uncertain_hotel_star_range_upgraded", "error", "3/4-star source was rendered as definite 4-star hotel."))
-    if "Tromsø" in output_text and "Western Norway" in str(getattr(context, "trip_title", "")):
-        issues.append(RandomQualityIssue("trip_title_geography_mismatch", "error", "Trip title says Western Norway while output includes Tromsø."))
-    for typo in TYPO_LEAKS:
-        if typo.casefold() in output_text.casefold():
-            issues.append(RandomQualityIssue("supplier_typo_leaked", "error", f"Supplier typo leaked into output: {typo!r}", typo))
-    issues.extend(_multi_activity_false_open_time(rows, rendered_days))
-
+    review = render_candidate_review(candidate)
+    issues = tuple(_from_score_issue(issue) for issue in review.score.issues)
     return CandidateReview(
-        fixture=candidate.summary(),
-        parsed_row_count=len(rows),
-        rendered_day_count=len(rendered_days),
-        trip_title=str(getattr(context, "trip_title", "")),
-        trip_subtitle=str(getattr(context, "trip_subtitle", "")),
-        issue_count=len(issues),
-        issues=tuple(issues),
+        fixture=review.fixture,
+        parsed_row_count=review.parsed_row_count,
+        rendered_day_count=review.rendered_day_count,
+        trip_title=review.trip_title,
+        trip_subtitle=review.trip_subtitle,
+        score=review.score.score,
+        error_count=review.score.error_count,
+        warning_count=review.score.warning_count,
+        issue_count=review.score.issue_count,
+        issues=issues,
     )
 
 
@@ -191,7 +104,9 @@ def build_random_quality_report(
         "sample_size": len(selected),
         "selected_fixture_ids": [candidate.fixture_id for candidate in selected],
         "bank_summary": build_index_summary(candidates),
-        "error_count": sum(1 for review in reviews for issue in review.issues if issue.severity == "error"),
+        "error_count": sum(review.error_count for review in reviews),
+        "warning_count": sum(review.warning_count for review in reviews),
+        "average_score": round(sum(review.score for review in reviews) / len(reviews), 1) if reviews else 0,
         "reviews": [
             {
                 **asdict(review),
@@ -230,7 +145,9 @@ def main(argv: list[str] | None = None) -> int:
         "sample_size": len(selected),
         "selected_fixture_ids": [candidate.fixture_id for candidate in selected],
         "bank_summary": build_index_summary(candidates),
-        "error_count": sum(1 for review in reviews for issue in review.issues if issue.severity == "error"),
+        "error_count": sum(review.error_count for review in reviews),
+        "warning_count": sum(review.warning_count for review in reviews),
+        "average_score": round(sum(review.score for review in reviews) / len(reviews), 1) if reviews else 0,
         "reviews": [
             {
                 **asdict(review),

@@ -16,10 +16,22 @@ Small hand-written fixtures catch known regressions. The real Excel bank is for 
 
 ## Recommended workflow
 
-Run a seeded sample while developing:
+Run a seeded pass/fail sample while developing:
 
 ```powershell
 python scripts/random_quality_check_itineraries.py --sample-size 5 --seed 6200
+```
+
+Generate a readable product-text report when you need to inspect the output itself:
+
+```powershell
+python scripts/review_real_output_text.py --sample-size 5 --seed 6200
+```
+
+Generate a compact scoring report when you need issue codes and excerpts:
+
+```powershell
+python scripts/score_real_output_text.py --sample-size 5 --seed 6200
 ```
 
 Then run a new random sample after fixing anything:
@@ -45,8 +57,12 @@ The random checker fails on:
 * no rendered days
 * banned generated phrases
 * unsafe `3/4-star` → definite `4-star hotel` disappearance
-* supplier typo leaks such as `Date dependant`, `Funicual`, `Profesional`, `Free wifi`, `aiport`, `doulbe`, `milage`
-* `Western Norway` title while Tromsø is present
+* supplier typo leaks such as `Date dependant`, `Funicual`, `Profesional`, `Free wifi`, `aiport`, `doulbe`, `milage`, `Actvity`
+* suspicious supplier cleanup gaps as warnings, such as `Centraly` and `Guest Hose`
+* raw optional-experience supplier blobs as warnings
+* transfer phrases treated as place names as warnings
+* transport-like products rendered as activities as warnings
+* activity/city mismatch sentences as warnings
 * multi-activity days saying the rest of the day is open
 
 ## Validation proof
@@ -56,3 +72,7 @@ The random checker fails on:
 ```powershell
 python scripts/random_quality_check_itineraries.py --sample-size 4 --seed 6200
 ```
+
+## Readable review and scoring
+
+See `docs/quality/REAL_OUTPUT_TEXT_QA.md` for the Patch 63 readable review runner and Patch 64 scoring report workflow.
