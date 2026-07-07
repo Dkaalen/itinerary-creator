@@ -1,0 +1,41 @@
+from pathlib import Path
+from tests.support.static_contracts import read_contract_text
+from types import SimpleNamespace
+
+from app_modules import input_generation_action
+from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
+
+
+def test_input_page_removes_fixed_language_and_tone_controls() -> None:
+    source = read_contract_text("app_modules/input_step.py")
+
+    assert "Presentation language" not in source
+    assert "Tone preset" not in source
+    assert "render_presentation_language_selector" not in source
+    assert "render_tone_preset_selector" not in source
+    action_source = read_contract_text("app_modules/input_generation_action.py")
+    assert "DEFAULT_PRESENTATION_LANGUAGE" in action_source
+    assert "DEFAULT_TONE_PRESET" in action_source
+
+
+def test_language_and_tone_selectors_are_removed_from_normal_ui() -> None:
+    assert not Path("app_modules/presentation_language_ui.py").exists()
+    assert not Path("app_modules/tone_preset_ui.py").exists()
+
+
+def test_generate_itinerary_forces_fixed_language_and_tone(monkeypatch) -> None:
+    state = {
+        "presentation_language": "fr",
+        "tone_preset": "luxury_editorial",
+        "itinerary_name_input": "Norway Winter",
+    }
+
+    monkeypatch.setattr(input_generation_action, "sync_itinerary_name_from_input", lambda _state: None)
+    monkeypatch.setattr(input_generation_action, "generate_itinerary", lambda _state, _raw_text: SimpleNamespace(ok=True, payload={}))
+
+    assert input_generation_action.generate_supplier_itinerary(state, "Day 1\tHotel") is True
+    assert state["presentation_language"] == DEFAULT_PRESENTATION_LANGUAGE
+    assert state["tone_preset"] == DEFAULT_TONE_PRESET
+    assert state["requested_presentation_language"] == DEFAULT_PRESENTATION_LANGUAGE
+    assert state["requested_tone_preset"] == DEFAULT_TONE_PRESET

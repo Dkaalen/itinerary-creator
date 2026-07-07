@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from scripts import architecture_guards
 from scripts.architecture_guards import (
@@ -46,7 +47,7 @@ def test_function_size_guard_blocks_new_giant_functions_outside_allowlist() -> N
     assert oversized_python_functions() == ()
 
 
-def test_patch_history_and_vague_names_do_not_return_to_high_value_source_dirs() -> None:
+def test_and_vague_names_do_not_return_to_high_value_source_dirs() -> None:
     assert patch_history_name_hits() == ()
 
 
@@ -62,7 +63,7 @@ def test_debug_review_imports_are_lazy_behind_debug_boundaries() -> None:
 
 
 def test_pdf_internal_review_appendix_is_lazy_loaded_only_when_enabled() -> None:
-    typed_exporter = (ROOT / "pdf_exporter_modules" / "typed_exporter.py").read_text(encoding="utf-8")
+    typed_exporter = read_contract_text(ROOT / "pdf_exporter_modules" / "typed_exporter.py")
 
     assert import_from_hits("pdf_exporter_modules/typed_exporter.py", ("pdf_exporter_modules.pdf_internal_review_appendix",)) == ()
     assert "if profile.include_internal_notes:" in typed_exporter
@@ -88,7 +89,7 @@ def test_right_inspector_does_not_depend_on_canvas_image_replacement_modules() -
         assert marker not in inspector_sources
 
 
-def test_patch_artifacts_and_duplicate_tests_do_not_return() -> None:
+def test_and_duplicate_tests_do_not_return() -> None:
     assert root_patch_artifact_hits() == ()
     assert duplicate_test_path_hits() == ()
 

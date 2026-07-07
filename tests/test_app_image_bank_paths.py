@@ -10,7 +10,7 @@ sys.path.insert(0, str(TESTS_DIR))
 from image_test_helpers import assert_equal, assert_contains
 from image_matcher import get_image_bank_diagnostics, scan_image_bank, select_day_image, select_day_images
 
-def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
+def test_app_image_bank_paths_prefer_full_then_fallback():
     import images.app_image_selection as app_images
 
     original_root = app_images.APP_ROOT
@@ -37,7 +37,7 @@ def test_v36c72_app_image_bank_paths_prefer_full_then_fallback():
         app_images.APP_ROOT = original_root
 
 
-def test_v36c72_app_image_bank_paths_fall_back_to_small_bank():
+def test_app_image_bank_paths_fall_back_to_small_bank():
     import images.app_image_selection as app_images
 
     original_root = app_images.APP_ROOT

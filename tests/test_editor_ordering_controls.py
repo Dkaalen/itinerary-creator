@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 import subprocess
 
 from app_modules.itinerary_render_context import build_itinerary_render_context
@@ -12,7 +13,7 @@ def _frontend_source() -> str:
 
 def test_page_headers_expose_page_ordering_controls():
     source = _frontend_source()
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
 
     assert "moveDocumentPage" in source
     assert "moveDocumentPageToIndex" in source

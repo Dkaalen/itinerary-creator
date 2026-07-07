@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 from tests.support.frontend_assets import frontend_source
 
 
@@ -42,8 +43,8 @@ def test_editor_marks_dirty_pages_and_blocks():
 
 
 def test_server_autosave_status_is_in_payload_contract():
-    payload_builder = Path("visual_editor_component/editor_payload_builder.py").read_text(encoding="utf-8")
-    status_helper = Path("visual_editor_component/editor_status.py").read_text(encoding="utf-8")
+    payload_builder = read_contract_text("visual_editor_component/editor_payload_builder.py")
+    status_helper = read_contract_text("visual_editor_component/editor_status.py")
 
     assert "persistent_draft_status" in payload_builder
     assert '"autosave_status"' in payload_builder

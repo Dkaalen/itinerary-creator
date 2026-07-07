@@ -1,5 +1,6 @@
 import importlib
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 REQUIRED_TOP_LEVEL_FACADES = {
@@ -53,7 +54,7 @@ def test_required_generation_facades_remain_importable_and_documented():
 
 
 def test_facade_audit_notes_are_kept_with_architecture_docs():
-    notes = Path("docs/compatibility-facades.md").read_text(encoding="utf-8")
+    notes = read_contract_text("docs/compatibility-facades.md")
 
     for facade in REQUIRED_TOP_LEVEL_FACADES:
         assert f"`{facade}.py`" in notes

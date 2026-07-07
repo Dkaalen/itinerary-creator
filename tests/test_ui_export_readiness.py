@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from app_modules.export_identity import export_signature_for_state
 from app_modules.export_state import export_readiness_from_state
@@ -120,10 +121,10 @@ def test_export_readiness_ignores_stale_visual_editor_commit_request():
 
 
 def test_export_screen_keeps_normal_pdf_flow_direct():
-    source = Path("app_modules/export_step.py").read_text()
-    action_source = Path("app_modules/export_actions.py").read_text()
-    image_validation_source = Path("app_modules/export_image_validation.py").read_text()
-    state_source = Path("app_modules/export_state.py").read_text()
+    source = read_contract_text("app_modules/export_step.py")
+    action_source = read_contract_text("app_modules/export_actions.py")
+    image_validation_source = read_contract_text("app_modules/export_image_validation.py")
+    state_source = read_contract_text("app_modules/export_state.py")
 
     assert "ExportReadiness" in state_source
     assert "def export_readiness_from_state" in state_source
@@ -141,7 +142,7 @@ def test_export_screen_keeps_normal_pdf_flow_direct():
 
 
 def test_export_screen_keeps_client_qa_out_of_normal_pdf_flow():
-    source = Path("app_modules/export_step.py").read_text()
+    source = read_contract_text("app_modules/export_step.py")
 
     assert "Client QA" not in source
     assert "Ready for client" not in source

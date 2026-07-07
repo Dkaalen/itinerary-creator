@@ -32,7 +32,7 @@ from layout_policy import (
     is_three_day_packing_enabled,
 )
 
-def test_v36c52_content_quality_hardening_rules():
+def test_content_quality_hardening_rules():
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.inclusions import create_whats_not_included
     from ui.day_blocks import build_day_blocks, build_day_overview_block

@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from app_modules.export_stage_action import enter_export_stage
 
@@ -26,10 +27,10 @@ def test_export_stage_does_not_request_blocking_pdf_editor_commit():
 
 
 def test_generation_buttons_share_one_pipeline_and_only_set_brand():
-    source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
-    generation_source = Path("app_modules/generation_action.py").read_text(encoding="utf-8")
-    preview_source = Path("app_modules/generation_preview_builder.py").read_text(encoding="utf-8")
-    settings_source = Path("app_modules/generation_settings.py").read_text(encoding="utf-8")
+    source = read_contract_text("app_modules/input_step.py")
+    generation_source = read_contract_text("app_modules/generation_action.py")
+    preview_source = read_contract_text("app_modules/generation_preview_builder.py")
+    settings_source = read_contract_text("app_modules/generation_settings.py")
 
     assert "Generate agent itinerary" in source
     assert "Generate customer itinerary" in source
@@ -46,12 +47,12 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
 
 
 def test_pdf_export_screen_has_bounded_editor_commit_before_export():
-    source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
-    export_page_source = Path("app_modules/export_page.py").read_text(encoding="utf-8")
-    preflight_source = Path("app_modules/pdf_preflight.py").read_text(encoding="utf-8")
-    state_source = Path("app_modules/export_state.py").read_text(encoding="utf-8")
+    source = read_contract_text("app_modules/export_step.py")
+    export_page_source = read_contract_text("app_modules/export_page.py")
+    preflight_source = read_contract_text("app_modules/pdf_preflight.py")
+    state_source = read_contract_text("app_modules/export_state.py")
 
-    picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
+    picture_source = read_contract_text("app_modules/picture_step.py")
 
     assert "Applying pending editor changes" not in source
     assert "the PDF must be created from the exact visible editor state" in picture_source

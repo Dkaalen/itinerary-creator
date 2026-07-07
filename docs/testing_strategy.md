@@ -97,15 +97,24 @@ Static audit command:
 python scripts/test_suite_audit.py
 ```
 
-The audit separates actual implementation source-contract assertions from useful
-generated-output text assertions. Do not treat customer-output wording checks as
-fake confidence just because they assert strings in generated text.
+The audit separates three different string-check categories:
+
+- raw implementation source-contract assertions, which should stay at zero
+- explicit static-contract helpers for unavoidable wiring/frontend/source guards
+- generated-output text assertions, which are usually real product behavior
+
+Prefer behavior tests. When a static guard is the right tradeoff, use
+`tests.support.static_contracts` so the test is explicit about inspecting source
+or frontend assets instead of hiding brittle `read_text()` assertions inside the
+test body.
+
+Legacy patch-history filenames and numbered patch-style test names should stay at
+zero. Regression files should be named after the product behavior or domain they
+protect.
 
 Highest-value cleanup areas remain:
 
-1. Replace brittle implementation source-contract tests with behavior tests when
-   practical.
-2. Rename patch-history filenames only when it improves discoverability.
-3. Keep slow/PDF/image-heavy tests isolated from instant and CI matrix lanes.
-4. Consolidate fixtures locally by domain, not through one giant `conftest.py`.
-5. Add high-value regressions only for product risks that can break the hosted app.
+1. Convert explicit static-contract helper tests into behavior tests when practical.
+2. Keep slow/PDF/image-heavy tests isolated from instant and CI matrix lanes.
+3. Consolidate fixtures locally by domain, not through one giant `conftest.py`.
+4. Add high-value regressions only for product risks that can break the hosted app.

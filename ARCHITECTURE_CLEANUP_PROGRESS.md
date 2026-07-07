@@ -2665,7 +2665,7 @@ git diff --check: passed
 Pre-existing failures observed in the uploaded baseline and still unresolved:
 
 ```text
-[x] tests/test_patch_k_transport_preview_quality.py::test_nutshell_timetable_route_uses_premium_no_arrow_format
+[x] tests/test_transport_preview_quality_regression.py::test_nutshell_timetable_route_uses_premium_no_arrow_format
 [x] tests/test_transport_render_split.py::test_nutshell_domain_and_parsing_do_not_import_transport_facade_or_each_other
 [x] tests/test_nordic_quality_sample.py::test_nordic_quality_sample_matches_key_quality_target_markers
 ```
@@ -2705,7 +2705,7 @@ Adjacent add-pictures, image-bank gateway, cover-toolbar, PDF fast-path and sync
 Pre-existing/unrelated failures observed during broad image-test sweep:
 
 ```text
-[ ] tests/test_patch_ui21_qc_input_pdf_style_image.py::test_style1_registry_has_theme_and_new_pdf_safe_presets_synced_to_frontend
+[ ] tests/test_qc_input_pdf_style_image_regression.py::test_style1_registry_has_theme_and_new_pdf_safe_presets_synced_to_frontend
     Reason: old style-preset source-string/breadcrumb assertion; not touched by Batch 37 and should be handled during Batch 40 legacy breadcrumb/test cleanup.
 [ ] tests/test_editor_editing_coverage.py::test_frontend_exposes_remaining_static_labels_as_editable_fields
     Reason: old frontend source-string assertion; not touched by Batch 37 and should be handled during Batch 40 legacy breadcrumb/test cleanup.

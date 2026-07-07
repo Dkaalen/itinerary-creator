@@ -1,12 +1,13 @@
 import json
 import re
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from visual_editor_component.style_presets import preset_class_map, preset_group
 
 
 def _frontend_registry() -> dict:
-    js = Path("visual_editor_component/frontend/js/style_preset_data.js").read_text(encoding="utf-8")
+    js = read_contract_text("visual_editor_component/frontend/js/style_preset_data.js")
     match = re.search(
         r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});",
         js,
@@ -18,8 +19,8 @@ def _frontend_registry() -> dict:
 
 def test_normal_export_flow_is_direct_and_not_a_readiness_dashboard():
     source = (
-        Path("app_modules/export_step.py").read_text(encoding="utf-8")
-        + Path("app_modules/export_download_station.py").read_text(encoding="utf-8")
+        read_contract_text("app_modules/export_step.py")
+        + read_contract_text("app_modules/export_download_station.py")
     )
 
     assert "def _render_fatal_export_blockers" in source
@@ -42,7 +43,7 @@ def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default(
     font_ids = [font.get("id") for font in fonts]
     dm_sans = next(font for font in fonts if font.get("id") == "dm_sans")
     frontend_fonts = _frontend_registry()["font_families"]
-    css = Path("visual_editor_component/frontend/styles/editor_text_tools.css").read_text(encoding="utf-8")
+    css = read_contract_text("visual_editor_component/frontend/styles/editor_text_tools.css")
 
     assert font_ids[0] == "default"
     assert preset_class_map("font_families")["default"] == ""
@@ -55,8 +56,8 @@ def test_dm_sans_is_available_as_optional_editor_font_without_replacing_default(
 
 
 def test_normal_input_flow_exposes_project_file_open_and_keeps_legacy_loader_debug_only():
-    source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
-    project_browser_ui = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
+    source = read_contract_text("app_modules/input_step.py")
+    project_browser_ui = read_contract_text("app_modules/project_browser_ui.py")
 
     assert "Generate agent itinerary" in source
     assert "Generate customer itinerary" in source

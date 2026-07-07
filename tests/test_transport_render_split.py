@@ -1,10 +1,11 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 def test_transport_render_special_blocks_are_split_from_generic_renderer():
-    generic = Path("itinerary_generation/transport_domain/render.py").read_text(encoding="utf-8")
-    nutshell = Path("itinerary_generation/transport_domain/nutshell_render.py").read_text(encoding="utf-8")
-    coastal = Path("itinerary_generation/transport_domain/coastal_cruise_render.py").read_text(encoding="utf-8")
+    generic = read_contract_text("itinerary_generation/transport_domain/render.py")
+    nutshell = read_contract_text("itinerary_generation/transport_domain/nutshell_render.py")
+    coastal = read_contract_text("itinerary_generation/transport_domain/coastal_cruise_render.py")
 
     assert "def build_featured_nutshell_block" not in generic
     assert "def build_coastal_cruise_block" not in generic
@@ -14,10 +15,10 @@ def test_transport_render_special_blocks_are_split_from_generic_renderer():
 
 
 def test_nutshell_domain_and_parsing_do_not_import_transport_facade_or_each_other():
-    domain = Path("itinerary_generation/nutshell_domain.py").read_text(encoding="utf-8")
-    parsing = Path("itinerary_generation/nutshell_parsing.py").read_text(encoding="utf-8")
-    labels = Path("itinerary_generation/nutshell_labels.py").read_text(encoding="utf-8")
-    facade = Path("itinerary_generation/transport_norway.py").read_text(encoding="utf-8")
+    domain = read_contract_text("itinerary_generation/nutshell_domain.py")
+    parsing = read_contract_text("itinerary_generation/nutshell_parsing.py")
+    labels = read_contract_text("itinerary_generation/nutshell_labels.py")
+    facade = read_contract_text("itinerary_generation/transport_norway.py")
 
     assert "from itinerary_generation.nutshell_parsing import" in domain
     assert "from itinerary_generation.transport_norway import" not in domain

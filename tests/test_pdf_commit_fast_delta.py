@@ -1,6 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 FRONTEND = Path("visual_editor_component/frontend/js")
@@ -247,7 +248,7 @@ def test_hard_commit_rerun_uses_tiny_frontend_signal_payload():
     assert payload["document_pages"] == []
     assert "brand" not in payload
 
-    workflow_source = Path("visual_editor_component/editor_workflow.py").read_text(encoding="utf-8")
-    render_source = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
+    workflow_source = read_contract_text("visual_editor_component/editor_workflow.py")
+    render_source = read_contract_text("visual_editor_component/frontend/js/render.js")
     assert "build_editor_commit_signal_payload" in workflow_source
     assert "if (commitSignalOnly) return;" in render_source

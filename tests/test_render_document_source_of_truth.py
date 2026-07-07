@@ -1,5 +1,6 @@
 import ast
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from generator import group_rows_by_day
 from itinerary_parser import parse_itinerary
@@ -58,8 +59,8 @@ def test_render_day_pages_uses_supplied_render_document_without_rebuilding_days(
 
 
 def test_itinerary_html_builds_render_document_from_structured_document():
-    html_source = (ROOT / "app_modules" / "itinerary_html.py").read_text(encoding="utf-8")
-    context_source = (ROOT / "app_modules" / "itinerary_render_context.py").read_text(encoding="utf-8")
+    html_source = read_contract_text(ROOT / "app_modules" / "itinerary_html.py")
+    context_source = read_contract_text(ROOT / "app_modules" / "itinerary_render_context.py")
 
     html_tree = ast.parse(html_source)
     context_tree = ast.parse(context_source)
@@ -83,13 +84,13 @@ def test_itinerary_html_builds_render_document_from_structured_document():
 
 
 def test_render_model_has_no_upstream_canonical_dependency():
-    source = (ROOT / "itinerary_generation" / "render_model.py").read_text(encoding="utf-8")
+    source = read_contract_text(ROOT / "itinerary_generation" / "render_model.py")
     assert "canonical_model" not in source
     assert "render_block_from_canonical" not in source
 
 
 def test_canonical_to_render_adapter_is_the_only_canonical_bridge():
-    source = (ROOT / "itinerary_generation" / "canonical_render_adapter.py").read_text(encoding="utf-8")
+    source = read_contract_text(ROOT / "itinerary_generation" / "canonical_render_adapter.py")
     assert "from itinerary_generation.canonical_model" in source
     assert "from itinerary_generation.render_model" in source
 

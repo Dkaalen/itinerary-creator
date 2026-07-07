@@ -22,7 +22,7 @@ This batch changes the app design direction from a repainted Streamlit form to a
 
 ## Guardrails
 
-- `tests/test_batch3_design_system.py` prevents the old deep green primary style from returning in the app shell and calculator grid.
+- `tests/test_design_system_regression.py` prevents the old deep green primary style from returning in the app shell and calculator grid.
 - `tests/test_ui_style_contrast.py` now checks the quieter palette and button contrast.
 - Existing workflow tests still verify that design changes did not alter the main itinerary flow.
 

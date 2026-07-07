@@ -1,6 +1,7 @@
 import sys
 import types
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -138,6 +139,6 @@ Day 2	Activity	02.01.2026		Norway in a NUtshell | Oslo to Bergen | 08:35 --- 20:
     assert "Scenic rail &amp; fjord journeys" in joined or "Scenic rail & fjord journeys" in joined
     assert "Norway in a Nutshell from Oslo to Bergen" in joined
 
-    text_dom = Path("visual_editor_component/frontend/js/editor_text_dom.js").read_text(encoding="utf-8")
+    text_dom = read_contract_text("visual_editor_component/frontend/js/editor_text_dom.js")
     assert "key.includes('.whats_included_pages_html.')" in text_dom
     assert "el.innerHTML.trim()" in text_dom

@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from itinerary_generation.editor_page_contract import build_editor_document_pages
 from tests.support.frontend_assets import frontend_source
@@ -76,9 +77,9 @@ def test_right_inspector_exposes_pdf_safe_text_tools():
 
 def test_right_inspector_does_not_own_image_tools():
     source = _frontend_source()
-    inspector = Path("visual_editor_component/frontend/js/editor_inspector.js").read_text(encoding="utf-8")
-    images = Path("visual_editor_component/frontend/js/images.js").read_text(encoding="utf-8")
-    cover_tools = Path("visual_editor_component/frontend/js/editor_image_tools.js").read_text(encoding="utf-8")
+    inspector = read_contract_text("visual_editor_component/frontend/js/editor_inspector.js")
+    images = read_contract_text("visual_editor_component/frontend/js/images.js")
+    cover_tools = read_contract_text("visual_editor_component/frontend/js/editor_image_tools.js")
 
     assert "renderInspectorImageTools" not in source
     assert "inspectorImageFocus" not in source

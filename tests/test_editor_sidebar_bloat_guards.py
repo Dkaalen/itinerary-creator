@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 FRONTEND_JS = Path("visual_editor_component/frontend/js")
 
@@ -64,8 +65,8 @@ def test_normal_editor_shell_does_not_render_debug_review_status_bloat():
 
 
 def test_debug_review_bloat_is_behind_explicit_debug_boundary():
-    debug_source = (FRONTEND_JS / "editor_debug_shell.js").read_text(encoding="utf-8")
-    readiness_source = (FRONTEND_JS / "editor_debug_readiness.js").read_text(encoding="utf-8")
+    debug_source = read_contract_text(FRONTEND_JS / "editor_debug_shell.js")
+    readiness_source = read_contract_text(FRONTEND_JS / "editor_debug_readiness.js")
 
     assert "function editorDebugModeEnabled" in debug_source
     assert "return reviewCenterHtml();" in debug_source

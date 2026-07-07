@@ -1,11 +1,12 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from images.replacement_options import list_replacement_image_options_for_rows
 
 
 def test_active_main_view_uses_locked_document_flow_without_old_steps():
-    source = Path("app_modules/main_view.py").read_text()
-    config_source = Path("app_modules/workflow_config.py").read_text()
+    source = read_contract_text("app_modules/main_view.py")
+    config_source = read_contract_text("app_modules/workflow_config.py")
 
     assert 'FLOW_STAGES = ("input", "edit", "pictures", "export")' in config_source
     assert '"input": "Paste text"' in config_source
@@ -23,28 +24,28 @@ def test_active_main_view_uses_locked_document_flow_without_old_steps():
     assert "Step 4" not in source
     assert "Step 5" not in source
 
-    input_source = Path("app_modules/input_step.py").read_text()
+    input_source = read_contract_text("app_modules/input_step.py")
     assert "Generate agent itinerary" in input_source
     assert "Generate customer itinerary" in input_source
-    assert "Add pictures" in Path("app_modules/add_pictures_cta.py").read_text()
-    assert "Create PDF" in Path("app_modules/picture_pdf_cta.py").read_text()
-    assert "def render_export_page" in Path("app_modules/export_page.py").read_text()
-    assert "enter_export_stage" in Path("app_modules/picture_pdf_cta.py").read_text()
-    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" not in Path("app_modules/picture_step.py").read_text()
+    assert "Add pictures" in read_contract_text("app_modules/add_pictures_cta.py")
+    assert "Create PDF" in read_contract_text("app_modules/picture_pdf_cta.py")
+    assert "def render_export_page" in read_contract_text("app_modules/export_page.py")
+    assert "enter_export_stage" in read_contract_text("app_modules/picture_pdf_cta.py")
+    assert "request_pdf_commit_func=request_pdf_creation_after_visual_editor_commit" not in read_contract_text("app_modules/picture_step.py")
 
 
 def test_edit_page_stops_duplicate_add_pictures_button_after_gateway_block():
-    source = Path("app_modules/image_gateway_ui.py").read_text()
-    edit_source = Path("app_modules/add_pictures_cta.py").read_text()
+    source = read_contract_text("app_modules/image_gateway_ui.py")
+    edit_source = read_contract_text("app_modules/add_pictures_cta.py")
 
     assert "def _image_bank_gateway_is_blocking" in source
     assert "if _image_bank_gateway_is_blocking(gateway_result):" in edit_source
     assert "return" in edit_source[edit_source.index("if _image_bank_gateway_is_blocking(gateway_result):"):edit_source.index('if st.button("Add pictures"')]
 
 def test_picture_page_hands_off_to_real_export_stage():
-    picture_source = Path("app_modules/picture_step.py").read_text()
-    cta_source = Path("app_modules/picture_pdf_cta.py").read_text()
-    export_source = Path("app_modules/export_page.py").read_text()
+    picture_source = read_contract_text("app_modules/picture_step.py")
+    cta_source = read_contract_text("app_modules/picture_pdf_cta.py")
+    export_source = read_contract_text("app_modules/export_page.py")
 
     assert 'if st.button("Create PDF", type="primary", use_container_width=True):' in cta_source
     assert "enter_export_stage" in cta_source

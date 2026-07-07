@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from tests.frontend_asset_helpers import read_resolved_frontend_css
 
@@ -160,8 +161,8 @@ def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():
 
 
 def test_ui23_editor_toolbar_is_compact_and_moves_advanced_status_to_debug():
-    source = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
+    source = read_contract_text("visual_editor_component/frontend/js/render.js")
+    debug_js = read_contract_text("visual_editor_component/frontend/js/editor_debug_shell.js")
     css = read_resolved_frontend_css()
 
     assert "toolbar-copy compact" in source

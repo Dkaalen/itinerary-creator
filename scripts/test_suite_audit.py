@@ -35,7 +35,7 @@ from scripts.test_groups import (  # noqa: E402
 )
 
 DIRECT_MARK_RE = re.compile(r"@pytest\.mark\.(?!parametrize\b)([A-Za-z_][A-Za-z0-9_]*)")
-PATCH_NAME_RE = re.compile(r"test_(?:patch|batch|qg|dest|input|editor|review|cleanup)[:_0-9a-zA-Z-]*\.py")
+PATCH_NAME_RE = re.compile(r"test_(?:patch_|batch[0-9a-z]*_|qg_|(?:dest|input|editor|review|cleanup)\d)[0-9a-zA-Z_-]*\.py")
 SOURCE_FILE_HINTS = (
     "app_modules/",
     "calculator/",
@@ -132,6 +132,11 @@ def _read_text_behavior_assertions(path: Path) -> int:
     return len(re.findall(r"assert\s+[^\n]*(?:\bin\s+text\b|\bnot\s+in\s+text\b)", text))
 
 
+def _explicit_static_contract_helper_used(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    return "tests.support.static_contracts" in text or "read_contract_text(" in text
+
+
 def _format_list(items: Iterable[str], *, limit: int = 30) -> list[str]:
     values = list(items)
     lines = [f"  - {item}" for item in values[:limit]]
@@ -151,6 +156,9 @@ def build_report() -> str:
     behavior_text_counts = {
         path.name: count for path in modules if (count := _read_text_behavior_assertions(path))
     }
+    explicit_static_contracts = sorted(
+        path.name for path in modules if _explicit_static_contract_helper_used(path)
+    )
     direct_markers = Counter()
     test_counts: list[tuple[int, str]] = []
     for path in modules:
@@ -185,6 +193,7 @@ def build_report() -> str:
         f"Slow modules: {len(SLOW_TESTS)}",
         f"Direct non-parametrize pytest markers: {sum(direct_markers.values())}",
         f"Source-file contract assertion files: {len(source_contract_counts)}",
+        f"Explicit static-contract helper files: {len(explicit_static_contracts)}",
         f"Generated-output text assertion files: {len(behavior_text_counts)}",
         f"Patch/history-style test filenames: {len(patch_history_names)}",
         "",
@@ -207,6 +216,11 @@ def build_report() -> str:
     if top_source_files:
         lines.append("Top source-file contract assertion candidates:")
         lines.extend(f"  - {name}: {count}" for name, count in top_source_files)
+        lines.append("")
+
+    if explicit_static_contracts:
+        lines.append("Explicit static-contract helper files:")
+        lines.extend(_format_list(explicit_static_contracts, limit=12))
         lines.append("")
 
     top_count_files = sorted(test_counts, reverse=True)[:12]

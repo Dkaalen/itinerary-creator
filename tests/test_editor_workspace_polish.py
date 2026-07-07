@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from tests.frontend_asset_helpers import read_resolved_frontend_css
 from tests.support.frontend_assets import frontend_source
@@ -10,8 +11,8 @@ def _frontend_source() -> str:
 
 def test_ui15_keeps_review_center_behind_debug_boundary():
     source = _frontend_source()
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
+    debug_js = read_contract_text("visual_editor_component/frontend/js/editor_debug_shell.js")
 
     assert "reviewCenterHtml" in source
     assert 'class="review-center"' in source
@@ -48,8 +49,8 @@ def test_ui18_keeps_formatting_sidebar_visible_while_canvas_scrolls():
 
 
 def test_ui18_page_navigation_is_collapsed_not_a_permanent_left_sidebar():
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    outline_js = Path("visual_editor_component/frontend/js/editor_document_outline.js").read_text(encoding="utf-8")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
+    outline_js = read_contract_text("visual_editor_component/frontend/js/editor_document_outline.js")
     css = read_resolved_frontend_css()
 
     assert 'class="pages-menu"' in outline_js

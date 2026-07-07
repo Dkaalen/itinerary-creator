@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from app_modules import export_actions
 from app_modules.export_identity import export_signature_for_state
@@ -38,9 +39,9 @@ def test_current_pdf_creation_is_a_noop_fast_path(monkeypatch):
 
 
 def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
-    source = Path("app_modules/export_step.py").read_text(encoding="utf-8")
-    picture_source = Path("app_modules/picture_step.py").read_text(encoding="utf-8")
-    cta_source = Path("app_modules/picture_pdf_cta.py").read_text(encoding="utf-8")
+    source = read_contract_text("app_modules/export_step.py")
+    picture_source = read_contract_text("app_modules/picture_step.py")
+    cta_source = read_contract_text("app_modules/picture_pdf_cta.py")
 
     assert "if readiness.pdf_ready:" in source
     assert source.index("if readiness.pdf_ready:") < source.index('st.button("Create PDF"')
@@ -51,8 +52,8 @@ def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
 
 def test_export_screen_clears_stale_pdf_commit_state_without_waiting():
     source = (
-        Path("app_modules/export_step.py").read_text(encoding="utf-8")
-        + Path("app_modules/pdf_creation_request.py").read_text(encoding="utf-8")
+        read_contract_text("app_modules/export_step.py")
+        + read_contract_text("app_modules/pdf_creation_request.py")
     )
 
     assert "visual_editor_export_commit_ready" not in source
@@ -230,8 +231,8 @@ def test_pdf_image_contract_ignores_stale_stage_matches_when_user_removed_image(
 
 
 def test_pdf_renderer_prewarms_day_image_crops_before_reportlab_build():
-    source = Path("pdf_exporter_modules/typed_exporter.py").read_text(encoding="utf-8")
-    prewarm_source = Path("pdf_exporter_modules/pdf_image_prewarm.py").read_text(encoding="utf-8")
+    source = read_contract_text("pdf_exporter_modules/typed_exporter.py")
+    prewarm_source = read_contract_text("pdf_exporter_modules/pdf_image_prewarm.py")
 
     assert "prewarm_pdf_day_images(" in source
     assert "render_document.days or []" in source

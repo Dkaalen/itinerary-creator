@@ -1,13 +1,14 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 def test_pdf_download_has_durable_top_and_bottom_stations():
     export_source = (
-        Path("app_modules/export_step.py").read_text()
-        + Path("app_modules/export_download_station.py").read_text()
+        read_contract_text("app_modules/export_step.py")
+        + read_contract_text("app_modules/export_download_station.py")
     )
-    artifact_source = Path("app_modules/export_pdf_artifacts.py").read_text()
-    main_source = Path("app_modules/picture_step.py").read_text() + Path("app_modules/export_page.py").read_text()
+    artifact_source = read_contract_text("app_modules/export_pdf_artifacts.py")
+    main_source = read_contract_text("app_modules/picture_step.py") + read_contract_text("app_modules/export_page.py")
 
     assert "current_pdf_artifact" in artifact_source
     assert "store_pdf_artifact" in artifact_source
@@ -18,7 +19,7 @@ def test_pdf_download_has_durable_top_and_bottom_stations():
 
 
 def test_pdf_download_button_is_sticky_when_ready():
-    styles = (Path("ui/style_export.py").read_text() + Path("ui/style_responsive.py").read_text())
+    styles = (read_contract_text("ui/style_export.py") + read_contract_text("ui/style_responsive.py"))
 
     assert ".pdf-ready-panel" in styles
     assert "stDownloadButton" in styles
@@ -27,9 +28,9 @@ def test_pdf_download_button_is_sticky_when_ready():
 
 
 def test_dirty_state_clears_durable_pdf_artifact():
-    output_edits = Path("ui/output_edits.py").read_text()
-    preview_rebuild = Path("app_modules/preview_rebuild.py").read_text()
-    workflow_state = Path("app_modules/workflow_state.py").read_text()
+    output_edits = read_contract_text("ui/output_edits.py")
+    preview_rebuild = read_contract_text("app_modules/preview_rebuild.py")
+    workflow_state = read_contract_text("app_modules/workflow_state.py")
 
     assert "st.session_state.export_pdf_bytes = None" in output_edits
     assert "st.session_state.export_pdf_signature = None" in output_edits
@@ -40,7 +41,7 @@ def test_dirty_state_clears_durable_pdf_artifact():
 
 
 def test_visual_editor_noop_saves_do_not_dirty_pdf():
-    source = Path("visual_editor_component/editor_result_applier.py").read_text()
+    source = read_contract_text("visual_editor_component/editor_result_applier.py")
 
     assert "before_snapshot = _stable_output_edits_snapshot(output_edits)" in source
     assert "after_snapshot = _stable_output_edits_snapshot(output_edits)" in source

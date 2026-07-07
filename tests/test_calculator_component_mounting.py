@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 FRONTEND_DIR = Path("calculator_grid_component/frontend")
@@ -11,8 +12,8 @@ def _calculator_js_bundle_source() -> str:
 
 
 def test_calculator_component_registers_message_listener_before_ready_signal() -> None:
-    app_source = (FRONTEND_DIR / "js/calculator_grid_app.js").read_text(encoding="utf-8")
-    bridge_source = (FRONTEND_DIR / "js/streamlit_bridge.js").read_text(encoding="utf-8")
+    app_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_app.js")
+    bridge_source = read_contract_text(FRONTEND_DIR / "js/streamlit_bridge.js")
 
     assert "Streamlit.setComponentReady();" not in bridge_source
     assert "window.addEventListener('message', handleStreamlitRender);" in app_source
@@ -20,9 +21,9 @@ def test_calculator_component_registers_message_listener_before_ready_signal() -
 
 
 def test_calculator_component_has_visible_loading_and_error_states() -> None:
-    bridge_source = (FRONTEND_DIR / "js/streamlit_bridge.js").read_text(encoding="utf-8")
-    app_source = (FRONTEND_DIR / "js/calculator_grid_app.js").read_text(encoding="utf-8")
-    css_source = (FRONTEND_DIR / "styles/calculator_grid.css").read_text(encoding="utf-8")
+    bridge_source = read_contract_text(FRONTEND_DIR / "js/streamlit_bridge.js")
+    app_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_app.js")
+    css_source = read_contract_text(FRONTEND_DIR / "styles/calculator_grid.css")
 
     assert "renderComponentBootMessage" in bridge_source
     assert "Waiting for calculator data from Streamlit" in app_source
@@ -31,7 +32,7 @@ def test_calculator_component_has_visible_loading_and_error_states() -> None:
 
 
 def test_calculator_component_index_references_existing_assets() -> None:
-    index_source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+    index_source = read_contract_text(FRONTEND_DIR / "index.html")
     for marker in ('href="', 'src="'):
         parts = index_source.split(marker)[1:]
         for part in parts:
@@ -40,10 +41,10 @@ def test_calculator_component_index_references_existing_assets() -> None:
 
 
 def test_calculator_component_installs_global_frontend_diagnostics() -> None:
-    index_source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
-    diagnostics_source = (FRONTEND_DIR / "js/calculator_grid_diagnostics.js").read_text(encoding="utf-8")
-    bridge_source = (FRONTEND_DIR / "js/streamlit_bridge.js").read_text(encoding="utf-8")
-    css_source = (FRONTEND_DIR / "styles/calculator_grid.css").read_text(encoding="utf-8")
+    index_source = read_contract_text(FRONTEND_DIR / "index.html")
+    diagnostics_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_diagnostics.js")
+    bridge_source = read_contract_text(FRONTEND_DIR / "js/streamlit_bridge.js")
+    css_source = read_contract_text(FRONTEND_DIR / "styles/calculator_grid.css")
 
     assert "js/calculator_grid_diagnostics.js" in index_source
     assert index_source.index("js/streamlit_bridge.js") < index_source.index("js/calculator_grid_diagnostics.js")
@@ -71,7 +72,7 @@ def test_calculator_component_preserves_browser_draft_on_same_backend_revision()
 
 def test_calculator_component_persists_browser_draft_across_page_changes() -> None:
     source = _calculator_js_bundle_source()
-    index_source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+    index_source = read_contract_text(FRONTEND_DIR / "index.html")
 
     assert "js/calculator_grid_draft_storage.js" in index_source
     assert "itineraryCalculatorBrowserDraft.v3." in source

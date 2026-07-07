@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from calculator.calculator_state import CalculatorState
 from project_storage.config import supabase_config_from_mapping
@@ -148,7 +149,7 @@ def test_workflow_hook_reuses_existing_itinerary_id(monkeypatch) -> None:
 
 
 def test_saved_project_generation_uses_project_identity_authority() -> None:
-    source = Path("app_modules/saved_project_generation.py").read_text(encoding="utf-8")
+    source = read_contract_text("app_modules/saved_project_generation.py")
 
     assert "ensure_active_project_id" in source
     assert "project_id=project_id" in source
@@ -180,8 +181,8 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
 
 
 def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:
-    source = Path("project_storage/project_browser.py").read_text(encoding="utf-8")
-    ui_source = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
+    source = read_contract_text("project_storage/project_browser.py")
+    ui_source = read_contract_text("app_modules/project_browser_ui.py")
 
     assert "search: str = """ in source
     assert "list_cloud_calculation_files" in source

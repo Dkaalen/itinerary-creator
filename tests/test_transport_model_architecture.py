@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.transport import (
@@ -59,8 +60,8 @@ def test_transport_core_fields_preserve_legacy_title_details_checks():
 
 
 def test_transport_model_and_detection_do_not_import_common_facade_at_module_level():
-    transport_model = Path("itinerary_generation/transport_model.py").read_text(encoding="utf-8")
-    transport_detection = Path("itinerary_generation/transport_detection.py").read_text(encoding="utf-8")
+    transport_model = read_contract_text("itinerary_generation/transport_model.py")
+    transport_detection = read_contract_text("itinerary_generation/transport_detection.py")
 
     assert "from itinerary_generation.common import" not in transport_model
     assert "from itinerary_generation.common import" not in transport_detection

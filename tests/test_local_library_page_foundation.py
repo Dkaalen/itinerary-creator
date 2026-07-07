@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 
 def test_local_library_page_is_routed_from_main_view() -> None:
-    main_view = Path("app_modules/main_view.py").read_text(encoding="utf-8")
+    main_view = read_contract_text("app_modules/main_view.py")
 
     assert "local_library_page_is_active" in main_view
     assert "render_local_library_page(app_version)" in main_view
 
 
 def test_calculator_page_exposes_manage_local_library_button() -> None:
-    calculator_page = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+    calculator_page = read_contract_text("app_modules/calculator_page.py")
 
     assert "Manage Local Library" in calculator_page
     assert "open_local_library_page" in calculator_page
@@ -35,7 +36,7 @@ def test_local_library_page_has_required_management_actions() -> None:
 
 
 def test_local_library_page_is_split_by_responsibility() -> None:
-    page = Path("app_modules/local_library_page.py").read_text(encoding="utf-8")
+    page = read_contract_text("app_modules/local_library_page.py")
 
     assert "render_local_library_source_status" in page
     assert "render_local_library_row_selector" in page

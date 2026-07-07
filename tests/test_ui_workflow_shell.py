@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from app_modules.workflow_shell import build_project_metrics, project_next_action_label, project_route_label, project_title
 
@@ -36,7 +37,7 @@ def test_project_header_copy_stays_direct_and_not_review_step_based() -> None:
     assert project_next_action_label("pictures", {"pictures_added": True}) == "Next · review images"
     assert project_next_action_label("export", {"pictures_added": True}) == "Next · create PDF"
 
-    source = (ROOT / "app_modules" / "workflow_shell.py").read_text(encoding="utf-8")
+    source = read_contract_text(ROOT / "app_modules" / "workflow_shell.py")
     stale_step_copy = ("Structure Review", "Client Text", "Image Review", "workflow_steps_html", "WorkflowStep")
     for marker in stale_step_copy:
         assert marker not in source

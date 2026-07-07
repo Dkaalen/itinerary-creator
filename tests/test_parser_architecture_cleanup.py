@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 ROOT = Path(__file__).resolve().parents[1]
 PARSER = ROOT / "parser_modules"
@@ -31,7 +32,7 @@ def test_details_facade_delegates_to_responsibility_modules() -> None:
 
 
 def test_details_responsibilities_are_not_mixed_back_into_facade() -> None:
-    facade_text = (PARSER / "details.py").read_text(encoding="utf-8")
+    facade_text = read_contract_text(PARSER / "details.py")
     forbidden_snippets = [
         "def clean_title(",
         "def split_comma_list(",
@@ -69,6 +70,6 @@ def test_parser_main_is_orchestration_only() -> None:
 
 
 def test_parse_itinerary_still_delegates_to_row_builder_and_enrichment() -> None:
-    source = (PARSER / "parser_main.py").read_text(encoding="utf-8")
+    source = read_contract_text(PARSER / "parser_main.py")
     assert "build_base_row(" in source
     assert "enrich_parsed_row(" in source

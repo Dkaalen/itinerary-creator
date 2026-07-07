@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from tests.support.streamlit_stub import install_streamlit_stub
 
@@ -85,11 +86,11 @@ def test_visual_editor_payload_carries_booknordics_brand_contract():
 
 
 def test_visual_editor_frontend_has_booknordics_theme_and_safe_streamlit_bridge():
-    brand_css = Path("visual_editor_component/frontend/styles/editor_brand_booknordics.css").read_text(encoding="utf-8")
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    shell_js = Path("visual_editor_component/frontend/js/editor_shell.js").read_text(encoding="utf-8")
-    bridge_js = Path("visual_editor_component/frontend/js/streamlit_bridge.js").read_text(encoding="utf-8")
-    serialization_js = Path("visual_editor_component/frontend/js/serialization.js").read_text(encoding="utf-8")
+    brand_css = read_contract_text("visual_editor_component/frontend/styles/editor_brand_booknordics.css")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
+    shell_js = read_contract_text("visual_editor_component/frontend/js/editor_shell.js")
+    bridge_js = read_contract_text("visual_editor_component/frontend/js/streamlit_bridge.js")
+    serialization_js = read_contract_text("visual_editor_component/frontend/js/serialization.js")
 
     assert 'data-output-brand="booknordics_customer"' in brand_css
     assert "font-family: \"DM Sans\", sans-serif" in brand_css

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -50,52 +51,53 @@ def _pytest_env() -> dict[str, str]:
     return env
 
 
-def _run_slow_harness() -> int:
-    cmd = [sys.executable, "scripts/run_slow_tests.py"]
-    print("\n=== slow direct harness ===", flush=True)
+def _process_kwargs() -> dict[str, object]:
+    """Start each stage in its own process group where the platform allows it."""
+
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
+    """Best-effort cleanup so a timed-out pytest stage cannot hang the runner."""
+
+    if process.poll() is not None:
+        return
+
+    if os.name == "nt":
+        process.kill()
+        return
+
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=5)
+    except Exception:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except Exception:
+            process.kill()
+
+
+def _run_command(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS) -> int:
+    print(f"\n=== {label} ===", flush=True)
     print(" ".join(cmd), flush=True)
     started = time.monotonic()
+    process = subprocess.Popen(
+        cmd,
+        cwd=REPO_ROOT,
+        env=_pytest_env(),
+        stdin=subprocess.DEVNULL,
+        **_process_kwargs(),
+    )
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=REPO_ROOT,
-            env=_pytest_env(),
-            stdin=subprocess.DEVNULL,
-            timeout=DEFAULT_STAGE_TIMEOUT_SECONDS or None,
-        )
+        return_code = process.wait(timeout=timeout_seconds or None)
     except subprocess.TimeoutExpired:
         elapsed = time.monotonic() - started
+        _terminate_process_tree(process)
         print(
-            f"=== slow direct harness: timed out after {elapsed:.1f}s "
-            f"(limit {DEFAULT_STAGE_TIMEOUT_SECONDS}s) ===",
-            flush=True,
-        )
-        return 124
-
-    elapsed = time.monotonic() - started
-    status = "passed" if result.returncode == 0 else f"failed ({result.returncode})"
-    print(f"=== slow direct harness: {status} in {elapsed:.1f}s ===", flush=True)
-    return result.returncode
-
-
-def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> int:
-    cmd = _pytest_command(stage_name, pytest_args, extra_args)
-    print(f"\n=== {stage_name} ===", flush=True)
-    print(" ".join(cmd), flush=True)
-    started = time.monotonic()
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=REPO_ROOT,
-            env=_pytest_env(),
-            stdin=subprocess.DEVNULL,
-            timeout=DEFAULT_STAGE_TIMEOUT_SECONDS or None,
-        )
-    except subprocess.TimeoutExpired:
-        elapsed = time.monotonic() - started
-        print(
-            f"=== {stage_name}: timed out after {elapsed:.1f}s "
-            f"(limit {DEFAULT_STAGE_TIMEOUT_SECONDS}s) ===",
+            f"=== {label}: timed out after {elapsed:.1f}s "
+            f"(limit {timeout_seconds}s) ===",
             flush=True,
         )
         print(
@@ -106,9 +108,17 @@ def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[
         return 124
 
     elapsed = time.monotonic() - started
-    status = "passed" if result.returncode == 0 else f"failed ({result.returncode})"
-    print(f"=== {stage_name}: {status} in {elapsed:.1f}s ===", flush=True)
-    return result.returncode
+    status = "passed" if return_code == 0 else f"failed ({return_code})"
+    print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
+    return return_code
+
+
+def _run_slow_harness() -> int:
+    return _run_command("slow direct harness", [sys.executable, "scripts/run_slow_tests.py"])
+
+
+def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> int:
+    return _run_command(stage_name, _pytest_command(stage_name, pytest_args, extra_args))
 
 
 def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:

@@ -337,7 +337,7 @@ def test_sweden_lapland_supplier_booking_information_not_in_client_inclusions():
     assert_not_contains(included_text, "we gather at", "Truncated supplier instruction fragments must not remain in inclusions.")
 
 
-def test_v36c53_optional_arc_transfer_quality_gate():
+def test_optional_arc_transfer_quality_gate():
     from generator import create_day_title, create_journey_arc
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.inclusions import create_whats_not_included
@@ -410,7 +410,7 @@ def test_v36c53_optional_arc_transfer_quality_gate():
     assert_contains(day13_cruise_title, "Cruise arrival to Bergen", "Cruise arrival days should mention the arrival city instead of a generic Cruise title.")
 
 
-def test_v36c55_clear_transport_wording_system():
+def test_clear_transport_wording_system():
     from ui.day_blocks import build_day_blocks
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
@@ -437,7 +437,7 @@ def test_v36c55_clear_transport_wording_system():
     assert_contains(inclusion_text, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise inclusions should use clear route wording.")
 
 
-def test_v36c57_real_uploaded_inputs_quality_gate():
+def test_real_uploaded_inputs_quality_gate():
     from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.titles import create_client_activity_title, create_trip_title
     from itinerary_generation.summaries import create_journey_arc

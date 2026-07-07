@@ -4,6 +4,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from scripts.artifact_hygiene import is_artifact_noise_path, sensitive_artifact_text_hits
 from scripts.build_handoff_zip import build_handoff_zip, default_handoff_output_path
@@ -83,7 +84,7 @@ def test_handoff_zip_cli_builds_package(tmp_path) -> None:
 
 
 def test_readme_documents_standard_handoff_zip_and_deletion_workflow() -> None:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme = read_contract_text("README.md")
 
     assert "python scripts/build_handoff_zip.py" in readme
     assert "do not manually compress the whole working tree" in readme
@@ -92,7 +93,7 @@ def test_readme_documents_standard_handoff_zip_and_deletion_workflow() -> None:
 
 
 def test_architecture_progress_uses_current_patch_delivery_standard() -> None:
-    progress = (ROOT / "ARCHITECTURE_CLEANUP_PROGRESS.md").read_text(encoding="utf-8")
+    progress = read_contract_text("ARCHITECTURE_CLEANUP_PROGRESS.md")
     workflow = progress.split("## Architecture principle", maxsplit=1)[0]
 
     assert "Use **patch** for each implementation unit" in workflow

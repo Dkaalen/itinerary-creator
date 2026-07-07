@@ -61,8 +61,8 @@ into a permanent passing regression assertion in BZ1C.
 The following tests currently preserve the generic scenic label and must be
 updated only when BZ1C routes all consumers through the canonical product title:
 
-- `tests/test_qg_c_source_fidelity.py`
-- `tests/test_qg_d_norway_source_fidelity.py`
+- `tests/test_source_fidelity_quality_gate.py`
+- `tests/test_norway_source_fidelity_quality_gate.py`
 
 Their route-leg and source-fidelity assertions remain valid. Only the generic
 product label expectation is obsolete.

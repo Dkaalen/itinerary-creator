@@ -216,7 +216,7 @@ def test_day_overview_rental_explore_and_acronym_rendering():
     assert_not_contains(route_html, "Atv", "Acronyms should not be title-cased.")
 
 
-def test_v36c61_title_preview_and_group_tour_quality_gate():
+def test_title_preview_and_group_tour_quality_gate():
     from itinerary_generation.titles import create_day_title
     from ui.day_blocks import build_day_blocks
     from app_modules.itinerary_html import build_itinerary_html
@@ -256,7 +256,7 @@ def test_v36c61_title_preview_and_group_tour_quality_gate():
     assert_not_contains(full_html, "12:00 AM noon", "Important notes should not contain impossible noon wording.")
 
 
-def test_v36c71_title_admin_safety_blocks_supplier_titles():
+def test_title_admin_safety_blocks_supplier_titles():
     from app_modules.itinerary_html import build_itinerary_html
     from generator import group_rows_by_day
     from itinerary_generation.content_validator import validate_html

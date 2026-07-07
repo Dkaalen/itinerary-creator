@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 from tests.support.frontend_assets import frontend_source
 
 
@@ -45,8 +46,8 @@ def test_ui18_removes_duplicate_toolbar_formatting_shortcuts():
 
 
 def test_ui18_keeps_advanced_tools_debug_only_and_formatting_in_inspector():
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    debug_js = Path("visual_editor_component/frontend/js/editor_debug_shell.js").read_text(encoding="utf-8")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
+    debug_js = read_contract_text("visual_editor_component/frontend/js/editor_debug_shell.js")
     inspector_js = "\n".join(
         Path("visual_editor_component/frontend/js", name).read_text(encoding="utf-8")
         for name in ("editor_inspector.js", "editor_inspector_text_panel.js")

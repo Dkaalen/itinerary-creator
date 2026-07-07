@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from tests.support.streamlit_stub import install_streamlit_stub
 
@@ -24,9 +25,9 @@ Day 2\tDeparture\t22.12.2026\t\tTromsø: Departure home"""
 
 
 def test_visual_editor_booknordics_backgrounds_do_not_tile_selected_images():
-    brand_css = Path("visual_editor_component/frontend/styles/editor_brand_booknordics.css").read_text(encoding="utf-8")
-    render_js = Path("visual_editor_component/frontend/js/render.js").read_text(encoding="utf-8")
-    summary_js = Path("visual_editor_component/frontend/js/editor_render_summary.js").read_text(encoding="utf-8")
+    brand_css = read_contract_text("visual_editor_component/frontend/styles/editor_brand_booknordics.css")
+    render_js = read_contract_text("visual_editor_component/frontend/js/render.js")
+    summary_js = read_contract_text("visual_editor_component/frontend/js/editor_render_summary.js")
 
     assert "background-color: var(--paper, #FAFAFB)" in brand_css
     assert "background: var(--paper, #FAFAFB);" not in brand_css
@@ -38,8 +39,8 @@ def test_visual_editor_booknordics_backgrounds_do_not_tile_selected_images():
 
 
 def test_booknordics_day_page_sublabels_are_not_all_red():
-    brand_css = Path("visual_editor_component/frontend/styles/editor_brand_booknordics.css").read_text(encoding="utf-8")
-    preview_css = Path("app_modules/preview_css_brand_booknordics.py").read_text(encoding="utf-8")
+    brand_css = read_contract_text("visual_editor_component/frontend/styles/editor_brand_booknordics.css")
+    preview_css = read_contract_text("app_modules/preview_css_brand_booknordics.py")
 
     assert '.day-page .section-title' in brand_css
     assert '-webkit-text-fill-color: var(--ink, #00193C)' in brand_css

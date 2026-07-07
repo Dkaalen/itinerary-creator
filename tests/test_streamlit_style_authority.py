@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from ui import (
     style_app_chrome,
@@ -21,7 +22,7 @@ STYLE_MODULES = (
 
 
 def test_app_shell_is_composition_only_not_a_css_god_file() -> None:
-    source = Path("ui/style_app_shell.py").read_text(encoding="utf-8")
+    source = read_contract_text("ui/style_app_shell.py")
 
     assert len(source.splitlines()) <= 60
     assert "CSS = \"\".join" in source

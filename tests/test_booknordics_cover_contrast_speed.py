@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.static_contracts import read_contract_text
 
 from tests.support.streamlit_stub import install_streamlit_stub
 
@@ -64,9 +65,9 @@ def test_cover_contrast_reads_actual_cropped_background_area():
 
 
 def test_booknordics_preview_and_editor_css_remove_cover_card():
-    preview_css = Path("app_modules/preview_css_brand_booknordics.py").read_text(encoding="utf-8")
-    editor_css = Path("visual_editor_component/frontend/styles/editor_brand_booknordics.css").read_text(encoding="utf-8")
-    pdf_cover = Path("pdf_exporter_modules/cover_page.py").read_text(encoding="utf-8")
+    preview_css = read_contract_text("app_modules/preview_css_brand_booknordics.py")
+    editor_css = read_contract_text("visual_editor_component/frontend/styles/editor_brand_booknordics.css")
+    pdf_cover = read_contract_text("pdf_exporter_modules/cover_page.py")
 
     assert "background: transparent" in preview_css
     assert "background: transparent" in editor_css

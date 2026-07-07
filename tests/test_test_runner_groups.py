@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.support.static_contracts import read_contract_text
 from scripts.run_test_group import (
     RUNNER_GROUPS,
     _extract_runner_flags,
@@ -62,8 +63,8 @@ def test_full_test_plan_covers_every_test_module() -> None:
 
 def test_empty_legacy_modules_are_documented_placeholders() -> None:
     for module_name in empty_legacy_test_modules():
-        text = (REPO_ROOT / "tests" / module_name).read_text(encoding="utf-8")
-        assert "Legacy" in text
+        module_body = read_contract_text(REPO_ROOT / "tests" / module_name)
+        assert "Legacy" in module_body
 
 
 def test_marker_sets_stay_aligned_with_named_groups() -> None:
@@ -111,10 +112,10 @@ def test_powershell_runners_delegate_to_shared_python_runner() -> None:
     }
 
     for group, script in expected_scripts.items():
-        text = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8")
-        assert "run_test_group.py" in text or f"run_{group}" in text
+        script_body = read_contract_text(REPO_ROOT / "scripts" / script)
+        assert "run_test_group.py" in script_body or f"run_{group}" in script_body
         if group in GROUPS or group == "full":
-            assert f"run_test_group.py {group}" in text
+            assert f"run_test_group.py {group}" in script_body
 
 
 def test_runner_accepts_every_documented_group() -> None:
@@ -201,7 +202,7 @@ def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     assert flattened_targets == list(slow_direct_targets(REPO_ROOT))
     assert len(stages) == 29
     assert "tests/test_broad_logic_stress_regressions.py::test_daytime_train_preserves_seat_quantity_without_raw_supplier_title" in flattened_targets
-    assert "tests/test_regressions_fixture_quality.py::test_v36c57_real_uploaded_inputs_quality_gate" in flattened_targets
+    assert "tests/test_regressions_fixture_quality.py::test_real_uploaded_inputs_quality_gate" in flattened_targets
     assert all(len(paths) == 1 for _name, paths in stages)
     assert all(name.startswith("slow ") for name, _paths in stages)
 
