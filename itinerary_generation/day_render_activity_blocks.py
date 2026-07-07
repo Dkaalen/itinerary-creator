@@ -82,7 +82,9 @@ def build_included_today_render_block(items):
 
 
 def _optional_title(row: dict) -> str:
-    title = create_client_activity_title(row) if (row.get("effective_type") or row.get("type")) == "Activity" else row.get("title", "")
+    row_type = row.get("effective_type") or row.get("type", "")
+    activity_like = row_type in {"Activity", "Activity Upgrade"} or str(row.get("type", "")).lower() == "activity upgrade"
+    title = create_client_activity_title(dict(row, effective_type="Activity")) if activity_like else row.get("title", "")
     title = normalize_client_day_title(title or row.get("title") or "Optional experience", row)
     return polish_title(strip_price_fragments(title)) or "Optional experience"
 
@@ -97,8 +99,10 @@ def build_optional_render_block(row: dict) -> RenderBlock:
         meta.append(RenderMetaLine("Time", time_display))
 
     description = ""
-    if row_type == "Activity":
-        block = canonical_activity_block(dict(row, display_title=title))
+    activity_like = row_type in {"Activity", "Activity Upgrade"} or str(row.get("type", "")).lower() == "activity upgrade"
+    if activity_like:
+        activity_row = dict(row, effective_type="Activity", display_title=title)
+        block = canonical_activity_block(activity_row)
         description = block.description
         for item in block.meta:
             if item.label in {"Meeting point", "Pick-up/drop-off", "Departure/drop-off"} and item.value:

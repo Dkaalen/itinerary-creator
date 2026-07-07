@@ -1,0 +1,243 @@
+{
+  "score_report": {
+    "seed": 6200,
+    "sample_size": 5,
+    "selected_fixture_ids": [
+      "Standard-Itinerary-Finland.xlsx::111",
+      "Standard-Itinerary-Iceland.xlsx::7D GTS",
+      "Standard-Itinerary-Iceland.xlsx::5D GTW",
+      "Standard-Itinerary-Finland-Norway.xlsx::1211",
+      "Standard-Itinerary-Finland-Norway.xlsx::1205"
+    ],
+    "bank_summary": {
+      "workbook_count": 10,
+      "candidate_count": 97,
+      "total_candidate_rows": 3152,
+      "candidates_by_workbook": {
+        "Calculation-template-202614.xlsx": 2,
+        "Calculation-template-DK0801.xlsx": 7,
+        "Calculation-template-DK0807.xlsx": 2,
+        "Calculation-template-Nordics.xlsx": 8,
+        "Standard-Itinerary-Denmark.xlsx": 6,
+        "Standard-Itinerary-Finland-Norway.xlsx": 14,
+        "Standard-Itinerary-Finland.xlsx": 12,
+        "Standard-Itinerary-Iceland.xlsx": 23,
+        "Standard-Itinerary-Norway.xlsx": 20,
+        "Standard-Itinerary-Sweden.xlsx": 3
+      }
+    },
+    "error_count": 0,
+    "warning_count": 1,
+    "average_score": 99.0,
+    "reviews": [
+      {
+        "fixture": {
+          "fixture_id": "Standard-Itinerary-Finland.xlsx::111",
+          "workbook": "Standard-Itinerary-Finland.xlsx",
+          "sheet": "111",
+          "kind": "standard_itinerary_bank",
+          "row_count": 30,
+          "day_count": 9,
+          "tags": [
+            "Finland",
+            "standard_itinerary",
+            "lapland",
+            "overnight_train",
+            "winter"
+          ]
+        },
+        "parsed_row_count": 30,
+        "rendered_day_count": 9,
+        "trip_title": "Finland Winter Journey",
+        "trip_subtitle": "A Finland winter journey with scenic travel and planned experiences",
+        "route": "Helsinki · Oulu · Kuusamo · Ranua",
+        "score": {
+          "score": 100,
+          "error_count": 0,
+          "warning_count": 0,
+          "issue_count": 0,
+          "ok": true,
+          "issues": []
+        }
+      },
+      {
+        "fixture": {
+          "fixture_id": "Standard-Itinerary-Iceland.xlsx::7D GTS",
+          "workbook": "Standard-Itinerary-Iceland.xlsx",
+          "sheet": "7D GTS",
+          "kind": "standard_itinerary_bank",
+          "row_count": 23,
+          "day_count": 7,
+          "tags": [
+            "Iceland",
+            "standard_itinerary",
+            "self_drive",
+            "group_tour",
+            "ring_road"
+          ]
+        },
+        "parsed_row_count": 23,
+        "rendered_day_count": 7,
+        "trip_title": "Snæfellsnes & South Coast Adventure",
+        "trip_subtitle": "A guided winter Iceland group tour with arranged transport, daily experiences and included accommodation",
+        "route": "Reykjavík · Borgarfjörður · West Iceland · Snæfellsnes · Golden Circle · Þingvellir National Park · South Coast · Jökulsárlón · Reykjavík",
+        "score": {
+          "score": 95,
+          "error_count": 0,
+          "warning_count": 1,
+          "issue_count": 1,
+          "ok": true,
+          "issues": [
+            {
+              "code": "repeated_intro_opener",
+              "severity": "warning",
+              "message": "Several day intros start with the same wording pattern.",
+              "location": "Day 5.intro",
+              "excerpt": "3 intros start with: continue your guided group tour"
+            }
+          ]
+        }
+      },
+      {
+        "fixture": {
+          "fixture_id": "Standard-Itinerary-Iceland.xlsx::5D GTW",
+          "workbook": "Standard-Itinerary-Iceland.xlsx",
+          "sheet": "5D GTW",
+          "kind": "standard_itinerary_bank",
+          "row_count": 20,
+          "day_count": 5,
+          "tags": [
+            "Iceland",
+            "standard_itinerary",
+            "self_drive",
+            "group_tour",
+            "ring_road"
+          ]
+        },
+        "parsed_row_count": 20,
+        "rendered_day_count": 5,
+        "trip_title": "Iceland Guided Discovery",
+        "trip_subtitle": "A guided winter Iceland group tour with arranged transport, daily experiences and included accommodation",
+        "route": "Reykjavík · Golden Circle · South Coast · Jökulsárlón · Reykjavík",
+        "score": {
+          "score": 100,
+          "error_count": 0,
+          "warning_count": 0,
+          "issue_count": 0,
+          "ok": true,
+          "issues": []
+        }
+      },
+      {
+        "fixture": {
+          "fixture_id": "Standard-Itinerary-Finland-Norway.xlsx::1211",
+          "workbook": "Standard-Itinerary-Finland-Norway.xlsx",
+          "sheet": "1211",
+          "kind": "standard_itinerary_bank",
+          "row_count": 38,
+          "day_count": 7,
+          "tags": [
+            "Finland",
+            "Norway",
+            "standard_itinerary",
+            "cross_border",
+            "lapland",
+            "arctic"
+          ]
+        },
+        "parsed_row_count": 38,
+        "rendered_day_count": 7,
+        "trip_title": "Lapland & Norway Northern Lights Escape",
+        "trip_subtitle": "A Nordic winter journey with scenic travel and Arctic experiences",
+        "route": "Rovaniemi · Tromsø · Bergen · Oslo",
+        "score": {
+          "score": 100,
+          "error_count": 0,
+          "warning_count": 0,
+          "issue_count": 0,
+          "ok": true,
+          "issues": []
+        }
+      },
+      {
+        "fixture": {
+          "fixture_id": "Standard-Itinerary-Finland-Norway.xlsx::1205",
+          "workbook": "Standard-Itinerary-Finland-Norway.xlsx",
+          "sheet": "1205",
+          "kind": "standard_itinerary_bank",
+          "row_count": 39,
+          "day_count": 9,
+          "tags": [
+            "Finland",
+            "Norway",
+            "standard_itinerary",
+            "cross_border",
+            "lapland",
+            "arctic"
+          ]
+        },
+        "parsed_row_count": 39,
+        "rendered_day_count": 9,
+        "trip_title": "Lapland & Norway Northern Lights Escape",
+        "trip_subtitle": "A Nordic winter journey with scenic travel and Arctic experiences",
+        "route": "Helsinki · Rovaniemi · Tromsø",
+        "score": {
+          "score": 100,
+          "error_count": 0,
+          "warning_count": 0,
+          "issue_count": 0,
+          "ok": true,
+          "issues": []
+        }
+      }
+    ]
+  },
+  "issue_counts": {
+    "repeated_intro_opener": 1
+  },
+  "fixtures_with_issues": [
+    {
+      "fixture_id": "Standard-Itinerary-Iceland.xlsx::7D GTS",
+      "codes": [
+        "repeated_intro_opener"
+      ],
+      "score": 95
+    }
+  ],
+  "tag_counts": {
+    "arctic": 42,
+    "calculator": 19,
+    "city_stay": 11,
+    "coastal": 20,
+    "cross_border": 22,
+    "denmark": 12,
+    "ferry": 62,
+    "finland": 28,
+    "fjord": 20,
+    "flight": 95,
+    "full_leisure_day": 79,
+    "group_tour": 23,
+    "hotel_change": 97,
+    "iceland": 30,
+    "lapland": 30,
+    "multi_activity_day": 92,
+    "multi_country_route": 29,
+    "northern_lights": 51,
+    "norway": 53,
+    "norway_in_a_nutshell": 37,
+    "optional_experience": 73,
+    "overnight_train": 13,
+    "rental_car": 2,
+    "ring_road": 30,
+    "sami": 24,
+    "scenic_rail": 20,
+    "self_drive": 40,
+    "sparse_input": 2,
+    "standard_itinerary": 78,
+    "sweden": 11,
+    "train": 58,
+    "transfer_heavy": 95,
+    "transfer_variant": 2,
+    "winter": 89
+  }
+}

@@ -33,6 +33,12 @@ COMMON_TEXT_REPLACEMENTS = [
     (r"\bMeeteing\b", "Meeting"),
     (r"\bFunicluar\b", "Funicular"),
     (r"\bFunicual\b", "Funicular"),
+
+    (r"\bCentraly\b", "Centrally"),
+    (r"\bGuest\s+Hose\b", "Guest House"),
+    (r"\bFree\s+wifi\b", "Free Wi-Fi"),
+    (r"\bfree\s+wifi\b", "Free Wi-Fi"),
+    (r"\bActvity\b", "Activity"),
     (r"\bProfesional\b", "Professional"),
     (r"\bathmosphere\b", "atmosphere"),
     (r"\bKristinsand\b", "Kristiansand"),

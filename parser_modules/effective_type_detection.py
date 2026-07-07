@@ -20,6 +20,43 @@ def _looks_like_long_distance_coach_or_bus(combined: str) -> bool:
         or ("long distance" in combined and ("coach" in combined or "bus" in combined))
     )
 
+def _looks_like_pure_transport_activity(combined: str) -> bool:
+    """Return True when an Activity-typed row is clearly only transport."""
+
+    transport_markers = (
+        "arctic route coach transfer",
+        "coach transfer",
+        "bus transfer",
+        "shuttle transfer",
+        "airport transfer",
+        "transfer to airport",
+        "transfer from",
+    )
+    if not any(marker in combined for marker in transport_markers):
+        return False
+    activity_markers = (
+        "guided tour",
+        "sightseeing",
+        "city tour",
+        "walking tour",
+        "day trip",
+        "excursion",
+        "northern lights",
+        "aurora",
+        "fjord",
+        "cruise",
+        "safari",
+        "hike",
+        "museum",
+        "lagoon",
+        "village",
+        "reindeer",
+        "husky",
+        "whale",
+    )
+    return not any(marker in combined for marker in activity_markers)
+
+
 def detect_effective_type(item_type, title, details):
     combined = f"{title} {details}".lower().strip()
     normalized_item_type = normalize_type(item_type)
@@ -90,6 +127,9 @@ def detect_effective_type(item_type, title, details):
 
     if normalized_item_type == "Activity" and _looks_like_cruise_experience_text(combined):
         return "Activity"
+
+    if normalized_item_type == "Activity" and _looks_like_pure_transport_activity(combined):
+        return "Transport"
 
     route_mode_match = re.search(r"\b[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\s+(train|flight|cruise|ferry|coach|bus)\b", combined)
     if route_mode_match and normalized_item_type in {"Transfer", "Transport", "Activity"} and "private" not in combined:

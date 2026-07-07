@@ -160,6 +160,9 @@ def _activity_intro(facts: DayFacts) -> str:
     if not activities:
         return f"The day’s included arrangements in {city} are listed below." if city else "The day’s included arrangements are listed below."
     first = dict(activities[0])
+    activity_city = _city(first.get("city", ""))
+    if activity_city and (facts.has_overnight_transport or (city and activity_city.casefold() != city.casefold())):
+        city = activity_city
     title = get_client_activity_phrase(first)
     source_text = get_activity_text(first)
     if is_supplier_day_row(first):

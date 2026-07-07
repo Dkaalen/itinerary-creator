@@ -93,3 +93,29 @@ Examples of warnings:
 4. Fix root causes, not just the exact sentence.
 5. Promote the fixture id and issue into a named regression test.
 6. Run a new seed.
+
+## Related QA tools
+
+Regression promotion:
+
+```bash
+python scripts/promote_real_output_regression.py --seed 7007 --fixture "Standard-Itinerary-Iceland.xlsx::8D RW" --name activity-upgrade-typo-classification --issue-code typoed_activity_type_seen --expected-behavior "Activity Upgrade rows must not become destinations."
+```
+
+Preview/PDF-facing render text guard:
+
+```bash
+python scripts/preview_pdf_text_guard.py --sample-size 4 --seed 6200
+```
+
+Fixture tag index:
+
+```bash
+python scripts/tag_real_excel_fixture_bank.py
+```
+
+QA index:
+
+```bash
+python scripts/update_real_output_qa_index.py --sample-size 5 --seed 6200
+```

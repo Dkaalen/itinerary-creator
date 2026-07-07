@@ -18,6 +18,10 @@ INVALID_CITY_MARKERS = [
     "optinal addon",
     "addon on request",
     "flight ",
+    "activity upgrade",
+    "actvity upgrade",
+    "transfer package",
+    "shuttle transfer",
 ]
 
 
@@ -37,6 +41,8 @@ def is_valid_city_value(value):
     if re.search(r"\b\d+\s*[-/]\s*\d+\s*[- ]?star\b|\b\d+\s*[- ]?star\s+hotel\b", lower):
         return False
     if len(city) > 35:
+        return False
+    if re.fullmatch(r"(?:shuttle|private|self[-\s]*)?\s*(?:transfer|transport|coach|bus|flight|train|ferry|cruise)(?:\s+package)?", lower):
         return False
     if is_likely_service_text(city):
         return False
@@ -210,7 +216,7 @@ def extract_route_points(text):
             origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", pieces[0], flags=re.IGNORECASE).strip(" -:|.")
             destination_raw = re.split(r"\s+part\s+\d+\b|\s+\d{1,2}:\d{2}|\s+-\s+(?:bus|coach|flight|train)\b|\s+bus\s+\d+\b|\s+time\b|\s+departure\b|\s+arrival\b|\s*\|", pieces[-1], maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
             origin = normalize_place_name(origin_raw)
-            if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
+            if origin.lower() in {"", "flight", "train", "transfer", "shuttle transfer", "self transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
                 origin = prefix_origin
             destination_raw = re.split(r"\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}", destination_raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
             destination = normalize_place_name(destination_raw)
@@ -231,7 +237,7 @@ def extract_route_points(text):
         origin_raw = re.sub(r"^(?:scenic\s+)?(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*", "", match.group(1), flags=re.IGNORECASE).strip(" -:|.")
         destination_raw = re.split(r"\s+part\s+\d+\b|\s+\d{1,2}:\d{2}|\s+onboard\b|\s+on\s+board\b|\s+at\s+\d{1,2}:\d{2}|\s*\|", match.group(2), maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.")
         origin = normalize_place_name(origin_raw)
-        if origin.lower() in {"", "flight", "train", "transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
+        if origin.lower() in {"", "flight", "train", "transfer", "shuttle transfer", "self transfer", "coach", "bus", "ferry", "cruise", "scenic train", "scenic train transfer", "long distance panorama coach transfer", "atlantic ocean cruise", "arrival"}:
             origin = prefix_origin
         destination = normalize_place_name(destination_raw)
 

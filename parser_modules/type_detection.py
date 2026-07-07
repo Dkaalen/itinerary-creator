@@ -44,6 +44,7 @@ KNOWN_TYPES = {
     "group tour",
     "notes",
     "activity upgrade",
+    "actvity upgrade",
     "transfer package",
     "single supplement fee",
     "extra hotel night",
@@ -51,6 +52,9 @@ KNOWN_TYPES = {
 
 
 TYPE_ALIASES = {
+    "actvity upgrade": "Activity Upgrade",
+    "activity upgrde": "Activity Upgrade",
+    "activty upgrade": "Activity Upgrade",
     "bus": "Transport",
     "coach": "Transport",
     "criuse": "Cruise",

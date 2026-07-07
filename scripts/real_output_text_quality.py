@@ -19,6 +19,7 @@ from app_modules.itinerary_render_context import build_itinerary_render_context
 from generator import group_rows_by_day
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
 from itinerary_parser import parse_itinerary
+from normalizer import normalize_itinerary_rows
 from scripts.real_excel_fixture_bank import ExcelFixtureCandidate
 
 CURRENCY_CODES = frozenset({"DKK", "EUR", "GBP", "ISK", "NOK", "SEK", "USD"})
@@ -41,7 +42,15 @@ SUSPICIOUS_PHRASES: tuple[str, ...] = (
     "the day’s arrangements are listed below",
     "the day's arrangements are listed below",
     "planned experience in",
+    "key arrangements prepared in advance",
+    "wider day kept easy to follow",
 )
+
+ROUTE_FALSE_PLACE_RE = re.compile(
+    r"\b(?:activity upgrade|actvity upgrade|shuttle transfer|self transfer|transfer package|airport transfer)\b",
+    flags=re.IGNORECASE,
+)
+AIRPORT_STAY_RE = re.compile(r"\b(?:airport|terminal)\b", flags=re.IGNORECASE)
 
 RAW_SUPPLIER_FRAGMENT_RE = re.compile(
     r"\s-\s(?:Time|Meeting point|End point|Duration|Departure from|Departing from|Arrival|Start time):",
@@ -53,6 +62,14 @@ TRANSFER_AS_PLACE_RE = re.compile(
 )
 TRANSPORT_PRODUCT_RE = re.compile(
     r"\b(?:coach|bus|shuttle|transfer|train|flight|ferry|cruise transfer|airport transfer|arctic route)\b",
+    flags=re.IGNORECASE,
+)
+ACTIVITY_TRANSPORT_EXPERIENCE_RE = re.compile(
+    r"\b(?:northern lights|aurora|hunt|safari|sightseeing|tour|excursion|guided|fjord|cruise|reindeer|husky|whale|hike|experience)\b",
+    flags=re.IGNORECASE,
+)
+GENERIC_COPY_RE = re.compile(
+    r"\b(?:planned experience|arrangements are listed below|key arrangements prepared in advance|wider day kept easy to follow)\b",
     flags=re.IGNORECASE,
 )
 ACTIVITY_TYPE_RE = re.compile(r"\bactivity\b", flags=re.IGNORECASE)
@@ -186,7 +203,7 @@ def _add_issue(
 
 def render_candidate(candidate: ExcelFixtureCandidate) -> CandidateRenderResult:
     try:
-        rows = parse_itinerary(candidate.raw_text)
+        rows = normalize_itinerary_rows(parse_itinerary(candidate.raw_text))
     except Exception as exc:  # pragma: no cover - CLI defensive boundary
         raise CandidateRenderError(f"Parser crashed: {type(exc).__name__}: {exc}") from exc
     if not rows:
@@ -409,9 +426,11 @@ def score_rendered_output(
     _score_segment_text(issues, segments)
     _score_hotel_star_safety(issues, source_text, full_text)
     _score_city_currency_safety(issues, segments, getattr(context, "destinations_line", ""))
+    _score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     _score_repetition(issues, days)
+    _score_style_density(issues, segments)
 
     error_count = sum(1 for issue in issues if issue.severity == "error")
     warning_count = sum(1 for issue in issues if issue.severity == "warning")
@@ -505,6 +524,43 @@ def _score_city_currency_safety(issues: list[OutputTextIssue], segments: Sequenc
             )
 
 
+def _score_destination_truth(issues: list[OutputTextIssue], segments: Sequence[TextSegment], route_text: object) -> None:
+    route = _clean_text(route_text)
+    if route and ROUTE_FALSE_PLACE_RE.search(route):
+        _add_issue(
+            issues,
+            "route_contains_service_as_destination",
+            "error",
+            "Route/destination line contains a service phrase instead of a real place.",
+            location="cover.route",
+            excerpt=route,
+        )
+    for segment in segments:
+        if segment.kind != "day_city":
+            continue
+        city = _clean_text(segment.text)
+        if not city:
+            continue
+        if ROUTE_FALSE_PLACE_RE.search(city):
+            _add_issue(
+                issues,
+                "service_phrase_used_as_day_city",
+                "error",
+                "A service phrase appears as a day city.",
+                location=segment.location,
+                excerpt=city,
+            )
+        if AIRPORT_STAY_RE.search(city) and not re.search(r"\b(?:Keflavík|Longyearbyen)\b", city, flags=re.IGNORECASE):
+            _add_issue(
+                issues,
+                "airport_used_as_stay_city",
+                "warning",
+                "Airport/terminal appears as a stay city; confirm this is not a transit-only location.",
+                location=segment.location,
+                excerpt=city,
+            )
+
+
 def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str, Any]], days: Sequence[Any]) -> None:
     grouped_rows = group_rows_by_day(rows)
     seen_cities: set[str] = set()
@@ -581,9 +637,9 @@ def _score_transport_semantics(issues: list[OutputTextIssue], rows: Sequence[dic
     day_texts = {_clean_text(getattr(day, "day", "")): _day_text(day) for day in days}
     for day_id, day_rows in grouped_rows.items():
         for row in day_rows:
-            row_type = _clean_text(row.get("source_type") or row.get("type") or row.get("effective_type"))
+            row_type = _clean_text(row.get("effective_type") or row.get("type") or row.get("source_type"))
             row_title = _clean_text(row.get("title") or row.get("original_title") or row.get("details"))
-            if ACTIVITY_TYPE_RE.search(row_type) and TRANSPORT_PRODUCT_RE.search(row_title):
+            if ACTIVITY_TYPE_RE.search(row_type) and TRANSPORT_PRODUCT_RE.search(row_title) and not ACTIVITY_TRANSPORT_EXPERIENCE_RE.search(row_title):
                 rendered = day_texts.get(day_id, "")
                 if "planned experience" in rendered.casefold() or row_title.casefold() in rendered.casefold():
                     _add_issue(
@@ -594,14 +650,15 @@ def _score_transport_semantics(issues: list[OutputTextIssue], rows: Sequence[dic
                         location=day_id,
                         excerpt=row_title,
                     )
-            if "actvity" in row_type.casefold() or "actvity" in row_title.casefold():
+            source_type = _clean_text(row.get("source_type") or row.get("type"))
+            if "actvity" in source_type.casefold() or "actvity" in row_title.casefold():
                 _add_issue(
                     issues,
                     "typoed_activity_type_seen",
                     "error",
                     "Typoed activity row type/title needs classification cleanup.",
                     location=day_id,
-                    excerpt=f"{row_type}: {row_title}",
+                    excerpt=f"{source_type}: {row_title}",
                 )
 
 
@@ -624,6 +681,42 @@ def _score_repetition(issues: list[OutputTextIssue], days: Sequence[Any]) -> Non
             )
         else:
             seen_intros[intro.casefold()] = day_id
+
+
+def _score_style_density(issues: list[OutputTextIssue], segments: Sequence[TextSegment]) -> None:
+    generic_hits: dict[str, list[TextSegment]] = {}
+    intro_openers: dict[str, list[TextSegment]] = {}
+    for segment in segments:
+        text = _clean_text(segment.text)
+        if not text:
+            continue
+        if GENERIC_COPY_RE.search(text):
+            generic_hits.setdefault(segment.day or segment.location, []).append(segment)
+        if segment.kind == "day_intro":
+            opener = " ".join(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ']+", text.casefold())[:5])
+            if opener:
+                intro_openers.setdefault(opener, []).append(segment)
+    if len(generic_hits) >= 3:
+        first = next(iter(generic_hits.values()))[0]
+        _add_issue(
+            issues,
+            "generic_copy_density",
+            "warning",
+            "Generic fallback copy appears on several days/sections in one itinerary.",
+            location=first.location,
+            excerpt=first.text,
+        )
+    for opener, matches in intro_openers.items():
+        if len(matches) >= 3:
+            _add_issue(
+                issues,
+                "repeated_intro_opener",
+                "warning",
+                "Several day intros start with the same wording pattern.",
+                location=matches[-1].location,
+                excerpt=f"{len(matches)} intros start with: {opener}",
+            )
+            break
 
 
 def _day_text(day: Any) -> str:

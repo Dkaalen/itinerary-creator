@@ -83,7 +83,9 @@ def safe_generic_description(row: dict) -> str:
         return "Continue by rail, with the route and timing arranged as part of the day."
     if "hike" in lower or "hiking" in lower:
         return f"Enjoy a guided outdoor experience{place}, with the route planned around the scenery and pace of the day."
-    return f"Enjoy a planned experience{place}, with the key arrangements prepared in advance and the wider day kept easy to follow."
+    if title:
+        return f"Take part in {title}{place}, with the timing and included arrangements kept clear for the day."
+    return f"Take part in the arranged activity{place}, with the timing and included arrangements kept clear for the day."
 
 
 def client_activity_description(row: dict, fallback: str = "") -> str:

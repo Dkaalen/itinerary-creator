@@ -33,17 +33,18 @@ def create_optional_addons(parsed_rows):
             # It remains visible on the exclusions/commercial-notes page.
             continue
         row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
-        title = create_client_activity_title(row) if row_type == "Activity" else row.get("title", "")
+        activity_like = row_type in {"Activity", "Activity Upgrade"} or str(row.get("type", "")).lower() == "activity upgrade"
+        title = create_client_activity_title(dict(row, effective_type="Activity")) if activity_like else row.get("title", "")
         title = polish_title(strip_price_fragments(str(title or row.get("title", "Optional add-on"))))
         city = polish_title(str(row.get("city", "")).strip())
-        if row_type == "Activity" and title.lower() in {"svolvær", "svolvaer", "svolaver", "svoalvaer"}:
+        if activity_like and title.lower() in {"svolvær", "svolvaer", "svolaver", "svoalvaer"}:
             title = "Optional experience in Svolvær"
         time = display_time(row.get("time", ""))
         duration = strip_price_fragments(str(row.get("duration", "")).strip())
         includes = clean_activity_inclusion_items([clean_include_item(strip_price_fragments(item), title) for item in normalize_list(row.get("includes", []))], title)
-        if row_type == "Activity" and not includes:
-            includes = get_fallback_activity_inclusions(row)
-        meeting_label, meeting_point = get_activity_logistics(row) if row_type == "Activity" else ("", "")
+        if activity_like and not includes:
+            includes = get_fallback_activity_inclusions(dict(row, effective_type="Activity"))
+        meeting_label, meeting_point = get_activity_logistics(row) if activity_like else ("", "")
         meeting_point = strip_price_fragments(meeting_point)
 
         if not title:
@@ -53,14 +54,14 @@ def create_optional_addons(parsed_rows):
             label = "Optional self-arranged travel" if is_self_arranged(row) else "Optional travel"
         elif row_type == "Transfer":
             label = "Optional transfer"
-        elif row_type == "Activity":
+        elif activity_like:
             label = "Optional experience"
         else:
             label = "Optional add-on"
 
         description = ""
-        if row_type == "Activity":
-            description = client_activity_description(dict(row, display_title=title))
+        if activity_like:
+            description = client_activity_description(dict(row, effective_type="Activity", display_title=title))
 
         addons.append({
             "day": row.get("day", ""),
