@@ -8,6 +8,7 @@ from parser_modules.time_finders import find_clock_range
 from parser_modules.time_normalize import normalize_time_text
 from itinerary_generation.transport_model import get_transport_source_text
 from .inclusion_utils import clean
+from itinerary_generation.supplier_cleanup_brain import clean_supplier_time
 
 
 def get_overnight_train_schedule(row: dict) -> dict[str, str]:
@@ -42,7 +43,7 @@ def get_transport_time_text(row: dict) -> str:
     Keep one shared fallback so day pages and final inclusions do not drift.
     """
 
-    time = clean(row.get("time", ""))
+    time = clean_supplier_time(row.get("time", ""))
     if time:
         return time
     schedule = get_overnight_train_schedule(row)

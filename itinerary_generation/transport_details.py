@@ -16,6 +16,7 @@ from itinerary_generation.train_details import get_train_cabin_detail
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_times import get_overnight_train_schedule
 from .inclusion_utils import add_unique, clean
+from itinerary_generation.supplier_cleanup_brain import clean_supplier_text
 
 
 _SEAT_CLASS_WORDS = r"(?:standard|premier|first|second|premium|business|economy|comfort|reserved|seat|seats|class|carriage|compartment|berth|upper|lower|downstairs|upstairs)"
@@ -111,14 +112,14 @@ def format_flight_luggage_detail(source: str) -> str:
             parts.append(f"{checked.group(1)} x {checked.group(2)} kg checked bag")
         if carry:
             parts.append(f"{carry.group(1)} x {carry.group(2)} kg carry-on bag")
-        return ", ".join(parts) + " per person"
+        return clean_supplier_text(", ".join(parts) + " per person")
     match = re.search(r"\b((?:\d+\s*x?\s*)?)(checked\s+bag|checked\s+baggage|checked\s+luggage|cabin\s+bag|carry[-\s]?on\s+bag|luggage)\s+included\b", text, flags=re.IGNORECASE)
     if not match:
         return ""
     prefix = (match.group(1) or "").strip()
     item = match.group(2).lower().replace("baggage", "luggage")
     item = re.sub(r"^checked\s+bag$", "checked luggage", item)
-    return f"{prefix} {item} included".strip()
+    return clean_supplier_text(f"{prefix} {item} included".strip())
 
 
 def _extract_luggage_detail(source: str) -> str:
@@ -218,7 +219,7 @@ def get_transport_detail_items(row: dict, title: str = "") -> list[str]:
     if not luggage:
         luggage = _extract_luggage_detail(source)
     if luggage:
-        add_unique(details, luggage)
+        add_unique(details, clean_supplier_text(luggage))
 
     provisional_note = _extract_provisional_train_note(source)
     if provisional_note:

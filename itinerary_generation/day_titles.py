@@ -17,8 +17,12 @@ from itinerary_generation.transport import (
 )
 from place_aliases import country_for_place
 from text_polish import polish_title
+from itinerary_generation.title_brain import write_day_title
 
 def create_day_title(day_rows, *, visit_context=None):
+    brain_title = write_day_title(day_rows, visit_context=visit_context)
+    if brain_title:
+        return brain_title
     city = get_primary_city(day_rows)
 
     def arrival_title() -> str:

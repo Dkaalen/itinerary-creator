@@ -47,6 +47,21 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
             )
         return "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
 
+    schedule = facts.schedule_profile
+    if schedule.has_multiple_arranged_activities and (schedule.has_leisure_between_activities or schedule.has_activity_after_leisure or schedule.has_gap_between_activities):
+        return choose_copy_variant((
+            "Between today’s arranged experiences, keep the open time flexible around the confirmed timings.",
+            "The time between the included experiences is left flexible for a meal, a rest or your own plans.",
+            "Any open time today sits between arranged experiences, so it is best kept flexible around the schedule.",
+        ), facts, intent)
+
+    if schedule.has_multiple_arranged_activities:
+        return choose_copy_variant((
+            "After the included experiences, the rest of the day is open for your own plans.",
+            "Once today’s arranged experiences are complete, the remaining schedule is left flexible for you.",
+            "The included experiences anchor the day, with any extra time kept flexible around your own plans.",
+        ), facts, intent)
+
     if intent == DayIntent.ACTIVITY_DAY or (facts.has_activity and not facts.has_travel):
         return choose_copy_variant((
             "After the included experience, the rest of the day is open for your own plans.",
@@ -55,6 +70,8 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
         ), facts, intent)
 
     if intent == DayIntent.ACTIVITY_PLUS_TRAVEL or (facts.has_activity and facts.has_travel):
+        if schedule.has_evening_activity and facts.travel_heavy:
+            return "Any open time today is limited and should stay flexible between the travel arrangements and the evening experience."
         return choose_copy_variant((
             "After the included arrangements, any free time can be kept flexible around the day’s timing.",
             "Any open time today should stay flexible around the included arrangements and travel timing.",

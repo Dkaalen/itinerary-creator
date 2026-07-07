@@ -21,6 +21,7 @@ from itinerary_generation.activity_description_helpers import get_activity_descr
 from itinerary_generation.activity_logistics import get_activity_logistics
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.product_rules import product_warning
+from itinerary_generation.supplier_cleanup_brain import clean_supplier_list, clean_supplier_text, clean_supplier_title
 from itinerary_generation.time_display import (
     display_time_with_duration,
     get_activity_duration_label,
@@ -89,16 +90,16 @@ def _important_activity_note(row: dict) -> str:
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     is_tallinn_ferry = is_tallinn_ferry_framework(row)
     title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
-    title = clean_client_title(title, row) or "Experience"
+    title = clean_supplier_title(clean_client_title(title, row) or "Experience")
     if is_tallinn_ferry:
         title = tallinn_ferry_title(row)
     time = row.get("display_time") or row.get("time", "")
     duration = row.get("display_duration") or polish_client_text(row.get("duration", ""))
     meeting_label, meeting_point = get_activity_logistics(row)
-    meeting_point = polish_client_text(meeting_point)
+    meeting_point = clean_supplier_text(polish_client_text(meeting_point))
     if meeting_point.strip().lower() in {"x", "xx", "xxx", "n/a", "na", "tbc", "tbd", "-"}:
         meeting_point = ""
-    end_point = polish_client_text(row.get("end_point", ""))
+    end_point = clean_supplier_text(polish_client_text(row.get("end_point", "")))
     notable_sights = polish_inclusion_items(normalize_list(row.get("notable_sights", [])), title)
 
     description_row = dict(row)
@@ -127,7 +128,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
         if "Guided experience" in included_items and len(included_items) > 1:
             included_items = [item for item in included_items if item != "Guided experience"]
     included_items = [re.sub(r"\b(Admission|Ticket|Tour|Transfer)\s+\1\b", r"\1", item, flags=re.IGNORECASE) for item in included_items]
-    included_items = list(dict.fromkeys(included_items))
+    included_items = clean_supplier_list(dict.fromkeys(included_items))
     # Keep ordinary supplier inclusions complete on day pages. Seven/eight
     # short bullets are still readable and avoid source/output mismatches where
     # the day page drops items that later appear in the inclusion summary.
@@ -178,7 +179,7 @@ def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") ->
         title=title,
         meta=meta,
         includes=included_items,
-        description=description,
+        description=clean_supplier_text(description),
         notable_sights=notable_sights,
         source_row_ids=[_row_id(row)],
         warnings=warnings,

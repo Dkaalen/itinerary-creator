@@ -37,6 +37,8 @@ def classify_day_intent(facts: DayFacts) -> DayIntent:
     if facts.has_arrival and (facts.overnight_city or facts.main_city):
         return DayIntent.ARRIVAL_STAY
     if "arrival_airport_transfer" in facts.source_flags and facts.has_accommodation:
+        if facts.has_activity:
+            return DayIntent.ACTIVITY_PLUS_TRAVEL
         return DayIntent.ARRIVAL_STAY
     if (
         facts.has_route_transport

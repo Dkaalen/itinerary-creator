@@ -34,6 +34,7 @@ from itinerary_generation.day_title_planner import (
     travel_sequence_title,
 )
 from itinerary_generation.titles import create_day_title
+from itinerary_generation.title_brain import write_day_title
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
@@ -158,7 +159,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
             return DayPlan("self_drive_route_day", title, _intro_for_title(title, city, "self_drive_route_day"), suppress_free_time=True)
 
     if travel_rows and has_hotel(rows) and activity_rows:
-        title = _travel_activity_title(rows, activity_rows, city)
+        title = write_day_title(rows) or _travel_activity_title(rows, activity_rows, city)
         if "svalbard" in lower and city.lower() == "longyearbyen":
             intro = f"Welcome to Svalbard. After arrival, the day is organised around {title}."
         elif city:
@@ -168,7 +169,7 @@ def plan_day(rows: list[dict]) -> DayPlan:
         return DayPlan("travel_activity_day", title, intro, skip_empty_activity_rows=True)
 
     if len(activity_rows) >= 2:
-        title = _multi_activity_title(activity_rows, city)
+        title = write_day_title(rows) or _multi_activity_title(activity_rows, city)
         if title:
             return DayPlan("multi_activity_day", title, _intro_for_title(title, city, "multi_activity_day"), skip_empty_activity_rows=True)
 

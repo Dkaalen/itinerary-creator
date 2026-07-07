@@ -1,0 +1,28 @@
+Day 1	Arrival	01.01.2026		Oslo: Welcome to Norway
+Day 1	Transfer	01.01.2026		Oslo: Self transfer to your accommodation
+Day 1	Hotel	01.01.2026	02.01.2026	Oslo: Check in to your accommodation for a 1 night stay - Centrally located 3/4-star hotel - Standard Room - Breakfast included
+Day 1	Leisure	01.01.2026		Oslo: Spend time at leisure
+				
+Day 2	Transfer	02.01.2026		Oslo: Self transfer to Oslo Central Station
+Day 2	Train	02.01.2026		Oslo: Scenic Long Distance Train transfer to Bergen - Time: 08:25 am - 3:00 pm - Includes: Tickets
+Day 2	Transfer	02.01.2026		Bergen: Self transfer to your accommodation
+Day 2	Hotel	02.01.2026	04.01.2026	Bergen: Check in to your accommodation for a 2 night stay - Centrally located 3/4-star hotel - Standard Room - Breakfast included
+Day 2	Leisure	02.01.2026		Bergen: Spend time at leisure
+				
+Day 3	Activity	03.01.2026		Bergen: 2 hr walk Through Bergen Past & Present - Time: 10:00 am - 12:00 pm - Meeting point: Bradbenken 1 - Includes: Profesional Guide
+Day 3	Activity	03.01.2026		Bergen: Fløibanen Funicual - Time: Flexible - Meeting point: Vetrlidsallmenningen 23A - Includes: Tickets
+Day 3	Leisure	03.01.2026		Bergen: Spend time at leisure
+				
+Day 4	Transfer	04.01.2026		Bergen: Self transfer to Bergen Airport
+Day 4	Flight	04.01.2026		Bergen: Flight to Tromsø - Time: Date dependant - Luggage included: 1 x 23 kg check in and 1 x 8 kg carry on per person
+Day 4	Transfer	04.01.2026		Tromsø: Self transfer to your accommodation
+Day 4	Hotel	04.01.2026	06.01.2026	Tromsø: Check in to your accommodation for a 2 night stay - Centrally located 3/4-star hotel - Standard Room - Breakfast included
+Day 4	Leisure	04.01.2026		Tromsø: Spend time at leisure
+Day 4	Activity	04.01.2026		Tromsø: Northern Lights Cruise with Silent Electric Ship - Time: 7:00 pm - 10:00 pm - Meeting point: Kaigata 6 - Includes: Departure from central Tromsø, 3-hour fjord cruise, Light meal (soup and bread) and water, English speaking guides, Warm indoor saloons, Free wifi, Toilets
+				
+Day 5	Activity	05.01.2026		Tromsø: Reindeer Feeding and Sámi Culture - Time: 09:45 am - 2:30 pm - Meeting point: Radisson Blu Hotel's main entrance (Sjøgata 7) - Includes: Scenic transfers (45 min each way), Knowledgeable English and Norwegian speaking guide, Feeding the herd at our camp, Hot beverages and hot meal (traditional Sámi stew or vegetable/lentil soup), Cultural introduction about Sámi history and daily life, A chance to see the northern lights from our camp, Thermal suit and warm snow boots
+Day 5	Leisure	05.01.2026		Tromsø: Spend time at leisure
+Day 5	Activity	05.01.2026		Tromsø: All-Evening Northern Lights Hunt by Minibus or Bus - Time: 7:00 pm - 12:00 am - Meeting point: Kaigata 4 - Includes: Knowledgeable, English-speaking guides, Photos shared with you after the tour, Thermo clothing and warm gear, Light snacks and warm/cold beverages, Drop-off at hotel, up to 5 km from Tromsø
+				
+Day 6	Transfer	06.01.2026		Tromsø: Self transfer to Tromsø Airport
+Day 6	Departure	06.01.2026		Tromsø: Departure home

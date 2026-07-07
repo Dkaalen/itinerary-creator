@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 from itinerary_generation.common import TRANSPORT_TYPES, get_primary_city, get_row_type, is_optional_row
 from itinerary_generation.day_accommodation_state import AccommodationState, build_accommodation_state
 from itinerary_generation.day_timeline_events import TimelineEvent, normalize_day_events
+from itinerary_generation.schedule_brain import DayScheduleProfile, build_day_schedule_profile
 from itinerary_generation.day_travel_load import TravelLoadProfile, classify_travel_load
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.transport_detection import is_route_transfer
@@ -81,6 +82,7 @@ def _city_from_arrival_departure_text(row: Mapping[str, Any], *, direction: str)
         if not match:
             continue
         phrase = match.group(1).strip(" -:|.,")
+        phrase = re.split(r"\b(?:arrival|arrive|departure|depart)\b", phrase, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
         words = [word for word in phrase.split() if word]
         for size in range(min(3, len(words)), 0, -1):
             city = _canonical_city(" ".join(words[:size]))
@@ -103,6 +105,26 @@ def _route_points(row: Mapping[str, Any]) -> tuple[str, str]:
     origin, destination = get_route_points_for_transport(dict(row))
     return _canonical_city(origin), _canonical_city(destination)
 
+
+
+def _arrival_departure_city(
+    rows: Sequence[Mapping[str, Any]],
+    row_type: str,
+    *,
+    direction: str,
+    primary_city: str,
+    route_origins: Sequence[str] = (),
+) -> str:
+    for row in rows:
+        if get_row_type(dict(row)) != row_type:
+            continue
+        detected = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction=direction)
+        if detected:
+            return detected
+        if direction == "arrival" and route_origins:
+            return route_origins[0]
+        return primary_city
+    return ""
 
 def _is_local_transfer(row: Mapping[str, Any]) -> bool:
     if get_row_type(row) != "Transfer":
@@ -182,6 +204,7 @@ class DayFacts:
     timeline_events: tuple[TimelineEvent, ...] = ()
     accommodation_state: AccommodationState = field(default_factory=AccommodationState)
     travel_load: TravelLoadProfile = field(default_factory=TravelLoadProfile)
+    schedule_profile: DayScheduleProfile = field(default_factory=DayScheduleProfile)
     visit_number: int = 1
     previous_visit_days: tuple[str, ...] = ()
 
@@ -210,6 +233,7 @@ def build_day_facts(
     timeline_events = normalize_day_events(main_rows)
     accommodation_state = build_accommodation_state(timeline_events)
     travel_load = classify_travel_load(timeline_events)
+    schedule_profile = build_day_schedule_profile(main_rows)
     all_text = " ".join(row_text(row) for row in main_rows).lower()
 
     city_sequence: list[str] = []
@@ -288,16 +312,10 @@ def build_day_facts(
             accommodation_change_rows += 1
 
     primary_city = _canonical_city(get_primary_city([dict(row) for row in main_rows]))
-    arrival_city = ""
-    for row in main_rows:
-        if get_row_type(dict(row)) == "Arrival":
-            arrival_city = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction="arrival") or (route_origins[0] if route_origins else "") or primary_city
-            break
-    departure_city = ""
-    for row in main_rows:
-        if get_row_type(dict(row)) == "Departure":
-            departure_city = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction="departure") or primary_city
-            break
+    arrival_city = _arrival_departure_city(
+        main_rows, "Arrival", direction="arrival", primary_city=primary_city, route_origins=route_origins
+    )
+    departure_city = _arrival_departure_city(main_rows, "Departure", direction="departure", primary_city=primary_city)
 
     overnight_city = hotel_cities[-1] if hotel_cities else ""
     onward_destination = route_destinations[-1] if route_destinations else ""
@@ -350,6 +368,7 @@ def build_day_facts(
     confirmed_check_out = bool(accommodation_state.check_out_confirmed or (has_accommodation and (has_departure or "check-out" in all_text or "check out" in all_text)))
     source_flags.update(accommodation_state.flags)
     source_flags.update(travel_load.flags)
+    source_flags.update(schedule_profile.flags)
     if travel_load.level != "none":
         source_flags.add(f"travel_load:{travel_load.level}")
 
@@ -395,6 +414,7 @@ def build_day_facts(
         timeline_events=timeline_events,
         accommodation_state=accommodation_state,
         travel_load=travel_load,
+        schedule_profile=schedule_profile,
         visit_number=visit_number,
         previous_visit_days=previous_visit_days,
     )

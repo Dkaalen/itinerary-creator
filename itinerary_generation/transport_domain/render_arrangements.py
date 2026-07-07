@@ -14,11 +14,12 @@ from itinerary_generation.transport_domain.render_sequences import drive_route_l
 from itinerary_generation.transport_domain.render_special_routes import coach_terminal_transfer_lines, inline_arrival_time, santa_claus_express_lines, self_transfer_lines
 from itinerary_generation.transport_times import get_transport_time_text
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, polish_title
+from itinerary_generation.supplier_cleanup_brain import clean_supplier_text, clean_supplier_time
 
 
 def get_travel_arrangement_line(row):
     if get_row_type(row) == "Drive": return drive_route_line(row)
-    title = get_travel_sequence_line(row); time = display_time(get_transport_time_text(row)) or inline_arrival_time(row)
+    title = clean_supplier_text(get_travel_sequence_line(row)); time = clean_supplier_time(display_time(get_transport_time_text(row)) or inline_arrival_time(row))
     duration, details = polish_client_text(row.get("duration", "")), []
     if time: details.append(time)
     arrival = inline_arrival_time(row)
@@ -32,6 +33,7 @@ def get_travel_arrangement_line(row):
     if duration and " - " not in time:
         clean_duration = format_duration_display(duration)
         if clean_duration: details.append(clean_duration)
+    details = [clean_supplier_text(item) for item in details if clean_supplier_text(item)]
     if get_row_type(row) == "Flight":
         inclusion_details = [item for item in details if item.lower().startswith("flight tickets")]
         other_details = [item for item in details if item not in inclusion_details]

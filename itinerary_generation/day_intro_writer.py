@@ -136,7 +136,6 @@ def _profile_route_intro(facts: DayFacts) -> str:
     generic_markers = (
         "with the planned travel arrangements",
         "self transfer",
-        "arrival arrangements and the main journey details grouped below",
     )
     if any(marker in lower_intro for marker in generic_markers):
         return ""
@@ -169,6 +168,18 @@ def _activity_intro(facts: DayFacts) -> str:
     return client_activity_intro(title, city, source_text)
 
 
+
+def _scheduled_activity_intro(facts: DayFacts) -> str:
+    schedule = facts.schedule_profile
+    if not schedule.has_multiple_arranged_activities:
+        return ""
+    city = _main_city(facts) or "the area"
+    first = schedule.first_activity_title or "the first included experience"
+    last = schedule.last_activity_title or "the later included experience"
+    if schedule.has_morning_activity and schedule.has_evening_activity:
+        return f"Today combines {first} with {last} later on, leaving the time between the arranged experiences flexible around the schedule."
+    return f"Today includes multiple arranged experiences in {city}, with the timing and details listed below."
+
 def _arrival_onward_intro(facts: DayFacts) -> str:
     arrival = _city(facts.arrival_city or facts.start_city) or "your arrival point"
     destination = _city(facts.onward_destination or facts.end_city) or "the next destination"
@@ -178,8 +189,9 @@ def _arrival_onward_intro(facts: DayFacts) -> str:
     elif _has_port_transfer(facts):
         connector = "continue to the port"
     mode = _mode(facts)
+    travel_label = f"overnight {mode}" if facts.has_overnight_transport and mode in {"train", "ferry", "cruise"} else mode
     if destination and destination.casefold() != arrival.casefold():
-        return f"Arrive in {arrival} and {connector} for your onward {mode} to {destination}."
+        return f"Arrive in {arrival} and {connector} for the {travel_label} to {destination}."
     return f"Arrive in {arrival} and continue with the onward travel arrangements listed below."
 
 
@@ -199,14 +211,15 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
     profile_route_intro = _profile_route_intro(facts)
     if profile_route_intro and intent in {
         DayIntent.ARRIVAL_STAY,
-        DayIntent.ACTIVITY_PLUS_TRAVEL,
         DayIntent.TRAVEL_DAY,
         DayIntent.CRUISE_DAY,
-        DayIntent.RETURN_VISIT,
     }:
-        return profile_route_intro
+        if not (intent == DayIntent.ARRIVAL_STAY and facts.has_flight):
+            return profile_route_intro
 
     if intent == DayIntent.RETURN_VISIT:
+        if profile_route_intro and "Norway in a Nutshell" in profile_route_intro:
+            return profile_route_intro
         place = city or facts.end_city or "the destination"
         if facts.has_travel:
             return f"Return to {place}. Today is arranged around your onward logistics and listed activities."
@@ -240,11 +253,14 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
         if facts.return_visit:
             return f"Return to {place}. After arrival, the day is kept simple around the listed arrangements."
         transfer_clause = _arrival_transfer_clause(facts)
-        if facts.has_transfer:
+        if facts.has_transfer or facts.has_flight:
             return f"Welcome to {place}. After arrival, {transfer_clause}, with time to get oriented around {identity}."
-        return f"Welcome to {place}. After arrival, the day is kept simple, with time to settle in and get oriented around {identity}."
+        return f"Welcome to {place}. The day is kept simple, with time to settle in and get oriented around {identity}."
 
     if intent == DayIntent.ACTIVITY_PLUS_TRAVEL:
+        scheduled_intro = _scheduled_activity_intro(facts)
+        if scheduled_intro:
+            return scheduled_intro
         activity_text = _activity_intro(facts)
         if facts.has_arrival:
             place = city or "the destination"
@@ -260,6 +276,9 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
         return f"{_travel_phrase(facts)}, with the route and key logistics listed below."
 
     if intent == DayIntent.ACTIVITY_DAY:
+        scheduled_intro = _scheduled_activity_intro(facts)
+        if scheduled_intro:
+            return scheduled_intro
         return _activity_intro(facts)
 
     if intent == DayIntent.FULL_LEISURE_DAY:

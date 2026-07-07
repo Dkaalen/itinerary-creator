@@ -119,6 +119,7 @@ def build_day_brain_day_report(
         "timeline_events": [timeline_event_payload(event) for event in facts.timeline_events],
         "accommodation_state": _dataclass_payload(facts.accommodation_state),
         "travel_load": _dataclass_payload(facts.travel_load),
+        "schedule_profile": _dataclass_payload(facts.schedule_profile),
         "visit_context": _dataclass_payload(visit_context) if visit_context else {},
     }
 

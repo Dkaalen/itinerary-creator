@@ -18,5 +18,5 @@ def normalize_meal_plan(value: str, source_text: str = "") -> str:
 
 
 def extract_star_level(value: str) -> str:
-    match = re.search(r"\b([2-5])\s*[- ]?star\b", str(value or ""), flags=re.IGNORECASE)
-    return match.group(1) if match else ""
+    match = re.search(r"\b([2-5](?:\s*/\s*[2-5])?)\s*[- ]?star\b", str(value or ""), flags=re.IGNORECASE)
+    return re.sub(r"\s+", "", match.group(1)) if match else ""

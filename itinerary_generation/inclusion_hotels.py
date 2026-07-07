@@ -1,9 +1,6 @@
 """Accommodation and meal inclusion summary helpers."""
 
-import re
-
-from place_aliases import canonicalize_place_name
-from text_polish import polish_hotel_name
+from itinerary_generation.accommodation_brain import accommodation_brain_for_row
 from itinerary_generation.accommodation_inclusions import extract_stay_inclusions
 
 from .inclusion_utils import clean
@@ -32,29 +29,29 @@ def format_meal_plan(meal_plan: str) -> str:
     return f"{meal} included"
 
 
-def hotel_line(row: dict) -> str:
-    raw_name = row.get("hotel_name") or row.get("title") or "Accommodation"
-    name = polish_hotel_name(re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", str(raw_name), flags=re.IGNORECASE))
-    city = canonicalize_place_name(row.get("city", ""))
-    nights = clean(row.get("hotel_nights", ""))
-    room = clean(row.get("room_category", ""))
-    meal = format_meal_plan(row.get("meal_plan", ""))
-    star_rating = clean(row.get("star_rating", ""))
+def _hotel_inclusion_label(row: dict) -> str:
+    brain = accommodation_brain_for_row(row)
+    label = brain.hotel_name or "Accommodation as listed"
+    if brain.star_rating and f"{brain.star_rating}-star".lower() not in label.lower():
+        label = f"{brain.star_rating}-star {label}"
+    if brain.city and brain.city.lower() not in label.lower():
+        label = f"{label}, {brain.city}"
+    if "or similar" in row.get("details", "").lower() and "or similar" not in label.lower():
+        label += " or similar"
+    return label
 
-    title = name
-    if star_rating and not re.search(r"\b[2-5]\s*[- ]?star\b", title, flags=re.IGNORECASE):
-        title = f"{star_rating}-star {title}"
-    if city:
-        title += f", {city}"
+
+def hotel_line(row: dict) -> str:
+    brain = accommodation_brain_for_row(row)
+    title = _hotel_inclusion_label(row)
 
     detail_sentences = []
-    if nights:
-        night_word = "night" if nights == "1" else "nights"
-        detail_sentences.append(f"{nights} {night_word}")
-    if room:
-        detail_sentences.append(room)
-    if meal:
-        detail_sentences.append(meal.capitalize())
+    if brain.nights:
+        detail_sentences.append(brain.nights)
+    if brain.room_category:
+        detail_sentences.append(brain.room_category)
+    if brain.meal:
+        detail_sentences.append(brain.meal.capitalize())
 
     detail_lines = []
     if detail_sentences:
@@ -69,7 +66,6 @@ def hotel_line(row: dict) -> str:
         detail_lines.extend(dict.fromkeys(stay_inclusions))
 
     return title if not detail_lines else f"{title}\n" + "\n".join(detail_lines)
-
 
 def has_non_breakfast_meal(meal: str) -> bool:
     lower = clean(meal).lower()
