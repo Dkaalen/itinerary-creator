@@ -183,6 +183,51 @@ def select_best_candidate_for_context(
     return _attach_default_audit(default_best, context, candidates, used_paths)
 
 
+def _candidate_payload_for_global_assignment(
+    day: str,
+    context: dict,
+    candidate: ImageCandidate,
+    candidates: list[ImageCandidate],
+    used_paths: set[str],
+) -> dict | None:
+    normalized_path = str(Path(candidate.path).resolve())
+    if normalized_path in used_paths:
+        return None
+    is_default = is_global_default_candidate(candidate)
+    require_matching_season = season_available_for_context(candidates, context)
+    day_season = normalize_keyword(context.get("season", ""))
+    if require_matching_season and day_season not in set(candidate.seasons) and not is_default:
+        return None
+    score, reasons = score_image_for_day(candidate, context)
+    if score <= 0:
+        return None
+    payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["global itinerary image assignment"])
+    return payload
+
+
+def _global_assignment_priority(payload: dict) -> tuple:
+    breakdown = payload.get("score_breakdown") if isinstance(payload.get("score_breakdown"), dict) else {}
+    return (
+        int(payload.get("score") or 0),
+        int(breakdown.get("activity_product_score") or 0),
+        int(breakdown.get("destination_score") or 0),
+        int(breakdown.get("season_score") or 0),
+        str(payload.get("filename", "")).lower(),
+    )
+
+
+def _assign_payloads_globally(matches: dict, payloads: list[dict], used_paths: set[str]) -> None:
+    for payload in sorted(payloads, key=_global_assignment_priority, reverse=True):
+        day = payload.get("day")
+        if day in matches and matches[day] is not None:
+            continue
+        path_key = str(Path(payload.get("path", "")).resolve())
+        if path_key in used_paths:
+            continue
+        matches[day] = payload
+        used_paths.add(path_key)
+
+
 def select_day_image(day: str, rows: list[dict], image_bank_path: Path | str = "image_bank") -> dict | None:
     index = get_image_bank_index(image_bank_path)
     if not index.candidates:
@@ -197,19 +242,44 @@ def select_day_images(
     image_bank_path: Path | str = "image_bank",
     used_paths: set[str] | None = None,
 ) -> dict:
-    """Select at most one non-reused image for each day in itinerary order."""
+    """Select one image per day after scoring the whole itinerary.
+
+    The old greedy pass let an earlier weak context claim an image that was a
+    stronger exact match for a later day.  This pass scores every day/image
+    pair first, assigns destination images globally, then fills gaps with
+    defaults/repair fallbacks in itinerary order.
+    """
     index = get_image_bank_index(image_bank_path)
     if not index.candidates:
         return {day: None for day in (grouped_days or {})}
 
-    matches = {}
+    matches = {day: None for day in (grouped_days or {})}
     used_paths = {str(Path(path).resolve()) for path in (used_paths or set())}
+    contexts: dict[str, dict] = {}
+    candidates_by_day: dict[str, list[ImageCandidate]] = {}
+    destination_payloads: list[dict] = []
+    default_payloads: list[dict] = []
+
     for day, rows in (grouped_days or {}).items():
         context = build_day_context(day, rows)
         candidates = list(index.candidates_for_context(context))
-        match = select_best_candidate_for_context(day, context, candidates, used_paths)
+        contexts[day] = context
+        candidates_by_day[day] = candidates
+        for candidate in candidates:
+            payload = _candidate_payload_for_global_assignment(day, context, candidate, candidates, used_paths)
+            if payload is None:
+                continue
+            (default_payloads if payload.get("is_default") else destination_payloads).append(payload)
+
+    _assign_payloads_globally(matches, destination_payloads, used_paths)
+    _assign_payloads_globally(matches, default_payloads, used_paths)
+
+    for day in (grouped_days or {}):
+        if matches.get(day) is not None:
+            continue
+        match = select_best_candidate_for_context(day, contexts[day], candidates_by_day[day], used_paths)
         matches[day] = match
-        if match:
+        if match and "reused strong default" not in str(match.get("reason", "")).lower():
             used_paths.add(str(Path(match["path"]).resolve()))
     return matches
 

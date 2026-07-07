@@ -7,7 +7,6 @@ from itinerary_generation.quality_gate import evaluate_client_output_quality
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocument
 from itinerary_generation.transport_safety import scan_client_output
 from parser_modules.parser_main import parse_itinerary
-from pdf_exporter_modules.styles import _footer_label
 from text_polish import polish_client_text
 
 
@@ -36,11 +35,6 @@ def test_output_qa1_polishes_meeting_point_quotes_and_hype_removal_grammar():
     assert "electric boat lets" in description
     assert "electric, boat" not in description
     assert inclusion == "Boat tour aboard a catamaran"
-
-
-def test_output_qa1_pdf_footer_never_labels_client_pages_as_preview():
-    assert _footer_label(SimpleNamespace(title="Itinerary Preview")) == "TRAVEL ITINERARY"
-    assert _footer_label(SimpleNamespace(title="Travel Itinerary")) == "TRAVEL ITINERARY"
 
 
 def test_output_qa1_suspicious_am_pm_time_is_visible_in_review_scans():

@@ -137,6 +137,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_compatibility_facade_audit.py",
     "tests/test_test_runner_groups.py",
     "tests/test_streamlit_style_authority.py",
+    "tests/test_calculator_layout_regression.py",
     "tests/test_editor_workflow_split_regression.py",
     "tests/test_style_registry_regression.py",
     "tests/test_architecture_boundaries_regression.py",
@@ -212,6 +213,7 @@ IMAGE_TESTS = (
     "tests/test_destination_route_journey_intelligence.py",
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_image_qa1_service_aware_matching.py",
+    "tests/test_itinerary_wide_image_assignment.py",
 )
 
 UI_TESTS = (
@@ -233,6 +235,7 @@ UI_TESTS = (
     "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_project_browser_state.py",
     "tests/test_ui_style_contrast.py",
+    "tests/test_calculator_layout_regression.py",
     "tests/test_ui_workflow_shell.py",
     "tests/test_ui_workflow_state_actions.py",
     "tests/test_nutshell_cover_toolbar_regression.py",
@@ -294,6 +297,7 @@ PDF_TESTS = (
     "tests/test_pdf7_proposal_footer.py",
     "tests/test_pdf_export_fast_path.py",
     "tests/test_pdf_image_export_reliability.py",
+    "tests/test_pdf_creation_flow_and_layout_cleanup.py",
     "tests/test_preview_pdf_parity.py",
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_nutshell_cover_toolbar_regression.py",
@@ -339,6 +343,7 @@ CALCULATOR_TESTS = (
     "tests/test_calculator_template_structure.py",
     "tests/test_calculator_to_itinerary_input.py",
     "tests/test_calculator_ui_foundation.py",
+    "tests/test_calculator_layout_regression.py",
     "tests/test_calculator_workbook_export.py",
 )
 

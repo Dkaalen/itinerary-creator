@@ -32,7 +32,9 @@ def image_bank_readiness_message(status: Mapping[str, object] | None) -> str:
         return f"Destination images are ready{suffix}. {destination_count} pictures are available."
     if fallback_image_source_is_available(status):
         count_text = f" {default_count} fallback pictures are available." if default_count else ""
-        return f"Destination images are unavailable, so the app will use fallback images for review.{count_text}"
+        reason = _destination_unavailable_reason(status)
+        reason_text = f" Reason: {reason}" if reason else ""
+        return f"Destination images are unavailable, so the app will use fallback images for review.{count_text}{reason_text}"
     return str(status.get("blocking_message") or "No usable itinerary images are available yet.")
 
 
@@ -50,3 +52,17 @@ def _int_value(status: Mapping[str, object], key: str) -> int:
         return int(status.get(key) or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _destination_unavailable_reason(status: Mapping[str, object]) -> str:
+    setup = status.get("setup_status") if isinstance(status.get("setup_status"), Mapping) else {}
+    for key in ("message", "error", "git_error", "zip_error", "distribution_error"):
+        text = str((setup or {}).get(key) or status.get(key) or "").strip()
+        if text:
+            return text.rstrip(".") + "."
+    missing = status.get("missing_destinations") or ()
+    if missing:
+        return "Missing destination packs: " + ", ".join(str(item) for item in missing) + "."
+    if status.get("missing_full_bank"):
+        return "The destination image bank is not connected."
+    return ""

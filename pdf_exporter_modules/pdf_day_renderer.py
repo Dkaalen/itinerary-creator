@@ -138,8 +138,6 @@ def render_day_story(day: RenderDay, styles, *, compact_level: int = 0) -> list:
     story = []
     add_paragraph(story, day_label(day), styles["day_kicker"])
     add_paragraph(story, day.title, styles["day_title"])
-    if day.city:
-        add_paragraph(story, day.city, styles["city"])
     intro = ellipsize_text(day.intro, 185) if compact_level >= 2 else day.intro
     add_paragraph(story, intro, styles["intro"])
 

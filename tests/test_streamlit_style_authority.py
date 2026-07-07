@@ -6,6 +6,7 @@ from tests.support.static_contracts import read_contract_text
 from ui import (
     style_app_chrome,
     style_app_shell,
+    style_calculator,
     style_input_workspace,
     style_project_browser,
     style_workspace_header,
@@ -16,6 +17,7 @@ STYLE_MODULES = (
     Path("ui/style_app_shell.py"),
     Path("ui/style_app_chrome.py"),
     Path("ui/style_workspace_header.py"),
+    Path("ui/style_calculator.py"),
     Path("ui/style_input_workspace.py"),
     Path("ui/style_project_browser.py"),
 )
@@ -35,6 +37,7 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert "html, body, [data-testid=\"stAppViewContainer\"]" in style_app_chrome.BASE_CSS
     assert ".studio-brand-link" in style_workspace_header.CSS
     assert ".supplier-preview-panel" in style_input_workspace.SUPPLIER_PREVIEW_CSS
+    assert ".calculator-heading" in style_calculator.CALCULATOR_PAGE_CSS
     assert ".cloud-project-card" in style_project_browser.PROJECT_BROWSER_CSS
     assert ".block-container:has(.open-project-workspace) .cloud-project-card" in style_project_browser.PROJECT_BROWSER_CSS
 
@@ -45,6 +48,7 @@ def test_composed_app_shell_preserves_all_split_sections_in_order() -> None:
             style_app_chrome.BASE_CSS,
             style_workspace_header.CSS,
             style_input_workspace.PAGE_LAYOUT_CSS,
+            style_calculator.CSS,
             style_project_browser.PROJECT_COPY_CSS,
             style_app_chrome.STREAMLIT_COMPONENT_CSS,
             style_input_workspace.SUPPLIER_PREVIEW_CSS,

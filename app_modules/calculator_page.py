@@ -33,6 +33,7 @@ from app_modules.calculator_state_keys import (
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
 )
 from app_modules.validation_gate import block_generation, render_blocking_issues
+from ui.style_calculator import CALCULATOR_PAGE_CSS
 from calculator.calculator_state import CalculatorState
 from calculator_grid_component import render_calculator_grid
 
@@ -42,7 +43,7 @@ _COMPONENT_KEY = "calculator_browser_grid"
 def render_calculator_page(app_version: str) -> None:
     """Render the standalone calculator page."""
 
-    _render_calculator_page_width_css()
+    _render_calculator_page_css()
     state = calculator_state_from_session(st.session_state)
     _render_app_header(app_version, stage="input")
     _render_calculator_topbar()
@@ -153,38 +154,8 @@ def _render_backup_controls(state: CalculatorState) -> None:
     st.rerun()
 
 
-def _render_calculator_page_width_css() -> None:
-    """Give the spreadsheet room without turning the page into an edge-to-edge strip."""
 
-    st.markdown(
-        """
-        <style>
-        section.main > div.block-container,
-        .main .block-container,
-        [data-testid="stAppViewContainer"] .block-container {
-            max-width: min(100% - 3rem, 1540px) !important;
-            width: min(100% - 3rem, 1540px) !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-        }
-        div[data-testid="stCustomComponentV1"],
-        div[data-testid="element-container"]:has(iframe[title="calculator_grid"]),
-        div:has(> iframe[title="calculator_grid"]) {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-        iframe[title="calculator_grid"],
-        div[data-testid="stCustomComponentV1"] iframe {
-            width: 100% !important;
-            max-width: 100% !important;
-            border-radius: 18px !important;
-            border: 1px solid rgba(199, 188, 170, 0.62) !important;
-            box-shadow: none !important;
-            background: var(--paper) !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+def _render_calculator_page_css() -> None:
+    """Apply calculator-specific CSS from the UI style layer."""
+
+    st.markdown(f"<style>{CALCULATOR_PAGE_CSS}</style>", unsafe_allow_html=True)

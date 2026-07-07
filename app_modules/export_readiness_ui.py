@@ -27,9 +27,15 @@ def export_readiness_panel_html(readiness: ExportReadiness) -> str:
     )
 
 
+def _issue_count(readiness: ExportReadiness) -> int:
+    return readiness.critical_issue_count + readiness.review_issue_count + readiness.advisory_issue_count
+
+
 def _headline(readiness: ExportReadiness) -> str:
     if readiness.pdf_ready:
         return "Current PDF is ready"
+    if readiness.can_create_pdf and _issue_count(readiness):
+        return "Ready to create with review notes"
     if readiness.can_create_pdf:
         return "Ready to create the final PDF"
     return "PDF export needs attention"
@@ -38,6 +44,8 @@ def _headline(readiness: ExportReadiness) -> str:
 def _body(readiness: ExportReadiness) -> str:
     if readiness.pdf_ready:
         return "The download matches the current saved preview."
+    if readiness.can_create_pdf and _issue_count(readiness):
+        return "The PDF can be created, but review the preflight notes before delivery."
     if readiness.can_create_pdf:
         return "The document, pictures, and export checks are aligned."
     if readiness.blocking_messages:

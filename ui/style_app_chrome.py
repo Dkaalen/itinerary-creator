@@ -21,8 +21,8 @@ footer {
 }
 
 .block-container {
-    max-width: min(100% - 3rem, 1480px) !important;
-    width: min(100% - 3rem, 1480px) !important;
+    max-width: min(calc(100% - 3rem), 1480px) !important;
+    width: min(calc(100% - 3rem), 1480px) !important;
     padding: 0 0 4.2rem !important;
 }
 
@@ -73,8 +73,8 @@ footer {
 
 @media (max-width: 740px) {
     .block-container {
-        max-width: min(100% - 1rem, 1480px) !important;
-        width: min(100% - 1rem, 1480px) !important;
+        max-width: min(calc(100% - 1rem), 1480px) !important;
+        width: min(calc(100% - 1rem), 1480px) !important;
     }
 
     .block-container:has(.studio-brand-link) {

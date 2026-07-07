@@ -66,7 +66,7 @@ def save_html_file(itinerary_html):
         return None
 
 
-def save_pdf_file(html_path, *, render_document=None, color_data=None, day_images=None, day_image_crop_focus=None, output_edits=None):
+def save_pdf_file(html_path, *, render_document=None, color_data=None, day_images=None, day_image_crop_focus=None, output_edits=None, filename_stem=None):
     try:
         if not html_path:
             raise ValueError("HTML path is missing. Regenerate the itinerary before creating the PDF.")
@@ -75,7 +75,8 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
         outputs_folder.mkdir(exist_ok=True)
 
         profile = resolve_pdf_export_profile(output_edits or None)
-        base_name = "itinerary_preview_booknordics" if str((output_edits or {}).get("output_brand") or "agent") == "booknordics_customer" else "itinerary_preview"
+        fallback_base = "itinerary_preview_booknordics" if str((output_edits or {}).get("output_brand") or "agent") == "booknordics_customer" else "itinerary_preview"
+        base_name = str(filename_stem or "").strip() or fallback_base
         pdf_path = outputs_folder / pdf_filename(base_name=base_name, profile=profile.as_dict())
         if render_document is not None and not render_document_requires_html_fallback(render_document, output_edits):
             export_render_document_to_pdf(

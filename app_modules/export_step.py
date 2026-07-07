@@ -98,6 +98,10 @@ def render_export_step(app_version: str) -> None:
         else:
             st.info(transaction_wait_copy(pdf_transaction_state()))
             st.button("Create PDF", disabled=True, use_container_width=True)
+            if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_export_pdf_while_waiting", disabled=not readiness.can_create_pdf):
+                consume_auto_pdf_create_request(st.session_state)
+                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF)
+                request_pdf_creation()
         return
     if auto_create and readiness.can_create_pdf:
         consume_auto_pdf_create_request(st.session_state)

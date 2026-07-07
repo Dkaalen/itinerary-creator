@@ -80,6 +80,8 @@ def export_readiness_from_state(state: Mapping[str, Any], image_status: Mapping[
         status = "Not ready"
     elif pdf_ready:
         status = "PDF ready"
+    elif preflight.issues:
+        status = "Ready with warnings"
     else:
         status = "Ready to create"
 

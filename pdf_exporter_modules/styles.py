@@ -57,29 +57,9 @@ def _footer_label(doc) -> str:
 
 
 def draw_proposal_footer(canvas, doc):
-    """Draw a quiet proposal footer on non-cover pages."""
+    """Compatibility no-op: proposal footers are intentionally removed."""
 
-    if int(getattr(doc, "page", 1) or 1) <= 1:
-        return
-
-    page_width, _page_height = getattr(doc, "pagesize", A4)
-    left = float(getattr(doc, "leftMargin", 22 * mm) or 22 * mm)
-    right = float(page_width) - float(getattr(doc, "rightMargin", 22 * mm) or 22 * mm)
-    y = max(8 * mm, float(getattr(doc, "bottomMargin", 22 * mm) or 22 * mm) * 0.42)
-    rule_y = y + 5.8 * mm
-
-    canvas.saveState()
-    canvas.setStrokeColor(tokens.LINE)
-    canvas.setFillColor(tokens.MUTED)
-    canvas.setLineWidth(0.25)
-    canvas.line(left, rule_y, right, rule_y)
-    canvas.setFont(pdf_font("medium") if is_booknordics_pdf() else "Helvetica", 6.6)
-    canvas.drawString(left, y, _footer_label(doc))
-    canvas.drawRightString(right, y, f"{int(getattr(doc, 'page', 1) or 1):02d}")
-    brand_logo = logo_path()
-    if brand_logo is not None and int(getattr(doc, "page", 1) or 1) >= 3:
-        canvas.drawImage(str(brand_logo), right - 36 * mm, A4[1] - 15 * mm, width=36 * mm, height=5.4 * mm, preserveAspectRatio=True, mask="auto", anchor="ne")
-    canvas.restoreState()
+    return None
 
 
 def page_background(canvas, doc):
@@ -87,7 +67,6 @@ def page_background(canvas, doc):
     canvas.setFillColor(tokens.PAGE_BACKGROUND)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
     canvas.restoreState()
-    draw_proposal_footer(canvas, doc)
 
 
 def make_styles():

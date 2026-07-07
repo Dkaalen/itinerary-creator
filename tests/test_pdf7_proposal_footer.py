@@ -61,22 +61,22 @@ def test_pdf7_footer_is_hidden_on_cover_page():
     assert not any(call[0] == "drawRightString" for call in canvas.calls)
 
 
-def test_pdf7_footer_draws_quiet_page_number_after_cover():
+def test_pdf7_footer_stays_removed_after_cover():
     canvas = RecordingCanvas()
 
     draw_proposal_footer(canvas, _doc(page=4))
 
-    assert any(call[0] == "line" for call in canvas.calls)
-    assert ("drawString", (22 * mm, max(8 * mm, 22 * mm * 0.42), "TRAVEL ITINERARY")) in canvas.calls
-    assert any(call[0] == "drawRightString" and call[1][2] == "04" for call in canvas.calls)
+    assert not any(call[0] == "line" for call in canvas.calls)
+    assert not any(call[0] == "drawString" for call in canvas.calls)
+    assert not any(call[0] == "drawRightString" for call in canvas.calls)
 
 
-def test_pdf7_page_background_keeps_background_and_adds_footer_after_cover():
+def test_pdf7_page_background_keeps_background_without_footer_after_cover():
     canvas = RecordingCanvas()
 
     page_background(canvas, _doc(page=2, title="Nordic Proposal"))
 
     call_names = [call[0] for call in canvas.calls]
     assert "rect" in call_names
-    assert "line" in call_names
-    assert any(call[0] == "drawString" and call[1][2] == "NORDIC PROPOSAL" for call in canvas.calls)
+    assert "line" not in call_names
+    assert not any(call[0] == "drawString" for call in canvas.calls)

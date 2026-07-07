@@ -43,3 +43,23 @@ def test_export_readiness_panel_escapes_blocker_copy() -> None:
     assert "Pictures missing" in html
     assert "Image source missing" in html
     assert "Preflight · 1 issue" in html
+
+
+def test_export_readiness_panel_distinguishes_ready_with_review_notes() -> None:
+    html = export_readiness_panel_html(
+        ExportReadiness(
+            has_document=True,
+            pictures_added=True,
+            image_bank_ready=True,
+            pdf_ready=False,
+            can_create_pdf=True,
+            blocking_messages=(),
+            status_label="Ready with warnings",
+            review_issue_count=2,
+        )
+    )
+
+    assert "Ready with warnings" in html
+    assert "Ready to create with review notes" in html
+    assert "The PDF can be created, but review the preflight notes before delivery." in html
+    assert "Preflight · 2 issues" in html

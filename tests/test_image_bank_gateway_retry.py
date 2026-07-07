@@ -34,5 +34,5 @@ def test_image_bank_retry_clears_cached_status_and_scanner(monkeypatch) -> None:
 
     assert status["required_destinations_ready"] is True
     assert len(cleared) == 2
-    assert invalidated == [True]
+    assert invalidated == [True, True]
     assert st.session_state["_image_bank_status_cache"]["status"]["destination_image_count"] == 3

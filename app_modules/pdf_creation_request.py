@@ -64,7 +64,7 @@ def queue_synced_pdf_creation() -> None:
     st.rerun()
 
 
-def request_pdf_creation() -> None:
+def request_pdf_creation() -> bool:
     """Create the PDF from the latest committed state and refresh saved-project payload."""
 
     clear_stale_pdf_editor_state()
@@ -72,3 +72,5 @@ def request_pdf_creation() -> None:
         refresh_active_saved_project_current_snapshot(st.session_state)
         st.success("PDF created. Use the download button.")
         st.rerun()
+        return True
+    return False

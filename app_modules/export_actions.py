@@ -15,6 +15,7 @@ from project_storage.workflow_hooks import save_pdf_export
 from app_modules.performance_telemetry import measure_timing, record_timing
 from app_modules.pdf_export_blockers import client_safety_blocks_pdf, preview_contract_blocks_pdf
 from app_modules.pdf_export_preview_file import current_preview_html_path
+from app_modules.pdf_filename import pdf_filename_stem_from_state
 from app_modules.project_io import rebuild_current_preview
 from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
 from itinerary_generation.common import group_rows_by_day
@@ -103,6 +104,7 @@ def create_pdf_from_current_preview() -> bool:
                 day_images=image_matches,
                 day_image_crop_focus=day_image_crop_focus,
                 output_edits=st.session_state.get("output_edits", {}) or {},
+                filename_stem=pdf_filename_stem_from_state(st.session_state),
             )
     if pdf_path is None:
         clear_pdf_artifact("PDF failed")
