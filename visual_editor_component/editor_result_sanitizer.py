@@ -9,15 +9,22 @@ from visual_editor_component.editor_result_codec import _normalize_route_edit
 
 def _sanitize_cover_image_payload(value: dict) -> dict:
     raw = value if isinstance(value, dict) else {}
-    mode = str(raw.get("mode") or "auto").strip().lower()
-    if mode not in {"auto", "manual", "none"}:
+    mode_text = str(raw.get("mode") or "auto").strip().lower()
+    if bool(raw.get("removed", False)) or mode_text in {"none", "removed", "remove", "deleted", "delete"}:
+        mode = "none"
+    elif mode_text == "manual":
+        mode = "manual"
+    else:
         mode = "auto"
     path = str(raw.get("path") or "").strip() if mode == "manual" else ""
-    return {
+    choice = {
         "mode": mode,
         "path": path,
         "crop_focus": normalize_cover_crop_focus(raw.get("crop_focus") or "top"),
     }
+    if bool(raw.get("removed", False)):
+        choice["removed"] = True
+    return choice
 
 
 def _sanitize_editor_draft(editor_draft):

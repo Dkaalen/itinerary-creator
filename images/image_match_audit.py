@@ -14,6 +14,7 @@ from pathlib import Path
 from images.fallback import is_global_default_candidate
 from images.day_image_selection import normalize_day_image_match, normalize_day_image_matches
 from images.image_bank import image_bank_status_for_paths
+from images.image_overrides import normalize_image_mode
 from images.matcher_context import build_day_context
 from images.matcher_scoring import (
     candidate_destination_matches,
@@ -108,11 +109,16 @@ def _candidate_for_match(
 
 def _choice_mode(output_edits: dict | None, day: str) -> str:
     try:
-        mode = ((output_edits or {}).get("day_images", {}) or {}).get(day, {}).get("mode", "auto")
+        choice = ((output_edits or {}).get("day_images", {}) or {}).get(day, {})
     except AttributeError:
-        mode = "auto"
-    mode = str(mode or "auto").strip().lower()
-    return mode if mode in {"auto", "manual", "none"} else "auto"
+        choice = {}
+    if not isinstance(choice, dict):
+        choice = {}
+    return normalize_image_mode(
+        choice.get("mode", "auto"),
+        removed=choice.get("removed", False),
+        path=choice.get("path", ""),
+    )
 
 
 def _format_name(path_text: str) -> str:

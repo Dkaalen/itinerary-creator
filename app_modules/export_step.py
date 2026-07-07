@@ -27,7 +27,7 @@ from app_modules.export_job_state import (
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.export_readiness_ui import export_readiness_panel_html
 from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
-from images.app_image_selection import destination_requests_from_rows, image_bank_status
+from images.app_image_selection import destination_requests_from_rows, image_bank_status, image_bank_storage_signature
 from app_modules.image_bank_status_cache import get_cached_image_bank_status
 
 
@@ -50,7 +50,12 @@ def _session_state_snapshot() -> dict:
 
 def _current_image_bank_status_for_export() -> dict:
     required_destinations = destination_requests_from_rows(image_grouped_days_from_state(st.session_state))
-    return get_cached_image_bank_status(st.session_state, required_destinations, image_bank_status)
+    return get_cached_image_bank_status(
+        st.session_state,
+        required_destinations,
+        image_bank_status,
+        bank_signature=image_bank_storage_signature(),
+    )
 
 
 def render_export_step(app_version: str) -> None:

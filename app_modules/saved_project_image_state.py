@@ -44,6 +44,19 @@ def _image_choice(value: Any) -> dict[str, Any]:
         return {}
     choice = deepcopy(dict(value))
     if choice:
+        mode = str(choice.get("mode") or "auto").strip().lower()
+        removed = bool(choice.get("removed", False)) or mode in {"removed", "remove", "deleted", "delete"}
+        if removed or mode == "none":
+            choice["mode"] = "none"
+            choice["path"] = ""
+            if removed:
+                choice["removed"] = True
+        elif mode == "manual" or (mode in {"", "auto"} and str(choice.get("path") or "").strip()):
+            choice["mode"] = "manual"
+            choice["path"] = str(choice.get("path") or "").strip()
+        else:
+            choice["mode"] = "auto"
+            choice["path"] = ""
         choice["crop_focus"] = str(choice.get("crop_focus") or "top")
     return choice
 

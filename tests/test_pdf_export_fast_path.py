@@ -6,8 +6,12 @@ from app_modules.export_identity import export_signature_for_state
 from tests.support.streamlit_stub import install_streamlit_stub
 
 
-def test_current_pdf_creation_is_a_noop_fast_path(monkeypatch):
+def test_pdf_creation_refreshes_preview_before_reusing_current_pdf(monkeypatch, tmp_path: Path):
+    from types import SimpleNamespace
+
     st = install_streamlit_stub()
+    html_path = tmp_path / "preview.html"
+    html_path.write_text("<html>current</html>", encoding="utf-8")
     st.session_state.clear()
     st.session_state.update(
         {
@@ -15,6 +19,8 @@ def test_current_pdf_creation_is_a_noop_fast_path(monkeypatch):
             "pdf_status": "Ready",
             "parsed_rows": [{"day": "1", "type": "activity", "title": "Walk Oslo"}],
             "output_edits": {"pictures_added": True},
+            "itinerary_html": "<html>current</html>",
+            "html_path": str(html_path),
         }
     )
     current_signature = export_signature_for_state(st.session_state)
@@ -27,15 +33,32 @@ def test_current_pdf_creation_is_a_noop_fast_path(monkeypatch):
         }
     )
 
-    def _should_not_run(*_args, **_kwargs):  # pragma: no cover - failure path
-        raise AssertionError("Current PDF should not rebuild, revalidate, reconnect images, or render again.")
+    calls = {"rebuild": 0, "images": 0}
 
-    monkeypatch.setattr(export_actions, "validate_for_generation", _should_not_run)
-    monkeypatch.setattr(export_actions, "rebuild_current_preview", _should_not_run)
-    monkeypatch.setattr(export_actions, "save_pdf_file", _should_not_run)
+    monkeypatch.setattr(export_actions, "validate_for_generation", lambda _rows: SimpleNamespace(is_blocked=False))
+
+    def _rebuild_current_preview(**kwargs):
+        calls["rebuild"] += 1
+        assert kwargs["force"] is True
+        return True
+
+    monkeypatch.setattr(export_actions, "rebuild_current_preview", _rebuild_current_preview)
+    monkeypatch.setattr(export_actions, "_preview_contract_blocks_pdf", lambda _html, _count: False)
+
+    def _prepare_pdf_image_contract():
+        calls["images"] += 1
+        return True, {"full_bank_found": True}, {}, {"Day 1": []}
+
+    monkeypatch.setattr(export_actions, "prepare_pdf_image_contract", _prepare_pdf_image_contract)
+
+    def _should_not_render(*_args, **_kwargs):  # pragma: no cover - failure path
+        raise AssertionError("Current PDF should not render again after preview and image state are verified.")
+
+    monkeypatch.setattr(export_actions, "save_pdf_file", _should_not_render)
 
     assert export_actions.create_pdf_from_current_preview() is True
     assert st.session_state["pdf_status"] == "Ready"
+    assert calls == {"rebuild": 1, "images": 1}
 
 
 def test_export_screen_does_not_offer_recreate_when_pdf_is_current():
@@ -121,6 +144,31 @@ def test_current_pdf_bytes_rejects_preview_signed_pdf_after_image_state_changes(
     )
 
     assert export_actions.current_pdf_bytes() is None
+
+
+def test_current_pdf_bytes_rejects_pdf_when_forced_preview_html_changes():
+    st = install_streamlit_stub()
+    st.session_state.clear()
+    st.session_state.update(
+        {
+            "preview_signature": "sig-1",
+            "itinerary_html": "<html>old image</html>",
+            "output_edits": {"pictures_added": True},
+        }
+    )
+    old_signature = export_signature_for_state(st.session_state)
+    st.session_state.update(
+        {
+            "pdf_signature": old_signature,
+            "pdf_bytes": b"%PDF-old-image",
+            "export_pdf_signature": old_signature,
+            "export_pdf_bytes": b"%PDF-old-image",
+            "itinerary_html": "<html>new image</html>",
+        }
+    )
+
+    assert export_actions.current_pdf_bytes() is None
+
 
 def test_export_readiness_does_not_reuse_unsigned_pdf_bytes():
     from app_modules.export_state import export_readiness_from_state

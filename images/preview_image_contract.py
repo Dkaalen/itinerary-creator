@@ -88,17 +88,27 @@ def day_image_matches_from_preview_html(html: str | None) -> dict[str, dict]:
 def merge_preview_image_contract(
     selected_matches: Mapping[str, Mapping | None] | None,
     preview_matches: Mapping[str, Mapping | None] | None,
+    *,
+    removed_days: set[str] | frozenset[str] | tuple[str, ...] = (),
 ) -> dict[str, Mapping | None]:
     """Prefer preview-selected images while preserving explicit removals.
 
     ``selected_matches`` comes from the server-side matcher/overrides.  The
     preview contract is preferred for days where the user has actually reviewed
     an image in the current preview, because it carries the embedded data URI
-    needed for PDF parity.
+    needed for PDF parity.  Explicitly removed days stay empty even if an older
+    preview HTML blob still contains an image marker.
     """
 
+    explicitly_removed = {str(day) for day in (removed_days or ())}
     merged: dict[str, Mapping | None] = dict(selected_matches or {})
     for day, match in (preview_matches or {}).items():
+        day_key = str(day)
+        if day_key in explicitly_removed:
+            merged[day_key] = None
+            continue
         if match:
-            merged[str(day)] = dict(match)
+            merged[day_key] = dict(match)
+    for day in explicitly_removed:
+        merged[day] = None
     return merged

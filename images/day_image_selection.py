@@ -7,6 +7,7 @@ from collections.abc import Mapping
 
 from images.matcher import select_day_images
 from images.image_bank import image_bank_status_for_paths, normalize_path_key
+from images.image_overrides import normalize_image_mode
 
 
 def day_image_match_from_path(day, path, reason="manual selection", image_bank_status=None):
@@ -116,7 +117,7 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
     # picture selected by the user on another day.
     for day, rows in (grouped_days or {}).items():
         choice = overrides.get(day, {}) or {}
-        mode = choice.get("mode", "auto")
+        mode = normalize_image_mode(choice.get("mode"), removed=choice.get("removed", False), path=choice.get("path", ""))
         manual_path = choice.get("path", "")
 
         if mode == "none":

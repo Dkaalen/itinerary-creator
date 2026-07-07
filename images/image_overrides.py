@@ -26,6 +26,26 @@ CROP_FOCUS_OBJECT_POSITIONS = {
 }
 
 _DEFAULT_DAY_IMAGE_CHOICE = {"mode": "auto", "path": "", "crop_focus": "top"}
+_REMOVED_IMAGE_MODES = {"none", "removed", "remove", "deleted", "delete"}
+
+
+def normalize_image_mode(value: object, *, removed: object = False, path: object = "") -> str:
+    """Return the canonical image-choice mode used by preview and PDF export.
+
+    Older saved projects used ``mode="removed"`` and/or ``removed=True``.
+    The live editor now sends ``mode="none"``.  Normalize both to one
+    durable value so removed images cannot silently fall back to auto images.
+    """
+
+    if bool(removed):
+        return "none"
+    raw_text = "" if value is None else str(value).strip().lower()
+    text = raw_text or "auto"
+    if text in _REMOVED_IMAGE_MODES:
+        return "none"
+    if text == "manual" or (not raw_text and str(path or "").strip()):
+        return "manual"
+    return "auto"
 
 
 def normalize_crop_focus(value: object) -> str:
@@ -63,8 +83,11 @@ def get_day_image_choice(output_edits: MutableMapping[str, Any], day: object) ->
     if not isinstance(choice, MutableMapping):
         choice = dict(_DEFAULT_DAY_IMAGE_CHOICE)
         day_images[day_key] = choice
-    choice.setdefault("mode", "auto")
-    choice.setdefault("path", "")
+    choice["mode"] = normalize_image_mode(choice.get("mode"), removed=choice.get("removed", False), path=choice.get("path", ""))
+    if choice["mode"] == "none":
+        choice["path"] = ""
+    else:
+        choice.setdefault("path", "")
     choice["crop_focus"] = normalize_crop_focus(choice.get("crop_focus", "top"))
     return choice
 
@@ -78,8 +101,8 @@ def read_day_image_choice(output_edits: Mapping[str, Any] | None, day: object) -
         return dict(_DEFAULT_DAY_IMAGE_CHOICE)
     choice = dict(_DEFAULT_DAY_IMAGE_CHOICE)
     choice.update(dict(raw_choice))
-    choice["mode"] = str(choice.get("mode") or "auto")
-    choice["path"] = str(choice.get("path") or "")
+    choice["mode"] = normalize_image_mode(choice.get("mode"), removed=choice.get("removed", False), path=choice.get("path", ""))
+    choice["path"] = "" if choice["mode"] == "none" else str(choice.get("path") or "")
     choice["crop_focus"] = normalize_crop_focus(choice.get("crop_focus", "top"))
     return choice
 

@@ -41,10 +41,6 @@ def _client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_ban
 def create_pdf_from_current_preview() -> bool:
     """Validate current state and create a durable PDF artifact when allowed."""
 
-    if current_pdf_bytes():
-        st.session_state.pdf_status = "Ready"
-        return True
-
     reset_pdf_export_timings(st.session_state)
 
     with record_pdf_export_stage(st.session_state, "validate_rows"):
@@ -55,7 +51,7 @@ def create_pdf_from_current_preview() -> bool:
         return False
 
     with record_pdf_export_stage(st.session_state, "refresh_preview"):
-        preview_refreshed = rebuild_current_preview(mark_pdf_dirty=False, save_html=True)
+        preview_refreshed = rebuild_current_preview(mark_pdf_dirty=False, force=True, save_html=True)
     current_preview_signature = st.session_state.get("preview_signature")
     current_pdf_signature = export_signature_for_state(st.session_state)
     if not preview_refreshed or not current_preview_signature or not current_pdf_signature:
@@ -110,6 +106,7 @@ def create_pdf_from_current_preview() -> bool:
             )
     if pdf_path is None:
         clear_pdf_artifact("PDF failed")
+        st.error("PDF export did not produce a file. The preview was kept unchanged; try Create PDF again after checking image readiness.")
         return False
 
     with record_pdf_export_stage(st.session_state, "store_pdf_bytes"):

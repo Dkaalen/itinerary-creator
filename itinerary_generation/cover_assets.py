@@ -66,16 +66,26 @@ def _cover_image_key(key: str) -> str:
     return key if key in COVER_IMAGE_KEYS else "cover_image"
 
 
+def _normalize_cover_image_mode(value: object, *, removed: object = False, path: object = "") -> str:
+    if bool(removed):
+        return "none"
+    raw_text = "" if value is None else str(value).strip().lower()
+    text = raw_text or "auto"
+    if text in {"none", "removed", "remove", "deleted", "delete"}:
+        return "none"
+    if text == "manual" or (not raw_text and str(path or "").strip()):
+        return "manual"
+    return "auto"
+
+
 def get_cover_image_choice(output_edits=None, key: str = "cover_image") -> dict:
     edits = output_edits if isinstance(output_edits, dict) else {}
     raw = edits.get(_cover_image_key(key))
     raw = raw if isinstance(raw, dict) else {}
-    mode = str(raw.get("mode") or "auto").strip().lower()
-    if mode not in {"auto", "manual", "none"}:
-        mode = "auto"
+    mode = _normalize_cover_image_mode(raw.get("mode"), removed=raw.get("removed", False), path=raw.get("path", ""))
     return {
         "mode": mode,
-        "path": str(raw.get("path") or ""),
+        "path": "" if mode == "none" else str(raw.get("path") or ""),
         "crop_focus": normalize_cover_crop_focus(raw.get("crop_focus") or "top"),
     }
 
