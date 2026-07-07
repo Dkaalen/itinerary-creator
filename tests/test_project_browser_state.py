@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from app_modules.project_browser_state import (
-    clear_deleted_project_from_session,
     clear_delete_confirmation,
     delete_candidate_id,
     remember_delete_candidate,
 )
+from app_modules.project_delete_cleanup import clear_deleted_project_from_session
 
 
 def test_delete_confirmation_state_has_single_owner() -> None:

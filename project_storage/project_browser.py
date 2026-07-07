@@ -46,6 +46,15 @@ def delete_cloud_itinerary_result(itinerary_id: str) -> ProjectDeleteResult | No
     return repository.delete_itinerary(str(itinerary_id or "").strip())
 
 
+def delete_cloud_project_file_result(file_id: str, *, storage_path: str = "") -> ProjectDeleteResult | None:
+    """Delete one registered project file and best-effort cleanup its storage object."""
+
+    repository = get_project_storage_repository()
+    if repository is None:
+        return None
+    return repository.delete_file(str(file_id or "").strip(), storage_path=str(storage_path or "").strip())
+
+
 def delete_cloud_itinerary(itinerary_id: str) -> bool:
     """Compatibility wrapper returning whether the itinerary record was deleted."""
 

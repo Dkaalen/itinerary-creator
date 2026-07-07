@@ -140,6 +140,37 @@ class ProjectStorageRepository:
         if clean_id:
             self._client.rest_delete("itinerary_versions", {"id": f"eq.{clean_id}"})
 
+    def delete_file(self, file_id: str, *, storage_path: str = "") -> ProjectDeleteResult:
+        """Delete one registered file and best-effort remove its storage object."""
+
+        clean_file_id = str(file_id or "").strip()
+        clean_storage_path = str(storage_path or "").strip()
+        if not clean_file_id and not clean_storage_path:
+            return ProjectDeleteResult(itinerary_id="", record_deleted=False, storage_files_deleted=False)
+
+        if clean_file_id:
+            self._client.rest_delete("itinerary_files", {"id": f"eq.{clean_file_id}"})
+
+        if not clean_storage_path:
+            return ProjectDeleteResult(itinerary_id="", record_deleted=True, storage_files_deleted=True)
+
+        try:
+            self.delete_storage_files([clean_storage_path])
+        except Exception as exc:
+            return ProjectDeleteResult(
+                itinerary_id="",
+                storage_paths=(clean_storage_path,),
+                record_deleted=True,
+                storage_files_deleted=False,
+                storage_error=str(exc),
+            )
+        return ProjectDeleteResult(
+            itinerary_id="",
+            storage_paths=(clean_storage_path,),
+            record_deleted=True,
+            storage_files_deleted=True,
+        )
+
     def delete_itinerary(self, itinerary_id: str) -> ProjectDeleteResult:
         clean_id = str(itinerary_id or "").strip()
         if not clean_id:

@@ -183,6 +183,7 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
 def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:
     source = read_contract_text("project_storage/project_browser.py")
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
+    calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
 
     assert "search: str = """ in source
     assert "list_cloud_calculation_files" in source
@@ -190,7 +191,8 @@ def test_project_browser_supports_search_delete_and_calculator_file_downloads() 
     assert "delete_cloud_itinerary_result" in source
     assert "Search projects" in ui_source
     assert "Delete permanently" in ui_source
-    assert "Calculator files" in ui_source
+    assert "render_calculation_files" in ui_source
+    assert "Calculator files" in calculator_file_source
 
 
 

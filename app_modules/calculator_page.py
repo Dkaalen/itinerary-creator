@@ -73,7 +73,7 @@ def render_calculator_page(app_version: str) -> None:
         state = _apply_component_result(parsed_result)
 
     _render_backend_action(parsed_result, state, currency_rates)
-    render_ready_calculation_download(st.session_state)
+    render_ready_calculation_download(st.session_state, state, currency_rates=currency_rates)
     _render_backup_controls(state)
 
 

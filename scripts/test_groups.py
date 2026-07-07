@@ -136,6 +136,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_compatibility_facade_audit.py",
     "tests/test_test_runner_groups.py",
+    "tests/test_streamlit_style_authority.py",
     "tests/test_editor_workflow_split_regression.py",
     "tests/test_style_registry_regression.py",
     "tests/test_architecture_boundaries_regression.py",
@@ -230,6 +231,7 @@ UI_TESTS = (
     "tests/test_ui_image_bank_gateway.py",
     "tests/test_ui_pdf_download_persistence.py",
     "tests/test_project_browser_and_downloads_regression.py",
+    "tests/test_project_browser_state.py",
     "tests/test_ui_style_contrast.py",
     "tests/test_ui_workflow_shell.py",
     "tests/test_ui_workflow_state_actions.py",
@@ -318,6 +320,7 @@ CALCULATOR_TESTS = (
     "tests/test_calculator_component_mounting.py",
     "tests/test_calculator_component_payload.py",
     "tests/test_calculator_component_result.py",
+    "tests/test_calculator_download_staleness.py",
     "tests/test_calculator_fetch_lines.py",
     "tests/test_calculator_formula_map.py",
     "tests/test_calculator_generation_action.py",
@@ -347,6 +350,8 @@ STORAGE_TESTS = (
     "tests/test_current_edited_version_save_regression.py",
     "tests/test_saved_project_hardening_regression.py",
     "tests/test_project_browser_and_downloads_regression.py",
+    "tests/test_project_browser_state.py",
+    "tests/test_project_cloud_lifecycle_hardening.py",
 )
 
 WORKFLOW_TESTS = (

@@ -8,6 +8,7 @@ from typing import Any
 from app_modules.project_identity import (
     active_project_id_from_state,
     ensure_active_project_id,
+    project_payload_with_id,
     set_active_project_id,
 )
 from calculator.calculator_state import CalculatorState
@@ -70,19 +71,23 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
     repository = get_project_storage_repository()
     if repository is None or not isinstance(project, dict):
         return False
+
     metadata = project.get("metadata") if isinstance(project.get("metadata"), dict) else {}
     itinerary_id = active_project_id_from_state(state) or str(metadata.get("project_id") or "").strip()
     if not itinerary_id:
         itinerary_id = ensure_storage_itinerary(state, name=str(metadata.get("itinerary_name") or ""))
-    else:
-        set_active_project_id(state, itinerary_id)
-    itinerary_name = str(metadata.get("itinerary_name") or _state_itinerary_name(state) or "Untitled itinerary")
-    itinerary_type = str(project.get("output_brand") or project.get("mode") or "agent")
+    if not itinerary_id:
+        return False
+
+    normalized_project = project_payload_with_id(project, itinerary_id)
+    normalized_metadata = normalized_project.get("metadata") if isinstance(normalized_project.get("metadata"), dict) else {}
+    itinerary_name = str(normalized_metadata.get("itinerary_name") or _state_itinerary_name(state) or "Untitled itinerary")
+    itinerary_type = str(normalized_project.get("output_brand") or normalized_project.get("mode") or "agent")
 
     try:
-        repository.upsert_itinerary(itinerary_id, name=itinerary_name, status=str(metadata.get("status") or "draft"))
+        repository.upsert_itinerary(itinerary_id, name=itinerary_name, status=str(normalized_metadata.get("status") or "draft"))
         version_number = repository.next_version_number(itinerary_id, itinerary_type)
-        content = json.dumps(project, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+        content = json.dumps(normalized_project, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
         storage_path = itinerary_snapshot_path(itinerary_id, itinerary_type, version_number)
         save_versioned_file(
             repository,
@@ -90,13 +95,15 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
             version_number=version_number,
             itinerary_type=itinerary_type,
             source_type=source_type,
-            payload=project,
+            payload=normalized_project,
             file_type="saved_project_json",
             filename=storage_path.rsplit("/", 1)[-1],
             storage_path=storage_path,
             content=content,
             content_type=PROJECT_JSON_MIME,
         )
+        state["active_saved_project"] = normalized_project
+        state["itinerary_name"] = itinerary_name
         set_active_project_id(state, itinerary_id)
         state["project_storage_last_saved_snapshot_path"] = storage_path
         clear_storage_error(state)

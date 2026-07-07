@@ -89,6 +89,37 @@ PAGE_LAYOUT_CSS = r""".input-page-heading,
     width: auto !important;
 }
 
+
+.block-container:has(.calculator-heading) [data-testid="stExpander"],
+.block-container:has(.local-library-heading) [data-testid="stExpander"],
+.block-container:has(.calculator-heading) [data-testid="stForm"],
+.block-container:has(.local-library-heading) [data-testid="stForm"] {
+    margin-left: clamp(1.5rem, 3vw, 2.65rem) !important;
+    margin-right: clamp(1.5rem, 3vw, 2.65rem) !important;
+    padding: .15rem .35rem !important;
+    background: rgba(255, 253, 248, .68) !important;
+    border-color: rgba(224, 216, 202, .76) !important;
+}
+
+.block-container:has(.calculator-heading) [data-testid="stCustomComponentV1"],
+.block-container:has(.calculator-heading) div[data-testid="element-container"]:has(iframe[title="calculator_grid"]) {
+    margin-left: clamp(1.5rem, 3vw, 2.65rem) !important;
+    margin-right: clamp(1.5rem, 3vw, 2.65rem) !important;
+    width: auto !important;
+}
+
+.block-container:has(.calculator-heading) iframe[title="calculator_grid"] {
+    background: #fffdf8 !important;
+    border-color: rgba(207, 196, 179, .86) !important;
+}
+
+.block-container:has(.calculator-heading) [data-testid="stAlert"] *,
+.block-container:has(.local-library-heading) [data-testid="stAlert"] *,
+.block-container:has(.calculator-heading) [data-testid="stExpander"] *,
+.block-container:has(.local-library-heading) [data-testid="stExpander"] * {
+    color: var(--ink) !important;
+}
+
 """
 
 SUPPLIER_PREVIEW_CSS = r""".supplier-preview-panel {

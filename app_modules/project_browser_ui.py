@@ -7,25 +7,26 @@ from typing import Any
 
 import streamlit as st
 
+from app_modules.project_browser_calculation_files import render_calculation_files
+from app_modules.project_browser_formatting import short_storage_time
 from app_modules.project_browser_state import (
-    clear_deleted_project_from_session,
     clear_delete_confirmation,
+    clear_file_delete_confirmation,
     delete_candidate_id,
     remember_delete_candidate,
 )
+from app_modules.project_delete_cleanup import clear_deleted_project_from_session
 from app_modules.project_identity import set_active_project_id
 from app_modules.project_io import load_project_json
 from app_modules.saved_project_load_action import load_saved_project
+from app_modules.saved_project_validation import SavedProjectError
 from project_storage.errors import storage_user_message
 from project_storage.project_browser import (
     delete_cloud_itinerary_result,
-    download_cloud_project_file,
-    list_cloud_calculation_files,
     list_cloud_itineraries,
     load_latest_cloud_project_payload,
 )
 from project_storage.runtime import project_storage_is_configured
-from project_storage.workflow_hooks import CALCULATION_XLSX_MIME
 
 
 OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
@@ -71,6 +72,9 @@ def _render_cloud_project_browser() -> None:
     cleanup_warning = st.session_state.pop("project_storage_delete_cleanup_warning", "")
     if cleanup_warning:
         st.warning(str(cleanup_warning))
+    success_message = st.session_state.pop("project_storage_browser_success", "")
+    if success_message:
+        st.success(str(success_message))
 
     search = st.text_input(
         "Search projects",
@@ -97,7 +101,7 @@ def _render_cloud_project_card(project: dict[str, Any]) -> None:
     if not project_id:
         return
     name = str(project.get("name") or "Untitled itinerary")
-    updated = _short_time(project.get("updated_at") or project.get("created_at"))
+    updated = short_storage_time(project.get("updated_at") or project.get("created_at"))
     st.html(
         f"""
         <div class="cloud-project-card">
@@ -115,7 +119,7 @@ def _render_cloud_project_card(project: dict[str, Any]) -> None:
             remember_delete_candidate(st.session_state, project_id=project_id, name=name)
             st.rerun()
     _render_delete_confirmation(project_id, name)
-    _render_calculation_files(project_id)
+    render_calculation_files(project_id)
 
 
 def _render_delete_confirmation(project_id: str, name: str) -> None:
@@ -145,56 +149,13 @@ def _render_delete_confirmation(project_id: str, name: str) -> None:
                         st.session_state["project_storage_delete_cleanup_warning"] = (
                             "Project record was deleted, but one or more stored files could not be removed automatically."
                         )
-                    st.success(f"Deleted {name}.")
+                    st.session_state["project_storage_browser_success"] = f"Deleted {name}."
                     st.rerun()
                     return
                 st.warning("Cloud storage is unavailable. Project was not deleted.")
             except Exception:
                 st.error(storage_user_message("delete"))
 
-
-def _render_calculation_files(project_id: str) -> None:
-    try:
-        files = list_cloud_calculation_files(project_id, limit=8)
-    except Exception:
-        st.caption(storage_user_message("files"))
-        return
-    if not files:
-        st.caption("No calculator files saved for this itinerary yet.")
-        return
-    with st.expander(f"Calculator files ({len(files)})", expanded=False):
-        for index, item in enumerate(files):
-            _render_calculation_file(project_id, item, index=index)
-
-
-def _render_calculation_file(project_id: str, item: dict[str, Any], *, index: int) -> None:
-    filename = str(item.get("filename") or "calculation.xlsx")
-    created = _short_time(item.get("created_at"))
-    storage_path = str(item.get("storage_path") or "")
-    st.html(
-        f"""
-        <div class="cloud-file-row">
-          <strong>{escape(filename)}</strong>
-          <span>{escape(created)}</span>
-        </div>
-        """
-    )
-    prepared_key = f"cloud_calculator_file_payload_{project_id}_{index}"
-    if st.button("Prepare calculator file", key=f"prepare_cloud_calculator_{project_id}_{index}", use_container_width=True):
-        try:
-            st.session_state[prepared_key] = download_cloud_project_file(storage_path)
-        except Exception:
-            st.caption(storage_user_message("download"))
-    content = st.session_state.get(prepared_key)
-    if content:
-        st.download_button(
-            "Download calculator file",
-            data=bytes(content),
-            file_name=filename,
-            mime=CALCULATION_XLSX_MIME,
-            key=f"download_cloud_calculator_{project_id}_{index}",
-            use_container_width=True,
-        )
 
 
 def _open_cloud_project(project_id: str) -> None:
@@ -206,10 +167,19 @@ def _open_cloud_project(project_id: str) -> None:
     if not payload:
         st.warning("This cloud project has no saved itinerary snapshot yet.")
         return
-    result = load_saved_project(st.session_state, payload, project_id_override=project_id)
+    try:
+        result = load_saved_project(st.session_state, payload, project_id_override=project_id)
+    except SavedProjectError as error:
+        st.error(f"Cloud project could not be opened: {error}")
+        return
+    except Exception:
+        st.error(storage_user_message("open"))
+        return
     if result.ok:
         set_active_project_id(st.session_state, project_id)
         clear_delete_confirmation(st.session_state)
+        clear_file_delete_confirmation(st.session_state)
+        st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
         st.success(result.message or "Cloud project opened.")
         st.rerun()
     else:
@@ -227,8 +197,3 @@ def _render_backup_project_uploader() -> None:
     if st.button("Open uploaded backup", use_container_width=True):
         if load_project_json(uploaded_project, require_saved_project=True):
             st.rerun()
-
-
-def _short_time(value: object) -> str:
-    text = str(value or "").replace("T", " ").replace("Z", " UTC")
-    return text[:19] if text else "Saved project"

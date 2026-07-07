@@ -2,18 +2,37 @@
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+import hashlib
+import json
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import streamlit as st
 
 from calculator.calculator_state import CalculatorState
+from calculator.currency_rates import normalize_currency_rates
+from calculator.state_serialization import calculator_state_to_dict
 from calculator.workbook_export import WorkbookExport, export_calculation_workbook
 from app_modules.calculator_state_keys import CALCULATOR_READY_DOWNLOAD_KEY
 from app_modules.calculator_session_state import clear_ready_calculation_download
 from project_storage.workflow_hooks import save_calculation_workbook
 
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def calculator_download_signature(
+    state: CalculatorState,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
+) -> str:
+    """Return a stable identity for the calculator state that feeds Excel export."""
+
+    payload = {
+        "calculator_state": calculator_state_to_dict(state),
+        "currency_rates": normalize_currency_rates(currency_rates),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def prepare_calculation_download(
@@ -47,15 +66,28 @@ def prepare_staged_calculation_download(
         "mime": CALCULATION_XLSX_MIME,
         "content": export.content,
         "saved_to_cloud": bool(saved_to_cloud),
+        "download_signature": calculator_download_signature(state, currency_rates=currency_rates),
     }
     return export
 
 
-def render_ready_calculation_download(session_state: MutableMapping[str, Any]) -> None:
+def render_ready_calculation_download(
+    session_state: MutableMapping[str, Any],
+    current_state: CalculatorState | None = None,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
+) -> None:
     """Render a user-clicked Streamlit download button to avoid browser-blocked popups."""
 
     payload = session_state.get(CALCULATOR_READY_DOWNLOAD_KEY)
     if not isinstance(payload, dict) or not payload.get("content"):
+        return
+    if current_state is not None and payload.get("download_signature") != calculator_download_signature(
+        current_state,
+        currency_rates=currency_rates,
+    ):
+        clear_ready_calculation_download(session_state)
+        st.info("Prepared Excel was cleared because the calculator changed. Prepare the download again.")
         return
     filename = str(payload.get("filename") or "itinerary-calculation.xlsx")
     st.html('<div class="calculator-download-ready-panel">')

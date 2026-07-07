@@ -71,3 +71,15 @@ def test_product_workspace_palette_uses_quiet_luxury_tokens(monkeypatch):
     assert "--red: #ef3a5d;" in css
     assert "[data-testid=\"stFileUploaderDropzone\"]" in css
     assert "background: rgba(255, 253, 248, 0.74) !important;" in css
+
+
+def test_open_project_calculator_and_local_library_surfaces_keep_readable_contrast(monkeypatch):
+    css = _rendered_css(monkeypatch)
+
+    assert '.block-container:has(.open-project-workspace) div[data-testid="stTextInput"] input' in css
+    assert '.block-container:has(.open-project-workspace) .cloud-project-card strong' in css
+    assert 'color: #1f2630 !important;' in css
+    assert 'color: #fffdf8 !important;' in css
+    assert '.block-container:has(.calculator-heading) [data-testid="stExpander"]' in css
+    assert '.block-container:has(.local-library-heading) [data-testid="stExpander"]' in css
+    assert '.block-container:has(.calculator-heading) iframe[title="calculator_grid"]' in css

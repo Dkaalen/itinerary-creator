@@ -115,6 +115,7 @@ def install_streamlit_stub(*, force: bool = False):
         "success",
         "info",
         "markdown",
+        "html",
         "write",
         "caption",
         "toast",

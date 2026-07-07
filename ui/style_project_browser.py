@@ -76,50 +76,6 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
     color: #d9d4c9 !important;
 }
 
-.open-project-workspace div[data-testid="stTextInput"] input,
-.open-project-workspace div[data-testid="stTextArea"] textarea {
-    background: #fffdf8 !important;
-    color: #1f2630 !important;
-    border-color: rgba(224, 216, 202, .88) !important;
-}
-
-.open-project-workspace div[data-testid="stTextInput"] input::placeholder,
-.open-project-workspace div[data-testid="stTextArea"] textarea::placeholder {
-    color: #827c73 !important;
-    opacity: 1 !important;
-}
-
-.open-project-workspace .cloud-project-list {
-    gap: .8rem;
-    margin-top: .8rem;
-}
-
-.open-project-workspace .cloud-project-card {
-    background: #fffdf8 !important;
-    border-color: rgba(224, 216, 202, .90) !important;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .16) !important;
-}
-
-.open-project-workspace .cloud-project-card strong,
-.open-project-workspace .cloud-file-row strong {
-    color: #1f2630 !important;
-}
-
-.open-project-workspace .cloud-project-card span,
-.open-project-workspace .cloud-file-row span {
-    color: #5f625f !important;
-}
-
-.open-project-workspace [data-testid="stExpander"] {
-    background: rgba(255, 253, 248, .08) !important;
-    border-color: rgba(255, 253, 248, .20) !important;
-}
-
-.open-project-workspace [data-testid="stExpander"] summary,
-.open-project-workspace [data-testid="stExpander"] summary * {
-    color: #fffdf8 !important;
-}
-
 .cloud-file-row {
     display: grid;
     gap: .12rem;
@@ -154,13 +110,74 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
     font-size: .84rem;
 }
 
-.open-project-workspace [data-testid="stFileUploaderDropzone"] {
+/* The dark Open Project header is rendered with st.html, so target the active
+   Streamlit block container rather than assuming later widgets are children. */
+.block-container:has(.open-project-workspace) div[data-testid="stTextInput"],
+.block-container:has(.open-project-workspace) div[data-testid="stFileUploader"],
+.block-container:has(.open-project-workspace) [data-testid="stExpander"],
+.block-container:has(.open-project-workspace) [data-testid="stAlert"],
+.block-container:has(.open-project-workspace) [data-testid="stCaptionContainer"] {
+    margin-left: clamp(1.15rem, 2.4vw, 2rem) !important;
+    margin-right: clamp(1.15rem, 2.4vw, 2rem) !important;
+}
+
+.block-container:has(.open-project-workspace) div[data-testid="stTextInput"] input,
+.block-container:has(.open-project-workspace) div[data-testid="stTextArea"] textarea {
+    background: #fffdf8 !important;
+    color: #1f2630 !important;
+    border-color: rgba(224, 216, 202, .88) !important;
+}
+
+.block-container:has(.open-project-workspace) div[data-testid="stTextInput"] input::placeholder,
+.block-container:has(.open-project-workspace) div[data-testid="stTextArea"] textarea::placeholder {
+    color: #827c73 !important;
+    opacity: 1 !important;
+}
+
+.block-container:has(.open-project-workspace) [data-testid="stWidgetLabel"] p,
+.block-container:has(.open-project-workspace) label {
+    color: #fffdf8 !important;
+}
+
+.block-container:has(.open-project-workspace) .cloud-project-list {
+    gap: .85rem;
+    margin: .9rem clamp(1.15rem, 2.4vw, 2rem) 1.1rem;
+}
+
+.block-container:has(.open-project-workspace) .cloud-project-card {
+    background: #fffdf8 !important;
+    border-color: rgba(224, 216, 202, .90) !important;
+    padding: .95rem 1.05rem !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .10) !important;
+}
+
+.block-container:has(.open-project-workspace) .cloud-project-card strong,
+.block-container:has(.open-project-workspace) .cloud-file-row strong {
+    color: #1f2630 !important;
+}
+
+.block-container:has(.open-project-workspace) .cloud-project-card span,
+.block-container:has(.open-project-workspace) .cloud-file-row span {
+    color: #5f625f !important;
+}
+
+.block-container:has(.open-project-workspace) [data-testid="stExpander"] {
+    background: rgba(255, 253, 248, .10) !important;
+    border-color: rgba(255, 253, 248, .22) !important;
+}
+
+.block-container:has(.open-project-workspace) [data-testid="stExpander"] summary,
+.block-container:has(.open-project-workspace) [data-testid="stExpander"] summary * {
+    color: #fffdf8 !important;
+}
+
+.block-container:has(.open-project-workspace) [data-testid="stFileUploaderDropzone"] {
     background: #fffdf8 !important;
     border-color: rgba(224, 216, 202, .88) !important;
 }
 
-.open-project-workspace [data-testid="stFileUploaderDropzone"] *,
-.open-project-workspace [data-testid="stFileUploader"] section * {
+.block-container:has(.open-project-workspace) [data-testid="stFileUploaderDropzone"] *,
+.block-container:has(.open-project-workspace) [data-testid="stFileUploader"] section * {
     color: #1f2630 !important;
 }
 
