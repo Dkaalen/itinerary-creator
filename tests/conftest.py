@@ -14,6 +14,7 @@ if str(TESTS_DIR) not in sys.path:
 from support.streamlit_stub import install_streamlit_stub
 
 from scripts.test_groups import (
+    critical_module_names,
     fast_module_names,
     group_module_names,
     pdf_module_names,
@@ -22,6 +23,7 @@ from scripts.test_groups import (
 )
 
 GROUP_MODULES = group_module_names()
+CRITICAL_MODULES = critical_module_names()
 FAST_MODULES = fast_module_names()
 PDF_MODULES = pdf_module_names()
 SLOW_MODULES = slow_module_names()
@@ -54,7 +56,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if module_name in SLOW_MODULES:
             item.add_marker(pytest.mark.slow)
 
-        if module_name in FAST_MODULES:
+        if module_name in CRITICAL_MODULES or module_name in FAST_MODULES:
             item.add_marker(pytest.mark.unit)
         elif module_name in KNOWN_GROUPED_MODULES:
             item.add_marker(pytest.mark.integration)

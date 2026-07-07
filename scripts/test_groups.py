@@ -15,6 +15,7 @@ REMAINING_STAGE_SIZE = 8
 TIERED_STAGE_SIZE = 4
 PDF_STAGE_SIZE = 3
 CHUNKED_GROUP_STAGE_SIZES = {
+    "critical": 3,
     "architecture": 4,
     "calculator": 5,
     "editor": 4,
@@ -25,6 +26,12 @@ CHUNKED_GROUP_STAGE_SIZES = {
     "pdf": PDF_STAGE_SIZE,
 }
 
+CRITICAL_TESTS = (
+    "tests/test_critical_feature_smoke.py",
+    "tests/test_critical_workflow_contracts.py",
+    "tests/test_failure_mode_regressions.py",
+)
+
 FAST_TESTS = (
     "tests/test_time_text_helpers.py",
     "tests/test_date_formatting.py",
@@ -32,8 +39,6 @@ FAST_TESTS = (
     "tests/test_render_cache.py",
     "tests/test_commercial_status_helpers.py",
     "tests/test_normalizer_context_architecture.py",
-    "tests/test_transport_model_architecture.py",
-    "tests/test_runtime_alignment.py",
     "tests/test_regressions_parser_normalizer.py",
     "tests/test_content_validator_scoping.py",
     "tests/test_leisure_arrival_metadata_cleanup.py",
@@ -359,6 +364,7 @@ SLOW_TESTS = (
 )
 
 GROUPS = {
+    "critical": CRITICAL_TESTS,
     "fast": FAST_TESTS,
     "parser": PARSER_TESTS,
     "activity": ACTIVITY_TESTS,
@@ -378,8 +384,9 @@ GROUP_ORDER = tuple(GROUPS)
 
 # Short, timeout-safe confidence paths.  These are intentionally explicit so
 # CI, PowerShell runners, and release validation cannot silently drift apart.
-HEALTH_CHECK_GROUPS = ("fast",)
+HEALTH_CHECK_GROUPS = ("critical",)
 RELEASE_CANDIDATE_GROUPS = (
+    "critical",
     "fast",
     "calculator",
     "storage",
@@ -394,6 +401,7 @@ RELEASE_CANDIDATE_GROUPS = (
     "pdf",
 )
 CI_MATRIX_GROUPS = (
+    "critical",
     "fast",
     "calculator",
     "storage",
@@ -407,6 +415,7 @@ CI_MATRIX_GROUPS = (
 )
 
 GROUP_DESCRIPTIONS = {
+    "critical": "instant smoke/contracts for critical app surfaces and known failure classes",
     "fast": "small everyday safety gate with PDF/slow/large quality checks excluded",
     "parser": "text cleanup, date/time, extractor, and normalizer regressions",
     "activity": "activity product rules, catalogue matching, source fidelity, and QA warnings",
@@ -420,7 +429,7 @@ GROUP_DESCRIPTIONS = {
     "quality": "medium itinerary quality and content/rendering regressions",
     "pdf": "PDF export and preview/PDF parity checks",
     "slow": "isolated large-fixture and PDF-heavy stability checks",
-    "health": "quick local health check: compile/import/collect plus the fast lane",
+    "health": "instant local health check: compile/import plus the critical smoke lane",
     "release": "strong timeout-safe release candidate check without the isolated slow harness",
 }
 
@@ -585,7 +594,7 @@ def build_slow_stages(
 def focused_group_names() -> tuple[str, ...]:
     """Return non-tiered convenience lanes for targeted patch validation."""
 
-    return ("parser", "activity", "architecture", "calculator", "editor", "images", "storage", "ui", "workflow")
+    return ("critical", "parser", "activity", "architecture", "calculator", "editor", "images", "storage", "ui", "workflow")
 
 
 def group_descriptions() -> dict[str, str]:
@@ -607,6 +616,10 @@ def module_group_names(module_name: str) -> tuple[str, ...]:
 
     groups = group_module_names()
     return tuple(name for name in GROUP_ORDER if module_name in groups[name])
+
+
+def critical_module_names() -> set[str]:
+    return {_module_name(path) for path in CRITICAL_TESTS}
 
 
 def fast_module_names() -> set[str]:

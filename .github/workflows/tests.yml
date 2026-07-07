@@ -43,7 +43,11 @@ jobs:
           python -m pytest
           tests/test_test_runner_groups.py
           tests/test_ci_workflow_guards.py
+          tests/test_pytest_marker_discipline.py
           -q
+
+      - name: Critical product smoke
+        run: python scripts/run_test_group.py critical
 
       - name: Compile Python files
         run: python -m compileall -q .
@@ -70,6 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         group:
+          - critical
           - fast
           - calculator
           - storage

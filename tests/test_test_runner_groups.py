@@ -17,6 +17,7 @@ from scripts.test_groups import (
     RELEASE_CANDIDATE_GROUPS,
     build_full_stages,
     build_slow_stages,
+    critical_module_names,
     fast_module_names,
     focused_group_names,
     group_descriptions,
@@ -73,6 +74,12 @@ def test_marker_sets_stay_aligned_with_named_groups() -> None:
     assert {_module_name(path) for path in GROUPS["quality"]}.issubset(quality_module_names())
 
 
+def test_critical_group_is_free_of_pdf_slow_and_large_quality_modules() -> None:
+    heavy_modules = pdf_module_names() | slow_module_names() | quality_module_names()
+
+    assert critical_module_names().isdisjoint(heavy_modules)
+
+
 def test_fast_group_is_free_of_pdf_slow_and_large_quality_modules() -> None:
     heavy_modules = pdf_module_names() | slow_module_names() | quality_module_names()
 
@@ -118,6 +125,7 @@ def test_runner_accepts_every_documented_group() -> None:
 
 def test_focused_groups_exist_for_common_patch_areas() -> None:
     assert focused_group_names() == (
+        "critical",
         "parser",
         "activity",
         "architecture",
@@ -134,8 +142,9 @@ def test_focused_groups_exist_for_common_patch_areas() -> None:
 
 
 def test_health_and_release_groups_have_clear_scope() -> None:
-    assert HEALTH_CHECK_GROUPS == ("fast",)
+    assert HEALTH_CHECK_GROUPS == ("critical",)
     assert RELEASE_CANDIDATE_GROUPS == (
+        "critical",
         "fast",
         "calculator",
         "storage",
@@ -167,7 +176,8 @@ def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
     assert len(_stages_for_group("ui")) > 1
     assert len(_stages_for_group("pdf")) > 1
     assert all(len(paths) <= 3 for _name, paths in _stages_for_group("pdf"))
-    assert _stages_for_group("health") == _stages_for_group("fast")
+    assert _stages_for_group("critical") == (("critical", GROUPS["critical"]),)
+    assert _stages_for_group("health") == _stages_for_group("critical")
     assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
     assert _stages_for_group("slow") == build_slow_stages()
 

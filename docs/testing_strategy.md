@@ -1,26 +1,75 @@
 # Test strategy
 
-## Current confidence hierarchy
+## Confidence hierarchy
 
-1. Quick health check: `python scripts/run_health_check.py`
-2. Fast behavior lane: `python scripts/run_test_group.py fast`
-3. Focused lane: `python scripts/run_test_group.py <group>`
-4. Release candidate: `python scripts/run_release_candidate.py`
-5. Optional isolated slow lane: `python scripts/run_release_candidate.py --include-slow`
-6. Full discovery fallback: `python scripts/run_test_group.py full`
+1. Instant health check: `python scripts/run_health_check.py`
+2. Critical product smoke lane: `python scripts/run_test_group.py critical`
+3. Fast behavior lane: `python scripts/run_test_group.py fast`
+4. Focused product lane: `python scripts/run_test_group.py <group>`
+5. Release candidate: `python scripts/run_release_candidate.py`
+6. Optional isolated slow lane: `python scripts/run_release_candidate.py --include-slow`
+7. Full discovery fallback: `python scripts/run_test_group.py full`
 
-Raw `python -m pytest` is no longer the main confidence path. The suite is too
-large and uneven for a single opaque command to be the daily gate.
+Raw `python -m pytest` is not the main confidence path. The suite is too large
+and uneven for one opaque command to be the daily gate.
+
+## Instant health rules
+
+The instant health check is deliberately small. It should run constantly during
+patch work and catch the failure class where a major hosted-app feature silently
+disappears, disconnects, or starts reusing stale state.
+
+It currently runs:
+
+- Python compile check
+- production import smoke
+- architecture guards
+- critical product smoke lane
+- runner/CI/marker guard tests
+
+It does not run collect-only, static audit, PDF rendering, image-heavy checks, or
+large real fixtures. Those belong to release or slow lanes.
+
+## Critical lane rules
+
+`critical` protects app surfaces and failure classes, not one named bug. It must
+stay near-instant and should cover critical workflow wiring across the app:
+
+- input/edit/pictures/export routing
+- calculator and Local Library reachability
+- parser-to-model contract
+- calculator-to-XLSX contract
+- saved-project identity and snapshots
+- cloud open/list/delete safe behavior
+- image review state transitions
+- PDF stale-artifact invalidation after image changes
+- frontend asset presence for custom components
+
+Critical tests should be behavior or contract tests. They must not render PDFs,
+process large fixture banks, inspect visual details exhaustively, or lock in
+implementation source strings.
 
 ## Group rules
 
-- `fast` must stay free of PDF, slow, and large quality modules.
+- `critical` is the always-run product smoke shield.
+- `fast` is the small everyday behavior lane, free of PDF, slow, large quality,
+  and implementation source-contract tests.
 - `pdf` owns rendering/parity checks that can touch ReportLab or generated PDFs.
 - `quality` owns broader content and generated-output regressions.
 - `slow` owns large fixture and PDF-heavy stability checks and runs by direct
   process isolation.
 - Product lanes (`calculator`, `storage`, `parser`, `images`, `ui`, `workflow`,
   etc.) should prove behavior for that domain, not patch history.
+
+## Release candidate rules
+
+`python scripts/run_release_candidate.py` is the strong pre-push gate. It runs
+instant health, pytest collection, the static suite audit, all timeout-safe
+product groups, frontend JavaScript syntax checks, and `git diff --check`.
+
+Use `--include-slow` only when large real-fixture/PDF stability checks are
+intentionally part of the validation. Use `--skip-node` only when Node.js is not
+available in a local environment.
 
 ## Marker rules
 
@@ -31,11 +80,11 @@ random test files.
 Every runner group has a matching pytest marker so targeted collection remains
 possible. Coarse markers are also applied:
 
-- `unit` for fast-lane modules
+- `unit` for critical and fast-lane modules
 - `integration` for grouped non-fast modules
 - `pdf`, `quality`, and `slow` for intentionally heavier checks
 
-## Cleanup priorities
+## Audit rules
 
 Static audit command:
 
@@ -43,10 +92,15 @@ Static audit command:
 python scripts/test_suite_audit.py
 ```
 
-Use the audit report to drive future cleanup. Highest-value cleanup areas are:
+The audit separates actual implementation source-contract assertions from useful
+generated-output text assertions. Do not treat customer-output wording checks as
+fake confidence just because they assert strings in generated text.
 
-1. Replace source-string tests with behavior tests where practical.
+Highest-value cleanup areas remain:
+
+1. Replace brittle implementation source-contract tests with behavior tests when
+   practical.
 2. Rename patch-history filenames only when it improves discoverability.
-3. Keep slow/PDF/image-heavy tests isolated from fast and CI matrix lanes.
+3. Keep slow/PDF/image-heavy tests isolated from instant and CI matrix lanes.
 4. Consolidate fixtures locally by domain, not through one giant `conftest.py`.
 5. Add high-value regressions only for product risks that can break the hosted app.

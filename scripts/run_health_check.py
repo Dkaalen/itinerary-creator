@@ -1,7 +1,14 @@
-"""Run the quick local health check used before focused patch validation."""
+"""Run the instant local health check for everyday patch work.
+
+This command is intentionally small.  It proves the app imports, core Python
+files compile, architecture guards still load, and the critical product-surface
+smoke lane passes.  Slower collection/audit/release lanes belong to
+``run_release_candidate.py``.
+"""
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import time
@@ -13,8 +20,7 @@ COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("compile", (sys.executable, "-m", "compileall", "-q", ".")),
     ("import smoke", (sys.executable, "scripts/import_smoke.py")),
     ("architecture guards", (sys.executable, "scripts/architecture_guards.py")),
-    ("pytest collect-only", (sys.executable, "-m", "pytest", "--collect-only", "-q")),
-    ("test-suite audit", (sys.executable, "scripts/test_suite_audit.py")),
+    ("critical product smoke", (sys.executable, "scripts/run_test_group.py", "critical")),
     (
         "runner guard tests",
         (
@@ -30,11 +36,17 @@ COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
+def _env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    return env
+
+
 def _run(label: str, command: tuple[str, ...]) -> int:
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(command), flush=True)
     started = time.monotonic()
-    result = subprocess.run(command, cwd=REPO_ROOT, stdin=subprocess.DEVNULL)
+    result = subprocess.run(command, cwd=REPO_ROOT, env=_env(), stdin=subprocess.DEVNULL)
     elapsed = time.monotonic() - started
     status = "passed" if result.returncode == 0 else f"failed ({result.returncode})"
     print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
