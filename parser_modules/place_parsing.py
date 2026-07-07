@@ -6,6 +6,8 @@ from place_aliases import canonicalize_place_name, is_likely_service_text
 from .text_cleanup import clean_space, fix_common_text
 from .type_detection import looks_like_day, looks_like_date, looks_like_known_type
 
+INVALID_CITY_VALUES = {"eur", "nok", "sek", "dkk", "isk", "usd", "gbp"}
+
 INVALID_CITY_MARKERS = [
     "private hotel",
     "private airport",
@@ -24,6 +26,8 @@ def is_valid_city_value(value):
     if not city:
         return False
     lower = city.lower()
+    if lower in INVALID_CITY_VALUES:
+        return False
     if looks_like_day(city) or looks_like_known_type(city) or looks_like_date(city):
         return False
     if city.isdigit():

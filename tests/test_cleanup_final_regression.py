@@ -63,6 +63,7 @@ def test_validation_proof_plan_covers_known_uncertain_lanes() -> None:
     assert "day-brain and sub-brain regression lane" in labels
     assert "hosted generation smoke" in labels
     assert "output regression review" in labels
+    assert "real Excel random quality check" in labels
 
 
 def test_output_regression_review_protects_norway_sample() -> None:

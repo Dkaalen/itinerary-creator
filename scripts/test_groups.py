@@ -113,6 +113,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_architecture_consolidation.py",
     "tests/test_foundation_cleanup_regression.py",
     "tests/test_cleanup_final_regression.py",
+    "tests/test_real_excel_fixture_bank.py",
     "tests/test_architecture_guard_system.py",
     "tests/test_runtime_alignment.py",
     "tests/test_dead_code_packaging_regression.py",

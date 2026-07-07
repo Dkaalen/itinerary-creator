@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Real itinerary and calculator workbooks used for random Day Brain/product-output quality checks.",
+  "workbooks": [
+    {
+      "file": "Standard-Itinerary-Denmark.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Denmark"],
+      "purpose_tags": ["standard_itinerary", "city_stay", "self_drive"]
+    },
+    {
+      "file": "Standard-Itinerary-Finland.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Finland"],
+      "purpose_tags": ["standard_itinerary", "lapland", "overnight_train", "winter"]
+    },
+    {
+      "file": "Standard-Itinerary-Iceland.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Iceland"],
+      "purpose_tags": ["standard_itinerary", "self_drive", "group_tour", "ring_road"]
+    },
+    {
+      "file": "Standard-Itinerary-Finland-Norway.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Finland", "Norway"],
+      "purpose_tags": ["standard_itinerary", "cross_border", "lapland", "arctic"]
+    },
+    {
+      "file": "Standard-Itinerary-Norway.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Norway"],
+      "purpose_tags": ["standard_itinerary", "scenic_rail", "fjord", "coastal", "arctic"]
+    },
+    {
+      "file": "Standard-Itinerary-Sweden.xlsx",
+      "kind": "standard_itinerary_bank",
+      "country_tags": ["Sweden"],
+      "purpose_tags": ["standard_itinerary", "lapland", "city_stay"]
+    },
+    {
+      "file": "Calculation-template-Nordics.xlsx",
+      "kind": "calculator_template",
+      "country_tags": ["Sweden", "Norway"],
+      "purpose_tags": ["calculator", "cross_border", "winter", "arctic"]
+    },
+    {
+      "file": "Calculation-template-DK0807.xlsx",
+      "kind": "calculator_template",
+      "country_tags": ["Norway"],
+      "purpose_tags": ["calculator", "self_drive", "rental_car"]
+    },
+    {
+      "file": "Calculation-template-DK0801.xlsx",
+      "kind": "calculator_template",
+      "country_tags": ["Iceland"],
+      "purpose_tags": ["calculator", "self_drive", "ring_road"]
+    },
+    {
+      "file": "Calculation-template-202614.xlsx",
+      "kind": "calculator_template",
+      "country_tags": ["Norway"],
+      "purpose_tags": ["calculator", "transfer_variant", "city_stay"]
+    }
+  ]
+}

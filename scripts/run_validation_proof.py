@@ -56,6 +56,7 @@ def default_commands() -> tuple[ProofCommand, ...]:
         ),
         ProofCommand("hosted generation smoke", (sys.executable, "scripts/smoke_hosted_generation_path.py")),
         ProofCommand("output regression review", (sys.executable, "scripts/review_output_regression.py")),
+        ProofCommand("real Excel random quality check", (sys.executable, "scripts/random_quality_check_itineraries.py", "--sample-size", "4", "--seed", "6200")),
     )
 
 
