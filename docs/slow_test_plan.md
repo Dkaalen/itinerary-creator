@@ -18,6 +18,8 @@ python scripts/run_release_candidate.py --include-slow
 ## Rules
 
 - Each slow target runs in its own subprocess.
+- The slow launcher uses a plain subprocess loop, not process exec-chaining, so a
+  completed lane returns cleanly to CI/local runners.
 - Timeouts fail honestly; they are not swallowed.
 - The slow plan shown by `python scripts/run_test_group.py slow --plan` must match
   the direct slow harness.

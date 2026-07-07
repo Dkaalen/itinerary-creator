@@ -15,6 +15,7 @@ from scripts.test_groups import (
     GROUP_ORDER,
     HEALTH_CHECK_GROUPS,
     RELEASE_CANDIDATE_GROUPS,
+    CHUNKED_GROUP_STAGE_SIZES,
     build_full_stages,
     build_slow_stages,
     critical_module_names,
@@ -162,21 +163,13 @@ def test_health_and_release_groups_have_clear_scope() -> None:
 
 
 def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
-    fast_stages = _stages_for_group("fast")
+    for group_name, max_stage_size in CHUNKED_GROUP_STAGE_SIZES.items():
+        stages = _stages_for_group(group_name)
+        assert stages
+        assert all(name.startswith(group_name) for name, _paths in stages)
+        assert all(len(paths) <= max_stage_size for _name, paths in stages)
+        assert [path for _name, paths in stages for path in paths] == list(GROUPS[group_name])
 
-    assert len(fast_stages) > 1
-    assert all(name.startswith("fast") for name, _paths in fast_stages)
-    assert _stages_for_group("activity") == (("activity", GROUPS["activity"]),)
-    assert len(_stages_for_group("architecture")) > 1
-    assert len(_stages_for_group("calculator")) > 1
-    assert len(_stages_for_group("storage")) > 1
-    assert len(_stages_for_group("workflow")) > 1
-    assert len(_stages_for_group("editor")) > 1
-    assert len(_stages_for_group("images")) > 1
-    assert len(_stages_for_group("ui")) > 1
-    assert len(_stages_for_group("pdf")) > 1
-    assert all(len(paths) <= 3 for _name, paths in _stages_for_group("pdf"))
-    assert _stages_for_group("critical") == (("critical", GROUPS["critical"]),)
     assert _stages_for_group("health") == _stages_for_group("critical")
     assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
     assert _stages_for_group("slow") == build_slow_stages()
@@ -211,6 +204,23 @@ def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     assert "tests/test_regressions_fixture_quality.py::test_v36c57_real_uploaded_inputs_quality_gate" in flattened_targets
     assert all(len(paths) == 1 for _name, paths in stages)
     assert all(name.startswith("slow ") for name, _paths in stages)
+
+
+
+
+def test_slow_runner_uses_subprocess_loop_not_exec_chain() -> None:
+    import scripts.run_slow_tests as slow_runner
+
+    assert hasattr(slow_runner, "run_slow_targets")
+    assert not hasattr(slow_runner, "_exec_next")
+
+
+def test_slow_runner_plan_matches_group_targets() -> None:
+    import scripts.run_slow_tests as slow_runner
+
+    targets = [f"{path}::{name}" for path, name in slow_runner._slow_targets(REPO_ROOT)]
+
+    assert targets == list(slow_direct_targets(REPO_ROOT))
 
 
 def test_slow_runner_disables_pytest_capture() -> None:

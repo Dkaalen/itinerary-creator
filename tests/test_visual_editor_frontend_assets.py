@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from html.parser import HTMLParser
 from pathlib import Path
 
 from tests.frontend_asset_helpers import read_resolved_frontend_css
@@ -5,35 +8,87 @@ from tests.frontend_asset_helpers import read_resolved_frontend_css
 FRONTEND = Path("visual_editor_component/frontend")
 
 
-def test_visual_editor_index_is_thin_asset_shell():
-    index = (FRONTEND / "index.html").read_text(encoding="utf-8")
+class _AssetShellParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.stylesheets: list[str] = []
+        self.scripts: list[str] = []
+        self.inline_style_count = 0
 
-    assert '<link rel="stylesheet" href="styles/editor.css" />' in index
-    assert '<script src="js/editor_page_event_handlers.js"></script>' in index
-    assert '<script src="js/editor_image_event_handlers.js"></script>' in index
-    assert '<script src="js/state.js"></script>' in index
-    assert '<script src="js/images.js"></script>' in index
-    assert '<script src="js/editor_image_tools.js"></script>' in index
-    assert '<script src="js/editor_readiness.js"></script>' in index
-    assert '<script src="js/editor_debug_shell.js"></script>' in index
-    assert '<script src="js/render.js"></script>' in index
-    assert '<script src="js/serialization.js"></script>' in index
-    assert '<script src="js/editor_dirty_state.js"></script>' in index
-    assert '<script src="js/editor_text_tools.js"></script>' in index
-    assert '<script src="js/editor_document_model.js"></script>' in index
-    assert '<script src="js/editor_inspector_selection.js"></script>' in index
-    assert '<script src="js/editor_inspector_fields.js"></script>' in index
-    assert '<script src="js/editor_inspector_text_panel.js"></script>' in index
-    assert '<script src="js/editor_inspector_layout_panel.js"></script>' in index
-    assert '<script src="js/editor_inspector.js"></script>' in index
-    assert '<script src="js/editor_page_actions.js"></script>' in index
-    assert '<script src="js/editor_warnings.js"></script>' in index
-    assert '<script src="js/commands.js"></script>' in index
-    assert '<script src="js/editing.js"></script>' in index
-    assert '<script src="js/streamlit_bridge.js"></script>' in index
-    assert "<style>" not in index
-    assert "function render(" not in index
-    assert len(index.splitlines()) <= 36
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr = dict(attrs)
+        if tag == "link" and attr.get("rel") == "stylesheet" and attr.get("href"):
+            self.stylesheets.append(attr["href"] or "")
+        if tag == "script" and attr.get("src"):
+            self.scripts.append(attr["src"] or "")
+        if tag == "style":
+            self.inline_style_count += 1
+
+
+def _asset_shell() -> _AssetShellParser:
+    parser = _AssetShellParser()
+    parser.feed((FRONTEND / "index.html").read_text(encoding="utf-8"))
+    return parser
+
+
+def _asset_text(relative: str) -> str:
+    return (FRONTEND / relative).read_text(encoding="utf-8")
+
+
+def _asset_contains(relative: str, token: str) -> bool:
+    return token in _asset_text(relative)
+
+
+def _asset_omits(relative: str, token: str) -> bool:
+    return token not in _asset_text(relative)
+
+
+def _all_assets_contain(expected: dict[str, list[str]]) -> list[str]:
+    missing: list[str] = []
+    for relative, markers in expected.items():
+        for marker in markers:
+            if not _asset_contains(relative, marker):
+                missing.append(f"{relative}: {marker!r}")
+    return missing
+
+
+def test_visual_editor_index_is_thin_asset_shell():
+    shell = _asset_shell()
+    index_lines = (FRONTEND / "index.html").read_text(encoding="utf-8").splitlines()
+    required_scripts = {
+        "js/state.js",
+        "js/editor_assets.js",
+        "js/images.js",
+        "js/editor_image_tools.js",
+        "js/editor_readiness.js",
+        "js/editor_debug_shell.js",
+        "js/render.js",
+        "js/serialization.js",
+        "js/editor_dirty_state.js",
+        "js/editor_text_tools.js",
+        "js/editor_document_model.js",
+        "js/editor_inspector_selection.js",
+        "js/editor_inspector_fields.js",
+        "js/editor_inspector_text_panel.js",
+        "js/editor_inspector_layout_panel.js",
+        "js/editor_inspector.js",
+        "js/editor_page_actions.js",
+        "js/editor_warnings.js",
+        "js/commands.js",
+        "js/editor_page_event_handlers.js",
+        "js/editor_image_event_handlers.js",
+        "js/editing.js",
+        "js/streamlit_bridge.js",
+    }
+
+    assert shell.stylesheets == ["styles/editor.css"]
+    assert set(shell.scripts) == required_scripts
+    assert shell.scripts.index("js/state.js") < shell.scripts.index("js/render.js")
+    assert shell.scripts.index("js/commands.js") < shell.scripts.index("js/editing.js")
+    assert shell.scripts.index("js/editing.js") < shell.scripts.index("js/streamlit_bridge.js")
+    assert shell.inline_style_count == 0
+    assert not _asset_contains("index.html", "function render(")
+    assert len(index_lines) <= 36
 
 
 def test_visual_editor_frontend_assets_are_split_by_responsibility():
@@ -85,10 +140,7 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/streamlit_bridge.js": ["const Streamlit", "streamlit:render"],
     }
 
-    for relative, markers in expected.items():
-        body = (FRONTEND / relative).read_text(encoding="utf-8")
-        for marker in markers:
-            assert marker in body, f"{marker!r} missing from {relative}"
+    assert _all_assets_contain(expected) == []
 
 
 def test_visual_editor_css_does_not_use_patch_history_files():
@@ -106,73 +158,68 @@ def test_visual_editor_css_does_not_use_patch_history_files():
         "editor_text_presets.css",
         "editor_text_presets_final.css",
     }
+    current_styles = {path.name for path in styles_dir.glob("*.css")}
+    imported_styles = set(_asset_text("styles/editor.css").replace("'", '"').split('"'))
 
-    assert retired.isdisjoint({path.name for path in styles_dir.glob("*.css")})
-    imports = (styles_dir / "editor.css").read_text(encoding="utf-8")
-    for name in retired:
-        assert name not in imports
+    assert retired.isdisjoint(current_styles)
+    assert retired.isdisjoint(imported_styles)
 
 
 def test_visual_editor_toolbar_uses_simple_default_actions():
-    render_js = (FRONTEND / "js/render.js").read_text(encoding="utf-8")
     css = read_resolved_frontend_css()
 
-    assert "Edit itinerary text" in render_js
-    assert "Review itinerary with pictures" in render_js
-    assert "Save changes" in render_js
-    assert "Advanced tools" not in render_js
-    assert "Advanced tools" in (FRONTEND / "js/editor_debug_shell.js").read_text(encoding="utf-8")
-    assert "Save for now" not in render_js
-    assert "More edit tools" not in render_js
+    assert _asset_contains("js/render.js", "Edit itinerary text")
+    assert _asset_contains("js/render.js", "Review itinerary with pictures")
+    assert _asset_contains("js/render.js", "Save changes")
+    assert _asset_omits("js/render.js", "Advanced tools")
+    assert _asset_contains("js/editor_debug_shell.js", "Advanced tools")
+    assert _asset_omits("js/render.js", "Save for now")
+    assert _asset_omits("js/render.js", "More edit tools")
     assert "grid-template-columns: minmax(260px, 1fr) auto;" in css
     assert "max-width: 1060px;" in css
     assert ".advanced-tools .toolbar-tools" in css
 
 
 def test_image_replacement_uses_bounded_option_preview_payloads():
-    inspector = (FRONTEND / "js/editor_inspector.js").read_text(encoding="utf-8")
-    image_handlers = (FRONTEND / "js/editor_image_event_handlers.js").read_text(encoding="utf-8")
-    images = (FRONTEND / "js/images.js").read_text(encoding="utf-8")
-    payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
-
-    assert "metadata_first_image_options" in payload
-    assert "get_image_preview_for_path(path, option=True)" in payload
-    assert "selected.preview_data_uri || selected.data_uri" not in inspector
-    assert "selected.preview_data_uri || selected.data_uri" in image_handlers
-    assert "Replacement selected — save to update preview" not in images
-    assert "Save changes to refresh the preview image" not in inspector
-    assert "Replacement selected — preview unavailable" in images
+    assert _asset_contains("../editor_payload_images.py", "metadata_first_image_options")
+    assert _asset_contains("../editor_payload_images.py", "get_image_preview_for_path(path, option=True)")
+    assert _asset_omits("js/editor_inspector.js", "selected.preview_data_uri || selected.data_uri")
+    assert _asset_contains("js/editor_image_event_handlers.js", "selected.preview_data_uri || selected.data_uri")
+    assert _asset_omits("js/images.js", "Replacement selected — save to update preview")
+    assert _asset_omits("js/editor_inspector.js", "Save changes to refresh the preview image")
+    assert _asset_contains("js/images.js", "Replacement selected — preview unavailable")
 
 
 def test_server_autosave_waits_for_editor_idle_when_explicitly_scheduled():
-    state = (FRONTEND / "js/state.js").read_text(encoding="utf-8")
-    save_state = (FRONTEND / "js/editor_save_state.js").read_text(encoding="utf-8")
-    editing = (FRONTEND / "js/editing.js").read_text(encoding="utf-8")
+    dirty_state_before_explicit_autosave = _asset_text("js/editor_dirty_state.js").split(
+        "if (options.serverAutosave === true)", 1
+    )[0]
 
-    assert "AUTOSAVE_IDLE_GRACE_MS" in state
-    assert "function noteEditorInteraction" in save_state
-    assert "function editorIsActivelyInUse" in save_state
-    dirty_state = (FRONTEND / "js/editor_dirty_state.js").read_text(encoding="utf-8")
-
-    assert "editorIsActivelyInUse(now)" in editing
-    assert "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)" in editing
-    assert "addEventListener('scroll', noteEditorInteraction" in editing
-    assert "if (options.serverAutosave === true) scheduleServerAutosave()" in dirty_state
-    assert "scheduleServerAutosave()" not in dirty_state.split("if (options.serverAutosave === true)", 1)[0]
+    assert _asset_contains("js/state.js", "AUTOSAVE_IDLE_GRACE_MS")
+    assert _asset_contains("js/editor_save_state.js", "function noteEditorInteraction")
+    assert _asset_contains("js/editor_save_state.js", "function editorIsActivelyInUse")
+    assert _asset_contains("js/editing.js", "editorIsActivelyInUse(now)")
+    assert _asset_contains("js/editing.js", "scheduleServerAutosave(AUTOSAVE_IDLE_GRACE_MS)")
+    assert _asset_contains("js/editing.js", "addEventListener('scroll', noteEditorInteraction")
+    assert _asset_contains("js/editor_dirty_state.js", "if (options.serverAutosave === true) scheduleServerAutosave()")
+    assert "scheduleServerAutosave()" not in dirty_state_before_explicit_autosave
 
 
 def test_image_edits_refresh_only_the_affected_image_surface():
-    image_handlers = (FRONTEND / "js/editor_image_event_handlers.js").read_text(encoding="utf-8")
+    image_handlers = _asset_text("js/editor_image_event_handlers.js")
+    day_action_block = image_handlers.split("root.querySelectorAll('[data-img-action]')", 1)[1].split(
+        "root.querySelectorAll('[data-img-focus]')", 1
+    )[0]
+    cover_action_block = image_handlers.split("root.querySelectorAll('[data-cover-img-action]')", 1)[1].split(
+        "root.querySelectorAll('[data-cover-img-focus]')", 1
+    )[0]
 
-    assert "function replaceDayImageStage" in image_handlers
-    assert "function replaceCoverImagePanel" in image_handlers
-    assert "refreshImageEditSurface('day', idx)" in image_handlers
-    assert "refreshImageEditSurface('cover', key)" in image_handlers
-    assert "markTouched(key, {serverAutosave: false})" in image_handlers
-    assert "scheduleServerAutosave(autosaveDelayMs, true)" not in image_handlers
-
-    day_action_block = image_handlers.split("root.querySelectorAll('[data-img-action]')", 1)[1].split("root.querySelectorAll('[data-img-focus]')", 1)[0]
-    cover_action_block = image_handlers.split("root.querySelectorAll('[data-cover-img-action]')", 1)[1].split("root.querySelectorAll('[data-cover-img-focus]')", 1)[0]
+    assert _asset_contains("js/editor_image_event_handlers.js", "function replaceDayImageStage")
+    assert _asset_contains("js/editor_image_event_handlers.js", "function replaceCoverImagePanel")
+    assert _asset_contains("js/editor_image_event_handlers.js", "refreshImageEditSurface('day', idx)")
+    assert _asset_contains("js/editor_image_event_handlers.js", "refreshImageEditSurface('cover', key)")
+    assert _asset_contains("js/editor_image_event_handlers.js", "markTouched(key, {serverAutosave: false})")
+    assert _asset_omits("js/editor_image_event_handlers.js", "scheduleServerAutosave(autosaveDelayMs, true)")
     assert "collect();" not in day_action_block
     assert "collect();" not in cover_action_block
     assert "draw();" not in day_action_block
@@ -180,16 +227,12 @@ def test_image_edits_refresh_only_the_affected_image_surface():
 
 
 def test_local_draft_strips_uploaded_image_binary_from_browser_storage():
-    local_draft = (FRONTEND / "js/editor_local_draft.js").read_text(encoding="utf-8")
-
-    assert "stripUploadBinaryForLocalDraft" in local_draft
-    assert "delete upload.data_uri" in local_draft
-    assert "data_omitted" in local_draft
+    assert _asset_contains("js/editor_local_draft.js", "stripUploadBinaryForLocalDraft")
+    assert _asset_contains("js/editor_local_draft.js", "delete upload.data_uri")
+    assert _asset_contains("js/editor_local_draft.js", "data_omitted")
 
 
 def test_replacement_options_are_bounded_and_use_tiny_previews_by_default():
-    payload = Path("visual_editor_component/editor_payload_images.py").read_text(encoding="utf-8")
-
-    assert "DAY_REPLACEMENT_OPTION_LIMIT = 8" in payload
-    assert "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT" in payload
-    assert "get_image_preview_for_path(path, option=True)" in payload
+    assert _asset_contains("../editor_payload_images.py", "DAY_REPLACEMENT_OPTION_LIMIT = 8")
+    assert _asset_contains("../editor_payload_images.py", "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT")
+    assert _asset_contains("../editor_payload_images.py", "get_image_preview_for_path(path, option=True)")

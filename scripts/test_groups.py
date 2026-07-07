@@ -16,6 +16,9 @@ TIERED_STAGE_SIZE = 4
 PDF_STAGE_SIZE = 3
 CHUNKED_GROUP_STAGE_SIZES = {
     "critical": 3,
+    "fast": 6,
+    "parser": 5,
+    "activity": 4,
     "architecture": 4,
     "calculator": 5,
     "editor": 4,
@@ -23,6 +26,7 @@ CHUNKED_GROUP_STAGE_SIZES = {
     "storage": 4,
     "ui": 4,
     "workflow": 4,
+    "quality": 4,
     "pdf": PDF_STAGE_SIZE,
 }
 

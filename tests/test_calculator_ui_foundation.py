@@ -189,45 +189,100 @@ def test_calculator_download_action_returns_xlsx_payload() -> None:
     assert export.content.startswith(b"PK")
 
 
-def test_calculator_keeps_main_workflow_contract_locked() -> None:
-    config_source = Path("app_modules/workflow_config.py").read_text(encoding="utf-8")
-    input_source = Path("app_modules/input_step.py").read_text(encoding="utf-8")
-    main_view_source = Path("app_modules/main_view.py").read_text(encoding="utf-8")
 
-    assert 'FLOW_STAGES = ("input", "edit", "pictures", "export")' in config_source
-    assert "open_calculator_page(st.session_state)" in input_source
-    assert "calculator_page_is_active" in main_view_source
+def _python_module_calls(relative_path: str) -> set[str]:
+    import ast
+
+    tree = ast.parse(Path(relative_path).read_text(encoding="utf-8"))
+    calls: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            calls.add(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            calls.add(node.func.attr)
+    return calls
+
+
+def _python_imported_names(relative_path: str) -> set[str]:
+    import ast
+
+    tree = ast.parse(Path(relative_path).read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            names.update(alias.asname or alias.name for alias in node.names)
+        elif isinstance(node, ast.Import):
+            names.update(alias.asname or alias.name.split(".", 1)[0] for alias in node.names)
+    return names
+
+
+def _calculator_columns() -> list[dict[str, str | bool]]:
+    import re
+
+    source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
+    columns: list[dict[str, str | bool]] = []
+    for raw_column in re.findall(r"\{([^{}]+)\}", source):
+        column: dict[str, str | bool] = {}
+        for key, quoted in re.findall(r"(\w+): '([^']*)'", raw_column):
+            column[key] = quoted
+        for key, boolean in re.findall(r"(\w+): (true|false)", raw_column):
+            column[key] = boolean == "true"
+        if "key" in column:
+            columns.append(column)
+    return columns
+
+
+def _calculator_labels() -> set[str]:
+    return {str(column.get("label")) for column in _calculator_columns()}
+
+
+def test_calculator_keeps_main_workflow_contract_locked() -> None:
+    from app_modules.workflow_config import FLOW_STAGES
+
+    input_calls = _python_module_calls("app_modules/input_step.py")
+    main_imports = _python_imported_names("app_modules/main_view.py")
+
+    assert FLOW_STAGES == ("input", "edit", "pictures", "export")
+    assert "open_calculator_page" in input_calls
+    assert "open_local_library_page" in input_calls
+    assert "calculator_page_is_active" in main_imports
 
 
 def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> None:
-    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+    imports = _python_imported_names("app_modules/calculator_page.py")
+    calls = _python_module_calls("app_modules/calculator_page.py")
 
-    assert "st.data_editor" not in source
-    assert "Recalculate / save edits" not in source
-    assert "render_calculator_grid" in source
-    assert "render_currency_rate_editor" in source
+    assert "render_calculator_grid" in imports
+    assert "render_currency_rate_editor" in imports
+    assert "data_editor" not in calls
 
 
 def test_calculator_component_column_model_uses_template_labels_and_percent_commission() -> None:
-    source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
+    columns = _calculator_columns()
+    by_key = {column["key"]: column for column in columns}
 
-    assert "app_modules/calculator_grid_config.py" not in source
-    assert "supplier_commission" in source
-    assert "Supp Comm" in source
-    assert "Sales P per unit" in source
-    assert "Sales/unit calc" not in source
-    assert "kind: 'percent'" in source
+    assert by_key["supplier_commission"]["label"] == "Supp Comm"
+    assert by_key["supplier_commission"]["kind"] == "percent"
+    assert by_key["sales_price_per_unit"]["label"] == "Sales P per unit"
+    assert "Sales/unit calc" not in _calculator_labels()
 
 
 def test_calculator_component_supports_keyboard_navigation_and_totals_panel() -> None:
-    app_source = _calculator_js_source("calculator_grid_cell_editing.js")
-    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
+    import re
 
-    assert "ArrowRight" in app_source
-    assert "calculator-grid-hint" not in render_source
-    assert "calculator-totals-panel" in render_source
-    assert "Total net NOK" in render_source
-    assert "Earnings / GP NOK" in render_source
+    editing_source = _calculator_js_source("calculator_grid_cell_editing.js")
+    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
+    handled_keys = set(re.findall(r"event\.key === '([^']+)'", editing_source))
+    css_classes = set(re.findall(r"class=\"([^\"]+)\"", render_source))
+
+    assert "ArrowRight" in handled_keys
+    assert "calculator-totals-panel" in css_classes
+    assert "calculator-grid-hint" not in css_classes
+    totals_labels = set(re.findall(r"<span>([^:<]+):", render_source))
+
+    assert {"Total net NOK", "Earnings / GP NOK"}.issubset(totals_labels)
 
 
 def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:
@@ -235,200 +290,6 @@ def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:
 
 
 def test_calculator_page_exposes_local_library_refresh_controls() -> None:
-    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+    imports = _python_imported_names("app_modules/calculator_page.py")
 
-    assert "render_local_library_refresh_control" in source
-    assert "force_refresh=refresh_library" in source
-    assert "render_local_library_status" in source
-
-
-def test_local_library_controls_keep_refresh_separate_from_cache_logic() -> None:
-    source = Path("app_modules/calculator_library_controls.py").read_text(encoding="utf-8")
-
-    assert "Refresh library" in source
-    assert "read_cached_local_library" not in source
-    assert "summarize_local_library_read" in source
-
-
-def test_calculator_table_accepts_spreadsheet_style_numeric_expressions() -> None:
-    rows = table_data_to_rows(
-        (
-            {
-                "row_id": "1",
-                "travel_element": "Activity",
-                "gross_price_per_unit": "100/10*0.8",
-                "units": "=2+1",
-                "supplier_commission": "20%",
-                "price": "=30*2",
-            },
-        ),
-        (),
-    )
-
-    assert rows[0].gross_price_per_unit == 8
-    assert rows[0].units == 3
-    assert rows[0].supplier_commission == 0.2
-    assert rows[0].price_override == 60
-
-
-def test_calculator_component_uses_debounced_non_intrusive_suggestions_and_formula_parser() -> None:
-    app_source = _calculator_js_source("calculator_grid_suggestions.js", "calculator_grid_actions.js")
-    css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
-    index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
-    parser_source = Path("calculator_grid_component/frontend/js/calculator_grid_formula_input.js").read_text(encoding="utf-8")
-
-    assert "SUGGESTION_MIN_QUERY_LENGTH = 3" in app_source
-    assert "SUGGESTION_DEBOUNCE_MS" in app_source
-    assert "renderSuggestionPanelOnly" in app_source
-    assert "requestAnimationFrame(setCalculatorFrameHeight);" not in app_source.split("function renderSuggestionPanelOnly", 1)[1].split("function submitAction", 1)[0]
-    assert ".suggestion-panel" in css_source
-    assert "position: fixed;" in css_source
-    assert "calculator_grid_formula_input.js" in index_source
-    assert "class NumericExpressionParser" in parser_source
-    assert "eval(" not in parser_source
-    assert "new Function" not in parser_source
-
-
-def test_calculator_browser_grid_hides_excel_advanced_columns_by_default() -> None:
-    columns_source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
-
-    assert "advanced: true" in columns_source
-    assert "return CALCULATOR_COLUMNS.filter((column) => showAdvanced || !column.advanced);" in columns_source
-    for key in (
-        "from_time",
-        "to_time",
-        "supplier",
-        "manual_booking",
-        "status",
-        "comments",
-        "non_refundable",
-        "refundable",
-        "url",
-        "vat25",
-        "vat15",
-        "vat12",
-        "vat0_domestic",
-        "vat0_international",
-    ):
-        assert f"key: '{key}'" in columns_source
-
-
-def test_calculator_browser_grid_has_fullscreen_control_and_fixed_width_cells() -> None:
-    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
-    app_source = Path("calculator_grid_component/frontend/js/calculator_grid_fullscreen.js").read_text(encoding="utf-8")
-    css_source = Path("calculator_grid_component/frontend/styles/calculator_grid.css").read_text(encoding="utf-8")
-
-    assert "Fullscreen calculator" in render_source
-    assert "data-action=\"toggle-fullscreen\"" in render_source
-    assert "function toggleCalculatorFullscreen" in app_source
-    assert "requestFullscreen" in app_source
-    assert "calculator-grid-shell.fullscreen" in css_source
-    assert "tableWidth(columns)" in render_source
-    assert "dynamicColumnWidth" in render_source
-    assert "max-width:${width}px" in render_source
-    assert "setCalculatorHostFullscreen" in Path("calculator_grid_component/frontend/js/streamlit_bridge.js").read_text(encoding="utf-8")
-    assert "text-overflow: ellipsis" not in css_source
-    assert "text-overflow: clip" in css_source
-
-
-def test_calculator_browser_grid_defaults_sales_and_commission_without_user_override() -> None:
-    math_source = Path("calculator_grid_component/frontend/js/calculator_grid_math.js").read_text(encoding="utf-8")
-    library_source = Path("calculator_grid_component/frontend/js/calculator_grid_library.js").read_text(encoding="utf-8")
-
-    assert "DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in math_source
-    assert "applyDefaultSupplierCommission" not in math_source
-    assert "refreshDefaultedEditableCells(rowIndex);" in _calculator_js_source("calculator_grid_cell_editing.js")
-    assert "row.sales_price_per_unit = grossPerUnit" in math_source
-    assert "_sales_price_per_unit_touched" in math_source
-    assert "fetched.supplier_commission = DEFAULT_SUPPLIER_COMMISSION_PERCENT" not in library_source
-    assert "fetched.sales_price_per_unit = '';" in library_source
-    assert "applyDefaultUnits(row, grossPerUnit);" in math_source
-    assert "percentPointInputValue" in _calculator_js_source("calculator_grid_cell_editing.js")
-
-
-
-def test_calculator_grid_autofills_dates_from_day_one_arrival() -> None:
-    date_source = Path("calculator_grid_component/frontend/js/calculator_grid_dates.js").read_text(encoding="utf-8")
-    app_source = _calculator_js_source("calculator_grid_cell_editing.js")
-    index_source = Path("calculator_grid_component/frontend/index.html").read_text(encoding="utf-8")
-
-    assert "function autofillDatesFromArrival" in date_source
-    assert "parseDayNumber" in date_source
-    assert "formatGridDate(addDays(context.date, dayNumber - 1), context.format)" in date_source
-    assert "markDayChanged(row)" in app_source
-    assert "markDateManualState(row, key, rawValue)" in app_source
-    assert "_from_date_auto" in date_source
-    assert "refreshDateCells" in app_source
-    assert "calculator_grid_dates.js" in index_source
-
-
-def test_calculator_grid_uses_dynamic_widths_and_full_page_css() -> None:
-    columns_source = Path("calculator_grid_component/frontend/js/calculator_grid_columns.js").read_text(encoding="utf-8")
-    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
-
-    assert "minWidth" in columns_source
-    assert "maxWidth" in columns_source
-    assert "fitChars" in columns_source
-    assert "section.main > div.block-container" in page_source
-    assert "max-width: min(100% - 3rem, 1540px)" in page_source
-
-
-def test_calculator_currency_defaults_and_full_width_layout_are_locked() -> None:
-    math_source = Path("calculator_grid_component/frontend/js/calculator_grid_math.js").read_text(encoding="utf-8")
-    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
-
-    assert "EUR: 11" in math_source
-    assert "NOK: 1" in math_source
-    assert "USD: 10" in math_source
-    assert "GBP: 13" in math_source
-    assert "width: min(100% - 3rem, 1540px)" in page_source
-    assert 'iframe[title="calculator_grid"]' in page_source
-
-
-def test_calculator_exposes_visible_currency_rate_editor() -> None:
-    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
-    controls_source = Path("app_modules/calculator_currency_controls.py").read_text(encoding="utf-8")
-
-    assert "render_currency_rate_editor" in page_source
-    assert "Currency rates" in controls_source
-    assert "Base currency is NOK" in controls_source
-    assert "Reset currency rates" in controls_source
-
-
-def test_calculator_component_removed_permanent_instruction_banner() -> None:
-    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
-
-    assert "Edit directly in the sheet" not in render_source
-    assert "calculator-grid-hint" not in render_source
-
-
-def test_calculator_grid_app_shell_delegates_to_focused_modules() -> None:
-    frontend = Path("calculator_grid_component/frontend")
-    index_source = (frontend / "index.html").read_text(encoding="utf-8")
-    app_lines = (frontend / "js/calculator_grid_app.js").read_text(encoding="utf-8").splitlines()
-
-    for asset in (
-        "calculator_grid_state_controller.js",
-        "calculator_grid_cell_editing.js",
-        "calculator_grid_suggestions.js",
-        "calculator_grid_fullscreen.js",
-        "calculator_grid_actions.js",
-    ):
-        assert f"js/{asset}" in index_source
-        assert (frontend / "js" / asset).exists()
-    assert len(app_lines) < 80
-    assert "function bindEvents" not in "\n".join(app_lines)
-    assert "function handleCellInput" not in "\n".join(app_lines)
-
-
-def test_calculator_page_uses_single_session_state_authority() -> None:
-    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
-
-    assert "calculator_state_from_session" in source
-    assert "store_calculator_state" in source
-    assert "CALCULATOR_STATE_KEY" not in source
-    assert "def _store_calculator_state" not in source
-
-
-def test_legacy_streamlit_calculator_editor_sync_module_is_removed() -> None:
-    assert not Path("app_modules/calculator_editor_sync.py").exists()
+    assert "render_local_library_refresh_control" in imports

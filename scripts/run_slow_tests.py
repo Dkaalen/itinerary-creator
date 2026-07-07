@@ -1,9 +1,9 @@
-"""Run slow quality checks with process-chain isolation.
+"""Run slow quality checks with simple subprocess isolation.
 
 The slow lane exercises large real fixtures and rendered PDFs. Each direct
-no-fixture test target is executed in a fresh worker process, then the launcher
-``exec``-replaces itself with the next target. This keeps renderer/PDF globals
-from leaking across slow checks and makes timeouts fail honestly.
+no-fixture target runs in its own worker process with an honest per-target
+timeout. The launcher does not exec-chain itself, so a completed slow lane
+returns control to CI and local runners cleanly.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -23,12 +24,22 @@ from scripts.test_groups import slow_direct_targets
 
 WORKER = "scripts/run_test_function_direct.py"
 TEST_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_SLOW_TEST_TIMEOUT_SECONDS", "120"))
-STARTED_ENV = "ITINERARY_SLOW_CHAIN_STARTED"
 
 
-def _slow_targets() -> list[tuple[str, str]]:
+@dataclass(frozen=True)
+class SlowResult:
+    target: str
+    exit_code: int
+    elapsed_seconds: float
+
+    @property
+    def passed(self) -> bool:
+        return self.exit_code == 0
+
+
+def _slow_targets(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
     targets: list[tuple[str, str]] = []
-    for target in slow_direct_targets(REPO_ROOT):
+    for target in slow_direct_targets(repo_root):
         relative_path, separator, test_name = target.partition("::")
         if not separator or not test_name:
             raise ValueError(f"Slow target must be a direct test function: {target}")
@@ -43,8 +54,10 @@ def _worker_env() -> dict[str, str]:
     return env
 
 
-def _run_worker(relative_path: str, test_name: str) -> int:
+def _run_worker(relative_path: str, test_name: str) -> SlowResult:
+    label = f"{relative_path}::{test_name}"
     args = [sys.executable, WORKER, relative_path, test_name]
+    started = time.monotonic()
     try:
         result = subprocess.run(
             args,
@@ -53,58 +66,75 @@ def _run_worker(relative_path: str, test_name: str) -> int:
             stdin=subprocess.DEVNULL,
             timeout=TEST_TIMEOUT_SECONDS,
         )
+        exit_code = result.returncode
     except subprocess.TimeoutExpired:
-        print(
-            f"TIMEOUT {relative_path}::{test_name} after {TEST_TIMEOUT_SECONDS}s",
-            flush=True,
-        )
-        return 124
-    return result.returncode
+        exit_code = 124
+    elapsed = time.monotonic() - started
+    return SlowResult(label, exit_code, elapsed)
 
 
-def _exec_next(index: int) -> None:
-    env = _worker_env()
-    env.setdefault(STARTED_ENV, str(time.monotonic()))
-    os.execvpe(
-        sys.executable,
-        [sys.executable, "scripts/run_slow_tests.py", "--chain-index", str(index)],
-        env,
-    )
+def _print_plan(targets: list[tuple[str, str]]) -> None:
+    print(f"Slow isolated plan: {len(targets)} target{'s' if len(targets) != 1 else ''}", flush=True)
+    for index, (relative_path, test_name) in enumerate(targets, start=1):
+        print(f"  {index:02d}. {relative_path}::{test_name}", flush=True)
 
 
-def _run_chain(index: int) -> int:
+def _print_summary(results: list[SlowResult], started: float) -> None:
+    elapsed = time.monotonic() - started
+    passed = sum(result.passed for result in results)
+    failed = len(results) - passed
+    print("\nSlow isolated summary", flush=True)
+    print("=====================", flush=True)
+    for result in results:
+        status = "PASS" if result.passed else f"FAIL({result.exit_code})"
+        print(f"{status:9} {result.elapsed_seconds:6.1f}s  {result.target}", flush=True)
+    print(f"{passed}/{len(results)} slow targets passed in {elapsed:.1f}s", flush=True)
+    if failed:
+        print(f"{failed} slow target{'s' if failed != 1 else ''} failed.", flush=True)
+
+
+def run_slow_targets(*, fail_fast: bool = True) -> int:
     targets = _slow_targets()
     if not targets:
         print("No slow tests discovered.", flush=True)
         return 0
 
-    if STARTED_ENV not in os.environ:
-        os.environ[STARTED_ENV] = str(time.monotonic())
+    started = time.monotonic()
+    results: list[SlowResult] = []
+    print(f"Running {len(targets)} isolated slow targets", flush=True)
+    for index, (relative_path, test_name) in enumerate(targets, start=1):
+        label = f"{relative_path}::{test_name}"
+        print(f"\nRUN {index}/{len(targets)} {label}", flush=True)
+        result = _run_worker(relative_path, test_name)
+        results.append(result)
+        if result.exit_code == 124:
+            print(f"TIMEOUT {label} after {TEST_TIMEOUT_SECONDS}s", flush=True)
+        elif result.passed:
+            print(f"PASS {index}/{len(targets)} {label} in {result.elapsed_seconds:.1f}s", flush=True)
+        else:
+            print(f"FAIL {index}/{len(targets)} {label} exited with {result.exit_code}", flush=True)
+        if not result.passed and fail_fast:
+            _print_summary(results, started)
+            return result.exit_code
 
-    if index >= len(targets):
-        started = float(os.environ.get(STARTED_ENV, time.monotonic()))
-        elapsed = time.monotonic() - started
-        print(f"{len(targets)} slow tests passed in {elapsed:.1f}s", flush=True)
-        return 0
-
-    relative_path, test_name = targets[index]
-    label = f"{relative_path}::{test_name}"
-    print(f"RUN {index + 1}/{len(targets)} {label}", flush=True)
-    code = _run_worker(relative_path, test_name)
-    if code != 0:
-        print(f"FAIL {label} exited with {code}", flush=True)
-        return code
-
-    print(f"PASS {index + 1}/{len(targets)} {label}", flush=True)
-    _exec_next(index + 1)
-    raise AssertionError("unreachable after exec")
+    _print_summary(results, started)
+    return 0 if all(result.passed for result in results) else 1
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run isolated slow itinerary tests.")
-    parser.add_argument("--chain-index", type=int, default=0, help=argparse.SUPPRESS)
+    parser.add_argument("--plan", action="store_true", help="Show slow targets without running them.")
+    parser.add_argument(
+        "--no-fail-fast",
+        action="store_true",
+        help="Continue running slow targets after a failure and report a combined summary.",
+    )
     args = parser.parse_args(argv)
-    return _run_chain(args.chain_index)
+    targets = _slow_targets()
+    if args.plan:
+        _print_plan(targets)
+        return 0
+    return run_slow_targets(fail_fast=not args.no_fail_fast)
 
 
 if __name__ == "__main__":

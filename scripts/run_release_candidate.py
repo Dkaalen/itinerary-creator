@@ -1,8 +1,8 @@
 """Run strong timeout-safe release candidate validation.
 
 The release command is broader than the instant health check but still avoids raw
-full pytest. It adds collection, static audit, grouped product lanes, optional
-slow isolation, and frontend syntax checks.
+full pytest. Every external step has an honest timeout so the command fails with
+a useful message instead of hanging silently.
 """
 
 from __future__ import annotations
@@ -16,23 +16,44 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_STEP_TIMEOUT_SECONDS = int(
+    os.environ.get("ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS", "900")
+)
 
 
 def _env() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    env.setdefault("PYTHONUNBUFFERED", "1")
     return env
 
 
-def _run(label: str, command: tuple[str, ...]) -> int:
+def _run(label: str, command: tuple[str, ...], *, timeout_seconds: int = DEFAULT_STEP_TIMEOUT_SECONDS) -> int:
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(command), flush=True)
     started = time.monotonic()
-    result = subprocess.run(command, cwd=REPO_ROOT, env=_env(), stdin=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env=_env(),
+            stdin=subprocess.DEVNULL,
+            timeout=timeout_seconds or None,
+        )
+        exit_code = result.returncode
+    except subprocess.TimeoutExpired:
+        elapsed = time.monotonic() - started
+        print(
+            f"=== {label}: timed out after {elapsed:.1f}s "
+            f"(limit {timeout_seconds}s) ===",
+            flush=True,
+        )
+        return 124
+
     elapsed = time.monotonic() - started
-    status = "passed" if result.returncode == 0 else f"failed ({result.returncode})"
+    status = "passed" if exit_code == 0 else f"failed ({exit_code})"
     print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
-    return result.returncode
+    return exit_code
 
 
 def _node_check_commands() -> list[tuple[str, tuple[str, ...]]]:

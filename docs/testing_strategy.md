@@ -57,7 +57,7 @@ implementation source strings.
 - `pdf` owns rendering/parity checks that can touch ReportLab or generated PDFs.
 - `quality` owns broader content and generated-output regressions.
 - `slow` owns large fixture and PDF-heavy stability checks and runs by direct
-  process isolation.
+  subprocess isolation without exec-chaining.
 - Product lanes (`calculator`, `storage`, `parser`, `images`, `ui`, `workflow`,
   etc.) should prove behavior for that domain, not patch history.
 
@@ -66,6 +66,11 @@ implementation source strings.
 `python scripts/run_release_candidate.py` is the strong pre-push gate. It runs
 instant health, pytest collection, the static suite audit, all timeout-safe
 product groups, frontend JavaScript syntax checks, and `git diff --check`.
+
+The release group is deliberately split into small staged subprocesses. Parser,
+activity, architecture, calculator, editor, image, UI, quality, and PDF lanes are
+chunked so one wide group cannot hide progress, hang without context, or consume
+the whole validation timeout. Each external release step has an honest timeout.
 
 Use `--include-slow` only when large real-fixture/PDF stability checks are
 intentionally part of the validation. Use `--skip-node` only when Node.js is not

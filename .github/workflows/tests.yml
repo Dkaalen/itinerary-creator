@@ -6,6 +6,11 @@ on:
     branches:
       - main
 
+env:
+  PYTHONUNBUFFERED: '1'
+  ITINERARY_TEST_STAGE_TIMEOUT_SECONDS: '300'
+  ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS: '900'
+
 jobs:
   health-gates:
     runs-on: ubuntu-latest

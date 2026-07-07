@@ -114,11 +114,11 @@ def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[
 def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if group_name == "slow":
         return build_slow_stages()
-    if group_name in {"fast", "quality", *CHUNKED_GROUP_STAGE_SIZES}:
+    if group_name in CHUNKED_GROUP_STAGE_SIZES:
         return chunked_group_stages(
             group_name,
             GROUPS[group_name],
-            stage_size=CHUNKED_GROUP_STAGE_SIZES.get(group_name, 4),
+            stage_size=CHUNKED_GROUP_STAGE_SIZES[group_name],
         )
     return ((group_name, GROUPS[group_name]),)
 
