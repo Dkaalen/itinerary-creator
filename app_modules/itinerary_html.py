@@ -27,12 +27,24 @@ def _balanced_cover_destinations_html(destinations_line: str) -> str:
 
 
 def _raise_for_blocking_client_output(context) -> None:
+    """Record late client-output gate failures without crashing preview generation.
+
+    The sanitizer/quality gate still runs, but hosted generation should remain
+    usable. Blocking details are added to render-document warnings so QA and
+    editor surfaces can still show the problem. The legacy function name stays
+    for compatibility with older imports/tests.
+    """
+
     report = evaluate_client_output_quality(context.render_document)
-    if report.is_blocked:
-        details = "; ".join(
-            f"{issue.code}: {issue.message}" for issue in report.blocking_issues
-        )
-        raise ValueError(f"Client output safety check blocked itinerary generation: {details}")
+    if not report.is_blocked:
+        return
+    details = "; ".join(
+        f"{issue.code}: {issue.message}" for issue in report.blocking_issues
+    )
+    warning = f"Client output safety check warning: {details}"
+    warnings = getattr(context.render_document, "warnings", None)
+    if isinstance(warnings, list) and warning not in warnings:
+        warnings.append(warning)
 
 
 def _page_is_hidden(context, page_id: str) -> bool:

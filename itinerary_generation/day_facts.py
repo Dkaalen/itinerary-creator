@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from itinerary_generation.common import TRANSPORT_TYPES, get_primary_city, get_row_type, is_optional_row
+from itinerary_generation.day_accommodation_state import AccommodationState, build_accommodation_state
+from itinerary_generation.day_timeline_events import TimelineEvent, normalize_day_events
+from itinerary_generation.day_travel_load import TravelLoadProfile, classify_travel_load
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
@@ -154,6 +157,11 @@ class DayFacts:
     partial_leisure_day: bool = False
     cruise_onboard_day: bool = False
     source_flags: frozenset[str] = field(default_factory=frozenset)
+    timeline_events: tuple[TimelineEvent, ...] = ()
+    accommodation_state: AccommodationState = field(default_factory=AccommodationState)
+    travel_load: TravelLoadProfile = field(default_factory=TravelLoadProfile)
+    visit_number: int = 1
+    previous_visit_days: tuple[str, ...] = ()
 
     @property
     def has_travel(self) -> bool:
@@ -177,6 +185,9 @@ def build_day_facts(
 
     main_rows = tuple(row for row in (rows or []) if isinstance(row, Mapping) and not is_optional_row(dict(row)))
     row_types = tuple(get_row_type(dict(row)) for row in main_rows)
+    timeline_events = normalize_day_events(main_rows)
+    accommodation_state = build_accommodation_state(timeline_events)
+    travel_load = classify_travel_load(timeline_events)
     all_text = " ".join(row_text(row) for row in main_rows).lower()
 
     city_sequence: list[str] = []
@@ -284,7 +295,8 @@ def build_day_facts(
     non_leisure_rows = [row for row in main_rows if not _is_blank_activity_or_leisure(row)]
     has_only_leisure_rows = bool(main_rows) and not non_leisure_rows
     travel_heavy = bool(
-        has_overnight_transport
+        travel_load.is_travel_heavy
+        or has_overnight_transport
         or route_count >= 2
         or (has_route_transport and not has_activity and not has_accommodation)
         or (has_route_transport and has_local_transfer and len(main_rows) >= 3)
@@ -296,19 +308,28 @@ def build_day_facts(
     cruise_onboard_day = bool(has_cruise and has_leisure_row and not has_activity and not has_accommodation and not has_overnight_transport and (has_only_leisure_rows or "onboard" in all_text or "at leisure" in all_text))
 
     same_city_accommodation_change = bool(
-        has_accommodation
-        and not has_route_transport
-        and "arrival_airport_transfer" not in source_flags
-        and "departure_airport_transfer" not in source_flags
-        and (has_transfer or accommodation_change_rows >= 2)
-        and len(set(hotel_cities or [primary_city])) <= 1
-        and not has_arrival
-        and not has_departure
+        accommodation_state.same_city_change
+        or (
+            has_accommodation
+            and not has_route_transport
+            and "arrival_airport_transfer" not in source_flags
+            and "departure_airport_transfer" not in source_flags
+            and (has_transfer or accommodation_change_rows >= 2)
+            and len(set(hotel_cities or [primary_city])) <= 1
+            and not has_arrival
+            and not has_departure
+        )
     )
 
     return_visit = bool(getattr(visit_context, "is_return_visit", False))
-    confirmed_check_in = bool(has_accommodation and not same_city_accommodation_change and (has_arrival or overnight_city or "check-in" in all_text or "check in" in all_text))
-    confirmed_check_out = bool(has_accommodation and (has_departure or "check-out" in all_text or "check out" in all_text))
+    visit_number = int(getattr(visit_context, "visit_number", 1) or 1)
+    previous_visit_days = tuple(getattr(visit_context, "previous_days", ()) or ())
+    confirmed_check_in = bool(accommodation_state.check_in_confirmed or (has_accommodation and not same_city_accommodation_change and (has_arrival or overnight_city or "check-in" in all_text or "check in" in all_text)))
+    confirmed_check_out = bool(accommodation_state.check_out_confirmed or (has_accommodation and (has_departure or "check-out" in all_text or "check out" in all_text)))
+    source_flags.update(accommodation_state.flags)
+    source_flags.update(travel_load.flags)
+    if travel_load.level != "none":
+        source_flags.add(f"travel_load:{travel_load.level}")
 
     return DayFacts(
         rows=main_rows,
@@ -349,6 +370,11 @@ def build_day_facts(
         partial_leisure_day=partial_leisure_day,
         cruise_onboard_day=cruise_onboard_day,
         source_flags=frozenset(source_flags),
+        timeline_events=timeline_events,
+        accommodation_state=accommodation_state,
+        travel_load=travel_load,
+        visit_number=visit_number,
+        previous_visit_days=previous_visit_days,
     )
 
 

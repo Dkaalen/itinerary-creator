@@ -6,6 +6,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 from itinerary_generation.day_facts import DayFacts, build_day_facts
+from itinerary_generation.day_copy_variation import choose_copy_variant
 from itinerary_generation.day_intent import DayIntent, classify_day_intent
 from text_polish import polish_title
 
@@ -29,9 +30,11 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
     city = _fallback_city(facts)
 
     if intent == DayIntent.CRUISE_DAY or facts.cruise_onboard_day:
-        return _sentence(
-            "Time onboard is open for you to enjoy the sailing, the ship facilities and the coastal views as the route continues."
-        )
+        return _sentence(choose_copy_variant((
+            "Time onboard is open for you to enjoy the sailing, the ship facilities and the coastal views as the route continues.",
+            "Your time onboard remains flexible, with space to enjoy the ship facilities and the changing coastal views.",
+            "Onboard time is left open for the sailing itself, the ship facilities and the views along the route.",
+        ), facts, intent))
 
     if facts.travel_heavy or intent in {DayIntent.TRAVEL_DAY, DayIntent.OVERNIGHT_TRANSPORT_DAY, DayIntent.ARRIVAL_ONWARD_TRAVEL}:
         return "Any free time today is limited and flexible around the travel arrangements."
@@ -45,13 +48,25 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
         return "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
 
     if intent == DayIntent.ACTIVITY_DAY or (facts.has_activity and not facts.has_travel):
-        return "After the included experience, the rest of the day is open for your own plans."
+        return choose_copy_variant((
+            "After the included experience, the rest of the day is open for your own plans.",
+            "Once the included experience is complete, the rest of the day is left open for your own plans.",
+            "The included experience anchors the day, with the remaining schedule left flexible for you.",
+        ), facts, intent)
 
     if intent == DayIntent.ACTIVITY_PLUS_TRAVEL or (facts.has_activity and facts.has_travel):
-        return "After the included arrangements, any free time can be kept flexible around the day’s timing."
+        return choose_copy_variant((
+            "After the included arrangements, any free time can be kept flexible around the day’s timing.",
+            "Any open time today should stay flexible around the included arrangements and travel timing.",
+            "The day combines arranged experiences with logistics, so open time is best kept flexible.",
+        ), facts, intent)
 
     if intent == DayIntent.ARRIVAL_STAY or facts.has_arrival:
-        return "After arrival, any remaining time is best kept simple, with space to settle in and get oriented."
+        return choose_copy_variant((
+            "After arrival, any remaining time is best kept simple, with space to settle in and get oriented.",
+            "After arrival, keep any open time simple, with space to settle in and get oriented.",
+            "Once you have arrived, the rest of the day can stay light and flexible around settling in.",
+        ), facts, intent)
 
     if intent == DayIntent.SAME_CITY_ACCOMMODATION_CHANGE:
         return "Outside the move between stays, the day can remain flexible around the listed arrangements."
@@ -60,8 +75,16 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
         return "Once back in the area, any open time can be used flexibly around the listed arrangements."
 
     if city and city != "the area":
-        return f"Any open time in {city} is left flexible for your own plans."
-    return "Any open time today is left flexible for your own plans."
+        return choose_copy_variant((
+            f"Any open time in {city} is left flexible for your own plans.",
+            f"Open time in {city} is kept flexible for your own pace and plans.",
+            f"The schedule leaves any extra time in {city} open for independent plans.",
+        ), facts, intent)
+    return choose_copy_variant((
+        "Any open time today is left flexible for your own plans.",
+        "Any extra time today remains open for your own pace and plans.",
+        "The schedule leaves open time flexible around your own plans.",
+    ), facts, intent)
 
 
 def create_leisure_copy(

@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterable, Mapping, Sequence
 
-from itinerary_generation.common import get_primary_city
-from itinerary_generation.destination_registry import destination_for_alias
-from text_polish import polish_title
+from itinerary_generation.destination_visit_memory import build_destination_visit_memory, canonical_memory_city
 
 
 @dataclass(frozen=True)
@@ -25,6 +22,9 @@ class DayVisitContext:
     canonical_city: str = ""
     visit_number: int = 1
     previous_days: tuple[str, ...] = ()
+    overnight_city: str = ""
+    transit_cities: tuple[str, ...] = ()
+    transit_only: bool = False
 
     @property
     def is_return_visit(self) -> bool:
@@ -32,11 +32,7 @@ class DayVisitContext:
 
 
 def _canonical_city(value: object) -> str:
-    text = polish_title(str(value or "").strip())
-    if not text:
-        return ""
-    record = destination_for_alias(text)
-    return record.name if record else text
+    return canonical_memory_city(value)
 
 
 def _day_sort_key(day: object, index: int) -> tuple[int, int, str]:
@@ -48,28 +44,17 @@ def _day_sort_key(day: object, index: int) -> tuple[int, int, str]:
 def build_day_visit_contexts(grouped_days: Mapping[str, Sequence[dict]] | Iterable[tuple[str, Sequence[dict]]]) -> dict[str, DayVisitContext]:
     """Return visit context keyed by day label for a grouped itinerary."""
 
-    if isinstance(grouped_days, Mapping):
-        items = list(grouped_days.items())
-    else:
-        items = list(grouped_days)
-    indexed_items = list(enumerate(items))
-    indexed_items.sort(key=lambda item: _day_sort_key(item[1][0], item[0]))
-
-    seen: dict[str, list[str]] = defaultdict(list)
+    memories = build_destination_visit_memory(grouped_days)
     contexts: dict[str, DayVisitContext] = {}
-    for _, (day, rows) in indexed_items:
-        day_label = str(day or "")
-        city = polish_title(get_primary_city(rows or []) or "")
-        canonical = _canonical_city(city)
-        previous = tuple(seen[canonical]) if canonical else ()
-        visit_number = len(previous) + 1 if canonical else 1
+    for day_label, memory in memories.items():
         contexts[day_label] = DayVisitContext(
             day=day_label,
-            city=city,
-            canonical_city=canonical,
-            visit_number=visit_number,
-            previous_days=previous,
+            city=memory.primary_city or memory.overnight_city or memory.canonical_city,
+            canonical_city=memory.canonical_city,
+            visit_number=memory.visit_number,
+            previous_days=memory.previous_days,
+            overnight_city=memory.overnight_city,
+            transit_cities=memory.transit_cities,
+            transit_only=memory.transit_only,
         )
-        if canonical:
-            seen[canonical].append(day_label)
     return contexts

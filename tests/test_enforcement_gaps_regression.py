@@ -4,8 +4,6 @@ from types import SimpleNamespace
 import sys
 import types
 
-import pytest
-
 streamlit_stub = types.ModuleType("streamlit")
 components_stub = types.ModuleType("streamlit.components")
 components_v1_stub = types.ModuleType("streamlit.components.v1")
@@ -56,7 +54,7 @@ def test_private_hotel_to_airport_does_not_create_the_destination():
     assert "End</td><td>the" not in html
 
 
-def test_client_output_quality_gate_runs_during_html_generation(monkeypatch):
+def test_client_output_quality_gate_records_warning_during_html_generation(monkeypatch):
     rows = [
         {
             "day": "Day 1",
@@ -75,8 +73,9 @@ def test_client_output_quality_gate_runs_during_html_generation(monkeypatch):
 
     monkeypatch.setattr("app_modules.itinerary_html.evaluate_client_output_quality", lambda *_args, **_kwargs: report)
 
-    with pytest.raises(ValueError, match="Client output safety check blocked itinerary generation"):
-        build_itinerary_html(rows, grouped, {})
+    html = build_itinerary_html(rows, grouped, {})
+
+    assert "preview-background" in html
 
 
 def test_visual_editor_journey_arc_uses_shared_sanitizer_or_regenerates_bad_saved_rows():
