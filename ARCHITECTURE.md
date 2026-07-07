@@ -27,3 +27,13 @@ Day Brain and Sub-Brain behavior must be covered by named groups, not only by th
 ## Cleanup rule
 
 Before deleting a compatibility module, confirm whether it is used by production imports, tests, dynamic app paths, or historical public imports. Prefer thin facades over duplicate logic when a legacy import path must remain.
+
+## Cleanup proof tools
+
+- `scripts/run_validation_proof.py` runs the compact Day Brain/Sub-Brain proof lane plus hosted-generation and output-regression scripts.
+- `scripts/review_output_regression.py` protects the Norway sample that exposed star-rating, multi-activity-day, title, and supplier-cleanup regressions.
+- `scripts/audit_legacy_facades.py` regenerates `docs/architecture/LEGACY_FACADE_AUDIT.md` after facade cleanup.
+
+## Legacy deletion rule
+
+Compatibility facades are only kept when they are real public import paths. Verified unreferenced debug/UI/render wrappers should be deleted instead of preserved as noise.

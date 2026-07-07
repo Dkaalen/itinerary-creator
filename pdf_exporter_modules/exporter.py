@@ -11,7 +11,9 @@ from app_modules.output_brand import output_brand_id
 from .day_page_guard import one_page_day_flowable
 from .pdf_branding import configure_pdf_brand
 from .pdf_reportlab_config import configure_reportlab_for_fast_pdf
-from .renderers import render_cover_page, render_general_page, render_glance_page
+from .render_cover import render_cover_page
+from .render_content import render_general_page
+from .render_glance import render_glance_page
 from .styles import (
     apply_pdf_palette,
     extract_pdf_palette,

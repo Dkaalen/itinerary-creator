@@ -394,4 +394,11 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    exit_code = main()
+    # Pytest/render-heavy stages can leave non-daemon cleanup work behind after
+    # the runner has already printed a PASS/FAIL summary.  Flush explicitly and
+    # terminate the process so validation wrappers do not hang during Python
+    # interpreter shutdown.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(exit_code)

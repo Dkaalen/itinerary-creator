@@ -15,6 +15,10 @@ from itinerary_generation.title_routes import (
 from itinerary_generation.title_safety import BAD_TITLE_PATTERNS, is_forbidden_client_title
 from itinerary_generation.product_rules import find_product_match
 from itinerary_generation.activity_products import fingerprint_activity
+from itinerary_generation.activity_title_northern_lights import (
+    looks_like_northern_lights_activity,
+    northern_lights_activity_title,
+)
 from text_polish import polish_title, strip_price_fragments
 
 def is_bad_raw_day_title(title: str) -> bool:
@@ -211,54 +215,8 @@ def create_client_activity_title(row):
     if title_text.startswith("round trip ticket"):
         return "Round Trip Ticket"
 
-    title_has_northern_lights = (
-        "northern light" in title_text
-        or "aurora" in title_text
-        or "borealis" in title_text
-    )
-    full_has_northern_lights = (
-        "northern light" in full_text
-        or "aurora" in full_text
-        or "borealis" in full_text
-    )
-    title_has_northern_lights_activity_word = any(
-        word in title_text
-        for word in ["hunt", "chase", "basecamp", "base camp", "cruise", "boat", "float", "floating", "mileage"]
-    )
-
-    # Do not rename ordinary daytime/culture activities just because the long
-    # supplier description mentions a chance of seeing northern lights.
-    is_northern_lights = title_has_northern_lights or (
-        full_has_northern_lights
-        and (
-            title_has_northern_lights_activity_word
-            or any(word in full_text for word in ["northern lights cruise", "aurora cruise", "aurora basecamp", "ice floating"])
-        )
-    )
-
-    if not is_northern_lights:
+    if not looks_like_northern_lights_activity(title_text, full_text):
         return normalize_client_day_title(title, row)
 
-    if "reindeer" in full_text and ("hunt" in full_text or "hunting" in full_text or "chase" in full_text):
-        return "Northern Lights Hunt by Reindeer"
-
-    if "aurora basecamp" in full_text or "aurora base camp" in full_text:
-        return "Northern Lights Safari to Aurora Basecamp" if "safari" in full_text else "Aurora Basecamp"
-
-    if "basecamp" in full_text or "base camp" in full_text:
-        return "Northern Lights Basecamp"
-
-    if "cruise" in full_text or "boat" in full_text or "sailing" in full_text:
-        return "Northern Lights Cruise"
-
-    if "floating" in full_text or "float" in full_text:
-        return "Northern Lights Ice Floating"
-
-    if "chase" in full_text:
-        return "Northern Lights Chase"
-
-    if "hunt" in full_text or "mileage" in full_text or "photo tour" in full_text:
-        return "Northern Lights Hunt"
-
-    return "Northern Lights Experience"
+    return northern_lights_activity_title(full_text)
 

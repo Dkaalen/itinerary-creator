@@ -16,14 +16,9 @@ from .images import (
     normalize_crop_focus,
     resolve_image_path,
 )
-from .renderers import (
-    _activity_time_range_text,
-    render_content_blocks,
-    render_cover_page,
-    render_day_section_pdf,
-    render_general_page,
-    render_glance_page,
-)
+from .render_content import _activity_time_range_text, render_content_blocks, render_day_section_pdf, render_general_page
+from .render_cover import render_cover_page
+from .render_glance import render_glance_page
 from .story import add_bullets, add_paragraph, make_table, story_height
 from .styles import (
     BODY,

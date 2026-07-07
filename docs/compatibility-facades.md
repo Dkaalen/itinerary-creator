@@ -28,6 +28,10 @@ The chunky top-level export lists for `generator.py` and `pdf_exporter.py` now
 live in package-owned `public_api.py` modules so the root files remain thin
 compatibility surfaces only.
 
+## Recently retired facades
+
+Patch 57 removed verified-unreferenced debug/UI/render wrappers such as `app_modules/performance_telemetry_debug.py`, `app_modules/saved_project_storage_ui.py`, `pdf_exporter_modules/renderers.py`, `project_storage/status.py`, and `text_polish_modules/core.py`. Their replacement owners are direct package exports or focused implementation modules.
+
 ## Cleanup rule
 
 A facade can only be removed when all of these are true:

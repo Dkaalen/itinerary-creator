@@ -2,9 +2,9 @@
 
 Static report generated from production modules only. Tests and dynamic imports are intentionally excluded, so candidates need human review before deletion.
 
-Production modules scanned: 724
-Facade-like modules: 151
-Modules with no production importers: 114
+Production modules scanned: 716
+Facade-like modules: 147
+Modules with no production importers: 104
 
 ## Facade-like modules
 
@@ -13,7 +13,6 @@ Modules with no production importers: 114
 - `app_modules/generation_preview_builder.py` — importers: 1
 - `app_modules/pdf_export_blockers.py` — importers: 1
 - `app_modules/pdf_export_preview_file.py` — importers: 1
-- `app_modules/performance_telemetry_debug.py` — importers: 0
 - `app_modules/project_file_download_cache.py` — importers: 4
 - `app_modules/project_file_ui.py` — importers: 2
 - `app_modules/render_context_cover_data.py` — importers: 3
@@ -28,7 +27,7 @@ Modules with no production importers: 114
 - `itinerary_generation/accommodation_inclusions.py` — importers: 2
 - `itinerary_generation/activity_product_rules/__init__.py` — importers: 0
 - `itinerary_generation/activity_title_normalization.py` — importers: 0
-- `itinerary_generation/activity_title_patterns.py` — importers: 0
+- `itinerary_generation/activity_title_northern_lights.py` — importers: 1
 - `itinerary_generation/activity_title_rules.py` — importers: 0
 - `itinerary_generation/activity_titles.py` — importers: 3
 - `itinerary_generation/activity_training_catalogue.py` — importers: 3
@@ -50,11 +49,8 @@ Modules with no production importers: 114
 - `itinerary_generation/day_intro_planner.py` — importers: 1
 - `itinerary_generation/day_leisure_facts.py` — importers: 1
 - `itinerary_generation/day_planner.py` — importers: 2
-- `itinerary_generation/day_render_blocks.py` — importers: 7
+- `itinerary_generation/day_render_blocks.py` — importers: 6
 - `itinerary_generation/day_render_blocks_core.py` — importers: 0
-- `itinerary_generation/day_render_group_tour_blocks.py` — importers: 0
-- `itinerary_generation/day_render_hotel_blocks.py` — importers: 0
-- `itinerary_generation/day_render_leisure_blocks.py` — importers: 0
 - `itinerary_generation/day_render_manual_html.py` — importers: 2
 - `itinerary_generation/day_render_transport_blocks.py` — importers: 2
 - `itinerary_generation/day_schedule_facts.py` — importers: 1
@@ -84,7 +80,7 @@ Modules with no production importers: 114
 - `itinerary_generation/exclusion_sections_core.py` — importers: 0
 - `itinerary_generation/exclusion_self_transfers.py` — importers: 0
 - `itinerary_generation/group_tour_domain.py` — importers: 4
-- `itinerary_generation/group_tour_rendering.py` — importers: 10
+- `itinerary_generation/group_tour_rendering.py` — importers: 9
 - `itinerary_generation/group_tours.py` — importers: 3
 - `itinerary_generation/image_quality_gate.py` — importers: 0
 - `itinerary_generation/inclusion_transport.py` — importers: 0
@@ -92,7 +88,6 @@ Modules with no production importers: 114
 - `itinerary_generation/input_review.py` — importers: 4
 - `itinerary_generation/itinerary_health_checks.py` — importers: 4
 - `itinerary_generation/journey_arc_builder.py` — importers: 0
-- `itinerary_generation/journey_arc_text_safety.py` — importers: 0
 - `itinerary_generation/legacy_output_edits_bridge.py` — importers: 0
 - `itinerary_generation/nutshell_constants.py` — importers: 4
 - `itinerary_generation/nutshell_detection.py` — importers: 0
@@ -110,7 +105,7 @@ Modules with no production importers: 114
 - `itinerary_generation/structured_builder_core.py` — importers: 1
 - `itinerary_generation/structured_days_builder.py` — importers: 2
 - `itinerary_generation/structured_validation.py` — importers: 1
-- `itinerary_generation/summaries.py` — importers: 10
+- `itinerary_generation/summaries.py` — importers: 9
 - `itinerary_generation/summaries_core.py` — importers: 0
 - `itinerary_generation/summaries_text.py` — importers: 2
 - `itinerary_generation/titles.py` — importers: 19
@@ -146,9 +141,10 @@ Modules with no production importers: 114
 - `pdf_exporter_modules/public_api.py` — importers: 0
 - `pdf_exporter_modules/render_content.py` — importers: 1
 - `pdf_exporter_modules/render_flowables.py` — importers: 3
-- `pdf_exporter_modules/renderers.py` — importers: 0
 - `pdf_exporter_modules/typed_exporter.py` — importers: 0
 - `project_storage/__init__.py` — importers: 0
+- `text_polish_modules/__init__.py` — importers: 0
+- `text_polish_modules/text_cleanup_rules.py` — importers: 1
 - `ui/accommodation_display_helpers.py` — importers: 1
 - `ui/activity_description_helpers.py` — importers: 1
 - `ui/activity_inclusions.py` — importers: 2
@@ -165,9 +161,7 @@ Modules with no production importers: 114
 - `app_modules/__init__.py`
 - `app_modules/app_version.py`
 - `app_modules/main_view.py`
-- `app_modules/performance_telemetry_debug.py`
 - `app_modules/saved_project_baseline_restore.py`
-- `app_modules/saved_project_storage_ui.py`
 - `calculator/__init__.py`
 - `calculator/data/__init__.py`
 - `calculator/fetch_lines.py`
@@ -185,7 +179,6 @@ Modules with no production importers: 114
 - `itinerary_generation/activity_product_rules/norway.py`
 - `itinerary_generation/activity_product_rules/scandinavia.py`
 - `itinerary_generation/activity_title_normalization.py`
-- `itinerary_generation/activity_title_patterns.py`
 - `itinerary_generation/activity_title_rules.py`
 - `itinerary_generation/city_experience_classifier.py`
 - `itinerary_generation/content_validator.py`
@@ -196,9 +189,6 @@ Modules with no production importers: 114
 - `itinerary_generation/day_copy_audit.py`
 - `itinerary_generation/day_intro_engine_core.py`
 - `itinerary_generation/day_render_blocks_core.py`
-- `itinerary_generation/day_render_group_tour_blocks.py`
-- `itinerary_generation/day_render_hotel_blocks.py`
-- `itinerary_generation/day_render_leisure_blocks.py`
 - `itinerary_generation/debug/__init__.py`
 - `itinerary_generation/debug/qa_edit_events.py`
 - `itinerary_generation/debug/qa_report_model.py`
@@ -214,7 +204,6 @@ Modules with no production importers: 114
 - `itinerary_generation/inclusion_sections.py`
 - `itinerary_generation/inclusion_transport.py`
 - `itinerary_generation/journey_arc_builder.py`
-- `itinerary_generation/journey_arc_text_safety.py`
 - `itinerary_generation/legacy_output_edits_bridge.py`
 - `itinerary_generation/nutshell_detection.py`
 - `itinerary_generation/nutshell_domain_core.py`
@@ -252,13 +241,10 @@ Modules with no production importers: 114
 - `pdf_exporter_modules/render_inclusion_content.py`
 - `pdf_exporter_modules/render_pages.py`
 - `pdf_exporter_modules/render_tables.py`
-- `pdf_exporter_modules/renderers.py`
 - `pdf_exporter_modules/same_page_image_flowable.py`
 - `pdf_exporter_modules/typed_exporter.py`
 - `project_storage/__init__.py`
-- `project_storage/status.py`
 - `text_polish_modules/__init__.py`
-- `text_polish_modules/core.py`
 - `ui/__init__.py`
 - `ui/day_overview_blocks.py`
 - `ui/style_app_chrome.py`

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+import diagnostics
+
 from app_modules.export_actions import clear_pdf_artifact, create_pdf_from_current_preview
 from app_modules.export_identity import export_signature_for_state
 from app_modules.export_job_state import mark_export_failed, mark_export_ready, mark_exporting
@@ -25,6 +27,12 @@ def create_pdf_now() -> bool:
         with st.spinner("Creating PDF…"):
             ok = create_pdf_from_current_preview()
     except Exception as error:
+        diagnostics.warn_exception(
+            "pdf_export",
+            "PDF export failed; the editable itinerary preview remains available.",
+            error,
+            source="app_modules.pdf_creation_request",
+        )
         clear_pdf_artifact("PDF failed")
         mark_export_failed(st.session_state, error=str(error))
         st.session_state["export_last_error"] = str(error)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
+import diagnostics
+
 from pdf_exporter_modules.image_constants import PDF_IMAGE_BOTTOM_Y, PDF_IMAGE_GAP, PDF_IMAGE_HALF_OFFSET, PDF_MIN_IMAGE_HEIGHT
 from pdf_exporter_modules.image_layout import make_cover_cropped_image, normalize_crop_focus
 from pdf_exporter_modules.pdf_day_renderer import render_day_story
@@ -16,7 +18,13 @@ def _day_image_height_for_story(story: Sequence, doc) -> float | None:
         return None
     try:
         used_height = story_height(story, doc.width)
-    except Exception:
+    except Exception as error:
+        diagnostics.warn_exception(
+            "pdf_image_prewarm",
+            "PDF day-image prewarm height calculation failed; export will continue without prewarming this image.",
+            error,
+            source="pdf_exporter_modules.pdf_image_prewarm",
+        )
         return None
     text_bottom_y = float(doc.pagesize[1] - doc.topMargin) - float(used_height)
     image_top_y = min(
@@ -86,9 +94,16 @@ def prewarm_pdf_day_images(
                 min_compact_level=min_compact_level,
             ):
                 warmed += 1
-        except Exception:
+        except Exception as error:
             # Pre-warming is an optimization only. The normal PDF flowable still
             # performs its own safe image handling during document build.
+            diagnostics.warn_exception(
+                "pdf_image_prewarm",
+                "PDF day-image prewarm failed; export will continue with normal image handling.",
+                error,
+                raw_value=day_key,
+                source="pdf_exporter_modules.pdf_image_prewarm",
+            )
             continue
     return warmed
 

@@ -91,6 +91,12 @@ def _destination_pack_status(root: Path, requests: list[DestinationRequest], des
             refreshed_status["initial_attempt"] = distribution_status
             distribution_status = refreshed_status
     except Exception as error:
+        diagnostics.warn_exception(
+            "image_bank_setup",
+            "Destination image-pack setup failed; full-bank fallback will be attempted.",
+            error,
+            source="images.image_bank_bootstrap",
+        )
         distribution_status = setup_status(
             False,
             "destination_pack_exception",

@@ -7,6 +7,8 @@ small enough to reason about safely.
 
 import streamlit as st
 
+import diagnostics
+
 from itinerary_generation.draft_autosave import save_autosave_payload
 from visual_editor_component.editor_result_codec import (
     _decode_visual_editor_result,
@@ -46,7 +48,13 @@ def apply_visual_editor_result(result, output_edits, mark_dirty=None):
     before_snapshot = _stable_output_edits_snapshot(output_edits)
     try:
         data, commit_nonce, is_autosave = _decode_visual_editor_result(result)
-    except Exception:
+    except Exception as error:
+        diagnostics.warn_exception(
+            "visual_editor_save",
+            "Visual editor result could not be decoded; edits were not applied.",
+            error,
+            source="visual_editor_component.editor_result_applier",
+        )
         st.warning("Visual editor edits could not be read. Please try saving again.")
         return False
     if not isinstance(data, dict):
