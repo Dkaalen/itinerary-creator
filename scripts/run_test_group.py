@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import os
 import signal
 import subprocess
@@ -32,6 +33,23 @@ DEFAULT_STAGE_TIMEOUT_SECONDS = int(
     os.environ.get("ITINERARY_TEST_STAGE_TIMEOUT_SECONDS", "300")
 )
 RUNNER_GROUPS = (*GROUP_ORDER, "health", "release", "full")
+
+
+@dataclass(frozen=True)
+class StageRunResult:
+    """One pytest stage result for readable timeout diagnostics."""
+
+    label: str
+    return_code: int
+    elapsed_seconds: float
+
+    @property
+    def passed(self) -> bool:
+        return self.return_code == 0
+
+    @property
+    def timed_out(self) -> bool:
+        return self.return_code == 124
 
 
 def _split_extra_pytest_args(extra_args: list[str]) -> list[str]:
@@ -79,9 +97,10 @@ def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
             process.kill()
 
 
-def _run_command(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS) -> int:
+def _run_command_result(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS) -> StageRunResult:
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(cmd), flush=True)
+    print(f"stage timeout: {timeout_seconds}s", flush=True)
     started = time.monotonic()
     process = subprocess.Popen(
         cmd,
@@ -101,16 +120,23 @@ def _run_command(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAG
             flush=True,
         )
         print(
-            "Increase ITINERARY_TEST_STAGE_TIMEOUT_SECONDS if you are running "
-            "this locally and want to allow longer stages.",
+            "The timed-out stage was terminated as a process group. "
+            "Run with --plan to see the exact stage split, or increase "
+            "ITINERARY_TEST_STAGE_TIMEOUT_SECONDS for slower machines.",
             flush=True,
         )
-        return 124
+        return StageRunResult(label=label, return_code=124, elapsed_seconds=elapsed)
 
     elapsed = time.monotonic() - started
     status = "passed" if return_code == 0 else f"failed ({return_code})"
     print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
-    return return_code
+    return StageRunResult(label=label, return_code=return_code, elapsed_seconds=elapsed)
+
+
+def _run_command(label: str, cmd: list[str], timeout_seconds: int = DEFAULT_STAGE_TIMEOUT_SECONDS) -> int:
+    """Compatibility wrapper returning only the process code."""
+
+    return _run_command_result(label, cmd, timeout_seconds).return_code
 
 
 def _run_slow_harness() -> int:
@@ -119,6 +145,10 @@ def _run_slow_harness() -> int:
 
 def _run_pytest(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> int:
     return _run_command(stage_name, _pytest_command(stage_name, pytest_args, extra_args))
+
+
+def _run_pytest_result(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> StageRunResult:
+    return _run_command_result(stage_name, _pytest_command(stage_name, pytest_args, extra_args))
 
 
 def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
@@ -169,7 +199,44 @@ def _print_available_groups() -> None:
         print(f"  {name:12} {description}")
 
 
-def run_named_group(group_name: str, extra_args: list[str]) -> int:
+
+
+def _parse_stage_range(value: str | None, stage_count: int) -> slice:
+    """Return a one-based inclusive stage slice for resumable wrapper runs."""
+
+    if not value:
+        return slice(None)
+    text = str(value).strip()
+    if not text:
+        return slice(None)
+    if ":" in text:
+        start_text, _, end_text = text.partition(":")
+        start = int(start_text) if start_text else 1
+        end = int(end_text) if end_text else stage_count
+    else:
+        start = end = int(text)
+    if start < 1 or end < start or end > stage_count:
+        raise ValueError(f"Invalid --stage-range {value!r}; use 1:{stage_count}.")
+    return slice(start - 1, end)
+
+def _print_stage_summary(results: list[StageRunResult]) -> None:
+    """Print a compact summary so wrapper timeouts are easy to diagnose."""
+
+    if not results:
+        return
+    total = sum(result.elapsed_seconds for result in results)
+    print("\n=== Stage summary ===", flush=True)
+    for result in results:
+        if result.timed_out:
+            status = "TIMEOUT"
+        elif result.passed:
+            status = "PASS"
+        else:
+            status = f"FAIL({result.return_code})"
+        print(f"{status:>9} {result.elapsed_seconds:7.1f}s  {result.label}", flush=True)
+    print(f"Total stage runtime: {total:.1f}s", flush=True)
+
+def run_named_group(group_name: str, extra_args: list[str], *, stage_range: str | None = None) -> int:
     missing = missing_group_paths(REPO_ROOT)
     if missing:
         print("Configured test group paths are missing:", file=sys.stderr)
@@ -181,16 +248,60 @@ def run_named_group(group_name: str, extra_args: list[str]) -> int:
         return _run_slow_harness()
 
     stages = _stages_for_group(group_name)
+    try:
+        stage_slice = _parse_stage_range(stage_range, len(stages))
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    selected_stages = stages[stage_slice]
 
     if group_name in {"health", "release", "full"}:
         print(f"{group_name.title()} suite plan: {len(stages)} progress-tracked stages", flush=True)
+    if stage_range:
+        print(f"Running stage range {stage_range}: {len(selected_stages)} of {len(stages)} stages", flush=True)
 
-    for stage_name, pytest_paths in stages:
-        code = _run_pytest(stage_name, tuple(pytest_paths), extra_args)
-        if code != 0:
-            return code
+    results: list[StageRunResult] = []
+    for stage_name, pytest_paths in selected_stages:
+        result = _run_pytest_result(stage_name, tuple(pytest_paths), extra_args)
+        results.append(result)
+        if result.return_code != 0:
+            _print_stage_summary(results)
+            return result.return_code
+    _print_stage_summary(results)
     return 0
 
+
+
+def _pull_stage_range(argv: list[str]) -> tuple[str, list[str]]:
+    """Remove runner-only --stage-range before pytest passthrough parsing."""
+
+    if "--" in argv:
+        boundary = argv.index("--")
+        runner_side = argv[:boundary]
+        pytest_side = argv[boundary:]
+    else:
+        runner_side = argv
+        pytest_side = []
+
+    cleaned: list[str] = []
+    value = ""
+    index = 0
+    while index < len(runner_side):
+        item = runner_side[index]
+        if item == "--stage-range":
+            if index + 1 >= len(runner_side):
+                value = ""
+            else:
+                value = runner_side[index + 1]
+                index += 2
+                continue
+        elif item.startswith("--stage-range="):
+            value = item.split("=", 1)[1]
+            index += 1
+            continue
+        cleaned.append(item)
+        index += 1
+    return value, [*cleaned, *pytest_side]
 
 def _extract_runner_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
     """Pull runner flags out before pytest passthrough args consume them."""
@@ -211,6 +322,7 @@ def _extract_runner_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
 
 def main(argv: list[str] | None = None) -> int:
     raw_args = list(sys.argv[1:] if argv is None else argv)
+    pulled_stage_range, raw_args = _pull_stage_range(raw_args)
     runner_args, list_groups, plan = _extract_runner_flags(raw_args)
 
     parser = argparse.ArgumentParser(
@@ -237,6 +349,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show the selected group's staged pytest plan without running it.",
     )
+    parser.add_argument(
+        "--stage-range",
+        default="",
+        help="Run a one-based inclusive stage range such as 1:8 or 9:17.",
+    )
     args = parser.parse_args(runner_args)
 
     if list_groups:
@@ -250,7 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_group_plan(args.group)
         return 0
 
-    return run_named_group(args.group, _split_extra_pytest_args(args.pytest_args))
+    return run_named_group(args.group, _split_extra_pytest_args(args.pytest_args), stage_range=args.stage_range or pulled_stage_range)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,31 @@
+Day 1	Arrival	01.02.2026						Copenhagen: Arrival at Copenhagen Airport
+Day 1	Transfer	01.02.2026						Copenhagen: Private transfer from Copenhagen Airport to Copenhagen Central Station
+Day 1	Train	01.02.2026						Copenhagen: Train Copenhagen to Gothenburg
+Day 1	Hotel	01.02.2026	03.02.2026					Gothenburg: Check in to your accommodation for a 2 night stay - Avalon Hotel - Breakfast included
+								
+Day 2	Leisure	02.02.2026						Gothenburg: Full day at leisure
+								
+Day 3	Train	03.02.2026						Gothenburg: Train Gothenburg to Stockholm
+Day 3	Hotel	03.02.2026	04.02.2026					Stockholm: Check in to your accommodation for a 1 night stay - Downtown Hotel
+Day 3	Activity	03.02.2026						Stockholm: Evening food walk in the old town - Time: 7:00 pm - 9:30 pm
+								
+Day 4	Transfer	04.02.2026						Stockholm: Private transfer from your hotel to Stockholm Cruise Terminal
+Day 4	Cruise	04.02.2026	05.02.2026					Stockholm: Overnight cruise Stockholm to Helsinki
+Day 4	Leisure	04.02.2026						Stockholm: Spend time at leisure onboard the cruise
+								
+Day 5	Transfer	05.02.2026						Helsinki: Private transfer from Helsinki Port to your accommodation
+Day 5	Hotel	05.02.2026	06.02.2026					Helsinki: Check in to your accommodation for a 1 night stay - Central Hotel
+								
+Day 6	Transfer	06.02.2026						Helsinki: Private transfer from your hotel to Helsinki Central Station
+Day 6	Train	06.02.2026						Helsinki: Train Helsinki to Tampere
+Day 6	Transfer	06.02.2026						Tampere: Private transfer from Tampere Station to your hotel
+Day 6	Hotel	06.02.2026	07.02.2026					Tampere: Check in to your accommodation for a 1 night stay - Lake Hotel
+								
+Day 7	Transfer	07.02.2026						Tampere: Private transfer from your hotel to your next accommodation
+Day 7	Hotel	07.02.2026	08.02.2026					Tampere: Check in to your accommodation for a 1 night stay - Glass Cabin
+								
+Day 8	Train	08.02.2026						Tampere: Train Tampere to Helsinki
+Day 8	Hotel	08.02.2026	09.02.2026					Helsinki: Return hotel stay in Helsinki
+								
+Day 9	Transfer	09.02.2026						Helsinki: Private transfer from your hotel to Helsinki Airport
+Day 9	Departure	09.02.2026						Helsinki: Departure Home

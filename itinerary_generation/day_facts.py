@@ -66,6 +66,28 @@ def _canonical_city(value: object) -> str:
     return city
 
 
+
+def _city_from_arrival_departure_text(row: Mapping[str, Any], *, direction: str) -> str:
+    text = row_text(row)
+    patterns = (
+        r"\barrival\s+(?:in|at|to)\s+([^,|:;.-]+)",
+        r"\barrive\s+(?:in|at|to)\s+([^,|:;.-]+)",
+    ) if direction == "arrival" else (
+        r"\bdeparture\s+(?:from|in|at)\s+([^,|:;.-]+)",
+        r"\bdepart\s+(?:from|in|at)\s+([^,|:;.-]+)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if not match:
+            continue
+        phrase = match.group(1).strip(" -:|.,")
+        words = [word for word in phrase.split() if word]
+        for size in range(min(3, len(words)), 0, -1):
+            city = _canonical_city(" ".join(words[:size]))
+            if city:
+                return city
+    return ""
+
 def _add_unique(items: list[str], value: object) -> None:
     city = _canonical_city(value)
     if city and city not in items:
@@ -269,12 +291,12 @@ def build_day_facts(
     arrival_city = ""
     for row in main_rows:
         if get_row_type(dict(row)) == "Arrival":
-            arrival_city = _canonical_city(row.get("city", "")) or primary_city
+            arrival_city = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction="arrival") or (route_origins[0] if route_origins else "") or primary_city
             break
     departure_city = ""
     for row in main_rows:
         if get_row_type(dict(row)) == "Departure":
-            departure_city = _canonical_city(row.get("city", "")) or primary_city
+            departure_city = _canonical_city(row.get("city", "")) or _city_from_arrival_departure_text(row, direction="departure") or primary_city
             break
 
     overnight_city = hotel_cities[-1] if hotel_cities else ""

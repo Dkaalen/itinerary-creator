@@ -29,6 +29,7 @@ DEFAULT_FIXTURES = (
     "tests/fixtures/real_inputs/finland_norway_winter_family.txt",
     "tests/fixtures/real_inputs/norway_sweden_denmark_summer.txt",
     "tests/fixtures/real_inputs/scandinavia_autumn_cruise.txt",
+    "tests/fixtures/real_inputs/day_brain_edge_cases.txt",
 )
 
 
