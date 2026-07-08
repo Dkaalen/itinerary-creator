@@ -222,7 +222,10 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
         DayIntent.TRAVEL_DAY,
         DayIntent.CRUISE_DAY,
     }:
-        if not (intent == DayIntent.ARRIVAL_STAY and facts.has_flight):
+        suppress_arrival_route_intro = intent == DayIntent.ARRIVAL_STAY and (
+            facts.has_flight or "arrival_airport_transfer" in facts.source_flags
+        )
+        if not suppress_arrival_route_intro:
             return profile_route_intro
 
     if intent == DayIntent.RETURN_VISIT:

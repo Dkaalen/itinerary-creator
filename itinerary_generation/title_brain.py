@@ -16,6 +16,7 @@ from itinerary_generation.day_intent import DayIntent, classify_day_intent
 from itinerary_generation.schedule_brain import DayScheduleProfile, build_day_schedule_profile
 from itinerary_generation.transport import get_primary_transport_title
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from place_aliases import country_for_place
 from text_polish import polish_title
 
 TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus"}
@@ -163,11 +164,19 @@ def write_day_title(
             for row in row_list
             if get_row_type(dict(row)) == "Hotel"
         ]
+        hotel_text = " ".join(
+            _clean(row.get(key))
+            for row in row_list
+            if get_row_type(dict(row)) == "Hotel"
+            for key in ("title", "hotel_name", "original_title", "room_category", "details")
+        ).lower()
         for hotel_title in hotel_titles:
             if "snow hotel" in hotel_title.lower() or "snowhotel" in hotel_title.lower():
                 if "arctic" in hotel_title.lower():
                     return "Arctic Snow Hotel Stay"
                 return f"{polish_title(hotel_title)} Stay"
+        if "glass igloo" in hotel_text or "igloo" in hotel_text:
+            return f"Glass Igloo Stay in {city}" if city else "Glass Igloo Stay"
         if facts.return_visit and "next accommodation" not in raw_day_text:
             return f"Return to {city}" if city else "Return Visit"
         return f"Next Stay in {city}" if city else "Next Stay"
@@ -216,7 +225,11 @@ def write_day_title(
         return _travel_title(row_list, facts, city)
 
     if intent == DayIntent.ARRIVAL_STAY and city:
-        return f"Welcome to {city}" if not facts.return_visit else f"Return to {city}"
+        if facts.return_visit:
+            return f"Return to {city}"
+        if country_for_place(city) == "Iceland":
+            return "Welcome to Iceland"
+        return f"Welcome to {city}"
 
     if activities:
         return _single_activity_title(activities[0])

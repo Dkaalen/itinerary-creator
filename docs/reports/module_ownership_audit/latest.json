@@ -26,11 +26,6 @@
       "concern": "large_module"
     },
     {
-      "file": "itinerary_generation/transport_domain/routes.py",
-      "line_count": 575,
-      "concern": "large_module"
-    },
-    {
       "file": "tests/test_image_matcher_selection.py",
       "line_count": 572,
       "concern": "large_module"
@@ -58,24 +53,6 @@
   ],
   "long_functions": [
     {
-      "file": "itinerary_generation/description_templates.py",
-      "name": "_compose_known_activity",
-      "line_count": 160,
-      "start_line": 51
-    },
-    {
-      "file": "itinerary_generation/activity_titles_core.py",
-      "name": "create_client_activity_title",
-      "line_count": 159,
-      "start_line": 63
-    },
-    {
-      "file": "parser_modules/parser_main.py",
-      "name": "parse_itinerary",
-      "line_count": 134,
-      "start_line": 97
-    },
-    {
       "file": "images/image_bank_fetch.py",
       "name": "fetch_image_bank_with_zip",
       "line_count": 133,
@@ -92,12 +69,6 @@
       "name": "run_benchmark",
       "line_count": 131,
       "start_line": 61
-    },
-    {
-      "file": "itinerary_generation/day_render_block_ordering.py",
-      "name": "build_day_render_blocks",
-      "line_count": 126,
-      "start_line": 47
     },
     {
       "file": "text_polish_modules/text_cleanup.py",
@@ -142,13 +113,13 @@
   ],
   "duplicate_rule_hotspots": [
     {
-      "file": "itinerary_generation/transport_domain/routes.py",
-      "line_count": 575,
+      "file": "itinerary_generation/nutshell_parsing.py",
+      "line_count": 469,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/nutshell_parsing.py",
-      "line_count": 469,
+      "file": "itinerary_generation/transport_domain/routes.py",
+      "line_count": 438,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -207,11 +178,6 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/activity_titles_core.py",
-      "line_count": 222,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/client_sanitizer.py",
       "line_count": 222,
       "concern": "inline_regex_or_replacement_rules"
@@ -228,12 +194,17 @@
     },
     {
       "file": "itinerary_generation/activity_description_helpers.py",
-      "line_count": 168,
+      "line_count": 169,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
       "file": "itinerary_generation/content_validator.py",
       "line_count": 167,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_domain/route_cleaning.py",
+      "line_count": 163,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -253,7 +224,7 @@
     },
     {
       "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 134,
+      "line_count": 133,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -411,10 +382,12 @@
       "parser_modules/hotel_parser_meals.py",
       "parser_modules/hotel_parser_rooms.py",
       "parser_modules/list_parsing.py",
+      "parser_modules/parser_line.py",
       "parser_modules/parser_main.py",
+      "parser_modules/parser_state.py",
       "parser_modules/raw_row_context.py",
       "parser_modules/row_builder.py",
-      "parser_modules/row_enrichment.py",
+      "parser_modules/row_enrichment_steps.py",
       "parser_modules/row_text_standardization.py",
       "parser_modules/rows.py",
       "parser_modules/time_duration.py",

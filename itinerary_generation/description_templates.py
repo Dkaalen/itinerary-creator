@@ -14,6 +14,7 @@ from itinerary_generation.description_facts import (
     _join,
 )
 from itinerary_generation.description_sources import _row_source
+from itinerary_generation.description_known_activity_rules import match_known_activity_description
 from itinerary_generation.product_rules import find_product_match
 
 
@@ -62,153 +63,16 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     product_match = find_product_match(row, title, source)
     if product_match and product_match.description:
         return product_match.description
-    if ("oslofjord" in full or "oslo fjord" in full) and ("sightseeing cruise" in full or "electric boat" in full or "fjord sightseeing" in full):
-        return polish_client_text(
-            "Cruise through the Oslofjord by electric boat, with coastal scenery, islands and city landmarks forming the focus of the experience."
-        )
-    if "must-see bergen" in full or ("foot and boat" in full and "bergen" in full):
-        return polish_client_text(
-            "Explore Bergen from two perspectives: first on foot through the historic city streets and then by boat during the included harbour ride."
-        )
-    if "food" in full and "culture" in full and "bergen" in full:
-        return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
-    if ("whale watching" in full or "whale watching from downtown" in full) and (
-        "arctic wildlife" in full or "rib boat" in full or "wildlife safari" in full or "alta" in full
-    ):
-        return polish_client_text(
-            "Set out on Arctic waters for a whale watching and wildlife safari, with the RIB boat route shaped around fjord conditions, marine life and the surrounding northern landscapes."
-        )
-    if "whale watching" in full or "whale watching from downtown" in full:
-        return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
 
-    if "crystal lavvo" in full or ("lyngen" in full and "lavvo" in full):
-        return polish_client_text(
-            "Travel from Tromsø towards the Lyngen Alps for an overnight Crystal Lavvo experience, "
-            "with meals, snowshoeing, Northern Lights guidance and return transfers arranged as part of the programme."
-        )
-
-    if "sauna" in full and ("lakeside" in full or "finnish" in full or "wooden" in full):
-        return polish_client_text(
-            f"Enjoy a Finnish sauna experience{city_phrase}, with time to relax by the lakeside setting and warm drinks or cookies included where specified."
-        )
-
-    if ("northern lights" in full or "aurora" in full) and ("cruise" in full or "silent electric ship" in full or "boat" in full):
-        return polish_client_text(f"Set out on an evening Northern Lights cruise{city_phrase}, with time on the water, simple refreshments where included and the Arctic night sky as the focus of the experience.")
-
-    if "food tour" in full or "secret food" in full or "smørrebrød" in full or "smorrebrod" in full:
-        if "copenhagen" in full or "smørrebrød" in full or "smorrebrod" in full or "danish meatballs" in full:
-            return polish_client_text(f"Enjoy a guided food tour{city_phrase}, tasting local favourites such as smørrebrød, Danish meatballs and sweet bakery specialities while getting a flavour of the city’s food culture.")
-        if "oslo" in full or city.lower() == "oslo":
-            return "Explore Oslo through its food culture, with a guided route linking local flavours, hidden neighbourhood gems and stories from the city along the way."
-        if "bergen" in full or city.lower() == "bergen":
-            return "Explore Bergen through local food and cultural stories, with tasting stops arranged along a guided route through the city."
-        return polish_client_text(f"Enjoy a guided food tour{city_phrase}, with tasting stops and local context arranged as part of the experience.")
-    if "grand day trip" in full and "copenhagen" in full:
-        return "Spend the day outside central Copenhagen with a guided route to Kronborg Castle, Frederiksborg Palace, Roskilde Cathedral and the Viking Ship Museum. The experience combines royal history, cultural landmarks and comfortable arranged transport."
-    if "silfra" in full and ("snork" in full or "drysuit" in full):
-        return "Experience the clear glacial water of Silfra on a guided drysuit snorkelling tour, with the required equipment and park arrangements included for the excursion."
-    if "atv" in full or "quad" in full:
-        return "Set out on a guided ATV adventure, with equipment provided and the route arranged around the surrounding black-sand and coastal landscapes."
-    if "fløibanen" in full or "floibanen" in full:
-        return "Use your round-trip Fløibanen ticket for a flexible visit to Mount Fløyen, with time to enjoy the viewpoint above Bergen during the day."
-    if "santa claus village" in full and "visit" in title.lower() and not any(marker in title.lower() for marker in ["husky", "reindeer", "snowmobile"]):
-        return polish_client_text(
-            "Visit Santa Claus Village, with time for Santa’s Post Office, the Arctic Circle crossing and self-guided exploration of the festive village surroundings."
-        )
-    if (
-        ("cable car" in full or "funicular" in full or "gondola" in full)
-        and ("ticket" in full or "admission" in full)
-        and ("view" in full or "mountain" in full or "viewpoint" in full)
-    ):
-        return polish_client_text(
-            f"Use your pre-arranged ticket for a flexible visit by cable car{city_phrase}, "
-            "with time to enjoy the mountain viewpoint and surrounding views during the day."
-        )
-    if "blue lagoon" in full and "volcano" in full:
-        return "Begin with a guided visit to the Fagradalsfjall volcano area before ending the day in the warm geothermal waters of the Blue Lagoon. The experience balances dramatic volcanic scenery with time to relax."
-    if "lava show" in full:
-        return "Experience Icelandic volcanism up close during the Lava Show, where real molten lava is presented in a safe indoor setting with expert commentary."
-    if "walking tour" in full or "citywalk" in full or "on foot" in full:
-        safe_places = [place for place in places if not (place == "Tallinn Old Town" and "tallinn" not in full)]
-        if "stockholm" in full and "old town" in full and "Stockholm Old Town" not in safe_places:
-            safe_places.insert(0, "Stockholm Old Town")
-        if safe_places:
-            return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with the route introducing {_join(safe_places, max_items=8)} alongside local stories and practical tips.")
-        return polish_client_text(f"Set out on a guided walking tour{city_phrase}, with local stories, landmarks and practical tips introduced at an easy pace.")
-    if "abisko" in full or "mountain hike" in full:
-        return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
-
-    # High-confidence activity identities must beat incidental keywords.
-    # For example, a fjord photo tour may mention that reindeer sometimes
-    # wander through the area, but that should not turn the description into
-    # a reindeer-feeding experience.
-    if (
-        "photo tour" in full
-        or "photo excursion" in full
-        or "scenic fjord safari" in full
-        or "camera settings" in full
-        or "nature photos" in full
-        or "sommaroy" in full
-        or "sommarøy" in full
-    ) and ("fjord" in full or "landscape" in full or "scenic" in full):
-        base = f"Travel outside {city} on a guided photo-focused excursion" if city else "Travel on a guided photo-focused excursion"
-        return polish_client_text(
-            f"{base} through Arctic landscapes, fjords and coastal scenery, "
-            "with stops shaped around the weather, light and viewpoints of the day."
-        )
-
-    if "ice floating" in full or ("floating" in full and ("thermal" in full or "wetsuit" in full or "frozen lake" in full)):
-        return polish_client_text(
-            f"Float in a frozen lake{city_phrase} wearing a thermal survival suit, with warm drinks and cookies included "
-            "and the Arctic night sky forming the focus of the experience."
-        )
-
-    if "husky" in full and "reindeer" in full:
-        return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
-    if "husky" in full:
-        return polish_client_text(f"Meet the huskies{city_phrase} and enjoy an active Arctic experience arranged around the season and local conditions.")
-    if "reindeer" in full:
-        if "tromsø" in full or "tromso" in full or city.lower() in {"tromsø", "tromso"}:
-            return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn about Sámi culture and Arctic traditions.")
-        return polish_client_text(f"Meet and feed reindeer{city_phrase}, with time to learn more about this classic Arctic experience at an easy pace.")
-    if ("northern lights" in full or "aurora" in full) and ("bbq" in full or "barbecue" in full or "campfire" in full or "lappish" in full):
-        return polish_client_text(
-            f"Head outside the city in search of the Northern Lights{city_phrase}, with a campfire barbecue and local guidance included while you wait for clear skies."
-        )
-    if "northern lights" in full or "aurora" in full:
-        return polish_client_text(f"Head out in search of the Northern Lights{city_phrase}, with the route adapted to the evening conditions and local guidance included.")
-    if "tallinn" in full:
-        return "Travel between Helsinki and Tallinn by ferry, with time arranged for your visit to Tallinn before returning to Helsinki."
-    if "icebreaker" in full:
-        if "polar explorer" in full:
-            product_name = "Polar Explorer Icebreaker"
-        elif "arctic explorer" in full:
-            product_name = "Arctic Explorer Icebreaker"
-        elif "sampo" in full:
-            product_name = "Sampo Icebreaker"
-        elif "arktis" in full:
-            product_name = "Arktis Icebreaker"
-        else:
-            product_name = "icebreaker cruise"
-        return f"Experience the {product_name} in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
-    if "husky" in full and "reindeer" in full:
-        return polish_client_text(f"Spend the day around Arctic animal experiences{city_phrase}, combining husky and reindeer encounters with time at Santa Claus Village where included.")
-    if "abisko" in full or "mountain hike" in full:
-        return "Travel into the Abisko mountain landscape for a guided hike, with wide views, local nature stories and an included food stop along the route."
-    if "hike" in full or "hiking" in full or "nordmarka" in full:
-        if "oslofjord" in full or "oslo fjord" in full or "nordmarka" in full:
-            return "Follow a guided nature hike through the Nordmarka forest area, with local insight and viewpoints towards the Oslofjord forming the focus of the experience."
-        return polish_client_text(f"Enjoy a guided hike{city_phrase}, with the route focused on local nature, scenery and a comfortable outdoor pace.")
-    if "fjord" in full or "mostraumen" in full or "cruise" in full:
-        if places:
-            return polish_client_text(f"Enjoy a scenic water-based experience{city_phrase}, with the route focused on {_join(places, max_items=4)} and the surrounding landscapes.")
-        return polish_client_text(f"Enjoy a scenic water-based experience{city_phrase}, adding a different perspective to the day’s route and landscapes.")
-    if places:
-        return polish_client_text(f"Enjoy {title}{city_phrase}, with the experience centred around {_join(places, max_items=5)}. The arrangements are prepared in advance so the day stays clear and easy to follow.")
-    if inclusions:
-        return polish_client_text(f"Enjoy {title}{city_phrase}, with the practical arrangements handled in advance and the included elements supporting a smooth experience.")
-    return ""
-
+    return match_known_activity_description(
+        row=row,
+        title=title,
+        city=city,
+        full=full,
+        places=places,
+        inclusions=inclusions,
+        city_phrase=city_phrase,
+    )
 
 def _fallback_description(row: dict, title: str, city: str) -> str:
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
