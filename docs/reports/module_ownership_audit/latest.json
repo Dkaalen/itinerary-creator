@@ -1,0 +1,361 @@
+{
+  "overworked_files": [
+    {
+      "file": "itinerary_generation/data/nordic_destination_registry.py",
+      "line_count": 1346,
+      "concern": "large_module"
+    },
+    {
+      "file": "place_alias_data.py",
+      "line_count": 746,
+      "concern": "large_module"
+    },
+    {
+      "file": "scripts/architecture_guards.py",
+      "line_count": 710,
+      "concern": "large_module"
+    },
+    {
+      "file": "scripts/test_groups.py",
+      "line_count": 708,
+      "concern": "large_module"
+    },
+    {
+      "file": "tests/test_structured_core_model.py",
+      "line_count": 583,
+      "concern": "large_module"
+    },
+    {
+      "file": "itinerary_generation/transport_domain/routes.py",
+      "line_count": 575,
+      "concern": "large_module"
+    },
+    {
+      "file": "tests/test_image_matcher_selection.py",
+      "line_count": 572,
+      "concern": "large_module"
+    },
+    {
+      "file": "tests/test_regressions_fixture_quality.py",
+      "line_count": 508,
+      "concern": "large_module"
+    },
+    {
+      "file": "tests/test_visual_editor_autosave_contract.py",
+      "line_count": 495,
+      "concern": "large_module"
+    },
+    {
+      "file": "tests/test_corpus_driven_parser_fixes_regression.py",
+      "line_count": 474,
+      "concern": "large_module"
+    },
+    {
+      "file": "itinerary_generation/nutshell_parsing.py",
+      "line_count": 469,
+      "concern": "large_module"
+    }
+  ],
+  "long_functions": [
+    {
+      "file": "itinerary_generation/day_facts.py",
+      "name": "build_day_facts",
+      "line_count": 198,
+      "start_line": 96
+    },
+    {
+      "file": "parser_modules/place_parsing.py",
+      "name": "extract_route_points",
+      "line_count": 176,
+      "start_line": 74
+    },
+    {
+      "file": "itinerary_generation/description_templates.py",
+      "name": "_compose_known_activity",
+      "line_count": 160,
+      "start_line": 51
+    },
+    {
+      "file": "itinerary_generation/activity_titles_core.py",
+      "name": "create_client_activity_title",
+      "line_count": 159,
+      "start_line": 63
+    },
+    {
+      "file": "pdf_exporter_modules/pdf_style_base.py",
+      "name": "make_base_styles",
+      "line_count": 146,
+      "start_line": 11
+    },
+    {
+      "file": "itinerary_generation/day_planner.py",
+      "name": "plan_day",
+      "line_count": 144,
+      "start_line": 75
+    },
+    {
+      "file": "parser_modules/parser_main.py",
+      "name": "parse_itinerary",
+      "line_count": 134,
+      "start_line": 97
+    },
+    {
+      "file": "images/image_bank_fetch.py",
+      "name": "fetch_image_bank_with_zip",
+      "line_count": 133,
+      "start_line": 115
+    },
+    {
+      "file": "itinerary_generation/nutshell_journey_builder.py",
+      "name": "build_nutshell_journey",
+      "line_count": 131,
+      "start_line": 61
+    },
+    {
+      "file": "parser_modules/effective_type_detection.py",
+      "name": "detect_effective_type",
+      "line_count": 131,
+      "start_line": 17
+    },
+    {
+      "file": "scripts/benchmark_text_cleanup.py",
+      "name": "run_benchmark",
+      "line_count": 131,
+      "start_line": 61
+    },
+    {
+      "file": "itinerary_generation/activity_description_helpers.py",
+      "name": "get_activity_description",
+      "line_count": 130,
+      "start_line": 132
+    },
+    {
+      "file": "itinerary_generation/day_render_block_ordering.py",
+      "name": "build_day_render_blocks",
+      "line_count": 126,
+      "start_line": 47
+    },
+    {
+      "file": "text_polish_modules/text_cleanup.py",
+      "name": "_polish_text_fragment",
+      "line_count": 124,
+      "start_line": 54
+    },
+    {
+      "file": "app_modules/preview_css_brand_booknordics.py",
+      "name": "build_booknordics_preview_overrides",
+      "line_count": 123,
+      "start_line": 6
+    },
+    {
+      "file": "itinerary_generation/activity_product_rules/nordic.py",
+      "name": "match_nordic_activity",
+      "line_count": 121,
+      "start_line": 138
+    }
+  ],
+  "facade_like_modules": [
+    {
+      "file": "itinerary_parser.py",
+      "line_count": 15,
+      "concern": "facade_like_module"
+    },
+    {
+      "file": "parser_modules/common.py",
+      "line_count": 14,
+      "concern": "facade_like_module"
+    },
+    {
+      "file": "pdf_exporter_modules/images.py",
+      "line_count": 7,
+      "concern": "facade_like_module"
+    },
+    {
+      "file": "scripts/vipin_excel_corpus.py",
+      "line_count": 17,
+      "concern": "facade_like_module"
+    }
+  ],
+  "duplicate_rule_hotspots": [
+    {
+      "file": "itinerary_generation/transport_domain/routes.py",
+      "line_count": 575,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/nutshell_parsing.py",
+      "line_count": 469,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_safety.py",
+      "line_count": 328,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_domain/parser.py",
+      "line_count": 305,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/group_tour_day_parser.py",
+      "line_count": 295,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/title_prose_boundaries.py",
+      "line_count": 281,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/activity_inclusions.py",
+      "line_count": 263,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/inclusion_activities.py",
+      "line_count": 263,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/activity_description_helpers.py",
+      "line_count": 261,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/place_parsing.py",
+      "line_count": 254,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/title_cleanup.py",
+      "line_count": 235,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/day_overview_blocks.py",
+      "line_count": 230,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_details.py",
+      "line_count": 228,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "text_polish_modules/text_cleanup.py",
+      "line_count": 224,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/activity_titles_core.py",
+      "line_count": 222,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/client_sanitizer.py",
+      "line_count": 222,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/day_title_planner.py",
+      "line_count": 217,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/activity_product_text.py",
+      "line_count": 200,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/content_validator.py",
+      "line_count": 167,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_domain/facts.py",
+      "line_count": 150,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/title_cleanup.py",
+      "line_count": 146,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/text_cleanup.py",
+      "line_count": 144,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "text_polish_modules/titles.py",
+      "line_count": 126,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/time_normalize.py",
+      "line_count": 120,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/supplier_cleanup_brain.py",
+      "line_count": 109,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/description_sources.py",
+      "line_count": 107,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/route_formatter.py",
+      "line_count": 102,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/group_tour_accommodation.py",
+      "line_count": 98,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/exclusion_source_items.py",
+      "line_count": 92,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "tests/test_cleanup_final_regression.py",
+      "line_count": 85,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/transport_domain/render_sequences.py",
+      "line_count": 81,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "tests/test_text_cleanup_caching_regression.py",
+      "line_count": 81,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 60,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/activity_training_text.py",
+      "line_count": 51,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/group_tour_render_titles.py",
+      "line_count": 49,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "text_polish_modules/text_cleanup_rules.py",
+      "line_count": 22,
+      "concern": "inline_regex_or_replacement_rules"
+    }
+  ]
+}

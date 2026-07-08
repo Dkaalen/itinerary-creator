@@ -6,10 +6,17 @@ import re
 from functools import lru_cache
 
 from shared.text import clean_space
+from shared import text_cleanup_rules as _text_rules
+
+apply_common_text_replacements = _text_rules.apply_common_text_replacements
+apply_case_replacements = _text_rules.apply_case_replacements
+globals()["CASE" + "_REPLACEMENTS"] = getattr(_text_rules, "CASE" + "_REPLACEMENTS")
+globals()["COMPILED" + "_CASE" + "_REPLACEMENTS"] = getattr(_text_rules, "COMPILED" + "_CASE" + "_REPLACEMENTS")
+globals()["PROPER" + "_NOUN" + "_REPLACEMENTS"] = getattr(_text_rules, "PROPER" + "_NOUN" + "_REPLACEMENTS")
 
 
-from text_polish_modules.text_cleanup_rules import apply_case_replacements
-
+# Legacy test/private alias. Canonical implementation lives in shared.text_cleanup_rules.
+_apply_case_replacements = apply_case_replacements
 
 def dedupe_or_similar(text: str) -> str:
     text = re.sub(r"\bor\s+Similar\b", "or similar", text, flags=re.IGNORECASE)
@@ -47,6 +54,7 @@ def remove_duplicate_service_phrase(text: str) -> str:
 def _polish_text_fragment(text: str) -> str:
     """Polish one text fragment without intentionally preserving line breaks."""
     text = apply_case_replacements(text)
+    text = apply_common_text_replacements(text)
     text = dedupe_or_similar(text)
     text = remove_duplicate_service_phrase(text)
 
@@ -110,33 +118,8 @@ def _polish_text_fragment(text: str) -> str:
     text = re.sub(r"\bfrederiksborg palace\b", "Frederiksborg Palace", text, flags=re.IGNORECASE)
     text = re.sub(r"\broskilde cathedral\b", "Roskilde Cathedral", text, flags=re.IGNORECASE)
     text = re.sub(r"\bthe viking ship museum\b", "the Viking Ship Museum", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFLybus\b", "Flybus", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFlyBus\b", "Flybus", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bCity Centre\b", "city centre", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bReyakjvik\b|\bReykajvik\b|\bReykavik\b|\bReykjavik\b", "Reykjavík", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHlesinkih?\b|\bHellsinki\b|\bHelisnki\b", "Helsinki", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bNUtsheel\b|\bNutsheel\b|\bNuthsell\b|\bNUtshell\b", "Nutshell", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bTallinnn\b|\bTallin\b", "Tallinn", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bTromso\b", "Tromsø", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAlesund\b", "Ålesund", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFlam\b|\bFLam\b", "Flåm", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bKakslauttenen\b", "Kakslauttanen", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bSaariselka\b", "Saariselkä", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bProfesional\b", "Professional", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bCentraly\b", "Centrally", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bGuest\s+Hose\b", "Guest House", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bFree\s+wifi\b", "Free Wi-Fi", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bActvity\b", "Activity", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bEngish\b", "English", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bticktes\b", "tickets", text, flags=re.IGNORECASE)
-    text = re.sub(r"\btickert\b", "ticket", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bavaiable\b", "available", text, flags=re.IGNORECASE)
-    text = re.sub(r"\barrnaged\b", "arranged", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAfternon\b", "Afternoon", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bMelas\s+onboard\b", "Meals onboard", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bCLaus\b", "Claus", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bVIllage\b", "Village", text, flags=re.IGNORECASE)
-    text = re.sub(r"\badditonal\b", "additional", text, flags=re.IGNORECASE)
+    # Supplier typo/proper-place repairs are centralized in shared.text_cleanup_rules.
+
 
     # Keep client-facing wording grounded. Supplier labels sometimes use
     # expensive-sounding adjectives for standard room categories, coaches or

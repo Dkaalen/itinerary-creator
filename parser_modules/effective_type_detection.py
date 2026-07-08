@@ -6,55 +6,12 @@ from place_aliases import is_known_place
 from parser_modules.common import *  # noqa: F401,F403
 from parser_modules.detail_extractors import _looks_like_cruise_experience_text
 from parser_modules.time_parsing import normalize_duration_text, normalize_time_text
-
-
-
-def _looks_like_long_distance_coach_or_bus(combined: str) -> bool:
-    """Return True for arranged coach/bus transport, not local transfers."""
-
-    return bool(
-        re.search(r"\b(?:bus|coach)\s*[:|]", combined)
-        or "coach transfer" in combined
-        or "panorama coach" in combined
-        or "panoramic coach" in combined
-        or ("long distance" in combined and ("coach" in combined or "bus" in combined))
-    )
-
-def _looks_like_pure_transport_activity(combined: str) -> bool:
-    """Return True when an Activity-typed row is clearly only transport."""
-
-    transport_markers = (
-        "arctic route coach transfer",
-        "coach transfer",
-        "bus transfer",
-        "shuttle transfer",
-        "airport transfer",
-        "transfer to airport",
-        "transfer from",
-    )
-    if not any(marker in combined for marker in transport_markers):
-        return False
-    activity_markers = (
-        "guided tour",
-        "sightseeing",
-        "city tour",
-        "walking tour",
-        "day trip",
-        "excursion",
-        "northern lights",
-        "aurora",
-        "fjord",
-        "cruise",
-        "safari",
-        "hike",
-        "museum",
-        "lagoon",
-        "village",
-        "reindeer",
-        "husky",
-        "whale",
-    )
-    return not any(marker in combined for marker in activity_markers)
+from parser_modules.effective_type_rules import (
+    has_numbered_bus_or_coach,
+    looks_like_local_transfer,
+    looks_like_long_distance_coach_or_bus,
+    looks_like_pure_transport_activity,
+)
 
 
 def detect_effective_type(item_type, title, details):
@@ -90,15 +47,7 @@ def detect_effective_type(item_type, title, details):
     # contains words like Train Station. Run this before generic train/flight
     # detection so "Self transfer to Bergen Train Station" cannot become a
     # fake train route such as "Train to Bergen".
-    if normalized_item_type == "Transfer" and any(
-        marker in combined
-        for marker in [
-            "self transfer", "self-arranged transfer", "self-guided transfer", "private",
-            "hotel to", "airport to", "station to", "to hotel", "to airport",
-            "to station", "to railway station", "to train station", "accommodation",
-            "bus station", "bustation",
-        ]
-    ) and not _looks_like_long_distance_coach_or_bus(combined) and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+    if normalized_item_type == "Transfer" and looks_like_local_transfer(combined) and not looks_like_long_distance_coach_or_bus(combined) and not has_numbered_bus_or_coach(combined):
         return "Transfer"
 
     # Accommodation-relocation rows occasionally land in the Activity column.
@@ -128,7 +77,7 @@ def detect_effective_type(item_type, title, details):
     if normalized_item_type == "Activity" and _looks_like_cruise_experience_text(combined):
         return "Activity"
 
-    if normalized_item_type == "Activity" and _looks_like_pure_transport_activity(combined):
+    if normalized_item_type == "Activity" and looks_like_pure_transport_activity(combined):
         return "Transport"
 
     route_mode_match = re.search(r"\b[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\s+(train|flight|cruise|ferry|coach|bus)\b", combined)
@@ -179,20 +128,13 @@ def detect_effective_type(item_type, title, details):
 
     # Long-distance coach/bus rows should remain arranged transport even when
     # the description also mentions a bus station or resort/accommodation.
-    if normalized_item_type == "Transfer" and _looks_like_long_distance_coach_or_bus(combined) and "private" not in combined:
+    if normalized_item_type == "Transfer" and looks_like_long_distance_coach_or_bus(combined) and "private" not in combined:
         return "Transport"
 
     # Plain private/self-guided/local transfers remain transfers even when the
     # destination text contains "bus station". Long-distance coach/bus rows can
     # still become Transport below.
-    if normalized_item_type == "Transfer" and any(
-        marker in combined
-        for marker in [
-            "self transfer", "self-guided transfer", "private",
-            "hotel to", "airport to", "station to", "to hotel",
-            "to airport", "to station", "accommodation", "bus station", "bustation",
-        ]
-    ) and not _looks_like_long_distance_coach_or_bus(combined) and not re.search(r"\b(bus|coach)\s*\d+\b", combined):
+    if normalized_item_type == "Transfer" and looks_like_local_transfer(combined) and not looks_like_long_distance_coach_or_bus(combined) and not has_numbered_bus_or_coach(combined):
         return "Transfer"
 
     if (

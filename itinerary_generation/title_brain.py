@@ -153,15 +153,33 @@ def write_day_title(
     if "excursion to tallinn" in raw_day_text:
         return "Day Excursion to Tallinn"
 
+    primary_transport_title = get_primary_transport_title(row_list)
+
     if intent == DayIntent.DEPARTURE_DAY:
         return f"Departure from {city}" if city else "Departure"
     if intent == DayIntent.SAME_CITY_ACCOMMODATION_CHANGE:
+        hotel_titles = [
+            _clean(row.get("title") or row.get("hotel_name") or row.get("original_title"))
+            for row in row_list
+            if get_row_type(dict(row)) == "Hotel"
+        ]
+        for hotel_title in hotel_titles:
+            if "snow hotel" in hotel_title.lower() or "snowhotel" in hotel_title.lower():
+                if "arctic" in hotel_title.lower():
+                    return "Arctic Snow Hotel Stay"
+                return f"{polish_title(hotel_title)} Stay"
         return f"Next Stay in {city}" if city else "Next Stay"
-    if intent == DayIntent.RETURN_VISIT:
-        return f"Return to {city}" if city else "Return Visit"
     if intent == DayIntent.ARRIVAL_ONWARD_TRAVEL:
         destination = polish_title(facts.onward_destination or facts.end_city or "")
         return f"Arrival and travel to {destination}" if destination else "Arrival and travel day"
+
+    if facts.has_route_transport and not activities and primary_transport_title and (
+        facts.has_train or facts.has_flight or facts.has_ferry or facts.has_cruise
+    ):
+        return primary_transport_title
+
+    if intent == DayIntent.RETURN_VISIT:
+        return f"Return to {city}" if city else "Return Visit"
 
     if activities and schedule.has_multiple_arranged_activities:
         if schedule.first_activity_title and schedule.last_activity_title:
@@ -177,7 +195,6 @@ def write_day_title(
         return _arrival_activity_title(city, activity_title, facts, schedule)
 
     if facts.has_route_transport and not activities:
-        primary_transport_title = get_primary_transport_title(row_list)
         transport_from_activity = any(
             str(row.get("source_type") or row.get("type") or "").casefold() == "activity"
             and get_row_type(dict(row)) in TRAVEL_ROW_TYPES

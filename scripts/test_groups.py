@@ -160,6 +160,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_group_tour_rendering_regression.py",
     "tests/test_text_cleanup_caching_regression.py",
     "tests/test_text_cleanup_performance_regression.py",
+    "tests/test_structural_cleanup_tools.py",
 )
 
 EDITOR_TESTS = (
