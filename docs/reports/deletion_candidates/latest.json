@@ -387,7 +387,6 @@
         "itinerary_generation/day_group_tour_text.py",
         "itinerary_generation/day_intro_arrival.py",
         "itinerary_generation/day_intro_orchestrator.py",
-        "itinerary_generation/day_intro_route.py",
         "itinerary_generation/day_intro_writer.py",
         "itinerary_generation/day_leisure_facts.py",
         "itinerary_generation/day_planner.py",
@@ -439,6 +438,7 @@
         "itinerary_generation/transport_domain/render_arrangements.py",
         "itinerary_generation/transport_domain/render_sequences.py",
         "itinerary_generation/transport_domain/render_special_routes.py",
+        "itinerary_generation/transport_domain/route_summary.py",
         "itinerary_generation/transport_domain/titles.py",
         "itinerary_generation/transport_render_blocks.py",
         "itinerary_generation/trip_brain.py",
@@ -690,6 +690,16 @@
       "static_importers": [
         "itinerary_generation/day_planner.py",
         "tests/test_architecture_consolidation.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/day_intro_route.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/day_intro_classification.py",
+        "itinerary_generation/day_intro_engine.py",
+        "itinerary_generation/day_intro_orchestrator.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1335,7 +1345,6 @@
       "static_importers": [
         "itinerary_generation/day_arrival_text.py",
         "itinerary_generation/day_intro_orchestrator.py",
-        "itinerary_generation/day_intro_route.py",
         "itinerary_generation/day_planner.py",
         "itinerary_generation/day_route_text.py",
         "itinerary_generation/day_title_planner.py",
@@ -1536,9 +1545,9 @@
       "path": "parser_modules/common.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/day_intro_orchestrator.py",
         "itinerary_generation/route_intelligence.py",
         "itinerary_generation/transport_domain/route_points.py",
+        "itinerary_generation/transport_domain/route_summary.py",
         "itinerary_generation/transport_domain/routes.py",
         "itinerary_parser.py",
         "parser_modules/city_inference.py",

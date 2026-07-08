@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from itinerary_generation.client_text_decisions import client_activity_intro, client_group_tour_intro
 from itinerary_generation.common import (
     TRANSPORT_TYPES,
@@ -30,7 +28,8 @@ from itinerary_generation.day_intro_arrival import (
     _has_destination_hotel,
     _welcome_arrival_intro,
 )
-from itinerary_generation.day_intro_route import _premium_route_intro, _route_summary_from_rows
+from itinerary_generation.day_intro_route import _premium_route_intro
+from itinerary_generation.transport_domain.route_summary import destination_city_from_travel_rows, summarize_route_from_rows
 from itinerary_generation.day_route_text import _canonical_route_city, create_travel_route_label
 from itinerary_generation.destination_copy import (
     destination_arrival_intro,
@@ -40,14 +39,9 @@ from itinerary_generation.destination_copy import (
 from itinerary_generation.route_intelligence import route_intro_for_day
 from itinerary_generation.transport import (
     get_first_transfer_title,
-    get_route_points_for_transport,
-    get_transfer_travel_title,
     has_airport_arrival_transfer,
     has_only_departure_arrangements,
-    is_route_transfer,
 )
-from itinerary_generation.transport_safety import base_destination_from_terminal
-from parser_modules.common import extract_route_points
 
 
 def _group_tour_start_intro(day_rows, activities, city_text):
@@ -179,44 +173,6 @@ def _activity_led_intro(day_rows, activities, transports, route_transfers, city,
     return ""
 
 
-def _destination_city_from_travel_rows(day_rows):
-    invalid_destination_words = {
-        "hotel",
-        "station",
-        "airport",
-        "accommodation",
-        "your accommodation",
-        "self transfer",
-        "private airport to hotel",
-        "private hotel to airport",
-    }
-    travel_rows = [
-        row
-        for row in day_rows
-        if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)
-    ]
-    destination_city = ""
-    for row in travel_rows:
-        origin, route_destination = get_route_points_for_transport(row) if get_row_type(row) in TRANSPORT_TYPES else ("", "")
-        if not route_destination and is_route_transfer(row):
-            _, route_destination = extract_route_points(get_transfer_travel_title(row))
-        candidate = str(route_destination or "").strip()
-        lower_candidate = candidate.lower()
-        if candidate and lower_candidate not in invalid_destination_words and not any(
-            bad in lower_candidate for bad in ["shower", "sink", "wc", "benefits", "made bed"]
-        ):
-            destination_city = _canonical_route_city(base_destination_from_terminal(candidate) or candidate)
-            continue
-        title_match = re.search(
-            r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+(?:\s+[A-Za-zÀ-ÿøØåÅäÄöÖ]+)?)\s*$",
-            str(row.get("title", "")),
-            flags=re.IGNORECASE,
-        )
-        if title_match and title_match.group(1).lower() not in invalid_destination_words:
-            destination_city = _canonical_route_city(base_destination_from_terminal(title_match.group(1)) or title_match.group(1))
-    return destination_city
-
-
 def _transport_led_intro(day_rows, transports, route_transfers, city, detail_level, visit_context):
     transport_context = " ".join(
         f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'
@@ -246,12 +202,12 @@ def _transport_led_intro(day_rows, transports, route_transfers, city, detail_lev
         if premium_route_intro:
             return premium_route_intro
 
-    route_origin, route_destination, route_mode = _route_summary_from_rows(day_rows)
+    route_origin, route_destination, route_mode = summarize_route_from_rows(day_rows)
     premium_intro = _premium_route_intro(route_origin, route_destination, route_mode, detail_level)
     if premium_intro:
         return premium_intro
 
-    display_city = _destination_city_from_travel_rows(day_rows) or city
+    display_city = destination_city_from_travel_rows(day_rows) or city
     if detail_level == "Elegant concise":
         return f"Travel to {display_city} with the listed arrangements."
     if detail_level == "Rich descriptive":

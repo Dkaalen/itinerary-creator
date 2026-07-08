@@ -80,6 +80,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 221,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/day_title_planner.py",
       "line_count": 217,
       "concern": "inline_regex_or_replacement_rules"
@@ -87,11 +92,6 @@
     {
       "file": "itinerary_generation/activity_product_text.py",
       "line_count": 200,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 195,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -276,9 +276,9 @@
       "tests/tools/quality_report.py"
     ],
     "parser_modules/common.py": [
-      "itinerary_generation/day_intro_orchestrator.py",
       "itinerary_generation/route_intelligence.py",
       "itinerary_generation/transport_domain/route_points.py",
+      "itinerary_generation/transport_domain/route_summary.py",
       "itinerary_generation/transport_domain/routes.py",
       "itinerary_parser.py",
       "parser_modules/city_inference.py",

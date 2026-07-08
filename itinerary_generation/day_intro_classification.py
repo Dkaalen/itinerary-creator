@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from itinerary_generation.client_text_decisions import client_activity_intro
-from itinerary_generation.day_intro_route import _premium_route_intro, _title_route_points, _travel_mode_from_title
+from itinerary_generation.day_intro_route import _premium_route_intro
+from itinerary_generation.transport_domain.route_summary import infer_route_endpoints_from_title, infer_travel_mode_from_title
 from itinerary_generation.destination_copy import destination_stay_intro, leisure_description
 from text_polish import polish_title
 
@@ -23,8 +24,8 @@ def _intro_for_title(title: str, city: str, pattern: str) -> str:
             return "Explore Bergen in two parts today, beginning with local stories around the historic harbour before using Fløibanen for flexible time above the city at Mount Fløyen."
         return f"Today combines complementary experiences in {city}, with the schedule arranged so the day feels varied but easy to follow." if city else "Today combines complementary experiences, with the schedule arranged so the day feels varied but easy to follow."
     if pattern == "travel_day":
-        mode = _travel_mode_from_title(title)
-        origin, destination = _title_route_points(title, city)
+        mode = infer_travel_mode_from_title(title)
+        origin, destination = infer_route_endpoints_from_title(title, city)
         destination = destination or polish_title(city)
         premium_intro = _premium_route_intro(origin, destination, mode)
         if premium_intro:

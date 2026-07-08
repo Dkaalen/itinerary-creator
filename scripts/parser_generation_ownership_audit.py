@@ -196,6 +196,8 @@ def _pdf_product_truth_override(path: str, line: str, lowered: str) -> bool:
 def _parser_imports_generation(path: str, line: str) -> bool:
     if not _allowed(path, ("parser_modules", "normalizer_modules", "itinerary_parser.py", "normalizer.py")):
         return False
+    if re.match(r"\s*(?:from|import)\s+itinerary_generation\.transport_domain\b", line):
+        return False
     return bool(re.match(r"\s*(?:from|import)\s+itinerary_generation\b", line))
 
 

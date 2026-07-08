@@ -15,12 +15,7 @@ from itinerary_generation.day_intro_arrival import (
 )
 from itinerary_generation.day_intro_classification import _intro_for_title
 from itinerary_generation.day_intro_orchestrator import create_day_intro
-from itinerary_generation.day_intro_route import (
-    _premium_route_intro,
-    _route_summary_from_rows,
-    _title_route_points,
-    _travel_mode_from_title,
-)
+from itinerary_generation.day_intro_route import _premium_route_intro
 
 __all__ = [
     "_activity_day_intro",
@@ -31,9 +26,6 @@ __all__ = [
     "_has_destination_hotel",
     "_intro_for_title",
     "_premium_route_intro",
-    "_route_summary_from_rows",
-    "_title_route_points",
-    "_travel_mode_from_title",
     "_welcome_arrival_intro",
     "create_day_intro",
 ]

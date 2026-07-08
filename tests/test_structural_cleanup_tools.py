@@ -174,6 +174,32 @@ def test_parser_generation_ownership_audit_reports_review_signals(tmp_path: Path
     assert "classification_inside_writer_layer" in report.signals_by_rule
 
 
+def test_transport_domain_route_summary_owns_title_route_facts() -> None:
+    from itinerary_generation.transport_domain.route_summary import (
+        infer_route_endpoints_from_title,
+        infer_travel_mode_from_title,
+    )
+
+    assert infer_route_endpoints_from_title("Travel from Oslo to Bergen") == ("Oslo", "Bergen")
+    assert infer_route_endpoints_from_title("Norway in a Nutshell to Flåm") == ("", "Flåm")
+    assert infer_travel_mode_from_title("Coastal cruise transfer to Bergen") == "coastal_cruise"
+
+
+def test_parser_generation_audit_allows_transport_domain_imports(tmp_path: Path) -> None:
+    from scripts.parser_generation_ownership_audit import build_report
+
+    source = tmp_path / "normalizer_modules" / "transport_example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "from itinerary_generation.transport_domain.routes import get_route_points_for_transport\n",
+        encoding="utf-8",
+    )
+
+    report = build_report(tmp_path)
+
+    assert report.signal_count == 0
+
+
 def test_static_data_hygiene_report_validates_registry() -> None:
     from scripts.static_data_hygiene import build_report
 
