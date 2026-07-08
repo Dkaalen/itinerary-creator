@@ -6,7 +6,7 @@ This is a handover list only. Do not delete all entries in one patch.
 Each candidate needs an import-search proof, targeted tests, and a separate deletion commit.
 
 Immediate candidates: 26
-Held back for compatibility/safety: 180
+Held back for compatibility/safety: 188
 
 ## Immediate candidates
 
@@ -68,7 +68,7 @@ Held back for compatibility/safety: 180
 | `images/destination_image_library.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |
 | `images/diagnostics.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |
 | `images/matcher_context.py` | facade-like module with production importers | 12 | still has static importers |
-| `images/remote_distribution.py` | facade-like module with production importers | 7 | still has static importers |
+| `images/remote_distribution.py` | facade-like module with production importers | 8 | still has static importers |
 | `images/scanner.py` | facade-like module with production importers | 13 | still has static importers |
 | `images/seasonal_policy.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/__init__.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
@@ -90,6 +90,14 @@ Held back for compatibility/safety: 180
 | `itinerary_generation/copy/phrase_guardrails.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/cover_theme.py` | facade-like module with production importers | 7 | still has static importers |
 | `itinerary_generation/data/__init__.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/__init__.py` | facade-like module with zero production importers | 0 | package initializer; never delete from static import evidence alone |
+| `itinerary_generation/data/nordic_destination_registry_data/common.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/denmark.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/finland.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/iceland.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/norway.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/sweden.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/data/nordic_destination_registry_data/transport.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/day_accommodation_state.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_brain_report.py` | module with zero production importers | 3 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/day_copy_audit.py` | facade-like module with zero production importers | 3 | still has static importers |
@@ -121,7 +129,7 @@ Held back for compatibility/safety: 180
 | `itinerary_generation/group_tour_domain.py` | facade-like module with production importers | 7 | still has static importers |
 | `itinerary_generation/group_tour_rendering.py` | facade-like module with production importers | 10 | still has static importers |
 | `itinerary_generation/group_tours.py` | facade-like module with production importers | 3 | still has static importers |
-| `itinerary_generation/inclusion_sections.py` | module with zero production importers | 20 | not facade-like; review for dynamic/data ownership before deletion |
+| `itinerary_generation/inclusion_sections.py` | module with zero production importers | 21 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/inclusion_transport.py` | facade-like module with zero production importers | 1 | still has static importers |
 | `itinerary_generation/inclusions.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_generation/input_review.py` | facade-like module with production importers | 9 | still has static importers |
@@ -142,7 +150,7 @@ Held back for compatibility/safety: 180
 | `itinerary_generation/structured_validation.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/summaries.py` | facade-like module with production importers | 17 | still has static importers |
 | `itinerary_generation/summaries_text.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/titles.py` | facade-like module with production importers | 33 | still has static importers |
+| `itinerary_generation/titles.py` | facade-like module with production importers | 34 | still has static importers |
 | `itinerary_generation/transport.py` | facade-like module with production importers | 18 | still has static importers |
 | `itinerary_generation/transport_details.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/transport_domain/__init__.py` | facade-like module with zero production importers | 0 | package initializer; never delete from static import evidence alone |
@@ -202,7 +210,7 @@ Held back for compatibility/safety: 180
 | `ui/activity_inclusions.py` | facade-like module with production importers | 2 | still has static importers |
 | `ui/activity_logistics.py` | facade-like module with production importers | 1 | still has static importers |
 | `ui/day_overview_blocks.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
-| `ui/render_helpers.py` | facade-like module with production importers | 21 | still has static importers |
+| `ui/render_helpers.py` | facade-like module with production importers | 22 | still has static importers |
 | `ui/render_text_helpers.py` | facade-like module with production importers | 1 | still has static importers |
 | `ui/style_app_chrome.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `ui/style_app_shell.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
@@ -222,4 +230,4 @@ Held back for compatibility/safety: 180
 | `ui/transport_row_blocks.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `visual_editor_component/__init__.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `visual_editor_component/editor_result_codec.py` | facade-like module with production importers | 3 | still has static importers |
-| `visual_editor_component/editor_workflow.py` | facade-like module with production importers | 20 | still has static importers |
+| `visual_editor_component/editor_workflow.py` | facade-like module with production importers | 21 | still has static importers |

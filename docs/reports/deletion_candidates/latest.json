@@ -387,7 +387,8 @@
         "images/image_bank_settings.py",
         "images/image_bank_status.py",
         "tests/test_destination_image_delivery_regression.py",
-        "tests/test_image_bank_bootstrap_regression.py"
+        "tests/test_image_bank_bootstrap_regression.py",
+        "tests/test_image_bank_bootstrap_rollback_regression.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -707,6 +708,54 @@
     },
     {
       "path": "itinerary_generation/data/__init__.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/__init__.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "package initializer; never delete from static import evidence alone"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/common.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/denmark.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/finland.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/iceland.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/norway.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/sweden.py",
+      "reason": "module with zero production importers",
+      "static_importers": [],
+      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+    },
+    {
+      "path": "itinerary_generation/data/nordic_destination_registry_data/transport.py",
       "reason": "module with zero production importers",
       "static_importers": [],
       "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
@@ -1129,6 +1178,7 @@
         "tests/test_norway_source_fidelity_quality_gate.py",
         "tests/test_optional_commercial_safety.py",
         "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
         "tests/test_regressions_pdf_inclusions.py",
         "tests/test_regressions_transport_cruise.py",
         "tests/test_self_drive_pdf_preview_parity.py",
@@ -1161,7 +1211,7 @@
         "tests/test_broad_logic_stress_regressions.py",
         "tests/test_inclusion_exclusion_architecture.py",
         "tests/test_optional_commercial_safety.py",
-        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
         "tests/test_regressions_pdf_inclusions.py",
         "tests/test_regressions_transport_cruise.py",
         "ui/optional_addons.py",
@@ -1407,7 +1457,7 @@
         "tests/test_generation_architecture_cleanup.py",
         "tests/test_output_quality_engine_regression.py",
         "tests/test_regressions_content_basics.py",
-        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
         "visual_editor_component/editor_payload_sections.py",
         "visual_editor_component/editor_payload_summary.py"
       ],
@@ -1449,6 +1499,7 @@
         "tests/test_product_rule_registry.py",
         "tests/test_regressions_content_basics.py",
         "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
         "tests/test_regressions_layout_preview.py",
         "tests/test_regressions_parser_normalizer.py",
         "tests/test_regressions_pdf_inclusions.py",
@@ -2024,6 +2075,7 @@
         "tests/test_activity_training_catalogue_regression.py",
         "tests/test_messy_transport_safety_net.py",
         "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
         "ui/canonical_blocks.py",
         "ui/custom_final_pages.py",
         "ui/day_page_sections.py",
@@ -2187,6 +2239,7 @@
         "tests/test_sync_regression_suite1.py",
         "tests/test_transport_preview_quality_regression.py",
         "tests/test_visual_editor_autosave_contract.py",
+        "tests/test_visual_editor_frontend_recovery_contract.py",
         "tests/test_visual_editor_typed_draft.py",
         "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py"
       ],

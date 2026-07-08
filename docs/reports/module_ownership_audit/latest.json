@@ -1,31 +1,5 @@
 {
-  "overworked_files": [
-    {
-      "file": "itinerary_generation/data/nordic_destination_registry.py",
-      "line_count": 1346,
-      "concern": "large_module"
-    },
-    {
-      "file": "place_alias_data.py",
-      "line_count": 746,
-      "concern": "large_module"
-    },
-    {
-      "file": "tests/test_regressions_fixture_quality.py",
-      "line_count": 508,
-      "concern": "large_module"
-    },
-    {
-      "file": "tests/test_visual_editor_autosave_contract.py",
-      "line_count": 495,
-      "concern": "large_module"
-    },
-    {
-      "file": "tests/test_corpus_driven_parser_fixes_regression.py",
-      "line_count": 474,
-      "concern": "large_module"
-    }
-  ],
+  "overworked_files": [],
   "long_functions": [],
   "facade_like_modules": [
     {
@@ -256,6 +230,7 @@
       "tests/test_client_sanitizer_default_images_regression.py",
       "tests/test_compound_experience_transport_timing.py",
       "tests/test_content_classification_priority.py",
+      "tests/test_corpus_driven_hotel_parser_regression.py",
       "tests/test_corpus_driven_parser_fixes_regression.py",
       "tests/test_cover_background_selection.py",
       "tests/test_day_brain_proof_hardening.py",
@@ -288,6 +263,7 @@
       "tests/test_real_fixture_quality_gate.py",
       "tests/test_regressions_content_basics.py",
       "tests/test_regressions_fixture_quality.py",
+      "tests/test_regressions_fixture_quality_transport.py",
       "tests/test_regressions_layout_preview.py",
       "tests/test_regressions_parser_normalizer.py",
       "tests/test_regressions_pdf_inclusions.py",

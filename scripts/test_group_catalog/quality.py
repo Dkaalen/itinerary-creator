@@ -57,6 +57,7 @@ QUALITY_TESTS = (
     "tests/test_persistent_qa_report_quality_gate.py",
     "tests/test_source_fidelity_commercial_status_regression.py",
     "tests/test_corpus_driven_parser_fixes_regression.py",
+    "tests/test_corpus_driven_hotel_parser_regression.py",
     "tests/test_vipin_excel_corpus_runner_regression.py",
     "tests/test_vipin_messy_excel_rows_regression.py",
     "tests/test_activity_training_fixture_hygiene.py",
@@ -114,6 +115,7 @@ SLOW_TESTS = (
     "tests/test_pdf.py",
     "tests/test_real_fixture_quality_gate.py",
     "tests/test_regressions_fixture_quality.py",
+    "tests/test_regressions_fixture_quality_transport.py",
     "tests/test_rendered_pdf_quality.py",
     "tests/test_self_drive_pdf_preview_parity.py",
 )
@@ -127,6 +129,8 @@ SLOW_TEST_SPLITS = {
         "test_generalized_iceland_self_drive_logic",
         "test_real_input_fixture_bank_core_expectations",
         "test_sweden_lapland_supplier_booking_information_not_in_client_inclusions",
+    ),
+    "tests/test_regressions_fixture_quality_transport.py": (
         "test_optional_arc_transfer_quality_gate",
         "test_clear_transport_wording_system",
         "test_real_uploaded_inputs_quality_gate",

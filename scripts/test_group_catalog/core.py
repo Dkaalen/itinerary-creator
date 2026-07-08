@@ -53,6 +53,7 @@ PARSER_TESTS = (
     "tests/test_copy1_premium_day_intro_engine.py",    "tests/test_vipin_excel_corpus_runner_regression.py",
     "tests/test_vipin_messy_excel_rows_regression.py",
     "tests/test_corpus_driven_parser_fixes_regression.py",
+    "tests/test_corpus_driven_hotel_parser_regression.py",
     "tests/test_qc_input_img_pdf_combined_regression.py",
     "tests/test_qc_input_pdf_style_image_regression.py",
 

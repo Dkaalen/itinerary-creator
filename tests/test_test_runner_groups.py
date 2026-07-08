@@ -202,7 +202,7 @@ def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     assert flattened_targets == list(slow_direct_targets(REPO_ROOT))
     assert len(stages) == 29
     assert "tests/test_broad_logic_stress_regressions.py::test_daytime_train_preserves_seat_quantity_without_raw_supplier_title" in flattened_targets
-    assert "tests/test_regressions_fixture_quality.py::test_real_uploaded_inputs_quality_gate" in flattened_targets
+    assert "tests/test_regressions_fixture_quality_transport.py::test_real_uploaded_inputs_quality_gate" in flattened_targets
     assert all(len(paths) == 1 for _name, paths in stages)
     assert all(name.startswith("slow ") for name, _paths in stages)
 
