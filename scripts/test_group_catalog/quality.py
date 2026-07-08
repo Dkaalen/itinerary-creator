@@ -50,6 +50,7 @@ QUALITY_TESTS = (
     "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
     "tests/test_real_output_text_review.py",
     "tests/test_real_output_quality_gate_norway_regression.py",
+    "tests/test_copy_decision_contracts.py",
     "tests/test_nordic_quality_sample.py",
     "tests/test_scandinavian_winter_quality_regressions.py",
     "tests/test_finland_messy_input_fidelity.py",

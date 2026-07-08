@@ -86,7 +86,7 @@
     },
     {
       "file": "itinerary_generation/day_title_planner.py",
-      "line_count": 218,
+      "line_count": 208,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -225,6 +225,7 @@
       "tests/test_client_sanitizer_default_images_regression.py",
       "tests/test_compound_experience_transport_timing.py",
       "tests/test_content_classification_priority.py",
+      "tests/test_copy_decision_contracts.py",
       "tests/test_corpus_driven_hotel_parser_regression.py",
       "tests/test_corpus_driven_parser_fixes_regression.py",
       "tests/test_cover_background_selection.py",

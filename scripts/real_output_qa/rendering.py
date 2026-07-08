@@ -126,6 +126,7 @@ def _build_day_snapshot(day: Any, day_rows: Sequence[dict[str, Any]]) -> DayOutp
         optional_experiences=tuple(optional),
         other_blocks=tuple(other),
         warnings=tuple(_clean_text(item) for item in getattr(day, "warnings", []) or () if _clean_text(item)),
+        decision_labels={str(key): _clean_text(value) for key, value in (getattr(day, "labels", {}) or {}).items() if _clean_text(value)},
     )
 
 

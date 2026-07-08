@@ -62,10 +62,13 @@ def test_norway_pdf_regression_keeps_broad_activity_titles_and_cleans_supplier_t
     )
 
     assert day_by_id["Day 5"].title == "Best of Bergen Private Walking Tour"
+    assert day_by_id["Day 5"].decision_labels["title_decision_source"] == "activity_product_display_title"
+    assert "narrow_inclusion_title" in day_by_id["Day 5"].decision_labels.get("title_decision_rejected_sources", "")
     assert "Fløibanen Funicular" not in day_by_id["Day 5"].title
     assert "Best of Bergen Private Walking Tour" in "\n".join(day_by_id["Day 5"].activities)
 
     assert day_by_id["Day 6"].title == "Tromsø Private City Tour & Private Northern Lights Tour by Minibus"
+    assert day_by_id["Day 6"].decision_labels["title_decision_source"] == "schedule_composed_activity_title"
     assert "Tromsø Private City Tour" in "\n".join(day_by_id["Day 6"].activities)
     assert "Fjellheisen Cable Car" not in day_by_id["Day 6"].title
     assert "vehcile" not in rendered_text.lower()

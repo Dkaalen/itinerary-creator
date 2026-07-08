@@ -106,9 +106,9 @@ def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
     context.render_document.labels = dict(context.presentation_labels)
     for render_day in context.render_document.days or []:
         render_day.day_label_prefix = context.presentation_labels.get("day", "DAY")
-        render_day.labels = dict(context.presentation_labels)
+        render_day.labels = {**dict(context.presentation_labels), **dict(render_day.labels or {})}
         for block in render_day.blocks or []:
-            block.labels = dict(context.presentation_labels)
+            block.labels = {**dict(context.presentation_labels), **dict(block.labels or {})}
     context.render_document.cover = build_render_cover(context)
     context.render_document.summary = build_render_summary(context)
     context.render_document.final_sections = build_final_sections_for_pdf(context)

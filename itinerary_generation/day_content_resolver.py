@@ -10,6 +10,9 @@ from itinerary_generation.content_engine import is_group_tour_overview
 from itinerary_generation.copy.visit_context import DayVisitContext
 from itinerary_generation.date_resolver import get_day_date_text
 from itinerary_generation.day_text import create_day_intro
+from itinerary_generation.day_facts import build_day_facts
+from itinerary_generation.day_intent import classify_day_intent
+from itinerary_generation.day_intro_writer import plan_day_intro_decision
 from itinerary_generation.day_planner import plan_day
 from itinerary_generation.generated_ownership import ResolvedIntro, day_source_signature, resolve_intro
 from itinerary_generation.group_tour_rendering import (
@@ -18,7 +21,7 @@ from itinerary_generation.group_tour_rendering import (
     group_tour_day_intro,
     group_tour_day_title,
 )
-from itinerary_generation.titles import create_day_title
+from itinerary_generation.title_brain import plan_day_title_decision
 
 
 @dataclass(frozen=True)
@@ -33,12 +36,21 @@ class ResolvedDayContent:
     generated_city: str
     generated_date: str
     generated_intro: str
+    title_decision: dict[str, Any]
+    intro_decision: dict[str, Any]
     intro_ownership: ResolvedIntro
     source_signature: str
 
     @property
     def intro_metadata(self) -> dict[str, Any]:
         return self.intro_ownership.metadata()
+
+    @property
+    def decision_metadata(self) -> dict[str, Any]:
+        return {
+            "title": dict(self.title_decision),
+            "intro": dict(self.intro_decision),
+        }
 
 
 def _text(value: Any) -> str:
@@ -78,15 +90,55 @@ def generated_day_values(
     city = group_city or get_primary_city(rows)
     if not city and any(get_row_type(row) == "Cruise" for row in rows or []):
         city = "Cruise"
-    generated_title = group_title or create_day_title(rows, visit_context=visit_context)
+    title_decision = None
+    if group_title:
+        from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision
+        selected = decision_candidate(
+            group_title,
+            source="group_tour_title",
+            priority=98,
+            reason="Group-tour structured model owns this day title.",
+        )
+        assert selected is not None
+        title_decision = finalize_decision(kind="day_title", selected=selected)
+        generated_title = title_decision.text
+    else:
+        title_decision = plan_day_title_decision(rows, visit_context=visit_context)
+        generated_title = title_decision.text
     if getattr(visit_context, "is_return_visit", False) and city and generated_title.lower().startswith((f"welcome to {city}".lower(), f"arrival in {city}".lower())):
         generated_title = f"Return to {city}"
+        from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision
+        selected = decision_candidate(
+            generated_title,
+            source="return_visit_title_override",
+            priority=99,
+            reason="Visit context prevents first-arrival wording on a return stay.",
+        )
+        assert selected is not None
+        title_decision = finalize_decision(kind="day_title", selected=selected, candidates=title_decision.candidates)
+
+    facts = build_day_facts(rows, visit_context=visit_context)
+    intent = classify_day_intent(facts)
+    if group_intro:
+        from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision
+        selected = decision_candidate(
+            intro,
+            source="group_tour_intro",
+            priority=96,
+            reason="Group-tour structured model owns this day intro.",
+        )
+        assert selected is not None
+        intro_decision = finalize_decision(kind="day_intro", selected=selected)
+    else:
+        intro_decision = plan_day_intro_decision(facts, intent)
     return {
         "label": str(day),
         "date": get_day_date_text(rows),
         "title": generated_title,
         "city": city,
         "intro": intro,
+        "title_decision": title_decision.to_dict(),
+        "intro_decision": intro_decision.to_dict(),
     }
 
 
@@ -141,6 +193,8 @@ def resolve_day_content(
         generated_city=generated["city"],
         generated_date=generated["date"],
         generated_intro=generated["intro"],
+        title_decision=generated.get("title_decision", {}),
+        intro_decision=generated.get("intro_decision", {}),
         intro_ownership=intro,
         source_signature=signature,
     )

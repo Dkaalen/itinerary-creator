@@ -54,7 +54,7 @@ Held back for compatibility/safety: 188
 | `itinerary_generation/activity_product_rules/norway.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/activity_product_rules/scandinavia.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/activity_title_northern_lights.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/activity_titles.py` | facade-like module with production importers | 4 | still has static importers |
+| `itinerary_generation/activity_titles.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/activity_training_catalogue.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/canonical_builder.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/client_output_quality_gate.py` | facade-like module with production importers | 1 | still has static importers |
@@ -77,7 +77,7 @@ Held back for compatibility/safety: 188
 | `itinerary_generation/day_brain_report.py` | module with zero production importers | 3 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/day_copy_audit.py` | facade-like module with zero production importers | 3 | still has static importers |
 | `itinerary_generation/day_copy_variation.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/day_intent.py` | facade-like module with production importers | 12 | still has static importers |
+| `itinerary_generation/day_intent.py` | facade-like module with production importers | 15 | still has static importers |
 | `itinerary_generation/day_intro_classification.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/day_intro_engine.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/day_intro_planner.py` | facade-like module with production importers | 2 | still has static importers |
@@ -125,7 +125,7 @@ Held back for compatibility/safety: 188
 | `itinerary_generation/structured_validation.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/summaries.py` | facade-like module with production importers | 13 | still has static importers |
 | `itinerary_generation/summaries_text.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/titles.py` | facade-like module with production importers | 34 | still has static importers |
+| `itinerary_generation/titles.py` | facade-like module with production importers | 32 | still has static importers |
 | `itinerary_generation/transport.py` | facade-like module with production importers | 17 | still has static importers |
 | `itinerary_generation/transport_details.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/transport_domain/__init__.py` | facade-like module with zero production importers | 0 | package initializer; never delete from static import evidence alone |

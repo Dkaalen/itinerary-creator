@@ -66,6 +66,7 @@ class DayOutputSnapshot:
     optional_experiences: tuple[str, ...] = ()
     other_blocks: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    decision_labels: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

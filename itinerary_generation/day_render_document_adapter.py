@@ -114,6 +114,25 @@ def build_render_day_from_document(
             )
         ]
 
+    labels = {}
+    title_selected = resolved_day_content.title_decision.get("selected", {}) if isinstance(resolved_day_content.title_decision, dict) else {}
+    intro_selected = resolved_day_content.intro_decision.get("selected", {}) if isinstance(resolved_day_content.intro_decision, dict) else {}
+    if title_selected:
+        labels.update({
+            "title_decision_source": str(title_selected.get("source") or ""),
+            "title_decision_reason": str(title_selected.get("reason") or ""),
+        })
+    if intro_selected:
+        labels.update({
+            "intro_decision_source": str(intro_selected.get("source") or ""),
+            "intro_decision_reason": str(intro_selected.get("reason") or ""),
+        })
+    title_rejected = resolved_day_content.title_decision.get("rejected", []) if isinstance(resolved_day_content.title_decision, dict) else []
+    if title_rejected:
+        labels["title_decision_rejected_sources"] = ",".join(
+            dict.fromkeys(str(item.get("source") or "") for item in title_rejected if isinstance(item, dict))
+        )
+
     return RenderDay(
         day=day_shell.day,
         number=day_document.number if day_document and day_document.number else day_shell.number,
@@ -124,6 +143,7 @@ def build_render_day_from_document(
         blocks=blocks,
         source_row_ids=source_ids,
         warnings=list(dict.fromkeys(warnings)),
+        labels=labels,
     )
 
 

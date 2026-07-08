@@ -6,7 +6,7 @@ import re
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_row_selectors import _all_text, _text
-from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from itinerary_generation.title_decision_contract import join_title_text, select_activity_title
 from itinerary_generation.transport import get_transport_route_phrase
 from itinerary_generation.transport_domain.route_summary import transport_destination_from_row
 from place_aliases import country_for_place
@@ -114,22 +114,12 @@ def _transport_title(rows: list[dict]) -> str:
 
 
 def _single_activity_title(row: dict) -> str:
-    title = normalize_client_day_title(create_client_activity_title(row), row)
-    return _clean_title(title)
+    # Title source priority is centralized in Title Brain's decision contract.
+    return _clean_title(select_activity_title(row).text)
 
 
 def _join_two_titles(first: str, second: str) -> str:
-    first = _clean_title(first)
-    second = _clean_title(second)
-    if not first:
-        return second
-    if not second or second.lower() == first.lower():
-        return first
-    second_lower = second.lower()
-    first_lower = first.lower()
-    if second_lower.startswith(first_lower) or first_lower.startswith(second_lower):
-        return first if len(first) >= len(second) else second
-    return f"{first} and {second}"
+    return join_title_text(first, second).replace(" & ", " and ")
 
 
 def _multi_activity_title(rows: list[dict], city: str) -> str:

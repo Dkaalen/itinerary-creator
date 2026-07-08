@@ -1,0 +1,27 @@
+{
+  "patch": 139,
+  "purpose": "Make title, intro, and leisure copy decisions explainable and testable so output fixes are architectural, not symptom-only.",
+  "owners": {
+    "activity_title_source_priority": "itinerary_generation/title_decision_contract.py",
+    "whole_day_title": "itinerary_generation/title_brain.py",
+    "day_intro_decision": "itinerary_generation/day_intro_writer.py",
+    "leisure_decision": "itinerary_generation/day_leisure_writer.py",
+    "render_consumption": "itinerary_generation/day_render_document_adapter.py"
+  },
+  "guarded_failure_classes": [
+    "narrow_inclusion_overrides_product_title",
+    "activity_day_uses_weak_title_fallback",
+    "intro_uses_admin_fallback_ownership",
+    "review_report_missing_decision_source"
+  ],
+  "regression_tests": [
+    "tests/test_copy_decision_contracts.py",
+    "tests/test_real_output_quality_gate_norway_regression.py"
+  ],
+  "current_audit_status": {
+    "parser_generation_ownership_signals": 13,
+    "overworked_files": 0,
+    "long_functions": 0,
+    "grouped_tests": "295/295"
+  }
+}

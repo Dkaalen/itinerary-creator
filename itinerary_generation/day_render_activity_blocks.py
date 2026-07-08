@@ -6,7 +6,9 @@ import re
 
 from itinerary_generation.canonical_activity import canonical_activity_block
 from itinerary_generation.common import get_primary_city, get_row_type
-from itinerary_generation.day_leisure_writer import create_leisure_copy
+from itinerary_generation.day_facts import build_day_facts
+from itinerary_generation.day_intent import classify_day_intent
+from itinerary_generation.day_leisure_writer import create_leisure_copy, plan_leisure_decision
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
@@ -45,26 +47,35 @@ def _is_blank_activity_row(row):
     return bool(city and re.fullmatch(rf"a day at leisure in {re.escape(city.lower())}\.?", lower))
 
 
+def _leisure_decision_for_rows(rows):
+    facts = build_day_facts(rows)
+    return plan_leisure_decision(facts, classify_day_intent(facts))
+
+
 def build_leisure_render_block(row=None, day_rows=None):
     row = row or {}
-    city = row.get("city") or get_primary_city(day_rows or [])
+    rows = day_rows or [row]
+    decision = _leisure_decision_for_rows(rows)
     return RenderBlock(
         kind="leisure",
         row_id=str(row.get("row_id") or ""),
         section_title="Your Free Time",
-        description=create_leisure_copy(day_rows or [row]),
+        description=decision.text,
         css_class="leisure-block",
+        labels=decision.labels("leisure_decision"),
     )
 
 
 def build_cruise_leisure_render_block(row):
+    decision = _leisure_decision_for_rows([row])
     return RenderBlock(
         kind="cruise_leisure",
         row_id=str(row.get("row_id") or ""),
         section_title="Onboard leisure",
         title="Spend time at leisure onboard the cruise",
-        description=create_leisure_copy([row]),
+        description=decision.text,
         css_class="cruise-leisure-block",
+        labels=decision.labels("leisure_decision"),
     )
 
 

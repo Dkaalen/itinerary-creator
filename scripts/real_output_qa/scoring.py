@@ -209,6 +209,31 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
         day_city = _clean_text(getattr(day, "city", ""))
         title = _clean_text(getattr(day, "title", ""))
         intro = _clean_text(getattr(day, "intro", ""))
+        labels = getattr(day, "labels", {}) or {}
+        title_source = _clean_text(labels.get("title_decision_source")) if isinstance(labels, dict) else ""
+        intro_source = _clean_text(labels.get("intro_decision_source")) if isinstance(labels, dict) else ""
+        if intro_source == "admin_fallback_intro":
+            _add_issue(
+                issues,
+                "intro_decision_used_admin_fallback",
+                "error",
+                "Intro decision fell through to admin-style fallback instead of a day-brain source.",
+                location=f"{day_id}.intro_decision",
+                excerpt=intro,
+            )
+        if activity_rows and title_source in {"last_resort_title_fallback", "stay_title_fallback", "narrow_inclusion_title"}:
+            _add_issue(
+                issues,
+                "title_decision_used_weak_source",
+                "error",
+                "Activity day title came from a weak/fallback source instead of product, schedule, or intent truth.",
+                location=f"{day_id}.title_decision",
+                excerpt=f"{title_source}: {title}",
+            )
+        if activity_rows and "narrow_inclusion_title" in _clean_text(labels.get("title_decision_rejected_sources")) and title_source in {"activity_product_display_title", "supplier_activity_title", "composed_activity_title", "schedule_composed_activity_title"}:
+            # This is the healthy state: the trace proves narrow included items
+            # were considered but could not override the broader product/day title.
+            pass
         if WEAK_ARRIVAL_INTRO_RE.search(intro):
             _add_issue(
                 issues,

@@ -91,7 +91,9 @@ def build_markdown_report(
         if review.days:
             for day in review.days:
                 leisure_focus = "; ".join(day.leisure[:2]) if day.leisure else "No leisure copy"
-                lines.append(f"- **{day.day}** title: {day.title or 'MISSING'} · Intro: {day.intro or 'MISSING'} · Leisure: {leisure_focus}")
+                title_source = day.decision_labels.get("title_decision_source", "unknown")
+                intro_source = day.decision_labels.get("intro_decision_source", "unknown")
+                lines.append(f"- **{day.day}** title: {day.title or 'MISSING'} · Title source: `{title_source}` · Intro source: `{intro_source}` · Intro: {day.intro or 'MISSING'} · Leisure: {leisure_focus}")
         else:
             lines.append("- No rendered days.")
 
@@ -105,6 +107,8 @@ def build_markdown_report(
                     f"#### {day.day}: {day.title}",
                     f"City: {day.city or 'MISSING'}",
                     f"Intro: {day.intro or 'MISSING'}",
+                    f"Title decision: `{day.decision_labels.get('title_decision_source', 'unknown')}` — {day.decision_labels.get('title_decision_reason', '')}",
+                    f"Intro decision: `{day.decision_labels.get('intro_decision_source', 'unknown')}` — {day.decision_labels.get('intro_decision_reason', '')}",
                     "",
                     "Source rows:",
                     *bullet_lines(day.source_rows, limit=6),

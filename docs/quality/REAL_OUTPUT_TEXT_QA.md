@@ -145,3 +145,19 @@ The Norway winter output regression is stored at:
 * `tests/fixtures/real_inputs/norway_winter_output_quality_regression.txt`
 
 It protects the PDF-facing issues found in the Norway sample: journey overview wording, Day 1 arrival intro, free-time copy, broad activity titles, supplier typo cleanup, and suspicious time-range warnings.
+
+## Patch 139 decision-contract note
+
+Title, intro, and leisure/free-time copy now expose decision metadata instead of relying on silent fallback chains.
+
+The markdown review report includes title and intro decision sources for each day. The scoring layer can now fail output where:
+
+* an activity-day title comes from a weak fallback or narrow included item
+* an intro falls through to admin-style fallback ownership
+* a broader product title is overridden by a ticket, landmark, or inclusion fragment
+
+Decision-contract tests live in:
+
+* `tests/test_copy_decision_contracts.py`
+
+The main ownership rule is: renderer/PDF code consumes selected copy and decision labels; it must not rediscover title, intro, or leisure source priority.
