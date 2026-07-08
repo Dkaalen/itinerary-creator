@@ -12,6 +12,7 @@ from typing import Mapping, Sequence
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_timeline_events import clean_event_text
+from itinerary_generation.activity_product_titles import activity_product_display_title
 from itinerary_generation.activity_titles import create_client_activity_title, normalize_client_day_title
 from itinerary_generation.supplier_cleanup_brain import clean_supplier_title
 from text_polish import polish_title
@@ -87,8 +88,13 @@ def _period(start: int | None) -> str:
 
 
 def _activity_title(row: Mapping[str, object]) -> str:
-    title = normalize_client_day_title(create_client_activity_title(dict(row)), dict(row))
-    return clean_supplier_title(polish_title(clean_event_text(title or row.get("title") or row.get("original_title") or "Experience")))
+    product_title = activity_product_display_title(row)
+    if product_title:
+        return clean_supplier_title(polish_title(clean_event_text(product_title)))
+
+    candidate = str(row.get("title") or "").strip() or create_client_activity_title(dict(row))
+    title = normalize_client_day_title(candidate, dict(row))
+    return clean_supplier_title(polish_title(clean_event_text(title or row.get("original_title") or "Experience")))
 
 
 def _is_blank_leisure_activity(row: Mapping[str, object]) -> bool:

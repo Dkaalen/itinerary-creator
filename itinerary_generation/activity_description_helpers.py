@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 
 from itinerary_generation.activity_description_rules import keyword_activity_description, specific_activity_description
+from itinerary_generation.activity_product_titles import activity_product_family
 from itinerary_generation.activity_training_catalogue import catalogue_description_for_row
-from itinerary_generation.product_rules import find_product_match
+from itinerary_generation.product_rules import find_product_match, product_description
 from itinerary_generation.render_text_helpers import get_detail_level_name
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import polish_client_text, polish_title
@@ -131,6 +132,12 @@ def get_activity_description(row, detail_level=None):
     )
     if real_description:
         return real_description
+
+    product_family = activity_product_family(row)
+    if product_family:
+        description = product_description(product_family)
+        if description:
+            return description
 
     product_match = find_product_match(row)
     if product_match and product_match.description:

@@ -27,6 +27,7 @@ from app_modules.editor_commit import (
     request_pdf_editor_commit,
 )
 from app_modules.export_job_state import mark_export_waiting_for_editor, request_auto_pdf_create, reset_export_job
+from app_modules.export_timing import record_pdf_export_marker, reset_pdf_export_timings
 
 
 class WorkflowTransactionTarget(str, Enum):
@@ -79,7 +80,7 @@ def workflow_transaction_state(
     if resolved == WorkflowTransactionTarget.ADD_PICTURES:
         nonce = str(state.get(ADD_PICTURES_COMMIT_REQUEST_KEY) or "")
         if add_pictures_editor_commit_ready(state):
-            return WorkflowTransaction(resolved, WorkflowTransactionStatus.READY, nonce, 0.0)
+            return WorkflowTransaction(resolved, WorkflowTransactionStatus.READY, nonce, add_pictures_editor_commit_elapsed_seconds(state, now=now))
         if not nonce:
             return WorkflowTransaction(resolved, WorkflowTransactionStatus.IDLE)
         elapsed = add_pictures_editor_commit_elapsed_seconds(state, now=now)
@@ -88,7 +89,7 @@ def workflow_transaction_state(
 
     nonce = str(state.get(PDF_COMMIT_REQUEST_KEY) or "")
     if pdf_editor_commit_ready(state):
-        return WorkflowTransaction(resolved, WorkflowTransactionStatus.READY, nonce, 0.0)
+        return WorkflowTransaction(resolved, WorkflowTransactionStatus.READY, nonce, pdf_editor_commit_elapsed_seconds(state, now=now))
     if not nonce:
         return WorkflowTransaction(resolved, WorkflowTransactionStatus.IDLE)
     elapsed = pdf_editor_commit_elapsed_seconds(state, now=now)
@@ -110,7 +111,9 @@ def start_workflow_transaction(
         nonce = request_add_pictures_editor_commit(state, now=now)
         return WorkflowTransaction(resolved, WorkflowTransactionStatus.WAITING_FOR_BROWSER, nonce, 0.0)
 
+    reset_pdf_export_timings(state)
     nonce = request_pdf_editor_commit(state, now=now)
+    record_pdf_export_marker(state, "editor_commit_requested", note="create_pdf")
     mark_export_waiting_for_editor(state, commit_nonce=nonce, now=now)
     if auto_create_pdf:
         request_auto_pdf_create(state)
@@ -152,7 +155,7 @@ def transaction_wait_copy(transaction: WorkflowTransaction) -> str:
 
     if transaction.target == WorkflowTransactionTarget.ADD_PICTURES:
         return "Saving your latest itinerary edits before adding pictures…"
-    return "Saving your latest document and picture edits before creating the PDF…"
+    return "Syncing the latest editor changes before PDF export…"
 
 
 def transaction_timeout_copy(transaction: WorkflowTransaction) -> str:

@@ -49,7 +49,7 @@ def test_schedule_brain_blocks_false_rest_of_day_open_copy():
 
     assert schedule.has_multiple_arranged_activities is True
     assert schedule.has_activity_after_leisure is True
-    assert "between arranged experiences" in leisure
+    assert "gap between the included experiences" in leisure
     assert "rest of the day is open" not in leisure.lower()
 
 

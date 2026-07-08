@@ -68,7 +68,7 @@ def build_markdown_report(
                 f"Subtitle: {review.trip_subtitle or 'MISSING'}",
                 f"Route: {review.route or 'MISSING'}",
                 "",
-                "### Journey arc",
+                f"### {review.journey_title or 'Journey overview'}",
             ]
         )
         if review.journey_arc:
@@ -87,6 +87,14 @@ def build_markdown_report(
                 lines.append(f"- **{issue.severity.upper()} {issue.code}**{location}: {issue.message}{excerpt}")
         else:
             lines.append("- None detected")
+        lines.extend(["", "### Human output focus"])
+        if review.days:
+            for day in review.days:
+                leisure_focus = "; ".join(day.leisure[:2]) if day.leisure else "No leisure copy"
+                lines.append(f"- **{day.day}** title: {day.title or 'MISSING'} · Intro: {day.intro or 'MISSING'} · Leisure: {leisure_focus}")
+        else:
+            lines.append("- No rendered days.")
+
         lines.extend(["", "### Days"])
         if not review.days:
             lines.append("No rendered days.")

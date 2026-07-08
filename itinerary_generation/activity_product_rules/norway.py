@@ -47,17 +47,21 @@ def _is_explicit_floibanen_product(source_lower: str, source_title: str) -> bool
     """True for dedicated Fløibanen/funicular products, not incidental highlights."""
 
     title_lower = source_title.lower()
+    broad_bergen_tour_title = bool(
+        re.search(r"\b(?:best\s+of\s+bergen|bergen.*walking\s+tour|walking\s+tour.*bergen|private\s+walking\s+tour)\b", title_lower)
+    )
     explicit_title = any(
         marker in title_lower
         for marker in ("fløibanen", "floibanen", "funicular", "funicual")
-    )
+    ) and not broad_bergen_tour_title
     explicit_ticket_line = bool(
         re.search(
-            r"\bbergen\s*(?::|round[-\s]?trip)?[^.\n|]{0,80}\b(?:fløibanen|floibanen|funicular|funicual)\b",
+            r"\bbergen\s*(?::|round[-\s]?trip|round\s+trip)[^.\n|]{0,80}\b(?:fløibanen|floibanen|funicular|funicual)\b",
             source_lower,
         )
     )
-    return explicit_title or explicit_ticket_line
+    ticket_only = bool(re.search(r"\b(?:ticket|tickets|admission)\b", title_lower))
+    return explicit_title or (explicit_ticket_line and ticket_only)
 
 
 def _is_standalone_naeroyfjord_cruise(source_lower: str) -> bool:
@@ -189,6 +193,9 @@ def match_norway_activity(
             source_title=source_title,
             variant_tags=("electric_bus", "viewpoint", "flam"),
         )
+
+    if "bergen" in source_lower and re.search(r"\b(best\s+of\s+bergen|half[-\s]?day\s+private\s+walking\s+tour|private\s+walking\s+tour)\b", source_lower):
+        return match_product("bergen_best_private_walk", "walking_tour", "Best of Bergen Private Walking Tour", source_title=source_title)
 
     if "bergen" in source_lower and ("past & present" in source_lower or "past and present" in source_lower or "walk through bergen" in source_lower):
         return match_product("bergen_past_present_walk", "walking_tour", "Guided Walking Tour of Bergen Past & Present", source_title=source_title)

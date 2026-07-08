@@ -9,6 +9,7 @@ import diagnostics
 from app_modules.export_actions import clear_pdf_artifact, create_pdf_from_current_preview
 from app_modules.export_identity import export_signature_for_state
 from app_modules.export_job_state import mark_export_failed, mark_export_ready, mark_exporting
+from app_modules.export_timing import record_pdf_export_marker
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.pdf_editor_commit_gate import (
     clear_pdf_editor_commit,
@@ -75,6 +76,14 @@ def queue_synced_pdf_creation() -> None:
 def request_pdf_creation() -> bool:
     """Create the PDF from the latest committed state and refresh saved-project payload."""
 
+    transaction = _pdf_transaction_state(st.session_state)
+    if transaction.ready or transaction.pending or transaction.timed_out:
+        record_pdf_export_marker(
+            st.session_state,
+            "editor_commit_wait",
+            seconds=transaction.elapsed_seconds,
+            note=transaction.status.value,
+        )
     clear_stale_pdf_editor_state()
     if create_pdf_now():
         refresh_active_saved_project_current_snapshot(st.session_state)

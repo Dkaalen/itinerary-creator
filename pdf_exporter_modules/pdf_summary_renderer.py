@@ -37,7 +37,7 @@ def render_summary(render_document: RenderDocument, story, styles, temp_dir):
     story.append(Spacer(1, 12 * mm))
 
     journey_story = []
-    add_paragraph(journey_story, getattr(summary, "journey_arc_title", "") or "Your Journey Arc", styles["summary_title"], spacer_after=5)
+    add_paragraph(journey_story, getattr(summary, "journey_arc_title", "") or "How Your Trip Unfolds", styles["summary_title"], spacer_after=5)
     columns = getattr(summary, "journey_arc_columns", {}) or {}
     table_rows = [[Paragraph(para_text(str(columns.get("chapter") or "Chapter")), styles["summary_header"]), Paragraph(para_text(str(columns.get("days") or "Days")), styles["summary_header"]), Paragraph(para_text(str(columns.get("experience") or "What You’ll Experience")), styles["summary_header"])]]
     for row in getattr(summary, "journey_arc", []) or []:

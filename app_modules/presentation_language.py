@@ -20,7 +20,7 @@ _LABELS: dict[str, dict[str, str]] = {
         "travel_itinerary": "Travel Itinerary",
         "route": "Route",
         "trip_glance": "Your Trip at a Glance",
-        "journey_arc": "Your Journey Arc",
+        "journey_arc": "How Your Trip Unfolds",
         "chapter": "Chapter",
         "days": "Days",
         "experience": "What You’ll Experience",

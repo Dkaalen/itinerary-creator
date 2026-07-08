@@ -152,7 +152,12 @@ def _logistics_only_phrase(rows, signals):
     if _has(text, "northern light village", "panorama suite"):
         return "Northern Lights village stay"
     if signals.has_nutshell:
-        return "Norway in a Nutshell and scenic rail"
+        city = signals.chapter_city.casefold()
+        if city in {"flåm", "flam"}:
+            return "Scenic rail journey to Flåm"
+        if city == "bergen" and _has(text, "fjord cruise", "gudvangen", "voss"):
+            return "Fjord cruise and rail to Bergen"
+        return "Norway in a Nutshell route"
     if _has(text, "spend time at leisure onboard the cruise") and signals.row_types == {"Cruise"}:
         return "Coastal cruise at leisure"
     if _has(text, "cruise to bergen") and _has(text, "kirkenes"):
@@ -209,7 +214,15 @@ def _add_route_and_city_candidates(candidates, signals):
     if signals.has_tallinn:
         candidates.append("Tallinn Old Town day trip")
     if signals.has_nutshell:
-        candidates.append("Norway in a Nutshell and scenic rail")
+        city = signals.chapter_city.casefold()
+        if city in {"flåm", "flam"}:
+            candidates.append("Scenic rail journey to Flåm")
+        elif city == "bergen" and _has(text, "fjord cruise", "gudvangen", "voss"):
+            candidates.append("Fjord cruise and rail to Bergen")
+        elif city == "bergen":
+            candidates.append("Scenic rail and Bergen arrival")
+        else:
+            candidates.append("Norway in a Nutshell route")
     elif _has(text, "nærøyfjord", "naeroyfjord") and _has(text, "stegastein", "borgund"):
         candidates.append("Nærøyfjord, Stave Church and Stegastein")
     elif _has(text, "foot", "walking tour") and _has(text, "boat", "city cruise") and signals.chapter_city.lower() == "bergen":

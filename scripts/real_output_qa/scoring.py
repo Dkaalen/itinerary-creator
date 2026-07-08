@@ -8,6 +8,7 @@ from typing import Any, Sequence
 from generator import group_rows_by_day
 from itinerary_generation.transport_domain.facts import build_transport_facts
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
+from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 from scripts.real_output_qa.models import OutputTextIssue, OutputTextScore, TextSegment
 from scripts.real_output_qa.rules import (
     ACTIVITY_TRANSPORT_EXPERIENCE_RE,
@@ -21,8 +22,11 @@ from scripts.real_output_qa.rules import (
     SUSPICIOUS_PHRASES,
     TRANSFER_AS_PLACE_RE,
     TRANSPORT_PRODUCT_RE,
+    WEAK_ARRIVAL_INTRO_RE,
+    WEAK_FREE_TIME_RE,
 )
 from scripts.real_output_qa.segments import iter_output_segments
+from scripts.real_output_qa.summary_quality import score_summary_quality
 from scripts.real_output_qa.text_utils import add_issue as _add_issue, clean_text as _clean_text
 
 def score_rendered_output(
@@ -48,6 +52,7 @@ def score_rendered_output(
     _score_hotel_star_safety(issues, source_text, full_text)
     _score_city_currency_safety(issues, segments, getattr(context, "destinations_line", ""))
     _score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
+    score_summary_quality(issues, context)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     _score_repetition(issues, days)
@@ -57,6 +62,7 @@ def score_rendered_output(
     warning_count = sum(1 for issue in issues if issue.severity == "warning")
     score = max(0, 100 - (error_count * 20) - (warning_count * 5))
     return OutputTextScore(score=score, error_count=error_count, warning_count=warning_count, issues=tuple(issues))
+
 
 
 def _score_segment_text(issues: list[OutputTextIssue], segments: Sequence[TextSegment]) -> None:
@@ -108,6 +114,15 @@ def _score_segment_text(issues: list[OutputTextIssue], segments: Sequence[TextSe
                 "transfer_phrase_treated_as_place",
                 "warning",
                 "Transfer text appears to use a transfer phrase as a place name.",
+                location=segment.location,
+                excerpt=segment.text,
+            )
+        if SUSPICIOUS_AM_PM_TIME_RANGE_RE.search(segment.text):
+            _add_issue(
+                issues,
+                "suspicious_am_pm_time_range",
+                "warning",
+                "Suspicious 12 AM to PM time range needs source review before client delivery.",
                 location=segment.location,
                 excerpt=segment.text,
             )
@@ -193,6 +208,36 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
         day_text = _day_text(day)
         day_city = _clean_text(getattr(day, "city", ""))
         title = _clean_text(getattr(day, "title", ""))
+        intro = _clean_text(getattr(day, "intro", ""))
+        if WEAK_ARRIVAL_INTRO_RE.search(intro):
+            _add_issue(
+                issues,
+                "weak_arrival_intro",
+                "error" if day_id == "Day 1" else "warning",
+                "Arrival/stay intro uses admin-style fallback copy instead of client travel prose.",
+                location=f"{day_id}.intro",
+                excerpt=intro,
+            )
+        for block in getattr(day, "blocks", []) or ():
+            if _clean_text(getattr(block, "kind", "")).casefold() == "leisure" and WEAK_FREE_TIME_RE.search(_clean_text(getattr(block, "description", ""))):
+                _add_issue(
+                    issues,
+                    "weak_free_time_copy",
+                    "warning",
+                    "Free-time copy is too generic and should be context-aware.",
+                    location=f"{day_id}.leisure",
+                    excerpt=_clean_text(getattr(block, "description", "")),
+                )
+                break
+        if title.casefold() == "fløibanen funicular" and any("walking tour" in _clean_text(row.get("original_title") or row.get("details")).casefold() for row in activity_rows):
+            _add_issue(
+                issues,
+                "narrow_title_overrides_broader_product",
+                "error",
+                "Day title selected a narrow inclusion instead of the broader source product.",
+                location=f"{day_id}.title",
+                excerpt=title,
+            )
         if day_city and day_city in seen_cities and title.casefold().startswith(f"welcome to {day_city}".casefold()):
             _add_issue(
                 issues,

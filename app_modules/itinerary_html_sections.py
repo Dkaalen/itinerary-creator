@@ -86,7 +86,7 @@ def render_summary_page(
     trip_glance: dict,
     journey_arc: list[dict],
     trip_glance_title: str = "Your Trip at a Glance",
-    journey_arc_title: str = "Your Journey Arc",
+    journey_arc_title: str = "How Your Trip Unfolds",
     journey_arc_columns: dict | None = None,
     summary_background_data_uri: str = "",
     summary_background_path: str = "",
@@ -124,7 +124,7 @@ def render_summary_page(
             </div>
 
             <div class="journey-arc">
-                <div class="journey-title">{esc(journey_arc_title or "Your Journey Arc")}</div>
+                <div class="journey-title">{esc(journey_arc_title or "How Your Trip Unfolds")}</div>
                 <table class="journey-table">
                     <thead>
                         <tr>

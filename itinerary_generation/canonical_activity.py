@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from itinerary_generation.activity_product_titles import activity_product_display_title
 from itinerary_generation.canonical_helpers import _is_fløibanen, _row_id
 from itinerary_generation.canonical_model import CanonicalBlock, CanonicalMetaLine
 from itinerary_generation.content_engine import clean_client_title, client_activity_description, merge_compound_inclusions
@@ -89,8 +90,12 @@ def _important_activity_note(row: dict) -> str:
 
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     is_tallinn_ferry = is_tallinn_ferry_framework(row)
-    title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
-    title = clean_supplier_title(clean_client_title(title, row) or "Experience")
+    product_title = activity_product_display_title(row)
+    if product_title:
+        title = clean_supplier_title(product_title) or "Experience"
+    else:
+        title = normalize_client_day_title(create_client_activity_title(row) or "Experience", row)
+        title = clean_supplier_title(clean_client_title(title, row) or "Experience")
     if is_tallinn_ferry:
         title = tallinn_ferry_title(row)
     time = row.get("display_time") or row.get("time", "")

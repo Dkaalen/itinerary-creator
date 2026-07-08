@@ -10,7 +10,7 @@ from app_modules.export_image_validation import prepare_pdf_image_contract
 from app_modules.export_identity import export_signature_for_state
 from app_modules.export_pdf_artifacts import clear_pdf_artifact, current_pdf_bytes, store_current_pdf_bytes
 from app_modules.export_render_context import day_image_crop_focus_for_grouped_days, pdf_render_context_for_signature
-from app_modules.export_timing import record_pdf_export_stage, reset_pdf_export_timings
+from app_modules.export_timing import has_pdf_export_timings, record_pdf_export_stage, reset_pdf_export_timings
 from project_storage.workflow_hooks import save_pdf_export
 from app_modules.performance_telemetry import measure_timing, record_timing
 from app_modules.pdf_export_blockers import client_safety_blocks_pdf, preview_contract_blocks_pdf
@@ -42,7 +42,8 @@ def _client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_ban
 def create_pdf_from_current_preview() -> bool:
     """Validate current state and create a durable PDF artifact when allowed."""
 
-    reset_pdf_export_timings(st.session_state)
+    if not has_pdf_export_timings(st.session_state):
+        reset_pdf_export_timings(st.session_state)
 
     with record_pdf_export_stage(st.session_state, "validate_rows"):
         validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))

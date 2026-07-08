@@ -37,7 +37,7 @@ def test_arrival_onward_travel_treats_arrival_city_as_transit():
     assert "Rovaniemi" in intro
     assert "Welcome to Helsinki" not in intro
     assert "accommodation" not in intro.lower()
-    assert leisure == "Any free time today is limited and flexible around the travel arrangements."
+    assert leisure == "Keep any spare time practical today, with room for transfers, check-in and the arranged schedule."
 
 
 def test_same_city_accommodation_change_is_not_rewelcomed():
@@ -76,7 +76,7 @@ def test_travel_heavy_day_does_not_overstate_free_time():
     assert facts.travel_heavy is True
     assert intent == "overnight_transport_day"
     assert "overnight" in intro.lower()
-    assert leisure == "Any free time today is limited and flexible around the travel arrangements."
+    assert leisure == "Keep any spare time practical today, with room for transfers, check-in and the arranged schedule."
 
 
 def test_cruise_onboard_leisure_is_context_aware():

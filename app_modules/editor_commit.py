@@ -16,6 +16,7 @@ VISUAL_EDITOR_COMMIT_COUNTER_KEY = "_visual_editor_commit_counter"
 VISUAL_EDITOR_COMMIT_NONCE_KEY = "_visual_editor_commit_nonce"
 VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY = "_visual_editor_last_applied_commit_nonce"
 VISUAL_EDITOR_COMMIT_TIMEOUT_SECONDS = 20.0
+PDF_EDITOR_COMMIT_TIMEOUT_SECONDS = 10.0
 
 PDF_COMMIT_REQUEST_KEY = "_pdf_after_visual_edit_commit_nonce"
 PDF_COMMIT_READY_KEY = "_visual_editor_export_commit_ready"
@@ -148,7 +149,7 @@ def pdf_editor_commit_ready(state: MutableMapping[str, Any]) -> bool:
 def pdf_editor_commit_timed_out(
     state: MutableMapping[str, Any],
     *,
-    timeout_seconds: float = VISUAL_EDITOR_COMMIT_TIMEOUT_SECONDS,
+    timeout_seconds: float = PDF_EDITOR_COMMIT_TIMEOUT_SECONDS,
     now: float | None = None,
 ) -> bool:
     return visual_editor_commit_timed_out(

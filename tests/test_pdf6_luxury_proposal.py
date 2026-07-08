@@ -49,7 +49,7 @@ def test_html_summary_renderer_uses_luxury_summary_styles(monkeypatch):
             <div class="glance-row"><div class="glance-label">Duration</div><div class="glance-value">8 days</div></div>
           </div>
           <div class="journey-arc">
-            <div class="journey-title">Your Journey Arc</div>
+            <div class="journey-title">How Your Trip Unfolds</div>
             <table class="journey-table"><tbody><tr><td>Oslo</td><td>1-2</td><td>Arrival</td></tr></tbody></table>
           </div>
         </div>

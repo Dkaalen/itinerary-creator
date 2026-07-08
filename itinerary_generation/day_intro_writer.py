@@ -93,12 +93,27 @@ def _arrival_display_place(facts: DayFacts, city: str) -> str:
 
 
 def _arrival_transfer_clause(facts: DayFacts) -> str:
+    """Return a client-facing arrival logistics clause, not admin/report copy."""
+
     text = " ".join(row_text(row) for row in facts.rows).lower()
     if "flybus" in text:
-        return "your arranged Flybus transfer and stay details are listed below"
+        return "the arranged Flybus transfer brings you towards your accommodation area"
+    if "self transfer" in text or "self-transfer" in text or "self arranged" in text or "self-arranged" in text:
+        return "follow the self-arranged transfer details to reach your accommodation"
     if facts.has_transfer:
-        return "the transfer and stay details are listed below"
-    return "the day is kept simple around the listed arrangements"
+        return "your arranged transfer brings you to your accommodation"
+    return "the schedule is kept simple around your arrival"
+
+
+def _arrival_stay_intro(facts: DayFacts, city: str) -> str:
+    place = _arrival_display_place(facts, city or "the destination") if city else "the destination"
+    identity = _destination_identity(city or place)
+    if facts.return_visit:
+        return f"Return to {place}. After arrival, the day stays light so you can settle back in around the listed arrangements."
+    transfer_clause = _arrival_transfer_clause(facts)
+    if facts.has_transfer or facts.has_flight:
+        return f"Welcome to {place}. After arrival, {transfer_clause}, then the rest of the day stays light so you can settle in and get a feel for {identity}."
+    return f"Welcome to {place}. The day stays light, with time to settle in and get a feel for {identity}."
 
 
 def _departure_transfer_intro(facts: DayFacts) -> str:
@@ -182,7 +197,7 @@ def _scheduled_activity_intro(facts: DayFacts) -> str:
     source_text = " ".join(row_text(row) for row in facts.rows)
     combined_title = f"{first} and {last}" if first != last else first
     if schedule.has_morning_activity and schedule.has_evening_activity:
-        return f"Today combines {first} with {last} later on, leaving the time between the arranged experiences flexible around the schedule."
+        return f"Today is built around {first}, followed by {last} later on, with the time between them kept light and easy."
     composed_intro = client_activity_intro(combined_title, city, source_text)
     if "main arranged experience" not in composed_intro:
         return composed_intro
@@ -258,15 +273,7 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
         return "Spend the day onboard, with the sailing and onboard arrangements forming the focus of the day."
 
     if intent == DayIntent.ARRIVAL_STAY:
-        base_place = city or "the destination"
-        place = _arrival_display_place(facts, base_place) if city else base_place
-        identity = _destination_identity(base_place) if city else place
-        if facts.return_visit:
-            return f"Return to {place}. After arrival, the day is kept simple around the listed arrangements."
-        transfer_clause = _arrival_transfer_clause(facts)
-        if facts.has_transfer or facts.has_flight:
-            return f"Welcome to {place}. After arrival, {transfer_clause}, with time to get oriented around {identity}."
-        return f"Welcome to {place}. The day is kept simple, with time to settle in and get oriented around {identity}."
+        return _arrival_stay_intro(facts, city)
 
     if intent == DayIntent.ACTIVITY_PLUS_TRAVEL:
         scheduled_intro = _scheduled_activity_intro(facts)
@@ -281,7 +288,7 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
                 return f"Welcome to {place}. After arrival, the day includes {title}, with the details listed below."
             return f"Arrive in {place} today before the included experience listed below."
         if facts.has_accommodation and city and not facts.return_visit:
-            return f"Welcome to {city}. After arrival, the transfer and stay details are listed below before the included experience later today."
+            return f"Welcome to {city}. After arrival, settle into the logistics first, then continue into the included experience later today."
         return activity_text
 
     if intent == DayIntent.TRAVEL_DAY:
@@ -306,8 +313,8 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
     if city:
         if facts.has_accommodation and not facts.return_visit:
             identity = _destination_identity(city)
-            return f"Welcome to {city}. The stay details are listed below, with time to get oriented around {identity}."
-        return f"This is part of your stay in {city}, with the day’s arrangements listed below."
+            return f"Welcome to {city}. The day stays relaxed around your stay, with time to get a feel for {identity}."
+        return f"This is part of your stay in {city}, with today’s plans kept clear and easy to follow."
     return "The day’s arrangements are listed below."
 
 

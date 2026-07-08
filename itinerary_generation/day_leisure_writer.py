@@ -37,7 +37,7 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
         ), facts, intent))
 
     if facts.travel_heavy or intent in {DayIntent.TRAVEL_DAY, DayIntent.OVERNIGHT_TRANSPORT_DAY, DayIntent.ARRIVAL_ONWARD_TRAVEL}:
-        return "Any free time today is limited and flexible around the travel arrangements."
+        return "Keep any spare time practical today, with room for transfers, check-in and the arranged schedule."
 
     if intent == DayIntent.FULL_LEISURE_DAY or facts.full_leisure_day:
         if city and city != "the area":
@@ -50,39 +50,39 @@ def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:
     schedule = facts.schedule_profile
     if schedule.has_multiple_arranged_activities and (schedule.has_leisure_between_activities or schedule.has_activity_after_leisure or schedule.has_gap_between_activities):
         return choose_copy_variant((
-            "Between today’s arranged experiences, keep the open time flexible around the confirmed timings.",
-            "The time between the included experiences is left flexible for a meal, a rest or your own plans.",
-            "Any open time today sits between arranged experiences, so it is best kept flexible around the schedule.",
+            "The time between today’s included experiences is best used lightly — for a meal, a rest, or a short independent stroll close by.",
+            "Between the arranged experiences, keep things easy with time for a meal, a quiet pause, or a small local discovery.",
+            "The gap between the included experiences stays flexible, giving you space to pause without overfilling the day.",
         ), facts, intent)
 
     if schedule.has_multiple_arranged_activities:
         return choose_copy_variant((
-            "After the included experiences, the rest of the day is open for your own plans.",
-            "Once today’s arranged experiences are complete, the remaining schedule is left flexible for you.",
-            "The included experiences anchor the day, with any extra time kept flexible around your own plans.",
+            "Once today’s arranged experiences are complete, use any extra time for a relaxed meal, a short walk, or a quiet pause back at the hotel.",
+            "The included experiences anchor the day, while any spare time can stay simple and close to the day’s route.",
+            "After the arranged experiences, keep the remaining time easy rather than adding too much to the schedule.",
         ), facts, intent)
 
     if intent == DayIntent.ACTIVITY_DAY or (facts.has_activity and not facts.has_travel):
         return choose_copy_variant((
-            "After the included experience, the rest of the day is open for your own plans.",
-            "Once the included experience is complete, the rest of the day is left open for your own plans.",
-            "The included experience anchors the day, with the remaining schedule left flexible for you.",
+            "After the included experience, use the rest of the day for a relaxed meal, a local stroll, or anything you would rather discover independently.",
+            "Once the included experience is complete, the schedule stays light so you can follow your own pace for the rest of the day.",
+            "The included experience anchors the day, leaving the remaining time easy and flexible around your own interests.",
         ), facts, intent)
 
     if intent == DayIntent.ACTIVITY_PLUS_TRAVEL or (facts.has_activity and facts.has_travel):
         if schedule.has_evening_activity and facts.travel_heavy:
             return "Any open time today is limited and should stay flexible between the travel arrangements and the evening experience."
         return choose_copy_variant((
-            "After the included arrangements, any free time can be kept flexible around the day’s timing.",
-            "Any open time today should stay flexible around the included arrangements and travel timing.",
-            "The day combines arranged experiences with logistics, so open time is best kept flexible.",
+            "With both logistics and included arrangements today, keep any spare time light and close to the confirmed schedule.",
+            "Any open time should stay practical today, giving you room around transfers, check-in and the included arrangements.",
+            "The day combines travel with arranged experiences, so it is best not to overfill the unscheduled moments.",
         ), facts, intent)
 
     if intent == DayIntent.ARRIVAL_STAY or facts.has_arrival:
         return choose_copy_variant((
-            "After arrival, any remaining time is best kept simple, with space to settle in and get oriented.",
-            "After arrival, keep any open time simple, with space to settle in and get oriented.",
-            "Once you have arrived, the rest of the day can stay light and flexible around settling in.",
+            "Once settled, this is a good moment for an easy local walk, a first meal nearby, or simply easing into the trip.",
+            "After arrival, keep the day gentle with time to unpack, rest, and find your bearings close to the hotel.",
+            "Use the arrival day lightly, leaving space to settle in before the trip becomes more active.",
         ), facts, intent)
 
     if intent == DayIntent.SAME_CITY_ACCOMMODATION_CHANGE:

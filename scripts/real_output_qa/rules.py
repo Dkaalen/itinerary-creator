@@ -15,6 +15,11 @@ SUSPICIOUS_PHRASES: tuple[str, ...] = (
     "planned experience in",
     "key arrangements prepared in advance",
     "wider day kept easy to follow",
+    "transfer and stay details are listed below",
+    "stay details are listed below",
+    "rest of the day is open for your own plans",
+    "rest of the day is left open for your own plans",
+    "remaining time is best kept simple",
 )
 
 ROUTE_FALSE_PLACE_RE = re.compile(
@@ -44,6 +49,16 @@ GENERIC_COPY_RE = re.compile(
 )
 ACTIVITY_TYPE_RE = re.compile(r"\bactivity\b", flags=re.IGNORECASE)
 
+WEAK_FREE_TIME_RE = re.compile(
+    r"\b(?:rest of the day is (?:left )?open for your own plans|remaining time is best kept simple|open time flexible around the confirmed timings)\b",
+    flags=re.IGNORECASE,
+)
+WEAK_ARRIVAL_INTRO_RE = re.compile(
+    r"\b(?:transfer and stay details are listed below|stay details are listed below|arrangements are listed below)\b",
+    flags=re.IGNORECASE,
+)
+ARC_LABEL_RE = re.compile(r"\barc\b", flags=re.IGNORECASE)
+
 __all__ = [
     "ACTIVITY_TRANSPORT_EXPERIENCE_RE",
     "ACTIVITY_TYPE_RE",
@@ -56,4 +71,7 @@ __all__ = [
     "SUSPICIOUS_PHRASES",
     "TRANSFER_AS_PLACE_RE",
     "TRANSPORT_PRODUCT_RE",
+    "WEAK_ARRIVAL_INTRO_RE",
+    "WEAK_FREE_TIME_RE",
+    "ARC_LABEL_RE",
 ]

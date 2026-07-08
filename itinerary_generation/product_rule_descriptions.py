@@ -9,6 +9,7 @@ DESCRIPTIONS={
 "munch_museum":"Visit the Munch Museum at your own pace, with pre-arranged admission giving you time to explore the galleries and exhibitions independently.",
 "fjellheisen":"Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains.",
 "tromso_viewpoint_ticket_possible_fjellheisen":"Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day.",
+"tromso_private_city_tour":"Explore Tromsø with a private guide, combining city context, Arctic landmarks and selected stops such as the cable car, Arctic Cathedral or Polar Museum where included.",
 "santa_claus_friends":"Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included.",
 "korouoma_canyon":"Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience.",
 }

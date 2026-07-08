@@ -13,9 +13,10 @@ from itinerary_generation.description_facts import (
     _focus_from_title,
     _join,
 )
+from itinerary_generation.activity_product_titles import activity_product_family
 from itinerary_generation.description_sources import _row_source
 from itinerary_generation.description_known_activity_rules import match_known_activity_description
-from itinerary_generation.product_rules import find_product_match
+from itinerary_generation.product_rules import find_product_match, product_description
 
 
 def _compose_group_day(row: dict, source: str, title: str, city: str) -> str:
@@ -59,6 +60,12 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     places = _extract_landmarks(landmark_source, limit=8)
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
+
+    product_family = activity_product_family(row)
+    if product_family:
+        description = product_description(product_family)
+        if description:
+            return description
 
     product_match = find_product_match(row, title, source)
     if product_match and product_match.description:

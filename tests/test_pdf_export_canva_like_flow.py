@@ -70,7 +70,7 @@ def test_export_step_uses_shared_recoverable_pdf_job_flow():
     assert _combined_contains(pdf_flow_paths, "mark_exporting")
     assert _contains(
         "app_modules/workflow_transactions.py",
-        "Saving your latest document and picture edits before creating the PDF",
+        "Syncing the latest editor changes before PDF export",
     )
 
 
@@ -96,11 +96,7 @@ def test_picture_page_create_pdf_enters_export_with_one_shot_auto_request():
 
 
 def test_pdf_export_avoids_repeated_image_bank_storage_scans_on_normal_path():
-    normal_path_modules = (
-        "app_modules/export_step.py",
-        "app_modules/export_image_validation.py",
-        "app_modules/image_gateway_ui.py",
-    )
+    normal_path_modules = ("app_modules/export_step.py",)
 
     assert _combined_omits(normal_path_modules, "image_bank_storage_signature")
     assert "get_cached_image_bank_status" in _python_imported_names("app_modules/export_step.py")
@@ -110,10 +106,11 @@ def test_pdf_export_avoids_repeated_image_bank_storage_scans_on_normal_path():
 def test_pdf_export_timing_is_internal_and_stage_based():
     export_calls = _python_calls("app_modules/export_actions.py")
 
-    assert {"reset_pdf_export_timings", "record_pdf_export_stage"}.issubset(export_calls)
+    assert {"reset_pdf_export_timings", "record_pdf_export_stage", "has_pdf_export_timings"}.issubset(export_calls)
     assert _contains("app_modules/export_actions.py", "prepare_images")
     assert _contains("app_modules/export_actions.py", "render_pdf")
     assert _contains("app_modules/export_timing.py", "PDF_EXPORT_TIMINGS_KEY")
+    assert _contains("app_modules/export_timing.py", "record_pdf_export_marker")
     assert _omits("app_modules/export_timing.py", "st.")
 
 

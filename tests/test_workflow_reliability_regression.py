@@ -34,10 +34,11 @@ def test_workflow_transaction_centralizes_pdf_commit_and_auto_create_queue() -> 
     assert state["_pdf_auto_create_requested"] is True
     assert state["_pdf_export_job"]["state"] == "saving"
     assert state["_pdf_export_job"]["commit_nonce"] == transaction.commit_nonce
+    assert state["_pdf_export_timings"][0]["stage"] == "editor_commit_requested"
 
-    timed_out = workflow_transaction_state(state, WorkflowTransactionTarget.CREATE_PDF, now=31.0)
+    timed_out = workflow_transaction_state(state, WorkflowTransactionTarget.CREATE_PDF, now=21.0)
     assert timed_out.timed_out is True
-    assert int(timed_out.elapsed_seconds) == 21
+    assert int(timed_out.elapsed_seconds) == 11
 
     retried = retry_workflow_transaction(state, WorkflowTransactionTarget.CREATE_PDF, auto_create_pdf=True, now=40.0)
     assert retried.commit_nonce != transaction.commit_nonce

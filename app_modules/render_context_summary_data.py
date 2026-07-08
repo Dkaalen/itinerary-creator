@@ -70,7 +70,7 @@ def build_summary_context_data(parsed_rows, grouped_days, output_edits: dict[str
     return {
         "trip_glance_title": _safe_label(typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title"), label_for(output_edits, "trip_glance", "Your Trip at a Glance")),
         "trip_glance": trip_glance,
-        "journey_arc_title": _safe_label(typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title"), label_for(output_edits, "journey_arc", "Your Journey Arc")),
+        "journey_arc_title": _safe_label(typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title"), label_for(output_edits, "journey_arc", "How Your Trip Unfolds")),
         "journey_arc_columns": journey_arc_columns,
         "journey_arc": journey_arc,
     }

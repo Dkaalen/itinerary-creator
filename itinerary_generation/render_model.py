@@ -43,7 +43,7 @@ class RenderCover:
 class RenderSummary:
     trip_glance_title: str = "Your Trip at a Glance"
     trip_glance: list[RenderMetaLine] = field(default_factory=list)
-    journey_arc_title: str = "Your Journey Arc"
+    journey_arc_title: str = "How Your Trip Unfolds"
     journey_arc_columns: dict[str, str] = field(default_factory=dict)
     journey_arc: list[dict[str, str]] = field(default_factory=list)
     background_path: str = ""

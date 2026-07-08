@@ -27,8 +27,8 @@
       }
     },
     "error_count": 0,
-    "warning_count": 2,
-    "average_score": 98.0,
+    "warning_count": 4,
+    "average_score": 96.0,
     "reviews": [
       {
         "fixture": {
@@ -52,12 +52,20 @@
         "trip_subtitle": "A Finland winter journey with scenic travel and planned experiences",
         "route": "Helsinki · Oulu · Kuusamo · Ranua",
         "score": {
-          "score": 100,
+          "score": 95,
           "error_count": 0,
-          "warning_count": 0,
-          "issue_count": 0,
+          "warning_count": 1,
+          "issue_count": 1,
           "ok": true,
-          "issues": []
+          "issues": [
+            {
+              "code": "duplicate_journey_summary_experience",
+              "severity": "warning",
+              "message": "Journey summary repeats the same experience text for multiple chapters.",
+              "location": "summary.Ranua",
+              "excerpt": "Northern Lights experiences"
+            }
+          ]
         }
       },
       {
@@ -120,12 +128,20 @@
         "trip_subtitle": "A guided winter Iceland group tour with arranged transport, daily experiences and included accommodation",
         "route": "Reykjavík · Golden Circle · South Coast · Jökulsárlón · Reykjavík",
         "score": {
-          "score": 100,
+          "score": 95,
           "error_count": 0,
-          "warning_count": 0,
-          "issue_count": 0,
+          "warning_count": 1,
+          "issue_count": 1,
           "ok": true,
-          "issues": []
+          "issues": [
+            {
+              "code": "duplicate_journey_summary_experience",
+              "severity": "warning",
+              "message": "Journey summary repeats the same experience text for multiple chapters.",
+              "location": "summary.Journey",
+              "excerpt": "South Coast waterfalls and glacier hike"
+            }
+          ]
         }
       },
       {
@@ -201,14 +217,29 @@
     ]
   },
   "issue_counts": {
+    "duplicate_journey_summary_experience": 2,
     "repeated_intro_opener": 1,
     "transport_product_rendered_as_activity": 1
   },
   "fixtures_with_issues": [
     {
+      "fixture_id": "Standard-Itinerary-Finland.xlsx::111",
+      "codes": [
+        "duplicate_journey_summary_experience"
+      ],
+      "score": 95
+    },
+    {
       "fixture_id": "Standard-Itinerary-Iceland.xlsx::7D GTS",
       "codes": [
         "repeated_intro_opener"
+      ],
+      "score": 95
+    },
+    {
+      "fixture_id": "Standard-Itinerary-Iceland.xlsx::5D GTW",
+      "codes": [
+        "duplicate_journey_summary_experience"
       ],
       "score": 95
     },

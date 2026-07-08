@@ -96,7 +96,7 @@
     },
     {
       "file": "itinerary_generation/activity_description_helpers.py",
-      "line_count": 169,
+      "line_count": 176,
       "concern": "inline_regex_or_replacement_rules"
     },
     {

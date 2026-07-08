@@ -23,7 +23,7 @@ def test_editor_payload_exposes_remaining_static_labels_as_editable_fields():
 
     assert payload["cover"]["route_label"] == "Route"
     assert payload["summary"]["trip_glance_title"] == "Your Trip at a Glance"
-    assert payload["summary"]["journey_arc_title"] == "Your Journey Arc"
+    assert payload["summary"]["journey_arc_title"] == "How Your Trip Unfolds"
     assert payload["summary"]["journey_arc_columns"]["chapter"] == "Chapter"
     assert payload["summary"]["journey_arc_columns"]["days"] == "Days"
     assert payload["summary"]["journey_arc_columns"]["experience"] == "What You’ll Experience"
@@ -41,7 +41,7 @@ def test_visual_editor_payload_carries_editable_label_defaults():
 
     assert payload["cover"]["route_label"] == "Route"
     assert payload["summary"]["trip_glance_title"] == "Your Trip at a Glance"
-    assert payload["summary"]["journey_arc_title"] == "Your Journey Arc"
+    assert payload["summary"]["journey_arc_title"] == "How Your Trip Unfolds"
     assert payload["summary"]["journey_arc_columns"]["experience"] == "What You’ll Experience"
     assert payload["final_pages"]["whats_not_included_title"] == "What’s not included"
 

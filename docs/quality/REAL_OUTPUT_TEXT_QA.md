@@ -18,8 +18,9 @@ By default it writes both files below:
 The markdown report shows:
 
 * fixture id, workbook, sheet, tags, seed
-* trip title, subtitle, route, journey arc
+* trip title, subtitle, route, journey overview
 * score issues with location and excerpt
+* a human-output focus section for title, intro and leisure copy
 * each day title, city, intro
 * source-row excerpts
 * transport, accommodation, activity, leisure, and optional-experience text
@@ -61,6 +62,11 @@ The scoring layer currently checks for:
 * typoed activity row types such as `Actvity Upgrade`
 * repeated day intros
 * raw optional-experience supplier blobs
+* weak journey-overview labels such as `Journey Arc`
+* weak arrival intros that describe output structure instead of the trip
+* repetitive or admin-style free-time copy
+* suspicious AM/PM time ranges such as `12:00 AM - 4:00 PM`
+* narrow extracted ticket titles overriding broader supplier products
 
 ## Severity rules
 
@@ -131,3 +137,11 @@ The CLI scripts stay thin. Reusable review, scoring, markdown, random-check, and
 * `indexing.py` owns QA-index markdown/json generation.
 
 The old script names remain as compatibility entry points for validation commands and tests.
+
+## Patch 131-138 quality gate note
+
+The Norway winter output regression is stored at:
+
+* `tests/fixtures/real_inputs/norway_winter_output_quality_regression.txt`
+
+It protects the PDF-facing issues found in the Norway sample: journey overview wording, Day 1 arrival intro, free-time copy, broad activity titles, supplier typo cleanup, and suspicious time-range warnings.

@@ -23,7 +23,7 @@
   "section_checks": [
     {
       "start": "Your Trip at a Glance",
-      "end": "Your Journey Arc",
+      "end": "How Your Trip Unfolds",
       "must_contain": [
         "Travel Style Guided small-group tour"
       ],

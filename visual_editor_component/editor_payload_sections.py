@@ -31,7 +31,7 @@ def build_cover_payload(parsed_rows, grouped_days, output_edits, typed_cover, co
 def build_summary_payload(parsed_rows, grouped_days, output_edits, typed_summary):
     return {
         "trip_glance_title": typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title", "Your Trip at a Glance"),
-        "journey_arc_title": typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title", "Your Journey Arc"),
+        "journey_arc_title": typed_summary.get("journey_arc_title") or output_edits.get("journey_arc_title", "How Your Trip Unfolds"),
         "journey_arc_columns": typed_summary.get("journey_arc_columns") or output_edits.get("journey_arc_columns") or {"chapter": "Chapter", "days": "Days", "experience": "What You’ll Experience"},
         "trip_glance": _merge_trip_glance(
             parsed_rows,
@@ -58,7 +58,7 @@ def build_generated_values(parsed_rows, grouped_days, generated_days_values, fin
         },
         "summary": {
             "trip_glance_title": "Your Trip at a Glance",
-            "journey_arc_title": "Your Journey Arc",
+            "journey_arc_title": "How Your Trip Unfolds",
             "journey_arc_columns": {"chapter": "Chapter", "days": "Days", "experience": "What You’ll Experience"},
             "trip_glance": create_trip_glance(parsed_rows, grouped_days),
             "journey_arc": create_journey_arc(grouped_days),

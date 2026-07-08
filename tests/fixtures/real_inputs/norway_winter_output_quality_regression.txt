@@ -1,0 +1,37 @@
+Day 1	Arrival	13.11.2026		Oslo: Welcome to Norway
+Day 1	Transfer	13.11.2026		Oslo: Private transfer to your accommodation
+Day 1	Hotel	13.11.2026	15.11.2026	Oslo: Check in to your accommodation for a 2 night stay - Thon Opera - 3 x Standard double room, 1 x Business Room - Breakfast included
+Day 1	Leisure	13.11.2026		Oslo: Spend time at leisure
+				
+Day 2	Activity	14.11.2026		Oslo: Private Essential Walking Tour - Time: 10:00 am - 1:00 pm - Meeting point: Guide will meet you in hotel reception - Includes: Discover Oslo’s top sights and attractions, See City Hall, Parliament, Royal Palace & more, Walk through Aker Brygge’s lively waterfront - Description: Discover the highlights of Norway’s capital on a guided walking tour through Oslo’s most iconic sights. Starting at City Hall, explore landmarks such as Parliament, the Royal Palace, the University of Oslo, Akershus Fortress, Aker Brygge, and the vibrant Tjuvholmen District, while enjoying local tips on where to eat, drink, and shop.
+Day 2	Leisure	14.11.2026		Oslo: Spend time at leisure
+				
+Day 3	Transfer	15.11.2026		Oslo: Self transfer to Oslo Central Station
+Day 3	Activity	15.11.2026		Oslo: Norway in a Nutshell to Flåm - Time: 08:25 am - 2:05 pm - Meeting point: Oslo Central Station - Includes:  Train transfer Oslo to Myrdal (08:25 am - 1:04 pm), Train tranfser Myrdal to Flåm (1:15 pm - 2:05 pm)
+Day 3	Transfer	15.11.2026		Flåm: Self transfer to your accommodation
+Day 3	Hotel	15.11.2026	16.11.2026	Flåm: Check in to your accommodation for a 1 night stay - Flåmsbrygga Hotell - 3 x Twin with balcony, 1 x Family room - Breakfast included
+Day 3	Leisure	15.11.2026		Flåm Spend time at leisure
+				
+Day 4	Transfer	16.11.2026		Flåm: Self transfer to Flåm Cruise Port
+Day 4	Activity	16.11.2026		Flåm: Norway in a Nutshell to Bergen - Time: 09:30 am - 2:15 pm - Meeting point: Flåm Harbor - Includes: Fjord Cruise Flåm to Gudvangen (09:30 am - 11:30 am), Coach Transfer Gudvangen to Voss (11:40 am - 12:40 pm), Train transfer Voss to Bergen (1:02 pm - 2:15 pm)
+Day 4	Transfer	16.11.2026		Bergen: Private transfer to your accommodation
+Day 4	Hotel	16.11.2026	18.11.2026	Bergen: Check in to your accommodation for a 2 night stay - Thon Hotel Rosenkrantz Bergen - 3 x Standard Double room, 1 x standard Family room - Breakfast included
+Day 4	Leisure	16.11.2026		Bergen Spend time at leisure
+				
+Day 5	Activity	17.11.2026		Bergen: Best of Bergen Half-Day Private Walking Tour - Time: 10:00 am - 2:00 pm - Meeting point: Guide will meet you in the Hotel Reception - Includes: Private guide, Bergen Brygge, Tickets to Fløybanen, cinnamon buns - Description: Experience the best of Bergen in one day on a guided tour covering the city’s top historic and cultural highlights. Explore Bryggen and Bergenhus Fortress on foot, visit the Bryggens Museum, stroll through Bergen’s historic neighbourhoods, ride the Fløibanen funicular for scenic views, and end the day with delicious cinnamon buns.
+Day 5	Leisure	17.11.2026		Bergen Spend time at leisure
+				
+Day 6	Transfer	18.11.2026		Bergen: Private transfer to Bergen Airport
+Day 6	Flight	18.11.2026		Bergen: Flight to Tromsø - Time: 07:50 am - 09:55 am - Luggage included: 1 x 23 kg check in and 1 x 8 kg carry on per person
+Day 6	Transfer	18.11.2026		Tromsø: Private transfer to your accommodation
+Day 6	Hotel	18.11.2026	20.11.2026	Tromsø: Check in to your accommodation for a 2 night stay - Quality Hotel Saga - 3 x Standard Double, 1 x Family Room - Breakfast included
+Day 6	Activity	18.11.2026		Tromsø: Tromsø Private City Tour - Time: 12:00 am - 4:00 pm - Meeting point: Hotel pick up - Includes: Tromsø city tour, private guide, private vehcile, Fjellheisen Cable Car, Arctic Cathedral, Polar Museum
+Day 6	Leisure	18.11.2026		Tromsø Spend time at leisure
+Day 6	Activity	18.11.2026		Tromsø: Private Northern Lights Tour by Minibus - Time: 6:30 pm - 1:30 am - Meeting point: Hotel Pick up - Includes: Pick-up/drop-off in central Tromsø, Thermal suits to keep you warm, Professional photography, Delicious food and drinks - Description: Experience the magic of the Arctic night on a private Northern Lights tour tailored to your preferences. With hotel pick-up, a comfortable minibus, and a dedicated driver-guide, you’ll travel away from city lights to the best viewing locations while enjoying a flexible, personal, and unforgettable aurora-hunting experience.
+				
+Day 7	Activity	19.11.2026		Tromsø: Reindeer Sledding, Reindeer Feeding and Sami Culture with lunch - Time: 10:00 am - 2:30 pm - Meeting point: Pick up is at 9.45am in front of Radisson Blu hotel - Includes: 50 minutes of scenic transfer to camp and back to the city, Feeding our reindeer, 20 minute sled ride in a raid, Traditional lunch with Bidos (or a vegan option and gluten free option), bread, margarine, cookies, hot cocoa, coffee and tea, A 30 minute introduction on Sami culture given by an authentic Sami guide, Snowsuits, boot covers, hats, mittens 
+Day 7	Leisure	19.11.2026		Tromsø Spend time at leisure
+Day 7	Activity	19.11.2026		Tromsø: Private Northern Lights Tour by Minibus - Time: 6:30 pm - 1:30 am - Meeting point: Hotel Pick up - Includes: Pick-up/drop-off in central Tromsø, Thermal suits to keep you warm, Professional photography, Delicious food and drinks - Description: Experience the magic of the Arctic night on a private Northern Lights tour tailored to your preferences. With hotel pick-up, a comfortable minibus, and a dedicated driver-guide, you’ll travel away from city lights to the best viewing locations while enjoying a flexible, personal, and unforgettable aurora-hunting experience.
+				
+Day 8	Transfer	20.11.2026		Tromsø: Private transfer to Tromsø Airport
+Day 8	Departure	20.11.2026		Tromsø: Departure home

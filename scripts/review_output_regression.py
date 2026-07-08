@@ -45,7 +45,7 @@ def review_fixture(path: Path = DEFAULT_FIXTURE) -> dict[str, Any]:
     day5_text = _day_text(days.get("Day 5")) if days.get("Day 5") else ""
     if "rest of the day is open" in day5_text.lower():
         issues.append("multi_activity_day_false_open_time")
-    if "between arranged experiences" not in day5_text:
+    if "between arranged experiences" not in day5_text and "between the included experiences" not in day5_text:
         issues.append("multi_activity_gap_not_explained")
     if any(bad in full_text for bad in ("Date dependant", "Funicual", "Profesional", "Free wifi")):
         issues.append("supplier_cleanup_regression")

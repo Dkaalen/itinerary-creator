@@ -45,7 +45,7 @@ def render_glance_page(page, story, styles, html_path=None, temp_dir=None):
 
     journey_story = []
     journey_title = page.select_one(".journey-title")
-    add_paragraph(journey_story, journey_title.get_text(" ") if journey_title else "Your Journey Arc", styles["summary_title"], spacer_after=5)
+    add_paragraph(journey_story, journey_title.get_text(" ") if journey_title else "How Your Trip Unfolds", styles["summary_title"], spacer_after=5)
 
     table_rows = []
     header_cells = [clean_text(th.get_text(" ")) for th in page.select(".journey-table th")]

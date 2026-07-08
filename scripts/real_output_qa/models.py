@@ -79,6 +79,7 @@ class CandidateOutputReview:
     trip_title: str
     trip_subtitle: str
     route: str
+    journey_title: str = ""
     journey_arc: tuple[dict[str, str], ...] = ()
     days: tuple[DayOutputSnapshot, ...] = ()
     included: tuple[str, ...] = ()

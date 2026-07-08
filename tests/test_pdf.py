@@ -218,7 +218,7 @@ def test_summary_background_tint_keeps_artwork_visible():
                 f'<div class="a4-page summary-page" data-cover-background-path="{background_path}">'
                 '<div class="glance-card"><div class="glance-title">Your Trip at a Glance</div>'
                 '<div class="glance-row"><div class="glance-label">Duration</div><div class="glance-value">8 days</div></div></div>'
-                '<div class="journey-arc"><div class="journey-title">Your Journey Arc</div>'
+                '<div class="journey-arc"><div class="journey-title">How Your Trip Unfolds</div>'
                 '<table class="journey-table"><thead><tr><th>Chapter</th><th>Days</th><th>What You’ll Experience</th></tr></thead>'
                 '<tbody><tr><td>Helsinki</td><td>1</td><td>Arrival</td></tr></tbody></table></div>'
                 '</div></body></html>'

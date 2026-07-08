@@ -58,8 +58,8 @@ def test_pdf_editor_commit_has_bounded_wait_state():
     nonce = request_pdf_editor_commit(state, now=10.0)
 
     assert state[PDF_COMMIT_REQUESTED_AT_KEY] == 10.0
-    assert pdf_editor_commit_timed_out(state, now=29.0) is False
-    assert pdf_editor_commit_timed_out(state, now=31.0) is True
+    assert pdf_editor_commit_timed_out(state, now=19.0) is False
+    assert pdf_editor_commit_timed_out(state, now=21.0) is True
 
     state[VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY] = nonce
     state["_visual_editor_export_commit_ready"] = True
@@ -119,6 +119,7 @@ def test_runtime_zip_fallback_download_is_bounded_by_network_timeout():
 
 def test_workflow_pages_surface_recovery_actions_for_commit_timeouts():
     preview_source = read_contract_text("app_modules/preview_step.py")
+    add_pictures_cta_source = read_contract_text("app_modules/add_pictures_cta.py")
     pdf_gate_source = read_contract_text("app_modules/pdf_editor_commit_gate.py")
     picture_source = (
         read_contract_text("app_modules/picture_step.py")
@@ -131,9 +132,10 @@ def test_workflow_pages_surface_recovery_actions_for_commit_timeouts():
         + pdf_gate_source
     )
 
-    assert "workflow_transaction_state" in preview_source
-    assert "Retry save" in preview_source
-    assert "add_pictures_last_error" in preview_source
+    assert "render_add_pictures_cta" in preview_source
+    assert "workflow_transaction_state" in add_pictures_cta_source
+    assert "Retry save" in add_pictures_cta_source
+    assert "add_pictures_last_error" in add_pictures_cta_source
 
     assert "workflow_transaction_state" in picture_source
     assert "Create PDF from last saved version" in picture_source

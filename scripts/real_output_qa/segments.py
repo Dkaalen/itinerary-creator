@@ -28,6 +28,7 @@ def iter_output_segments(context: Any) -> tuple[TextSegment, ...]:
     _append_segment(segments, "cover.trip_title", "trip_title", getattr(context, "trip_title", ""))
     _append_segment(segments, "cover.trip_subtitle", "trip_subtitle", getattr(context, "trip_subtitle", ""))
     _append_segment(segments, "cover.route", "route", getattr(context, "destinations_line", "") or getattr(render_document, "route", ""))
+    _append_segment(segments, "summary.journey_title", "journey_summary_title", getattr(context, "journey_arc_title", ""))
     for index, arc in enumerate(getattr(context, "journey_arc", []) or (), start=1):
         if isinstance(arc, dict):
             _append_segment(segments, f"journey_arc[{index}]", "journey_arc", " · ".join(_clean_text(value) for value in arc.values() if _clean_text(value)))

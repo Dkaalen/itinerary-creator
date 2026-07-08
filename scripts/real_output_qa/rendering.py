@@ -66,6 +66,7 @@ def render_candidate_review(candidate: ExcelFixtureCandidate) -> CandidateOutput
         trip_title=_clean_text(getattr(context, "trip_title", "")),
         trip_subtitle=_clean_text(getattr(context, "trip_subtitle", "")),
         route=_clean_text(getattr(context, "destinations_line", "") or getattr(context.render_document, "route", "")),
+        journey_title=_clean_text(getattr(context, "journey_arc_title", "")),
         journey_arc=tuple(dict(item) for item in getattr(context, "journey_arc", []) or ()),
         days=days,
         included=tuple(_clean_text(item) for item in getattr(context, "whats_included", []) or () if _clean_text(item)),
