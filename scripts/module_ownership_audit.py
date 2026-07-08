@@ -38,6 +38,7 @@ class OwnershipAudit:
     long_functions: tuple[FunctionFinding, ...]
     facade_like_modules: tuple[FileFinding, ...]
     duplicate_rule_hotspots: tuple[FileFinding, ...]
+    facade_importers: dict[str, tuple[str, ...]]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -45,6 +46,7 @@ class OwnershipAudit:
             "long_functions": [asdict(item) for item in self.long_functions],
             "facade_like_modules": [asdict(item) for item in self.facade_like_modules],
             "duplicate_rule_hotspots": [asdict(item) for item in self.duplicate_rule_hotspots],
+            "facade_importers": {key: list(value) for key, value in self.facade_importers.items()},
         }
 
 
@@ -82,12 +84,34 @@ def run_audit(root: Path = ROOT, *, file_line_limit: int = 450, function_line_li
                 function_lines = int(node.end_lineno or node.lineno) - int(node.lineno) + 1
                 if function_lines >= function_line_limit:
                     long_functions.append(FunctionFinding(rel, node.name, function_lines, int(node.lineno)))
+    sorted_facades = tuple(sorted(facades, key=lambda item: (item.file)))
     return OwnershipAudit(
         overworked_files=tuple(sorted(overworked, key=lambda item: (-item.line_count, item.file))),
         long_functions=tuple(sorted(long_functions, key=lambda item: (-item.line_count, item.file, item.name))),
-        facade_like_modules=tuple(sorted(facades, key=lambda item: (item.file))),
+        facade_like_modules=sorted_facades,
         duplicate_rule_hotspots=tuple(sorted(duplicate_hotspots, key=lambda item: (-item.line_count, item.file))),
+        facade_importers=_facade_importers(root, sorted_facades),
     )
+
+
+def _module_name_for_rel(rel: str) -> str:
+    return rel.removesuffix(".py").replace("/", ".")
+
+
+def _facade_importers(root: Path, facades: tuple[FileFinding, ...]) -> dict[str, tuple[str, ...]]:
+    modules = {_module_name_for_rel(item.file): item.file for item in facades}
+    if not modules:
+        return {}
+    importers: dict[str, list[str]] = {item.file: [] for item in facades}
+    for path in iter_python_files(root):
+        rel = path.relative_to(root).as_posix()
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for module, facade_file in modules.items():
+            if rel == facade_file:
+                continue
+            if f"import {module}" in text or f"from {module} import" in text:
+                importers[facade_file].append(rel)
+    return {facade: tuple(sorted(paths)) for facade, paths in importers.items()}
 
 
 def _looks_like_facade(text: str) -> bool:
@@ -125,6 +149,8 @@ def write_markdown(audit: OwnershipAudit, path: Path) -> None:
     lines.extend(_table_files(audit.facade_like_modules[:80]))
     lines.extend(["", "## Duplicate rule hotspots", ""])
     lines.extend(_table_files(audit.duplicate_rule_hotspots[:60]))
+    lines.extend(["", "## Facade importers", ""])
+    lines.extend(_table_facade_importers(audit.facade_importers))
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
@@ -133,6 +159,15 @@ def _table_files(items: tuple[FileFinding, ...] | list[FileFinding]) -> list[str
     lines.extend(f"| `{item.file}` | {item.line_count} | {item.concern} |" for item in items)
     if len(lines) == 2:
         lines.append("| — | — | — |")
+    return lines
+
+
+def _table_facade_importers(importers: dict[str, tuple[str, ...]]) -> list[str]:
+    lines = ["| Facade | Importers |", "|---|---:|"]
+    for facade, paths in sorted(importers.items()):
+        lines.append(f"| `{facade}` | {len(paths)} |")
+    if len(lines) == 2:
+        lines.append("| — | — |")
     return lines
 
 

@@ -6,13 +6,13 @@
       "concern": "large_module"
     },
     {
-      "file": "place_alias_data.py",
-      "line_count": 746,
+      "file": "scripts/test_groups.py",
+      "line_count": 796,
       "concern": "large_module"
     },
     {
-      "file": "scripts/test_groups.py",
-      "line_count": 722,
+      "file": "place_alias_data.py",
+      "line_count": 746,
       "concern": "large_module"
     },
     {
@@ -70,24 +70,6 @@
       "start_line": 63
     },
     {
-      "file": "pdf_exporter_modules/pdf_style_base.py",
-      "name": "make_base_styles",
-      "line_count": 146,
-      "start_line": 11
-    },
-    {
-      "file": "itinerary_generation/day_planner.py",
-      "name": "plan_day",
-      "line_count": 144,
-      "start_line": 75
-    },
-    {
-      "file": "itinerary_generation/day_facts.py",
-      "name": "build_day_facts",
-      "line_count": 141,
-      "start_line": 89
-    },
-    {
       "file": "parser_modules/parser_main.py",
       "name": "parse_itinerary",
       "line_count": 134,
@@ -110,12 +92,6 @@
       "name": "run_benchmark",
       "line_count": 131,
       "start_line": 61
-    },
-    {
-      "file": "itinerary_generation/activity_description_helpers.py",
-      "name": "get_activity_description",
-      "line_count": 130,
-      "start_line": 132
     },
     {
       "file": "itinerary_generation/day_render_block_ordering.py",
@@ -211,11 +187,6 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/activity_description_helpers.py",
-      "line_count": 261,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/title_cleanup.py",
       "line_count": 235,
       "concern": "inline_regex_or_replacement_rules"
@@ -256,6 +227,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "itinerary_generation/activity_description_helpers.py",
+      "line_count": 168,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/content_validator.py",
       "line_count": 167,
       "concern": "inline_regex_or_replacement_rules"
@@ -276,6 +252,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 134,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "text_polish_modules/titles.py",
       "line_count": 126,
       "concern": "inline_regex_or_replacement_rules"
@@ -293,11 +274,6 @@
     {
       "file": "itinerary_generation/description_sources.py",
       "line_count": 107,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 103,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -345,5 +321,113 @@
       "line_count": 22,
       "concern": "inline_regex_or_replacement_rules"
     }
-  ]
+  ],
+  "facade_importers": {
+    "itinerary_parser.py": [
+      "app_modules/parse_workflow.py",
+      "itinerary_generation/time_display.py",
+      "scripts/benchmark_text_cleanup.py",
+      "scripts/debug_day_brain.py",
+      "scripts/real_output_qa/rendering.py",
+      "scripts/review_day_brain_outputs.py",
+      "scripts/review_output_regression.py",
+      "scripts/vipin_corpus/parser_runner.py",
+      "tests/rendered_pdf_quality.py",
+      "tests/test_accommodation_stress_fixtures.py",
+      "tests/test_activity_catalogue_and_qa_regression.py",
+      "tests/test_activity_catalogue_hardening_quality_gate.py",
+      "tests/test_activity_compound_stress_fixtures.py",
+      "tests/test_activity_cruise_classification.py",
+      "tests/test_activity_product_fingerprints_quality_gate.py",
+      "tests/test_activity_training_catalogue_regression.py",
+      "tests/test_architecture_consolidation.py",
+      "tests/test_broad_logic_stress_regressions.py",
+      "tests/test_calculator_to_itinerary_input.py",
+      "tests/test_client_output_quality_regression.py",
+      "tests/test_client_sanitizer_default_images_regression.py",
+      "tests/test_compound_experience_transport_timing.py",
+      "tests/test_content_classification_priority.py",
+      "tests/test_corpus_driven_parser_fixes_regression.py",
+      "tests/test_cover_background_selection.py",
+      "tests/test_day_brain_proof_hardening.py",
+      "tests/test_day_sub_brains.py",
+      "tests/test_destination_route_journey_intelligence.py",
+      "tests/test_finland_source_fidelity_regression.py",
+      "tests/test_finland_transport_regressions.py",
+      "tests/test_fixture_hardening_quality_gate.py",
+      "tests/test_group_tour_domain_regression.py",
+      "tests/test_group_tour_rendering_regression.py",
+      "tests/test_iceland_group_tour_parsing_regression.py",
+      "tests/test_inclusions_preview_accommodation_transport_followups.py",
+      "tests/test_leisure_arrival_metadata_cleanup.py",
+      "tests/test_messy_transport_safety_net.py",
+      "tests/test_nordic_quality_sample.py",
+      "tests/test_norway_coastal_cruise_transfer_regression.py",
+      "tests/test_norway_source_fidelity_quality_gate.py",
+      "tests/test_nutshell_characterization_regression.py",
+      "tests/test_nutshell_consumer_parity_regression.py",
+      "tests/test_nutshell_domain_regression.py",
+      "tests/test_optional_commercial_safety.py",
+      "tests/test_output_layout_contract.py",
+      "tests/test_output_quality_and_images_regression.py",
+      "tests/test_output_quality_engine_regression.py",
+      "tests/test_premium_optional_output.py",
+      "tests/test_premium_output_regression_followup.py",
+      "tests/test_preview_pdf_group_tours_regression.py",
+      "tests/test_preview_pdf_parity.py",
+      "tests/test_qc_input_img_pdf_combined_regression.py",
+      "tests/test_real_fixture_quality_gate.py",
+      "tests/test_regressions_content_basics.py",
+      "tests/test_regressions_fixture_quality.py",
+      "tests/test_regressions_layout_preview.py",
+      "tests/test_regressions_parser_normalizer.py",
+      "tests/test_regressions_pdf_inclusions.py",
+      "tests/test_regressions_transport_cruise.py",
+      "tests/test_regressions_travel_text.py",
+      "tests/test_regressions_ui_boundaries.py",
+      "tests/test_render_document_source_of_truth.py",
+      "tests/test_self_drive_pdf_preview_parity.py",
+      "tests/test_source_fidelity_quality_gate.py",
+      "tests/test_stress_logic_followups.py",
+      "tests/test_tallinn_excursion_wording_quality_gate.py",
+      "tests/test_transport_preview_quality_regression.py",
+      "tests/test_vipin_messy_excel_rows_regression.py",
+      "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+      "tests/tools/quality_report.py"
+    ],
+    "parser_modules/common.py": [
+      "itinerary_generation/day_intro_orchestrator.py",
+      "itinerary_generation/route_intelligence.py",
+      "itinerary_generation/transport_domain/routes.py",
+      "itinerary_parser.py",
+      "parser_modules/city_inference.py",
+      "parser_modules/date_fields.py",
+      "parser_modules/detail_extractors.py",
+      "parser_modules/effective_type_detection.py",
+      "parser_modules/extract_inclusions.py",
+      "parser_modules/extract_meeting_point.py",
+      "parser_modules/extract_time.py",
+      "parser_modules/hotel_parser_details.py",
+      "parser_modules/hotel_parser_meals.py",
+      "parser_modules/hotel_parser_rooms.py",
+      "parser_modules/list_parsing.py",
+      "parser_modules/parser_main.py",
+      "parser_modules/raw_row_context.py",
+      "parser_modules/row_builder.py",
+      "parser_modules/row_enrichment.py",
+      "parser_modules/row_text_standardization.py",
+      "parser_modules/rows.py",
+      "parser_modules/time_duration.py",
+      "parser_modules/time_finders.py",
+      "parser_modules/time_normalize.py",
+      "parser_modules/time_tokens.py",
+      "parser_modules/title_cleanup.py"
+    ],
+    "pdf_exporter_modules/images.py": [],
+    "scripts/vipin_excel_corpus.py": [
+      "scripts/golden_input_inventory.py",
+      "tests/test_vipin_excel_corpus_runner_regression.py",
+      "tests/test_vipin_full_corpus_fixture.py"
+    ]
+  }
 }

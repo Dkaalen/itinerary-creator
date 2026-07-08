@@ -8,7 +8,7 @@ from reportlab.lib.styles import ParagraphStyle
 from pdf_exporter_modules import pdf_style_tokens as tokens
 
 
-def make_base_styles(base):
+def _page_and_body_styles(base):
     return {
         "page_title": ParagraphStyle(
             "page_title",
@@ -65,6 +65,11 @@ def make_base_styles(base):
             spaceBefore=10,
             spaceAfter=5,
         ),
+    }
+
+
+def _editor_styles(base):
+    return {
         "editor_small_note": ParagraphStyle(
             "editor_small_note",
             parent=base["Normal"],
@@ -127,6 +132,11 @@ def make_base_styles(base):
             spaceBefore=4,
             spaceAfter=6,
         ),
+    }
+
+
+def _bullet_styles(base):
+    return {
         "bullet": ParagraphStyle(
             "bullet",
             parent=base["Normal"],
@@ -154,3 +164,11 @@ def make_base_styles(base):
             spaceAfter=0,
         ),
     }
+
+
+def make_base_styles(base):
+    styles = {}
+    styles.update(_page_and_body_styles(base))
+    styles.update(_editor_styles(base))
+    styles.update(_bullet_styles(base))
+    return styles

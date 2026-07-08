@@ -86,34 +86,40 @@ class DayFacts:
         return self.route_origins[0] if self.route_origins else ""
 
 
-def build_day_facts(
-    rows: Sequence[Mapping[str, Any]] | None,
-    *,
-    visit_context: object | None = None,
-) -> DayFacts:
-    """Return normalized day facts without making prose decisions."""
 
-    main_rows = tuple(row for row in (rows or []) if isinstance(row, Mapping) and not is_optional_row(dict(row)))
-    row_types = tuple(get_row_type(dict(row)) for row in main_rows)
-    timeline_events = normalize_day_events(main_rows)
-    accommodation_state = build_accommodation_state(timeline_events)
-    travel_load = classify_travel_load(timeline_events)
-    schedule_profile = build_schedule_facts(main_rows)
-    all_text = " ".join(row_text(row) for row in main_rows).lower()
-    signals = scan_day_row_signals(main_rows)
+@dataclass(frozen=True)
+class _DayCityContext:
+    primary_city: str
+    arrival_city: str
+    departure_city: str
+    overnight_city: str
+    onward_destination: str
+    end_city: str
+    start_city: str
+    main_city: str
+    transit_cities: tuple[str, ...]
 
-    primary_city = canonical_city(get_primary_city([dict(row) for row in main_rows]))
+
+@dataclass(frozen=True)
+class _DayPatternFlags:
+    has_only_leisure_rows: bool
+    travel_heavy: bool
+    full_leisure_day: bool
+    partial_leisure_day: bool
+    cruise_onboard_day: bool
+    same_city_accommodation_change: bool
+
+
+def _build_city_context(main_rows, signals, *, primary_city: str) -> _DayCityContext:
     arrival_city = arrival_departure_city(
         main_rows, "Arrival", direction="arrival", primary_city=primary_city, route_origins=signals.route_origins
     )
     departure_city = arrival_departure_city(main_rows, "Departure", direction="departure", primary_city=primary_city)
-
     overnight_city = signals.hotel_cities[-1] if signals.hotel_cities else ""
     onward_destination = signals.route_destinations[-1] if signals.route_destinations else ""
     end_city = overnight_city or onward_destination or (signals.activity_cities[-1] if signals.activity_cities else "") or primary_city
     start_city = signals.route_origins[0] if signals.route_origins else arrival_city or primary_city or (signals.city_sequence[0] if signals.city_sequence else "")
     main_city = overnight_city or onward_destination or primary_city or start_city
-
     transit_cities = transit_cities_for(
         city_sequence=signals.city_sequence,
         end_city=end_city,
@@ -121,7 +127,20 @@ def build_day_facts(
         hotel_cities=signals.hotel_cities,
         activity_cities=signals.activity_cities,
     )
+    return _DayCityContext(
+        primary_city=primary_city,
+        arrival_city=arrival_city,
+        departure_city=departure_city,
+        overnight_city=overnight_city,
+        onward_destination=onward_destination,
+        end_city=end_city,
+        start_city=start_city,
+        main_city=main_city,
+        transit_cities=transit_cities,
+    )
 
+
+def _build_day_pattern_flags(main_rows, signals, *, all_text: str, primary_city: str, travel_load, accommodation_state) -> _DayPatternFlags:
     route_count = len(signals.route_destinations)
     non_leisure_rows = [row for row in main_rows if not is_blank_activity_or_leisure(row)]
     has_only_leisure_rows = bool(main_rows) and not non_leisure_rows
@@ -153,7 +172,6 @@ def build_day_facts(
         and not signals.has_overnight_transport
         and (has_only_leisure_rows or "onboard" in all_text or "at leisure" in all_text)
     )
-
     same_city_accommodation_change = bool(
         accommodation_state.same_city_change
         or (
@@ -167,10 +185,49 @@ def build_day_facts(
             and not signals.has_departure
         )
     )
+    return _DayPatternFlags(
+        has_only_leisure_rows=has_only_leisure_rows,
+        travel_heavy=travel_heavy,
+        full_leisure_day=full_leisure_day,
+        partial_leisure_day=partial_leisure_day,
+        cruise_onboard_day=cruise_onboard_day,
+        same_city_accommodation_change=same_city_accommodation_change,
+    )
 
+def build_day_facts(
+    rows: Sequence[Mapping[str, Any]] | None,
+    *,
+    visit_context: object | None = None,
+) -> DayFacts:
+    """Return normalized day facts without making prose decisions."""
+
+    main_rows = tuple(row for row in (rows or []) if isinstance(row, Mapping) and not is_optional_row(dict(row)))
+    row_types = tuple(get_row_type(dict(row)) for row in main_rows)
+    timeline_events = normalize_day_events(main_rows)
+    accommodation_state = build_accommodation_state(timeline_events)
+    travel_load = classify_travel_load(timeline_events)
+    schedule_profile = build_schedule_facts(main_rows)
+    all_text = " ".join(row_text(row) for row in main_rows).lower()
+    signals = scan_day_row_signals(main_rows)
+
+    primary_city = canonical_city(get_primary_city([dict(row) for row in main_rows]))
+    city_context = _build_city_context(main_rows, signals, primary_city=primary_city)
+    pattern_flags = _build_day_pattern_flags(
+        main_rows,
+        signals,
+        all_text=all_text,
+        primary_city=primary_city,
+        travel_load=travel_load,
+        accommodation_state=accommodation_state,
+    )
     visit_facts = build_visit_facts(visit_context)
     confirmed_check_in = _confirmed_check_in(
-        signals.has_accommodation, same_city_accommodation_change, signals.has_arrival, overnight_city, all_text, accommodation_state
+        signals.has_accommodation,
+        pattern_flags.same_city_accommodation_change,
+        signals.has_arrival,
+        city_context.overnight_city,
+        all_text,
+        accommodation_state,
     )
     confirmed_check_out = _confirmed_check_out(signals.has_accommodation, signals.has_departure, all_text, accommodation_state)
 
@@ -189,14 +246,14 @@ def build_day_facts(
         route_destinations=tuple(signals.route_destinations),
         hotel_cities=tuple(signals.hotel_cities),
         activity_cities=tuple(signals.activity_cities),
-        start_city=start_city,
-        end_city=end_city,
-        main_city=main_city,
-        arrival_city=arrival_city,
-        departure_city=departure_city,
-        overnight_city=overnight_city,
-        onward_destination=onward_destination,
-        transit_cities=transit_cities,
+        start_city=city_context.start_city,
+        end_city=city_context.end_city,
+        main_city=city_context.main_city,
+        arrival_city=city_context.arrival_city,
+        departure_city=city_context.departure_city,
+        overnight_city=city_context.overnight_city,
+        onward_destination=city_context.onward_destination,
+        transit_cities=city_context.transit_cities,
         has_arrival=signals.has_arrival,
         has_departure=signals.has_departure,
         has_activity=signals.has_activity,
@@ -208,17 +265,17 @@ def build_day_facts(
         has_ferry=signals.has_ferry,
         has_cruise=signals.has_cruise,
         has_leisure_row=signals.has_leisure_row,
-        has_only_leisure_rows=has_only_leisure_rows,
+        has_only_leisure_rows=pattern_flags.has_only_leisure_rows,
         has_local_transfer=signals.has_local_transfer,
         has_overnight_transport=signals.has_overnight_transport,
         confirmed_check_in=confirmed_check_in,
         confirmed_check_out=confirmed_check_out,
-        same_city_accommodation_change=same_city_accommodation_change,
+        same_city_accommodation_change=pattern_flags.same_city_accommodation_change,
         return_visit=visit_facts.return_visit,
-        travel_heavy=travel_heavy,
-        full_leisure_day=full_leisure_day,
-        partial_leisure_day=partial_leisure_day,
-        cruise_onboard_day=cruise_onboard_day,
+        travel_heavy=pattern_flags.travel_heavy,
+        full_leisure_day=pattern_flags.full_leisure_day,
+        partial_leisure_day=pattern_flags.partial_leisure_day,
+        cruise_onboard_day=pattern_flags.cruise_onboard_day,
         source_flags=frozenset(source_flags),
         timeline_events=timeline_events,
         accommodation_state=accommodation_state,

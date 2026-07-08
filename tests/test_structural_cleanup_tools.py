@@ -101,3 +101,33 @@ def test_test_group_hygiene_moves_core_quality_modules_out_of_full_only() -> Non
     assert "tests/test_transport_domain_regression.py" not in full_only
     assert "tests/test_code_cleanup_hygiene_regression.py" not in full_only
     assert report["full_only_test_module_count"] <= 75
+
+def test_activity_description_helpers_delegate_keyword_rules() -> None:
+    from itinerary_generation.activity_description_helpers import get_activity_description
+
+    assert get_activity_description({"title": "Whale watching", "city": "Tromsø"}).startswith("Join a whale watching")
+    assert "Tromsø" in get_activity_description({"title": "Whale watching", "city": "Tromsø"})
+
+
+def test_day_planner_keeps_split_decision_helpers_behavior() -> None:
+    from itinerary_generation.day_planner import plan_day
+
+    plan = plan_day([{"type": "Activity", "title": "Guided walking tour", "city": "Oslo"}])
+    assert plan.pattern == "single_activity_day"
+    assert plan.skip_empty_activity_rows is True
+
+
+def test_test_group_hygiene_covers_all_current_modules_without_duplicates() -> None:
+    report = build_report()
+    assert report["full_only_test_module_count"] == 0
+    assert report["duplicate_group_entry_count"] == 0
+
+
+def test_module_ownership_audit_reports_facade_importer_counts(tmp_path: Path) -> None:
+    (tmp_path / "facade.py").write_text("from target import *  # noqa: F401,F403\n__all__ = []\n", encoding="utf-8")
+    (tmp_path / "target.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (tmp_path / "consumer.py").write_text("from facade import VALUE\n", encoding="utf-8")
+
+    audit = run_audit(tmp_path, file_line_limit=999, function_line_limit=999)
+
+    assert audit.facade_importers["facade.py"] == ("consumer.py",)

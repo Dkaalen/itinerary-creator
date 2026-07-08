@@ -28,6 +28,25 @@ def grouped_test_files() -> set[str]:
     return files
 
 
+def duplicate_group_entries() -> dict[str, list[str]]:
+    """Return test modules listed more than once in the same named group."""
+
+    duplicates: dict[str, list[str]] = {}
+    for group_name, group in GROUPS.items():
+        seen: set[str] = set()
+        repeated: list[str] = []
+        for item in group:
+            normalized = _normalize(item)
+            if not (normalized.startswith("tests/") and normalized.endswith(".py")):
+                continue
+            if normalized in seen and normalized not in repeated:
+                repeated.append(normalized)
+            seen.add(normalized)
+        if repeated:
+            duplicates[group_name] = sorted(repeated)
+    return duplicates
+
+
 def all_test_files() -> set[str]:
     return {_normalize(path.relative_to(ROOT)) for path in (ROOT / "tests").glob("test_*.py")}
 
@@ -37,13 +56,16 @@ def build_report() -> dict[str, object]:
     grouped = grouped_test_files()
     full_only = sorted(all_files - grouped)
     stale_group_entries = sorted(path for path in grouped - all_files if path.startswith("tests/"))
+    duplicates = duplicate_group_entries()
     return {
         "all_test_module_count": len(all_files),
         "grouped_test_module_count": len(grouped & all_files),
         "full_only_test_module_count": len(full_only),
         "stale_group_entry_count": len(stale_group_entries),
+        "duplicate_group_entry_count": sum(len(items) for items in duplicates.values()),
         "full_only_test_modules": full_only,
         "stale_group_entries": stale_group_entries,
+        "duplicate_group_entries": duplicates,
     }
 
 
@@ -58,6 +80,7 @@ def write_markdown(report: dict[str, object], path: Path) -> None:
         f"* grouped test modules: {report['grouped_test_module_count']}",
         f"* full-only test modules: {report['full_only_test_module_count']}",
         f"* stale group entries: {report['stale_group_entry_count']}",
+        f"* duplicate group entries: {report['duplicate_group_entry_count']}",
         "",
         "## Full-only test modules",
         "",
@@ -71,6 +94,13 @@ def write_markdown(report: dict[str, object], path: Path) -> None:
     stale = report["stale_group_entries"]
     if isinstance(stale, list) and stale:
         lines.extend(f"* `{item}`" for item in stale)
+    else:
+        lines.append("None.")
+    lines.extend(["", "## Duplicate group entries", ""])
+    duplicates = report["duplicate_group_entries"]
+    if isinstance(duplicates, dict) and duplicates:
+        for group_name, items in duplicates.items():
+            lines.append(f"* `{group_name}`: " + ", ".join(f"`{item}`" for item in items))
     else:
         lines.append("None.")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -89,7 +119,8 @@ def main() -> int:
     print(f"Wrote {args.markdown_output}")
     print(
         f"test groups: grouped={report['grouped_test_module_count']}/{report['all_test_module_count']} "
-        f"full_only={report['full_only_test_module_count']} stale={report['stale_group_entry_count']}"
+        f"full_only={report['full_only_test_module_count']} stale={report['stale_group_entry_count']} "
+        f"duplicates={report['duplicate_group_entry_count']}"
     )
     return 0
 

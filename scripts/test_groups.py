@@ -77,7 +77,12 @@ PARSER_TESTS = (
     "tests/test_supplier_review_workflow_regression.py",
     "tests/test_supplier_correction_workflow_regression.py",
     "tests/test_accept_supplier_corrections_regression.py",
-    "tests/test_copy1_premium_day_intro_engine.py",
+    "tests/test_copy1_premium_day_intro_engine.py",    "tests/test_vipin_excel_corpus_runner_regression.py",
+    "tests/test_vipin_messy_excel_rows_regression.py",
+    "tests/test_corpus_driven_parser_fixes_regression.py",
+    "tests/test_qc_input_img_pdf_combined_regression.py",
+    "tests/test_qc_input_pdf_style_image_regression.py",
+
 )
 
 ACTIVITY_TESTS = (
@@ -165,7 +170,10 @@ ARCHITECTURE_TESTS = (
     "tests/test_code_cleanup_hygiene_regression.py",
     "tests/test_generation_architecture_cleanup.py",
     "tests/test_parser_architecture_cleanup.py",
-    "tests/test_workspace_debloat_regression.py",
+    "tests/test_workspace_debloat_regression.py",    "tests/test_legacy_cleanup_regression.py",
+    "tests/test_pytest_marker_discipline.py",
+    "tests/test_render_context_cache.py",
+
 )
 
 EDITOR_TESTS = (
@@ -193,7 +201,21 @@ EDITOR_TESTS = (
     "tests/test_nutshell_consumer_parity_regression.py",
     "tests/test_finland_source_fidelity_regression.py",
     "tests/test_group_tour_rendering_regression.py",
-    "tests/test_client_readiness_export_gate_regression.py",
+    "tests/test_client_readiness_export_gate_regression.py",    "tests/test_editor_block_inspector.py",
+    "tests/test_editor_design_polish.py",
+    "tests/test_editor_editing_coverage.py",
+    "tests/test_editor_field_inspector.py",
+    "tests/test_editor_layout_inspector.py",
+    "tests/test_editor_manual_templates.py",
+    "tests/test_editor_ordering_controls.py",
+    "tests/test_editor_page_contract.py",
+    "tests/test_editor_page_management.py",
+    "tests/test_editor_readiness_panel.py",
+    "tests/test_editor_save_recovery_polish.py",
+    "tests/test_editor_sidebar_bloat_guards.py",
+    "tests/test_editor_source_compare_restore.py",
+    "tests/test_visual_editor_image_payload_cache.py",
+
 )
 
 IMAGE_TESTS = (
@@ -225,7 +247,10 @@ IMAGE_TESTS = (
     "tests/test_destination_route_journey_intelligence.py",
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_image_qa1_service_aware_matching.py",
-    "tests/test_itinerary_wide_image_assignment.py",
+    "tests/test_itinerary_wide_image_assignment.py",    "tests/test_image_bank_shared_fallback_logic.py",
+    "tests/test_image_bank_status_cache.py",
+    "tests/test_picture_module_regressions.py",
+
 )
 
 UI_TESTS = (
@@ -262,7 +287,17 @@ UI_TESTS = (
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_copy1_premium_day_intro_engine.py",
     "tests/test_client_readiness_export_gate_regression.py",
-    "tests/test_brand1_proposal_profiles.py",
+    "tests/test_brand1_proposal_profiles.py",    "tests/test_app_header_design_reset.py",
+    "tests/test_design_system_regression.py",
+    "tests/test_itinerary_health_report.py",
+    "tests/test_loading_loop_recovery.py",
+    "tests/test_project_file_ui_facade.py",
+    "tests/test_scroll_regression.py",
+    "tests/test_ui22_qc4_arc1_scroll_and_quality.py",
+    "tests/test_generation_settings_and_preview_split.py",
+    "tests/test_cover_background_selection.py",
+    "tests/test_optimization_product_batch_foundation.py",
+
 )
 
 DAY_BRAIN_TESTS = (
@@ -312,7 +347,25 @@ QUALITY_TESTS = (
     "tests/test_transport_domain_regression.py",
     "tests/test_transport_preview_quality_regression.py",
     "tests/test_transport_render_split.py",
-    "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
+    "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",    "tests/test_real_output_text_review.py",
+    "tests/test_nordic_quality_sample.py",
+    "tests/test_scandinavian_winter_quality_regressions.py",
+    "tests/test_finland_messy_input_fidelity.py",
+    "tests/test_group_tour_master_rows.py",
+    "tests/test_accommodation_stress_fixtures.py",
+    "tests/test_fixture_hardening_quality_gate.py",
+    "tests/test_persistent_qa_report_quality_gate.py",
+    "tests/test_source_fidelity_commercial_status_regression.py",
+    "tests/test_corpus_driven_parser_fixes_regression.py",
+    "tests/test_vipin_excel_corpus_runner_regression.py",
+    "tests/test_vipin_messy_excel_rows_regression.py",
+    "tests/test_activity_training_fixture_hygiene.py",
+    "tests/test_itinerary_name_baseline_regression.py",
+    "tests/test_itinerary_stability_fidelity_repair.py",
+    "tests/test_optional_commercial_safety.py",
+    "tests/test_regressions_layout_preview.py",
+    "tests/test_stress_logic_followups.py",
+
 )
 
 PDF_TESTS = (
@@ -339,7 +392,21 @@ PDF_TESTS = (
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_pdf8_luxury_day_layout.py",
     "tests/test_destination_copy_profiles3_regression.py",
-    "tests/test_brand1_proposal_profiles.py",
+    "tests/test_brand1_proposal_profiles.py",    "tests/test_booknordics_preview_pdf_parity_polish.py",
+    "tests/test_pdf_day_layout_regression.py",
+    "tests/test_pdf_editor_commit_gate.py",
+    "tests/test_pdf_export_canva_like_flow.py",
+    "tests/test_pdf_export_job_state.py",
+    "tests/test_pdf_artifact_state.py",
+    "tests/test_output_brand_theme.py",
+    "tests/test_export_debloat_and_dm_sans.py",
+    "tests/test_single_pipeline_brand_export_stability.py",
+    "tests/test_export_readiness_ui.py",
+    "tests/test_booknordics_cover_contrast_speed.py",
+    "tests/test_pdf_commit_fast_delta.py",
+    "tests/test_pdf_cover_page_shared.py",
+    "tests/test_regressions_layout_preview.py",
+
 )
 
 
@@ -382,7 +449,14 @@ STORAGE_TESTS = (
     "tests/test_saved_project_hardening_regression.py",
     "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_project_browser_state.py",
-    "tests/test_project_cloud_lifecycle_hardening.py",
+    "tests/test_project_cloud_lifecycle_hardening.py",    "tests/test_backlog_storage_decision_regression.py",
+    "tests/test_local_draft_delta_regression.py",
+    "tests/test_saved_project_contract.py",
+    "tests/test_saved_project_rebuild_path_regression.py",
+    "tests/test_local_library_config_sources.py",
+    "tests/test_local_library_editor.py",
+    "tests/test_local_library_page_foundation.py",
+
 )
 
 WORKFLOW_TESTS = (
