@@ -7,7 +7,8 @@ import re
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_row_selectors import _all_text, _text
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
-from itinerary_generation.transport import get_transport_route_phrase, get_route_points_for_transport
+from itinerary_generation.transport import get_transport_route_phrase
+from itinerary_generation.transport_domain.route_summary import transport_destination_from_row
 from place_aliases import country_for_place
 from text_polish import polish_client_text, polish_title
 
@@ -49,7 +50,7 @@ def travel_sequence_title(rows: list[dict], city: str) -> str:
     if len(main_route_rows) == 1:
         main_row = main_route_rows[0]
         main_text = _text(main_row).lower()
-        _, route_destination = get_route_points_for_transport(main_row)
+        route_destination = transport_destination_from_row(main_row)
         if re.search(r"\b(?:coastal\s+cruise|cruise\s+transfer|fjord\s+lounge)\b", main_text):
             return _transport_title(main_route_rows)
         if route_destination and polish_title(route_destination).lower() != polish_title(city).lower():
@@ -68,7 +69,7 @@ def travel_sequence_title(rows: list[dict], city: str) -> str:
 def _destination_from_transport(rows: list[dict]) -> str:
     for row in rows:
         if get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transfer", "Transport"}:
-            _, dest = get_route_points_for_transport(row)
+            dest = transport_destination_from_row(row)
             if dest:
                 return polish_title(dest)
     return ""
@@ -92,13 +93,13 @@ def _transport_title(rows: list[dict]) -> str:
             phrase = get_transport_route_phrase(row)
             if phrase:
                 if row_type == "Cruise" and row.get("is_render_only") and "arrival" in phrase.lower():
-                    _, destination = get_route_points_for_transport(row)
+                    destination = transport_destination_from_row(row)
                     destination = polish_title(destination)
                     if destination:
                         destination = re.sub(r"\s+Port$", "", destination, flags=re.IGNORECASE).strip()
                         return f"Arrival in {destination}"
                 if row_type == "Train" and "norway in a nutshell" not in row_text.lower():
-                    _, destination = get_route_points_for_transport(row)
+                    destination = transport_destination_from_row(row)
                     if destination:
                         if "overnight" in row_text.lower():
                             return f"Overnight train to {polish_title(destination)}"

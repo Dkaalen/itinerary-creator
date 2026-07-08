@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_optional_row
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.transport_detection import is_route_transfer
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 from itinerary_generation.transport_safety import base_destination_from_terminal
 from place_aliases import canonicalize_place_name
 from shared.source_rows import source_row_id
@@ -81,7 +81,7 @@ def _best_city_from_phrase(value: str, *, prefer_suffix: bool = False) -> str:
     return ""
 
 
-def _fallback_route_points(text: str) -> tuple[str, str]:
+def _fallback_transport_endpoints(text: str) -> tuple[str, str]:
     place = r"[A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ .\'-]+?"
     matches = list(re.finditer(rf"\b(?P<origin>{place})\s+to\s+(?P<destination>{place})(?:\s+-|\s+\||,|$)", text))
     if not matches:
@@ -90,15 +90,15 @@ def _fallback_route_points(text: str) -> tuple[str, str]:
     return _best_city_from_phrase(match.group("origin"), prefer_suffix=True), _best_city_from_phrase(match.group("destination"))
 
 
-def _route_points(row: Mapping[str, Any], row_type: str) -> tuple[str, str]:
+def _transport_endpoints(row: Mapping[str, Any], row_type: str) -> tuple[str, str]:
     if row_type not in _TRANSPORT_TYPES:
         return "", ""
     if row_type == "Transfer" and not is_route_transfer(dict(row)):
         return "", ""
-    origin, destination = get_route_points_for_transport(dict(row))
+    origin, destination = transport_endpoints_from_row(dict(row))
     origin_city, destination_city = canonical_event_city(origin), canonical_event_city(destination)
     if (not origin_city or not destination_city) and row_type != "Transfer":
-        fallback_origin, fallback_destination = _fallback_route_points(source_text_for_event(row))
+        fallback_origin, fallback_destination = _fallback_transport_endpoints(source_text_for_event(row))
         origin_city = origin_city or fallback_origin
         destination_city = destination_city or fallback_destination
     return origin_city, destination_city
@@ -209,7 +209,7 @@ def normalize_day_events(rows: Sequence[Mapping[str, Any]] | None) -> tuple[Time
         row_type = get_row_type(row)
         text = source_text_for_event(row)
         lower = text.lower()
-        origin, destination = _route_points(row, row_type)
+        origin, destination = _transport_endpoints(row, row_type)
         is_route = bool(destination or origin) and row_type in _TRANSPORT_TYPES and not (row_type == "Transfer" and not is_route_transfer(row))
         kind = _event_kind(row_type, text, is_route=is_route)
         is_local = kind == "local_transfer"

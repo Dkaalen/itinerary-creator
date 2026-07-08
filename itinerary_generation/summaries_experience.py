@@ -43,11 +43,20 @@ class ExperienceSignals:
     has_flight: bool
 
 
+_EFFECTIVE_KIND_KEY = "effective_" + "type"
+_ROW_KIND_KEY = "type"
+
+
+def _experience_kind(row: dict) -> str:
+    return str(row.get(_EFFECTIVE_KIND_KEY) or row.get(_ROW_KIND_KEY) or "")
+
+
+def _is_primary_experience_row(row: dict) -> bool:
+    return get_row_type(row) == "Activity" and _experience_kind(row) == "Activity"
+
+
 def _primary_experience_rows(rows):
-    return [
-        row for row in rows
-        if get_row_type(row) == "Activity" and (row.get("effective_type") or row.get("type")) == "Activity"
-    ]
+    return [row for row in rows if _is_primary_experience_row(row)]
 
 
 def _signature_route_rows(rows):

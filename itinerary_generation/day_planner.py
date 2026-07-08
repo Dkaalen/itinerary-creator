@@ -37,7 +37,7 @@ from itinerary_generation.titles import create_day_title
 from itinerary_generation.title_brain import write_day_title
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport import has_airport_arrival_transfer, has_airport_departure_transfer
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.route_summary import has_transport_endpoints, transport_endpoints_from_row
 from itinerary_generation.transport_domain.titles import get_primary_transport_title
 from text_polish import polish_title
 
@@ -93,7 +93,7 @@ def _build_day_plan_context(rows: list[dict]) -> _DayPlanContext:
         get_row_type(row) in {"Train", "Flight", "Cruise", "Ferry", "Transport"}
         or (
             get_row_type(row) == "Transfer"
-            and all(get_route_points_for_transport(row))
+            and has_transport_endpoints(row)
             and not has_airport_departure_transfer([row])
         )
         for row in travel_rows
@@ -237,9 +237,9 @@ def _single_activity_plan(rows: list[dict], ctx: _DayPlanContext) -> DayPlan:
 def _travel_only_or_hotel_plan(rows: list[dict], ctx: _DayPlanContext) -> DayPlan | None:
     if ctx.travel_rows:
         primary_transport_title = get_primary_transport_title(rows)
-        has_single_route_transfer = len(ctx.travel_rows) == 1 and get_row_type(ctx.travel_rows[0]) == "Transfer" and all(get_route_points_for_transport(ctx.travel_rows[0]))
+        has_single_route_transfer = len(ctx.travel_rows) == 1 and get_row_type(ctx.travel_rows[0]) == "Transfer" and has_transport_endpoints(ctx.travel_rows[0])
         if has_single_route_transfer and primary_transport_title:
-            origin, destination = get_route_points_for_transport(ctx.travel_rows[0])
+            origin, destination = transport_endpoints_from_row(ctx.travel_rows[0])
             intro = f"After check-out, take your arranged transfer from {origin} to {destination} for your onward journey."
             return DayPlan("travel_day", primary_transport_title, intro, suppress_free_time=True, consolidate_travel=True)
         title = primary_transport_title if primary_transport_title and primary_transport_title.lower().startswith("journey to") else (travel_sequence_title(rows, ctx.city) or _transport_title(rows))

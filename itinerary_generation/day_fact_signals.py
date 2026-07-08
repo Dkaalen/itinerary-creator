@@ -9,7 +9,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.day_accommodation_facts import ACCOMMODATION_WORDS, is_accommodation_change_row
 from itinerary_generation.day_city_facts import add_unique_city, canonical_city, row_text
 from itinerary_generation.day_leisure_facts import has_leisure_markers, is_blank_activity_or_leisure
-from itinerary_generation.day_travel_facts import OVERNIGHT_MARKERS, TRAVEL_ROW_TYPES, is_local_transfer, route_points
+from itinerary_generation.day_travel_facts import OVERNIGHT_MARKERS, TRAVEL_ROW_TYPES, is_local_transfer, transport_endpoints
 
 
 @dataclass
@@ -102,7 +102,7 @@ def _scan_route_transport(row: Mapping[str, Any], *, row_type: str, lower_text: 
     if row_type not in TRAVEL_ROW_TYPES:
         return
 
-    origin, destination = route_points(row)
+    origin, destination = transport_endpoints(row)
     if origin:
         add_unique_city(signals.route_origins, origin)
         add_unique_city(signals.city_sequence, origin)

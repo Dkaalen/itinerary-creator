@@ -219,3 +219,34 @@ def test_test_suite_audit_writes_handover_reports(tmp_path: Path) -> None:
 
     assert md_path.exists()
     assert json_path.exists()
+
+
+def test_parser_generation_audit_keeps_route_owner_allowlist_specific(tmp_path: Path) -> None:
+    from scripts.parser_generation_ownership_audit import build_report
+
+    owner = tmp_path / "itinerary_generation" / "route_intelligence.py"
+    consumer = tmp_path / "itinerary_generation" / "day_title_planner.py"
+    owner.parent.mkdir(parents=True)
+    owner.write_text(
+        "from itinerary_generation.transport_domain.routes import get_route_points_for_transport\n"
+        "def owned(row):\n    return get_route_points_for_transport(row)\n",
+        encoding="utf-8",
+    )
+    consumer.write_text(
+        "from itinerary_generation.transport_domain.routes import get_route_points_for_transport\n"
+        "def consumer(row):\n    return get_route_points_for_transport(row)\n",
+        encoding="utf-8",
+    )
+
+    report = build_report(tmp_path)
+
+    assert report.signal_count == 2
+    assert {signal.path for signal in report.signals} == {"itinerary_generation/day_title_planner.py"}
+
+
+def test_shared_client_text_repair_is_used_by_transport_safety() -> None:
+    from itinerary_generation.transport_safety import repair_messy_client_text as transport_repair
+    from shared.client_text_repair import repair_messy_client_text
+
+    assert transport_repair is repair_messy_client_text
+    assert repair_messy_client_text("Private bustation tranfer from Tromso") == "Private Bus Station transfers from Tromsø"

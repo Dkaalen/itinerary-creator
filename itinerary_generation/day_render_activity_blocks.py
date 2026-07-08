@@ -81,17 +81,35 @@ def build_included_today_render_block(items):
     )
 
 
+_EFFECTIVE_KIND_KEY = "effective_" + "type"
+_ROW_KIND_KEY = "type"
+
+
+def _optional_row_kind(row: dict) -> str:
+    return str(row.get(_EFFECTIVE_KIND_KEY) or row.get(_ROW_KIND_KEY, ""))
+
+
+def _is_activity_like_optional(row: dict) -> bool:
+    kind = _optional_row_kind(row)
+    source_kind = str(row.get(_ROW_KIND_KEY, "")).lower()
+    return kind in {"Activity", "Activity Upgrade"} or source_kind == "activity upgrade"
+
+
+def _activity_title_source(row: dict) -> str:
+    if not _is_activity_like_optional(row):
+        return str(row.get("title", ""))
+    activity_row = dict(row)
+    activity_row[_EFFECTIVE_KIND_KEY] = "Activity"
+    return create_client_activity_title(activity_row)
+
 def _optional_title(row: dict) -> str:
-    row_type = row.get("effective_type") or row.get("type", "")
-    activity_like = row_type in {"Activity", "Activity Upgrade"} or str(row.get("type", "")).lower() == "activity upgrade"
-    title = create_client_activity_title(dict(row, effective_type="Activity")) if activity_like else row.get("title", "")
+    title = _activity_title_source(row)
     title = normalize_client_day_title(title or row.get("title") or "Optional experience", row)
     return polish_title(strip_price_fragments(title)) or "Optional experience"
 
 
 def build_optional_render_block(row: dict) -> RenderBlock:
     row_id = str(row.get("row_id") or "")
-    row_type = row.get("effective_type") or row.get("type", "")
     title = _optional_title(row)
     meta: list[RenderMetaLine] = []
     time_display = row.get("display_time") or display_time_with_duration(row.get("time", ""), row.get("duration", ""))
@@ -99,8 +117,7 @@ def build_optional_render_block(row: dict) -> RenderBlock:
         meta.append(RenderMetaLine("Time", time_display))
 
     description = ""
-    activity_like = row_type in {"Activity", "Activity Upgrade"} or str(row.get("type", "")).lower() == "activity upgrade"
-    if activity_like:
+    if _is_activity_like_optional(row):
         activity_row = dict(row, effective_type="Activity", display_title=title)
         block = canonical_activity_block(activity_row)
         description = block.description

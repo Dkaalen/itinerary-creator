@@ -19,7 +19,7 @@ from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import ItineraryDocument
 from shared.source_rows import source_row_id
 from itinerary_generation.titles import create_destinations_line, create_trip_subtitle, create_trip_title
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.route_summary import transport_destination_from_row
 
 
 def _row_id(row: Mapping[str, object], fallback_index: int = 0) -> str:
@@ -58,7 +58,7 @@ def _synthetic_overnight_cruise_arrival_rows(parsed_rows, rendered: OrderedDict)
         next_key = _next_render_day_key(rendered, row.get("day"))
         if next_key is None:
             continue
-        _, destination = get_route_points_for_transport(row)
+        destination = transport_destination_from_row(row)
         destination = str(destination or "").strip()
         if not destination:
             continue

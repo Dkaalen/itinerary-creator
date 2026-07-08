@@ -16,7 +16,7 @@ from normalizer_modules.transport_title import normalize_transport_title
 from itinerary_generation.activity_products import fingerprint_activity
 from itinerary_generation.nutshell_domain import attach_nutshell_journey,is_nutshell_row
 from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
-from itinerary_generation.transport_safety import repair_messy_client_text
+from shared.client_text_repair import repair_messy_client_text
 
 TRANSPORT_TYPES={"Transport","Train","Flight","Cruise","Ferry"}
 

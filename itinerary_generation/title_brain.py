@@ -15,7 +15,7 @@ from itinerary_generation.day_facts import DayFacts, build_day_facts
 from itinerary_generation.day_intent import DayIntent, classify_day_intent
 from itinerary_generation.schedule_brain import DayScheduleProfile, build_day_schedule_profile
 from itinerary_generation.transport import get_primary_transport_title
-from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.route_summary import transport_destination_from_row
 from place_aliases import country_for_place
 from text_polish import polish_title
 
@@ -55,7 +55,7 @@ def _multi_activity_title(activity_rows: Sequence[Mapping[str, object]]) -> str:
 def _route_destination(rows: Sequence[Mapping[str, object]], facts: DayFacts) -> str:
     for row in rows or []:
         if get_row_type(dict(row)) in {"Train", "Flight", "Cruise", "Ferry", "Transport", "Coach", "Bus"}:
-            _origin, destination = get_route_points_for_transport(dict(row))
+            destination = transport_destination_from_row(dict(row))
             if destination:
                 return polish_title(destination)
     return polish_title(facts.route_destination or facts.end_city or facts.main_city)

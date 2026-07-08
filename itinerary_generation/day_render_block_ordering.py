@@ -92,6 +92,76 @@ def _departure_transfer_row(row: dict, rows) -> dict:
     return row
 
 
+def _append_departure_row_block(blocks: list, row: dict, context: dict) -> None:
+    generic_departure = re.search(r"^(departure|departure\s+day|departure\s+home|journey\s+home)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+    if not generic_departure:
+        blocks.append(build_departure_render_block(row))
+
+
+def _append_day_overview_row_block(blocks: list, row: dict, context: dict) -> None:
+    if context["has_activity"] and _is_group_tour_overview_row(row):
+        return
+    block = build_day_overview_render_block(row)
+    if block:
+        blocks.append(block)
+
+
+def _append_car_row_block(blocks: list, row: dict, context: dict) -> None:
+    block = build_day_overview_render_block(row)
+    if block:
+        blocks.append(block)
+
+
+def _append_hotel_row_block(blocks: list, row: dict, context: dict) -> None:
+    blocks.append(render_block_from_canonical(canonical_accommodation_block(row)))
+
+
+def _append_arrival_row_block(blocks: list, row: dict, context: dict) -> None:
+    generic_arrival = re.search(r"^(arrival|welcome\s+to\s+.+)$", str(row.get("title", "")).strip(), flags=re.IGNORECASE)
+    if not generic_arrival:
+        blocks.append(build_arrival_render_block(row))
+
+
+def _append_group_tour_row_block(blocks: list, row: dict, context: dict) -> None:
+    block = build_group_tour_day_render_block(row)
+    if block:
+        blocks.append(block)
+
+
+def _append_activity_row_block(blocks: list, row: dict, context: dict) -> None:
+    if _is_blank_activity_row(row):
+        return
+    pickup_range = context["group_tour_start_time"]
+    if pickup_range and not row.get("time"):
+        row = dict(row)
+        row["group_tour_pickup_range"] = pickup_range
+    blocks.append(render_block_from_canonical(canonical_activity_block(row)))
+
+
+def _append_leisure_row_block(blocks: list, row: dict, context: dict) -> None:
+    if context["day_plan"].suppress_free_time:
+        return
+    blocks.append(build_leisure_render_block(row, context["main_rows"]))
+
+
+def _ignore_regular_row_block(blocks: list, row: dict, context: dict) -> None:
+    return
+
+
+_REGULAR_ROW_BLOCK_HANDLERS = {
+    "Departure": _append_departure_row_block,
+    "Day Overview": _append_day_overview_row_block,
+    "Car": _append_car_row_block,
+    "Hotel": _append_hotel_row_block,
+    "Arrival": _append_arrival_row_block,
+    "Group Tour": _append_group_tour_row_block,
+    "Activity": _append_activity_row_block,
+    "Leisure": _append_leisure_row_block,
+    "Notes": _ignore_regular_row_block,
+    "Note": _ignore_regular_row_block,
+}
+
+
 def _append_regular_row_block(
     blocks: list,
     *,
@@ -102,52 +172,42 @@ def _append_regular_row_block(
     has_activity: bool,
     group_tour_start_time: str,
 ) -> None:
-    row_type = get_row_type(row)
-    title = row.get("title", "")
-
-    if row_type == "Departure":
-        generic_departure = re.search(r"^(departure|departure\s+day|departure\s+home|journey\s+home)$", str(title).strip(), flags=re.IGNORECASE)
-        if not generic_departure:
-            blocks.append(build_departure_render_block(row))
-    elif row_type == "Day Overview":
-        if has_activity and _is_group_tour_overview_row(row):
-            return
-        block = build_day_overview_render_block(row)
-        if block:
-            blocks.append(block)
-    elif row_type == "Car":
-        block = build_day_overview_render_block(row)
-        if block:
-            blocks.append(block)
-    elif row_type == "Hotel":
-        blocks.append(render_block_from_canonical(canonical_accommodation_block(row)))
-    elif row_type == "Arrival":
-        generic_arrival = re.search(r"^(arrival|welcome\s+to\s+.+)$", str(title).strip(), flags=re.IGNORECASE)
-        if not generic_arrival:
-            blocks.append(build_arrival_render_block(row))
-    elif row_type == "Group Tour" or row.get("group_tour_role") == "day_segment":
-        block = build_group_tour_day_render_block(row)
-        if block:
-            blocks.append(block)
-    elif row_type == "Activity":
-        if _is_blank_activity_row(row):
-            return
-        if group_tour_start_time and not row.get("time"):
-            row = dict(row)
-            row["group_tour_pickup_range"] = group_tour_start_time
-        blocks.append(render_block_from_canonical(canonical_activity_block(row)))
-    elif row_type == "Leisure":
-        if day_plan.suppress_free_time:
-            return
-        blocks.append(build_leisure_render_block(row, main_rows))
-    elif row_type in {"Notes", "Note"}:
+    context = {
+        "rows": rows,
+        "main_rows": main_rows,
+        "day_plan": day_plan,
+        "has_activity": has_activity,
+        "group_tour_start_time": group_tour_start_time,
+    }
+    handler = _REGULAR_ROW_BLOCK_HANDLERS.get(get_row_type(row))
+    if handler:
+        handler(blocks, row, context)
         return
-    elif is_cruise_leisure_row(row):
+    if row.get("group_tour_role") == "day_segment":
+        _append_group_tour_row_block(blocks, row, context)
+        return
+    if is_cruise_leisure_row(row):
         blocks.append(build_cruise_leisure_render_block(row))
-    elif title:
+        return
+    title = row.get("title", "")
+    if title:
         included_block = build_included_today_render_block([polish_title(title)])
         if included_block:
             blocks.append(included_block)
+
+
+def _should_skip_consolidated_row(row: dict) -> bool:
+    return get_row_type(row) == "Leisure" or _is_blank_activity_row(row)
+
+
+def _travel_group_row(row: dict, rows, *, departure_day: bool) -> dict:
+    if departure_day and get_row_type(row) == "Transfer":
+        return _departure_transfer_row(row, rows)
+    return row
+
+
+def _is_hidden_note_row(row: dict) -> bool:
+    return get_row_type(row) in {"Notes", "Note"} and should_hide_note_row(row)
 
 
 def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple[TravelSequence, ...] | None = None):
@@ -190,16 +250,15 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
         if current_row_id in sequence_row_ids:
             continue
 
-        row_type = get_row_type(row)
-        if day_plan.consolidate_travel and (row_type == "Leisure" or _is_blank_activity_row(row)):
+        if day_plan.consolidate_travel and _should_skip_consolidated_row(row):
             continue
 
         if is_travel_sequence_candidate(row):
-            travel_group.append(_departure_transfer_row(row, rows) if departure_day and row_type == "Transfer" else row)
+            travel_group.append(_travel_group_row(row, rows, departure_day=departure_day))
             continue
 
         _flush_travel_group(blocks, travel_group)
-        if row_type in {"Notes", "Note"} and should_hide_note_row(row):
+        if _is_hidden_note_row(row):
             continue
         _append_regular_row_block(
             blocks,

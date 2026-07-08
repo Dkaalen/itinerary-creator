@@ -20,11 +20,6 @@
   ],
   "duplicate_rule_hotspots": [
     {
-      "file": "itinerary_generation/transport_safety.py",
-      "line_count": 328,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/transport_domain/parser.py",
       "line_count": 305,
       "concern": "inline_regex_or_replacement_rules"
@@ -50,6 +45,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "itinerary_generation/transport_safety.py",
+      "line_count": 269,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/activity_inclusions.py",
       "line_count": 263,
       "concern": "inline_regex_or_replacement_rules"
@@ -57,6 +57,11 @@
     {
       "file": "itinerary_generation/inclusion_activities.py",
       "line_count": 263,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 252,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -80,13 +85,8 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 221,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/day_title_planner.py",
-      "line_count": 217,
+      "line_count": 218,
       "concern": "inline_regex_or_replacement_rules"
     },
     {

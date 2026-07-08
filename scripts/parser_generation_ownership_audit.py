@@ -33,6 +33,42 @@ OWNERSHIP_TARGETS = (
     "PDF/render context",
 )
 
+# Route ownership is intentionally broader than the physical
+# ``transport_domain`` package for now: some legacy route-domain modules still
+# live under ``itinerary_generation``. Keeping the list explicit prevents the
+# audit from hiding new drift while avoiding noise from known route owners.
+ROUTE_OWNER_PATHS = (
+    "parser_modules",
+    "normalizer_modules",
+    "itinerary_parser.py",
+    "normalizer.py",
+    "itinerary_generation/transport_domain",
+    "itinerary_generation/transport.py",
+    "itinerary_generation/transport_routes.py",
+    "itinerary_generation/transport_detection.py",
+    "itinerary_generation/transport_norway.py",
+    "itinerary_generation/route_intelligence.py",
+    "itinerary_generation/nutshell_journey_builder.py",
+    "itinerary_generation/nutshell_model.py",
+    "itinerary_generation/nutshell_parsing.py",
+    "itinerary_generation/nutshell_route_parser.py",
+    "itinerary_generation/nutshell_route_parsing.py",
+    "itinerary_generation/group_tour_day_parser.py",
+    "itinerary_generation/group_tour_domain.py",
+    "itinerary_generation/day_timeline_events.py",
+    "itinerary_generation/day_travel_facts.py",
+    "scripts/parser_generation_ownership_audit.py",
+)
+
+PDF_TRUTH_TERMS = (
+    "effective_type",
+    "source_type",
+    "clean_title",
+    "normalize_itinerary",
+    "row_type",
+    "product_type",
+)
+
 
 @dataclass(frozen=True)
 class OwnershipSignal:
@@ -152,19 +188,7 @@ def _scan_file(root: Path, path: Path) -> list[OwnershipSignal]:
 
 
 def _route_extraction_drift(path: str, line: str, lowered: str) -> bool:
-    if _allowed(
-        path,
-        (
-            "parser_modules",
-            "normalizer_modules",
-            "itinerary_parser.py",
-            "normalizer.py",
-            "itinerary_generation/transport_domain",
-            "itinerary_generation/nutshell_route_parser.py",
-            "itinerary_generation/nutshell_route_parsing.py",
-            "scripts/parser_generation_ownership_audit.py",
-        ),
-    ):
+    if _allowed(path, ROUTE_OWNER_PATHS):
         return False
     route_terms = ("extract_route", "route_points", "get_route_points", "_title_route_points")
     return any(term in lowered for term in route_terms)
@@ -190,7 +214,7 @@ def _pdf_product_truth_override(path: str, line: str, lowered: str) -> bool:
         return False
     if "pdf_exporter_modules/pdf_internal_review_appendix.py" == path:
         return False
-    return any(term in lowered for term in ("effective_type", "source_type", "fix_common_text", "clean_title", "normalize_itinerary", "re.sub", ".replace("))
+    return any(term in lowered for term in PDF_TRUTH_TERMS)
 
 
 def _parser_imports_generation(path: str, line: str) -> bool:

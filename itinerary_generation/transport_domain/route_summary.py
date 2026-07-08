@@ -20,6 +20,30 @@ from parser_modules.common import extract_route_points
 from text_polish import polish_title
 
 
+def transport_endpoints_from_row(row: Mapping[str, object]) -> tuple[str, str]:
+    """Return raw origin/destination endpoint facts for one transport row.
+
+    This is the public consumer-facing endpoint API for generator/planner
+    modules.  The lower-level route parser stays inside the transport domain.
+    """
+
+    return get_route_points_for_transport(dict(row))
+
+
+def transport_destination_from_row(row: Mapping[str, object]) -> str:
+    """Return the raw destination endpoint for one transport row."""
+
+    _origin, destination = transport_endpoints_from_row(row)
+    return destination
+
+
+def has_transport_endpoints(row: Mapping[str, object]) -> bool:
+    """Return true when a row has both origin and destination endpoints."""
+
+    origin, destination = transport_endpoints_from_row(row)
+    return bool(origin and destination)
+
+
 def summarize_route_from_rows(day_rows: Sequence[Mapping[str, object]]) -> tuple[str, str, str]:
     """Return origin, destination and main mode for route-led day intros."""
 
@@ -154,5 +178,8 @@ __all__ = [
     "destination_city_from_travel_rows",
     "infer_route_endpoints_from_title",
     "infer_travel_mode_from_title",
+    "has_transport_endpoints",
     "summarize_route_from_rows",
+    "transport_destination_from_row",
+    "transport_endpoints_from_row",
 ]

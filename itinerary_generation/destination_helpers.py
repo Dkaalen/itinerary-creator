@@ -136,10 +136,10 @@ def destination_cities_for_row(row: dict) -> list[str]:
     row_type = get_row_type(row)
     if row_type == "Transfer":
         from itinerary_generation.transport_detection import is_route_transfer
-        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+        from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 
         if is_route_transfer(row):
-            origin, destination = get_route_points_for_transport(row)
+            origin, destination = transport_endpoints_from_row(row)
             add_city(origin)
             add_city(destination)
             if cities:
@@ -151,9 +151,9 @@ def destination_cities_for_row(row: dict) -> list[str]:
         # Import lazily: transport route extraction depends on the common facade,
         # which in turn re-exports this destination module. Lazy import keeps the
         # boundary acyclic at module-import time.
-        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+        from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 
-        origin, destination = get_route_points_for_transport(row)
+        origin, destination = transport_endpoints_from_row(row)
         add_city(origin)
         add_city(destination)
     elif row_type == "Transfer":
@@ -162,10 +162,10 @@ def destination_cities_for_row(row: dict) -> list[str]:
         # genuinely intercity route transport (for example a supplier coach
         # transfer entered under the generic Transfer type).
         from itinerary_generation.transport_detection import is_route_transfer
-        from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+        from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 
         if is_route_transfer(row):
-            origin, destination = get_route_points_for_transport(row)
+            origin, destination = transport_endpoints_from_row(row)
             add_city(origin)
             add_city(destination)
 
