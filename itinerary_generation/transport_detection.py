@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import re
+
 from itinerary_generation.common_constants import TRANSPORT_TYPES
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.row_filters import get_row_type, is_self_arranged
 from itinerary_generation.transport_model import has_local_transfer_marker
 from itinerary_generation.transport_domain.routes import _route_destination_from_text, get_route_points_for_transport
 from itinerary_generation.transport_safety import base_destination_from_terminal
+
+
+def _airport_base(value: str) -> str:
+    place = base_destination_from_terminal(value) or str(value or "")
+    return re.sub(r"\s+Airport$", "", place, flags=re.IGNORECASE).strip(" .,-|:")
 
 
 def is_route_transfer(row):
@@ -24,8 +31,13 @@ def is_route_transfer(row):
 
     # Local hotel/airport/station shuttles should stay local logistics, but an
     # explicit place-to-airport shuttle such as Kakslauttanen to Ivalo Airport is
-    # a real route transfer and may own the final trip endpoint.
+    # a real route transfer and may own the final trip endpoint. Same-city
+    # airport transfers such as Oslo to Oslo Airport stay departure logistics.
     if has_local_transfer_marker(lower):
+        origin_base = _airport_base(origin)
+        destination_base = _airport_base(raw_destination)
+        if origin_base and destination_base and origin_base.casefold() == destination_base.casefold():
+            return False
         if (
             raw_destination
             and "airport" in raw_destination.lower()

@@ -179,8 +179,13 @@ def _scheduled_activity_intro(facts: DayFacts) -> str:
     city = _main_city(facts) or "the area"
     first = schedule.first_activity_title or "the first included experience"
     last = schedule.last_activity_title or "the later included experience"
+    source_text = " ".join(row_text(row) for row in facts.rows)
+    combined_title = f"{first} and {last}" if first != last else first
     if schedule.has_morning_activity and schedule.has_evening_activity:
         return f"Today combines {first} with {last} later on, leaving the time between the arranged experiences flexible around the schedule."
+    composed_intro = client_activity_intro(combined_title, city, source_text)
+    if "main arranged experience" not in composed_intro:
+        return composed_intro
     return f"Today includes multiple arranged experiences in {city}, with the timing and details listed below."
 
 def _arrival_onward_intro(facts: DayFacts) -> str:
@@ -267,6 +272,10 @@ def write_day_intro(facts: DayFacts, intent: DayIntent | None = None) -> str:
         activity_text = _activity_intro(facts)
         if facts.has_arrival:
             place = city or "the destination"
+            activities = _activity_rows(facts)
+            if activities:
+                title = get_client_activity_phrase(dict(activities[0]))
+                return f"Welcome to {place}. After arrival, the day includes {title}, with the details listed below."
             return f"Arrive in {place} today before the included experience listed below."
         if facts.has_accommodation and city and not facts.return_visit:
             return f"Welcome to {city}. After arrival, the transfer and stay details are listed below before the included experience later today."

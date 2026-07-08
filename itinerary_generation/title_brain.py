@@ -168,6 +168,8 @@ def write_day_title(
                 if "arctic" in hotel_title.lower():
                     return "Arctic Snow Hotel Stay"
                 return f"{polish_title(hotel_title)} Stay"
+        if facts.return_visit and "next accommodation" not in raw_day_text:
+            return f"Return to {city}" if city else "Return Visit"
         return f"Next Stay in {city}" if city else "Next Stay"
     if intent == DayIntent.ARRIVAL_ONWARD_TRAVEL:
         destination = polish_title(facts.onward_destination or facts.end_city or "")

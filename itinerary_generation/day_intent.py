@@ -34,6 +34,8 @@ def classify_day_intent(facts: DayFacts) -> DayIntent:
         return DayIntent.RETURN_VISIT
     if facts.has_arrival and facts.onward_destination and facts.arrival_city and facts.arrival_city.casefold() != facts.onward_destination.casefold():
         return DayIntent.ARRIVAL_ONWARD_TRAVEL
+    if facts.has_arrival and facts.has_activity and (facts.overnight_city or facts.main_city):
+        return DayIntent.ACTIVITY_PLUS_TRAVEL
     if facts.has_arrival and (facts.overnight_city or facts.main_city):
         return DayIntent.ARRIVAL_STAY
     if "arrival_airport_transfer" in facts.source_flags and facts.has_accommodation:

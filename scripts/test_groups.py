@@ -161,6 +161,11 @@ ARCHITECTURE_TESTS = (
     "tests/test_text_cleanup_caching_regression.py",
     "tests/test_text_cleanup_performance_regression.py",
     "tests/test_structural_cleanup_tools.py",
+    "tests/test_arch_cleanup_facades.py",
+    "tests/test_code_cleanup_hygiene_regression.py",
+    "tests/test_generation_architecture_cleanup.py",
+    "tests/test_parser_architecture_cleanup.py",
+    "tests/test_workspace_debloat_regression.py",
 )
 
 EDITOR_TESTS = (
@@ -303,6 +308,11 @@ QUALITY_TESTS = (
     "tests/test_vipin_full_corpus_fixture.py",
     "tests/test_destination_route_journey_intelligence.py",
     "tests/test_destination_qc_and_pagination_regression.py",
+    "tests/test_client_output_quality_regression.py",
+    "tests/test_transport_domain_regression.py",
+    "tests/test_transport_preview_quality_regression.py",
+    "tests/test_transport_render_split.py",
+    "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
 )
 
 PDF_TESTS = (
@@ -314,6 +324,7 @@ PDF_TESTS = (
     "tests/test_pdf_image_export_reliability.py",
     "tests/test_pdf_creation_flow_and_layout_cleanup.py",
     "tests/test_preview_pdf_parity.py",
+    "tests/test_preview_pdf_parity_regression.py",
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_nutshell_cover_toolbar_regression.py",
     "tests/test_nutshell_fjordtours_regression.py",
@@ -385,6 +396,9 @@ WORKFLOW_TESTS = (
     "tests/test_client_readiness_export_gate_regression.py",
     "tests/test_visual_editor_autosave_contract.py",
     "tests/test_visual_editor_typed_draft.py",
+    "tests/test_ci_workflow_guards.py",
+    "tests/test_handoff_zip_workflow.py",
+    "tests/test_workflow_debug_boundary_guards.py",
 )
 
 SLOW_TESTS = (

@@ -58,3 +58,46 @@ def test_transport_facts_extracts_route_without_copy_decisions() -> None:
     assert facts.origin == "Oslo"
     assert facts.destination == "Bergen"
     assert facts.display_route == "Oslo to Bergen"
+
+
+def test_day_facts_builder_uses_split_row_signal_scanner() -> None:
+    from itinerary_generation.day_fact_signals import scan_day_row_signals
+    from itinerary_generation.day_facts import build_day_facts
+
+    rows = [
+        {"type": "Train", "effective_type": "Train", "title": "Train: Oslo to Bergen", "city": "Oslo"},
+        {"type": "Hotel", "effective_type": "Hotel", "title": "Hotel in Bergen", "city": "Bergen"},
+    ]
+    signals = scan_day_row_signals(rows)
+    facts = build_day_facts(rows)
+
+    assert signals.route_origins == ["Oslo"]
+    assert signals.route_destinations == ["Bergen"]
+    assert facts.route_origin == "Oslo"
+    assert facts.route_destination == "Bergen"
+    assert facts.overnight_city == "Bergen"
+
+
+def test_effective_type_priority_helpers_preserve_transport_activity_order() -> None:
+    from parser_modules.effective_type_detection import detect_effective_type
+
+    assert detect_effective_type("Activity", "Arctic Route Coach Transfer", "") == "Transport"
+    assert detect_effective_type("Activity", "Tallinn day excursion", "Guided tour of the old town with ferry logistics") == "Activity"
+    assert detect_effective_type("Transfer", "Overnight train", "Private sleeper compartment on the night train") == "Train"
+
+
+def test_route_point_parser_split_keeps_known_route_patterns() -> None:
+    from parser_modules.place_parsing import extract_route_points
+
+    assert extract_route_points("Train: Oslo to Bergen") == ("Oslo", "Bergen")
+    assert extract_route_points("Day train, Rovaniemi - Helsinki") == ("Rovaniemi", "Helsinki")
+    assert extract_route_points("Flight Bergen o Svolvær self-arranged") == ("Bergen", "Svolvær")
+
+
+def test_test_group_hygiene_moves_core_quality_modules_out_of_full_only() -> None:
+    report = build_report()
+    full_only = set(report["full_only_test_modules"])
+
+    assert "tests/test_transport_domain_regression.py" not in full_only
+    assert "tests/test_code_cleanup_hygiene_regression.py" not in full_only
+    assert report["full_only_test_module_count"] <= 75
