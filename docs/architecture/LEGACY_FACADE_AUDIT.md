@@ -2,9 +2,9 @@
 
 Static report generated from production modules only. Tests and dynamic imports are intentionally excluded, so candidates need human review before deletion.
 
-Production modules scanned: 719
-Facade-like modules: 129
-Modules with no production importers: 94
+Production modules scanned: 711
+Facade-like modules: 121
+Modules with no production importers: 87
 
 ## Facade-like modules
 
@@ -41,11 +41,9 @@ Modules with no production importers: 94
 - `itinerary_generation/day_copy_variation.py` — importers: 1
 - `itinerary_generation/day_intent.py` — importers: 8
 - `itinerary_generation/day_intro_classification.py` — importers: 1
-- `itinerary_generation/day_intro_engine.py` — importers: 3
-- `itinerary_generation/day_intro_engine_core.py` — importers: 0
+- `itinerary_generation/day_intro_engine.py` — importers: 2
 - `itinerary_generation/day_intro_planner.py` — importers: 1
-- `itinerary_generation/day_render_blocks.py` — importers: 6
-- `itinerary_generation/day_render_blocks_core.py` — importers: 0
+- `itinerary_generation/day_render_blocks.py` — importers: 5
 - `itinerary_generation/day_render_manual_html.py` — importers: 2
 - `itinerary_generation/day_render_transport_blocks.py` — importers: 2
 - `itinerary_generation/day_schedule_facts.py` — importers: 1
@@ -63,8 +61,7 @@ Modules with no production importers: 94
 - `itinerary_generation/editable_draft_legacy_bridge.py` — importers: 1
 - `itinerary_generation/editable_draft_model.py` — importers: 3
 - `itinerary_generation/editor_page_contract.py` — importers: 13
-- `itinerary_generation/exclusion_sections.py` — importers: 3
-- `itinerary_generation/exclusion_sections_core.py` — importers: 0
+- `itinerary_generation/exclusion_sections.py` — importers: 2
 - `itinerary_generation/group_tour_domain.py` — importers: 4
 - `itinerary_generation/group_tour_rendering.py` — importers: 9
 - `itinerary_generation/group_tours.py` — importers: 3
@@ -73,21 +70,18 @@ Modules with no production importers: 94
 - `itinerary_generation/input_review.py` — importers: 4
 - `itinerary_generation/itinerary_health_checks.py` — importers: 4
 - `itinerary_generation/nutshell_constants.py` — importers: 4
-- `itinerary_generation/nutshell_domain.py` — importers: 13
-- `itinerary_generation/nutshell_domain_core.py` — importers: 0
+- `itinerary_generation/nutshell_domain.py` — importers: 12
 - `itinerary_generation/nutshell_model.py` — importers: 3
 - `itinerary_generation/product_rules.py` — importers: 6
 - `itinerary_generation/public_api.py` — importers: 0
-- `itinerary_generation/qa_report.py` — importers: 1
-- `itinerary_generation/qa_report_core.py` — importers: 0
+- `itinerary_generation/qa_report.py` — importers: 0
 - `itinerary_generation/quality_gate.py` — importers: 5
 - `itinerary_generation/quality_gate_core.py` — importers: 1
 - `itinerary_generation/structured_builder.py` — importers: 6
 - `itinerary_generation/structured_builder_core.py` — importers: 1
 - `itinerary_generation/structured_days_builder.py` — importers: 2
 - `itinerary_generation/structured_validation.py` — importers: 1
-- `itinerary_generation/summaries.py` — importers: 6
-- `itinerary_generation/summaries_core.py` — importers: 0
+- `itinerary_generation/summaries.py` — importers: 5
 - `itinerary_generation/summaries_text.py` — importers: 2
 - `itinerary_generation/titles.py` — importers: 19
 - `itinerary_generation/transport.py` — importers: 11
@@ -103,11 +97,10 @@ Modules with no production importers: 94
 - `normalizer_modules/core.py` — importers: 0
 - `normalizer_modules/hotel_amenities.py` — importers: 1
 - `normalizer_modules/hotels.py` — importers: 1
-- `normalizer_modules/transport.py` — importers: 0
-- `normalizer_modules/transport_activity_detection.py` — importers: 3
-- `normalizer_modules/transport_rail_fjord.py` — importers: 2
-- `normalizer_modules/transport_title.py` — importers: 2
-- `normalizer_modules/transport_transfer_detection.py` — importers: 2
+- `normalizer_modules/transport_activity_detection.py` — importers: 2
+- `normalizer_modules/transport_rail_fjord.py` — importers: 1
+- `normalizer_modules/transport_title.py` — importers: 1
+- `normalizer_modules/transport_transfer_detection.py` — importers: 1
 - `parser_modules/common.py` — importers: 28
 - `parser_modules/effective_type_detection.py` — importers: 1
 - `parser_modules/extract_meeting_point.py` — importers: 1
@@ -117,7 +110,6 @@ Modules with no production importers: 94
 - `parser_modules/transport_titles.py` — importers: 0
 - `pdf_exporter_modules/__init__.py` — importers: 0
 - `pdf_exporter_modules/image_flowables.py` — importers: 2
-- `pdf_exporter_modules/images.py` — importers: 0
 - `pdf_exporter_modules/pdf_reportlab_config.py` — importers: 1
 - `pdf_exporter_modules/pdf_supported_html_renderer.py` — importers: 2
 - `pdf_exporter_modules/public_api.py` — importers: 0
@@ -174,17 +166,12 @@ Modules with no production importers: 94
 - `itinerary_generation/data/nordic_destination_registry_data/transport.py`
 - `itinerary_generation/day_brain_report.py`
 - `itinerary_generation/day_copy_audit.py`
-- `itinerary_generation/day_intro_engine_core.py`
-- `itinerary_generation/day_render_blocks_core.py`
-- `itinerary_generation/exclusion_sections_core.py`
 - `itinerary_generation/inclusion_sections.py`
 - `itinerary_generation/inclusion_transport.py`
-- `itinerary_generation/nutshell_domain_core.py`
 - `itinerary_generation/public_api.py`
-- `itinerary_generation/qa_report_core.py`
+- `itinerary_generation/qa_report.py`
 - `itinerary_generation/reference_corpus.py`
 - `itinerary_generation/source_identity.py`
-- `itinerary_generation/summaries_core.py`
 - `itinerary_generation/transport_domain/__init__.py`
 - `itinerary_generation/transport_domain/model.py`
 - `itinerary_generation/transport_routes.py`
@@ -192,7 +179,6 @@ Modules with no production importers: 94
 - `itinerary_generation/validation.py`
 - `normalizer_modules/__init__.py`
 - `normalizer_modules/core.py`
-- `normalizer_modules/transport.py`
 - `parser_modules/__init__.py`
 - `parser_modules/parser_main.py`
 - `parser_modules/transport_titles.py`
@@ -202,7 +188,6 @@ Modules with no production importers: 94
 - `pdf_exporter_modules/decorative_flowables.py`
 - `pdf_exporter_modules/exporter.py`
 - `pdf_exporter_modules/image_paths.py`
-- `pdf_exporter_modules/images.py`
 - `pdf_exporter_modules/pdf_style_tokens.py`
 - `pdf_exporter_modules/public_api.py`
 - `pdf_exporter_modules/render_content_blocks.py`

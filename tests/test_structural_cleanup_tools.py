@@ -155,8 +155,6 @@ def test_deletion_candidate_audit_is_handover_only() -> None:
     from scripts.deletion_candidate_audit import build_report
 
     report = build_report()
-    paths = {candidate.path for candidate in report.candidates}
 
-    assert "itinerary_generation/day_intro_engine_core.py" in paths
-    assert all(not candidate.static_importers for candidate in report.candidates)
+    assert report.candidates == ()
     assert any(item.safety_note.startswith("documented public") for item in report.held_back)

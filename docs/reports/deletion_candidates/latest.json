@@ -1,54 +1,5 @@
 {
-  "candidates": [
-    {
-      "path": "itinerary_generation/day_intro_engine_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/day_render_blocks_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/exclusion_sections_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/nutshell_domain_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/qa_report_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/summaries_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "normalizer_modules/transport.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "pdf_exporter_modules/images.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    }
-  ],
+  "candidates": [],
   "held_back": [
     {
       "path": "app_modules/__init__.py",
@@ -721,7 +672,6 @@
       "path": "itinerary_generation/day_intro_engine.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/day_intro_engine_core.py",
         "itinerary_generation/day_intro_planner.py",
         "itinerary_generation/day_text.py",
         "tests/test_architecture_consolidation.py",
@@ -747,7 +697,6 @@
       "path": "itinerary_generation/day_render_blocks.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/day_render_blocks_core.py",
         "itinerary_generation/render_document_builder.py",
         "tests/test_architecture_consolidation.py",
         "tests/test_editor_editing_coverage.py",
@@ -985,7 +934,6 @@
       "path": "itinerary_generation/exclusion_sections.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/exclusion_sections_core.py",
         "itinerary_generation/inclusions.py",
         "itinerary_generation/structured_final_sections.py",
         "tests/test_finland_source_fidelity_regression.py",
@@ -1148,7 +1096,6 @@
       "static_importers": [
         "itinerary_generation/activity_product_rules/norway.py",
         "itinerary_generation/day_planner.py",
-        "itinerary_generation/nutshell_domain_core.py",
         "itinerary_generation/nutshell_labels.py",
         "itinerary_generation/route_intelligence.py",
         "itinerary_generation/summaries_experience.py",
@@ -1199,9 +1146,8 @@
     },
     {
       "path": "itinerary_generation/qa_report.py",
-      "reason": "facade-like module with production importers",
+      "reason": "facade-like module with zero production importers",
       "static_importers": [
-        "itinerary_generation/qa_report_core.py",
         "tests/test_activity_catalogue_and_qa_regression.py",
         "tests/test_generation_architecture_cleanup.py",
         "tests/test_persistent_qa_report_quality_gate.py"
@@ -1320,7 +1266,6 @@
         "app_modules/render_context_summary.py",
         "app_modules/render_context_summary_data.py",
         "itinerary_generation/public_api.py",
-        "itinerary_generation/summaries_core.py",
         "tests/test_architecture_consolidation.py",
         "tests/test_correctness_diagnostics_regression.py",
         "tests/test_enforcement_gaps_regression.py",
@@ -1553,7 +1498,6 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "normalizer_modules/row_normalizer.py",
-        "normalizer_modules/transport.py",
         "normalizer_modules/transport_transfer_detection.py"
       ],
       "safety_note": "still has static importers"
@@ -1562,7 +1506,6 @@
       "path": "normalizer_modules/transport_rail_fjord.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "normalizer_modules/transport.py",
         "normalizer_modules/transport_title.py"
       ],
       "safety_note": "still has static importers"
@@ -1571,8 +1514,7 @@
       "path": "normalizer_modules/transport_title.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "normalizer_modules/row_normalizer.py",
-        "normalizer_modules/transport.py"
+        "normalizer_modules/row_normalizer.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1580,8 +1522,7 @@
       "path": "normalizer_modules/transport_transfer_detection.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "normalizer_modules/row_normalizer.py",
-        "normalizer_modules/transport.py"
+        "normalizer_modules/row_normalizer.py"
       ],
       "safety_note": "still has static importers"
     },

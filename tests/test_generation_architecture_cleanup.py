@@ -32,21 +32,30 @@ RETIRED_ZERO_IMPORT_FACADES = [
     "itinerary_generation.activity_title_normalization",
     "itinerary_generation.activity_title_rules",
     "itinerary_generation.city_experience_classifier",
+    "itinerary_generation.day_intro_engine_core",
+    "itinerary_generation.day_render_blocks_core",
+    "itinerary_generation.debug",
     "itinerary_generation.debug.qa_edit_events",
     "itinerary_generation.debug.qa_report_model",
     "itinerary_generation.debug.qa_report_persist",
     "itinerary_generation.debug.qa_report_render",
     "itinerary_generation.debug.qa_warning_events",
+    "itinerary_generation.exclusion_commercial_items",
+    "itinerary_generation.exclusion_flights",
+    "itinerary_generation.exclusion_formatting",
+    "itinerary_generation.exclusion_sections_core",
+    "itinerary_generation.exclusion_self_transfers",
     "itinerary_generation.image_quality_gate",
     "itinerary_generation.journey_arc_builder",
     "itinerary_generation.legacy_output_edits_bridge",
     "itinerary_generation.nutshell_detection",
+    "itinerary_generation.nutshell_domain_core",
+    "itinerary_generation.qa_report_core",
     "itinerary_generation.render_document_text_scan",
+    "itinerary_generation.summaries_core",
     "itinerary_generation.trip_glance_builder",
-    "itinerary_generation.exclusion_commercial_items",
-    "itinerary_generation.exclusion_flights",
-    "itinerary_generation.exclusion_formatting",
-    "itinerary_generation.exclusion_self_transfers",
+    "normalizer_modules.transport",
+    "pdf_exporter_modules.images",
 ]
 
 
@@ -56,9 +65,16 @@ def test_generation_cleanup_modules_import_without_side_effects():
         assert module.__all__, module_name
 
 
+def _find_spec_or_none(module_name: str):
+    try:
+        return importlib.util.find_spec(module_name)
+    except ModuleNotFoundError:
+        return None
+
+
 def test_zero_import_facades_removed_after_deletion_proof():
     for module_name in RETIRED_ZERO_IMPORT_FACADES:
-        assert importlib.util.find_spec(module_name) is None, module_name
+        assert _find_spec_or_none(module_name) is None, module_name
 
 
 def test_generation_public_facades_keep_existing_entry_points():

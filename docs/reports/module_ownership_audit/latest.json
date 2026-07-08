@@ -13,11 +13,6 @@
       "concern": "facade_like_module"
     },
     {
-      "file": "pdf_exporter_modules/images.py",
-      "line_count": 7,
-      "concern": "facade_like_module"
-    },
-    {
       "file": "scripts/vipin_excel_corpus.py",
       "line_count": 17,
       "concern": "facade_like_module"
@@ -111,7 +106,7 @@
     },
     {
       "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 162,
+      "line_count": 160,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -311,7 +306,6 @@
       "parser_modules/time_tokens.py",
       "parser_modules/title_cleanup.py"
     ],
-    "pdf_exporter_modules/images.py": [],
     "scripts/vipin_excel_corpus.py": [
       "scripts/golden_input_inventory.py",
       "tests/test_vipin_excel_corpus_runner_regression.py",

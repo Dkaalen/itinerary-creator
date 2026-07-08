@@ -98,27 +98,15 @@ TOP_LEVEL_COMPATIBILITY_FACADES = {
 
 
 CLEANED_GENERATION_CORE_FACADES = {
-    "itinerary_generation/day_intro_engine_core.py": 80,
-    "itinerary_generation/day_render_blocks_core.py": 80,
     "itinerary_generation/editable_draft_core.py": 120,
-    "itinerary_generation/exclusion_sections_core.py": 80,
-    "itinerary_generation/nutshell_domain_core.py": 80,
-    "itinerary_generation/qa_report_core.py": 80,
     "itinerary_generation/quality_gate_core.py": 140,
     "itinerary_generation/structured_builder_core.py": 160,
-    "itinerary_generation/summaries_core.py": 80,
 }
 
 GENERATION_CORE_FACADE_MODULES = (
-    "itinerary_generation.day_intro_engine_core",
-    "itinerary_generation.day_render_blocks_core",
     "itinerary_generation.editable_draft_core",
-    "itinerary_generation.exclusion_sections_core",
-    "itinerary_generation.nutshell_domain_core",
-    "itinerary_generation.qa_report_core",
     "itinerary_generation.quality_gate_core",
     "itinerary_generation.structured_builder_core",
-    "itinerary_generation.summaries_core",
 )
 
 GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
