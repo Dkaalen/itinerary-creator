@@ -1,0 +1,39 @@
+{
+  "destination_count": 693,
+  "alias_record_count": 693,
+  "alias_value_count": 1221,
+  "service_phrase_count": 22,
+  "registry_validation_errors": [],
+  "signals": [
+    {
+      "code": "duplicate_alias_value",
+      "severity": "review",
+      "message": "Alias/canonical value appears in more than one place record.",
+      "values": [
+        "Finland/Utö: Uto, Utö",
+        "Sweden/Utö: Uto, Utö"
+      ]
+    },
+    {
+      "code": "service_like_destination_name",
+      "severity": "review",
+      "message": "Destination record contains service/transfer wording; verify it is intentional.",
+      "values": [
+        "Norway",
+        "Tromsø Airport",
+        "airport"
+      ]
+    },
+    {
+      "code": "transit_only_summary",
+      "severity": "info",
+      "message": "Transit/route records are intentionally present but should not become leisure destinations by default.",
+      "values": [
+        "transit_records=31",
+        "airports=22",
+        "routes=9"
+      ]
+    }
+  ],
+  "signal_count": 3
+}

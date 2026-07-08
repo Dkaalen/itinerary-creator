@@ -27,8 +27,8 @@
       }
     },
     "error_count": 0,
-    "warning_count": 1,
-    "average_score": 99.0,
+    "warning_count": 2,
+    "average_score": 98.0,
     "reviews": [
       {
         "fixture": {
@@ -182,24 +182,40 @@
         "trip_subtitle": "A Nordic winter journey with scenic travel and Arctic experiences",
         "route": "Helsinki · Rovaniemi · Tromsø",
         "score": {
-          "score": 100,
+          "score": 95,
           "error_count": 0,
-          "warning_count": 0,
-          "issue_count": 0,
+          "warning_count": 1,
+          "issue_count": 1,
           "ok": true,
-          "issues": []
+          "issues": [
+            {
+              "code": "transport_product_rendered_as_activity",
+              "severity": "warning",
+              "message": "Transport-like product is typed/rendered as an activity.",
+              "location": "Day 7",
+              "excerpt": "Lyngen Alps Crystal Lavvo Stay"
+            }
+          ]
         }
       }
     ]
   },
   "issue_counts": {
-    "repeated_intro_opener": 1
+    "repeated_intro_opener": 1,
+    "transport_product_rendered_as_activity": 1
   },
   "fixtures_with_issues": [
     {
       "fixture_id": "Standard-Itinerary-Iceland.xlsx::7D GTS",
       "codes": [
         "repeated_intro_opener"
+      ],
+      "score": 95
+    },
+    {
+      "fixture_id": "Standard-Itinerary-Finland-Norway.xlsx::1205",
+      "codes": [
+        "transport_product_rendered_as_activity"
       ],
       "score": 95
     }

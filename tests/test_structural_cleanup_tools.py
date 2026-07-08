@@ -158,3 +158,38 @@ def test_deletion_candidate_audit_is_handover_only() -> None:
 
     assert report.candidates == ()
     assert any(item.safety_note.startswith("documented public") for item in report.held_back)
+
+
+def test_parser_generation_ownership_audit_reports_review_signals(tmp_path: Path) -> None:
+    from scripts.parser_generation_ownership_audit import build_report
+
+    source = tmp_path / "itinerary_generation" / "day_render_example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("def render(row):\n    if row.get('effective_type') == 'Train':\n        return row.get('route_origin')\n", encoding="utf-8")
+
+    report = build_report(tmp_path)
+
+    assert report.scanned_files == 1
+    assert report.signal_count >= 1
+    assert "classification_inside_writer_layer" in report.signals_by_rule
+
+
+def test_static_data_hygiene_report_validates_registry() -> None:
+    from scripts.static_data_hygiene import build_report
+
+    report = build_report()
+
+    assert report.destination_count > 100
+    assert report.alias_record_count > 100
+    assert report.registry_validation_errors == ()
+
+
+def test_test_suite_audit_writes_handover_reports(tmp_path: Path) -> None:
+    from scripts.test_suite_audit import build_report, build_report_summary, write_report
+
+    text = build_report()
+    assert build_report_summary(text)["Discovered test modules"] >= 1
+    md_path, json_path = write_report(text, md_path=tmp_path / "latest.md", json_path=tmp_path / "latest.json")
+
+    assert md_path.exists()
+    assert json_path.exists()

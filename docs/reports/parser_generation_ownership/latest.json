@@ -1,0 +1,950 @@
+{
+  "scanned_files": 827,
+  "signal_count": 116,
+  "signals_by_rule": {
+    "classification_inside_writer_layer": 19,
+    "parser_imports_generation_layer": 17,
+    "pdf_layer_product_truth_override": 10,
+    "route_extraction_outside_parser_or_transport_domain": 70
+  },
+  "ownership_targets": [
+    "parser row type",
+    "effective type",
+    "normalized event",
+    "DayFacts",
+    "DayIntent",
+    "DayCopyPlan",
+    "DayRenderModel",
+    "PDF/render context"
+  ],
+  "signals": [
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_fact_signals.py",
+      "line": 12,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.day_travel_facts import OVERNIGHT_MARKERS, TRAVEL_ROW_TYPES, is_local_transfer, route_points"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_fact_signals.py",
+      "line": 105,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = route_points(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_classification.py",
+      "line": 6,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.day_intro_route import _premium_route_intro, _title_route_points, _travel_mode_from_title"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_classification.py",
+      "line": 27,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = _title_route_points(title, city)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_engine.py",
+      "line": 21,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_title_route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_engine.py",
+      "line": 35,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "\"_title_route_points\","
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_orchestrator.py",
+      "line": 43,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "get_route_points_for_transport,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_orchestrator.py",
+      "line": 50,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from parser_modules.common import extract_route_points"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_orchestrator.py",
+      "line": 200,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, route_destination = get_route_points_for_transport(row) if get_row_type(row) in TRANSPORT_TYPES else (\"\", \"\")"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_orchestrator.py",
+      "line": 202,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, route_destination = extract_route_points(get_transfer_travel_title(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 11,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 24,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if row_type not in TRANSPORT_TYPES:"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 28,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if row_type == \"Train\" or \"train\" in row_text:"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 30,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Flight\" or \"flight\" in row_text:"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 32,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Cruise\" or \"cruise\" in row_text:"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 34,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Ferry\" or \"ferry\" in row_text:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 40,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route_origin, route_destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 87,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def _title_route_points(title: str, city: str = \"\") -> tuple[str, str]:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_intro_route.py",
+      "line": 142,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "\"_title_route_points\","
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_planner.py",
+      "line": 40,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_planner.py",
+      "line": 96,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "and all(get_route_points_for_transport(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_planner.py",
+      "line": 240,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "has_single_route_transfer = len(ctx.travel_rows) == 1 and get_row_type(ctx.travel_rows[0]) == \"Transfer\" and all(get_route_points_for_transport(ctx.travel_rows[0]))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_planner.py",
+      "line": 242,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(ctx.travel_rows[0])"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_activity_blocks.py",
+      "line": 87,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "title = create_client_activity_title(dict(row, effective_type=\"Activity\")) if activity_like else row.get(\"title\", \"\")"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 108,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if row_type == \"Departure\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 112,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Day Overview\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 118,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Car\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 122,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Hotel\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 124,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Arrival\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 128,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Group Tour\" or row.get(\"group_tour_role\") == \"day_segment\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 132,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Activity\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 139,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type == \"Leisure\":"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 143,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "elif row_type in {\"Notes\", \"Note\"}:"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 194,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if day_plan.consolidate_travel and (row_type == \"Leisure\" or _is_blank_activity_row(row)):"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 198,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "travel_group.append(_departure_transfer_row(row, rows) if departure_day and row_type == \"Transfer\" else row)"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/day_render_block_ordering.py",
+      "line": 202,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if row_type in {\"Notes\", \"Note\"} and should_hide_note_row(row):"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 12,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 84,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def _fallback_route_points(text: str) -> tuple[str, str]:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 93,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def _route_points(row: Mapping[str, Any], row_type: str) -> tuple[str, str]:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 98,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(dict(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 101,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "fallback_origin, fallback_destination = _fallback_route_points(source_text_for_event(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_timeline_events.py",
+      "line": 212,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = _route_points(row, row_type)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_title_planner.py",
+      "line": 10,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport import get_transport_route_phrase, get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_title_planner.py",
+      "line": 52,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, route_destination = get_route_points_for_transport(main_row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_title_planner.py",
+      "line": 71,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, dest = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_title_planner.py",
+      "line": 95,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_title_planner.py",
+      "line": 101,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_travel_facts.py",
+      "line": 10,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_travel_facts.py",
+      "line": 17,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def route_points(row: Mapping[str, Any]) -> tuple[str, str]:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_travel_facts.py",
+      "line": 25,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(dict(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/day_travel_facts.py",
+      "line": 40,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "__all__ = [\"OVERNIGHT_MARKERS\", \"STATION_WORDS\", \"TRAVEL_ROW_TYPES\", \"is_local_transfer\", \"route_points\"]"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 139,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 142,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 154,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 156,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 165,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/destination_helpers.py",
+      "line": 168,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/group_tour_day_parser.py",
+      "line": 170,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def _route_points(source: str) -> tuple[str, ...]:"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/group_tour_day_parser.py",
+      "line": 212,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "note_route = _route_points(accommodation_note)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/group_tour_day_parser.py",
+      "line": 259,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route = list(_route_points(source))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/group_tour_domain.py",
+      "line": 45,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "line": 18,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "extract_norway_nutshell_route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "line": 120,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "extracted_points = _clean_places(extract_norway_nutshell_route_points(full_source))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "line": 150,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "def _route_points_and_warnings("
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "line": 221,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route_points, route_warnings = _route_points_and_warnings(origin, destination, legs, extracted_points)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "line": 232,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route_points=route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_model.py",
+      "line": 76,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route_points: tuple[str, ...] = ()"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_model.py",
+      "line": 114,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "\"route_points\": list(self.route_points),"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_model.py",
+      "line": 145,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "route_points=_clean_places(value.get(\"route_points\", ())),"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/nutshell_parsing.py",
+      "line": 11,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "extract_norway_nutshell_route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/render_document_builder.py",
+      "line": 22,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/render_document_builder.py",
+      "line": 61,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 18,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 262,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin = journey.origin or (journey.route_points[0] if journey.route_points else row.get(\"city\", \"\"))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 263,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "destination = journey.destination or (journey.route_points[-1] if journey.route_points else \"\")"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 265,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 298,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 301,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from parser_modules.common import extract_route_points"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/route_intelligence.py",
+      "line": 303,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, destination = extract_route_points(get_transfer_travel_title(row))"
+    },
+    {
+      "rule_id": "classification_inside_writer_layer",
+      "severity": "review",
+      "path": "itinerary_generation/summaries_experience.py",
+      "line": 49,
+      "message": "Writer/render layer branches on row classification instead of using prepared plans/facts.",
+      "snippet": "if get_row_type(row) == \"Activity\" and (row.get(\"effective_type\") or row.get(\"type\")) == \"Activity\""
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/title_brain.py",
+      "line": 18,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/title_brain.py",
+      "line": 58,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "_origin, destination = get_route_points_for_transport(dict(row))"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport.py",
+      "line": 38,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "get_route_points_for_transport,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport.py",
+      "line": 72,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "\"get_route_points_for_transport\","
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport_detection.py",
+      "line": 11,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "from itinerary_generation.transport_domain.routes import _route_destination_from_text, get_route_points_for_transport"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport_detection.py",
+      "line": 25,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "origin, raw_destination = get_route_points_for_transport(row)"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport_norway.py",
+      "line": 13,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "extract_norway_nutshell_route_points,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport_routes.py",
+      "line": 12,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "get_route_points_for_transport,"
+    },
+    {
+      "rule_id": "route_extraction_outside_parser_or_transport_domain",
+      "severity": "review",
+      "path": "itinerary_generation/transport_routes.py",
+      "line": 24,
+      "message": "Route extraction signal outside parser/transport-domain ownership.",
+      "snippet": "\"get_route_points_for_transport\","
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/activities.py",
+      "line": 7,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.title_cleanup import clean_client_title"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/activities.py",
+      "line": 9,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/activities.py",
+      "line": 10,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/core.py",
+      "line": 7,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.group_tour_parsing import integrate_group_tour_rows,prepare_group_tour_source_rows"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/core.py",
+      "line": 8,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.group_tours import annotate_group_tour_optional_extras"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/row_normalizer.py",
+      "line": 16,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/row_normalizer.py",
+      "line": 17,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.nutshell_domain import attach_nutshell_journey,is_nutshell_row"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/row_normalizer.py",
+      "line": 18,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/row_normalizer.py",
+      "line": 19,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_safety import repair_messy_client_text"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_activity_detection.py",
+      "line": 7,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_activity_detection.py",
+      "line": 8,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_rail_fjord.py",
+      "line": 5,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_title.py",
+      "line": 7,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_title.py",
+      "line": 8,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_domain.routes import get_route_points_for_transport"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "normalizer_modules/transport_title.py",
+      "line": 9,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_norway import ("
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "parser_modules/common.py",
+      "line": 14,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_domain.parser import *  # noqa: F401,F403"
+    },
+    {
+      "rule_id": "parser_imports_generation_layer",
+      "severity": "risk",
+      "path": "parser_modules/transport_titles.py",
+      "line": 5,
+      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
+      "snippet": "from itinerary_generation.transport_domain.parser import ("
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/cover_page.py",
+      "line": 61,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = str(value or \"\").replace(\"\\r\\n\", \"\\n\").replace(\"\\r\", \"\\n\")"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/cover_page.py",
+      "line": 62,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "parts = [\" \".join(part.split()) for part in text.replace(\" · \", \"\\n\").split(\"\\n\") if \" \".join(part.split())]"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/html_utils.py",
+      "line": 7,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "return \" \".join(str(value).replace(\"\\xa0\", \" \").split()).strip()"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/html_utils.py",
+      "line": 13,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = str(value).replace(\"\\xa0\", \" \")"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/html_utils.py",
+      "line": 27,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = str(value or \"\").replace(\"\\r\\n\", \"\\n\").replace(\"\\r\", \"\\n\")"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/html_utils.py",
+      "line": 28,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "lines = [\" \".join(line.replace(\"\\xa0\", \" \").split()) for line in text.split(\"\\n\")]"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/render_content.py",
+      "line": 17,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "base = re.sub(r\"^time\\s*:\\s*\", \"\", cleaned_time, flags=re.IGNORECASE).strip()"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/render_text.py",
+      "line": 16,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = \"\".join(parts).replace(\"\\xa0\", \" \")"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/story.py",
+      "line": 24,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = str(value).replace(\"\\xa0\", \" \")"
+    },
+    {
+      "rule_id": "pdf_layer_product_truth_override",
+      "severity": "watch",
+      "path": "pdf_exporter_modules/story.py",
+      "line": 32,
+      "message": "PDF layer contains text/product normalization signal; verify it only formats render models.",
+      "snippet": "text = str(value or \"\").replace(\"\\xa0\", \" \")"
+    }
+  ]
+}

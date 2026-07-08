@@ -90,6 +90,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 195,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/activity_description_helpers.py",
       "line_count": 169,
       "concern": "inline_regex_or_replacement_rules"
@@ -102,11 +107,6 @@
     {
       "file": "itinerary_generation/transport_domain/route_cleaning.py",
       "line_count": 163,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 160,
       "concern": "inline_regex_or_replacement_rules"
     },
     {

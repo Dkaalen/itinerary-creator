@@ -9,7 +9,9 @@ coverage just because they use a variable called ``text``.
 
 from __future__ import annotations
 
+import argparse
 import ast
+import json
 import re
 import sys
 from collections import Counter
@@ -20,6 +22,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 TESTS_ROOT = REPO_ROOT / "tests"
+DEFAULT_MD = REPO_ROOT / "docs/reports/test_suite_audit/latest.md"
+DEFAULT_JSON = REPO_ROOT / "docs/reports/test_suite_audit/latest.json"
 
 from scripts.test_groups import (  # noqa: E402
     CRITICAL_TESTS,
@@ -237,8 +241,44 @@ def build_report() -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def main() -> int:
-    print(build_report(), end="")
+
+def build_report_summary(report_text: str) -> dict[str, int]:
+    """Extract the stable numeric summary from the markdown/plain-text report."""
+
+    summary: dict[str, int] = {}
+    for line in report_text.splitlines():
+        if ": " not in line:
+            continue
+        key, value = line.split(": ", 1)
+        if value.strip().isdigit():
+            summary[key] = int(value.strip())
+    return summary
+
+
+def write_report(report_text: str | None = None, *, md_path: Path = DEFAULT_MD, json_path: Path = DEFAULT_JSON) -> tuple[Path, Path]:
+    """Write the test-suite audit as handover-ready markdown and JSON."""
+
+    text = report_text if report_text is not None else build_report()
+    md_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.write_text(text, encoding="utf-8")
+    json_path.write_text(json.dumps({"summary": build_report_summary(text)}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return md_path, json_path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Build the test-suite QA health report.")
+    parser.add_argument("--write", action="store_true", help="Write report files instead of printing to stdout.")
+    parser.add_argument("--md-output", default=str(DEFAULT_MD))
+    parser.add_argument("--json-output", default=str(DEFAULT_JSON))
+    args = parser.parse_args(argv)
+    report = build_report()
+    if args.write:
+        md_path, json_path = write_report(report, md_path=Path(args.md_output), json_path=Path(args.json_output))
+        print(f"Wrote {md_path}")
+        print(f"Wrote {json_path}")
+    else:
+        print(report, end="")
     return 0
 
 

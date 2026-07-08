@@ -2,7 +2,7 @@
 
 Latest seed: `6200`
 Reviewed fixtures: `5`
-Errors: `0` · Warnings: `1` · Average score: `99.0`
+Errors: `0` · Warnings: `2` · Average score: `98.0`
 
 ## Selected fixtures
 - `Standard-Itinerary-Finland.xlsx::111`
@@ -13,9 +13,11 @@ Errors: `0` · Warnings: `1` · Average score: `99.0`
 
 ## Issue counts
 - `repeated_intro_opener`: 1
+- `transport_product_rendered_as_activity`: 1
 
 ## Fixtures needing review
 - `Standard-Itinerary-Iceland.xlsx::7D GTS` · score `95` · repeated_intro_opener
+- `Standard-Itinerary-Finland-Norway.xlsx::1205` · score `95` · transport_product_rendered_as_activity
 
 ## Fixture tag coverage
 - `hotel_change`: 97

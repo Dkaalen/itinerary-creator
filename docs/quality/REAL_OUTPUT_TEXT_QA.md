@@ -119,3 +119,15 @@ QA index:
 ```bash
 python scripts/update_real_output_qa_index.py --sample-size 5 --seed 6200
 ```
+
+## Patch 125 maintenance note
+
+The CLI scripts stay thin. Reusable review, scoring, markdown, random-check, and QA-index logic lives under `scripts/real_output_qa/`:
+
+* `selection.py` selects fixture candidates and builds rendered reviews.
+* `markdown.py` owns readable review report formatting.
+* `score_reports.py` owns compact JSON score report assembly.
+* `random_checks.py` owns seeded random quality-check report assembly.
+* `indexing.py` owns QA-index markdown/json generation.
+
+The old script names remain as compatibility entry points for validation commands and tests.

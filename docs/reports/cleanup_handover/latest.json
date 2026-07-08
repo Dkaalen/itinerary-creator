@@ -1,0 +1,32 @@
+{
+  "patch_range": "124-128",
+  "deleted_files": [],
+  "reports": {
+    "parser_generation_ownership": "docs/reports/parser_generation_ownership/latest.md",
+    "static_data_hygiene": "docs/reports/static_data/hygiene_latest.md",
+    "test_suite_audit": "docs/reports/test_suite_audit/latest.md",
+    "cleanup_handover": "docs/reports/cleanup_handover/latest.md"
+  },
+  "current_metrics": {
+    "parser_generation_ownership_signals": 116,
+    "static_data_hygiene_signals": 3,
+    "destination_registry_count": 693,
+    "test_modules_grouped": "293/293",
+    "deletion_candidates": 0,
+    "held_back_deletion_items": 187,
+    "module_ownership_overworked_files": 0,
+    "module_ownership_long_functions": 0,
+    "module_ownership_duplicate_rule_hotspots": 36
+  },
+  "known_timeouts": [
+    "combined structural/real-output test command timed out; individual commands passed",
+    "combined audit/index command timed out after report writes; QA index passed separately",
+    "combined score/preview/random command timed out after score checks; remaining commands passed separately"
+  ],
+  "recommended_next_targets": [
+    "Move normalizer dependencies on itinerary_generation helpers into neutral parser/shared modules",
+    "Make day intro/title/render modules consume prepared facts instead of route helpers directly",
+    "Review source-contract assertions in test_cleanup_final_regression.py",
+    "Add fixture-backed tests before changing static aliases such as Utö"
+  ]
+}
