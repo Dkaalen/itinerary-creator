@@ -44,51 +44,9 @@
       "file": "tests/test_corpus_driven_parser_fixes_regression.py",
       "line_count": 474,
       "concern": "large_module"
-    },
-    {
-      "file": "itinerary_generation/nutshell_parsing.py",
-      "line_count": 469,
-      "concern": "large_module"
     }
   ],
-  "long_functions": [
-    {
-      "file": "images/image_bank_fetch.py",
-      "name": "fetch_image_bank_with_zip",
-      "line_count": 133,
-      "start_line": 115
-    },
-    {
-      "file": "itinerary_generation/nutshell_journey_builder.py",
-      "name": "build_nutshell_journey",
-      "line_count": 131,
-      "start_line": 61
-    },
-    {
-      "file": "scripts/benchmark_text_cleanup.py",
-      "name": "run_benchmark",
-      "line_count": 131,
-      "start_line": 61
-    },
-    {
-      "file": "text_polish_modules/text_cleanup.py",
-      "name": "_polish_text_fragment",
-      "line_count": 124,
-      "start_line": 54
-    },
-    {
-      "file": "app_modules/preview_css_brand_booknordics.py",
-      "name": "build_booknordics_preview_overrides",
-      "line_count": 123,
-      "start_line": 6
-    },
-    {
-      "file": "itinerary_generation/activity_product_rules/nordic.py",
-      "name": "match_nordic_activity",
-      "line_count": 121,
-      "start_line": 138
-    }
-  ],
+  "long_functions": [],
   "facade_like_modules": [
     {
       "file": "itinerary_parser.py",
@@ -113,16 +71,6 @@
   ],
   "duplicate_rule_hotspots": [
     {
-      "file": "itinerary_generation/nutshell_parsing.py",
-      "line_count": 469,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/transport_domain/routes.py",
-      "line_count": 438,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/transport_safety.py",
       "line_count": 328,
       "concern": "inline_regex_or_replacement_rules"
@@ -140,6 +88,11 @@
     {
       "file": "itinerary_generation/group_tour_day_parser.py",
       "line_count": 295,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "itinerary_generation/nutshell_route_parsing.py",
+      "line_count": 284,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -170,11 +123,6 @@
     {
       "file": "itinerary_generation/transport_details.py",
       "line_count": 228,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "text_polish_modules/text_cleanup.py",
-      "line_count": 224,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -223,6 +171,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "text_polish_modules/client_text_cleanup_rules.py",
+      "line_count": 136,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "tests/test_structural_cleanup_tools.py",
       "line_count": 133,
       "concern": "inline_regex_or_replacement_rules"
@@ -234,6 +187,11 @@
     },
     {
       "file": "parser_modules/time_normalize.py",
+      "line_count": 120,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "text_polish_modules/text_cleanup.py",
       "line_count": 120,
       "concern": "inline_regex_or_replacement_rules"
     },
@@ -369,6 +327,7 @@
     "parser_modules/common.py": [
       "itinerary_generation/day_intro_orchestrator.py",
       "itinerary_generation/route_intelligence.py",
+      "itinerary_generation/transport_domain/route_points.py",
       "itinerary_generation/transport_domain/routes.py",
       "itinerary_parser.py",
       "parser_modules/city_inference.py",

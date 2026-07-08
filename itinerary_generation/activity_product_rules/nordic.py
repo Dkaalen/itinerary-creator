@@ -135,14 +135,7 @@ def _northern_lights_product_evidence(source_lower: str, source_title: str) -> b
     ))
 
 
-def match_nordic_activity(
-    row: dict[str, Any] | None,
-    source: str,
-    source_lower: str,
-    source_title: str,
-) -> ActivityProductFingerprint | None:
-    """Match Lapland, Tromsø, Tallinn, Oslo and other Nordic activity families."""
-
+def _match_tallinn_activity(source_lower: str, source_title: str) -> ActivityProductFingerprint | None:
     if "tallinn" in source_lower and "old town" in source_lower and "guided" in source_lower and not any(marker in source_lower for marker in ("ferry", "cruise duration", "round trip", "excursion to tallinn")):
         return match_product("tallinn_old_town_guided_tour", "walking_tour", "Old Town Guided Tour", source_title=source_title)
 
@@ -155,7 +148,10 @@ def match_nordic_activity(
         else:
             tags.append("ferry_framework")
         return match_product("day_excursion_to_tallinn", "ferry_excursion", "Day Excursion to Tallinn", source_title=source_title, variant_tags=tuple(tags))
+    return None
 
+
+def _match_oslo_activity(source_lower: str, source_title: str) -> ActivityProductFingerprint | None:
     if "oslo" in source_lower and ("fjord cruise" in source_lower or "fjord sightseeing cruise" in source_lower or "oslo fjord" in source_lower or "oslofjord" in source_lower) and any(marker in source_lower for marker in ("electric", "silent", "sightseeing", "islands", "ship", "boat")):
         tags = []
         if "bygd" in source_lower:
@@ -171,7 +167,10 @@ def match_nordic_activity(
 
     if "oslo" in source_lower and ("munch museum" in source_lower or re.search(r"\bmunch\b", source_lower)) and any(marker in source_lower for marker in ("ticket", "tickets", "entrance", "entry", "admission", "museum")):
         return match_product("munch_museum_ticket", "admission", "Munch Museum Visit", source_title=source_title)
+    return None
 
+
+def _match_lapland_activity(source_lower: str, source_title: str) -> ActivityProductFingerprint | None:
     if "santa claus" in source_lower and "village" in source_lower and "visit" in source_title.lower():
         title_lower = source_title.lower()
         if not ("husky" in title_lower or "reindeer" in title_lower or "snowmobile" in title_lower):
@@ -219,6 +218,12 @@ def match_nordic_activity(
             return match_product("snowmobile_evening_safari", "snowmobile", "Snowmobile Evening Safari & Aurora Opportunity", source_title=source_title)
         return match_product("snowmobile_adventure", "snowmobile", source_title if source_title and "snowmobile" in source_title.lower() else "Snowmobile Adventure", source_title=source_title)
 
+    if "mountain hike" in source_lower and "abisko" in source_lower:
+        return match_product("abisko_mountain_hike", "hike", "Mountain Hike in Abisko", source_title=source_title)
+    return None
+
+
+def _match_arctic_norway_activity(source_lower: str, source_title: str) -> ActivityProductFingerprint | None:
     if "kvaløya" in source_lower or "sommarøy" in source_lower or "sommaroy" in source_lower:
         title_lower = str(source_title or "").lower()
         if source_title and ("kvaløya" in title_lower or "sommarøy" in title_lower or "sommaroy" in title_lower):
@@ -251,8 +256,25 @@ def match_nordic_activity(
 
     if "photo tour" in source_lower and "reine" in source_lower and "svolvær" in source_lower:
         return match_product("lofoten_photo_tour", "photo_tour", "Photo Tour to Reine, Vestvågøy, Flakstadøy & More", source_title=source_title)
+    return None
 
-    if "mountain hike" in source_lower and "abisko" in source_lower:
-        return match_product("abisko_mountain_hike", "hike", "Mountain Hike in Abisko", source_title=source_title)
 
+def match_nordic_activity(
+    row: dict[str, Any] | None,
+    source: str,
+    source_lower: str,
+    source_title: str,
+) -> ActivityProductFingerprint | None:
+    """Match Lapland, Tromsø, Tallinn, Oslo and other Nordic activity families."""
+
+    del row, source  # Matching currently uses normalized source text/title only.
+    for matcher in (
+        _match_tallinn_activity,
+        _match_oslo_activity,
+        _match_lapland_activity,
+        _match_arctic_norway_activity,
+    ):
+        match = matcher(source_lower, source_title)
+        if match is not None:
+            return match
     return None

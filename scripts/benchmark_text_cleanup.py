@@ -21,7 +21,7 @@ import statistics
 import sys
 import tempfile
 import time
-from typing import Iterable
+from typing import Any, Callable, Iterable
 
 
 DEFAULT_FIXTURES = (
@@ -58,6 +58,145 @@ def _select_fixture_paths(
     return [available[name] for name in names]
 
 
+def _ensure_project_import_path(project_root: Path) -> None:
+    project_root_text = str(project_root)
+    if project_root_text not in sys.path:
+        sys.path.insert(0, project_root_text)
+
+
+def _workflow_functions() -> dict[str, Callable[..., Any]]:
+    from app_modules.itinerary_html import build_itinerary_html
+    from app_modules.itinerary_render_context import build_itinerary_render_context
+    from itinerary_generation.common import group_rows_by_day
+    from itinerary_parser import parse_itinerary
+    from normalizer import normalize_itinerary_rows
+    from pdf_exporter_modules.typed_exporter import export_render_document_to_pdf
+    from ui.output_edits import make_output_edit_state
+    from visual_editor_component.editor_payload_builder import build_visual_editor_payload
+
+    return {
+        "build_itinerary_html": build_itinerary_html,
+        "build_itinerary_render_context": build_itinerary_render_context,
+        "build_visual_editor_payload": build_visual_editor_payload,
+        "export_render_document_to_pdf": export_render_document_to_pdf,
+        "group_rows_by_day": group_rows_by_day,
+        "make_output_edit_state": make_output_edit_state,
+        "normalize_itinerary_rows": normalize_itinerary_rows,
+        "parse_itinerary": parse_itinerary,
+    }
+
+
+def _empty_timings() -> dict[str, float]:
+    return {
+        "parse_normalize": 0.0,
+        "edit_state": 0.0,
+        "preview_html": 0.0,
+        "editor_payload": 0.0,
+        "render_context": 0.0,
+        "typed_pdf_export": 0.0,
+    }
+
+
+def _empty_counts(source_count: int) -> dict[str, int]:
+    return {
+        "fixtures": source_count,
+        "rows": 0,
+        "html_bytes": 0,
+        "editor_bytes": 0,
+        "pdf_bytes": 0,
+    }
+
+
+def _benchmark_source(
+    name: str,
+    source: str,
+    project_root: Path,
+    workflow: dict[str, Callable[..., Any]],
+    timings: dict[str, float],
+    counts: dict[str, int],
+    digest: "hashlib._Hash",
+):
+    started = time.perf_counter()
+    rows = workflow["normalize_itinerary_rows"](workflow["parse_itinerary"](source))
+    grouped = workflow["group_rows_by_day"](rows)
+    timings["parse_normalize"] += time.perf_counter() - started
+    counts["rows"] += len(rows)
+
+    started = time.perf_counter()
+    edits = workflow["make_output_edit_state"](rows, grouped)
+    edits["draft_id"] = f"benchmark-{Path(name).stem}"
+    timings["edit_state"] += time.perf_counter() - started
+
+    started = time.perf_counter()
+    html = workflow["build_itinerary_html"](rows, grouped, edits)
+    timings["preview_html"] += time.perf_counter() - started
+    counts["html_bytes"] += len(html.encode("utf-8"))
+
+    started = time.perf_counter()
+    editor = workflow["build_visual_editor_payload"](rows, grouped, edits)
+    timings["editor_payload"] += time.perf_counter() - started
+    editor_json = json.dumps(editor, sort_keys=True, ensure_ascii=False, default=str)
+    counts["editor_bytes"] += len(editor_json.encode("utf-8"))
+
+    started = time.perf_counter()
+    context = workflow["build_itinerary_render_context"](rows, grouped, edits)
+    timings["render_context"] += time.perf_counter() - started
+
+    deterministic_edits = dict(edits)
+    deterministic_edits.pop("draft_id", None)
+    digest.update(name.encode("utf-8"))
+    digest.update(json.dumps(rows, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8"))
+    digest.update(json.dumps(deterministic_edits, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8"))
+    digest.update(_normalise_project_paths(html, project_root).encode("utf-8"))
+    digest.update(_normalise_project_paths(editor_json, project_root).encode("utf-8"))
+    return context
+
+
+def _export_pdf_contexts(
+    contexts: list[tuple[str, Any]],
+    workflow: dict[str, Callable[..., Any]],
+    timings: dict[str, float],
+    counts: dict[str, int],
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="itinerary_text_cleanup_benchmark_") as temp_dir:
+        for name, context in contexts:
+            pdf_path = Path(temp_dir) / f"{Path(name).stem}.pdf"
+            started = time.perf_counter()
+            workflow["export_render_document_to_pdf"](
+                context.render_document,
+                pdf_path,
+                color_data=context.colors,
+            )
+            timings["typed_pdf_export"] += time.perf_counter() - started
+            counts["pdf_bytes"] += pdf_path.stat().st_size
+
+
+def _run_once(
+    sources: list[tuple[str, str]],
+    project_root: Path,
+    workflow: dict[str, Callable[..., Any]],
+    *,
+    include_pdf: bool,
+) -> tuple[dict[str, float], dict[str, int], str]:
+    timings = _empty_timings()
+    counts = _empty_counts(len(sources))
+    digest = hashlib.sha256()
+    contexts = []
+
+    for name, source in sources:
+        context = _benchmark_source(name, source, project_root, workflow, timings, counts, digest)
+        contexts.append((name, context))
+
+    if include_pdf:
+        _export_pdf_contexts(contexts, workflow, timings, counts)
+
+    return timings, counts, digest.hexdigest()
+
+
+def _warm_medians(warm_runs: list[dict[str, float]], stages: Iterable[str]) -> dict[str, float]:
+    return {stage: _median([run[stage] for run in warm_runs]) for stage in stages}
+
+
 def run_benchmark(
     project_root: Path,
     *,
@@ -69,114 +208,28 @@ def run_benchmark(
     """Run the representative workflow benchmark and return JSON-safe metrics."""
 
     project_root = Path(project_root).resolve()
-    project_root_text = str(project_root)
-    if project_root_text not in sys.path:
-        sys.path.insert(0, project_root_text)
+    _ensure_project_import_path(project_root)
 
-    from app_modules.itinerary_html import build_itinerary_html
-    from app_modules.itinerary_render_context import build_itinerary_render_context
-    from itinerary_generation.common import group_rows_by_day
-    from itinerary_parser import parse_itinerary
-    from normalizer import normalize_itinerary_rows
-    from pdf_exporter_modules.typed_exporter import export_render_document_to_pdf
     from shared.text_cleanup_cache import clear_text_cleanup_caches, text_cleanup_cache_snapshot
-    from ui.output_edits import make_output_edit_state
-    from visual_editor_component.editor_payload_builder import build_visual_editor_payload
 
-    fixture_paths = _select_fixture_paths(
-        project_root,
-        fixture_names,
-        all_fixtures=all_fixtures,
-    )
+    workflow = _workflow_functions()
+    fixture_paths = _select_fixture_paths(project_root, fixture_names, all_fixtures=all_fixtures)
     sources = [(path.name, path.read_text(encoding="utf-8")) for path in fixture_paths]
-
-    def run_once() -> tuple[dict[str, float], dict[str, int], str]:
-        timings = {
-            "parse_normalize": 0.0,
-            "edit_state": 0.0,
-            "preview_html": 0.0,
-            "editor_payload": 0.0,
-            "render_context": 0.0,
-            "typed_pdf_export": 0.0,
-        }
-        counts = {
-            "fixtures": len(sources),
-            "rows": 0,
-            "html_bytes": 0,
-            "editor_bytes": 0,
-            "pdf_bytes": 0,
-        }
-        digest = hashlib.sha256()
-        contexts = []
-
-        for name, source in sources:
-            started = time.perf_counter()
-            rows = normalize_itinerary_rows(parse_itinerary(source))
-            grouped = group_rows_by_day(rows)
-            timings["parse_normalize"] += time.perf_counter() - started
-            counts["rows"] += len(rows)
-
-            started = time.perf_counter()
-            edits = make_output_edit_state(rows, grouped)
-            edits["draft_id"] = f"benchmark-{Path(name).stem}"
-            timings["edit_state"] += time.perf_counter() - started
-
-            started = time.perf_counter()
-            html = build_itinerary_html(rows, grouped, edits)
-            timings["preview_html"] += time.perf_counter() - started
-            counts["html_bytes"] += len(html.encode("utf-8"))
-
-            started = time.perf_counter()
-            editor = build_visual_editor_payload(rows, grouped, edits)
-            timings["editor_payload"] += time.perf_counter() - started
-            editor_json = json.dumps(editor, sort_keys=True, ensure_ascii=False, default=str)
-            counts["editor_bytes"] += len(editor_json.encode("utf-8"))
-
-            started = time.perf_counter()
-            context = build_itinerary_render_context(rows, grouped, edits)
-            timings["render_context"] += time.perf_counter() - started
-            contexts.append((name, context))
-
-            deterministic_edits = dict(edits)
-            deterministic_edits.pop("draft_id", None)
-            digest.update(name.encode("utf-8"))
-            digest.update(json.dumps(rows, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8"))
-            digest.update(json.dumps(deterministic_edits, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8"))
-            digest.update(_normalise_project_paths(html, project_root).encode("utf-8"))
-            digest.update(_normalise_project_paths(editor_json, project_root).encode("utf-8"))
-
-        if include_pdf:
-            with tempfile.TemporaryDirectory(prefix="itinerary_text_cleanup_benchmark_") as temp_dir:
-                for name, context in contexts:
-                    pdf_path = Path(temp_dir) / f"{Path(name).stem}.pdf"
-                    started = time.perf_counter()
-                    export_render_document_to_pdf(
-                        context.render_document,
-                        pdf_path,
-                        color_data=context.colors,
-                    )
-                    timings["typed_pdf_export"] += time.perf_counter() - started
-                    counts["pdf_bytes"] += pdf_path.stat().st_size
-
-        return timings, counts, digest.hexdigest()
 
     clear_text_cleanup_caches()
     gc.collect()
-    cold_timings, counts, cold_digest = run_once()
+    cold_timings, counts, cold_digest = _run_once(sources, project_root, workflow, include_pdf=include_pdf)
     cold_cache = text_cleanup_cache_snapshot()
 
     warm_runs = []
     warm_digests = []
     for _ in range(max(1, int(repeats))):
         gc.collect()
-        timings, _counts, digest = run_once()
+        timings, _counts, digest = _run_once(sources, project_root, workflow, include_pdf=include_pdf)
         warm_runs.append(timings)
         warm_digests.append(digest)
 
-    warm_medians = {
-        stage: _median([run[stage] for run in warm_runs])
-        for stage in cold_timings
-    }
+    warm_medians = _warm_medians(warm_runs, cold_timings)
     return {
         "fixtures": [path.name for path in fixture_paths],
         "counts": counts,

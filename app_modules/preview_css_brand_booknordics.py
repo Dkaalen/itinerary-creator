@@ -2,12 +2,14 @@
 
 from ui.render_helpers import esc
 
+_BRAND_SCOPE = '.preview-background[data-output-brand="booknordics_customer"]'
 
-def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
-    logo_rule = ""
-    if brand_logo_data_uri:
-        logo_rule = f'''
-.preview-background[data-output-brand="booknordics_customer"] .a4-page:not(.cover-page):not(.summary-page)::before {{
+
+def _logo_rule(brand_logo_data_uri: str) -> str:
+    if not brand_logo_data_uri:
+        return ""
+    return f'''
+{_BRAND_SCOPE} .a4-page:not(.cover-page):not(.summary-page)::before {{
     content: "";
     position: absolute;
     top: 24px;
@@ -18,17 +20,19 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
     z-index: 4;
 }}
 '''
+
+
+def _page_and_cover_rules() -> str:
     return f'''
-{logo_rule}
-.preview-background[data-output-brand="booknordics_customer"] .a4-page {{
+{_BRAND_SCOPE} .a4-page {{
     font-family: "DM Sans", sans-serif;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-page {{
+{_BRAND_SCOPE} .cover-page {{
     background-color: var(--page-bg);
     background-size: cover !important;
     background-repeat: no-repeat !important;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-main {{
+{_BRAND_SCOPE} .cover-main {{
     left: 72px;
     right: 72px;
     width: auto;
@@ -40,89 +44,115 @@ def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
     box-shadow: none;
     text-shadow: 0 2px 10px rgba(0,25,60,.28);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-subtitle,
-.preview-background[data-output-brand="booknordics_customer"] .cover-destinations {{
+{_BRAND_SCOPE} .cover-subtitle,
+{_BRAND_SCOPE} .cover-destinations {{
     color: var(--cover-ink);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-kicker,
-.preview-background[data-output-brand="booknordics_customer"] .cover-dates {{
+{_BRAND_SCOPE} .cover-kicker,
+{_BRAND_SCOPE} .cover-dates {{
     color: var(--cover-muted);
 }}
-
-.preview-background[data-output-brand="booknordics_customer"] .cover-emblem {{
+{_BRAND_SCOPE} .cover-emblem {{
     border-color: rgba(255, 0, 65, .55);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-title,
-.preview-background[data-output-brand="booknordics_customer"] .cover-subtitle,
-.preview-background[data-output-brand="booknordics_customer"] .cover-dates,
-.preview-background[data-output-brand="booknordics_customer"] .cover-destinations,
-.preview-background[data-output-brand="booknordics_customer"] .day-title,
-.preview-background[data-output-brand="booknordics_customer"] .intro,
-.preview-background[data-output-brand="booknordics_customer"] .body-text,
-.preview-background[data-output-brand="booknordics_customer"] .editable-list,
-.preview-background[data-output-brand="booknordics_customer"] .detail-list,
-.preview-background[data-output-brand="booknordics_customer"] .final-list,
-.preview-background[data-output-brand="booknordics_customer"] .summary-title,
-.preview-background[data-output-brand="booknordics_customer"] .glance-title,
-.preview-background[data-output-brand="booknordics_customer"] .journey-title,
-.preview-background[data-output-brand="booknordics_customer"] .final-page-title {{
+'''
+
+
+def _font_rules() -> str:
+    return f'''
+{_BRAND_SCOPE} .cover-title,
+{_BRAND_SCOPE} .cover-subtitle,
+{_BRAND_SCOPE} .cover-dates,
+{_BRAND_SCOPE} .cover-destinations,
+{_BRAND_SCOPE} .day-title,
+{_BRAND_SCOPE} .intro,
+{_BRAND_SCOPE} .body-text,
+{_BRAND_SCOPE} .editable-list,
+{_BRAND_SCOPE} .detail-list,
+{_BRAND_SCOPE} .final-list,
+{_BRAND_SCOPE} .summary-title,
+{_BRAND_SCOPE} .glance-title,
+{_BRAND_SCOPE} .journey-title,
+{_BRAND_SCOPE} .final-page-title {{
     font-family: "DM Sans", sans-serif;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-title {{
+{_BRAND_SCOPE} .cover-title {{
     color: var(--cover-ink);
     font-weight: 700;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .day-title,
-.preview-background[data-output-brand="booknordics_customer"] .summary-title,
-.preview-background[data-output-brand="booknordics_customer"] .glance-title,
-.preview-background[data-output-brand="booknordics_customer"] .journey-title,
-.preview-background[data-output-brand="booknordics_customer"] .final-page-title {{
+{_BRAND_SCOPE} .day-title,
+{_BRAND_SCOPE} .summary-title,
+{_BRAND_SCOPE} .glance-title,
+{_BRAND_SCOPE} .journey-title,
+{_BRAND_SCOPE} .final-page-title {{
     color: var(--ink);
     font-weight: 700;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-kicker,
-.preview-background[data-output-brand="booknordics_customer"] .cover-destination-label,
-.preview-background[data-output-brand="booknordics_customer"] .day-kicker,
-.preview-background[data-output-brand="booknordics_customer"] .page-kicker,
-.preview-background[data-output-brand="booknordics_customer"] .premium-note-card-title,
-.preview-background[data-output-brand="booknordics_customer"] .final-list-page .section-title,
-.preview-background[data-output-brand="booknordics_customer"] .categorized-inclusions-page .section-title,
-.preview-background[data-output-brand="booknordics_customer"] .categorized-exclusions-page .section-title,
-.preview-background[data-output-brand="booknordics_customer"] .premium-notes-page .section-title {{
+'''
+
+
+def _accent_rules() -> str:
+    return f'''
+{_BRAND_SCOPE} .cover-kicker,
+{_BRAND_SCOPE} .cover-destination-label,
+{_BRAND_SCOPE} .day-kicker,
+{_BRAND_SCOPE} .page-kicker,
+{_BRAND_SCOPE} .premium-note-card-title,
+{_BRAND_SCOPE} .final-list-page .section-title,
+{_BRAND_SCOPE} .categorized-inclusions-page .section-title,
+{_BRAND_SCOPE} .categorized-exclusions-page .section-title,
+{_BRAND_SCOPE} .premium-notes-page .section-title {{
     color: var(--accent);
     font-family: "DM Sans", sans-serif;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .day-page .section-title,
-.preview-background[data-output-brand="booknordics_customer"] .day-page .row-type,
-.preview-background[data-output-brand="booknordics_customer"] .day-page .ve-text-subheading {{
+{_BRAND_SCOPE} .day-page .section-title,
+{_BRAND_SCOPE} .day-page .row-type,
+{_BRAND_SCOPE} .day-page .ve-text-subheading {{
     color: var(--ink);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .cover-rule,
-.preview-background[data-output-brand="booknordics_customer"] .cover-rule::after {{
+{_BRAND_SCOPE} .cover-rule,
+{_BRAND_SCOPE} .cover-rule::after {{
     background: var(--accent);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .day-kicker-symbol {{
+{_BRAND_SCOPE} .day-kicker-symbol {{
     color: var(--accent);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .day-image-slot {{
+{_BRAND_SCOPE} .day-image-slot {{
     border-top-color: var(--accent);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .summary-page {{
+{_BRAND_SCOPE} .final-page-title::after,
+{_BRAND_SCOPE} .glance-title::after,
+{_BRAND_SCOPE} .journey-title::after {{
+    background: var(--accent);
+}}
+'''
+
+
+def _summary_rules() -> str:
+    return f'''
+{_BRAND_SCOPE} .summary-page {{
     background-image:
         linear-gradient(rgba(250,250,251,.58), rgba(250,250,251,.58)),
         var(--cover-bg-image);
     background-size: cover, cover;
     background-repeat: no-repeat, no-repeat;
 }}
-.preview-background[data-output-brand="booknordics_customer"] .summary-page .glance-card,
-.preview-background[data-output-brand="booknordics_customer"] .summary-page .journey-arc,
-.preview-background[data-output-brand="booknordics_customer"] .premium-note-card {{
+{_BRAND_SCOPE} .summary-page .glance-card,
+{_BRAND_SCOPE} .summary-page .journey-arc,
+{_BRAND_SCOPE} .premium-note-card {{
     background: rgba(255,255,255,.88);
     border-color: var(--line);
 }}
-.preview-background[data-output-brand="booknordics_customer"] .final-page-title::after,
-.preview-background[data-output-brand="booknordics_customer"] .glance-title::after,
-.preview-background[data-output-brand="booknordics_customer"] .journey-title::after {{
-    background: var(--accent);
-}}
 '''
+
+
+def build_booknordics_preview_overrides(brand_logo_data_uri: str) -> str:
+    return "".join(
+        (
+            _logo_rule(brand_logo_data_uri),
+            _page_and_cover_rules(),
+            _font_rules(),
+            _accent_rules(),
+            _summary_rules(),
+        )
+    )

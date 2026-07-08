@@ -58,59 +58,58 @@ def _client_title(source: str, origin: str, destination: str, explicit_title: st
     return NUTSHELL_PRODUCT_NAME
 
 
-def build_nutshell_journey(
+def _source_context(
     row_or_text: Mapping[str, Any] | str | None,
-    *,
-    source: str = "",
-    source_title: str = "",
-    fallback_origin: str = "",
-    fallback_destination: str = "",
-) -> NutshellJourney | None:
-    """Build the canonical contract from source-owned row data."""
-
-    row: Mapping[str, Any] | None
+    source: str,
+) -> tuple[Mapping[str, Any] | None, str]:
     if isinstance(row_or_text, Mapping):
         row = row_or_text
-        full_source = _row_source(row, source)
-    else:
-        row = None
-        full_source = "\n".join(value for value in (str(row_or_text or ""), source) if value)
+        return row, _row_source(row, source)
+    return None, "\n".join(value for value in (str(row_or_text or ""), source) if value)
 
-    product = _activity_product(row)
+
+def _is_nutshell_candidate(product: Mapping[str, Any], full_source: str) -> bool:
     family = str(product.get("canonical_family", "") or "")
-    if (
-        family != NUTSHELL_CANONICAL_FAMILY
-        and not _is_norway_in_a_nutshell_text(full_source)
-        and not is_source_backed_nutshell_route_package(full_source)
-    ):
-        return None
+    return (
+        family == NUTSHELL_CANONICAL_FAMILY
+        or _is_norway_in_a_nutshell_text(full_source)
+        or is_source_backed_nutshell_route_package(full_source)
+    )
 
-    explicit_candidates = (
+
+def _explicit_title_candidates(
+    row: Mapping[str, Any] | None,
+    product: Mapping[str, Any],
+    full_source: str,
+    source_title: str,
+) -> tuple[str, ...]:
+    return (
         str(product.get("display_title", "") or ""),
         explicit_norway_nutshell_title(full_source),
         source_title,
         str(row.get("title", "") if row else ""),
     )
-    explicit_title = ""
-    origin = ""
-    destination = ""
-    for candidate in explicit_candidates:
+
+
+def _resolve_explicit_endpoints(candidates: Iterable[str]) -> tuple[str, str, str]:
+    for candidate in candidates:
         candidate_origin, candidate_destination = _title_endpoints(candidate)
         if not candidate_origin and not candidate_destination:
             continue
-        origin, destination = candidate_origin, candidate_destination
         explicit_title = (
-            f"{NUTSHELL_PRODUCT_NAME} from {origin} to {destination}"
-            if origin and destination
-            else f"{NUTSHELL_PRODUCT_NAME} to {destination}"
+            f"{NUTSHELL_PRODUCT_NAME} from {candidate_origin} to {candidate_destination}"
+            if candidate_origin and candidate_destination
+            else f"{NUTSHELL_PRODUCT_NAME} to {candidate_destination}"
         )
-        break
+        return candidate_origin, candidate_destination, explicit_title
+    return "", "", ""
 
-    if not origin or not destination:
-        direct_origin, direct_destination = _direct_route_endpoints(full_source)
-        origin = origin or direct_origin
-        destination = destination or direct_destination
 
+def _resolve_route_legs(
+    row: Mapping[str, Any] | None,
+    product: Mapping[str, Any],
+    full_source: str,
+) -> tuple[tuple[Any, ...], tuple[str, ...], tuple[str, ...]]:
     parsed_timetable_legs = _mapping_legs(extract_norway_nutshell_route_legs(full_source))
     supplier_includes = tuple(extract_norway_nutshell_supplier_includes(full_source))
     if not supplier_includes and row:
@@ -126,9 +125,17 @@ def build_nutshell_journey(
         or row_legs
         or _legs_from_points(extracted_points)
     )
+    return legs, supplier_includes, extracted_points
 
-    leg_points, continuous = _ordered_points_from_legs(legs)
 
+def _resolve_endpoints_from_route(
+    origin: str,
+    destination: str,
+    leg_points: tuple[str, ...],
+    extracted_points: tuple[str, ...],
+    fallback_origin: str,
+    fallback_destination: str,
+) -> tuple[str, str]:
     if not origin and leg_points:
         origin = leg_points[0]
     if not destination and leg_points:
@@ -137,10 +144,16 @@ def build_nutshell_journey(
         origin = extracted_points[0]
     if not destination and extracted_points:
         destination = extracted_points[-1]
+    return origin or _clean_place(fallback_origin), destination or _clean_place(fallback_destination)
 
-    origin = origin or _clean_place(fallback_origin)
-    destination = destination or _clean_place(fallback_destination)
 
+def _route_points_and_warnings(
+    origin: str,
+    destination: str,
+    legs: tuple[Any, ...],
+    extracted_points: tuple[str, ...],
+) -> tuple[tuple[str, ...], list[str]]:
+    leg_points, continuous = _ordered_points_from_legs(legs)
     warnings: list[str] = []
     if legs and not continuous:
         warnings.append("route_leg_discontinuity")
@@ -149,26 +162,67 @@ def build_nutshell_journey(
             warnings.append("route_endpoint_conflict")
 
     if leg_points and not warnings:
-        route_points = leg_points
-    elif origin and destination:
-        route_points = (origin, destination)
-    elif extracted_points:
-        route_points = extracted_points
-    else:
-        route_points = tuple(value for value in (origin, destination) if value)
+        return leg_points, warnings
+    if origin and destination:
+        return (origin, destination), warnings
+    if extracted_points:
+        return extracted_points, warnings
+    return tuple(value for value in (origin, destination) if value), warnings
 
-    included_services = _clean_strings(row.get("includes", ()) if row else ())
-    source_title_value = str(
+
+def _nutshell_source_title_value(
+    row: Mapping[str, Any] | None,
+    product: Mapping[str, Any],
+    source_title: str,
+    explicit_title: str,
+) -> str:
+    return str(
         source_title
         or (row.get("original_title", "") if row else "")
         or product.get("source_title", "")
         or explicit_title
         or NUTSHELL_PRODUCT_NAME
     ).strip()
-    confidence = str(product.get("confidence", "strong") or "strong")
-    variant_tags = _clean_strings(product.get("variant_tags", ()))
+
+
+def build_nutshell_journey(
+    row_or_text: Mapping[str, Any] | str | None,
+    *,
+    source: str = "",
+    source_title: str = "",
+    fallback_origin: str = "",
+    fallback_destination: str = "",
+) -> NutshellJourney | None:
+    """Build the canonical contract from source-owned row data."""
+
+    row, full_source = _source_context(row_or_text, source)
+    product = _activity_product(row)
+    if not _is_nutshell_candidate(product, full_source):
+        return None
+
+    origin, destination, explicit_title = _resolve_explicit_endpoints(
+        _explicit_title_candidates(row, product, full_source, source_title)
+    )
+    if not origin or not destination:
+        direct_origin, direct_destination = _direct_route_endpoints(full_source)
+        origin = origin or direct_origin
+        destination = destination or direct_destination
+
+    legs, supplier_includes, extracted_points = _resolve_route_legs(row, product, full_source)
+    leg_points, _continuous = _ordered_points_from_legs(legs)
+    origin, destination = _resolve_endpoints_from_route(
+        origin,
+        destination,
+        leg_points,
+        extracted_points,
+        fallback_origin,
+        fallback_destination,
+    )
+    route_points, route_warnings = _route_points_and_warnings(origin, destination, legs, extracted_points)
+
+    included_services = _clean_strings(row.get("includes", ()) if row else ())
     existing_warnings = _clean_strings(product.get("warnings", ()))
-    warnings = list(dict.fromkeys((*existing_warnings, *warnings)))
+    warnings = list(dict.fromkeys((*existing_warnings, *route_warnings)))
 
     return NutshellJourney(
         origin=origin,
@@ -184,9 +238,9 @@ def build_nutshell_journey(
         commercial_status=str(row.get("commercial_status", "") if row else ""),
         commercial_reason=str(row.get("commercial_reason", "") if row else ""),
         source_row_ids=_source_row_ids(row),
-        source_title=source_title_value,
-        confidence=confidence,
-        variant_tags=variant_tags,
+        source_title=_nutshell_source_title_value(row, product, source_title, explicit_title),
+        confidence=str(product.get("confidence", "strong") or "strong"),
+        variant_tags=_clean_strings(product.get("variant_tags", ())),
         warnings=tuple(warnings),
     )
 
