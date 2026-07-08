@@ -131,3 +131,32 @@ def test_module_ownership_audit_reports_facade_importer_counts(tmp_path: Path) -
     audit = run_audit(tmp_path, file_line_limit=999, function_line_limit=999)
 
     assert audit.facade_importers["facade.py"] == ("consumer.py",)
+
+
+def test_test_group_catalog_split_preserves_public_group_api() -> None:
+    from scripts import test_groups
+    from scripts.test_group_catalog import GROUPS, QUALITY_TESTS
+
+    assert test_groups.GROUPS is GROUPS
+    assert "tests/test_structured_core_model_validation.py" in GROUPS["architecture"]
+    assert "tests/test_image_matcher_selection_fallbacks.py" in GROUPS["images"]
+    assert QUALITY_TESTS
+
+
+def test_architecture_guard_config_split_preserves_runner() -> None:
+    from scripts.architecture_guards import run_architecture_checks
+    from scripts.architecture_guard_config import TOP_LEVEL_COMPATIBILITY_FACADES
+
+    assert "itinerary_parser.py" in TOP_LEVEL_COMPATIBILITY_FACADES
+    assert run_architecture_checks() == ()
+
+
+def test_deletion_candidate_audit_is_handover_only() -> None:
+    from scripts.deletion_candidate_audit import build_report
+
+    report = build_report()
+    paths = {candidate.path for candidate in report.candidates}
+
+    assert "itinerary_generation/day_intro_engine_core.py" in paths
+    assert all(not candidate.static_importers for candidate in report.candidates)
+    assert any(item.safety_note.startswith("documented public") for item in report.held_back)

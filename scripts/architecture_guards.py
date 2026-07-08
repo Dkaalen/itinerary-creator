@@ -14,208 +14,41 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
-@dataclass(frozen=True)
-class SourceHit:
-    path: str
-    marker: str
-
-
-@dataclass(frozen=True)
-class SizeHit:
-    path: str
-    lines: int
-    limit: int
-
-
-@dataclass(frozen=True)
-class FunctionHit:
-    path: str
-    name: str
-    lines: int
-    limit: int
-
-
-NORMAL_WORKFLOW_SOURCES = (
-    "app_modules/main_view.py",
-    "app_modules/input_step.py",
-    "app_modules/preview_step.py",
-    "app_modules/picture_step.py",
-    "app_modules/export_page.py",
-    "app_modules/workflow_shell.py",
-    "app_modules/workflow_actions.py",
-    "app_modules/generation_action.py",
-    "app_modules/project_load_action.py",
-    "app_modules/image_stage_action.py",
-    "app_modules/export_stage_action.py",
-    "visual_editor_component/frontend/js/render.js",
-    "visual_editor_component/frontend/js/editor_shell.js",
-    "visual_editor_component/frontend/js/editor_dirty_state.js",
-    "visual_editor_component/frontend/js/state.js",
+from scripts.architecture_guard_models import FunctionHit, SizeHit, SourceHit
+from scripts.architecture_guard_size_checks import (
+    _source_files,
+    oversized_cleaned_generation_core_facades,
+    oversized_core_named_python_files,
+    oversized_core_python_files,
+    oversized_editor_css_files,
+    oversized_frontend_js_files,
+    oversized_python_functions,
+    oversized_streamlit_style_files,
+    oversized_workflow_python_files,
+    top_level_compatibility_facade_hits,
 )
 
-NORMAL_WORKFLOW_GLOBS = (
-    "visual_editor_component/frontend/js/editor_inspector*.js",
-    "visual_editor_component/frontend/styles/editor*.css",
-    "ui/style*.py",
-)
-
-DEBUG_ALLOWED_SOURCES = frozenset(
-    {
-        "app_modules/debug_tools.py",
-        "ui/input_review_panel.py",
-        "ui/diagnostics_panel.py",
-        "visual_editor_component/frontend/js/editor_debug_shell.js",
-        "visual_editor_component/frontend/js/editor_debug_readiness.js",
-        "visual_editor_component/frontend/js/editor_readiness.js",
-        "visual_editor_component/frontend/styles/editor_debug.css",
-        "ui/style_debug.py",
-        "itinerary_generation/input_review.py",
-        "pdf_exporter_modules/pdf_internal_review_appendix.py",
-    }
-)
-
-FORBIDDEN_NORMAL_UI_MARKERS = (
-    "Document checks",
-    "Export checks",
-    "Autosave ready",
-    "Server autosave ready",
-    "Advanced tools",
-    "Structured input review",
-    "Rows to review",
-    "Parser confidence",
-    "Safe parser fixes",
-    "Correction queue",
-    "Review summary",
-    "Client QA",
-    "Ready for Client",
-    "Needs Review",
-    "WHY THIS IMAGE",
-    "IMAGE TOOLS",
-    "REPLACEMENT IMAGE",
-)
-
-HIGH_VALUE_SOURCE_ROOTS = (
-    "app_modules",
-    "parser_modules",
-    "pdf_exporter_modules",
-    "images",
-    "visual_editor_component/frontend/js",
-    "visual_editor_component/frontend/styles",
-)
-
-PATCH_HISTORY_NAME_MARKERS = (
-    "_late",
-    "_corrections",
-    "_new",
-    "_old",
-    "_misc",
-    "-late",
-    "-corrections",
-    "-new",
-    "-old",
-    "-misc",
-)
-
-ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MANIFEST.md"})
-PATCH_METADATA_DIR_NAMES = frozenset({"_patch_metadata"})
-DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
-
-TOP_LEVEL_COMPATIBILITY_FACADES = {
-    "generator.py": 90,
-    "image_matcher.py": 40,
-    "itinerary_parser.py": 40,
-    "normalizer.py": 20,
-    "pdf_exporter.py": 100,
-    "text_polish.py": 20,
-}
-
-
-CLEANED_GENERATION_CORE_FACADES = {
-    "itinerary_generation/day_intro_engine_core.py": 80,
-    "itinerary_generation/day_render_blocks_core.py": 80,
-    "itinerary_generation/editable_draft_core.py": 120,
-    "itinerary_generation/exclusion_sections_core.py": 80,
-    "itinerary_generation/nutshell_domain_core.py": 80,
-    "itinerary_generation/qa_report_core.py": 80,
-    "itinerary_generation/quality_gate_core.py": 140,
-    "itinerary_generation/structured_builder_core.py": 160,
-    "itinerary_generation/summaries_core.py": 80,
-}
-
-GENERATION_CORE_FACADE_MODULES = (
-    "itinerary_generation.day_intro_engine_core",
-    "itinerary_generation.day_render_blocks_core",
-    "itinerary_generation.editable_draft_core",
-    "itinerary_generation.exclusion_sections_core",
-    "itinerary_generation.nutshell_domain_core",
-    "itinerary_generation.qa_report_core",
-    "itinerary_generation.quality_gate_core",
-    "itinerary_generation.structured_builder_core",
-    "itinerary_generation.summaries_core",
-)
-
-GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
-    "itinerary_generation/city_experience_classifier.py",
-    "itinerary_generation/day_intro_activity.py",
-    "itinerary_generation/day_intro_arrival.py",
-    "itinerary_generation/day_intro_classification.py",
-    "itinerary_generation/day_intro_route.py",
-    "itinerary_generation/day_render_activity_blocks.py",
-    "itinerary_generation/day_render_block_ordering.py",
-    "itinerary_generation/day_render_document_adapter.py",
-    "itinerary_generation/day_render_group_tour_blocks.py",
-    "itinerary_generation/day_render_leisure_blocks.py",
-    "itinerary_generation/day_render_transport_blocks.py",
-    "itinerary_generation/debug/qa_edit_events.py",
-    "itinerary_generation/debug/qa_report_model.py",
-    "itinerary_generation/debug/qa_report_persist.py",
-    "itinerary_generation/debug/qa_report_render.py",
-    "itinerary_generation/debug/qa_warning_events.py",
-    "itinerary_generation/editable_draft_model.py",
-    "itinerary_generation/editable_draft_normalize.py",
-    "itinerary_generation/editable_draft_lookup.py",
-    "itinerary_generation/editable_draft_merge.py",
-    "itinerary_generation/editable_draft_legacy_bridge.py",
-    "itinerary_generation/exclusion_commercial_items.py",
-    "itinerary_generation/exclusion_flights.py",
-    "itinerary_generation/exclusion_formatting.py",
-    "itinerary_generation/exclusion_self_transfers.py",
-    "itinerary_generation/generation_quality_gate.py",
-    "itinerary_generation/client_output_quality_gate.py",
-    "itinerary_generation/journey_arc_builder.py",
-    "itinerary_generation/journey_arc_text_safety.py",
-    "itinerary_generation/nutshell_detection.py",
-    "itinerary_generation/nutshell_journey_builder.py",
-    "itinerary_generation/nutshell_labels.py",
-    "itinerary_generation/nutshell_model.py",
-    "itinerary_generation/nutshell_route_parser.py",
-    "itinerary_generation/nutshell_source.py",
-    "itinerary_generation/quality_gate_patterns.py",
-    "itinerary_generation/structured_row_helpers.py",
-    "itinerary_generation/structured_items_builder.py",
-    "itinerary_generation/structured_warning_builder.py",
-    "itinerary_generation/structured_days_builder.py",
-    "itinerary_generation/structured_travel_sequences.py",
-    "itinerary_generation/structured_final_sections.py",
-    "itinerary_generation/trip_glance_builder.py",
-)
-
-EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})
-
-PYTHON_FUNCTION_ALLOWLIST = frozenset(
-    {
-        "itinerary_generation/activity_titles_core.py:create_client_activity_title",
-        "itinerary_generation/day_intro_engine.py:create_day_intro",
-        "itinerary_generation/summaries.py:describe_city_experience",
-    }
-)
-
-PYTHON_FILE_ALLOWLIST = frozenset(
-    {
-        "itinerary_generation/data/nordic_destination_registry.py",
-    }
+from scripts.architecture_guard_config import (
+    CLEANED_GENERATION_CORE_FACADES,
+    DEBUG_ALLOWED_SOURCES,
+    DUPLICATE_TEST_DIRS,
+    EXACT_VAGUE_FILE_NAMES,
+    FORBIDDEN_NORMAL_UI_MARKERS,
+    GENERATION_CORE_FACADE_MODULES,
+    GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE,
+    HIGH_VALUE_SOURCE_ROOTS,
+    NORMAL_WORKFLOW_GLOBS,
+    NORMAL_WORKFLOW_SOURCES,
+    PATCH_HISTORY_NAME_MARKERS,
+    PATCH_METADATA_DIR_NAMES,
+    PYTHON_FILE_ALLOWLIST,
+    PYTHON_FUNCTION_ALLOWLIST,
+    ROOT_PATCH_ARTIFACT_NAMES,
+    TOP_LEVEL_COMPATIBILITY_FACADES,
 )
 
 
@@ -253,66 +86,6 @@ def source_contains(path: str, marker: str) -> bool:
     return marker in _read(REPO_ROOT / path)
 
 
-def _source_files(root: Path, suffixes: frozenset[str]) -> tuple[Path, ...]:
-    return tuple(
-        sorted(
-            path
-            for path in root.rglob("*")
-            if path.is_file()
-            and path.suffix in suffixes
-            and "__pycache__" not in path.parts
-            and ".git" not in path.parts
-        )
-    )
-
-
-def oversized_frontend_js_files(limit: int = 500) -> tuple[SizeHit, ...]:
-    root = REPO_ROOT / "visual_editor_component/frontend/js"
-    return _oversized_files(root, frozenset({".js"}), limit)
-
-
-def oversized_workflow_python_files(limit: int = 500) -> tuple[SizeHit, ...]:
-    root = REPO_ROOT / "app_modules"
-    return _oversized_files(root, frozenset({".py"}), limit)
-
-
-def oversized_core_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
-    hits: list[SizeHit] = []
-    for relative in ("parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
-        hits.extend(_oversized_files(REPO_ROOT / relative, frozenset({".py"}), limit))
-    return tuple(hit for hit in hits if hit.path not in PYTHON_FILE_ALLOWLIST)
-
-
-def _oversized_files(root: Path, suffixes: frozenset[str], limit: int) -> tuple[SizeHit, ...]:
-    hits: list[SizeHit] = []
-    for path in _source_files(root, suffixes):
-        line_count = len(_read(path).splitlines())
-        if line_count > limit:
-            hits.append(SizeHit(_repo_path(path), line_count, limit))
-    return tuple(hits)
-
-
-def oversized_python_functions(limit: int = 200) -> tuple[FunctionHit, ...]:
-    hits: list[FunctionHit] = []
-    for relative in ("app_modules", "parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
-        for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):
-            try:
-                tree = ast.parse(_read(path))
-            except SyntaxError:
-                continue
-            rel_path = _repo_path(path)
-            for node in ast.walk(tree):
-                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    continue
-                if getattr(node, "end_lineno", None) is None:
-                    continue
-                key = f"{rel_path}:{node.name}"
-                if key in PYTHON_FUNCTION_ALLOWLIST:
-                    continue
-                line_count = int(node.end_lineno) - int(node.lineno) + 1
-                if line_count > limit:
-                    hits.append(FunctionHit(rel_path, node.name, line_count, limit))
-    return tuple(hits)
 
 
 def patch_history_name_hits() -> tuple[str, ...]:
@@ -382,21 +155,6 @@ def destination_transport_cycle_hits() -> tuple[str, ...]:
     return tuple(sorted(hits))
 
 
-def oversized_editor_css_files(limit: int = 500) -> tuple[SizeHit, ...]:
-    root = REPO_ROOT / "visual_editor_component/frontend/styles"
-    return _oversized_files(root, frozenset({".css"}), limit)
-
-
-def oversized_streamlit_style_files(limit: int = 260) -> tuple[SizeHit, ...]:
-    """Return Streamlit style modules that have absorbed too many responsibilities."""
-
-    root = REPO_ROOT / "ui"
-    return tuple(
-        hit
-        for hit in _oversized_files(root, frozenset({".py"}), limit)
-        if Path(hit.path).name.startswith("style_")
-    )
-
 
 def root_patch_artifact_hits() -> tuple[str, ...]:
     hits = [name for name in ROOT_PATCH_ARTIFACT_NAMES if (REPO_ROOT / name).exists()]
@@ -445,58 +203,6 @@ def duplicate_test_path_hits() -> tuple[str, ...]:
     return tuple(sorted(path for paths in by_name.values() if len(paths) > 1 for path in paths))
 
 
-def oversized_core_named_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
-    hits: list[SizeHit] = []
-    for relative in ("parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
-        for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):
-            if not path.stem.endswith("_core"):
-                continue
-            line_count = len(_read(path).splitlines())
-            if line_count > limit:
-                hits.append(SizeHit(_repo_path(path), line_count, limit))
-    return tuple(hits)
-
-
-def oversized_cleaned_generation_core_facades() -> tuple[SizeHit, ...]:
-    """Return cleaned generation-core facades that grew back into implementations."""
-
-    hits: list[SizeHit] = []
-    for relative, limit in CLEANED_GENERATION_CORE_FACADES.items():
-        path = REPO_ROOT / relative
-        if not path.exists():
-            continue
-        line_count = len(_read(path).splitlines())
-        if line_count > limit:
-            hits.append(SizeHit(relative, line_count, limit))
-    return tuple(hits)
-
-
-def top_level_compatibility_facade_hits() -> tuple[str, ...]:
-    """Return top-level compatibility wrappers that grew implementation logic."""
-
-    hits: list[str] = []
-    for relative, line_limit in TOP_LEVEL_COMPATIBILITY_FACADES.items():
-        path = REPO_ROOT / relative
-        if not path.exists():
-            continue
-        source = _read(path)
-        line_count = len(source.splitlines())
-        if line_count > line_limit:
-            hits.append(f"{relative}: {line_count} lines > limit {line_limit}")
-        try:
-            tree = ast.parse(source)
-        except SyntaxError as exc:
-            hits.append(f"{relative}: syntax error: {exc}")
-            continue
-        for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                hits.append(f"{relative}:{node.lineno}: defines {node.name!r} instead of re-exporting")
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                module = ",".join(alias.name for alias in getattr(node, "names", ()))
-                imported_from = getattr(node, "module", "") or module
-                if _module_matches(imported_from, ("streamlit", "app_modules")):
-                    hits.append(f"{relative}:{node.lineno}: imports app/UI runtime module {imported_from!r}")
-    return tuple(sorted(hits))
 
 
 def generation_implementation_core_import_hits() -> tuple[str, ...]:

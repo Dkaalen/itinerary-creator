@@ -6,28 +6,8 @@
       "concern": "large_module"
     },
     {
-      "file": "scripts/test_groups.py",
-      "line_count": 796,
-      "concern": "large_module"
-    },
-    {
       "file": "place_alias_data.py",
       "line_count": 746,
-      "concern": "large_module"
-    },
-    {
-      "file": "scripts/architecture_guards.py",
-      "line_count": 710,
-      "concern": "large_module"
-    },
-    {
-      "file": "tests/test_structured_core_model.py",
-      "line_count": 583,
-      "concern": "large_module"
-    },
-    {
-      "file": "tests/test_image_matcher_selection.py",
-      "line_count": 572,
       "concern": "large_module"
     },
     {
@@ -156,6 +136,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 162,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/transport_domain/facts.py",
       "line_count": 150,
       "concern": "inline_regex_or_replacement_rules"
@@ -173,11 +158,6 @@
     {
       "file": "text_polish_modules/client_text_cleanup_rules.py",
       "line_count": 136,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 133,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
