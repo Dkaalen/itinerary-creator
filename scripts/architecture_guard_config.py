@@ -122,7 +122,6 @@ GENERATION_CORE_FACADE_MODULES = (
 )
 
 GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
-    "itinerary_generation/city_experience_classifier.py",
     "itinerary_generation/day_intro_activity.py",
     "itinerary_generation/day_intro_arrival.py",
     "itinerary_generation/day_intro_classification.py",
@@ -133,25 +132,14 @@ GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
     "itinerary_generation/day_render_group_tour_blocks.py",
     "itinerary_generation/day_render_leisure_blocks.py",
     "itinerary_generation/day_render_transport_blocks.py",
-    "itinerary_generation/debug/qa_edit_events.py",
-    "itinerary_generation/debug/qa_report_model.py",
-    "itinerary_generation/debug/qa_report_persist.py",
-    "itinerary_generation/debug/qa_report_render.py",
-    "itinerary_generation/debug/qa_warning_events.py",
     "itinerary_generation/editable_draft_model.py",
     "itinerary_generation/editable_draft_normalize.py",
     "itinerary_generation/editable_draft_lookup.py",
     "itinerary_generation/editable_draft_merge.py",
     "itinerary_generation/editable_draft_legacy_bridge.py",
-    "itinerary_generation/exclusion_commercial_items.py",
-    "itinerary_generation/exclusion_flights.py",
-    "itinerary_generation/exclusion_formatting.py",
-    "itinerary_generation/exclusion_self_transfers.py",
     "itinerary_generation/generation_quality_gate.py",
     "itinerary_generation/client_output_quality_gate.py",
-    "itinerary_generation/journey_arc_builder.py",
     "itinerary_generation/journey_arc_text_safety.py",
-    "itinerary_generation/nutshell_detection.py",
     "itinerary_generation/nutshell_journey_builder.py",
     "itinerary_generation/nutshell_labels.py",
     "itinerary_generation/nutshell_model.py",
@@ -164,7 +152,6 @@ GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE = (
     "itinerary_generation/structured_days_builder.py",
     "itinerary_generation/structured_travel_sequences.py",
     "itinerary_generation/structured_final_sections.py",
-    "itinerary_generation/trip_glance_builder.py",
 )
 
 EXACT_VAGUE_FILE_NAMES = frozenset({"utils.py", "helpers.py", "utils.js", "helpers.js", "utils.css", "helpers.css"})

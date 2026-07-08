@@ -1,24 +1,6 @@
 {
   "candidates": [
     {
-      "path": "itinerary_generation/activity_title_normalization.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/activity_title_rules.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/city_experience_classifier.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
       "path": "itinerary_generation/day_intro_engine_core.py",
       "reason": "facade-like module with zero production importers",
       "static_importers": [],
@@ -31,85 +13,7 @@
       "safety_note": "candidate for a dedicated deletion patch after targeted validation"
     },
     {
-      "path": "itinerary_generation/debug/qa_edit_events.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/debug/qa_report_model.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/debug/qa_report_persist.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/debug/qa_report_render.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/debug/qa_warning_events.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/exclusion_commercial_items.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/exclusion_flights.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/exclusion_formatting.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
       "path": "itinerary_generation/exclusion_sections_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/exclusion_self_transfers.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/image_quality_gate.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/journey_arc_builder.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/legacy_output_edits_bridge.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/nutshell_detection.py",
       "reason": "facade-like module with zero production importers",
       "static_importers": [],
       "safety_note": "candidate for a dedicated deletion patch after targeted validation"
@@ -127,19 +31,7 @@
       "safety_note": "candidate for a dedicated deletion patch after targeted validation"
     },
     {
-      "path": "itinerary_generation/render_document_text_scan.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
       "path": "itinerary_generation/summaries_core.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
-      "safety_note": "candidate for a dedicated deletion patch after targeted validation"
-    },
-    {
-      "path": "itinerary_generation/trip_glance_builder.py",
       "reason": "facade-like module with zero production importers",
       "static_importers": [],
       "safety_note": "candidate for a dedicated deletion patch after targeted validation"
@@ -955,12 +847,6 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "itinerary_generation/debug/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
       "path": "itinerary_generation/destination_copy.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
@@ -1048,8 +934,7 @@
       "path": "itinerary_generation/editable_draft_core.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/editable_draft.py",
-        "itinerary_generation/legacy_output_edits_bridge.py"
+        "itinerary_generation/editable_draft.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1100,11 +985,7 @@
       "path": "itinerary_generation/exclusion_sections.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/exclusion_commercial_items.py",
-        "itinerary_generation/exclusion_flights.py",
-        "itinerary_generation/exclusion_formatting.py",
         "itinerary_generation/exclusion_sections_core.py",
-        "itinerary_generation/exclusion_self_transfers.py",
         "itinerary_generation/inclusions.py",
         "itinerary_generation/structured_final_sections.py",
         "tests/test_finland_source_fidelity_regression.py",
@@ -1320,11 +1201,6 @@
       "path": "itinerary_generation/qa_report.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/debug/qa_edit_events.py",
-        "itinerary_generation/debug/qa_report_model.py",
-        "itinerary_generation/debug/qa_report_persist.py",
-        "itinerary_generation/debug/qa_report_render.py",
-        "itinerary_generation/debug/qa_warning_events.py",
         "itinerary_generation/qa_report_core.py",
         "tests/test_activity_catalogue_and_qa_regression.py",
         "tests/test_generation_architecture_cleanup.py",
@@ -1361,9 +1237,7 @@
       "path": "itinerary_generation/quality_gate_core.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/image_quality_gate.py",
-        "itinerary_generation/quality_gate.py",
-        "itinerary_generation/render_document_text_scan.py"
+        "itinerary_generation/quality_gate.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1445,11 +1319,8 @@
       "static_importers": [
         "app_modules/render_context_summary.py",
         "app_modules/render_context_summary_data.py",
-        "itinerary_generation/city_experience_classifier.py",
-        "itinerary_generation/journey_arc_builder.py",
         "itinerary_generation/public_api.py",
         "itinerary_generation/summaries_core.py",
-        "itinerary_generation/trip_glance_builder.py",
         "tests/test_architecture_consolidation.py",
         "tests/test_correctness_diagnostics_regression.py",
         "tests/test_enforcement_gaps_regression.py",
