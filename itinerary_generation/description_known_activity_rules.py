@@ -5,6 +5,7 @@ from __future__ import annotations
 from text_polish import polish_client_text
 
 from itinerary_generation.description_facts import _join
+from itinerary_generation.activity_location_contract import activity_location_facts
 
 
 def _photo_focused_description(full: str, city: str) -> str:
@@ -157,16 +158,28 @@ def _adventure_and_landmark_description(full: str, city_phrase: str, places: lis
     return ""
 
 
-def _final_known_description(full: str, title: str, city_phrase: str, places: list[str], inclusions: list[str]) -> str:
+def _final_known_description(full: str, title: str, city_phrase: str, places: list[str], inclusions: list[str], location_facts) -> str:
     if "tallinn" in full:
         return "Travel between Helsinki and Tallinn by ferry, with time arranged for your visit to Tallinn before returning to Helsinki."
     if "icebreaker" in full:
         product_name = "Polar Explorer Icebreaker" if "polar explorer" in full else "Arctic Explorer Icebreaker" if "arctic explorer" in full else "Sampo Icebreaker" if "sampo" in full else "Arktis Icebreaker" if "arktis" in full else "icebreaker cruise"
         return f"Experience the {product_name} in Lapland, with the day centred on the frozen sea, Arctic scenery and the included icebreaker activities."
     if places:
-        return polish_client_text(
-            f"Enjoy {title}{city_phrase}, with the experience centred around {_join(places, max_items=5)}. The arrangements are prepared in advance so the day stays clear and easy to follow."
-        )
+        place_list = _join(places, max_items=5)
+        if location_facts.excursion_region == "Blue Lagoon":
+            return polish_client_text(
+                f"Visit the Blue Lagoon from {location_facts.base_city or 'Reykjavík'}, with comfort admission, return transfers and time in the geothermal waters arranged as part of the day."
+            )
+        if location_facts.excursion_region == "Jökulsárlón Glacier Lagoon":
+            return polish_client_text("Visit Jökulsárlón Glacier Lagoon for a scenery-led day, with the included boat tour adding time among the floating ice where conditions allow.")
+        if location_facts.is_excursion and location_facts.base_city:
+            region_name = location_facts.excursion_region
+            if not region_name.startswith(("Iceland", "Snæfellsnes", "Jökulsárlón")):
+                region_name = "the " + region_name
+            return polish_client_text(
+                f"Explore {region_name} from {location_facts.base_city}, with {place_list} shaping the main stops of the experience."
+            )
+        return polish_client_text(f"Enjoy {title}{city_phrase}, with the experience centred around {place_list}.")
     if inclusions:
         return polish_client_text(f"Enjoy {title}{city_phrase}, with the practical arrangements handled in advance and the included elements supporting a smooth experience.")
     return ""
@@ -184,7 +197,7 @@ def match_known_activity_description(
 ) -> str:
     """Return a keyword-based activity description, or ``""``."""
 
-    del row  # Rule inputs are explicit so the matcher stays deterministic.
+    location_facts = activity_location_facts(row, title=title, city=city, source_text=full)
     for matcher in [
         lambda: _city_and_water_description(full),
         lambda: _food_and_ticket_description(full, title, city, city_phrase),
@@ -192,7 +205,7 @@ def match_known_activity_description(
         lambda: _photo_focused_description(full, city),
         lambda: _animal_and_aurora_description(full, city, city_phrase),
         lambda: _outdoor_and_water_description(full, city_phrase, places),
-        lambda: _final_known_description(full, title, city_phrase, places, inclusions),
+        lambda: _final_known_description(full, title, city_phrase, places, inclusions, location_facts),
     ]:
         description = matcher()
         if description:

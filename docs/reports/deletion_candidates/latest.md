@@ -6,7 +6,7 @@ This is a handover list only. Do not delete all entries in one patch.
 Each candidate needs an import-search proof, targeted tests, and a separate deletion commit.
 
 Immediate candidates: 0
-Held back for compatibility/safety: 188
+Held back for compatibility/safety: 189
 
 ## Immediate candidates
 
@@ -42,7 +42,7 @@ Held back for compatibility/safety: 188
 | `images/app_image_bank.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
 | `images/destination_image_library.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |
 | `images/diagnostics.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |
-| `images/matcher_context.py` | facade-like module with production importers | 12 | still has static importers |
+| `images/matcher_context.py` | facade-like module with production importers | 13 | still has static importers |
 | `images/remote_distribution.py` | facade-like module with production importers | 8 | still has static importers |
 | `images/scanner.py` | facade-like module with production importers | 13 | still has static importers |
 | `images/seasonal_policy.py` | module with zero production importers | 0 | not facade-like; review for dynamic/data ownership before deletion |
@@ -124,7 +124,8 @@ Held back for compatibility/safety: 188
 | `itinerary_generation/structured_days_builder.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/structured_validation.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/summaries.py` | facade-like module with production importers | 13 | still has static importers |
-| `itinerary_generation/summaries_text.py` | facade-like module with production importers | 2 | still has static importers |
+| `itinerary_generation/summaries_journey_arc.py` | facade-like module with production importers | 1 | still has static importers |
+| `itinerary_generation/summaries_text.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/titles.py` | facade-like module with production importers | 32 | still has static importers |
 | `itinerary_generation/transport.py` | facade-like module with production importers | 17 | still has static importers |
 | `itinerary_generation/transport_details.py` | facade-like module with production importers | 4 | still has static importers |

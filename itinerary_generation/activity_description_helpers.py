@@ -6,6 +6,7 @@ import re
 
 from itinerary_generation.activity_description_rules import keyword_activity_description, specific_activity_description
 from itinerary_generation.activity_product_titles import activity_product_family
+from itinerary_generation.activity_location_contract import activity_location_facts
 from itinerary_generation.activity_training_catalogue import catalogue_description_for_row
 from itinerary_generation.product_rules import find_product_match, product_description
 from itinerary_generation.render_text_helpers import get_detail_level_name
@@ -157,12 +158,23 @@ def get_activity_description(row, detail_level=None):
 
     clean_title = polish_title(create_client_activity_title(row) or row.get("title", "") or "Included experience")
     city_name = polish_title(row.get("city", ""))
+    location_facts = activity_location_facts(row, title=clean_title, city=city_name, source_text=title)
+    if location_facts.excursion_region == "Snæfellsnes Peninsula":
+        return "Explore the Snæfellsnes Peninsula on a guided day trip, with coastal scenery and mountain views forming the main focus."
+    if location_facts.excursion_region == "Fagradalsfjall and Meradalir":
+        return "Hike through the Fagradalsfjall and Meradalir volcanic landscape with local guidance and transport arranged from Reykjavík."
+    if location_facts.excursion_region == "Jökulsárlón Glacier Lagoon":
+        return "Visit Jökulsárlón Glacier Lagoon for a scenery-led day, with the included boat tour adding time among the floating ice where conditions allow."
+    if location_facts.excursion_region == "Golden Circle":
+        return "Travel the Golden Circle route, with Þingvellir, Strokkur and Gullfoss giving the day its main natural and cultural stops."
+    if location_facts.excursion_region == "Iceland’s South Coast":
+        return "Explore Iceland’s South Coast, with waterfall scenery, glacier landscapes and black-sand coastline shaping the experience."
     destination_phrase = f" in {city_name}" if city_name else ""
     combined = f"{clean_title} {title}".lower()
     keyword_description = keyword_activity_description(combined=combined, destination_phrase=destination_phrase)
     if keyword_description:
         return keyword_description
-    return f"Take part in the arranged activity{destination_phrase}, adding a clear highlight to the day without exposing raw supplier notes."
+    return f"Take part in the arranged activity{destination_phrase}, with timing, meeting details and inclusions kept clear for the experience."
 
 
 __all__ = [

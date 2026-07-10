@@ -14,6 +14,7 @@ from itinerary_generation.description_facts import (
     _join,
 )
 from itinerary_generation.activity_product_titles import activity_product_family
+from itinerary_generation.activity_location_contract import activity_location_facts
 from itinerary_generation.description_sources import _row_source
 from itinerary_generation.description_known_activity_rules import match_known_activity_description
 from itinerary_generation.product_rules import find_product_match, product_description
@@ -84,10 +85,25 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
 def _fallback_description(row: dict, title: str, city: str) -> str:
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
     lower = f"{title} {_row_source(row)}".lower()
+    facts = activity_location_facts(row, title=title, city=city, source_text=_row_source(row))
+    if facts.excursion_region == "Golden Circle":
+        return polish_client_text("Travel the Golden Circle route, with Þingvellir, Strokkur and Gullfoss giving the day its main natural and cultural stops.")
+    if facts.excursion_region == "Iceland’s South Coast":
+        return polish_client_text("Explore Iceland’s South Coast, with waterfall scenery, glacier landscapes and black-sand coastline shaping the experience.")
+    if facts.excursion_region == "Snæfellsnes Peninsula":
+        return polish_client_text("Explore the Snæfellsnes Peninsula on a guided day trip, with coastal scenery and mountain views forming the main focus.")
+    if facts.excursion_region == "Fagradalsfjall and Meradalir":
+        return polish_client_text("Hike through the Fagradalsfjall and Meradalir volcanic landscape with local guidance and transport arranged from Reykjavík.")
+    if facts.excursion_region == "Jökulsárlón Glacier Lagoon":
+        return polish_client_text("Visit Jökulsárlón Glacier Lagoon for a scenery-led day, with the included boat tour adding time among the floating ice where conditions allow.")
+    if facts.excursion_region == "Blue Lagoon":
+        return polish_client_text("Enjoy time at the Blue Lagoon, with admission and return transfer details arranged as part of the experience.")
+    if facts.excursion_region == "Reykjavík harbour and coast":
+        return polish_client_text("Set out from Reykjavík’s harbour for whale watching, with onboard guidance and coastal viewing areas included while you look for marine life.")
     if "train" in lower or "rail" in lower:
         return polish_client_text(f"Continue by rail towards {city or 'your next destination'}, with the route and timing arranged as part of the day.")
     if "transfer" in lower or "self" in lower:
         return polish_client_text(f"Today’s travel arrangements{city_phrase} are kept clear and easy to follow, giving you a smooth transition to the next part of the journey.")
-    return polish_client_text(f"Enjoy {title}{city_phrase}, with the schedule arranged to keep the experience clear, comfortable and easy to follow.")
+    return polish_client_text(f"Enjoy {title}{city_phrase}, with timing, meeting details and inclusions kept clear for the experience.")
 
 

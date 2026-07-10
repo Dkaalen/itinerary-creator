@@ -1,0 +1,26 @@
+Day 1	Arrival	19.08.2026		Keflavik: Welcome to Iceland
+Day 1	Transfer	19.08.2026		Keflavik: Private transfer to your accommodation
+Day 1	Hotel	19.08.2026	26.08.2026	Reykjavik: Check in to your accommodation for a 7 night stay - Center Hotels Plaza - Standard Double Room - Double  bed - Breakfast included
+Day 1	Leisure	19.08.2026		Reykjavik: Spend time at leisure
+				
+Day 2	Activity	20.08.2026		Reykjavík: Best Value Whale Watching Tour - Time: 09:00 am - 1:00 pm - Meeting point: Special Tours office, Geirsgata 11 - Includes: Professional, English-speaking guide, Free retry in case of no whale sightings, Warm flotation overalls are provided, Heated indoor cabins featuring toilet facilities, Complimentary seasickness tablets available
+Day 2	Activity	20.08.2026		Reykjavik: Blue Lagoon Comfort Ticket & Return Transfer - Time: Flexible - Meeting point: Hotel Pick Up - Includes: Bus transfer from Reykjavik to the Blue Lagoon, Bus transfer from the Blue Lagoon to Reykjavik, Depart to Blue Lagoon from 9.00am to 5.00pm, Return to Reykjavik from 1.15pm to 8.15pm, Comfort package admission to the Blue Lagoon, Silica mud mask, towel and free drink of choice
+Day 2	Leisure	20.08.2026		Reykjavik: Spend time at leisure
+				
+Day 3	Activity	21.08.2026		Reykjavik: Grand Golden Circle Full-Day Tour - Time: 08:00 am - 5:00 pm - Meeting point: Hotel Pick Up - Includes: Pick-up/drop-off from central Reykjavik, Roundtrip transportation by minivan or coach, Knowledgeable, English-speaking guide, Kerið volcanic crater incl. admission fee, Gulfoss waterfall aka Golden Falls, Strokkur geyser eruption experience, Thingvellir UNESCO World Heritage site, Free WiFi onboard the vehicle
+Day 3	Leisure	21.08.2026		Reykjavik: Spend time at leisure
+				
+Day 4	Activity	22.08.2026		Reykjavík: South Coast, Glacier & Black Sand Beach Tour - Time: 09:00 am - 7:00 pm - Meeting point: Hotel pick up - Includes: Pick-up/drop-off in central Reykjavik, Transfer in comfortable minivan, Visit to Seljalandsfoss Waterfall, Visit to Skógafoss Waterfall, Visit to Sólheimajökull Glacier, Visit to Reynisfjara black basalt beach, Visit to Village of Vík and Reynisdrangar, Free WiFi included onboard
+Day 4	Leisure	22.08.2026		Reykjavik: Spend time at leisure
+				
+Day 5	Activity	23.08.2026		Reykjavik: Snæfellsnes Peninsula Tour by Minivan - Time: 08:00 am - 6:00 pm - Meeting point: Hotel Pick up - Includes: English speaking guide, Small-group on the Minibus (max 21 persons), Wi-Fi and Icelandic music on board
+Day 5	Leisure	23.08.2026		Reykjavik: Spend time at leisure
+				
+Day 6	Activity	24.08.2026		Reykjavík: Fagradalsfjall & Meradalir Volcano Hike - Time: 08:00 am - 5:00 pm - Meeting point: Hotel pick up - Includes: Pick-up/drop-off in central Reykjavik, Experienced, English-speaking guide, Hike to Fagradalsfjall Volcano, Hike through otherwordly Meradalir, Wi-Fi on board transfer vehicle
+Day 6	Leisure	24.08.2026		Reykjavik: Spend time at leisure
+				
+Day 7	Activity	25.08.2026		Reykjavik: Jökulsárlón Glacial Lagoon & Boat Tour - Time: 07:30 am - 10:30 pm - Meeting point: Hotel pick up - Includes: Bus fare, Guided tour, Approx. 30 minute boat tour
+Day 7	Leisure	25.08.2026		Reykjavik: Spend time at leisure
+				
+Day 8	Transfer	26.08.2026		Reykjavik: Private transfer to Keflavik Airport
+Day 8	Departure	26.08.2026		Keflavik: Departure home

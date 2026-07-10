@@ -13,18 +13,18 @@ from scripts.real_output_qa.models import OutputTextIssue, OutputTextScore, Text
 from scripts.real_output_qa.rules import (
     ACTIVITY_TRANSPORT_EXPERIENCE_RE,
     ACTIVITY_TYPE_RE,
-    AIRPORT_STAY_RE,
-    CURRENCY_CODES,
     GENERIC_COPY_RE,
     RAW_SUPPLIER_FRAGMENT_RE,
-    ROUTE_FALSE_PLACE_RE,
     SUPPLIER_TYPO_PATTERNS,
     SUSPICIOUS_PHRASES,
     TRANSFER_AS_PLACE_RE,
     TRANSPORT_PRODUCT_RE,
     WEAK_ARRIVAL_INTRO_RE,
     WEAK_FREE_TIME_RE,
+    MALFORMED_TIME_RE,
 )
+from scripts.real_output_qa.deep_quality_checks import score_journey_overview_logic, score_unsupported_intro_theme
+from scripts.real_output_qa.destination_truth_checks import score_city_currency_safety, score_destination_truth
 from scripts.real_output_qa.segments import iter_output_segments
 from scripts.real_output_qa.summary_quality import score_summary_quality
 from scripts.real_output_qa.text_utils import add_issue as _add_issue, clean_text as _clean_text
@@ -50,9 +50,10 @@ def score_rendered_output(
 
     _score_segment_text(issues, segments)
     _score_hotel_star_safety(issues, source_text, full_text)
-    _score_city_currency_safety(issues, segments, getattr(context, "destinations_line", ""))
-    _score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
+    score_city_currency_safety(issues, segments, getattr(context, "destinations_line", ""))
+    score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
     score_summary_quality(issues, context)
+    score_journey_overview_logic(issues, context)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     _score_repetition(issues, days)
@@ -126,6 +127,16 @@ def _score_segment_text(issues: list[OutputTextIssue], segments: Sequence[TextSe
                 location=segment.location,
                 excerpt=segment.text,
             )
+        if MALFORMED_TIME_RE.search(segment.text):
+            _add_issue(
+                issues,
+                "malformed_client_time",
+                "error",
+                "Client-facing time text is malformed by normalization.",
+                location=segment.location,
+                excerpt=segment.text,
+            )
+
 
 
 def _score_hotel_star_safety(issues: list[OutputTextIssue], source_text: str, full_text: str) -> None:
@@ -141,60 +152,6 @@ def _score_hotel_star_safety(issues: list[OutputTextIssue], source_text: str, fu
             "3/4-star source was rendered as definite 4-star hotel.",
             excerpt="4-star hotel",
         )
-
-
-def _score_city_currency_safety(issues: list[OutputTextIssue], segments: Sequence[TextSegment], route_text: object) -> None:
-    route_parts = {part.strip().upper() for part in re.split(r"[·,>\-/]+", _clean_text(route_text)) if part.strip()}
-    bad_route_codes = sorted(route_parts & CURRENCY_CODES)
-    for code in bad_route_codes:
-        _add_issue(issues, "currency_code_used_as_city", "error", "Currency code appears in route/destination line.", location="cover.route", excerpt=code)
-    for segment in segments:
-        if segment.kind == "day_city" and segment.text.upper() in CURRENCY_CODES:
-            _add_issue(
-                issues,
-                "currency_code_used_as_day_city",
-                "error",
-                "Currency code appears as a day city.",
-                location=segment.location,
-                excerpt=segment.text,
-            )
-
-
-def _score_destination_truth(issues: list[OutputTextIssue], segments: Sequence[TextSegment], route_text: object) -> None:
-    route = _clean_text(route_text)
-    if route and ROUTE_FALSE_PLACE_RE.search(route):
-        _add_issue(
-            issues,
-            "route_contains_service_as_destination",
-            "error",
-            "Route/destination line contains a service phrase instead of a real place.",
-            location="cover.route",
-            excerpt=route,
-        )
-    for segment in segments:
-        if segment.kind != "day_city":
-            continue
-        city = _clean_text(segment.text)
-        if not city:
-            continue
-        if ROUTE_FALSE_PLACE_RE.search(city):
-            _add_issue(
-                issues,
-                "service_phrase_used_as_day_city",
-                "error",
-                "A service phrase appears as a day city.",
-                location=segment.location,
-                excerpt=city,
-            )
-        if AIRPORT_STAY_RE.search(city) and not re.search(r"\b(?:Keflavík|Longyearbyen)\b", city, flags=re.IGNORECASE):
-            _add_issue(
-                issues,
-                "airport_used_as_stay_city",
-                "warning",
-                "Airport/terminal appears as a stay city; confirm this is not a transit-only location.",
-                location=segment.location,
-                excerpt=city,
-            )
 
 
 def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str, Any]], days: Sequence[Any]) -> None:
@@ -302,6 +259,7 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
                 excerpt=day_text,
             )
         _score_city_activity_mismatch(issues, day_id, day_text, activity_rows)
+        score_unsupported_intro_theme(issues, day_id, intro, day_rows)
 
 
 def _score_city_activity_mismatch(issues: list[OutputTextIssue], day_id: str, day_text: str, activity_rows: Sequence[dict[str, Any]]) -> None:

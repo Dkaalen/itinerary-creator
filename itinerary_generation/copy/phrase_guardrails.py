@@ -22,6 +22,8 @@ BANNED_GENERATED_PHRASES: tuple[str, ...] = (
     "After check-in",
     "make your way to your accommodation",
     "Use the remaining time",
+    "raw supplier notes",
+    "without exposing",
 )
 
 _BANNED_RE = re.compile("|".join(re.escape(phrase) for phrase in BANNED_GENERATED_PHRASES), re.IGNORECASE)

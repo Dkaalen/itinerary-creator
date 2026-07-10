@@ -96,7 +96,7 @@
     },
     {
       "file": "itinerary_generation/activity_description_helpers.py",
-      "line_count": 176,
+      "line_count": 188,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -125,6 +125,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "parser_modules/time_normalize.py",
+      "line_count": 136,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "text_polish_modules/client_text_cleanup_rules.py",
       "line_count": 136,
       "concern": "inline_regex_or_replacement_rules"
@@ -132,11 +137,6 @@
     {
       "file": "text_polish_modules/titles.py",
       "line_count": 126,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "parser_modules/time_normalize.py",
-      "line_count": 120,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -257,6 +257,7 @@
       "tests/test_preview_pdf_parity.py",
       "tests/test_qc_input_img_pdf_combined_regression.py",
       "tests/test_real_fixture_quality_gate.py",
+      "tests/test_real_output_quality_gate_iceland_regression.py",
       "tests/test_regressions_content_basics.py",
       "tests/test_regressions_fixture_quality.py",
       "tests/test_regressions_fixture_quality_transport.py",

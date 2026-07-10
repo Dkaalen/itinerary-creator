@@ -33,7 +33,13 @@ def standardize_row_text(row):
 
     for key in ["notable_sights", "includes"]:
         if key in row and isinstance(row.get(key), list):
-            row[key] = [fix_common_text(item) for item in row[key] if fix_common_text(item)]
+            cleaned_items = []
+            for item in row[key]:
+                cleaned = fix_common_text(item)
+                cleaned = normalize_time_text(cleaned) or cleaned
+                if cleaned:
+                    cleaned_items.append(cleaned)
+            row[key] = cleaned_items
 
     title = row.get("title", "")
     details = row.get("details", "")

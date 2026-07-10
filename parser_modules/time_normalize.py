@@ -61,6 +61,22 @@ def normalize_time_text(value):
         return ""
 
     text = text.replace("–", "-").replace("—", "-")
+    # Repair older broad text-polish damage before normalizing.  A dotted
+    # supplier time like ``9.00am`` may have become ``9. 00:00 AM`` if it was
+    # run through generic punctuation cleanup first.
+    text = re.sub(
+        r"(?<!\d)(\d{1,2})\.\s*(\d{2}):00\s*([AaPp]\.?[Mm]\.?)(?![A-Za-z])",
+        r"\1:\2 \3",
+        text,
+    )
+    # Supplier inclusions often use dotted clock notation (``9.00am``).
+    # Normalize that before the generic single-token pass; otherwise the
+    # ``00am`` part can be mistaken for midnight.
+    text = re.sub(
+        r"(?<!\d)(\d{1,2})\.\s*(\d{2})\s*([AaPp]\.?[Mm]\.?)(?![A-Za-z])",
+        r"\1:\2 \3",
+        text,
+    )
     text = re.sub(r"\s+", " ", text).strip()
 
     time_token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
@@ -112,7 +128,7 @@ def normalize_time_text(value):
     text = single_pattern.sub(replace_single, text)
     text = re.sub(r"\(\s*anytime\s*\)", ", flexible start", text, flags=re.IGNORECASE)
     text = re.sub(r"\s*,\s*flexible start", ", flexible start", text, flags=re.IGNORECASE)
-    text = re.sub(r"\s*/\s*", " / ", text)
+    text = re.sub(r"(?<=\d)\s*/\s*(?=\d)", " / ", text)
     text = re.sub(r"\s+", " ", text)
     text = re.sub(r"\s+\)", ")", text)
     return text.strip(" ,")

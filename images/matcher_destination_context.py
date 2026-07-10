@@ -2,6 +2,7 @@
 
 from itinerary_generation.destination_registry import destination_country_for_alias,destination_for_alias
 from images.metadata import CITY_ALIASES,city_variants,normalize_keyword
+from itinerary_generation.activity_location_contract import activity_location_facts
 
 CITY_TO_COUNTRY={"oslo":"norway","bergen":"norway","kristiansand":"norway","stavanger":"norway","tromso":"norway","tromsø":"norway","flam":"norway","flåm":"norway","alesund":"norway","ålesund":"norway","helsinki":"finland","rovaniemi":"finland","kakslauttanen":"finland","kakslauttenen":"finland","ivalo":"finland","tallinn":"estonia","stockholm":"sweden","kiruna":"sweden","abisko":"sweden","gallivare":"sweden","gällivare":"sweden","copenhagen":"denmark","kobenhavn":"denmark","københavn":"denmark","reykjavik":"iceland","reykjavík":"iceland","keflavik":"iceland","keflavík":"iceland","vik":"iceland","vík":"iceland","hella":"iceland","hofn":"iceland","höfn":"iceland","akureyri":"iceland"}
 
@@ -24,6 +25,9 @@ def destination_profiles_for_city(city:str)->tuple[set[str],set[str]]:
 def known_destination_from_text(text:str,current_city:str="")->str:
     normalized=normalize_keyword(text);current=city_variants(current_city)
     if not normalized:return ""
+    facts=activity_location_facts(title=text, city=current_city, source_text=text)
+    if facts.excursion_region and not (current & city_variants(facts.excursion_region)):
+        return facts.excursion_region
     for canonical,aliases in sorted(CITY_ALIASES.items(),key=lambda item:-max(len(str(alias)) for alias in item[1])):
         values={normalize_keyword(alias) for alias in aliases}
         if current&values:continue

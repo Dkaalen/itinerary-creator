@@ -31,6 +31,12 @@ SERVICE_INTENT_MATCHERS = {
     "kayaking": {"themes": {"fjord", "ocean", "mountain"}, "tokens": {"kayak", "kayaking", "river", "otra", "paddle", "water"}},
     "city_walk": {"themes": {"city", "old town", "waterfront"}, "tokens": {"walking", "walk", "historic", "old", "town", "street", "streets", "bryggen"}},
     "funicular": {"themes": {"funicular", "mountain", "city"}, "tokens": {"funicular", "floibanen", "fløibanen", "floyen", "fløyen", "viewpoint", "mountain"}},
+    "golden_circle": {"themes": {"waterfall", "geothermal", "nature"}, "tokens": {"golden", "circle", "gullfoss", "strokkur", "thingvellir", "þingvellir", "geysir"}},
+    "south_coast": {"themes": {"waterfall", "ocean", "black sand beach", "glacier"}, "tokens": {"south", "coast", "seljalandsfoss", "skógafoss", "skogafoss", "reynisfjara", "vik", "vík"}},
+    "glacier_lagoon": {"themes": {"glacier", "ice", "boat"}, "tokens": {"jökulsárlón", "jokulsarlon", "glacier", "glacial", "lagoon", "ice", "boat"}},
+    "volcano_hike": {"themes": {"volcano", "hiking", "mountain"}, "tokens": {"fagradalsfjall", "meradalir", "volcano", "hike", "lava"}},
+    "blue_lagoon": {"themes": {"spa", "geothermal", "lagoon"}, "tokens": {"blue", "lagoon", "geothermal", "spa"}},
+    "whale_watching": {"themes": {"wildlife", "ocean", "harbour"}, "tokens": {"whale", "wildlife", "harbour", "harbor", "boat"}},
 }
 
 
@@ -54,7 +60,7 @@ def _service_intent_score(candidate_tokens: set[str], candidate_themes: set[str]
 
     # If a day is clearly led by a scenic/transport service, a generic city
     # skyline should not win merely because the folder matches the city.
-    service_led = intents & {"rail", "scenic_rail_fjord", "fjord_cruise", "coastal_cruise", "kayaking", "funicular"}
+    service_led = intents & {"rail", "scenic_rail_fjord", "fjord_cruise", "coastal_cruise", "kayaking", "funicular", "golden_circle", "south_coast", "glacier_lagoon", "volcano_hike", "blue_lagoon", "whale_watching"}
     generic_city = candidate_themes <= {"city", "waterfront", "old town"} or bool(candidate_themes & {"city"})
     if service_led and generic_city:
         return -SERVICE_GENERIC_CITY_PENALTY, ["generic city image downranked for service-led day"]

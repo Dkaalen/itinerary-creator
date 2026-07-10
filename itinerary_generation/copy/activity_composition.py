@@ -6,15 +6,20 @@ from dataclasses import dataclass
 import re
 from typing import Callable
 
+from itinerary_generation.activity_location_contract import activity_location_facts
+
 
 @dataclass(frozen=True)
 class TextRule:
-    """A simple marker-driven text decision."""
+    """A marker-driven text decision with explicit match semantics."""
 
     markers: tuple[str, ...]
     template: Callable[[str, str], str]
+    match_all: bool = False
 
     def matches(self, text: str) -> bool:
+        if self.match_all:
+            return all(marker in text for marker in self.markers)
         return any(marker in text for marker in self.markers)
 
     def render(self, title: str, city: str) -> str:
@@ -23,6 +28,28 @@ class TextRule:
 
 def _normalise_text(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def _specific_iceland_intro(title: str, city: str, source_text: str) -> str:
+    facts = activity_location_facts(title=title, city=city, source_text=source_text)
+    lower = f"{title} {city} {source_text}".casefold()
+    if "whale" in lower and "blue lagoon" in lower:
+        return "Today combines whale watching from Reykjavík with time at the Blue Lagoon, keeping the day varied without blurring the two separate experiences."
+    if facts.excursion_region == "Golden Circle":
+        return "Follow the Golden Circle from Reykjavík today, with Þingvellir, Strokkur and Gullfoss shaping the main route."
+    if facts.excursion_region == "Iceland’s South Coast":
+        return "Head out from Reykjavík along Iceland’s South Coast, where waterfalls, glacier scenery and black-sand coastline shape the day."
+    if facts.excursion_region == "Snæfellsnes Peninsula":
+        return "Set out from Reykjavík for the Snæfellsnes Peninsula, with the day focused on coastal scenery, mountain views and small-town stops along the route."
+    if facts.excursion_region == "Fagradalsfjall and Meradalir":
+        return "Today focuses on the Fagradalsfjall and Meradalir volcanic landscape, with a guided hike arranged from Reykjavík."
+    if facts.excursion_region == "Jökulsárlón Glacier Lagoon":
+        return "Travel from Reykjavík to Jökulsárlón Glacier Lagoon for a long scenery-led day, with the boat tour included as part of the experience."
+    if facts.excursion_region == "Blue Lagoon":
+        return "Travel from Reykjavík to the Blue Lagoon for a flexible geothermal bathing experience, with return transfer and admission arranged."
+    if facts.excursion_region == "Reykjavík harbour and coast":
+        return "Set out from Reykjavík harbour for whale watching, with onboard guidance and coastal viewing areas included while you look for marine life."
+    return ""
 
 
 ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
@@ -81,6 +108,7 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     TextRule(
         ("blue lagoon", "volcano"),
         lambda title, city: "Today combines Icelandic landscapes with time to unwind, balancing the volcano area and Blue Lagoon in one arranged day.",
+        match_all=True,
     ),
     TextRule(
         ("photo", "sommar", "landscape"),
@@ -123,14 +151,17 @@ def client_activity_intro(activity_title: str, city: str, source_text: str = "",
     title = _normalise_text(activity_title) or "the arranged experience"
     city_text = _normalise_text(city) or "the experience area"
     searchable = f"{title} {city_text} {source_text}".lower()
+    iceland_intro = _specific_iceland_intro(title, city_text, source_text)
+    if iceland_intro:
+        return iceland_intro
     if "electric boat" in searchable and any(marker in searchable for marker in ("oslo", "oslofjord", "trollcruise")):
         return f"See Oslo from the fjord today, with {title} adding harbour views, island scenery and an easy perspective on the Norwegian capital."
     for rule in ACTIVITY_INTRO_RULES:
         if rule.matches(searchable):
             return rule.render(title, city_text)
     if compact:
-        return f"{title} is the main arranged experience in {city_text}, with the rest of the day kept flexible."
-    return f"{title} is the main arranged experience in {city_text}, with the rest of the day kept simple and easy to follow."
+        return f"Today focuses on {title}, with the remaining schedule kept flexible around the included experience."
+    return f"Today focuses on {title}, with timing, meeting details and inclusions kept clear for the experience."
 
 
 def client_group_tour_intro(activity_title: str, city: str, source_text: str = "") -> str:
@@ -143,3 +174,6 @@ def client_group_tour_intro(activity_title: str, city: str, source_text: str = "
         if rule.matches(searchable):
             return rule.render(title, city_text)
     return f"The guided programme continues through {city_text} today, with the main stops, route and overnight arrangements handled as part of the tour."
+
+
+__all__ = ["TextRule", "client_activity_intro", "client_group_tour_intro"]

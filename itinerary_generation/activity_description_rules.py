@@ -83,6 +83,8 @@ def keyword_activity_description(*, combined: str, destination_phrase: str) -> s
         return "Experience Silfra with the arranged equipment and local guidance, following the meeting details provided for the activity."
     if "atv" in combined or "quad" in combined:
         return "Head out on an ATV experience, with safety equipment and guidance provided for the route."
+    if "fagradalsfjall" in combined or "meradalir" in combined or ("volcano" in combined and ("hike" in combined or "hiking" in combined)):
+        return "Hike through the Fagradalsfjall and Meradalir volcanic landscape with local guidance and transport arranged from Reykjavík."
     if "glacier" in combined or "crampon" in combined:
         return "Join a guided glacier experience, with the required safety equipment provided before heading onto the ice."
     if "suomenlinna" in combined:

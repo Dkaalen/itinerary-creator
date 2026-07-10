@@ -40,7 +40,7 @@ TRANSPORT_PRODUCT_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ACTIVITY_TRANSPORT_EXPERIENCE_RE = re.compile(
-    r"\b(?:northern lights|aurora|hunt|safari|sightseeing|tour|excursion|guided|fjord|cruise|reindeer|husky|whale|hike|experience)\b",
+    r"\b(?:northern lights|aurora|hunt|safari|sightseeing|tour|excursion|guided|fjord|cruise|reindeer|husky|whale|hike|experience|admission|ticket|lagoon|spa)\b",
     flags=re.IGNORECASE,
 )
 GENERIC_COPY_RE = re.compile(
@@ -58,6 +58,10 @@ WEAK_ARRIVAL_INTRO_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ARC_LABEL_RE = re.compile(r"\barc\b", flags=re.IGNORECASE)
+MALFORMED_TIME_RE = re.compile(
+    r"\b(?:\d{1,2}\.\s*\d{2}:\d{2}\s*[AP]M|00:[0-5]\d\s*(?:AM|PM)|(?:1[3-9]|2[0-3]):[0-5]\d\s*PM)\b",
+    flags=re.IGNORECASE,
+)
 
 __all__ = [
     "ACTIVITY_TRANSPORT_EXPERIENCE_RE",
@@ -74,4 +78,5 @@ __all__ = [
     "WEAK_ARRIVAL_INTRO_RE",
     "WEAK_FREE_TIME_RE",
     "ARC_LABEL_RE",
+    "MALFORMED_TIME_RE",
 ]
