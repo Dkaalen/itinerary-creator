@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
+import io
 import sys
+import tokenize
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +55,7 @@ def oversized_workflow_python_files(limit: int = 500) -> tuple[SizeHit, ...]:
     return _oversized_files(root, frozenset({".py"}), limit)
 
 
-def oversized_core_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
+def oversized_core_python_files(limit: int = 450) -> tuple[SizeHit, ...]:
     hits: list[SizeHit] = []
     for relative in ("parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
         hits.extend(_oversized_files(REPO_ROOT / relative, frozenset({".py"}), limit))
@@ -67,6 +69,37 @@ def _oversized_files(root: Path, suffixes: frozenset[str], limit: int) -> tuple[
         if line_count > limit:
             hits.append(SizeHit(_repo_path(path), line_count, limit))
     return tuple(hits)
+
+
+def semicolon_statement_count(source: str) -> int:
+    """Count real Python statement separators, excluding strings and comments."""
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        return sum(1 for token in tokens if token.type == tokenize.OP and token.string == ";")
+    except (IndentationError, tokenize.TokenError):
+        return 0
+
+
+def compressed_python_statement_hits(limit: int = 10) -> tuple[str, ...]:
+    """Return production modules that hide too many statements behind semicolons."""
+
+    roots = (
+        "app_modules",
+        "parser_modules",
+        "normalizer_modules",
+        "itinerary_generation",
+        "pdf_exporter_modules",
+        "images",
+        "ui",
+    )
+    hits: list[str] = []
+    for relative in roots:
+        for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):
+            count = semicolon_statement_count(_read(path))
+            if count > limit:
+                hits.append(f"{_repo_path(path)}: {count} semicolon-separated statements > limit {limit}")
+    return tuple(sorted(hits))
 
 
 def oversized_python_functions(limit: int = 200) -> tuple[FunctionHit, ...]:
@@ -107,7 +140,7 @@ def oversized_streamlit_style_files(limit: int = 260) -> tuple[SizeHit, ...]:
     )
 
 
-def oversized_core_named_python_files(limit: int = 700) -> tuple[SizeHit, ...]:
+def oversized_core_named_python_files(limit: int = 450) -> tuple[SizeHit, ...]:
     hits: list[SizeHit] = []
     for relative in ("parser_modules", "itinerary_generation", "pdf_exporter_modules", "images"):
         for path in _source_files(REPO_ROOT / relative, frozenset({".py"})):

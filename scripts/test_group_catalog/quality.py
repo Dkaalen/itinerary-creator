@@ -52,6 +52,7 @@ QUALITY_TESTS = (
     "tests/test_transport_render_split.py",
     "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
     "tests/test_real_output_text_review.py",
+    "tests/test_real_output_repetition_checks.py",
     "tests/test_real_output_quality_gate_norway_regression.py",
     "tests/test_real_output_quality_gate_norway_204_regression.py",
     "tests/test_real_output_quality_gate_iceland_regression.py",

@@ -1,10 +1,10 @@
 Test-suite QA health report
 ===========================
-Discovered test modules: 301
-Discovered test functions: 1609
+Discovered test modules: 303
+Discovered test functions: 1616
 Named runner groups: critical, fast, parser, activity, architecture, calculator, editor, images, storage, ui, workflow, quality, pdf, slow
 Release candidate groups: critical, fast, calculator, storage, workflow, parser, activity, architecture, editor, images, ui, quality, pdf
-Modules covered by at least one named group: 301
+Modules covered by at least one named group: 303
 Modules covered only by full/remaining: 0
 Critical group modules: 3
 Fast group modules: 19
@@ -44,7 +44,7 @@ Largest test modules by function count:
   - test_output_truth_contracts.py: 19
   - test_corpus_driven_parser_fixes_regression.py: 19
   - test_stress_logic_followups.py: 18
-  - test_architecture_guard_system.py: 17
+  - test_architecture_guard_system.py: 18
   - test_calculator_ui_foundation.py: 16
   - test_visual_editor_autosave_contract.py: 15
   - test_resumable_test_orchestrator.py: 14

@@ -1,8 +1,8 @@
 {
   "summary": {
-    "Discovered test modules": 301,
-    "Discovered test functions": 1609,
-    "Modules covered by at least one named group": 301,
+    "Discovered test modules": 303,
+    "Discovered test functions": 1616,
+    "Modules covered by at least one named group": 303,
     "Modules covered only by full/remaining": 0,
     "Critical group modules": 3,
     "Fast group modules": 19,
@@ -23,7 +23,7 @@
     "  - test_output_truth_contracts.py": 19,
     "  - test_corpus_driven_parser_fixes_regression.py": 19,
     "  - test_stress_logic_followups.py": 18,
-    "  - test_architecture_guard_system.py": 17,
+    "  - test_architecture_guard_system.py": 18,
     "  - test_calculator_ui_foundation.py": 16,
     "  - test_visual_editor_autosave_contract.py": 15,
     "  - test_resumable_test_orchestrator.py": 14,

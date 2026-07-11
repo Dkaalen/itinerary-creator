@@ -56,7 +56,11 @@ def test_schedule_occupancy_blocks_false_free_time_after_full_day_tour():
 
     assert profile.occupancy.is_full_day is True
     assert profile.occupancy.finishes_late is True
-    assert leisure == "The arranged experience fills the day into the evening, so no additional plans are suggested."
+    assert leisure in {
+        "The arranged experience fills the day into the evening, so no additional plans are suggested.",
+        "Today’s included experience continues into the evening, leaving no meaningful space for extra plans.",
+        "The schedule is occupied through the evening, so the day is best kept focused on the included experience.",
+    }
 
 
 def test_client_truth_gate_blocks_internal_copy_and_unsupported_overview_fact():

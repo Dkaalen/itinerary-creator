@@ -69,7 +69,7 @@ Held back for compatibility/safety: 235
 | `itinerary_generation/canonical_builder.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/client_output_quality_gate.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/common.py` | facade-like module with production importers | 107 | still has static importers |
-| `itinerary_generation/content_engine.py` | facade-like module with production importers | 17 | still has static importers |
+| `itinerary_generation/content_engine.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_generation/content_text.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/content_validator.py` | module with zero production importers | 17 | not facade-like; review for dynamic/data ownership before deletion |
 | `itinerary_generation/copy/__init__.py` | facade-like module with zero production importers | 0 | package initializer; never delete from static import evidence alone |
@@ -92,7 +92,7 @@ Held back for compatibility/safety: 235
 | `itinerary_generation/day_intro_classification.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/day_intro_engine.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/day_intro_planner.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/day_intro_route.py` | facade-like module with production importers | 3 | still has static importers |
+| `itinerary_generation/day_intro_route.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_render_blocks.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/day_render_manual_html.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_render_transport_blocks.py` | facade-like module with production importers | 2 | still has static importers |
@@ -172,7 +172,7 @@ Held back for compatibility/safety: 235
 | `itinerary_generation/title_safety.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/title_travel_composition.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/titles.py` | facade-like module with production importers | 32 | still has static importers |
-| `itinerary_generation/transport.py` | facade-like module with production importers | 17 | still has static importers |
+| `itinerary_generation/transport.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_generation/transport_details.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/transport_domain/__init__.py` | facade-like module with zero production importers | 0 | package initializer; never delete from static import evidence alone |
 | `itinerary_generation/transport_domain/model.py` | module with zero production importers | 1 | not facade-like; review for dynamic/data ownership before deletion |

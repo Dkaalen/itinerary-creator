@@ -56,6 +56,7 @@ PARSER_TESTS = (
     "tests/test_corpus_driven_hotel_parser_regression.py",
     "tests/test_qc_input_img_pdf_combined_regression.py",
     "tests/test_qc_input_pdf_style_image_regression.py",
+    "tests/test_route_truth_precedence.py",
 
 )
 

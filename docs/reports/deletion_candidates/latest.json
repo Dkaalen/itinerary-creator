@@ -550,7 +550,6 @@
         "itinerary_generation/canonical_inclusions.py",
         "itinerary_generation/day_content_resolver.py",
         "itinerary_generation/day_group_tour_text.py",
-        "itinerary_generation/day_intro_orchestrator.py",
         "itinerary_generation/day_intro_writer.py",
         "itinerary_generation/day_planner.py",
         "itinerary_generation/day_render_block_ordering.py",
@@ -780,8 +779,7 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "itinerary_generation/day_intro_classification.py",
-        "itinerary_generation/day_intro_engine.py",
-        "itinerary_generation/day_intro_orchestrator.py"
+        "itinerary_generation/day_intro_engine.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1660,7 +1658,6 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "itinerary_generation/day_arrival_text.py",
-        "itinerary_generation/day_intro_orchestrator.py",
         "itinerary_generation/day_planner.py",
         "itinerary_generation/day_route_text.py",
         "itinerary_generation/day_title_planner.py",

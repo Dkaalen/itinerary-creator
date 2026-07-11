@@ -5,6 +5,7 @@ from tests.support.static_contracts import read_contract_text
 
 from scripts import architecture_guards
 from scripts.architecture_guards import (
+    compressed_python_statement_hits,
     destination_transport_cycle_hits,
     itinerary_domain_generation_import_hits,
     duplicate_shared_clean_space_hits,
@@ -25,6 +26,7 @@ from scripts.architecture_guards import (
     source_contains,
     top_level_compatibility_facade_hits,
 )
+from scripts.architecture_guard_size_checks import semicolon_statement_count
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +48,12 @@ def test_file_size_guards_protect_recently_split_frontend_and_workflow_files() -
 
 def test_function_size_guard_blocks_new_giant_functions_outside_allowlist() -> None:
     assert oversized_python_functions() == ()
+
+
+def test_statement_compression_guard_ignores_strings_and_blocks_packed_code() -> None:
+    assert semicolon_statement_count('css = "color: red; margin: 0;"\n') == 0
+    assert semicolon_statement_count("first = 1; second = 2\n") == 1
+    assert compressed_python_statement_hits() == ()
 
 
 def test_and_vague_names_do_not_return_to_high_value_source_dirs() -> None:

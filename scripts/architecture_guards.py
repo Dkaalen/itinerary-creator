@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.architecture_guard_models import FunctionHit, SizeHit, SourceHit
 from scripts.architecture_guard_size_checks import (
+    compressed_python_statement_hits,
     oversized_cleaned_generation_core_facades,
     oversized_core_named_python_files,
     oversized_core_python_files,
@@ -154,6 +155,10 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck("Core-named Python file size", lambda: _fail_if_any("oversized *_core Python", oversized_core_named_python_files())),
         ArchitectureCheck("Cleaned generation facade size", lambda: _fail_if_any("cleaned facade grew back", oversized_cleaned_generation_core_facades())),
         ArchitectureCheck("Python function size", lambda: _fail_if_any("oversized Python function", oversized_python_functions())),
+        ArchitectureCheck(
+            "Python statement compression",
+            lambda: _fail_if_any("compressed Python statements", compressed_python_statement_hits()),
+        ),
         ArchitectureCheck("Patch-history and vague source names", lambda: _fail_if_any("bad high-value source name", patch_history_name_hits())),
         ArchitectureCheck("Debug/review lazy loading", _debug_review_lazy_load_failures),
         ArchitectureCheck("PDF internal review lazy loading", _pdf_internal_review_lazy_load_failures),

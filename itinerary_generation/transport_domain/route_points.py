@@ -116,6 +116,46 @@ def _scheduled_route_points_from_source(source_text: str) -> tuple[str, str]:
     return "", ""
 
 
+def _canonical_route_field_is_place(value: str) -> bool:
+    """Reject parser route fields that still contain actions or service prose."""
+
+    text = str(value or "").strip()
+    if not text or len(text) > 70:
+        return False
+    lower = text.casefold()
+    if re.match(
+        r"^(?:drive|travel|continue|explore|visit|return|head|follow|enjoy|pick[- ]?up|drop[- ]?off)\b",
+        lower,
+    ):
+        return False
+    service_markers = (
+        "self transfer",
+        "transfer by",
+        "car rental office",
+        "rental car office",
+        "activity upgrade",
+        "transfer package",
+    )
+    return not any(marker in lower for marker in service_markers)
+
+
+def _route_from_canonical_fields(row) -> tuple[str, str]:
+    """Return plausible parser-normalized route truth before text inference."""
+
+    raw_origin = str(row.get("route_origin", "") or "").strip()
+    raw_destination = str(row.get("route_destination", "") or "").strip()
+    if not raw_destination or not _canonical_route_field_is_place(raw_destination):
+        return "", ""
+    if raw_origin and not _canonical_route_field_is_place(raw_origin):
+        return "", ""
+
+    origin = _clean_route_place(raw_origin)
+    destination = _clean_route_place(raw_destination)
+    if not destination:
+        return "", ""
+    if origin and origin.casefold() == destination.casefold():
+        return "", ""
+    return origin, destination
 
 
 def _route_from_self_drive_row(row) -> tuple[str, str]:
@@ -244,6 +284,7 @@ def _route_from_unstructured_fallbacks(row) -> tuple[str, str]:
 def _get_route_points_for_transport_uncached(row):
     source_text = _transport_source_text(row)
     for resolver in (
+        lambda: _route_from_canonical_fields(row),
         lambda: _route_from_self_drive_row(row),
         lambda: _route_from_structured_transport_sources(row, source_text),
         lambda: _route_from_explicit_transport_fields(row, source_text),

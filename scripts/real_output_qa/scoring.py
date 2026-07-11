@@ -14,6 +14,7 @@ from itinerary_generation.quality_gate import evaluate_client_output_quality
 from itinerary_generation.generation_quality_gate import BLOCKING
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 from scripts.real_output_qa.models import OutputTextIssue, OutputTextScore, TextSegment
+from scripts.real_output_qa.repetition_checks import score_repetition
 from scripts.real_output_qa.rules import (
     ACTIVITY_TRANSPORT_EXPERIENCE_RE,
     ACTIVITY_TYPE_RE,
@@ -61,7 +62,7 @@ def score_rendered_output(
     _score_client_truth_contracts(issues, context, rows)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
-    _score_repetition(issues, days)
+    score_repetition(issues, days)
     _score_style_density(issues, segments)
 
     error_count = sum(1 for issue in issues if issue.severity == "error")
@@ -367,27 +368,6 @@ def _score_transport_semantics(issues: list[OutputTextIssue], rows: Sequence[dic
                     location=day_id,
                     excerpt=f"{source_type}: {row_title}",
                 )
-
-
-def _score_repetition(issues: list[OutputTextIssue], days: Sequence[Any]) -> None:
-    seen_intros: dict[str, str] = {}
-    for day in days:
-        day_id = _clean_text(getattr(day, "day", ""))
-        intro = _clean_text(getattr(day, "intro", ""))
-        if len(intro) < 40:
-            continue
-        previous = seen_intros.get(intro.casefold())
-        if previous:
-            _add_issue(
-                issues,
-                "repeated_day_intro",
-                "warning",
-                "Day intro repeats another day exactly.",
-                location=day_id,
-                excerpt=f"Same as {previous}: {intro}",
-            )
-        else:
-            seen_intros[intro.casefold()] = day_id
 
 
 def _score_style_density(issues: list[OutputTextIssue], segments: Sequence[TextSegment]) -> None:

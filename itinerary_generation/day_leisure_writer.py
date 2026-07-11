@@ -90,16 +90,26 @@ def _schedule_decision(facts: DayFacts, intent: DayIntent) -> CopyDecisionTrace 
             intent=intent,
         )
     if occupancy.is_full_day and occupancy.finishes_late:
-        return _trace(
+        text = choose_copy_variant((
             "The arranged experience fills the day into the evening, so no additional plans are suggested.",
+            "Today’s included experience continues into the evening, leaving no meaningful space for extra plans.",
+            "The schedule is occupied through the evening, so the day is best kept focused on the included experience.",
+        ), facts, intent)
+        return _trace(
+            text,
             source="full_day_late_schedule",
             reason="Schedule occupancy shows a full-day experience with a late finish.",
             facts=facts,
             intent=intent,
         )
     if occupancy.is_full_day:
-        return _trace(
+        text = choose_copy_variant((
             "The included experience occupies most of the day, leaving only practical time around meals and rest.",
+            "Today’s included experience takes up most of the day, with only practical breaks for meals and rest.",
+            "Most of the day is committed to the included experience, so any remaining time should stay light and practical.",
+        ), facts, intent)
+        return _trace(
+            text,
             source="full_day_schedule",
             reason="Schedule occupancy shows at least eight arranged hours or a nine-hour activity span.",
             facts=facts,
