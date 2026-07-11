@@ -200,7 +200,8 @@ def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
     flattened_targets = [paths[0] for _name, paths in stages]
 
     assert flattened_targets == list(slow_direct_targets(REPO_ROOT))
-    assert len(stages) == 29
+    assert len(stages) == len(slow_direct_targets(REPO_ROOT))
+    assert len(stages) > 29
     assert "tests/test_broad_logic_stress_regressions.py::test_daytime_train_preserves_seat_quantity_without_raw_supplier_title" in flattened_targets
     assert "tests/test_regressions_fixture_quality_transport.py::test_real_uploaded_inputs_quality_gate" in flattened_targets
     assert all(len(paths) == 1 for _name, paths in stages)
@@ -208,6 +209,19 @@ def test_slow_group_runs_each_stability_target_in_its_own_stage() -> None:
 
 
 
+
+
+def test_real_fixture_slow_split_matches_fixture_manifest() -> None:
+    import importlib
+    from scripts.test_group_catalog.quality import (
+        REAL_FIXTURE_QUALITY_FILES,
+        SLOW_TEST_SPLITS,
+    )
+
+    module = importlib.import_module("tests.test_real_fixture_quality_gate")
+    split_names = SLOW_TEST_SPLITS["tests/test_real_fixture_quality_gate.py"]
+    assert len(split_names) == len(REAL_FIXTURE_QUALITY_FILES)
+    assert all(callable(getattr(module, name, None)) for name in split_names)
 
 def test_slow_runner_uses_subprocess_loop_not_exec_chain() -> None:
     import scripts.run_slow_tests as slow_runner

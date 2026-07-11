@@ -19,12 +19,26 @@ DEFAULT_STAGE_TIMEOUT_SECONDS = int(
 
 def _pytest_command(stage_name: str, pytest_args: tuple[str, ...], extra_args: list[str]) -> list[str]:
     stage_flags = ("-s",) if stage_name.startswith("slow ") else ()
-    return [sys.executable, "-m", "pytest", *DEFAULT_PYTEST_FLAGS, *stage_flags, *pytest_args, *extra_args]
+    return [
+        sys.executable,
+        "scripts/run_pytest_stage.py",
+        "--timeout-seconds",
+        str(DEFAULT_STAGE_TIMEOUT_SECONDS),
+        "--label",
+        stage_name,
+        "--",
+        *DEFAULT_PYTEST_FLAGS,
+        *stage_flags,
+        *pytest_args,
+        *extra_args,
+    ]
 
 
 def _pytest_env() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    env.setdefault("PYTHONUNBUFFERED", "1")
+    env.setdefault("PYTHONFAULTHANDLER", "1")
     return env
 
 

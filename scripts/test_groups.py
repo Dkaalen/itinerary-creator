@@ -117,12 +117,17 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
     stages: list[tuple[str, tuple[str, ...]]] = []
     covered: set[str] = set()
 
-    for name, paths in (
-        ("fast safety", FAST_TESTS),
-        ("quality", QUALITY_TESTS),
+    for stage_label, group_name, paths in (
+        ("fast safety", "fast", FAST_TESTS),
+        ("quality", "quality", QUALITY_TESTS),
     ):
         stage_paths = tuple(path for path in paths if _module_name(path) not in covered)
-        for stage_name, chunk in chunked_group_stages(name, stage_paths):
+        stage_size = CHUNKED_GROUP_STAGE_SIZES.get(group_name, TIERED_STAGE_SIZE)
+        for stage_name, chunk in chunked_group_stages(
+            stage_label,
+            stage_paths,
+            stage_size=stage_size,
+        ):
             stages.append((stage_name, chunk))
             covered.update(_module_name(path) for path in chunk)
 

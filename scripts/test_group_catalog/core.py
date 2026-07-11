@@ -122,6 +122,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_compatibility_facade_audit.py",
     "tests/test_test_runner_groups.py",
+    "tests/test_resumable_test_orchestrator.py",
     "tests/test_streamlit_style_authority.py",
     "tests/test_calculator_layout_regression.py",
     "tests/test_editor_workflow_split_regression.py",

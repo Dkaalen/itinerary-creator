@@ -127,7 +127,38 @@ SLOW_TESTS = (
     "tests/test_self_drive_pdf_preview_parity.py",
 )
 
+
+REAL_FIXTURE_QUALITY_FILES = (
+    "day_brain_edge_cases.txt",
+    "finland_norway_autumn_alta.txt",
+    "finland_norway_winter_family.txt",
+    "finland_norway_winter_variant.txt",
+    "finland_winter_quality_check.txt",
+    "iceland_group_tour_summer_ring_road.txt",
+    "iceland_group_tour_winter.txt",
+    "iceland_hub_excursion_output_quality_regression.txt",
+    "iceland_self_drive_summer.txt",
+    "nordic_patch_ap_quality_input.txt",
+    "nordic_quality_sample.txt",
+    "norway_finland_family_autumn.txt",
+    "norway_short_oslo_bergen_alesund.txt",
+    "norway_sub_brain_sample.txt",
+    "norway_sweden_denmark_summer.txt",
+    "norway_winter_output_quality_regression.txt",
+    "scandinavia_autumn_cruise.txt",
+    "scandinavia_cruise_premium_working.txt",
+    "sweden_lapland_latest_uploaded.txt",
+)
+
+
+def _real_fixture_check_name(filename: str) -> str:
+    stem = filename.rsplit(".", 1)[0].replace("-", "_")
+    return f"check_real_fixture_quality_{stem}"
+
 SLOW_TEST_SPLITS = {
+    "tests/test_real_fixture_quality_gate.py": tuple(
+        _real_fixture_check_name(filename) for filename in REAL_FIXTURE_QUALITY_FILES
+    ),
     "tests/test_regressions_fixture_quality.py": (
         "test_content_cleanup_for_helsinki_lapland_sample",
         "test_bad_input_contextual_travel_and_activity_cleanup",

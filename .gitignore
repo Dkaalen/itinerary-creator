@@ -30,3 +30,6 @@ service-account.json
 service_account.json
 gcp-service-account.json
 google-service-account.json
+
+# Resumable local test-run checkpoints and logs
+.test-runs/

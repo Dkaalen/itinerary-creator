@@ -21,8 +21,10 @@ from generator import group_rows_by_day
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from itinerary_generation.content_validator import compact_html, validate_html
+from scripts.test_group_catalog.quality import REAL_FIXTURE_QUALITY_FILES
 
-FIXTURES = sorted((ROOT / "tests" / "fixtures" / "real_inputs").glob("*.txt"))
+FIXTURE_ROOT = ROOT / "tests" / "fixtures" / "real_inputs"
+FIXTURES = tuple(FIXTURE_ROOT / name for name in REAL_FIXTURE_QUALITY_FILES)
 
 SPECIFIC_CHECKS = {
     "iceland_group_tour_winter.txt": {
@@ -73,20 +75,57 @@ def render_fixture_html_text(fixture_name: str) -> str:
         _restore_attr(day_page_sections, "render_day_image_slot", original_sections_slot)
 
 
-def test_real_fixture_global_quality_gate():
-    failures = []
-    for fixture in FIXTURES:
-        html = render_fixture_html_text(fixture.name)
-        plain = compact_html(html)
-        for finding in validate_html(html):
-            failures.append(f"{fixture.name}: {finding.code}: {finding.context}")
-        checks = SPECIFIC_CHECKS.get(fixture.name, {})
-        for required in checks.get("must_contain", []):
-            if compact_html(required) not in plain:
-                failures.append(f"{fixture.name}: missing required text {required!r}")
-        for forbidden in checks.get("must_not_contain", []):
-            has_forbidden = forbidden in html if forbidden.startswith("<") else compact_html(forbidden) in plain or forbidden in html
-            if has_forbidden:
-                failures.append(f"{fixture.name}: contains fixture-forbidden text {forbidden!r}")
+def fixture_quality_failures(fixture_name: str) -> list[str]:
+    html = render_fixture_html_text(fixture_name)
+    plain = compact_html(html)
+    failures = [
+        f"{fixture_name}: {finding.code}: {finding.context}"
+        for finding in validate_html(html)
+    ]
+    checks = SPECIFIC_CHECKS.get(fixture_name, {})
+    for required in checks.get("must_contain", []):
+        if compact_html(required) not in plain:
+            failures.append(f"{fixture_name}: missing required text {required!r}")
+    for forbidden in checks.get("must_not_contain", []):
+        has_forbidden = (
+            forbidden in html
+            if forbidden.startswith("<")
+            else compact_html(forbidden) in plain or forbidden in html
+        )
+        if has_forbidden:
+            failures.append(f"{fixture_name}: contains fixture-forbidden text {forbidden!r}")
+    return failures
+
+
+def assert_fixture_quality(fixture_name: str) -> None:
+    failures = fixture_quality_failures(fixture_name)
     if failures:
         raise AssertionError("Real fixture quality gate failures:\n" + "\n".join(failures))
+
+
+def test_real_fixture_global_quality_gate():
+    missing = [fixture.name for fixture in FIXTURES if not fixture.exists()]
+    if missing:
+        raise AssertionError(f"Missing real fixture files: {missing}")
+    failures = [
+        failure
+        for fixture in FIXTURES
+        for failure in fixture_quality_failures(fixture.name)
+    ]
+    if failures:
+        raise AssertionError("Real fixture quality gate failures:\n" + "\n".join(failures))
+
+
+def _install_direct_fixture_checks() -> None:
+    for fixture_name in REAL_FIXTURE_QUALITY_FILES:
+        function_name = f"check_real_fixture_quality_{Path(fixture_name).stem.replace('-', '_')}"
+
+        def _check(name: str = fixture_name) -> None:
+            assert_fixture_quality(name)
+
+        _check.__name__ = function_name
+        _check.__qualname__ = function_name
+        globals()[function_name] = _check
+
+
+_install_direct_fixture_checks()
