@@ -19,13 +19,12 @@ from parser_modules.date_fields import (
     excel_serial_date,
 )
 from parser_modules.city_inference import _infer_city_from_text
-from parser_modules.raw_row_context import fixed_format_city_only_description
+from parser_modules.raw_row_context import extract_city_and_description
 from parser_modules.row_builder import build_base_row
 from parser_modules.row_enrichment import enrich_parsed_row
 from parser_modules.parser_line import day_from_parts, has_content, line_parts
 from parser_modules.parser_state import ParserState
 from parser_modules.rows import (
-    find_city_cell,
     find_description_cell,
     get_description_index,
     make_row_id,
@@ -190,7 +189,7 @@ def _parse_line_row(
         description_index=description_index,
         item_type=item_type,
     )
-    separate_city, description = _extract_city_and_description(parts, description_index, item_type, description)
+    separate_city, description = extract_city_and_description(parts, description_index, item_type, description)
 
     row_id = make_row_id(current_day, item_type, start_date, end_date, description)
     if is_optional:
@@ -224,11 +223,3 @@ def _parse_line_row(
         current_day=current_day,
     )
     return row_id, row
-
-
-def _extract_city_and_description(parts: list[str], description_index: int, item_type: str, description: str) -> tuple[str, str]:
-    separate_city = find_city_cell(parts, description_index)
-    city_only_cell, city_only_description = fixed_format_city_only_description(parts, description_index, item_type)
-    if city_only_cell and city_only_description:
-        return city_only_cell, city_only_description
-    return separate_city, description

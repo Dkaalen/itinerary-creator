@@ -7,6 +7,7 @@ import re
 from typing import Callable
 
 from itinerary_generation.activity_location_contract import activity_location_facts
+from itinerary_generation.activity_mode_contract import resolve_activity_mode
 
 
 @dataclass(frozen=True)
@@ -83,15 +84,11 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     ),
     TextRule(
         ("walking", "city highlights", "suomenlinna"),
-        lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and lesser-known corners to give the place more context.",
+        lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and key landmarks to give the place more context.",
     ),
     TextRule(
         ("northern lights", "aurora"),
         lambda title, city: "The day is kept easy around your evening Northern Lights experience, giving you time to settle before heading out with local guidance after dark.",
-    ),
-    TextRule(
-        ("fjord", "cruise", "silent electric ship"),
-        lambda title, city: f"Sail from {city} on {title}, with fjord scenery, coastal landmarks and time on the water shaping the day.",
     ),
     TextRule(
         ("funicular", "cable car", "fjellheisen", "fløibanen", "floibanen"),
@@ -159,6 +156,9 @@ def client_activity_intro(activity_title: str, city: str, source_text: str = "",
     for rule in ACTIVITY_INTRO_RULES:
         if rule.matches(searchable):
             return rule.render(title, city_text)
+    mode = resolve_activity_mode(title, source_text)
+    if mode.water_led:
+        return f"Sail from {city_text} on {title}, with the route and time on the water shaping the experience."
     if compact:
         return f"Today focuses on {title}, with the remaining schedule kept flexible around the included experience."
     return f"Today focuses on {title}, with timing, meeting details and inclusions kept clear for the experience."

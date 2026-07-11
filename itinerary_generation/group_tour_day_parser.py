@@ -225,7 +225,7 @@ def _meal_markers(source: str, highlights: Sequence[str]) -> tuple[str, ...]:
     return tuple(result)
 
 
-def _build_day(row: Mapping[str, Any], inclusions: Sequence[str], source_name: str) -> GroupTourDay:
+def build_group_tour_day(row: Mapping[str, Any], inclusions: Sequence[str] = (), source_name: str = "") -> GroupTourDay:
     source = _group_tour_day_source(row)
     package_day, title, description, warnings = _package_day_parts(source)
     # Legacy parser rows may hold a cleaner, more complete supplier heading in

@@ -99,11 +99,16 @@ def install_streamlit_stub(*, force: bool = False):
     stub in place so tests that set a custom ``session_state`` keep their state.
     """
 
-    streamlit = None if force else sys.modules.get("streamlit")
+    # Preserve module identity even for a forced reset. Production modules
+    # retain their imported ``streamlit`` reference, so replacing the object in
+    # ``sys.modules`` creates order-dependent split session-state ownership.
+    streamlit = sys.modules.get("streamlit")
     if streamlit is None:
         streamlit = types.ModuleType("streamlit")
 
-    if not hasattr(streamlit, "session_state") or streamlit.session_state is None:
+    if force:
+        streamlit.session_state = SessionState()
+    elif not hasattr(streamlit, "session_state") or streamlit.session_state is None:
         streamlit.session_state = SessionState()
     elif isinstance(streamlit.session_state, dict) and not isinstance(streamlit.session_state, SessionState):
         streamlit.session_state = SessionState(streamlit.session_state)
@@ -147,11 +152,11 @@ def install_streamlit_stub(*, force: bool = False):
     if not hasattr(streamlit, "dialog"):
         streamlit.dialog = _dialog
 
-    components = None if force else sys.modules.get("streamlit.components")
+    components = sys.modules.get("streamlit.components")
     if components is None:
         components = types.ModuleType("streamlit.components")
 
-    components_v1 = None if force else sys.modules.get("streamlit.components.v1")
+    components_v1 = sys.modules.get("streamlit.components.v1")
     if components_v1 is None:
         components_v1 = types.ModuleType("streamlit.components.v1")
     if not hasattr(components_v1, "declare_component"):

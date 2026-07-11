@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
+from itinerary_generation.airport_transfer_contract import airport_transfer_facts
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type, is_optional_row
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.transport_detection import is_route_transfer
@@ -150,10 +151,12 @@ def _target_kind(text: str, row_type: str) -> str:
         target_text = to_match.group(1)
     if any(word in target_text for word in ("central station", "railway station", "train station", "station")):
         return "station"
-    if any(word in target_text for word in ("ferry terminal", "cruise terminal", "harbour", "harbor", "port", "pier", "dock")):
-        return "port"
+    # Airport must be checked before port: the substring "port" occurs in
+    # "airport" and previously turned airport transfers into port transfers.
     if any(word in target_text for word in ("airport", "flight terminal")):
         return "airport"
+    if any(word in target_text for word in ("ferry terminal", "cruise terminal", "harbour", "harbor", "port", "pier", "dock")):
+        return "port"
     if row_type == "Hotel" or any(word in target_text for word in _ACCOMMODATION_WORDS):
         return "accommodation"
     return ""
@@ -228,10 +231,14 @@ def normalize_day_events(rows: Sequence[Mapping[str, Any]] | None) -> tuple[Time
             flags.add("check_in")
         if "check-out" in lower or "check out" in lower:
             flags.add("check_out")
-        if row_type == "Transfer" and target_kind == "airport" and re.search(r"\b(?:hotel|accommodation)\b.*\bto\b|\bto\s+(?:the\s+)?airport\b", lower):
-            flags.add("departure_airport_transfer")
-        elif row_type == "Transfer" and target_kind == "airport":
-            flags.add("arrival_airport_transfer")
+        if row_type == "Transfer":
+            airport_facts = airport_transfer_facts(row)
+            if airport_facts.direction == "departure":
+                flags.add("departure_airport_transfer")
+            elif airport_facts.direction == "arrival":
+                flags.add("arrival_airport_transfer")
+            elif airport_facts.is_airport_transfer:
+                flags.add("airport_transfer_direction_unknown")
         events.append(
             TimelineEvent(
                 source_row_id=source_row_id(row, index),

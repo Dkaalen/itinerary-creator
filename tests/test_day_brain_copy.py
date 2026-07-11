@@ -65,7 +65,7 @@ def test_full_leisure_day_is_not_remaining_time():
 
     assert facts.full_leisure_day is True
     assert intent == "full_leisure_day"
-    assert "Today is open for independent time in Rovaniemi" in intro
+    assert intro == "A full day is left open in Rovaniemi, with no arranged activities competing for your time."
     assert "remaining time" not in intro.lower()
     assert "remaining time" not in leisure.lower()
 

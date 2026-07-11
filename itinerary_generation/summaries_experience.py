@@ -157,7 +157,7 @@ def _logistics_only_phrase(rows, signals):
             return "Scenic rail journey to Flåm"
         if city == "bergen" and _has(text, "fjord cruise", "gudvangen", "voss"):
             return "Fjord cruise and rail to Bergen"
-        return "Norway in a Nutshell route"
+        return "Norway in a Nutshell and scenic rail"
     if _has(text, "spend time at leisure onboard the cruise") and signals.row_types == {"Cruise"}:
         return "Coastal cruise at leisure"
     if _has(text, "cruise to bergen") and _has(text, "kirkenes"):
@@ -222,7 +222,7 @@ def _add_route_and_city_candidates(candidates, signals):
         elif city == "bergen":
             candidates.append("Scenic rail and Bergen arrival")
         else:
-            candidates.append("Norway in a Nutshell route")
+            candidates.append("Norway in a Nutshell and scenic rail")
     elif _has(text, "nærøyfjord", "naeroyfjord") and _has(text, "stegastein", "borgund"):
         candidates.append("Nærøyfjord, Stave Church and Stegastein")
     elif _has(text, "foot", "walking tour") and _has(text, "boat", "city cruise") and signals.chapter_city.lower() == "bergen":
@@ -290,8 +290,10 @@ def _add_fjord_and_experience_candidates(candidates, signals):
         else:
             candidates.append("Fjord scenery and coastal cruising")
 
-    if signals.has_city and _has(text, "vasa", "old town", "stockholm"):
+    if signals.has_city and _has(text, "vasa"):
         candidates.append("Old Town, Vasa Museum and city discovery")
+    elif signals.has_city and _has(text, "old town", "stockholm"):
+        candidates.append("Old Town and city discovery")
     elif signals.has_city and signals.has_arrival:
         candidates.append("Arrival and guided city discovery")
     elif signals.has_city:

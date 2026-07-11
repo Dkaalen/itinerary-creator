@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Mapping, Sequence
 
-from itinerary_generation.activity_product_titles import activity_product_display_title, activity_product_family
+from itinerary_generation.activity_identity_contract import resolve_activity_identity
 from itinerary_generation.activity_titles import create_client_activity_title, normalize_client_day_title
 from itinerary_generation.copy_decision_contract import (
     CopyDecisionCandidate,
@@ -80,8 +80,9 @@ def _matches_narrow_candidate(title: str, narrow_candidates: Sequence[CopyDecisi
 def activity_title_candidates(row: Mapping[str, object]) -> tuple[CopyDecisionCandidate, ...]:
     """Return ranked title candidates for one arranged activity row."""
 
-    product_title = activity_product_display_title(row)
-    product_family = activity_product_family(row)
+    identity = resolve_activity_identity(row)
+    product_title = identity.display_title if identity.source in {"normalized_product", "product_registry"} else ""
+    product_family = identity.canonical_family
     supplier_title = _source_title(row)
     generated_title = normalize_client_day_title(create_client_activity_title(dict(row)), dict(row))
     narrow_candidates = narrow_inclusion_title_candidates(row)
@@ -128,7 +129,7 @@ def select_activity_title(row: Mapping[str, object]) -> CopyDecisionTrace:
         kind="activity_title",
         selected=selected,
         candidates=candidates,
-        context={"product_family": activity_product_family(row)},
+        context={"product_family": resolve_activity_identity(row).canonical_family},
     )
 
 

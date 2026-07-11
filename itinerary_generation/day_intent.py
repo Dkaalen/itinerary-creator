@@ -26,7 +26,7 @@ class DayIntent(StrEnum):
 def classify_day_intent(facts: DayFacts) -> DayIntent:
     """Classify one day using facts only."""
 
-    if (facts.has_departure or "departure_airport_transfer" in facts.source_flags) and not facts.has_route_transport and not facts.has_activity:
+    if (facts.has_departure or "departure_airport_transfer" in facts.source_flags) and not facts.has_activity and not facts.has_accommodation:
         return DayIntent.DEPARTURE_DAY
     if facts.same_city_accommodation_change:
         return DayIntent.SAME_CITY_ACCOMMODATION_CHANGE

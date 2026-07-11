@@ -20,14 +20,28 @@ from parser_modules.common import extract_route_points
 from text_polish import polish_title
 
 
-def transport_endpoints_from_row(row: Mapping[str, object]) -> tuple[str, str]:
-    """Return raw origin/destination endpoint facts for one transport row.
+_SERVICE_ENDPOINT_RE = re.compile(
+    r"^(?:private|shared|self[- ]?arranged)?\s*(?:airport\s+)?(?:transfer|transport|journey|travel)$",
+    re.IGNORECASE,
+)
 
-    This is the public consumer-facing endpoint API for generator/planner
-    modules.  The lower-level route parser stays inside the transport domain.
+
+def _place_endpoint(value: object) -> str:
+    endpoint = str(value or "").strip(" -:|.,")
+    return "" if _SERVICE_ENDPOINT_RE.fullmatch(endpoint) else endpoint
+
+
+def transport_endpoints_from_row(row: Mapping[str, object]) -> tuple[str, str]:
+    """Return place endpoints for one transport row.
+
+    The low-level route parser can encounter service phrases such as
+    ``Private transfer`` before a real ``to Airport`` destination.  Consumer
+    layers need place facts, not transport labels, so those false endpoints are
+    removed once at this domain boundary.
     """
 
-    return get_route_points_for_transport(dict(row))
+    origin, destination = get_route_points_for_transport(dict(row))
+    return _place_endpoint(origin), _place_endpoint(destination)
 
 
 def transport_destination_from_row(row: Mapping[str, object]) -> str:

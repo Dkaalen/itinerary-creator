@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from itinerary_generation.activity_product_titles import activity_product_display_title
+from itinerary_generation.activity_identity_contract import resolve_activity_identity
 from itinerary_generation.canonical_helpers import _is_fløibanen, _row_id
 from itinerary_generation.canonical_model import CanonicalBlock, CanonicalMetaLine
 from itinerary_generation.content_engine import clean_client_title, client_activity_description, merge_compound_inclusions
@@ -90,7 +90,8 @@ def _important_activity_note(row: dict) -> str:
 
 def canonical_activity_block(row: dict, *, group_tour_pickup_range: str = "") -> CanonicalBlock:
     is_tallinn_ferry = is_tallinn_ferry_framework(row)
-    product_title = activity_product_display_title(row)
+    identity = resolve_activity_identity(row)
+    product_title = identity.display_title if identity.source in {"normalized_product", "product_registry"} else ""
     if product_title:
         title = clean_supplier_title(product_title) or "Experience"
     else:

@@ -35,7 +35,7 @@ from itinerary_generation.group_tour_commercial_items import _commercial_item, _
 from itinerary_generation.group_tour_day_parser import (
     _accommodation_note,
     _apply_package_accommodation_hints,
-    _build_day,
+    build_group_tour_day,
     _day_candidates,
     _day_highlights,
     _meal_markers,

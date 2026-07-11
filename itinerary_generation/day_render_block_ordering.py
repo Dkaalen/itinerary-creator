@@ -179,12 +179,15 @@ def _append_regular_row_block(
         "has_activity": has_activity,
         "group_tour_start_time": group_tour_start_time,
     }
+    # Group-tour role is a stronger domain identity than the spreadsheet row
+    # type.  Resolve it first so an Activity-typed programme segment cannot be
+    # consumed by the ordinary activity renderer.
+    if row.get("group_tour_role") == "day_segment":
+        _append_group_tour_row_block(blocks, row, context)
+        return
     handler = _REGULAR_ROW_BLOCK_HANDLERS.get(get_row_type(row))
     if handler:
         handler(blocks, row, context)
-        return
-    if row.get("group_tour_role") == "day_segment":
-        _append_group_tour_row_block(blocks, row, context)
         return
     if is_cruise_leisure_row(row):
         blocks.append(build_cruise_leisure_render_block(row))

@@ -15,21 +15,29 @@ from app_modules.workflow_state import session_stage_from_state
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 
 
-def _session_stage() -> str:
-    return session_stage_from_state(st.session_state)
+def _session_stage(state) -> str:
+    return session_stage_from_state(state)
 
 
-def render_app(app_version: str) -> None:
-    st.session_state.setdefault("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
-    if calculator_page_is_active(st.session_state):
+def render_app(app_version: str, *, state=None) -> None:
+    """Render the active app surface from one explicit session-state owner.
+
+    Production callers use Streamlit session state. Tests and other adapters may
+    provide a session-like mapping so routing does not depend on mutable global
+    state left behind by another workflow.
+    """
+
+    session = st.session_state if state is None else state
+    session.setdefault("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
+    if calculator_page_is_active(session):
         render_calculator_page(app_version)
         render_debug_tools()
         return
-    if local_library_page_is_active(st.session_state):
+    if local_library_page_is_active(session):
         render_local_library_page(app_version)
         render_debug_tools()
         return
-    stage = _session_stage()
+    stage = _session_stage(session)
     if stage == "input":
         render_input_page(app_version)
     elif stage == "edit":

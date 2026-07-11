@@ -121,9 +121,7 @@ def test_main_view_dispatches_to_every_critical_surface(monkeypatch) -> None:
 
     for state_patch, expected in cases:
         calls.clear()
-        st.session_state.clear()
-        st.session_state.update(state_patch)
-        main_view.render_app("v")
+        main_view.render_app("v", state=dict(state_patch))
         assert expected in calls
         assert "debug" in calls
 

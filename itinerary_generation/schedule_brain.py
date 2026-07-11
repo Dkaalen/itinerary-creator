@@ -6,17 +6,16 @@ Understands the shape of a day: timed activities, gaps, evening work, and false
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
+import re
 from typing import Mapping, Sequence
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_timeline_events import clean_event_text
+from itinerary_generation.schedule_occupancy import DayScheduleOccupancy, analyze_schedule_occupancy
+from itinerary_generation.schedule_time_ranges import parse_time_range
 from itinerary_generation.title_decision_contract import select_activity_title
 from text_polish import polish_title
-
-_TIME_RE = re.compile(r"\b(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?\s*(?P<suffix>am|pm)\b", re.IGNORECASE)
-
 
 @dataclass(frozen=True)
 class ScheduleEvent:
@@ -29,6 +28,8 @@ class ScheduleEvent:
     is_activity: bool = False
     is_leisure: bool = False
     is_transport: bool = False
+    has_invalid_time_range: bool = False
+    crosses_midnight: bool = False
 
 
 @dataclass(frozen=True)
@@ -48,30 +49,8 @@ class DayScheduleProfile:
     first_activity_title: str = ""
     last_activity_title: str = ""
     shape: str = "simple"
+    occupancy: DayScheduleOccupancy = DayScheduleOccupancy()
     flags: frozenset[str] = frozenset()
-
-
-def _minutes_from_match(match: re.Match[str]) -> int:
-    hour = int(match.group("hour"))
-    minute = int(match.group("minute") or "0")
-    suffix = match.group("suffix").lower()
-    if suffix == "pm" and hour != 12:
-        hour += 12
-    if suffix == "am" and hour == 12:
-        hour = 0
-    return hour * 60 + minute
-
-
-def _time_bounds(row: Mapping[str, object]) -> tuple[int | None, int | None]:
-    source = " ".join(str(row.get(key) or "") for key in ("time", "display_time", "details", "original_title", "title"))
-    matches = list(_TIME_RE.finditer(source))
-    if not matches:
-        return None, None
-    start = _minutes_from_match(matches[0])
-    end = _minutes_from_match(matches[1]) if len(matches) > 1 else None
-    if end is not None and end < start:
-        end += 24 * 60
-    return start, end
 
 
 def _period(start: int | None) -> str:
@@ -105,7 +84,9 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
         is_activity = row_type == "Activity" and not _is_blank_leisure_activity(row)
         is_leisure = row_type == "Leisure" or (row_type == "Activity" and _is_blank_leisure_activity(row))
         is_transport = row_type in {"Transfer", "Train", "Flight", "Cruise", "Ferry", "Transport", "Coach", "Bus"}
-        start, end = _time_bounds(row)
+        time_source = " ".join(str(row.get(key) or "") for key in ("time", "display_time", "details", "original_title", "title"))
+        time_range = parse_time_range(time_source)
+        start, end = time_range.start_minutes, time_range.end_minutes
         title = _activity_title(row) if is_activity else polish_title(str(row.get("title") or row.get("original_title") or ""))
         events.append(
             ScheduleEvent(
@@ -118,6 +99,8 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
                 is_activity=is_activity,
                 is_leisure=is_leisure,
                 is_transport=is_transport,
+                has_invalid_time_range=time_range.is_invalid,
+                crosses_midnight=time_range.is_overnight,
             )
         )
 
@@ -138,6 +121,8 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
             has_gap = True
             break
 
+    occupancy = analyze_schedule_occupancy(events)
+
     flags: set[str] = set()
     if has_activity_after_leisure:
         flags.add("activity_after_leisure")
@@ -147,6 +132,12 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
         flags.add("gap_between_activities")
     if len(activities) >= 2:
         flags.add("multiple_activities")
+    if occupancy.is_full_day:
+        flags.add("full_day_schedule")
+    if occupancy.finishes_late:
+        flags.add("late_finish")
+    if occupancy.has_invalid_time_range:
+        flags.add("invalid_time_range")
 
     shape = "simple"
     if len(activities) >= 2 and (has_leisure_between_activities or has_gap):
@@ -174,6 +165,7 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
         first_activity_title=activities[0].title if activities else "",
         last_activity_title=activities[-1].title if activities else "",
         shape=shape,
+        occupancy=occupancy,
         flags=frozenset(flags),
     )
 

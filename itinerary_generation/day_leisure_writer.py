@@ -38,12 +38,7 @@ def _trace(text: str, *, source: str, reason: str, facts: DayFacts, intent: DayI
     )
 
 
-def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> CopyDecisionTrace:
-    """Return free-time copy with traceable context/source metadata."""
-
-    intent = intent or classify_day_intent(facts)
-    city = _fallback_city(facts)
-
+def _primary_context_decision(facts: DayFacts, intent: DayIntent, city: str) -> CopyDecisionTrace | None:
     if intent == DayIntent.CRUISE_DAY or facts.cruise_onboard_day:
         text = _sentence(choose_copy_variant((
             "Time onboard is open for you to enjoy the sailing, the ship facilities and the coastal views as the route continues.",
@@ -62,17 +57,22 @@ def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> C
         )
 
     if intent == DayIntent.FULL_LEISURE_DAY or facts.full_leisure_day:
-        if city and city != "the area":
-            text = (
-                f"Today is open for independent time in {city}. "
-                "You may explore locally, keep the pace relaxed, or simply enjoy a quieter day between arranged experiences."
-            )
-        else:
-            text = "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
+        text = (
+            f"Today is open for independent time in {city}. You may explore locally, keep the pace relaxed, or simply enjoy a quieter day between arranged experiences."
+            if city and city != "the area"
+            else "Today is open for independent time, with space to rest, explore locally or keep the pace flexible."
+        )
         return _trace(_sentence(text), source="full_leisure_day", reason="Full-leisure intent owns this copy.", facts=facts, intent=intent)
+    return None
 
+
+def _schedule_decision(facts: DayFacts, intent: DayIntent) -> CopyDecisionTrace | None:
     schedule = facts.schedule_profile
-    if schedule.has_multiple_arranged_activities and (schedule.has_leisure_between_activities or schedule.has_activity_after_leisure or schedule.has_gap_between_activities):
+    if schedule.has_multiple_arranged_activities and (
+        schedule.has_leisure_between_activities
+        or schedule.has_activity_after_leisure
+        or schedule.has_gap_between_activities
+    ):
         text = choose_copy_variant((
             "The time between today’s included experiences is best used lightly — for a meal, a rest, or a short independent stroll close by.",
             "Between the arranged experiences, keep things easy with time for a meal, a quiet pause, or a small local discovery.",
@@ -80,6 +80,44 @@ def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> C
         ), facts, intent)
         return _trace(text, source="between_arranged_experiences", reason="Schedule Brain found a real gap between arranged experiences.", facts=facts, intent=intent)
 
+    occupancy = schedule.occupancy
+    if occupancy.has_invalid_time_range:
+        return _trace(
+            "Keep any unscheduled time flexible until the confirmed activity timing has been checked.",
+            source="invalid_schedule_time",
+            reason="Schedule Brain found an invalid or reversed supplier time range, so no free-time window is claimed.",
+            facts=facts,
+            intent=intent,
+        )
+    if occupancy.is_full_day and occupancy.finishes_late:
+        return _trace(
+            "The arranged experience fills the day into the evening, so no additional plans are suggested.",
+            source="full_day_late_schedule",
+            reason="Schedule occupancy shows a full-day experience with a late finish.",
+            facts=facts,
+            intent=intent,
+        )
+    if occupancy.is_full_day:
+        return _trace(
+            "The included experience occupies most of the day, leaving only practical time around meals and rest.",
+            source="full_day_schedule",
+            reason="Schedule occupancy shows at least eight arranged hours or a nine-hour activity span.",
+            facts=facts,
+            intent=intent,
+        )
+    if not occupancy.has_meaningful_post_activity_time and occupancy.last_end_minutes is not None:
+        return _trace(
+            "The experience finishes late, so keep the remaining time practical around dinner and rest.",
+            source="late_finish_schedule",
+            reason="Schedule occupancy does not support a meaningful post-activity leisure window.",
+            facts=facts,
+            intent=intent,
+        )
+    return None
+
+
+def _activity_and_arrival_decision(facts: DayFacts, intent: DayIntent) -> CopyDecisionTrace | None:
+    schedule = facts.schedule_profile
     if schedule.has_multiple_arranged_activities:
         text = choose_copy_variant((
             "Once today’s arranged experiences are complete, use any extra time for a relaxed meal, a short walk, or a quiet pause back at the hotel.",
@@ -114,13 +152,26 @@ def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> C
             "Use the arrival day lightly, leaving space to settle in before the trip becomes more active.",
         ), facts, intent)
         return _trace(text, source="arrival_day_leisure", reason="Arrival-day leisure should stay gentle and practical.", facts=facts, intent=intent)
+    return None
 
+
+def _fallback_decision(facts: DayFacts, intent: DayIntent, city: str) -> CopyDecisionTrace:
     if intent == DayIntent.SAME_CITY_ACCOMMODATION_CHANGE:
-        return _trace("Outside the move between stays, the day can remain flexible around the listed arrangements.", source="accommodation_change_leisure", reason="Same-city stay changes keep free time around the move.", facts=facts, intent=intent)
-
+        return _trace(
+            "Outside the move between stays, the day can remain flexible around the listed arrangements.",
+            source="accommodation_change_leisure",
+            reason="Same-city stay changes keep free time around the move.",
+            facts=facts,
+            intent=intent,
+        )
     if intent == DayIntent.RETURN_VISIT:
-        return _trace("Once back in the area, any open time can be used flexibly around the listed arrangements.", source="return_visit_leisure", reason="Return-visit context owns this leisure wording.", facts=facts, intent=intent)
-
+        return _trace(
+            "Once back in the area, any open time can be used flexibly around the listed arrangements.",
+            source="return_visit_leisure",
+            reason="Return-visit context owns this leisure wording.",
+            facts=facts,
+            intent=intent,
+        )
     if city and city != "the area":
         text = choose_copy_variant((
             f"Any open time in {city} is left flexible for your own plans.",
@@ -134,6 +185,21 @@ def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> C
         "The schedule leaves open time flexible around your own plans.",
     ), facts, intent)
     return _trace(text, source="open_time_fallback", reason="No stronger leisure context was available.", facts=facts, intent=intent, priority=35)
+
+
+def plan_leisure_decision(facts: DayFacts, intent: DayIntent | None = None) -> CopyDecisionTrace:
+    """Return free-time copy with traceable context/source metadata."""
+
+    intent = intent or classify_day_intent(facts)
+    city = _fallback_city(facts)
+    for decision in (
+        _primary_context_decision(facts, intent, city),
+        _schedule_decision(facts, intent),
+        _activity_and_arrival_decision(facts, intent),
+    ):
+        if decision is not None:
+            return decision
+    return _fallback_decision(facts, intent, city)
 
 
 def write_leisure_copy(facts: DayFacts, intent: DayIntent | None = None) -> str:

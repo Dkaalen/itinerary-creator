@@ -24,6 +24,7 @@ QUALITY_TESTS = (
     "tests/test_regressions_pdf_inclusions.py",
     "tests/test_output_quality_engine_regression.py",
     "tests/test_output_quality_and_images_regression.py",
+    "tests/test_output_truth_contracts.py",
     "tests/test_enforcement_gaps_regression.py",
     *DAY_BRAIN_TESTS,
     "tests/test_image_bank_enforcement_regression.py",

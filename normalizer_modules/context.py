@@ -12,6 +12,7 @@ import re
 from collections import Counter
 
 from place_aliases import canonicalize_place_name, is_likely_service_text
+from shared.place_label_policy import is_non_destination_label
 
 from normalizer_modules.text_utils import get_row_type, text_blob
 
@@ -145,6 +146,7 @@ def fill_missing_context_cities(rows: list[dict]) -> list[dict]:
             city
             and get_row_type(row) in _FILLABLE_CONTEXT_TYPES
             and not is_likely_service_text(city)
+            and not is_non_destination_label(city)
             and city.lower() not in {"accommodation", "journey"}
         ):
             city_by_day.setdefault(row.get("day", ""), city)
@@ -153,10 +155,10 @@ def fill_missing_context_cities(rows: list[dict]) -> list[dict]:
     for row in updated:
         row_type = get_row_type(row)
         city = canonicalize_place_name(row.get("city", ""))
-        if city and not is_likely_service_text(city) and city.lower() not in {"accommodation", "journey"}:
+        if city and not is_likely_service_text(city) and not is_non_destination_label(city) and city.lower() not in {"accommodation", "journey"}:
             previous_city = city
             continue
-        if city.lower() in {"accommodation", "journey"}:
+        if city.lower() in {"accommodation", "journey"} or is_non_destination_label(city):
             row["city"] = ""
         if row_type == "Transfer" and not row.get("city") and previous_city:
             transfer_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()

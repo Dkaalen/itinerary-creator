@@ -8,6 +8,7 @@ from typing import Any, Sequence
 from generator import group_rows_by_day
 from itinerary_generation.transport_domain.facts import build_transport_facts
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
+from itinerary_generation.quality_gate import evaluate_client_output_quality
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 from scripts.real_output_qa.models import OutputTextIssue, OutputTextScore, TextSegment
 from scripts.real_output_qa.rules import (
@@ -54,6 +55,7 @@ def score_rendered_output(
     score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
     score_summary_quality(issues, context)
     score_journey_overview_logic(issues, context)
+    _score_client_truth_contracts(issues, context)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     _score_repetition(issues, days)
@@ -65,6 +67,34 @@ def score_rendered_output(
     return OutputTextScore(score=score, error_count=error_count, warning_count=warning_count, issues=tuple(issues))
 
 
+
+
+_TRUTH_GATE_CODES = {
+    "internal_copy_leak",
+    "unsupported_journey_overview_fact",
+    "impossible_free_time_claim",
+    "day_activity_title_disagreement",
+    "false_return_visit",
+    "duplicate_intro_and_leisure",
+    "invalid_activity_time_range",
+}
+
+def _score_client_truth_contracts(issues: list[OutputTextIssue], context: Any) -> None:
+    document = getattr(context, "render_document", None)
+    if document is None:
+        return
+    report = evaluate_client_output_quality(document)
+    for issue in report.issues:
+        if issue.code not in _TRUTH_GATE_CODES:
+            continue
+        _add_issue(
+            issues,
+            issue.code,
+            "error" if issue.severity == "blocking" else "warning",
+            issue.message,
+            location="client_truth_gate",
+            excerpt=str(issue.context or ""),
+        )
 
 def _score_segment_text(issues: list[OutputTextIssue], segments: Sequence[TextSegment]) -> None:
     for segment in segments:

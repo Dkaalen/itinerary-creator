@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from place_aliases import canonicalize_place_name, is_likely_service_text
+from shared.place_label_policy import is_non_destination_label
 
 _SERVICE_SUFFIX_RE = re.compile(
     r"^\s*(?:private|shared|guided|self[-\s]?guided|optional|transfer|transport|flight|train|cruise|ferry|arrival|departure)\b",
@@ -87,7 +88,7 @@ def is_valid_destination_city(city) -> bool:
         ]
     ):
         return False
-    if is_likely_service_text(city):
+    if is_likely_service_text(city) or is_non_destination_label(city):
         return False
     if any(marker in lower for marker in invalid_markers):
         return False

@@ -18,6 +18,7 @@ from itinerary_generation.group_tour_domain import (
     group_tour_day_from_row,
     group_tour_package_from_row,
 )
+from itinerary_generation.group_tour_orphan_days import annotate_orphan_group_tour_days
 
 _GROUP_TOUR_COMMERCIAL_TYPES = {
     "activity upgrade": "activity_upgrade",
@@ -120,7 +121,7 @@ def integrate_group_tour_rows(
     master_row = next((row for row in annotated if group_tour_package_from_row(row) is not None), None)
     package: GroupTourPackage | None = group_tour_package_from_row(master_row)
     if package is None:
-        return annotated
+        return annotate_orphan_group_tour_days(annotated, source_name=source_name)
 
     commercial_by_source_id = {item.source_row_id: item for item in package.commercial_items}
     package_context = {

@@ -2,7 +2,7 @@
 
 Latest seed: `6200`
 Reviewed fixtures: `5`
-Errors: `0` · Warnings: `4` · Average score: `96.0`
+Errors: `0` · Warnings: `3` · Average score: `97.0`
 
 ## Selected fixtures
 - `Standard-Itinerary-Finland.xlsx::111`
@@ -12,15 +12,13 @@ Errors: `0` · Warnings: `4` · Average score: `96.0`
 - `Standard-Itinerary-Finland-Norway.xlsx::1205`
 
 ## Issue counts
-- `duplicate_journey_summary_experience`: 2
+- `invalid_activity_time_range`: 1
 - `repeated_intro_opener`: 1
 - `transport_product_rendered_as_activity`: 1
 
 ## Fixtures needing review
-- `Standard-Itinerary-Finland.xlsx::111` · score `95` · duplicate_journey_summary_experience
 - `Standard-Itinerary-Iceland.xlsx::7D GTS` · score `95` · repeated_intro_opener
-- `Standard-Itinerary-Iceland.xlsx::5D GTW` · score `95` · duplicate_journey_summary_experience
-- `Standard-Itinerary-Finland-Norway.xlsx::1205` · score `95` · transport_product_rendered_as_activity
+- `Standard-Itinerary-Finland-Norway.xlsx::1205` · score `90` · invalid_activity_time_range, transport_product_rendered_as_activity
 
 ## Fixture tag coverage
 - `hotel_change`: 97

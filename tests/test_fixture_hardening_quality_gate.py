@@ -59,7 +59,9 @@ Drive to Grábrók, Glanni waterfall, Hraunfossar, Sturlureykir and Deildartungu
 
     assert "Experience Whales, Viking History, and Coastal Legends" in day_6
     assert "Featured experience Whale Watching" not in day_6
-    assert "Combine the included Whale Watching experience" in day_6
+    assert "embark on a thrilling Whale Watching Tour" in day_6
+    assert rows[0]["group_tour_role"] == "day_segment"
+    assert "group_tour_package_master_missing" in rows[0]["group_tour_day"]["warnings"]
 
     assert "Hike Craters, See Waterfalls" in day_7
     assert "Featured experience Blue Lagoon Admission" not in day_7

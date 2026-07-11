@@ -3,6 +3,7 @@
 import re
 
 from parser_modules.common import clean_space, fix_common_text, is_valid_city_value, normalize_type
+from parser_modules.rows import find_city_cell
 
 
 def fix_common_text_for_row(value, item_type):
@@ -40,6 +41,16 @@ def fixed_format_city_only_description(parts, description_index, item_type):
     }
     return city, fallback_titles.get(normalized_type, city)
 
+
+
+def extract_city_and_description(parts, description_index, item_type, description):
+    """Resolve a separate city cell and fixed-format blank-details fallback."""
+
+    separate_city = find_city_cell(parts, description_index)
+    city_only_cell, city_only_description = fixed_format_city_only_description(parts, description_index, item_type)
+    if city_only_cell and city_only_description:
+        return city_only_cell, city_only_description
+    return separate_city, description
 
 def strip_matching_type_prefix(main_text, item_type):
     """Remove duplicated administrative row-type prefixes from descriptions."""

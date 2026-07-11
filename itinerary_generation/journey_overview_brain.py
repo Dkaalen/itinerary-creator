@@ -13,7 +13,8 @@ from typing import Iterable, Mapping, Sequence
 
 from itinerary_generation.activity_location_contract import activity_location_facts
 from itinerary_generation.common import get_day_number, get_primary_city, get_row_type
-from itinerary_generation.summaries_experience import describe_city_experience
+from itinerary_generation.journey_overview_evidence import chapter_destination, chapter_experience
+from itinerary_generation.journey_overview_variation import distinct_chapter_experience
 from itinerary_generation.summaries_text import _has
 
 
@@ -108,14 +109,14 @@ def _facts_for_day(day_key: str, rows: Sequence[dict]) -> DayOverviewFacts:
 
 
 def _is_hub_and_spoke(days: Sequence[DayOverviewFacts]) -> bool:
-    if len(days) < 5:
+    if len(days) < 4:
         return False
     base_cities = {day.city.casefold() for day in days if day.city and not day.has_departure}
     if len(base_cities) != 1:
         return False
     excursion_regions = {region.casefold() for day in days for region in day.activity_regions}
     active_days = sum(1 for day in days if day.activity_count)
-    return active_days >= 4 and len(excursion_regions) >= 3
+    return active_days >= 3 and len(excursion_regions) >= 2
 
 
 def _country_day_trip_phrase(days: Sequence[DayOverviewFacts], base_city: str) -> str:
@@ -130,7 +131,7 @@ def _activity_phrase_for_day(day: DayOverviewFacts) -> str:
     if day.activity_count >= 2:
         if _has(text, "whale") and _has(text, "blue lagoon"):
             return "Whale watching and Blue Lagoon"
-        return describe_city_experience(day.rows)
+        return chapter_experience(day.rows, day.city)
     if day.activity_regions:
         region = day.activity_regions[0]
         if region == "Fagradalsfjall and Meradalir":
@@ -140,7 +141,7 @@ def _activity_phrase_for_day(day: DayOverviewFacts) -> str:
         if region == "Iceland’s South Coast":
             return "South Coast waterfalls and black sand beach"
         return f"{region} highlights" if len(region) <= 34 else region
-    return describe_city_experience(day.rows)
+    return chapter_experience(day.rows, day.city)
 
 
 def _chapter(chapter: str, days: Iterable[object], experience: str) -> dict[str, str]:
@@ -180,11 +181,13 @@ def create_journey_overview(grouped_days: Mapping[str, Sequence[dict]]) -> list[
         return _hub_and_spoke_chapters(day_facts)
 
     chapters: list[dict[str, str]] = []
+    used_experiences: set[str] = set()
+    seen_chapters: set[str] = set()
     current_city: str | None = None
     current_days: list[str] = []
     current_rows: list[dict] = []
     for day, rows in grouped_days.items():
-        city = get_primary_city(rows) or ("Cruise" if any(get_row_type(row) == "Cruise" for row in rows) else "Journey")
+        city = chapter_destination(rows) or ("Cruise" if any(get_row_type(row) == "Cruise" for row in rows) else "Journey")
         if current_city is None:
             current_city = city
             current_days = [day]
@@ -193,12 +196,30 @@ def create_journey_overview(grouped_days: Mapping[str, Sequence[dict]]) -> list[
             current_days.append(day)
             current_rows.extend(rows)
         else:
-            chapters.append(_chapter(current_city, current_days, describe_city_experience(current_rows)))
+            chapters.append(
+                _chapter(
+                    current_city,
+                    current_days,
+                    distinct_chapter_experience(
+                        current_rows, current_city, chapter_experience(current_rows, current_city),
+                        used=used_experiences, seen_chapters=seen_chapters,
+                    ),
+                )
+            )
             current_city = city
             current_days = [day]
             current_rows = list(rows)
     if current_city is not None:
-        chapters.append(_chapter(current_city, current_days, describe_city_experience(current_rows)))
+        chapters.append(
+            _chapter(
+                current_city,
+                current_days,
+                distinct_chapter_experience(
+                    current_rows, current_city, chapter_experience(current_rows, current_city),
+                    used=used_experiences, seen_chapters=seen_chapters,
+                ),
+            )
+        )
     return chapters
 
 

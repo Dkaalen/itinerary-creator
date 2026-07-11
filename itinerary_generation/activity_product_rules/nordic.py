@@ -240,8 +240,11 @@ def _match_arctic_norway_activity(source_lower: str, source_title: str) -> Activ
     if ("tromsø" in source_lower or "tromso" in source_lower) and re.search(r"\b(?:private\s+)?(?:tromsø|tromso)?\s*city\s+tour\b", title_lower):
         return match_product("tromso_private_city_tour", "city_tour", "Tromsø Private City Tour", source_title=source_title)
 
-    explicit_cable_title = any(marker in title_lower for marker in ("cable car", "round trip ticket", "viewpoint ticket", "fjellheisen"))
-    if ("tromsø" in source_lower or "tromso" in source_lower) and explicit_cable_title and any(marker in source_lower for marker in ("cable car", "round trip ticket", "viewpoint ticket", "fjellheisen")):
+    explicit_cable_evidence = any(
+        marker in source_lower
+        for marker in ("cable car", "fjellheisen", "gondola", "mountain lift", "aerial tramway")
+    )
+    if ("tromsø" in source_lower or "tromso" in source_lower) and explicit_cable_evidence:
         return match_product("tromso_cable_car_ticket", "ticket", "Tromsø Cable Car Round-Trip Ticket", source_title=source_title)
 
     if "reindeer" in source_lower and "sami" in source_lower:

@@ -13,7 +13,8 @@ from itinerary_generation.description_facts import (
     _focus_from_title,
     _join,
 )
-from itinerary_generation.activity_product_titles import activity_product_family
+from itinerary_generation.activity_identity_contract import resolve_activity_identity
+from itinerary_generation.activity_identity_descriptions import description_for_activity_identity
 from itinerary_generation.activity_location_contract import activity_location_facts
 from itinerary_generation.description_sources import _row_source
 from itinerary_generation.description_known_activity_rules import match_known_activity_description
@@ -62,9 +63,13 @@ def _compose_known_activity(row: dict, source: str, title: str, city: str) -> st
     inclusions = _extract_inclusion_facts(row, limit=4)
     city_phrase = f" in {city}" if city and city.lower() not in title.lower() else ""
 
-    product_family = activity_product_family(row)
-    if product_family:
-        description = product_description(product_family)
+    identity = resolve_activity_identity(row)
+    identity_description = description_for_activity_identity(row, identity)
+    if identity_description:
+        return identity_description
+
+    if identity.canonical_family:
+        description = product_description(identity.canonical_family)
         if description:
             return description
 

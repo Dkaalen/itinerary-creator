@@ -43,8 +43,8 @@ def test_leisure_copy_is_city_specific_and_avoids_quiet_walk_filler():
 
     assert leisure_blocks
     assert "quiet walk nearby" not in descriptions
-    assert "After arrival, any remaining time is best kept simple" in descriptions
-    assert "Any free time today is limited and flexible around the travel arrangements" in descriptions
+    assert "After arrival, keep the day gentle with time to unpack, rest, and find your bearings close to the hotel." in descriptions
+    assert "Keep any spare time practical today, with room for transfers, check-in and the arranged schedule." in descriptions
 
 
 def test_route_day_intros_are_not_generic_logistics_fillers():

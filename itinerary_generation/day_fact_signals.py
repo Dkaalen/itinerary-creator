@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
+from itinerary_generation.airport_transfer_contract import airport_transfer_facts
 from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
 from itinerary_generation.day_accommodation_facts import ACCOMMODATION_WORDS, is_accommodation_change_row
 from itinerary_generation.day_city_facts import add_unique_city, canonical_city, row_text
@@ -86,16 +87,18 @@ def _scan_transfer(
     if row_type != "Transfer":
         return
     signals.has_transfer = True
+    airport_facts = airport_transfer_facts(row)
+    if airport_facts.direction == "departure":
+        signals.source_flags.add("departure_airport_transfer")
+    elif airport_facts.direction == "arrival":
+        signals.source_flags.add("arrival_airport_transfer")
+    elif airport_facts.is_airport_transfer:
+        signals.source_flags.add("airport_transfer_direction_unknown")
     if not is_local_transfer(row, accommodation_words=ACCOMMODATION_WORDS):
         return
     signals.has_local_transfer = True
     if explicit_city:
         add_unique_city(signals.city_sequence, explicit_city)
-    if "airport" in lower_text and "to" in lower_text:
-        if any(marker in lower_text for marker in ("hotel", "accommodation", "private hotel")):
-            signals.source_flags.add("departure_airport_transfer")
-        else:
-            signals.source_flags.add("arrival_airport_transfer")
 
 
 def _scan_route_transport(row: Mapping[str, Any], *, row_type: str, lower_text: str, signals: DayRowSignals) -> None:

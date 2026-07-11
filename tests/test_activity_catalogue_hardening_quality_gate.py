@@ -55,7 +55,16 @@ Northern Lights viewing opportunity"
     assert rows[0]["activity_product"]["canonical_family"] == "snowmobile_evening_safari"
     assert "Aurora" in rows[0]["title"] or "Northern Lights" in rows[0]["title"]
     assert "forbidden_aurora_wording" not in {issue.code for issue in report.blocking_issues}
-    assert "aurora_wording_review" in {issue.code for issue in report.warnings}
+    rendered_text = " ".join(
+        text
+        for day in render_document.days
+        for text in (day.title, day.intro, *(block.title for block in day.blocks))
+    )
+    warning_codes = {issue.code for issue in report.warnings}
+    if "Aurora" in rendered_text:
+        assert "aurora_wording_review" in warning_codes
+    else:
+        assert "aurora_wording_review" not in warning_codes
 
 
 def test_more_ticket_and_admission_products_receive_fingerprints():

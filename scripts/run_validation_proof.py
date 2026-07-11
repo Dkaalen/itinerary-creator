@@ -38,7 +38,7 @@ class ProofResult:
 
 
 def default_commands() -> tuple[ProofCommand, ...]:
-    """Return timeout-safe proof commands for validation cleanup."""
+    """Return timeout-safe proof commands for release-relevant regressions."""
 
     return (
         ProofCommand(
@@ -52,6 +52,45 @@ def default_commands() -> tuple[ProofCommand, ...]:
                 "tests/test_day_brain_intelligence.py",
                 "tests/test_day_brain_proof_hardening.py",
                 "tests/test_day_sub_brains.py",
+                "tests/test_output_truth_contracts.py",
+            ),
+        ),
+        ProofCommand(
+            "group-tour role ownership",
+            (
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_group_tour_rendering_regression.py",
+                "tests/test_preview_pdf_group_tours_regression.py",
+                "tests/test_client_sanitizer_default_images_regression.py",
+            ),
+        ),
+        ProofCommand(
+            "activity identity contracts",
+            (
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_content_classification_priority.py",
+                "tests/test_product_rule_registry.py",
+                "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+            ),
+        ),
+        ProofCommand(
+            "journey and visit truth regressions",
+            (
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_output_quality_and_images_regression.py",
+                "tests/test_real_output_quality_gate_iceland_regression.py",
+                "tests/test_real_output_quality_gate_norway_regression.py",
+                "tests/test_itinerary_stability_fidelity_repair.py",
+                "tests/test_text_engine_consolidation_regression.py",
             ),
         ),
         ProofCommand("hosted generation smoke", (sys.executable, "scripts/smoke_hosted_generation_path.py")),

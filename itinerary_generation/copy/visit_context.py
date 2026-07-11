@@ -25,10 +25,19 @@ class DayVisitContext:
     overnight_city: str = ""
     transit_cities: tuple[str, ...] = ()
     transit_only: bool = False
+    completed_visit: bool = False
+    chapter_start: bool = False
+    return_visit: bool = False
 
     @property
     def is_return_visit(self) -> bool:
-        return self.visit_number > 1 and bool(self.canonical_city)
+        # Preserve compatibility for explicitly constructed contexts while
+        # generated contexts use the stricter chapter-aware return flag.
+        return self.return_visit or (
+            self.visit_number > 1
+            and bool(self.canonical_city)
+            and not self.transit_only
+        )
 
 
 def _canonical_city(value: object) -> str:
@@ -56,5 +65,8 @@ def build_day_visit_contexts(grouped_days: Mapping[str, Sequence[dict]] | Iterab
             overnight_city=memory.overnight_city,
             transit_cities=memory.transit_cities,
             transit_only=memory.transit_only,
+            completed_visit=memory.completed_visit,
+            chapter_start=memory.chapter_start,
+            return_visit=memory.return_visit,
         )
     return contexts

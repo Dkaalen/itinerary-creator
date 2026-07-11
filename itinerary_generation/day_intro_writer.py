@@ -12,6 +12,7 @@ from itinerary_generation.content_engine import is_supplier_day_row
 from itinerary_generation.day_activity_text import get_client_activity_phrase
 from itinerary_generation.day_facts import DayFacts, row_text
 from itinerary_generation.day_intent import DayIntent, classify_day_intent
+from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 from itinerary_generation.day_route_text import create_travel_route_label
 from itinerary_generation.day_leisure_writer import write_leisure_copy
 from itinerary_generation.destination_profile_builder import destination_profile_for
@@ -126,6 +127,11 @@ def _departure_transfer_intro(facts: DayFacts) -> str:
     airport = _clean(match.group(1)) if match else "the airport"
     if any(marker in lower for marker in ("self transfer", "self-arranged", "self arranged", "own way")):
         return f"After check-out, please make your own way to {airport} for your onward journey."
+    route_rows = [row for row in facts.rows if get_row_type(dict(row)) == "Transfer"]
+    if len(route_rows) == 1:
+        origin, destination = transport_endpoints_from_row(dict(route_rows[0]))
+        if origin and destination and "airport" in destination.casefold():
+            return f"After check-out, take your arranged transfer from {origin} to {destination} for your onward journey."
     return f"Your arranged transfer will take you from your hotel to {airport} for your onward journey."
 
 
@@ -305,7 +311,8 @@ def _write_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
         return _activity_intro(facts)
 
     if intent == DayIntent.FULL_LEISURE_DAY:
-        return write_leisure_copy(facts, intent)
+        place = city or "the destination"
+        return f"A full day is left open in {place}, with no arranged activities competing for your time."
 
     if intent == DayIntent.PARTIAL_LEISURE_DAY:
         place = city or "the area"
@@ -346,7 +353,7 @@ def _intro_source_for(facts: DayFacts, intent: DayIntent, intro: str) -> tuple[s
     if intent == DayIntent.ACTIVITY_DAY:
         return "activity_day_intro", "Activity facts own this intro.", 84, ()
     if intent == DayIntent.FULL_LEISURE_DAY:
-        return "full_leisure_intro", "Full-leisure intent reuses Leisure Brain wording.", 82, ()
+        return "full_leisure_intro", "Full-leisure intent owns a distinct day-level introduction.", 82, ()
     if intent == DayIntent.PARTIAL_LEISURE_DAY:
         return "partial_leisure_intro", "Partial-leisure intent owns this intro.", 74, ()
     if "arrangements are listed below" in lowered or "listed below" in lowered:

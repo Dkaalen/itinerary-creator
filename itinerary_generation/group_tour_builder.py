@@ -11,7 +11,7 @@ from itinerary_generation.group_tour_commercial_items import _commercial_item, _
 from itinerary_generation.group_tour_constants import _DECLARED_DURATION_RE, _MEETING_FIELD_RE, _URL_RE
 from itinerary_generation.group_tour_day_parser import (
     _apply_package_accommodation_hints,
-    _build_day,
+    build_group_tour_day,
     _day_candidates,
 )
 from itinerary_generation.group_tour_master_rows import (
@@ -64,7 +64,7 @@ def build_group_tour_package(
 
     title = _master_title(master_source, master)
     inclusions = _master_inclusions(master, master_source)
-    day_segments = tuple(_build_day(row, inclusions, source_name) for row in day_rows)
+    day_segments = tuple(build_group_tour_day(row, inclusions, source_name) for row in day_rows)
     day_segments = _apply_package_accommodation_hints(day_segments, master_source, inclusions)
     declared_match = _DECLARED_DURATION_RE.search(title or master_source)
     declared_duration = int(declared_match.group(1)) if declared_match else 0

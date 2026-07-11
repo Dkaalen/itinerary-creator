@@ -4,6 +4,7 @@ import re
 import diagnostics
 from place_aliases import is_likely_service_text,is_known_place
 from normalizer_modules.text_utils import clean_space,get_row_type,text_blob
+from shared.place_label_policy import is_non_destination_label
 
 def looks_like_misclassified_hotel_row(row:dict)->bool:
     if get_row_type(row) not in {"Transfer","Transport"}:return False
@@ -16,6 +17,6 @@ def warn_suspicious_city(row:dict)->None:
     city=clean_space(row.get("city",""))
     if not city:return
     lower=city.lower()
-    if is_likely_service_text(city) or any(marker in lower for marker in ("ticket","option","sightseeing","private tour","hop on","hop-off","cancel")):
+    if is_likely_service_text(city) or is_non_destination_label(city) or any(marker in lower for marker in ("ticket","option","sightseeing","private tour","hop on","hop-off","cancel")):
         diagnostics.warn("suspicious_city",f"Suspicious city value '{city}' on {row.get('day','Unknown day')} — check source columns.",raw_value=row.get("raw",city));row["city"]="";return
     if not is_known_place(city) and len(city)>18:diagnostics.warn("unrecognised_city",f"City '{city}' on {row.get('day','Unknown day')} is not in the known place list — verify it is correct.",raw_value=row.get("raw",city))
