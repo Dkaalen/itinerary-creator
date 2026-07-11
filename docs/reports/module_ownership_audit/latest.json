@@ -20,23 +20,23 @@
   ],
   "duplicate_rule_hotspots": [
     {
+      "file": "parser_modules/place_parsing.py",
+      "line_count": 313,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/transport_domain/parser.py",
       "line_count": 305,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "parser_modules/place_parsing.py",
-      "line_count": 296,
+      "file": "itinerary_generation/client_quality_truth_checks.py",
+      "line_count": 301,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/group_tour_day_parser.py",
+      "file": "itinerary_domain/group_tour_day_parser.py",
       "line_count": 295,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/nutshell_route_parsing.py",
-      "line_count": 284,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -61,11 +61,11 @@
     },
     {
       "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 252,
+      "line_count": 254,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/title_cleanup.py",
+      "file": "itinerary_domain/title_cleanup.py",
       "line_count": 235,
       "concern": "inline_regex_or_replacement_rules"
     },
@@ -90,23 +90,18 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/activity_product_text.py",
-      "line_count": 200,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/activity_description_helpers.py",
       "line_count": 188,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/content_validator.py",
-      "line_count": 167,
+      "file": "itinerary_generation/transport_domain/route_cleaning.py",
+      "line_count": 180,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/transport_domain/route_cleaning.py",
-      "line_count": 163,
+      "file": "itinerary_generation/content_validator.py",
+      "line_count": 167,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -171,7 +166,7 @@
     },
     {
       "file": "tests/test_cleanup_final_regression.py",
-      "line_count": 85,
+      "line_count": 89,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -182,11 +177,6 @@
     {
       "file": "tests/test_text_cleanup_caching_regression.py",
       "line_count": 81,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/activity_training_text.py",
-      "line_count": 51,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -232,6 +222,7 @@
       "tests/test_day_brain_proof_hardening.py",
       "tests/test_day_sub_brains.py",
       "tests/test_destination_route_journey_intelligence.py",
+      "tests/test_extra_day_wrapper_rows.py",
       "tests/test_finland_source_fidelity_regression.py",
       "tests/test_finland_transport_regressions.py",
       "tests/test_fixture_hardening_quality_gate.py",
@@ -269,6 +260,7 @@
       "tests/test_regressions_ui_boundaries.py",
       "tests/test_render_document_source_of_truth.py",
       "tests/test_self_drive_pdf_preview_parity.py",
+      "tests/test_self_drive_truth_contract.py",
       "tests/test_source_fidelity_quality_gate.py",
       "tests/test_stress_logic_followups.py",
       "tests/test_tallinn_excursion_wording_quality_gate.py",
@@ -306,7 +298,8 @@
       "parser_modules/time_finders.py",
       "parser_modules/time_normalize.py",
       "parser_modules/time_tokens.py",
-      "parser_modules/title_cleanup.py"
+      "parser_modules/title_cleanup.py",
+      "parser_modules/wrapper_row_types.py"
     ],
     "scripts/vipin_excel_corpus.py": [
       "scripts/golden_input_inventory.py",

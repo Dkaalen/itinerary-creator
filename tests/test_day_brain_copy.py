@@ -55,9 +55,10 @@ def test_return_visit_copy_uses_return_context():
 
     assert facts.return_visit is True
     assert intent == "return_visit"
-    assert intro.startswith("Return to Kiruna")
+    assert intro.startswith("Travel from Abisko to Kiruna by rail")
     assert "Welcome to" not in intro
     assert "first impressions" not in intro.lower()
+    assert "arrangements are listed below" not in intro.lower()
 
 
 def test_full_leisure_day_is_not_remaining_time():

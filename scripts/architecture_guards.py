@@ -32,6 +32,7 @@ from scripts.architecture_guard_source_checks import (
     forbidden_normal_ui_hits,
     generation_implementation_core_import_hits,
     import_from_hits,
+    itinerary_domain_generation_import_hits,
     iter_normal_workflow_files,
     patch_history_name_hits,
     root_patch_artifact_hits,
@@ -162,6 +163,7 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck("Shared clean_space ownership", lambda: _fail_if_any("duplicate clean_space definition", duplicate_shared_clean_space_hits())),
         ArchitectureCheck("Top-level compatibility facade scope", lambda: _fail_if_any("compatibility facade grew implementation logic", top_level_compatibility_facade_hits())),
         ArchitectureCheck("Destination/transport import cycle", lambda: _fail_if_any("destination transport cycle", destination_transport_cycle_hits())),
+        ArchitectureCheck("Neutral domain dependency direction", lambda: _fail_if_any("neutral domain imports generation", itinerary_domain_generation_import_hits())),
         ArchitectureCheck(
             "Generation core facade dependency direction",
             lambda: _fail_if_any("implementation imports cleaned core facade", generation_implementation_core_import_hits()),

@@ -22,13 +22,11 @@ from itinerary_generation.exclusion_row_rules import (
 )
 from itinerary_generation.exclusion_source_items import _specific_cost_not_included_label
 from itinerary_generation.transport_safety import split_self_transfer_notes
+from shared.source_rows import source_row_id
 
 
 def _row_id(row, fallback_index=0):
-    value = str((row or {}).get("row_id") or "").strip()
-    if value:
-        return value
-    return f"generated-row-{fallback_index}"
+    return source_row_id(row or {}, fallback_index)
 
 
 def _structured_item(label, row=None, row_index=0):

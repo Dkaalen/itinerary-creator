@@ -1,12 +1,18 @@
-"""Public compatibility facade for activity-training catalogue services."""
+"""Compatibility facade for :mod:`itinerary_domain.activity_training_catalogue`.
 
-from itinerary_generation.activity_training_loader import activity_training_entries
-from itinerary_generation.activity_training_matcher import activity_training_index as _activity_training_index,catalogue_description_for_row,match_activity_training_entry,match_activity_training_entry_cached as _match_activity_training_entry_cached
-from itinerary_generation.activity_training_model import ActivityTrainingEntry
-from itinerary_generation.activity_training_text import normalize_training_text as _normalize_text,training_tokens as _tokens
-from itinerary_generation.activity_training_validation import validate_activity_training_catalogue
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-def clear_activity_training_cache()->None:
-    activity_training_entries.cache_clear();_activity_training_index.cache_clear();_match_activity_training_entry_cached.cache_clear();_normalize_text.cache_clear();_tokens.cache_clear()
+from importlib import import_module as _import_module
 
-__all__=["ActivityTrainingEntry","activity_training_entries","match_activity_training_entry","clear_activity_training_cache","catalogue_description_for_row","validate_activity_training_catalogue"]
+_impl = _import_module("itinerary_domain.activity_training_catalogue")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

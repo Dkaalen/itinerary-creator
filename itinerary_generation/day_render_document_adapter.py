@@ -136,9 +136,9 @@ def build_render_day_from_document(
     return RenderDay(
         day=day_shell.day,
         number=day_document.number if day_document and day_document.number else day_shell.number,
-        city=day_shell.city,
-        title=day_shell.title,
-        intro=day_shell.intro,
+        city=resolved_day_content.city,
+        title=resolved_day_content.title,
+        intro=resolved_day_content.intro,
         date=edited_date or (day_document.date if day_document and day_document.date else ""),
         blocks=blocks,
         source_row_ids=source_ids,

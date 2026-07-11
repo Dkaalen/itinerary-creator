@@ -51,7 +51,10 @@ def classify_day_intent(facts: DayFacts) -> DayIntent:
     ):
         if facts.has_activity:
             return DayIntent.ACTIVITY_PLUS_TRAVEL
-        return DayIntent.ARRIVAL_STAY
+        # An explicit intercity route remains a travel day even when it ends at
+        # the night's accommodation. Arrival-stay wording is reserved for a
+        # real arrival event or airport-arrival transfer handled above.
+        return DayIntent.TRAVEL_DAY
     if facts.has_activity and facts.has_travel:
         return DayIntent.ACTIVITY_PLUS_TRAVEL
     if facts.has_overnight_transport:

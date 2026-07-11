@@ -114,14 +114,8 @@ def build_day_schedule_profile(rows: Sequence[Mapping[str, object]] | None) -> D
         any(before.order < leisure.order < after.order for before in activities for after in activities if before.order < after.order)
         for leisure in leisure_events
     )
-    sorted_timed = sorted(timed_activities, key=lambda event: event.start_minutes or 0)
-    has_gap = False
-    for first, second in zip(sorted_timed, sorted_timed[1:]):
-        if first.end_minutes is not None and second.start_minutes is not None and second.start_minutes - first.end_minutes >= 90:
-            has_gap = True
-            break
-
     occupancy = analyze_schedule_occupancy(events)
+    has_gap = occupancy.longest_gap_minutes >= 90
 
     flags: set[str] = set()
     if has_activity_after_leisure:

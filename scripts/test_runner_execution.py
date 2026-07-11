@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
 
 from scripts.test_runner_models import StageRunResult
+from scripts.subprocess_control import run_controlled_process
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PYTEST_FLAGS = ("-q", "--durations=10")
@@ -39,32 +39,28 @@ def _run_command_result(
     print(" ".join(cmd), flush=True)
     print(f"stage timeout: {timeout_seconds}s", flush=True)
     started = time.monotonic()
-    try:
-        completed = subprocess.run(
-            cmd,
-            cwd=REPO_ROOT,
-            env=env or _pytest_env(),
-            stdin=subprocess.DEVNULL,
-            timeout=timeout_seconds or None,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        elapsed = time.monotonic() - started
+    completed = run_controlled_process(
+        cmd,
+        cwd=REPO_ROOT,
+        env=env or _pytest_env(),
+        timeout_seconds=timeout_seconds or None,
+    )
+    elapsed = time.monotonic() - started
+    if completed.timed_out:
         print(
             f"=== {label}: timed out after {elapsed:.1f}s "
             f"(limit {timeout_seconds}s) ===",
             flush=True,
         )
         print(
-            "The timed-out stage was terminated. Run with --plan to see "
+            "The timed-out stage and its descendants were terminated. Run with --plan to see "
             "the exact stage split, or increase ITINERARY_TEST_STAGE_TIMEOUT_SECONDS "
             "for slower machines.",
             flush=True,
         )
         return StageRunResult(label=label, return_code=124, elapsed_seconds=elapsed)
 
-    elapsed = time.monotonic() - started
-    return_code = completed.returncode
+    return_code = completed.return_code
     status = "passed" if return_code == 0 else f"failed ({return_code})"
     print(f"=== {label}: {status} in {elapsed:.1f}s ===", flush=True)
     return StageRunResult(label=label, return_code=return_code, elapsed_seconds=elapsed)

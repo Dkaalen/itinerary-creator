@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from itinerary_generation.activity_products import fingerprint_activity
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_domain.activity_products import fingerprint_activity
+from itinerary_domain.transport_norway import _is_norway_in_a_nutshell_text
 from normalizer_modules.text_utils import text_blob
 
 

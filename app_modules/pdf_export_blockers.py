@@ -28,6 +28,7 @@ def client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_bank
         pdf_render_context.render_document,
         day_images=image_matches,
         image_bank_status=image_bank_status,
+        source_rows=pdf_render_context.parsed_rows,
     )
     if not client_safety_report.is_blocked:
         return False

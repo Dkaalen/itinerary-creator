@@ -1,32 +1,18 @@
-"""Small text helpers shared by itinerary content modules."""
+"""Compatibility facade for :mod:`itinerary_domain.content_text`.
 
-from __future__ import annotations
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-import re
+from importlib import import_module as _import_module
 
+_impl = _import_module("itinerary_domain.content_text")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-def clean_inline(value: str) -> str:
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
-
-
-def row_text(row: dict) -> str:
-    return f"{row.get('title', '')}\n{row.get('original_title', '')}\n{row.get('details', '')}"
-
-
-def _sentences(text: str) -> list[str]:
-    text = clean_inline(text)
-    if not text:
-        return []
-    pieces = re.split(r"(?<=[.!?])\s+", text)
-    return [piece.strip() for piece in pieces if piece.strip()]
-
-
-def _trim_supplier_sections(text: str) -> str:
-    text = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
-    # Keep narrative before operational/commercial sections.
-    return re.split(
-        r"\n\s*(?:What's included|What’s included|Included With|Please note|Not Included|Not included|Meeting Point|Pick up / meeting point|Pick-up / meeting point|Optional)\b",
-        text,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0]
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

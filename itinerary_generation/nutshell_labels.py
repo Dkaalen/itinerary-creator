@@ -1,16 +1,18 @@
-"""Compatibility labels for Norway in a Nutshell transport parsing."""
+"""Compatibility facade for :mod:`itinerary_domain.nutshell_labels`.
 
-from __future__ import annotations
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
+from importlib import import_module as _import_module
 
-def _norway_nutshell_route_label(text, fallback_origin="", fallback_destination=""):
-    """Return the canonical client label without creating a parser/domain cycle."""
+_impl = _import_module("itinerary_domain.nutshell_labels")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-    from itinerary_generation.nutshell_domain import build_nutshell_journey
-
-    journey = build_nutshell_journey(
-        str(text or ""),
-        fallback_origin=fallback_origin,
-        fallback_destination=fallback_destination,
-    )
-    return journey.client_title if journey else "Norway in a Nutshell"
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

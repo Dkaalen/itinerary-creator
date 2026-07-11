@@ -278,6 +278,12 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/activity_cache.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
       "path": "itinerary_generation/activity_mode_contract.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
@@ -286,34 +292,57 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/activity_product_core.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
       "path": "itinerary_generation/activity_product_rules/__init__.py",
       "reason": "facade-like module with zero production importers",
       "static_importers": [],
-      "safety_note": "package initializer; never delete from static import evidence alone"
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/activity_product_rules/iceland.py",
-      "reason": "module with zero production importers",
+      "reason": "facade-like module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/activity_product_rules/nordic.py",
-      "reason": "module with zero production importers",
+      "reason": "facade-like module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/activity_product_rules/norway.py",
-      "reason": "module with zero production importers",
+      "reason": "facade-like module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/activity_product_rules/scandinavia.py",
-      "reason": "module with zero production importers",
+      "reason": "facade-like module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_product_text.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_products.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/activity_titles_core.py",
+        "tests/test_activity_product_architecture_regression.py",
+        "tests/test_hot_path_caching_regression.py",
+        "tests/test_nutshell_fjordtours_regression.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/activity_title_northern_lights.py",
@@ -339,12 +368,41 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "itinerary_generation/activity_description_helpers.py",
-        "itinerary_generation/activity_products.py",
         "itinerary_generation/description_composer.py",
         "tests/test_activity_catalogue_and_qa_regression.py",
         "tests/test_activity_training_catalogue_regression.py"
       ],
       "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/activity_training_loader.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_training_matcher.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_training_model.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_training_text.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/activity_training_validation.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/canonical_builder.py",
@@ -401,7 +459,6 @@
         "itinerary_generation/day_render_activity_blocks.py",
         "itinerary_generation/day_render_block_ordering.py",
         "itinerary_generation/day_render_document_adapter.py",
-        "itinerary_generation/day_route_text.py",
         "itinerary_generation/day_row_selectors.py",
         "itinerary_generation/day_timeline_events.py",
         "itinerary_generation/day_title_planner.py",
@@ -438,7 +495,6 @@
         "itinerary_generation/time_display.py",
         "itinerary_generation/title_brain.py",
         "itinerary_generation/title_intent_decisions.py",
-        "itinerary_generation/transport_airport.py",
         "itinerary_generation/transport_details.py",
         "itinerary_generation/transport_display_helpers.py",
         "itinerary_generation/transport_domain/coastal_cruise_render.py",
@@ -449,8 +505,6 @@
         "itinerary_generation/transport_domain/render_arrangements.py",
         "itinerary_generation/transport_domain/render_sequences.py",
         "itinerary_generation/transport_domain/render_special_routes.py",
-        "itinerary_generation/transport_domain/route_summary.py",
-        "itinerary_generation/transport_domain/titles.py",
         "itinerary_generation/transport_render_blocks.py",
         "itinerary_generation/trip_brain.py",
         "scripts/benchmark_text_cleanup.py",
@@ -505,6 +559,18 @@
         "itinerary_generation/transport_domain/inclusions.py",
         "itinerary_generation/transport_domain/render_sequences.py",
         "ui/optional_addons.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/content_text.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/activity_descriptions.py",
+        "itinerary_generation/content_engine.py",
+        "itinerary_generation/display_text_safety.py",
+        "itinerary_generation/inclusion_cleanup.py",
+        "itinerary_generation/supplier_text.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -976,10 +1042,56 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/fjordtours_activity_catalogue.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [
+        "tests/test_nutshell_fjordtours_regression.py"
+      ],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_accommodation_policy.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_builder.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_commercial_items.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_constants.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_day_parser.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_detection.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/group_tour_accommodation.py",
+        "itinerary_generation/group_tours.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
       "path": "itinerary_generation/group_tour_domain.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/group_tour_parsing.py",
         "itinerary_generation/group_tour_render_blocks.py",
         "itinerary_generation/group_tour_render_context.py",
         "itinerary_generation/group_tour_render_inclusions.py",
@@ -990,12 +1102,36 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "itinerary_generation/group_tour_orphan_days.py",
+      "path": "itinerary_generation/group_tour_master_rows.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_models.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_optional_extras.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/group_tour_parsing.py"
+        "itinerary_generation/group_tours.py"
       ],
       "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/group_tour_orphan_days.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_parsing.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/group_tour_rendering.py",
@@ -1015,12 +1151,38 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/group_tour_row_helpers.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_serialization.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/group_tour_supplier_titles.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/group_tour_accommodation.py",
+        "itinerary_generation/group_tours.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/group_tour_text.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
       "path": "itinerary_generation/group_tours.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
         "itinerary_generation/inclusion_activities.py",
-        "itinerary_generation/summaries_trip_glance.py",
-        "normalizer_modules/core.py"
+        "itinerary_generation/summaries_trip_glance.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1114,33 +1276,31 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/nutshell_cleaning.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
       "path": "itinerary_generation/nutshell_constants.py",
-      "reason": "facade-like module with production importers",
-      "static_importers": [
-        "itinerary_generation/nutshell_domain.py",
-        "itinerary_generation/nutshell_journey_builder.py",
-        "itinerary_generation/nutshell_model.py",
-        "itinerary_generation/nutshell_source.py"
-      ],
-      "safety_note": "still has static importers"
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/nutshell_domain.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/activity_product_rules/norway.py",
+        "itinerary_generation/activity_identity_descriptions.py",
         "itinerary_generation/day_planner.py",
         "itinerary_generation/journey_overview_evidence.py",
-        "itinerary_generation/nutshell_labels.py",
         "itinerary_generation/route_intelligence.py",
         "itinerary_generation/summaries_experience.py",
-        "itinerary_generation/title_routes.py",
         "itinerary_generation/transport_domain/inclusions.py",
         "itinerary_generation/transport_domain/nutshell_render.py",
         "itinerary_generation/transport_domain/render.py",
         "itinerary_generation/transport_domain/render_sequences.py",
         "itinerary_generation/transport_domain/titles.py",
-        "normalizer_modules/row_normalizer.py",
         "tests/test_generation_architecture_cleanup.py",
         "tests/test_nutshell_consumer_parity_regression.py",
         "tests/test_nutshell_domain_regression.py"
@@ -1148,14 +1308,78 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_generation/nutshell_journey_builder.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/nutshell_labels.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
       "path": "itinerary_generation/nutshell_model.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/nutshell_parsing.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/nutshell_domain.py",
-        "itinerary_generation/nutshell_journey_builder.py",
-        "itinerary_generation/nutshell_route_parser.py"
+        "itinerary_generation/transport_domain/nutshell_render.py"
       ],
       "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/nutshell_route_parser.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/nutshell_route_parsing.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/nutshell_source.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/product_rule_context.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/product_rule_descriptions.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/product_rule_evidence.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/product_rule_matcher.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
+    },
+    {
+      "path": "itinerary_generation/product_rule_models.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [],
+      "safety_note": "deliberate compatibility facade for the neutral itinerary domain"
     },
     {
       "path": "itinerary_generation/product_rules.py",
@@ -1167,7 +1391,6 @@
         "itinerary_generation/canonical_activity.py",
         "itinerary_generation/description_templates.py",
         "itinerary_generation/structured_warning_builder.py",
-        "itinerary_generation/title_cleanup.py",
         "tests/test_hot_path_caching_regression.py",
         "tests/test_nutshell_fjordtours_regression.py",
         "tests/test_product_rule_registry.py"
@@ -1240,17 +1463,8 @@
       "path": "itinerary_generation/schedule_occupancy.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/schedule_brain.py"
-      ],
-      "safety_note": "still has static importers"
-    },
-    {
-      "path": "itinerary_generation/schedule_time_ranges.py",
-      "reason": "facade-like module with production importers",
-      "static_importers": [
         "itinerary_generation/client_quality_truth_checks.py",
-        "itinerary_generation/schedule_brain.py",
-        "tests/test_output_truth_contracts.py"
+        "itinerary_generation/schedule_brain.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1350,6 +1564,46 @@
         "itinerary_generation/journey_overview_brain.py",
         "itinerary_generation/summaries.py",
         "itinerary_generation/summaries_experience.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/tallinn.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/canonical_activity.py",
+        "itinerary_generation/inclusion_activities.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/title_cleanup.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/activity_descriptions.py",
+        "itinerary_generation/content_engine.py",
+        "itinerary_generation/display_text_safety.py",
+        "itinerary_generation/inclusion_cleanup.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/title_routes.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/activity_titles_core.py",
+        "itinerary_generation/titles.py",
+        "tests/test_nutshell_domain_regression.py",
+        "tests/test_nutshell_fjordtours_regression.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_generation/title_safety.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/activity_titles_core.py",
+        "itinerary_generation/day_render_transport_blocks.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1467,14 +1721,10 @@
       "path": "itinerary_generation/transport_norway.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
-        "itinerary_generation/activity_product_rules/norway.py",
         "itinerary_generation/structured_travel_sequences.py",
         "itinerary_generation/transport.py",
         "itinerary_generation/transport_domain/inclusions.py",
         "itinerary_generation/transport_domain/parser.py",
-        "normalizer_modules/row_normalizer.py",
-        "normalizer_modules/transport_activity_detection.py",
-        "normalizer_modules/transport_title.py",
         "tests/test_norway_source_fidelity_quality_gate.py",
         "tests/test_nutshell_characterization_regression.py",
         "tests/test_nutshell_domain_regression.py",
@@ -1634,7 +1884,8 @@
         "parser_modules/time_finders.py",
         "parser_modules/time_normalize.py",
         "parser_modules/time_tokens.py",
-        "parser_modules/title_cleanup.py"
+        "parser_modules/title_cleanup.py",
+        "parser_modules/wrapper_row_types.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -1709,6 +1960,14 @@
       "static_importers": [
         "tests/test_editor_image_safety_regression.py",
         "tests/test_transport_domain_regression.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "parser_modules/wrapper_row_types.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "parser_modules/parser_main.py"
       ],
       "safety_note": "still has static importers"
     },

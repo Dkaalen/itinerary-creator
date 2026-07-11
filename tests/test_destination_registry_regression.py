@@ -48,3 +48,15 @@ def test_southern_coastal_profile_is_registry_driven():
     assert is_southern_coastal_destination("Kristiansand")
     assert is_southern_coastal_destination("Stavanger")
     assert not is_southern_coastal_destination("Tromsø")
+
+
+def test_ambiguous_uto_alias_requires_country_context() -> None:
+    from place_alias_queries import canonicalize_place_name, countries_for_place, country_for_place
+
+    assert canonicalize_place_name("Uto") == "Utö"
+    assert countries_for_place("Uto") == ("Finland", "Sweden")
+    assert country_for_place("Uto") == ""
+    assert country_for_place("Uto", "Finland") == "Finland"
+    assert country_for_place("Uto", "Sweden") == "Sweden"
+    assert country_for_place("Uto Finland") == "Finland"
+    assert country_for_place("Uto Sweden") == "Sweden"

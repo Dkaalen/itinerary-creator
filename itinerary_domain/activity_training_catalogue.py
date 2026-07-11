@@ -1,0 +1,12 @@
+"""Public compatibility facade for activity-training catalogue services."""
+
+from itinerary_domain.activity_training_loader import activity_training_entries
+from itinerary_domain.activity_training_matcher import activity_training_index as _activity_training_index,catalogue_description_for_row,match_activity_training_entry,match_activity_training_entry_cached as _match_activity_training_entry_cached
+from itinerary_domain.activity_training_model import ActivityTrainingEntry
+from itinerary_domain.activity_training_text import normalize_training_text as _normalize_text,training_tokens as _tokens
+from itinerary_domain.activity_training_validation import validate_activity_training_catalogue
+
+def clear_activity_training_cache()->None:
+    activity_training_entries.cache_clear();_activity_training_index.cache_clear();_match_activity_training_entry_cached.cache_clear();_normalize_text.cache_clear();_tokens.cache_clear()
+
+__all__=["ActivityTrainingEntry","activity_training_entries","match_activity_training_entry","clear_activity_training_cache","catalogue_description_for_row","validate_activity_training_catalogue"]

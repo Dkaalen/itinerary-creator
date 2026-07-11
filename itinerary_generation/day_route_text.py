@@ -2,24 +2,15 @@
 
 from __future__ import annotations
 
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
+from itinerary_generation.common_constants import TRANSPORT_TYPES
+from itinerary_generation.row_filters import get_row_type
+from itinerary_generation.transport_domain.route_cleaning import canonical_route_city
 from itinerary_generation.transport import get_transfer_travel_title, is_route_transfer
 
 
-def _canonical_route_city(name):
-    clean = str(name or "").strip()
-    replacements = {
-        "saariselka": "Saariselkä",
-        "kakslauttenen": "Kakslauttanen",
-        "tromso": "Tromsø",
-        "svolvaer": "Svolvær",
-        "svolaver": "Svolvær",
-        "gothernburg": "Gothenburg",
-        "göteborg": "Gothenburg",
-        "malmo": "Malmø",
-    }
-    return replacements.get(clean.lower(), clean)
 
+# Compatibility alias; route spelling is owned by the transport domain.
+_canonical_route_city = canonical_route_city
 
 ROUTE_CITY_CANDIDATES = [
     "Helsinki", "Rovaniemi", "Saariselkä", "Saariselka",

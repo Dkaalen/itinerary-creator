@@ -1,0 +1,235 @@
+"""Client-facing title cleanup rules for itinerary content."""
+
+from __future__ import annotations
+
+import re
+
+from place_aliases import canonicalize_place_name
+from text_polish import polish_title, strip_price_fragments
+from itinerary_domain.content_text import clean_inline
+from itinerary_domain.title_safety import is_forbidden_client_title, strip_supplier_title_cta
+from itinerary_domain.product_rules import find_product_match
+from itinerary_domain.title_routes import _extract_supplier_day_heading
+
+
+RAW_SUPPLIER_MARKERS = [
+    "opening hours", "includese", "tickets only", "what's included", "what’s included",
+    "meeting point", "pick up / meeting point", "pick-up / meeting point", "carried out:",
+    "participanter", "min participants", "max participants", "min age", "cancel", "checkout",
+    "price is per", "supplement", "book this", "check availability", "what are you waiting",
+    "tickets included", "entry tickets included", "excurssion",
+]
+
+_GENERIC_FALLBACK_MARKERS = [
+    "enjoy a planned experience",
+    "adding a clear highlight",
+    "join a whale watching experience",
+    "join a guided glacier experience",
+    "enjoy this lagoon and wellness experience",
+    "enjoy a guided experience",
+    "see the area from the water",
+]
+
+TYPO_FIXES = [
+    (r"\bTIckets\b", "Tickets"),
+    (r"\bIncludese\b", "Includes"),
+    (r"\binlc\b", "incl."),
+    (r"\bBrekafast\b", "Breakfast"),
+    (r"\bSupeerior\b", "Superior"),
+    (r"\bTallin\b", "Tallinn"),
+    (r"\bhellsinki\b", "Helsinki"),
+    (r"\bhlesinkih?\b", "Helsinki"),
+    (r"\bROvaniemi\b", "Rovaniemi"),
+    (r"\bKriuna\b", "Kiruna"),
+    (r"\bExcurssion\b", "Excursion"),
+    (r"\btransfere\b", "transfer"),
+    (r"\bcrusie\b", "cruise"),
+    (r"\bChocholate\b", "chocolate"),
+    (r"\bDesctiption\b", "Description"),
+    (r"\bKrongborg\b", "Kronborg"),
+    (r"\bRosklide\b", "Roskilde"),
+    (r"\bSt\s+Nickolas\b", "St Nicholas"),
+    (r"\bSquate\b", "Square"),
+    (r"\bNuthsell\b", "Nutshell"),
+    (r"\bUpgradesd\b", "Upgrades"),
+    (r"\bavaiable\b", "available"),
+]
+
+def repair_common_supplier_typos(value: str) -> str:
+    text = str(value or "")
+    for pattern, replacement in TYPO_FIXES:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    text = re.sub(r"\b2\.\s*5\s*hr\b", "2.5-hour", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+)\.\s*(\d+)\s*hr\b", r"\1.\2-hour", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+)\s*Hrs?\b", lambda m: f"{m.group(1)} hours", text, flags=re.IGNORECASE)
+    return text
+
+
+
+
+_CITY_PREFIX_RE = re.compile(r"^\s*([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,40})\s*:\s*(.+)$")
+_TIME_RANGE_RE = re.compile(
+    r"\(?\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\s*[-–—]\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\s*\)?",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_leading_city_prefix(text: str, row: dict | None = None) -> str:
+    """Remove a leading supplier city label without touching normal titles."""
+
+    value = clean_inline(text)
+    match = _CITY_PREFIX_RE.match(value)
+    if not match:
+        return value
+    prefix, rest = clean_inline(match.group(1)), clean_inline(match.group(2))
+    city = canonicalize_place_name((row or {}).get("city", ""))
+    known_prefixes = {
+        "oslo", "bergen", "helsinki", "stockholm", "copenhagen", "tromsø", "tromso",
+        "svolvær", "svolvaer", "reykjavík", "reykjavik", "voss", "stavanger", "kirkenes",
+    }
+    if (city and canonicalize_place_name(prefix).lower() == city.lower()) or prefix.lower() in known_prefixes:
+        return rest
+    return value
+
+
+def _strip_inline_time_and_admin_suffixes(text: str) -> str:
+    """Keep the client title while removing supplier timing/detail suffixes.
+
+    This intentionally handles decimal-style times such as ``(11.00 - 13.00)``
+    before sentence splitting, so titles do not collapse to fragments like
+    ``Electric Fjord Cruise (11``.
+    """
+
+    value = clean_inline(text)
+    value = re.sub(r"\b(\d{1,2})\.\s+(\d{2})\b", r"\1.\2", value)
+    value = re.sub(r"^\s*\d+\s*h\s+(?=guided\b|private\b|city\b|walking\b|fjord\b|cruise\b)", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s*:\s*" + _TIME_RANGE_RE.pattern + r".*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(_TIME_RANGE_RE, "", value).strip(" -:|.,")
+    value = re.sub(r"\s*\((?:morning|afternoon|evening|anytime|flexible timing|flexible start)[^)]*\)", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+(?:incl\.?|including|includes?)\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+-\s*(?:time|opening hours|includes?|includese|meeting point|pick[- ]?up|duration)\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+free time\b.*$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    value = re.sub(r"\s+\d+\s*(?:hours?|hrs?)\b$", "", value, flags=re.IGNORECASE).strip(" -:|.,")
+    return clean_inline(value).strip(" -:|.,")
+
+def has_raw_supplier_residue(value: str) -> bool:
+    lower = str(value or "").lower()
+    return any(marker in lower for marker in RAW_SUPPLIER_MARKERS) or "|" in str(value or "")
+
+
+def looks_like_generated_fallback(value: str) -> bool:
+    lower = str(value or "").lower()
+    return any(marker in lower for marker in _GENERIC_FALLBACK_MARKERS)
+
+
+def strip_supplier_title_metadata(value: str, row: dict | None = None) -> str:
+    text = repair_common_supplier_typos(strip_price_fragments(clean_inline(value)))
+    text = _strip_leading_city_prefix(text, row)
+    text = _strip_inline_time_and_admin_suffixes(text)
+    text = strip_supplier_title_cta(text)
+    text = re.sub(r"\s*\|\s*.*$", "", text).strip()
+    text = re.sub(r"\s+-\s*(?:Opening Hours|Time|Includes?|Includese|Meeting point)\s*:.*$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\bOpening Hours\s*:.*$", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\bIncludes?\s*:.*$", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\bIncludese\s*:.*$", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\bTickets?\s+only\b", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"^\s*Oslo\s*:\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^\s*Bergen\s*:\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^\s*Helsinki\s*:\s*", "", text, flags=re.IGNORECASE)
+    return clean_inline(text).strip(" -:|")
+
+
+def clean_client_title(value: str, row: dict | None = None) -> str:
+    row = row or {}
+    text = strip_supplier_title_metadata(value or row.get("title", "") or row.get("original_title", ""), row)
+    full = f"{text} {row.get('title','')} {row.get('original_title','')} {row.get('details','')}".lower()
+    city = canonicalize_place_name(row.get("city", ""))
+
+    if is_forbidden_client_title(text):
+        return ""
+
+    if re.search(r"\boptional\s+upgrades?\b", full, flags=re.IGNORECASE):
+        return "Optional Upgrades"
+
+    for heading_source in (row.get("original_title"), row.get("details")):
+        supplier_heading = _extract_supplier_day_heading(heading_source or "")
+        if supplier_heading and text.strip().lower() == supplier_heading.lower():
+            return polish_title(text)
+
+    allow_product_match = not re.match(r"^(?:travel|journey|arrival|welcome|departure)\b", text.strip(), flags=re.IGNORECASE)
+    product_match = find_product_match(row, text) if allow_product_match else None
+    if product_match and product_match.title:
+        return product_match.title
+
+    if ("fløibanen" in text.lower() or "floibanen" in text.lower()) and ("&" in text or " and " in text.lower()):
+        return polish_title(text)
+    if "fløibanen" in text.lower() or "floibanen" in text.lower():
+        return "Fløibanen Funicular"
+    if "cruise" in text.lower() and "spend time at leisure" in text.lower():
+        return "At Leisure Onboard the Coastal Cruise"
+    if "leisure as requested" in full or text.lower() in {"leisure", "spend time at leisure"}:
+        return f"A day at leisure in {city}" if city else "A day at leisure"
+    if re.search(r"self\s+transfer\s+to\s+(?:the\s+)?car rental", full):
+        return "Rental car pick-up"
+    if re.search(r"self\s+transfer\s+to\s+(.+)", full):
+        dest = re.sub(r"^.*?self\s+transfer\s+to\s+", "", full, flags=re.IGNORECASE).strip(" .")
+        if "jökulsárlón" in dest or "jokulsarlon" in dest:
+            return "Scenic drive to Jökulsárlón"
+        if "reykjav" in dest:
+            return "Return drive to Reykjavík"
+    if "overnight train" in full and "stockholm" in full and "kiruna" in full:
+        title_lower = str(value or row.get("title", "") or "").lower()
+        if "to kiruna" in title_lower or "stockholm to kiruna" in full or "stockholm central to kiruna" in full:
+            return "Overnight train to Kiruna"
+        if "kiruna to stockholm" in full or "to stockholm" in title_lower or ("kiruna station" in full and "stockholm central" in full):
+            return "Overnight train to Stockholm"
+        return "Overnight train between Stockholm and Kiruna"
+    if "round trip ferry" in full and "tallinn" in full:
+        return "Helsinki-Tallinn Ferry"
+    if re.fullmatch(r"city walking tour", text, flags=re.IGNORECASE) and city:
+        return f"{city} Walking Tour"
+    guided_match = re.fullmatch(r"guided tour of ([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+)", text, flags=re.IGNORECASE)
+    if guided_match:
+        place = polish_title(guided_match.group(1))
+        return f"{place} Guided City Tour"
+    return polish_title(text)
+
+
+def clean_admin_title_fragment(value: str) -> str:
+    text = strip_supplier_title_metadata(value)
+    text = re.sub(r"^Accommodation\s*:\s*Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"^Check[- ]?in\s+at\s+", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\s+(?:with|incl\.?|including)\s+transfers?\b", "", text, flags=re.IGNORECASE).strip(" -:|")
+    text = re.sub(r"\bWatch\s+Whales\b", "Whale Watching", text, flags=re.IGNORECASE)
+    return polish_title(text)
+
+
+def cleaned_generic_activity_title(title: str, row: dict | None = None) -> str:
+    row = row or {}
+    text = clean_admin_title_fragment(title)
+    canonical = clean_client_title(text, row)
+    if canonical:
+        text = canonical
+    full = f"{text} {row.get('title', '')} {row.get('original_title', '')} {row.get('details', '')}".lower()
+    city = canonicalize_place_name(row.get("city", ""))
+
+    # Generic walking-tour labels should include the destination when available.
+    if re.fullmatch(r"(?:city\s+)?walking\s+tour", text, flags=re.IGNORECASE) and city:
+        return f"{polish_title(city)} Walking Tour"
+
+    if re.search(r"\bessential\s+oslo\b|\boslo\s*:\s*.*city\s+cent(?:er|re).*walking", full, flags=re.IGNORECASE):
+        return "Oslo Walking Tour"
+    if re.search(r"\ba\s+city\s+walk\s+in\s+the\s+old\s+town\b|old town.*famous attractions", full, flags=re.IGNORECASE):
+        return "Stockholm Old Town Walking Tour" if "stockholm" in full else "Old Town Walking Tour"
+    if re.search(r"\btransported\s+tour\b.*runic|runic kingdom", full, flags=re.IGNORECASE):
+        return "Runic Kingdom & Viking History Tour"
+    if "secret food" in full and "copenhagen" in full:
+        return "Copenhagen Food Tour"
+    if re.search(r"\boptional\s+upgrades?\b", full, flags=re.IGNORECASE):
+        return "Optional Upgrades"
+    if "fløibanen" in text.lower() or "floibanen" in text.lower():
+        return "Fløibanen Funicular"
+    if "santa's igloos" in full or "glass igloo" in full:
+        return "Glass Igloo Stay in Rovaniemi"
+
+    return text

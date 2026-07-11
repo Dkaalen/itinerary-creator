@@ -74,7 +74,7 @@ def _strip_repeated_city_prefix(title):
         # Labelled activity metadata is not a city prefix. Without this guard,
         # "South Coast Adventure - Time: 08:00..." is split at the Time colon
         # and the title degrades to the clock value.
-        if re.search(r"(?:^|[-|])\s*(?:time|duration|highlights?|stops?|includes?|meeting\s+point)\b", possible_city_clean, flags=re.IGNORECASE):
+        if re.search(r"(?:^|[-|])\s*(?:time|driving\s+time|duration|highlights?|stops?|includes?|meeting\s+point)\b", possible_city_clean, flags=re.IGNORECASE):
             break
         if _looks_like_product_title(possible_city_clean) and not is_known_place(possible_city_clean):
             break

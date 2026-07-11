@@ -250,3 +250,5 @@ def test_shared_client_text_repair_is_used_by_transport_safety() -> None:
 
     assert transport_repair is repair_messy_client_text
     assert repair_messy_client_text("Private bustation tranfer from Tromso") == "Private Bus Station transfers from Tromsø"
+    assert repair_messy_client_text("Self tranfser to Kussamo Bus Stop") == "Self transfer to Kuusamo Bus Stop"
+    assert repair_messy_client_text("Coach Transfer to Santa Cluas Village") == "Coach Transfer to Santa Claus Village"

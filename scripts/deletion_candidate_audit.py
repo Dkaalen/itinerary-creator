@@ -105,6 +105,19 @@ def _is_required_public_surface(path: str) -> bool:
     return path in REQUIRED_PUBLIC_SURFACES or path.endswith("/public_api.py")
 
 
+def _is_dynamic_compatibility_facade(target: Path) -> bool:
+    """Return True for deliberate import-path shims around a neutral owner."""
+
+    try:
+        source = target.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return (
+        "Compatibility facade" in source
+        and '_import_module("itinerary_domain.' in source
+    )
+
+
 def _should_hold_back(path: str, importers: tuple[str, ...]) -> str | None:
     if Path(path).name == PACKAGE_INIT_BASENAME:
         return "package initializer; never delete from static import evidence alone"
@@ -133,7 +146,11 @@ def build_report(root: Path = ROOT) -> DeletionCandidateReport:
         importers = _static_importers(target, imports_by_file, root)
         if item.is_facade and not item.production_importers:
             reason = "facade-like module with zero production importers"
-            note = _should_hold_back(path, importers)
+            note = (
+                "deliberate compatibility facade for the neutral itinerary domain"
+                if _is_dynamic_compatibility_facade(target)
+                else _should_hold_back(path, importers)
+            )
         elif not item.production_importers:
             reason = "module with zero production importers"
             note = "not facade-like; review for dynamic/data ownership before deletion"

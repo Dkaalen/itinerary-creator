@@ -132,6 +132,117 @@ def _default_images_allowed_for_final(output_edits: dict | None) -> bool:
     return not bool((output_edits or {}).get("block_default_final_images"))
 
 
+def _protected_specialty_warning(
+    day: str,
+    path_text: str,
+    candidate: ImageCandidate,
+    context,
+) -> ImageAuditWarning | None:
+    allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
+    if allowed:
+        return None
+    display_name = _format_name(path_text)
+    return ImageAuditWarning(
+        code="image_protected_specialty_mismatch",
+        message=(
+            f"{day} uses {display_name}, but this protected specialty image is not supported "
+            f"by the day text: {blocked_reason}."
+        ),
+        severity="error",
+        day=day,
+        path=path_text,
+    )
+
+
+def _default_fallback_warning(
+    day: str,
+    path_text: str,
+    candidate: ImageCandidate,
+    output_edits: dict | None,
+) -> ImageAuditWarning | None:
+    if not is_global_default_candidate(candidate) or _default_images_allowed_for_final(output_edits):
+        return None
+    return ImageAuditWarning(
+        code="default_image_selected_for_final_output",
+        message=(
+            f"{day} uses {_format_name(path_text)}, which is a bundled Default fallback. "
+            "It can be used for export when no better destination image is selected."
+        ),
+        severity="info",
+        day=day,
+        path=path_text,
+    )
+
+
+def _selection_context_warning(
+    day: str,
+    mode: str,
+    path_text: str,
+    candidate: ImageCandidate,
+    context,
+) -> ImageAuditWarning | None:
+    score, reasons = score_image_for_day(candidate, context)
+    reason_text = "; ".join(reasons or [])
+    conflict = "conflict:" in reason_text.lower()
+
+    if mode == "manual" and (score <= 0 or conflict):
+        return ImageAuditWarning(
+            code="manual_image_context_mismatch",
+            message=(
+                f"Manual picture for {day} has weak support from the day text. "
+                f"Audit reason: {reason_text or 'no matching image context'}"
+            ),
+            severity="warning",
+            day=day,
+            path=path_text,
+        )
+    if mode == "auto" and conflict:
+        return ImageAuditWarning(
+            code="automatic_image_context_mismatch",
+            message=(
+                f"Automatic picture for {day} contradicts the day context. "
+                f"Audit reason: {reason_text or 'semantic conflict'}"
+            ),
+            severity="error",
+            day=day,
+            path=path_text,
+        )
+    if mode == "auto" and 0 < score < 18 and is_global_default_candidate(candidate):
+        return ImageAuditWarning(
+            code="automatic_image_low_confidence",
+            message=(
+                f"Automatic picture for {day} is a low-confidence default fallback. "
+                "Review it in Picture review before export."
+            ),
+            severity="info",
+            day=day,
+            path=path_text,
+        )
+    return None
+
+
+def _manual_destination_warning(
+    day: str,
+    mode: str,
+    path_text: str,
+    candidate: ImageCandidate,
+    context,
+) -> ImageAuditWarning | None:
+    destination_match = candidate_destination_matches(candidate, context) or is_global_default_candidate(candidate)
+    if mode != "manual" or destination_match:
+        return None
+    return ImageAuditWarning(
+        code="manual_image_destination_mismatch",
+        message=(
+            f"Manual picture for {day} comes from {candidate.city or 'an unknown folder'}; "
+            "it does not clearly match the day destination."
+        ),
+        severity="warning",
+        day=day,
+        path=path_text,
+    )
+
+
 def audit_day_image_match(
     day: str,
     rows: list[dict],
@@ -142,13 +253,7 @@ def audit_day_image_match(
     image_bank_index: ImageBankIndex | None = None,
     candidate_lookup: dict[str, ImageCandidate] | None = None,
 ) -> tuple[ImageAuditWarning, ...]:
-    """Return warnings for one day image selection.
-
-    The audit is deliberately non-invasive: it does not choose another image.
-    It only catches cases where a manual/automatic choice looks unsupported by
-    the day context, especially narrow specialty images and wrong-destination
-    manual selections.
-    """
+    """Return non-invasive warnings for one selected day image."""
 
     mode = _choice_mode(output_edits, day)
     if mode == "none":
@@ -163,89 +268,27 @@ def audit_day_image_match(
     candidates = list(index.candidates)
     candidate = _candidate_for_match(match, candidates, image_bank_scan_paths, candidate_lookup)
     if not candidate:
-        if mode == "manual":
-            return (
-                ImageAuditWarning(
-                    code="manual_image_not_found_for_audit",
-                    message=f"Manual picture for {day} could not be found for image-context audit.",
-                    severity="warning",
-                    day=day,
-                    path=path_text,
-                ),
-            )
-        return ()
+        if mode != "manual":
+            return ()
+        return (ImageAuditWarning(
+            code="manual_image_not_found_for_audit",
+            message=f"Manual picture for {day} could not be found for image-context audit.",
+            severity="warning",
+            day=day,
+            path=path_text,
+        ),)
 
     context = build_day_context(day, rows or [])
-    warnings: list[ImageAuditWarning] = []
-    display_name = _format_name(path_text)
+    specialty_warning = _protected_specialty_warning(day, path_text, candidate, context)
+    if specialty_warning:
+        return (specialty_warning,)
 
-    allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
-    if not allowed:
-        warnings.append(ImageAuditWarning(
-            code="image_protected_specialty_mismatch",
-            message=(
-                f"{day} uses {display_name}, but this protected specialty image is not supported "
-                f"by the day text: {blocked_reason}."
-            ),
-            severity="error",
-            day=day,
-            path=path_text,
-        ))
-        return tuple(warnings)
-
-    if is_global_default_candidate(candidate) and not _default_images_allowed_for_final(output_edits):
-        warnings.append(ImageAuditWarning(
-            code="default_image_selected_for_final_output",
-            message=(
-                f"{day} uses {display_name}, which is a bundled Default fallback. "
-                "It can be used for export when no better destination image is selected."
-            ),
-            severity="info",
-            day=day,
-            path=path_text,
-        ))
-
-    score, reasons = score_image_for_day(candidate, context)
-    reason_text = "; ".join(reasons or [])
-    destination_match = candidate_destination_matches(candidate, context) or is_global_default_candidate(candidate)
-
-    if mode == "manual" and not destination_match:
-        warnings.append(ImageAuditWarning(
-            code="manual_image_destination_mismatch",
-            message=(
-                f"Manual picture for {day} comes from {candidate.city or 'an unknown folder'}; "
-                "it does not clearly match the day destination."
-            ),
-            severity="warning",
-            day=day,
-            path=path_text,
-        ))
-
-    conflict = "conflict:" in reason_text.lower()
-    if mode == "manual" and (score <= 0 or conflict):
-        warnings.append(ImageAuditWarning(
-            code="manual_image_context_mismatch",
-            message=(
-                f"Manual picture for {day} has weak support from the day text. "
-                f"Audit reason: {reason_text or 'no matching image context'}"
-            ),
-            severity="warning",
-            day=day,
-            path=path_text,
-        ))
-    elif mode == "auto" and score > 0 and score < 18 and is_global_default_candidate(candidate):
-        warnings.append(ImageAuditWarning(
-            code="automatic_image_low_confidence",
-            message=(
-                f"Automatic picture for {day} is a low-confidence default fallback. "
-                "Review it in Picture review before export."
-            ),
-            severity="info",
-            day=day,
-            path=path_text,
-        ))
-
-    return tuple(warnings)
+    warnings = [
+        _default_fallback_warning(day, path_text, candidate, output_edits),
+        _manual_destination_warning(day, mode, path_text, candidate, context),
+        _selection_context_warning(day, mode, path_text, candidate, context),
+    ]
+    return tuple(warning for warning in warnings if warning is not None)
 
 
 def audit_day_image_matches(

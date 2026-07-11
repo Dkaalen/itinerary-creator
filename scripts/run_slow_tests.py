@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import subprocess
 import sys
 import time
 from dataclasses import dataclass
@@ -21,6 +20,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.test_groups import slow_direct_targets
+from scripts.subprocess_control import run_controlled_process
 
 WORKER = "scripts/run_test_function_direct.py"
 TEST_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_SLOW_TEST_TIMEOUT_SECONDS", "120"))
@@ -58,17 +58,13 @@ def _run_worker(relative_path: str, test_name: str) -> SlowResult:
     label = f"{relative_path}::{test_name}"
     args = [sys.executable, WORKER, relative_path, test_name]
     started = time.monotonic()
-    try:
-        result = subprocess.run(
-            args,
-            cwd=REPO_ROOT,
-            env=_worker_env(),
-            stdin=subprocess.DEVNULL,
-            timeout=TEST_TIMEOUT_SECONDS,
-        )
-        exit_code = result.returncode
-    except subprocess.TimeoutExpired:
-        exit_code = 124
+    result = run_controlled_process(
+        args,
+        cwd=REPO_ROOT,
+        env=_worker_env(),
+        timeout_seconds=TEST_TIMEOUT_SECONDS,
+    )
+    exit_code = result.return_code
     elapsed = time.monotonic() - started
     return SlowResult(label, exit_code, elapsed)
 

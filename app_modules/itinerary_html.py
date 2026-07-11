@@ -35,7 +35,7 @@ def _raise_for_blocking_client_output(context) -> None:
     for compatibility with older imports/tests.
     """
 
-    report = evaluate_client_output_quality(context.render_document)
+    report = evaluate_client_output_quality(context.render_document, source_rows=context.parsed_rows)
     if not report.is_blocked:
         return
     details = "; ".join(

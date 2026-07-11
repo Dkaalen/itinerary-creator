@@ -7,6 +7,8 @@ rendering, Streamlit, or PDF packages. It is safe for all layers to import.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from hashlib import sha256
+import json
 from typing import Any
 
 from shared.text import clean_space, clean_text
@@ -31,11 +33,58 @@ DISPLAY_SOURCE_TEXT_FIELDS: tuple[str, ...] = (
 )
 
 
-def source_row_id(row: Mapping[str, Any], fallback_index: int = 0) -> str:
-    """Return the stable structured-model source-row id for a row."""
+_SOURCE_ID_FIELDS: tuple[str, ...] = (
+    "line_number",
+    "day",
+    "type",
+    "source_type",
+    "effective_type",
+    "start_date",
+    "end_date",
+    "city",
+    "raw",
+    "original_title",
+    "title",
+    "details",
+    "hotel_name",
+)
 
+
+def _stable_identity_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _stable_identity_value(item) for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        items = [_stable_identity_value(item) for item in value]
+        return sorted(items, key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, default=str)) if isinstance(value, (set, frozenset)) else items
+    if isinstance(value, str):
+        return clean_space(value)
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return clean_space(str(value))
+
+
+def source_row_id(row: Mapping[str, Any], fallback_index: int = 0) -> str:
+    """Return an order-independent structured-model source-row id.
+
+    Real parser rows keep their supplier-backed ``row_id``. Synthetic or
+    legacy rows use a deterministic content fingerprint so regrouping or
+    filtering cannot silently change their identity. ``fallback_index`` is
+    retained for API compatibility but is intentionally not part of the id.
+    """
+
+    _ = fallback_index
     value = str(row.get("row_id") or "").strip()
-    return value or f"generated-row-{fallback_index}"
+    if value:
+        return value
+    payload = {
+        field: _stable_identity_value(row.get(field))
+        for field in _SOURCE_ID_FIELDS
+        if row.get(field) not in (None, "", [], (), {})
+    }
+    if not payload:
+        payload = {"empty": True}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return f"generated-row-{sha256(encoded.encode('utf-8')).hexdigest()[:16]}"
 
 
 def edit_row_id(row: Mapping[str, Any], fallback_index: int = 0) -> str:
@@ -80,13 +129,24 @@ def source_text(
     return text
 
 
-def rows_by_source_id(rows: Sequence[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
-    """Return a stable lookup keyed like ``SourceRowRef.row_id``."""
+def _unique_source_ids(rows: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    counts: dict[str, int] = {}
+    result: list[str] = []
+    for index, row in enumerate(rows or []):
+        base = source_row_id(row, index)
+        counts[base] = counts.get(base, 0) + 1
+        result.append(base if counts[base] == 1 else f"{base}-duplicate-{counts[base]}")
+    return tuple(result)
 
-    return {source_row_id(row, index): row for index, row in enumerate(rows or [])}
+
+def rows_by_source_id(rows: Sequence[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
+    """Return a stable lookup without overwriting identical legacy rows."""
+
+    row_list = tuple(rows or ())
+    return dict(zip(_unique_source_ids(row_list), row_list))
 
 
 def row_ids_for_rows(rows: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
-    """Return source-row ids for rows in their current order."""
+    """Return stable, collision-safe source-row ids in current display order."""
 
-    return tuple(source_row_id(row, index) for index, row in enumerate(rows or []))
+    return _unique_source_ids(tuple(rows or ()))

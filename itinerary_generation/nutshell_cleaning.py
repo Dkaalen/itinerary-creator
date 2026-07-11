@@ -1,37 +1,18 @@
-"""Cleaning helpers for Norway in a Nutshell domain objects."""
+"""Compatibility facade for :mod:`itinerary_domain.nutshell_cleaning`.
 
-from __future__ import annotations
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-from typing import Any
+from importlib import import_module as _import_module
 
-from place_aliases import canonicalize_place_name
-from text_polish import polish_title
+_impl = _import_module("itinerary_domain.nutshell_cleaning")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-
-def _clean_place(value: Any) -> str:
-    return canonicalize_place_name(polish_title(str(value or "").strip(" -:|.,")))
-
-
-def _clean_strings(values: Any) -> tuple[str, ...]:
-    if not values:
-        return ()
-    if isinstance(values, str):
-        values = [values]
-    result: list[str] = []
-    for value in values:
-        text = str(value or "").strip()
-        if text and text not in result:
-            result.append(text)
-    return tuple(result)
-
-
-def _clean_places(values: Any) -> tuple[str, ...]:
-    result: list[str] = []
-    for value in values or ():
-        place = _clean_place(value)
-        if place and (not result or result[-1].lower() != place.lower()):
-            result.append(place)
-    return tuple(result)
-
-
-__all__ = ["_clean_place", "_clean_places", "_clean_strings"]
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

@@ -6,6 +6,7 @@ from tests.support.static_contracts import read_contract_text
 from scripts import architecture_guards
 from scripts.architecture_guards import (
     destination_transport_cycle_hits,
+    itinerary_domain_generation_import_hits,
     duplicate_shared_clean_space_hits,
     duplicate_test_path_hits,
     forbidden_normal_ui_hits,
@@ -130,3 +131,21 @@ def test_architecture_guard_cli_reports_failures(monkeypatch, capsys) -> None:
     captured = capsys.readouterr()
     assert "Architecture guards failed:" in captured.err
     assert "Advanced tools" in captured.err
+
+
+def test_neutral_itinerary_domain_does_not_import_generation() -> None:
+    assert itinerary_domain_generation_import_hits() == ()
+
+
+def test_parser_generation_ownership_audit_has_no_signals() -> None:
+    from scripts.parser_generation_ownership_audit import build_report
+
+    assert build_report().signal_count == 0
+
+
+def test_static_data_hygiene_has_no_actionable_signals() -> None:
+    from scripts.static_data_hygiene import build_report
+
+    report = build_report()
+    assert report.registry_validation_errors == ()
+    assert [signal for signal in report.signals if signal.severity != "info"] == []

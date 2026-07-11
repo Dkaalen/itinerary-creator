@@ -70,7 +70,11 @@ def extract_detail(text, label):
 
     source = str(text or "")
     label_pattern = re.compile(rf"\b{re.escape(label)}\s*:", flags=re.IGNORECASE)
-    match = label_pattern.search(source)
+    matches = label_pattern.finditer(source)
+    match = next(
+        (candidate for candidate in matches if not (str(label).casefold() == "time" and re.search(r"driving\s*$", source[: candidate.start()], flags=re.IGNORECASE))),
+        None,
+    )
     if not match:
         return ""
 

@@ -141,6 +141,8 @@ def _append_activity_row_block(blocks: list, row: dict, context: dict) -> None:
 def _append_leisure_row_block(blocks: list, row: dict, context: dict) -> None:
     if context["day_plan"].suppress_free_time:
         return
+    if context["selected_leisure_row_id"] and _row_id(row) != context["selected_leisure_row_id"]:
+        return
     blocks.append(build_leisure_render_block(row, context["main_rows"]))
 
 
@@ -162,6 +164,22 @@ _REGULAR_ROW_BLOCK_HANDLERS = {
 }
 
 
+
+
+def _selected_leisure_row_id(rows: list[dict]) -> str:
+    """Return the one source leisure row that owns day-level free-time copy."""
+    leisure_rows = [row for row in rows if get_row_type(row) == "Leisure" and not is_optional_row(row)]
+    if not leisure_rows:
+        return ""
+    primary_city = str(get_primary_city(rows) or "").strip().casefold()
+    matching_rows = [
+        row
+        for row in leisure_rows
+        if primary_city and str(row.get("city", "") or "").strip().casefold() == primary_city
+    ]
+    selected = (matching_rows or leisure_rows)[-1]
+    return _row_id(selected)
+
 def _append_regular_row_block(
     blocks: list,
     *,
@@ -171,6 +189,7 @@ def _append_regular_row_block(
     day_plan,
     has_activity: bool,
     group_tour_start_time: str,
+    selected_leisure_row_id: str,
 ) -> None:
     context = {
         "rows": rows,
@@ -178,6 +197,7 @@ def _append_regular_row_block(
         "day_plan": day_plan,
         "has_activity": has_activity,
         "group_tour_start_time": group_tour_start_time,
+        "selected_leisure_row_id": selected_leisure_row_id,
     }
     # Group-tour role is a stronger domain identity than the spreadsheet row
     # type.  Resolve it first so an Activity-typed programme segment cannot be
@@ -227,6 +247,7 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
     departure_day = any(get_row_type(row) == "Departure" for row in main_rows)
     has_activity = any(get_row_type(row) == "Activity" and not _is_blank_activity_row(row) for row in main_rows)
     group_tour_start_time = _group_tour_start_time(main_rows)
+    selected_leisure_row_id = _selected_leisure_row_id(main_rows)
 
     for source_row in rows:
         row = source_row
@@ -271,6 +292,7 @@ def build_day_render_blocks(rows, travel_sequences: list[TravelSequence] | tuple
             day_plan=day_plan,
             has_activity=has_activity,
             group_tour_start_time=group_tour_start_time,
+            selected_leisure_row_id=selected_leisure_row_id,
         )
 
     _flush_travel_group(blocks, travel_group)

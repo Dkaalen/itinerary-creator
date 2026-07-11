@@ -152,6 +152,61 @@ def _chapter(chapter: str, days: Iterable[object], experience: str) -> dict[str,
     }
 
 
+def _row_types(rows: Sequence[Mapping[str, object]]) -> set[str]:
+    return {get_row_type(dict(row)) for row in rows}
+
+
+def _has_meaningful_activity(rows: Sequence[Mapping[str, object]]) -> bool:
+    return bool(_activity_rows(rows))
+
+
+def _should_split_same_destination(
+    current_rows: Sequence[Mapping[str, object]],
+    next_rows: Sequence[Mapping[str, object]],
+    city: str,
+) -> bool:
+    """Return whether two consecutive days in the same city need separate chapters.
+
+    City equality is not enough to prove that days belong to one summary
+    chapter.  A distinct source-backed activity day (Blue Lagoon after a
+    glacier-lagoon day, for example) must remain visible in the trip overview.
+    Arrival/departure days also form their own itinerary phases.
+    """
+
+    if not (_has_meaningful_activity(current_rows) and _has_meaningful_activity(next_rows)):
+        return False
+
+    combined_source = " ".join(
+        _row_text(row) for row in [*current_rows, *next_rows]
+    ).casefold()
+    # These are deliberately compatible parts of one Oslo chapter.  Splitting
+    # them loses the stronger combined summary already owned by the evidence
+    # layer ("Norway in a Nutshell and Oslo food tour").
+    if "norway in a nutshell" in combined_source and any(
+        marker in combined_source for marker in ("food tour", "tasting", "culinary")
+    ):
+        return False
+
+    # Split only when a source-backed signature experience would otherwise be
+    # swallowed by a multi-day same-base chapter.  City equality alone should
+    # not hide Blue Lagoon / volcano / glacier-lagoon days, but ordinary
+    # complementary city activities should remain compact.
+    signature_markers = (
+        "blue lagoon",
+        "volcano eruption",
+        "fagradalsfjall",
+        "jökulsárlón",
+        "jokulsarlon",
+        "glacier lagoon",
+        "golden circle",
+        "snæfellsnes",
+        "snaefellsnes",
+    )
+    current_source = " ".join(_row_text(row) for row in current_rows).casefold()
+    next_source = " ".join(_row_text(row) for row in next_rows).casefold()
+    return any(marker in next_source and marker not in current_source for marker in signature_markers)
+
+
 def _hub_and_spoke_chapters(days: Sequence[DayOverviewFacts]) -> list[dict[str, str]]:
     base_city = next(day.city for day in days if day.city and not day.has_departure)
     chapters: list[dict[str, str]] = []
@@ -192,7 +247,7 @@ def create_journey_overview(grouped_days: Mapping[str, Sequence[dict]]) -> list[
             current_city = city
             current_days = [day]
             current_rows = list(rows)
-        elif city == current_city:
+        elif city == current_city and not _should_split_same_destination(current_rows, rows, city):
             current_days.append(day)
             current_rows.extend(rows)
         else:

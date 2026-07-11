@@ -1,35 +1,18 @@
-"""Extract supplier day numbers and headings for group tours."""
+"""Compatibility facade for :mod:`itinerary_domain.group_tour_supplier_titles`.
 
-import re
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-from text_polish import polish_title
+from importlib import import_module as _import_module
 
+_impl = _import_module("itinerary_domain.group_tour_supplier_titles")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-def clean_group_tour_text(value: str) -> str:
-    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
-
-
-def day_number(value: str) -> int:
-    match = re.search(r"\d+", str(value or ""))
-    return int(match.group(0)) if match else 0
-
-
-def _trim_title(value: str) -> str:
-    title = clean_group_tour_text(value).strip(" .:-|")
-    title = re.split(r"\s+(?=We\s|You\s|The\s|A\s+\d|Prepare\s|Once\s|After\s|At\s|On\s)", title, maxsplit=1)[0].strip(" .:-|")
-    return re.sub(r"\bJökulsárlón\s*&\s*Ice Caves\b", "Jökulsárlón Glacier Lagoon & Ice Caves", title, flags=re.IGNORECASE)
-
-
-def extract_supplier_day_title(text: str) -> str:
-    source = str(text or "").strip()
-    for line in source.splitlines() or [source]:
-        match = re.search(r"^\s*Day\s*\d+\s*:\s*([^|]+)", line, flags=re.IGNORECASE)
-        if match and _trim_title(match.group(1)): return polish_title(re.sub(r"\s+&\s+", " & ", _trim_title(match.group(1))))
-    match = re.search(r"(?:^|\n|\|)\s*Day\s*\d+\s*:\s*([^\n|]+)", source, flags=re.IGNORECASE)
-    return polish_title(re.sub(r"\s+&\s+", " & ", _trim_title(match.group(1)))) if match else ""
-
-
-def supplier_day_number(row: dict) -> int:
-    text = f'{row.get("original_title", "")}\n{row.get("details", "")}\n{row.get("title", "")}'
-    match = re.search(r"(?:^|\n|\|)\s*Day\s*(\d+)\s*:", text, flags=re.IGNORECASE)
-    return int(match.group(1)) if match else 0
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

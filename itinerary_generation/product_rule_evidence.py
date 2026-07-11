@@ -1,21 +1,18 @@
-"""High-confidence and weak-evidence predicates for named products."""
+"""Compatibility facade for :mod:`itinerary_domain.product_rule_evidence`.
 
-import re
-from itinerary_generation.product_rule_context import product_source_context_lower,titleish_source_context
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-def has_explicit_munch_museum_evidence(row:dict|None=None,*values:object)->bool:
-    titleish=titleish_source_context(row,*values).lower()
-    if "munch" in titleish and "museum" in titleish:return True
-    source=product_source_context_lower(row,*values)
-    if not ("munch" in source and "museum" in source):return False
-    explicit=re.search(r"(?:munch\s+museum[^.\n]{0,80}\b(?:ticket|tickets|admission|entry|visit)\b|\b(?:ticket|tickets|admission|entry|visit)\b[^.\n]{0,80}munch\s+museum)",source,re.I)
-    incidental=re.search(r"(?:pass(?:ing)?|near|near to|close to|coastline|view of|stop at)\b[^.\n]{0,120}munch\s+museum",source,re.I)
-    return bool(explicit and not incidental)
+from importlib import import_module as _import_module
 
-def has_explicit_fjellheisen_evidence(row:dict|None=None,*values:object)->bool:
-    lower=product_source_context_lower(row,*values)
-    return "fjellheisen" in lower or ("trom" in lower and any(marker in lower for marker in ("cable car","gondola","mountain lift","mountain cable","aerial tramway")))
+_impl = _import_module("itinerary_domain.product_rule_evidence")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-def is_weak_tromso_viewpoint_ticket(row:dict|None=None,*values:object)->bool:
-    lower=product_source_context_lower(row,*values)
-    return "round trip ticket" in lower and "trom" in lower and not has_explicit_fjellheisen_evidence(row,*values)
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

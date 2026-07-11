@@ -13,9 +13,9 @@ from normalizer_modules.times import normalize_time_range_fields
 from normalizer_modules.transport_activity_detection import _is_rail_or_fjord_route_activity
 from normalizer_modules.transport_transfer_detection import _is_route_transfer_activity
 from normalizer_modules.transport_title import normalize_transport_title
-from itinerary_generation.activity_products import fingerprint_activity
-from itinerary_generation.nutshell_domain import attach_nutshell_journey,is_nutshell_row
-from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text
+from itinerary_domain.activity_products import fingerprint_activity
+from itinerary_domain.nutshell_domain import attach_nutshell_journey,is_nutshell_row
+from itinerary_domain.transport_norway import _is_norway_in_a_nutshell_text
 from shared.client_text_repair import repair_messy_client_text
 
 TRANSPORT_TYPES={"Transport","Train","Flight","Cruise","Ferry"}

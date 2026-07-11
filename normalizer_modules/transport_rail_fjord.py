@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package
+from itinerary_domain.nutshell_parsing import is_source_backed_nutshell_route_package
 
 
 def is_unbranded_rail_fjord_package(text: str) -> bool:

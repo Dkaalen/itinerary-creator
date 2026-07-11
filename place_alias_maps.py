@@ -10,24 +10,30 @@ from place_alias_text import _key
 
 def _build_alias_maps():
     alias_to_canonical: dict[str, str] = {}
+    alias_to_places: dict[str, list[tuple[str, str, str]]] = {}
     alias_records: list[tuple[str, str]] = []
 
     for place in PLACES:
         canonical = place["canonical"]
+        country = str(place.get("country", ""))
+        kind = str(place.get("kind", ""))
         aliases = [canonical] + list(place.get("aliases", []))
         for alias in aliases:
             if not alias:
                 continue
             key = _key(alias)
+            record = (country, canonical, kind)
             if key and key not in alias_to_canonical:
                 alias_to_canonical[key] = canonical
+            if key and record not in alias_to_places.setdefault(key, []):
+                alias_to_places[key].append(record)
             alias_records.append((str(alias), canonical))
 
     alias_records = sorted(set(alias_records), key=lambda item: len(item[0]), reverse=True)
-    return alias_to_canonical, alias_records
+    return alias_to_canonical, {key: tuple(values) for key, values in alias_to_places.items()}, alias_records
 
 
-ALIAS_TO_CANONICAL, ALIAS_RECORDS = _build_alias_maps()
+ALIAS_TO_CANONICAL, ALIAS_TO_PLACES, ALIAS_RECORDS = _build_alias_maps()
 
 
 def _build_alias_patterns():

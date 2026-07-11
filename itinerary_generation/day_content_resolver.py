@@ -79,6 +79,7 @@ def generated_day_values(
     group_title = group_tour_day_title(rows) if group_tour_segment else ""
     group_intro = group_tour_day_intro(rows) if group_tour_segment else ""
     plan = plan_day(list(rows))
+    facts = build_day_facts(rows, visit_context=visit_context)
     has_group_tour_overview = any(is_group_tour_overview(row) for row in rows or [])
     if group_intro:
         intro = group_intro
@@ -87,7 +88,7 @@ def generated_day_values(
         # owns titles/rendering hints, but its legacy intro snippets must not
         # bypass facts and intent.
         intro = create_day_intro(rows, detail_level=detail_level, visit_context=visit_context)
-    city = group_city or get_primary_city(rows)
+    city = group_city or facts.main_city or facts.end_city or get_primary_city(rows)
     if not city and any(get_row_type(row) == "Cruise" for row in rows or []):
         city = "Cruise"
     title_decision = None
@@ -117,7 +118,6 @@ def generated_day_values(
         assert selected is not None
         title_decision = finalize_decision(kind="day_title", selected=selected, candidates=title_decision.candidates)
 
-    facts = build_day_facts(rows, visit_context=visit_context)
     intent = classify_day_intent(facts)
     if group_intro:
         from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision

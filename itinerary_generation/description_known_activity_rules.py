@@ -67,7 +67,7 @@ def _outdoor_and_water_description(full: str, city_phrase: str, places: list[str
     return ""
 
 
-def _city_and_water_description(full: str) -> str:
+def _city_and_water_description(full: str, city: str, location_facts) -> str:
     if any(marker in full for marker in ["oslofjord", "oslo fjord"]) and any(
         marker in full for marker in ["sightseeing cruise", "electric boat", "fjord sightseeing"]
     ):
@@ -87,7 +87,12 @@ def _city_and_water_description(full: str) -> str:
             "Set out on Arctic waters for a whale watching and wildlife safari, with the RIB boat route shaped around fjord conditions, marine life and the surrounding northern landscapes."
         )
     if "whale watching" in full or "whale watching from downtown" in full:
-        return "Set out from Reykjavík’s harbour for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the Icelandic coast."
+        base_city = location_facts.base_city or city
+        if base_city:
+            return polish_client_text(
+                f"Set out from {base_city} for a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the surrounding coast."
+            )
+        return "Set out on a whale watching experience, with onboard viewing areas and guidance while you look for marine life along the surrounding coast."
     if "crystal lavvo" in full or ("lyngen" in full and "lavvo" in full):
         return polish_client_text(
             "Travel from Tromsø towards the Lyngen Alps for an overnight Crystal Lavvo experience, "
@@ -199,7 +204,7 @@ def match_known_activity_description(
 
     location_facts = activity_location_facts(row, title=title, city=city, source_text=full)
     for matcher in [
-        lambda: _city_and_water_description(full),
+        lambda: _city_and_water_description(full, city, location_facts),
         lambda: _food_and_ticket_description(full, title, city, city_phrase),
         lambda: _adventure_and_landmark_description(full, city_phrase, places),
         lambda: _photo_focused_description(full, city),

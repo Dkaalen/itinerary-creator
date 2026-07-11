@@ -95,6 +95,29 @@ def is_protected_specialty_image_allowed(candidate: ImageCandidate, day_context:
         if not day_mentions_icebreaker:
             return False, "protected specialty image requires polar icebreaker activity"
 
+    wildlife_tokens = {"reindeer", "husky", "huskies", "sled", "sledding", "wildlife", "zoo", "animals"}
+    if candidate_tokens & wildlife_tokens or "wildlife" in set(candidate.themes):
+        day_mentions_wildlife = bool(day_tokens & wildlife_tokens) or "wildlife" in set(day_context.get("themes", set()))
+        if not day_mentions_wildlife:
+            return False, "protected specialty image requires wildlife or sledding activity"
+
+    aurora_tokens = {"aurora", "northernlights", "northern", "lights"}
+    candidate_is_aurora = "northern lights" in set(candidate.themes) or bool(candidate_tokens & {"aurora", "northernlights"})
+    if candidate_is_aurora:
+        day_themes = set(day_context.get("themes", set()))
+        day_mentions_aurora = bool(day_tokens & aurora_tokens) or "northern lights" in day_themes
+        arctic_glass_context = bool(day_tokens & {"igloo", "glass", "kakslauttanen"}) or "igloo" in day_themes
+        if not day_mentions_aurora and not arctic_glass_context:
+            return False, "protected specialty image requires northern-lights or glass-igloo context"
+
+    candidate_is_train = "train" in set(candidate.themes) or bool(candidate_tokens & {"train", "rail", "railway"})
+    if candidate_is_train:
+        rail_tokens = {"train", "rail", "railway", "station", "overnighttrain", "santaexpress", "nutshell", "flam"}
+        service_intents = set(day_context.get("service_intents", set()) or set())
+        day_mentions_rail = bool(day_tokens & rail_tokens) or bool(service_intents & {"rail", "scenic_rail_fjord"})
+        if not day_mentions_rail:
+            return False, "protected specialty image requires rail or train context"
+
     return True, ""
 
 def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[int, list[str]]:

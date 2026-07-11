@@ -7,8 +7,10 @@ from typing import Any, Sequence
 
 from generator import group_rows_by_day
 from itinerary_generation.transport_domain.facts import build_transport_facts
+from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
 from itinerary_generation.quality_gate import evaluate_client_output_quality
+from itinerary_generation.generation_quality_gate import BLOCKING
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 from scripts.real_output_qa.models import OutputTextIssue, OutputTextScore, TextSegment
 from scripts.real_output_qa.rules import (
@@ -55,7 +57,7 @@ def score_rendered_output(
     score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
     score_summary_quality(issues, context)
     score_journey_overview_logic(issues, context)
-    _score_client_truth_contracts(issues, context)
+    _score_client_truth_contracts(issues, context, rows)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     _score_repetition(issues, days)
@@ -77,20 +79,23 @@ _TRUTH_GATE_CODES = {
     "false_return_visit",
     "duplicate_intro_and_leisure",
     "invalid_activity_time_range",
+    "malformed_client_title",
+    "day_destination_title_disagreement",
+    "duplicate_rendered_block",
 }
 
-def _score_client_truth_contracts(issues: list[OutputTextIssue], context: Any) -> None:
+def _score_client_truth_contracts(issues: list[OutputTextIssue], context: Any, rows: Sequence[dict[str, Any]]) -> None:
     document = getattr(context, "render_document", None)
     if document is None:
         return
-    report = evaluate_client_output_quality(document)
+    report = evaluate_client_output_quality(document, source_rows=rows)
     for issue in report.issues:
         if issue.code not in _TRUTH_GATE_CODES:
             continue
         _add_issue(
             issues,
             issue.code,
-            "error" if issue.severity == "blocking" else "warning",
+            "error" if issue.severity == BLOCKING else "warning",
             issue.message,
             location="client_truth_gate",
             excerpt=str(issue.context or ""),
@@ -190,7 +195,12 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
     for day in days:
         day_id = _clean_text(getattr(day, "day", ""))
         day_rows = grouped_rows.get(day_id, [])
-        activity_rows = [row for row in day_rows if _clean_text(row.get("effective_type") or row.get("type")).casefold() == "activity"]
+        activity_rows = [
+            row
+            for row in day_rows
+            if _clean_text(row.get("effective_type") or row.get("type")).casefold() == "activity"
+            and not is_blank_activity_or_leisure(row)
+        ]
         transfer_rows = [row for row in day_rows if _clean_text(row.get("effective_type") or row.get("type")).casefold() in {"transfer", "transport", "train", "flight", "ferry"}]
         day_text = _day_text(day)
         day_city = _clean_text(getattr(day, "city", ""))

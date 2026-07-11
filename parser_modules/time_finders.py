@@ -39,3 +39,26 @@ def find_single_clock_time(value):
     return ""
 
 
+
+
+def find_parallel_clock_ranges(value):
+    """Return paired supplier time alternatives without cross-pairing them.
+
+    Supplier rows sometimes encode two departures as
+    ``10:30 am / 1:30 pm - 12:45 pm / 3:45 pm``.  A generic range
+    search sees the middle ``1:30 pm - 12:45 pm`` and creates a reversed
+    range.  Pair starts and ends by position instead.
+    """
+    text = clean_space(value).replace("–", "-").replace("—", "-")
+    text = re.sub(r"\b(\d{1,2})\.\s*(\d{2})\b", r"\1:\2", text)
+    token = r"\d{1,2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?"
+    pattern = re.compile(
+        rf"(?<!\d)({token})\s*/\s*({token})\s*-\s*({token})\s*/\s*({token})(?!\d)",
+        flags=re.IGNORECASE,
+    )
+    match = pattern.search(text)
+    if not match:
+        return ()
+    starts = (match.group(1), match.group(2))
+    ends = (match.group(3), match.group(4))
+    return tuple(f"{start} - {end}" for start, end in zip(starts, ends))

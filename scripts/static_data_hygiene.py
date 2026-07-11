@@ -81,11 +81,26 @@ def _duplicate_alias_signals() -> list[StaticDataSignal]:
         if not key or len(records) <= 1:
             continue
         values = tuple(f"{record}: {', '.join(sorted(names))}" for record, names in sorted(records.items()))
+        countries = {record.split("/", 1)[0] for record in records}
+        qualified_records = set()
+        for place in PLACES:
+            record_key = f"{str(place.get('country', '')).strip()}/{str(place.get('canonical', '')).strip()}"
+            if record_key not in records:
+                continue
+            country_key = _norm(str(place.get("country", "")))
+            aliases = [str(place.get("canonical", "")), *(str(alias) for alias in place.get("aliases", []) or [])]
+            if any(_norm(alias) in {f"{key} {country_key}", f"{country_key} {key}"} for alias in aliases):
+                qualified_records.add(record_key)
+        qualified = set(records) <= qualified_records
         signals.append(
             StaticDataSignal(
-                code="duplicate_alias_value",
-                severity="review",
-                message="Alias/canonical value appears in more than one place record.",
+                code="country_qualified_alias_ambiguity" if qualified and len(countries) > 1 else "duplicate_alias_value",
+                severity="info" if qualified and len(countries) > 1 else "review",
+                message=(
+                    "Ambiguous place spelling is intentionally country-qualified and must use context."
+                    if qualified and len(countries) > 1
+                    else "Alias/canonical value appears in more than one place record."
+                ),
                 values=values,
             )
         )
@@ -127,6 +142,9 @@ def _currency_false_positive_signals() -> list[StaticDataSignal]:
 def _service_like_destination_signals(destinations: list[dict]) -> list[StaticDataSignal]:
     signals: list[StaticDataSignal] = []
     for item in destinations:
+        destination_type = str(item.get("destination_type", "")).casefold()
+        if destination_type in TRANSIT_KINDS:
+            continue
         name = str(item.get("name", ""))
         aliases = [str(alias) for alias in item.get("aliases", []) or []]
         haystack = " ".join([name, *aliases]).casefold()

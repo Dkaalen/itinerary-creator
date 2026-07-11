@@ -77,7 +77,7 @@ THEME_ALIASES = {
     "northern lights": {"northern", "lights", "northernlights", "aurora", "basecamp", "chase", "hunt"},
     "fjord": {"fjord", "fjords", "kvaloya", "kvaløya", "sommaroy", "sommarøy", "cruise", "boat", "lake", "waterfall"},
     "ocean": {"ocean", "sea", "whale", "whales", "boat", "harbour", "harbor"},
-    "lagoon": {"lagoon", "spa", "ritual", "wellness", "blue", "sky"},
+    "lagoon": {"lagoon", "spa", "ritual", "wellness", "bluelagoon", "skylagoon"},
     "glacier": {"glacier", "glaciers", "ice", "crampon", "crampons", "jokull", "jökull"},
     "black sand": {"black", "sand", "beach", "volcano", "atv", "quad"},
     "city": {"city", "center", "centre", "street", "streets", "walking", "walk", "sightseeing", "landmarks", "arrival", "departure", "skyline", "buildings", "urban", "architecture"},
@@ -85,12 +85,12 @@ THEME_ALIASES = {
     "mountain": {"mountain", "mountains", "viewpoint", "view", "hike", "hiking", "valley", "scenic", "landscape", "forest", "nature"},
     "winter": {"winter", "snow", "snowy", "ice", "icy", "arctic", "frozen"},
     "old town": {"old", "town", "oldtown", "historic", "medieval"},
-    "santa": {"santa", "claus", "christmas", "arctic", "circle"},
+    "santa": {"santa", "claus", "christmas", "santaclaus"},
     "wildlife": {"wildlife", "ranua", "animals", "zoo", "reindeer", "husky", "huskies", "sled", "sledding"},
     "igloo": {"glass", "igloo", "kakslauttanen", "arctic", "resort"},
-    "train": {"train", "rail", "railway", "station", "overnight", "santa", "express", "nutshell", "flam", "flåm"},
+    "train": {"train", "rail", "railway", "station", "overnight", "overnighttrain", "santaexpress", "nutshell", "flam", "flåm"},
     "road journey": {"road", "route", "coach", "bus", "panorama", "drive", "driving", "vehicle"},
-    "funicular": {"funicular", "floibanen", "fløibanen", "fjellheisen", "cable", "car", "mountain", "view"},
+    "funicular": {"funicular", "floibanen", "fløibanen", "fjellheisen", "cablecar"},
 }
 
 SEASON_ALIASES = {

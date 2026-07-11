@@ -43,7 +43,7 @@ class DayRowSignals:
     accommodation_change_rows: int = 0
 
 
-_ROUTE_TRANSPORT_TYPES = set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus"}
+_ROUTE_TRANSPORT_TYPES = set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus", "Drive"}
 
 
 def _scan_arrival_departure(row_type: str, signals: DayRowSignals) -> None:

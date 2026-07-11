@@ -96,6 +96,9 @@ def _mismatch_penalty(candidate_themes: set[str], day_themes: set[str], day_toke
     if has("arrival", "departure", "hotel", "walking", "walk", "city") and cand("train", "road journey") and not has("train", "rail", "coach", "bus", "nutshell"):
         penalty += 28
         reasons.append("conflict: city/arrival day vs transport image")
+    if has("arrival", "departure", "airport", "hotel", "checkout", "check-out") and cand("wildlife", "northern lights") and not has("wildlife", "reindeer", "northern lights", "northernlights", "aurora"):
+        penalty += 38
+        reasons.append("conflict: arrival/departure day vs specialty wildlife/aurora image")
     if has("igloo", "kakslauttanen", "glass", "arctic", "resort") and cand("city") and not cand("northern lights", "winter", "mountain"):
         penalty += 30
         reasons.append("conflict: arctic resort day vs city image")

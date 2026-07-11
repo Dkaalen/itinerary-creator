@@ -1,12 +1,18 @@
-"""Public compatibility facade for product-rule matching and copy."""
+"""Compatibility facade for :mod:`itinerary_domain.product_rules`.
 
-from itinerary_generation.product_rule_context import product_context,product_context_lower,product_source_context,product_source_context_lower
-from itinerary_generation.product_rule_descriptions import product_description
-from itinerary_generation.product_rule_evidence import has_explicit_fjellheisen_evidence,has_explicit_munch_museum_evidence,is_weak_tromso_viewpoint_ticket
-from itinerary_generation.product_rule_matcher import find_product_match,find_product_match_cached as _find_product_match_cached,product_warning
-from itinerary_generation.product_rule_models import PRODUCT_RULES,ProductConfidence,ProductRule,ProductRuleMatch
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-def clear_product_rule_cache()->None:_find_product_match_cached.cache_clear()
-def product_rule_cache_info():return _find_product_match_cached.cache_info()
+from importlib import import_module as _import_module
 
-__all__=["PRODUCT_RULES","ProductConfidence","ProductRule","ProductRuleMatch","product_context","product_context_lower","product_source_context","product_source_context_lower","has_explicit_munch_museum_evidence","has_explicit_fjellheisen_evidence","is_weak_tromso_viewpoint_ticket","find_product_match","clear_product_rule_cache","product_rule_cache_info","product_description","product_warning"]
+_impl = _import_module("itinerary_domain.product_rules")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

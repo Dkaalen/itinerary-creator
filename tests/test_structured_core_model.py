@@ -1,5 +1,6 @@
 import sys
 import types
+from shared.source_rows import source_row_id
 
 streamlit_stub = sys.modules.get("streamlit") or types.ModuleType("streamlit")
 streamlit_stub.session_state = getattr(streamlit_stub, "session_state", {})
@@ -115,9 +116,9 @@ def test_structured_document_links_fallback_row_ids_across_multiple_days():
     document = build_itinerary_document(rows, group_rows_by_day(rows))
 
     assert [day.item_ids for day in document.days] == [
-        ("generated-row-0",),
-        ("generated-row-1",),
-        ("generated-row-2",),
+        (source_row_id(rows[0]),),
+        (source_row_id(rows[1]),),
+        (source_row_id(rows[2]),),
     ]
     assert not any(warning.code == "included_items_not_linked_to_day" for warning in document.warnings)
 

@@ -1,6 +1,18 @@
-"""Detect supplier group-tour overview rows."""
+"""Compatibility facade for :mod:`itinerary_domain.group_tour_detection`.
 
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-def is_group_tour_overview(row: dict) -> bool:
-    text = f'{row.get("title", "")} {row.get("original_title", "")} {row.get("details", "")}'.lower()
-    return (row.get("effective_type") == "Day Overview" or row.get("type") == "Day Overview") and any(marker in text for marker in ("group tour", "holiday package", "what's included", "what’s included"))
+from importlib import import_module as _import_module
+
+_impl = _import_module("itinerary_domain.group_tour_detection")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

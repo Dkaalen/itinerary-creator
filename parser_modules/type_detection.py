@@ -6,6 +6,7 @@ from .text_cleanup import clean_space
 
 DETAIL_LABELS = [
     "Time",
+    "Driving time",
     "Meeting point",
     "End point",
     "Includes",
@@ -48,6 +49,7 @@ KNOWN_TYPES = {
     "transfer package",
     "single supplement fee",
     "extra hotel night",
+    "extra day",
 }
 
 

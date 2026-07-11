@@ -12,6 +12,7 @@ from parser_modules.common import clean_space
 from parser_modules.details import extract_detail
 from parser_modules.time_parsing import (
     find_clock_range,
+    find_parallel_clock_ranges,
     find_single_clock_time,
     normalize_duration_text,
     normalize_time_text,
@@ -79,6 +80,9 @@ def extract_time_from_description(main_text: str) -> str:
     standard_time = extract_detail(main_text, "Time")
 
     if standard_time:
+        parallel_ranges = find_parallel_clock_ranges(standard_time)
+        if parallel_ranges:
+            return " / ".join(normalize_time_text(clock_range) for clock_range in parallel_ranges)
         clock_range = find_clock_range(standard_time)
         if clock_range:
             return normalize_time_text(clock_range)

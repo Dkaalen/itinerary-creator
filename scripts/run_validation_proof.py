@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.subprocess_control import run_controlled_process
 
 
 @dataclass(frozen=True)
@@ -41,6 +44,33 @@ def default_commands() -> tuple[ProofCommand, ...]:
     """Return timeout-safe proof commands for release-relevant regressions."""
 
     return (
+        ProofCommand(
+            "release truth regressions",
+            (
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_regressions_fixture_quality_transport.py::test_optional_arc_transfer_quality_gate",
+                "tests/test_regressions_fixture_quality_transport.py::test_real_uploaded_inputs_quality_gate",
+                "tests/test_ui22_qc4_arc1_scroll_and_quality.py::test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route",
+                "tests/test_extra_day_wrapper_rows.py",
+                "tests/test_self_drive_truth_contract.py",
+                "tests/test_output_truth_contracts.py",
+            ),
+        ),
+        ProofCommand(
+            "ownership and architecture guards",
+            (
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests/test_architecture_guard_system.py",
+                "tests/test_transport_model_architecture.py",
+                "tests/test_destination_registry_regression.py",
+            ),
+        ),
         ProofCommand(
             "day-brain and sub-brain regression lane",
             (
@@ -95,22 +125,23 @@ def default_commands() -> tuple[ProofCommand, ...]:
         ),
         ProofCommand("hosted generation smoke", (sys.executable, "scripts/smoke_hosted_generation_path.py")),
         ProofCommand("output regression review", (sys.executable, "scripts/review_output_regression.py")),
-        ProofCommand("real Excel random quality check", (sys.executable, "scripts/random_quality_check_itineraries.py", "--sample-size", "4", "--seed", "6200")),
+        ProofCommand("real Excel random quality check seed 6200", (sys.executable, "scripts/random_quality_check_itineraries.py", "--sample-size", "4", "--seed", "6200")),
+        ProofCommand("real Excel score seed 7007", (sys.executable, "scripts/score_real_output_text.py", "--sample-size", "6", "--seed", "7007")),
+        ProofCommand("real Excel score seed 9371", (sys.executable, "scripts/score_real_output_text.py", "--sample-size", "5", "--seed", "9371")),
+        ProofCommand("preview PDF text parity", (sys.executable, "scripts/preview_pdf_text_guard.py", "--sample-size", "4", "--seed", "6200")),
     )
 
 
 def run_command(command: ProofCommand) -> ProofResult:
     started = time.monotonic()
-    completed = subprocess.run(
+    completed = run_controlled_process(
         command.command,
         cwd=ROOT,
-        stdin=subprocess.DEVNULL,
-        timeout=command.timeout_seconds,
-        check=False,
+        timeout_seconds=command.timeout_seconds,
     )
     return ProofResult(
         label=command.label,
-        return_code=completed.returncode,
+        return_code=completed.return_code,
         elapsed_seconds=time.monotonic() - started,
     )
 
@@ -140,10 +171,7 @@ def main(argv: list[str] | None = None) -> int:
     for command in commands:
         print(f"\n=== {command.label} ===", flush=True)
         print(" ".join(command.command), flush=True)
-        try:
-            result = run_command(command)
-        except subprocess.TimeoutExpired:
-            result = ProofResult(command.label, 124, float(command.timeout_seconds))
+        result = run_command(command)
         results.append(result)
         status = "PASS" if result.ok else f"FAIL({result.return_code})"
         print(f"=== {command.label}: {status} in {result.elapsed_seconds:.1f}s ===", flush=True)

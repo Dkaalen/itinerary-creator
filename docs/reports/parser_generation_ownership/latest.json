@@ -1,9 +1,7 @@
 {
-  "scanned_files": 851,
-  "signal_count": 13,
-  "signals_by_rule": {
-    "parser_imports_generation_layer": 13
-  },
+  "scanned_files": 908,
+  "signal_count": 0,
+  "signals_by_rule": {},
   "ownership_targets": [
     "parser row type",
     "effective type",
@@ -14,110 +12,5 @@
     "DayRenderModel",
     "PDF/render context"
   ],
-  "signals": [
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/activities.py",
-      "line": 7,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.title_cleanup import clean_client_title"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/activities.py",
-      "line": 9,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/activities.py",
-      "line": 10,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/core.py",
-      "line": 7,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.group_tour_parsing import integrate_group_tour_rows,prepare_group_tour_source_rows"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/core.py",
-      "line": 8,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.group_tours import annotate_group_tour_optional_extras"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/row_normalizer.py",
-      "line": 16,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/row_normalizer.py",
-      "line": 17,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.nutshell_domain import attach_nutshell_journey,is_nutshell_row"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/row_normalizer.py",
-      "line": 18,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/transport_activity_detection.py",
-      "line": 7,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/transport_activity_detection.py",
-      "line": 8,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.transport_norway import _is_norway_in_a_nutshell_text"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/transport_rail_fjord.py",
-      "line": 5,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.nutshell_parsing import is_source_backed_nutshell_route_package"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/transport_title.py",
-      "line": 7,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.activity_products import fingerprint_activity"
-    },
-    {
-      "rule_id": "parser_imports_generation_layer",
-      "severity": "risk",
-      "path": "normalizer_modules/transport_title.py",
-      "line": 9,
-      "message": "Parser layer imports generation layer; parser should produce truth without copy/render dependencies.",
-      "snippet": "from itinerary_generation.transport_norway import ("
-    }
-  ]
+  "signals": []
 }

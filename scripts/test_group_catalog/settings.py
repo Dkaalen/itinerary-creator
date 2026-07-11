@@ -27,9 +27,8 @@ CHUNKED_GROUP_STAGE_SIZES = {
     "storage": 4,
     "ui": 4,
     "workflow": 4,
-    # Keep quality stages isolated: this lane contains several real-fixture
-    # and render-quality modules that pass individually but can exceed hosted
-    # subprocess time limits when bundled with neighbors.
-    "quality": 1,
+    # Pair quality modules to reduce interpreter/import startup while keeping
+    # real-fixture and render-heavy checks in small timeout-safe stages.
+    "quality": 2,
     "pdf": PDF_STAGE_SIZE,
 }

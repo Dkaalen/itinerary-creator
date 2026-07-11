@@ -11,7 +11,6 @@ from .matcher_scoring import (
     candidate_to_payload,
     is_protected_specialty_image_allowed,
     score_image_for_day,
-    season_available_for_context,
 )
 from .scanner import get_image_bank_index
 
@@ -33,16 +32,62 @@ def _payload_priority_key(payload: dict | None) -> tuple:
     )
 
 
-def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandidate], minimum_score: int = 38) -> dict | None:
+def _has_conflict(reasons: list[str] | tuple[str, ...] | None) -> bool:
+    """Return whether scoring identified a semantic image/day conflict."""
+
+    return any(str(reason).lower().startswith("conflict:") for reason in (reasons or ()))
+
+
+def _safe_matching_season_available(context: dict, candidates: list[ImageCandidate]) -> bool:
+    """Return whether the bank has a safe candidate for the day season."""
+
+    day_season = normalize_keyword(context.get("season", ""))
+    if not day_season:
+        return False
+    for candidate in candidates:
+        if day_season not in set(candidate.seasons):
+            continue
+        allowed, _blocked_reason = is_protected_specialty_image_allowed(candidate, context)
+        if not allowed:
+            continue
+        score, reasons = score_image_for_day(candidate, context)
+        if score <= 0:
+            continue
+        if is_global_default_candidate(candidate) and _has_conflict(reasons):
+            continue
+        return True
+    return False
+
+
+def _candidate_season_compatible(candidate: ImageCandidate, context: dict, candidates: list[ImageCandidate]) -> bool:
+    """Prefer truthful seasons without forcing a semantically unsafe image."""
+
+    day_season = normalize_keyword(context.get("season", ""))
+    candidate_seasons = set(candidate.seasons)
+    if not day_season or not candidate_seasons or day_season in candidate_seasons:
+        return True
+    return not _safe_matching_season_available(context, candidates)
+
+
+def _best_reusable_default(day: str, context: dict, candidates: list[ImageCandidate], minimum_score: int = 1) -> dict | None:
+    """Return the strongest safe Default image, allowing intentional reuse.
+
+    The bundled bank is deliberately small. Once its unused safe images are
+    exhausted, repeating a season/context-compatible landscape is better than
+    forcing a contradictory winter, wildlife or transport image onto the day.
+    """
+
     reusable_best = None
     for candidate in candidates:
         if not is_global_default_candidate(candidate):
             continue
-        allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
+        if not _candidate_season_compatible(candidate, context, candidates):
+            continue
+        allowed, _blocked_reason = is_protected_specialty_image_allowed(candidate, context)
         if not allowed:
             continue
         score, reasons = score_default_candidate(candidate, context)
-        if score < minimum_score:
+        if score < minimum_score or _has_conflict(reasons):
             continue
         payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["reused strong default to avoid weak fallback"])
         if reusable_best is None or _payload_priority_key(payload) > _payload_priority_key(reusable_best):
@@ -61,8 +106,6 @@ def _attach_default_audit(
     if not payload or not payload.get("is_default"):
         return payload
 
-    require_matching_season = season_available_for_context(candidates, context)
-    day_season = normalize_keyword(context.get("season", ""))
     best_non_default: dict | None = None
     best_reused_non_default: dict | None = None
 
@@ -70,7 +113,7 @@ def _attach_default_audit(
         if is_global_default_candidate(candidate):
             continue
         normalized_path = str(Path(candidate.path).resolve())
-        if require_matching_season and day_season not in set(candidate.seasons):
+        if not _candidate_season_compatible(candidate, context, candidates):
             continue
         score, reasons = score_image_for_day(candidate, context)
         if score <= 0:
@@ -113,24 +156,19 @@ def select_best_candidate_for_context(
     used_paths = used_paths or set()
     best_destination = None
     best_default = None
-    require_matching_season = season_available_for_context(candidates, context)
-    day_season = normalize_keyword(context.get("season", ""))
 
     for candidate in candidates:
         normalized_path = str(Path(candidate.path).resolve())
         if normalized_path in used_paths:
             continue
         is_default = is_global_default_candidate(candidate)
-        if require_matching_season and day_season not in set(candidate.seasons):
-            # Destination-specific images should stay season-aware when possible.
-            # Default fallback images are different: if the Default bank has no
-            # matching-season city/road/train image, a semantically relevant
-            # non-seasonal image is better than a random seasonal image.
-            if not is_default:
-                continue
+        if not _candidate_season_compatible(candidate, context, candidates):
+            # Never use an explicitly wrong-season image while a matching-season
+            # candidate exists. Season-neutral images remain eligible.
+            continue
 
         score, reasons = score_image_for_day(candidate, context)
-        if score <= 0:
+        if score <= 0 or (is_default and _has_conflict(reasons)):
             continue
         payload = candidate_to_payload(day, candidate, score, reasons)
         if is_default:
@@ -163,11 +201,14 @@ def select_best_candidate_for_context(
 
     default_best = None
     for candidate in default_candidates:
+        if not _candidate_season_compatible(candidate, context, candidates):
+            continue
         allowed, blocked_reason = is_protected_specialty_image_allowed(candidate, context)
         if not allowed:
             continue
         score, reasons = score_default_candidate(candidate, context)
-        score = max(1, score)
+        if score <= 0 or _has_conflict(reasons):
+            continue
         reasons = list(reasons or []) + ["defensive default repair"]
         payload = candidate_to_payload(day, candidate, score, reasons)
         if default_best is None or _payload_priority_key(payload) > _payload_priority_key(default_best):
@@ -194,12 +235,10 @@ def _candidate_payload_for_global_assignment(
     if normalized_path in used_paths:
         return None
     is_default = is_global_default_candidate(candidate)
-    require_matching_season = season_available_for_context(candidates, context)
-    day_season = normalize_keyword(context.get("season", ""))
-    if require_matching_season and day_season not in set(candidate.seasons) and not is_default:
+    if not _candidate_season_compatible(candidate, context, candidates):
         return None
     score, reasons = score_image_for_day(candidate, context)
-    if score <= 0:
+    if score <= 0 or (is_default and _has_conflict(reasons)):
         return None
     payload = candidate_to_payload(day, candidate, score, list(reasons or []) + ["global itinerary image assignment"])
     return payload

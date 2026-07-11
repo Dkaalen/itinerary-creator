@@ -121,7 +121,9 @@ def test_source_row_identity_helpers_are_shared_across_model_render_and_qa_layer
     ]
 
     assert source_row_id(rows[0]) == "row_a"
-    assert source_row_id(rows[1], 1) == "generated-row-1"
+    generated_id = source_row_id(rows[1], 1)
+    assert generated_id.startswith("generated-row-")
+    assert generated_id == source_row_id(rows[1], 999)
     assert edit_row_id(rows[1], 1) == "line_12"
-    assert rows_by_source_id(rows)["generated-row-1"] is rows[1]
+    assert rows_by_source_id(rows)[generated_id] is rows[1]
     assert source_text(rows[0], ("title", "details"), separator=" | ") == "Private Transfer | Airport to hotel"

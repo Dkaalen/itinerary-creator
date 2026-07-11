@@ -78,6 +78,10 @@ class DayFacts:
         return self.has_route_transport or self.has_transfer or self.has_arrival or self.has_departure
 
     @property
+    def has_self_drive(self) -> bool:
+        return "Drive" in self.row_types
+
+    @property
     def route_destination(self) -> str:
         return self.route_destinations[-1] if self.route_destinations else ""
 

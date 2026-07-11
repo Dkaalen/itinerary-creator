@@ -40,7 +40,7 @@ TRANSPORT_PRODUCT_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ACTIVITY_TRANSPORT_EXPERIENCE_RE = re.compile(
-    r"\b(?:northern lights|aurora|hunt|safari|sightseeing|tour|excursion|guided|fjord|cruise|reindeer|husky|whale|hike|experience|admission|ticket|lagoon|spa)\b",
+    r"\b(?:northern lights|aurora|hunt|safari|sightseeing|tour|excursion|guided|fjord\s*cruise|fjord|cruise|reindeer|husky|whale|hike|experience|admission|ticket|lagoon|spa|lavvo|basecamp|cabin\s+stay|overnight\s+(?:stay|experience))\b",
     flags=re.IGNORECASE,
 )
 GENERIC_COPY_RE = re.compile(

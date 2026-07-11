@@ -1,17 +1,18 @@
-"""Registry-owned fallback descriptions for matched products."""
+"""Compatibility facade for :mod:`itinerary_domain.product_rule_descriptions`.
 
-from itinerary_generation.fjordtours_activity_catalogue import fjordtours_activity_description
-from itinerary_generation.product_rule_models import ProductConfidence
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-DESCRIPTIONS={
-"tallinn_old_town_guided_tour":"Explore Tallinn’s Old Town with a guide during your time ashore, with key landmarks and local context introduced along the walking route.",
-"tallinn_ferry_framework":"Travel between Helsinki and Tallinn by ferry, with the crossings forming the logistics for your time in Tallinn.",
-"munch_museum":"Visit the Munch Museum at your own pace, with pre-arranged admission giving you time to explore the galleries and exhibitions independently.",
-"fjellheisen":"Use your round-trip Fjellheisen ticket for a flexible visit above Tromsø, with time to enjoy the panoramic views over the city, fjords and surrounding mountains.",
-"tromso_viewpoint_ticket_possible_fjellheisen":"Use your pre-arranged ticket for a flexible viewpoint visit in Tromsø, with time to enjoy the surrounding views during the day.",
-"tromso_private_city_tour":"Explore Tromsø with a private guide, combining city context, Arctic landmarks and selected stops such as the cable car, Arctic Cathedral or Polar Museum where included.",
-"santa_claus_friends":"Experience a festive family-friendly visit with Santa Claus, reindeer and elves, including seasonal activities, warm refreshments and time for a private Santa meeting where included.",
-"korouoma_canyon":"Follow a guided hike through Korouoma Canyon, where frozen waterfalls, winter forest scenery and a warm outdoor food stop shape the experience.",
-}
+from importlib import import_module as _import_module
 
-def product_description(rule_id:str,*,confidence:ProductConfidence="strong")->str:return DESCRIPTIONS.get(rule_id) or fjordtours_activity_description(rule_id) or ""
+_impl = _import_module("itinerary_domain.product_rule_descriptions")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

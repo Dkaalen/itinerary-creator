@@ -174,3 +174,16 @@ def generation_implementation_core_import_hits() -> tuple[str, ...]:
             continue
         hits.extend(import_from_hits(relative, GENERATION_CORE_FACADE_MODULES))
     return tuple(sorted(hits))
+
+
+def itinerary_domain_generation_import_hits() -> tuple[str, ...]:
+    """Return neutral-domain modules that depend back on generation code."""
+
+    hits: list[str] = []
+    domain_root = REPO_ROOT / "itinerary_domain"
+    if not domain_root.exists():
+        return ("itinerary_domain package is missing",)
+    for path in _source_files(domain_root, frozenset({".py"})):
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        hits.extend(all_import_hits(relative, ("itinerary_generation",)))
+    return tuple(sorted(hits))

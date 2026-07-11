@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.common import get_row_type
+from itinerary_generation.row_filters import get_row_type
 
 
 def has_airport_arrival_transfer(day_rows):

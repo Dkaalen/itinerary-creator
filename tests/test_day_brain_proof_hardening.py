@@ -43,6 +43,7 @@ def test_hosted_generation_smoke_exercises_client_and_agent_paths():
     assert all(item["render_context_cached"] for item in report)
     assert all(item["render_day_count"] >= 3 for item in report)
     assert all(item["day_brain_issue_count"] == 0 for item in report)
+    assert all(item["warning_count"] == 0 for item in report)
     assert any("arrival_onward_travel" in item["day_brain_intents"] for item in report)
 
 
@@ -118,9 +119,9 @@ def test_day_brain_edge_fixture_copy_is_clean_for_all_days():
 
 
 def test_quality_runner_uses_smaller_timeout_safe_chunks():
-    assert CHUNKED_GROUP_STAGE_SIZES["quality"] == 1
+    assert CHUNKED_GROUP_STAGE_SIZES["quality"] == 2
     stages = chunked_group_stages("quality", GROUPS["quality"], stage_size=CHUNKED_GROUP_STAGE_SIZES["quality"])
 
     assert stages
-    assert all(len(paths) <= 1 for _stage, paths in stages)
+    assert all(1 <= len(paths) <= 2 for _stage, paths in stages)
     assert [path for _stage, paths in stages for path in paths] == list(GROUPS["quality"])

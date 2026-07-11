@@ -54,10 +54,14 @@ def airport_transfer_facts(row: Mapping[str, object] | str) -> AirportTransferFa
     directions = [item for item in directions if item[0]]
     if not directions:
         return AirportTransferFacts()
-    for desired in ("departure", "arrival"):
-        for direction, evidence in directions:
-            if direction == desired:
-                return AirportTransferFacts(True, direction, evidence)
+    explicit = {direction for direction, _evidence in directions if direction in {"arrival", "departure"}}
+    if len(explicit) > 1:
+        evidence = ",".join(dict.fromkeys(item[1] for item in directions if item[0] in explicit))
+        return AirportTransferFacts(True, "unknown", f"conflicting_direction:{evidence}")
+    if explicit:
+        selected = next(iter(explicit))
+        evidence = next(evidence for direction, evidence in directions if direction == selected)
+        return AirportTransferFacts(True, selected, evidence)
     return AirportTransferFacts(True, "unknown", directions[0][1])
 
 

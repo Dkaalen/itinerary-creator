@@ -20,7 +20,7 @@ _STATION_WORDS = ("station", "airport", "harbour", "harbor", "port", "terminal",
 _ACCOMMODATION_WORDS = ("hotel", "accommodation", "resort", "cabin", "igloo", "lodge", "apartment")
 _LEISURE_MARKERS = ("leisure", "free time", "free day", "at your own pace", "open day", "own arrangements")
 _OVERNIGHT_MARKERS = ("overnight", "night train", "sleeper", "sleeping compartment", "night ferry", "night cruise")
-_TRANSPORT_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus"}
+_TRANSPORT_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus", "Drive"}
 
 
 def clean_event_text(value: object) -> str:
@@ -138,6 +138,8 @@ def _mode(row_type: str, text: str) -> str:
         return "cruise"
     if row_type == "Transfer":
         return "transfer"
+    if row_type == "Drive":
+        return "drive"
     if row_type in {"Transport", "Coach", "Bus"}:
         return row_type.lower()
     return ""

@@ -29,6 +29,7 @@ INVALID_CITY_MARKERS = [
 
 _INVALID_ROUTE_ORIGINS = {
     "",
+    "drive",
     "flight",
     "train",
     "transfer",
@@ -212,6 +213,21 @@ def _is_rejected_route_destination(destination: str) -> bool:
     )
 
 
+
+
+def _self_drive_route_points(route_source: str, prefix_origin: str) -> tuple[str, str]:
+    match = re.search(
+        r"^\s*(?:self[-\s]*)?drive\s+to\s+(?P<destination>.+?)(?:\s+-\s+|\s+\||,|$)",
+        route_source,
+        flags=re.IGNORECASE,
+    )
+    if not match or not prefix_origin:
+        return "", ""
+    destination = _clean_route_destination(match.group("destination"))
+    if _is_rejected_route_destination(destination):
+        return "", ""
+    return _valid_route_pair(prefix_origin, destination)
+
 def _explicit_transport_route_points(route_source: str, prefix_origin: str) -> tuple[str, str]:
     transport_route = re.search(
         r"\b(?:flight|train|coach|bus|ferry|cruise)(?:\s+transfer)?\s*(?:[:|])?\s*(.+?\s+to\s+.+)$",
@@ -285,6 +301,7 @@ def extract_route_points(text):
             route_source,
             r"\b(?:day\s+|overnight\s+)?(?:train|flight|coach|bus|cruise|ferry)\b[^\n|,;:]{0,20}[,:]?\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)\s*-\s*(?P<destination>[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\n|\s+(?:intercity|ic|train|flight|coach|bus|cruise|ferry|self[-\s]*arranged|cost|price)\b|\s+\d{1,2}:\d{2}|$)",
         ),
+        _self_drive_route_points(route_source, prefix_origin),
         _explicit_transport_route_points(route_source, prefix_origin),
         _generic_to_route_points(route_source, prefix_origin),
     )

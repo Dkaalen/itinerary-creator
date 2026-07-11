@@ -11,10 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_source_row_helpers_live_in_neutral_shared_package() -> None:
     row = {"line_number": 12, "title": "  Northern   Lights  ", "details": " Aurora\xa0hunt "}
 
-    assert source_row_id(row, 3) == "generated-row-3"
+    generated_id = source_row_id(row, 3)
+    assert generated_id.startswith("generated-row-")
+    assert generated_id == source_row_id(row, 99)
     assert edit_row_id(row, 3) == "line_12"
     assert source_text(row, fields=("title", "details"), separator=" | ") == "Northern   Lights | Aurora\xa0hunt"
-    assert rows_by_source_id([{"row_id": "r1"}, {}]) == {"r1": {"row_id": "r1"}, "generated-row-1": {}}
+    lookup = rows_by_source_id([{"row_id": "r1"}, {}])
+    assert lookup["r1"] == {"row_id": "r1"}
+    assert list(lookup)[1].startswith("generated-row-")
     assert clean_space("A\xa0  B\r\nC") == "A B C"
 
 

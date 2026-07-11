@@ -22,6 +22,7 @@ from parser_modules.city_inference import _infer_city_from_text
 from parser_modules.raw_row_context import extract_city_and_description
 from parser_modules.row_builder import build_base_row
 from parser_modules.row_enrichment import enrich_parsed_row
+from parser_modules.wrapper_row_types import resolve_source_wrapper_type
 from parser_modules.parser_line import day_from_parts, has_content, line_parts
 from parser_modules.parser_state import ParserState
 from parser_modules.rows import (
@@ -170,6 +171,7 @@ def _parse_line_row(
         description = ""
         description_index = 10
 
+    item_type = resolve_source_wrapper_type(item_type, description)
     item_type, type_optional = _normalize_row_type(item_type, description)
     is_optional = row_marker_optional or type_optional
 

@@ -49,13 +49,17 @@ def chapter_destination(rows: Sequence[Mapping[str, object]]) -> str:
     # the following day when the traveller actually arrives and stays there.
     if facts.has_activity and facts.has_overnight_transport and facts.activity_cities:
         return polish_title(facts.activity_cities[0])
+    # Do not manufacture the broad ``Journey`` fallback here.  This function
+    # owns source-backed destination evidence only; the overview brain owns
+    # the final domain fallback (for example ``Cruise`` for cruise-only days).
+    # Returning ``Journey`` here made that stronger fallback unreachable.
     return polish_title(
         facts.overnight_city
         or facts.end_city
         or facts.main_city
         or facts.route_destination
         or facts.start_city
-        or "Journey"
+        or ""
     )
 
 
@@ -70,6 +74,10 @@ _REQUIRED_EVIDENCE: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("whale", ("whale",)),
     ("fløibanen", ("fløibanen", "floibanen", "fløyen", "floyen")),
     ("food", ("food tour", "tasting", "culinary", "smørrebrød", "smorrebrod")),
+    ("art nouveau", ("art nouveau",)),
+    ("coastal views", ("coast", "coastal", "fjord", "sea", "harbour", "harbor")),
+    ("lapland", ("lapland",)),
+    ("arctic circle", ("arctic circle",)),
 )
 
 
@@ -85,7 +93,12 @@ def _phrase_is_supported(phrase: str, source: str) -> bool:
 def _source_backed_fallback(rows: Sequence[Mapping[str, object]], chapter: str) -> str:
     source = chapter_source_text(rows).casefold()
     row_types = {get_row_type(dict(row)) for row in rows}
-    if "Departure" in row_types:
+    departure_cities = {
+        _clean(row.get("city", "")).casefold()
+        for row in rows
+        if get_row_type(dict(row)) == "Departure" and _clean(row.get("city", ""))
+    }
+    if "Departure" in row_types and (not chapter or chapter.casefold() in departure_cities):
         return f"Departure from {chapter}" if chapter else "Departure arrangements"
     if has_nutshell_journey([dict(row) for row in rows]) or "norway in a nutshell" in source:
         return "Norway in a Nutshell and scenic rail"
@@ -98,6 +111,8 @@ def _source_backed_fallback(rows: Sequence[Mapping[str, object]], chapter: str) 
     if activity_titles:
         first = activity_titles[0]
         return first if len(first) <= 52 else f"Arranged experiences in {chapter}"
+    if "Arrival" in row_types and "Leisure" in row_types:
+        return f"Arrival and independent time in {chapter}" if chapter else "Arrival and independent time"
     if "Arrival" in row_types:
         return f"Welcome to {chapter}" if chapter else "Arrival and time to settle in"
     if "Leisure" in row_types:
@@ -112,6 +127,20 @@ def chapter_experience(rows: Sequence[Mapping[str, object]], chapter: str) -> st
 
     source = chapter_source_text(rows)
     source_l = source.casefold()
+    row_types = {get_row_type(dict(row)) for row in rows}
+    departure_cities = {
+        _clean(row.get("city", "")).casefold()
+        for row in rows
+        if get_row_type(dict(row)) == "Departure" and _clean(row.get("city", ""))
+    }
+    if (
+        "Departure" in row_types
+        and chapter
+        and departure_cities
+        and chapter.casefold() not in departure_cities
+        and row_types.intersection({"Flight", "Train", "Transport", "Cruise", "Ferry", "Hotel", "Transfer"})
+    ):
+        return f"Travel to {chapter}"
     has_nutshell = has_nutshell_journey([dict(row) for row in rows]) or "norway in a nutshell" in source_l
     has_food = any(marker in source_l for marker in ("food tour", "tasting", "culinary", "smørrebrød", "smorrebrod"))
     if "tallinn" in source_l and "old town" in source_l:

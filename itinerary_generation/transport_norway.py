@@ -1,19 +1,18 @@
-"""Compatibility facade for Norway in a Nutshell transport parsing."""
+"""Compatibility facade for :mod:`itinerary_domain.transport_norway`.
 
-from __future__ import annotations
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-from itinerary_generation.nutshell_labels import _norway_nutshell_route_label  # noqa: F401
-from itinerary_generation.nutshell_parsing import (  # noqa: F401
-    NUTSHELL_INTERCHANGE_ONLY_NODES,
-    NUTSHELL_ROUTE_PLACES,
-    _is_norway_in_a_nutshell_text,
-    explicit_norway_nutshell_destination,
-    explicit_norway_nutshell_title,
-    extract_norway_nutshell_route_legs,
-    extract_norway_nutshell_route_points,
-    extract_norway_nutshell_supplier_includes,
-    format_norway_nutshell_route,
-    has_norway_in_a_nutshell,
-    is_nutshell_internal_route_node,
-    should_preserve_nutshell_origin_label,
+from importlib import import_module as _import_module
+
+_impl = _import_module("itinerary_domain.transport_norway")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
 )

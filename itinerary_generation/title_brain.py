@@ -15,6 +15,7 @@ from itinerary_generation.common import TRANSPORT_TYPES, get_primary_city, get_r
 from itinerary_generation.copy_decision_contract import CopyDecisionCandidate, CopyDecisionTrace, finalize_decision
 from itinerary_generation.day_facts import DayFacts, build_day_facts
 from itinerary_generation.day_intent import DayIntent, classify_day_intent
+from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
 from itinerary_generation.schedule_brain import DayScheduleProfile, build_day_schedule_profile
 from itinerary_generation.title_decision_contract import compose_activity_day_title, select_activity_title
 from itinerary_generation.title_decision_helpers import (
@@ -30,7 +31,7 @@ from itinerary_generation.transport import get_primary_transport_title
 from itinerary_generation.transport_domain.route_summary import transport_destination_from_row
 from text_polish import polish_title
 
-TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus"}
+TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus", "Drive"}
 
 
 def _city(rows: Sequence[Mapping[str, object]], facts: DayFacts) -> str:
@@ -42,8 +43,7 @@ def _activity_rows(rows: Sequence[Mapping[str, object]]) -> list[dict]:
     for row in rows or []:
         if get_row_type(dict(row)) != "Activity":
             continue
-        text = clean_title_value(" ".join(str(row.get(key) or "") for key in ("title", "original_title", "details"))).lower()
-        if "spend time at leisure" in text or text.strip() in {"leisure", "free time"}:
+        if is_blank_activity_or_leisure(row):
             continue
         result.append(dict(row))
     return result
@@ -51,7 +51,7 @@ def _activity_rows(rows: Sequence[Mapping[str, object]]) -> list[dict]:
 
 def _route_destination(rows: Sequence[Mapping[str, object]], facts: DayFacts) -> str:
     for row in rows or []:
-        if get_row_type(dict(row)) in {"Train", "Flight", "Cruise", "Ferry", "Transport", "Coach", "Bus"}:
+        if get_row_type(dict(row)) in {"Train", "Flight", "Cruise", "Ferry", "Transport", "Coach", "Bus", "Drive"}:
             destination = transport_destination_from_row(dict(row))
             if destination:
                 return polish_title(destination)
@@ -172,6 +172,7 @@ def _transport_or_fallback_title(
             or facts.has_flight
             or facts.has_ferry
             or facts.has_cruise
+            or facts.has_self_drive
             or re.search(r"\bcoach\b", primary_transport_candidate.text, flags=re.IGNORECASE)
         ):
             return finalize_decision(kind="day_title", selected=primary_transport_candidate, candidates=(primary_transport_candidate,), context=context)

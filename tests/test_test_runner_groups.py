@@ -253,3 +253,19 @@ def test_slow_harness_uses_exact_slow_direct_targets() -> None:
     from scripts.run_slow_tests import _slow_targets
 
     assert [f"{path}::{name}" for path, name in _slow_targets()] == list(slow_direct_targets(REPO_ROOT))
+
+
+def test_controlled_subprocess_timeout_terminates_worker_tree() -> None:
+    import sys
+    import time
+    from scripts.subprocess_control import run_controlled_process
+
+    started = time.monotonic()
+    result = run_controlled_process(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        timeout_seconds=0.1,
+    )
+
+    assert result.return_code == 124
+    assert result.timed_out
+    assert time.monotonic() - started < 6

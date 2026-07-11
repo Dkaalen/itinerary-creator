@@ -91,7 +91,7 @@ def test_iceland_intro_copy_is_supported_by_same_day_activity_facts() -> None:
     review = _review()
     day_by_id = {day.day: day for day in review.days}
 
-    assert "Whale Watching" in day_by_id["Day 2"].intro
+    assert "whale watching" in day_by_id["Day 2"].intro.casefold()
     assert "Blue Lagoon" in day_by_id["Day 2"].intro
     assert "volcano" not in day_by_id["Day 2"].intro.casefold()
 

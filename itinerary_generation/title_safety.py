@@ -1,58 +1,18 @@
-"""Shared safety checks for client-facing itinerary titles.
+"""Compatibility facade for :mod:`itinerary_domain.title_safety`.
 
-Keep these checks renderer-agnostic so day titles, activity titles and small
-content-block headings reject the same supplier/admin fragments before preview
-or PDF export.
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
 """
-from __future__ import annotations
 
-import re
+from importlib import import_module as _import_module
 
+_impl = _import_module("itinerary_domain.title_safety")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-BAD_TITLE_PATTERNS: tuple[str, ...] = (
-    r"\barrival\s+[^,|]+,\s*pick[-\s]?up\b",
-    r"\bpick[-\s]?up\s+minibus\b",
-    r"\bpick[-\s]?up\s*/\s*drop[-\s]?off\b",
-    r"\bcheck\s*out\b.*\b(?:airport|return flight|home)\b",
-    r"\btransfer\s+to\s+the\s+airport\b.*\breturn flight\b",
-    r"\bprivate\s+(?:airport|hotel|station)\s+to\b",
-    r"\bshuttle\s*/?\s*flybus\b",
-    r"\bwith\s+transfers?\b",
-    r"\bcost\s+not\s+included\b",
-    r"\bself[-\s]?arranged\b",
-    r"\bwhat'?s\s+included\b",
-    r"\boverview\b",
-    r"\bopening hours\b",
-    r"\bincludese\b",
-    r"\bleisure as requested\b",
-    r"\bself\s+transfer\s+to\b",
-    r"\bfinal\s+timing\s+to\s+be\s+shared\s+in\s+voucher\b",
-    r"\btrain\s+to\s+be\s+shared\s+in\s+voucher\b",
-    r"\b(?:timing|time|details?)\s+to\s+be\s+shared\s+in\s+voucher\b",
-    r"\b(?:voucher|admin)\s+wording\b",
-    r"\bprice\s+is\s+per\s+(?:passenger|person|pax)\b",
-    r"\bsingle\s+supplement\s+fee\b",
-    r"\bcheck\s+availability\b",
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
 )
-
-
-CTA_PREFIX_PATTERN = re.compile(
-    r"^\s*(?:book\s+today|book\s+now|check\s+availability)\s*[:\-–|]+\s*",
-    flags=re.IGNORECASE,
-)
-
-
-def strip_supplier_title_cta(value: str) -> str:
-    """Remove supplier call-to-action prefixes while preserving real titles."""
-    return CTA_PREFIX_PATTERN.sub("", str(value or "")).strip()
-
-
-def is_forbidden_client_title(value: str) -> bool:
-    """Return True for raw supplier/admin fragments unsafe as visible titles."""
-    text = str(value or "").strip()
-    if not text:
-        return False
-    lower = text.lower()
-    if re.fullmatch(r"book\s+today|book\s+now|check\s+availability", lower, flags=re.IGNORECASE):
-        return True
-    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in BAD_TITLE_PATTERNS)

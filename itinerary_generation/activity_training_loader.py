@@ -1,22 +1,18 @@
-"""Load and parse bundled activity-training catalogue rows."""
+"""Compatibility facade for :mod:`itinerary_domain.activity_training_loader`.
 
-import csv
-from functools import lru_cache
-from pathlib import Path
-from itinerary_generation.activity_training_model import ActivityTrainingEntry
-from itinerary_generation.activity_training_text import field_from_details,split_inclusions,title_from_details
-from place_aliases import canonicalize_place_name
-from text_polish import polish_title
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
-DATA_PATH=Path(__file__).resolve().parent/"data"/"activity_training_master_3col.tsv"
+from importlib import import_module as _import_module
 
-@lru_cache(maxsize=1)
-def activity_training_entries()->tuple[ActivityTrainingEntry,...]:
-    if not DATA_PATH.exists():return ()
-    entries=[]
-    with DATA_PATH.open("r",encoding="utf-8-sig",newline="") as handle:
-        for row in csv.DictReader(handle,delimiter="\t"):
-            if (row.get("Activity") or "").strip().lower()!="activity":continue
-            city=canonicalize_place_name(row.get("City") or "") or polish_title(row.get("City") or "");details=(row.get("Activity details") or "").strip();title=title_from_details(city,details) if details else ""
-            if title:entries.append(ActivityTrainingEntry(city,title,field_from_details(details,"Time"),field_from_details(details,"Meeting point"),split_inclusions(field_from_details(details,"Inclusions")),field_from_details(details,"Description"),details))
-    return tuple(entries)
+_impl = _import_module("itinerary_domain.activity_training_loader")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
+
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

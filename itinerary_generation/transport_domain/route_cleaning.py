@@ -158,6 +158,23 @@ def clean_route_place(value):
     return place
 
 
+
+def canonical_route_city(name: object) -> str:
+    """Return a client-safe canonical spelling for common route cities."""
+
+    clean = str(name or "").strip()
+    replacements = {
+        "saariselka": "Saariselkä",
+        "kakslauttenen": "Kakslauttanen",
+        "tromso": "Tromsø",
+        "svolvaer": "Svolvær",
+        "svolaver": "Svolvær",
+        "gothernburg": "Gothenburg",
+        "göteborg": "Gothenburg",
+        "malmo": "Malmø",
+    }
+    return replacements.get(clean.lower(), clean)
+
 # Backward-compatible private aliases for legacy import paths.
 _strip_transport_product_prefix = strip_transport_product_prefix
 _clean_route_place = clean_route_place

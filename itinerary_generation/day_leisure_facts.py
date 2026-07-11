@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+import re
+
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_city_facts import row_text, text_value
 
@@ -13,12 +15,28 @@ LEISURE_MARKERS = ("leisure", "free time", "free day", "at your own pace", "open
 def _activity_heading_text(row: Mapping[str, Any]) -> str:
     """Return only title-like fields for blank/leisure activity detection."""
 
-    return " ".join(
-        str(row.get(key) or "").strip()
-        for key in ("title", "original_title")
-        if str(row.get(key) or "").strip()
-    ).strip()
+    title = str(row.get("title") or "").strip()
+    if title and title.casefold() not in {"activity", "planned activity", "experience"}:
+        return title
+    return str(row.get("original_title") or title).strip()
 
+
+
+
+def _is_placeholder_activity_heading(row: Mapping[str, Any], heading_text: str) -> bool:
+    compact = " ".join(str(heading_text or "").split()).strip(" -:|.,")
+    if not compact:
+        return True
+    city = " ".join(str(row.get("city") or "").split()).strip(" -:|.,")
+    if city and compact.casefold().startswith(city.casefold()):
+        compact = compact[len(city):].strip(" -:|.,")
+    return bool(
+        re.fullmatch(
+            r"(?:\?|tba|tbc|to be (?:advised|confirmed)|unknown|activity pending|open (?:activity )?slot|open slot for (?:an )?activity|activity slot)",
+            compact,
+            flags=re.IGNORECASE,
+        )
+    )
 
 def is_blank_activity_or_leisure(row: Mapping[str, Any]) -> bool:
     """Return whether a row represents free/open time rather than an arranged activity.
@@ -36,6 +54,8 @@ def is_blank_activity_or_leisure(row: Mapping[str, Any]) -> bool:
         return False
     heading_text = _activity_heading_text(row).lower()
     if not text_value(row.get("title") or row.get("original_title") or row.get("details")):
+        return True
+    if _is_placeholder_activity_heading(row, heading_text):
         return True
     if heading_text:
         return any(marker in heading_text for marker in LEISURE_MARKERS)

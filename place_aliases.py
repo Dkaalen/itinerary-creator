@@ -7,6 +7,7 @@ from place_alias_maps import (
     ALIAS_PATTERNS,
     ALIAS_RECORDS,
     ALIAS_TO_CANONICAL,
+    ALIAS_TO_PLACES,
     CANONICAL_PLACES,
     CANONICAL_TO_COUNTRY,
     CANONICAL_TO_KIND,
@@ -15,6 +16,7 @@ from place_alias_maps import (
 )
 from place_alias_queries import (
     canonicalize_place_name,
+    countries_for_place,
     country_for_place,
     is_known_place,
     is_likely_service_text,
@@ -27,6 +29,7 @@ __all__ = [
     "ALIAS_PATTERNS",
     "ALIAS_RECORDS",
     "ALIAS_TO_CANONICAL",
+    "ALIAS_TO_PLACES",
     "CANONICAL_PLACES",
     "CANONICAL_TO_COUNTRY",
     "CANONICAL_TO_KIND",
@@ -37,6 +40,7 @@ __all__ = [
     "_key",
     "_strip_accents",
     "canonicalize_place_name",
+    "countries_for_place",
     "country_for_place",
     "is_known_place",
     "is_likely_service_text",

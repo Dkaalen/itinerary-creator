@@ -142,13 +142,26 @@ def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
         for section in block.extra_sections:
             travel_lines.extend(section.items)
     joined = "\n".join(travel_lines)
+    activity_blocks = [block for block in day9.blocks if block.kind == "activity"]
+    activity_text = "\n".join(
+        value
+        for block in activity_blocks
+        for value in (
+            block.title,
+            block.description,
+            *block.lines,
+            *(item for section in block.extra_sections for item in section.items),
+        )
+        if value
+    )
 
     assert self_transfer["effective_type"] == "Transfer"
     assert self_transfer["title"].startswith("Bergen: Self-arranged transfer")
     assert "Train to Bergen Bergen" not in joined
     assert "Self-arranged transfer to Bergen Railway Station" in joined
     assert "Bergen: Self-arranged transfer" not in joined
-    assert "Norway in a Nutshell to Oslo" in joined
+    assert "Norway in a Nutshell to Oslo" in activity_text
+    assert "scenic water-based experience in Bergen" not in activity_text
 
 
 def test_page2_page_actions_are_centered_inside_canvas_not_right_edge():

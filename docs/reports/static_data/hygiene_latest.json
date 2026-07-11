@@ -1,27 +1,17 @@
 {
   "destination_count": 693,
   "alias_record_count": 693,
-  "alias_value_count": 1221,
+  "alias_value_count": 1223,
   "service_phrase_count": 22,
   "registry_validation_errors": [],
   "signals": [
     {
-      "code": "duplicate_alias_value",
-      "severity": "review",
-      "message": "Alias/canonical value appears in more than one place record.",
+      "code": "country_qualified_alias_ambiguity",
+      "severity": "info",
+      "message": "Ambiguous place spelling is intentionally country-qualified and must use context.",
       "values": [
         "Finland/Utö: Uto, Utö",
         "Sweden/Utö: Uto, Utö"
-      ]
-    },
-    {
-      "code": "service_like_destination_name",
-      "severity": "review",
-      "message": "Destination record contains service/transfer wording; verify it is intentional.",
-      "values": [
-        "Norway",
-        "Tromsø Airport",
-        "airport"
       ]
     },
     {
@@ -35,5 +25,5 @@
       ]
     }
   ],
-  "signal_count": 3
+  "signal_count": 2
 }

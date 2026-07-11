@@ -193,3 +193,139 @@ def test_app_preview_uses_default_only_bank_as_shared_fallback():
             {"Day 1": None, "Day 2": None},
             "An explicit internal block flag should still disable bundled Default images for specialized checks.",
         )
+
+
+def test_default_bank_reuses_safe_summer_image_instead_of_forcing_winter_conflicts():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        summer_path = default_dir / "Default_Summer_Scenic_Fjord_View_01.webp"
+        winter_path = default_dir / "Default_Winter_Northern_Lights_Mountains_01.webp"
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(summer_path, format="WEBP")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(winter_path, format="WEBP")
+
+        matches = select_day_images(
+            {
+                "Day 1": [{"day": "Day 1", "date": "01.07.2027", "type": "Activity", "city": "Reykjavik", "title": "City walk"}],
+                "Day 2": [{"day": "Day 2", "date": "02.07.2027", "type": "Activity", "city": "Reykjavik", "title": "Whale watching from the harbour"}],
+                "Day 3": [{"day": "Day 3", "date": "03.07.2027", "type": "Activity", "city": "Reykjavik", "title": "Sky Lagoon spa ritual"}],
+            },
+            bank,
+        )
+
+        assert all(match for match in matches.values())
+        assert {Path(match["path"]).name for match in matches.values()} == {summer_path.name}
+        assert all("conflict:" not in str(match.get("reason", "")).lower() for match in matches.values())
+        assert any("reused strong default" in str(match.get("reason", "")).lower() for match in matches.values())
+
+
+def test_generic_winter_departure_avoids_specialty_reindeer_fallback():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        landscape_path = default_dir / "Default_Winter_Snowy_Forest_Landscape_01.webp"
+        reindeer_path = default_dir / "Default_Winter_Reindeer_Sledding_01.webp"
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(landscape_path, format="WEBP")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(reindeer_path, format="WEBP")
+
+        match = select_day_image(
+            "Day 1",
+            [{"day": "Day 1", "date": "15.12.2027", "type": "Departure", "city": "Tromso", "title": "Departure from Tromso Airport"}],
+            bank,
+        )
+
+        assert match
+        assert Path(match["path"]).name == landscape_path.name
+        assert "conflict:" not in str(match.get("reason", "")).lower()
+
+
+def test_matching_season_default_is_reused_before_wrong_season_image():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        winter_path = default_dir / "Default_Winter_Snowy_Forest_Landscape_01.webp"
+        summer_path = default_dir / "Default_Summer_Golden_Hour_Lake_01.webp"
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(winter_path, format="WEBP")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(summer_path, format="WEBP")
+
+        matches = select_day_images(
+            {
+                "Day 1": [{"day": "Day 1", "date": "14.12.2027", "type": "Hotel", "city": "Tromso", "title": "Winter stay"}],
+                "Day 2": [{"day": "Day 2", "date": "15.12.2027", "type": "Departure", "city": "Tromso", "title": "Departure from Tromso Airport"}],
+            },
+            bank,
+        )
+
+        assert all(match for match in matches.values())
+        assert {Path(match["path"]).name for match in matches.values()} == {winter_path.name}
+        assert all("summer" not in Path(match["path"]).name.lower() for match in matches.values())
+
+
+def test_golden_circle_does_not_infer_santa_theme():
+    from images.metadata import infer_themes, tokenize
+
+    themes = infer_themes(tokenize("Golden Circle route with Geysir and Gullfoss"))
+
+    assert "santa" not in themes
+
+
+def test_winter_city_day_does_not_use_reindeer_specialty_fallback():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        generic_path = default_dir / "Default_Winter_Snowy_Forest_Landscape_01.webp"
+        reindeer_path = default_dir / "Default_Winter_Reindeer_Sledding_01.webp"
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(generic_path, format="WEBP")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(reindeer_path, format="WEBP")
+
+        match = select_day_image(
+            "Day 3",
+            [{"day": "Day 3", "date": "15.12.2027", "type": "Activity", "city": "Bergen", "title": "Bergen walking tour and Fløibanen"}],
+            bank,
+        )
+
+        assert match
+        assert Path(match["path"]).name == generic_path.name
+
+
+def test_non_rail_day_does_not_use_train_window_specialty_fallback():
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        scenic_path = default_dir / "Default_Summer_Scenic_Fjord_View_01.webp"
+        train_path = default_dir / "Default_Summer_Train_Window_Waterfall_01.webp"
+        Image.new("RGB", (40, 25), (40, 100, 140)).save(scenic_path, format="WEBP")
+        Image.new("RGB", (40, 25), (5, 20, 70)).save(train_path, format="WEBP")
+
+        match = select_day_image(
+            "Day 4",
+            [{"day": "Day 4", "date": "15.07.2027", "type": "Leisure", "city": "Vik", "title": "Day at leisure in Vík"}],
+            bank,
+        )
+
+        assert match
+        assert Path(match["path"]).name == scenic_path.name
+
+
+def test_generic_view_and_express_words_do_not_create_specialty_themes():
+    from images.metadata import infer_themes, tokenize
+
+    themes = infer_themes(tokenize("ATV Quad Express with a scenic mountain view"))
+
+    assert "train" not in themes
+    assert "funicular" not in themes

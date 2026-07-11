@@ -6,7 +6,8 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
+from itinerary_generation.common_constants import TRANSPORT_TYPES
+from itinerary_generation.row_filters import get_row_type
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_model import get_transport_source_text, has_local_transfer_marker
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
@@ -36,6 +37,13 @@ def get_transport_route_phrase(row):
 
     if row_type == "Transfer" and has_local_transfer_marker(lower) and not is_route_transfer(row):
         return polish_title(row.get("title", "") or "Transfer")
+
+    if row_type == "Drive":
+        if origin and destination:
+            return f"Self-drive route from {origin} to {destination}"
+        if destination:
+            return f"Self-drive route to {destination}"
+        return polish_title(row.get("title", "") or "Self-drive route")
 
     if row_type == "Train" or "train" in lower:
         if "santa claus express" in lower:
@@ -174,6 +182,9 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
 
     lower = f"{route_phrase} {get_transport_source_text(row)}".lower()
     destination = polish_title(base_destination_from_terminal(destination) or destination)
+    if get_row_type(row) == "Drive" or "self-drive" in lower:
+        destination = re.split(r"\s+via\s+", destination, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+        return f"Drive to {destination}"
     if "flight" in lower:
         return f"Flight to {destination}"
     if "train" in lower:
@@ -194,7 +205,7 @@ def _destination_focused_transport_title(row, route_phrase: str) -> str:
 
 
 def _multi_leg_transport_day_title(day_rows) -> str:
-    transport_rows = [row for row in day_rows if get_row_type(row) in set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus"}]
+    transport_rows = [row for row in day_rows if get_row_type(row) in set(TRANSPORT_TYPES) | {"Transport", "Coach", "Bus", "Drive"}]
     if len(transport_rows) < 2:
         return ""
 
@@ -229,7 +240,7 @@ def get_primary_transport_title(day_rows):
     if multi_leg_title:
         return multi_leg_title
 
-    for preferred_type in ["Flight", "Train", "Transport", "Cruise", "Ferry"]:
+    for preferred_type in ["Flight", "Train", "Drive", "Transport", "Cruise", "Ferry"]:
         for row in day_rows:
             if get_row_type(row) == preferred_type:
                 source_text = get_transport_source_text(row)

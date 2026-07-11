@@ -42,6 +42,7 @@ ROUTE_OWNER_PATHS = (
     "normalizer_modules",
     "itinerary_parser.py",
     "normalizer.py",
+    "itinerary_domain",
     "itinerary_generation/transport_domain",
     "itinerary_generation/transport.py",
     "itinerary_generation/transport_routes.py",

@@ -6,16 +6,22 @@ import re
 from functools import lru_cache
 
 from place_alias_data import SERVICE_PHRASES
-from place_alias_maps import ALIAS_PATTERNS, ALIAS_TO_CANONICAL, CANONICAL_PLACES, CANONICAL_TO_COUNTRY, CANONICAL_TO_KIND
+from place_alias_maps import ALIAS_PATTERNS, ALIAS_TO_CANONICAL, ALIAS_TO_PLACES, CANONICAL_PLACES, CANONICAL_TO_COUNTRY, CANONICAL_TO_KIND
 from place_alias_text import _key
 
 
 @lru_cache(maxsize=4096)
-def canonicalize_place_name(value: str) -> str:
+def canonicalize_place_name(value: str, country_hint: str = "") -> str:
     text = str(value or "").strip(" .,-|:")
     if not text:
         return ""
 
+    records = ALIAS_TO_PLACES.get(_key(text), ())
+    hint = _key(country_hint)
+    if hint:
+        for country, canonical, _kind in records:
+            if _key(country) == hint:
+                return canonical
     canonical = ALIAS_TO_CANONICAL.get(_key(text))
     return canonical or text
 
@@ -24,14 +30,37 @@ def is_known_place(value: str) -> bool:
     return canonicalize_place_name(value) in CANONICAL_PLACES
 
 
-def country_for_place(value: str) -> str:
-    """Return the country for a known canonical or alias place."""
-    return CANONICAL_TO_COUNTRY.get(canonicalize_place_name(value), "")
+def countries_for_place(value: str) -> tuple[str, ...]:
+    """Return every country supported by a canonical or alias value."""
+
+    countries = {country for country, _canonical, _kind in ALIAS_TO_PLACES.get(_key(value), ()) if country}
+    return tuple(sorted(countries))
 
 
-def kind_for_place(value: str) -> str:
-    """Return the place kind for a known canonical or alias place."""
-    return CANONICAL_TO_KIND.get(canonicalize_place_name(value), "")
+def country_for_place(value: str, country_hint: str = "") -> str:
+    """Return a country without silently guessing across ambiguous aliases."""
+
+    countries = countries_for_place(value)
+    if country_hint:
+        hint = _key(country_hint)
+        return next((country for country in countries if _key(country) == hint), "")
+    if len(countries) == 1:
+        return countries[0]
+    return ""
+
+
+def kind_for_place(value: str, country_hint: str = "") -> str:
+    """Return the place kind for a known alias, optionally country-qualified."""
+
+    records = ALIAS_TO_PLACES.get(_key(value), ())
+    hint = _key(country_hint)
+    if hint:
+        records = tuple(record for record in records if _key(record[0]) == hint)
+    kinds = {kind for _country, _canonical, kind in records if kind}
+    if len(kinds) == 1:
+        return next(iter(kinds))
+    canonical = canonicalize_place_name(value, country_hint)
+    return CANONICAL_TO_KIND.get(canonical, "") if not records else ""
 
 
 def is_likely_service_text(value: str) -> bool:

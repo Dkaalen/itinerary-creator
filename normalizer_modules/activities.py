@@ -4,10 +4,10 @@ import re
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
-from itinerary_generation.title_cleanup import clean_client_title
+from itinerary_domain.title_cleanup import clean_client_title
 from normalizer_modules.text_utils import text_blob, _lower_key
-from itinerary_generation.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
-from itinerary_generation.activity_products import fingerprint_activity
+from itinerary_domain.tallinn import is_tallinn_ferry_framework, is_tallinn_old_town_guided_tour
+from itinerary_domain.activity_products import fingerprint_activity
 
 def _is_group_tour_overview(row: dict) -> bool:
     text = text_blob(row).lower()

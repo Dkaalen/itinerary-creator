@@ -1,29 +1,18 @@
-"""Value models for activity-training catalogue entries."""
+"""Compatibility facade for :mod:`itinerary_domain.activity_training_model`.
 
-from dataclasses import dataclass
-import re
-from itinerary_generation.activity_training_text import ascii_key, normalize_training_text
+Neutral source truth moved out of the generation layer. New parser and
+normalizer code must import the neutral owner directly.
+"""
 
+from importlib import import_module as _import_module
 
-@dataclass(frozen=True)
-class ActivityTrainingEntry:
-    city: str; title: str; time: str=""; meeting_point: str=""; inclusions: tuple[str,...]=(); description: str=""; source_line: str=""
-    @property
-    def display_title(self)->str:return self.title
-    @property
-    def canonical_family(self)->str:return "catalogue_"+re.sub(r"[^a-z0-9]+","_",ascii_key(f"{self.city}_{self.title}")).strip("_")
-    @property
-    def product_type(self)->str:
-        lower=normalize_training_text(f"{self.title} {' '.join(self.inclusions)} {self.description}")
-        if "northern lights" in lower or "aurora" in lower:return "northern_lights"
-        if "walking" in lower or "on foot" in lower:return "walking_tour"
-        if any(x in lower for x in ("fjord","cruise","boat","canal","ferry")):return "cruise_or_boat"
-        if any(x in lower for x in ("ticket","admission","entrance","pass")):return "ticket"
-        if any(x in lower for x in ("hike","hiking","snowshoe")):return "outdoor_activity"
-        if any(x in lower for x in ("reindeer","husky","santa")):return "arctic_activity"
-        return "activity"
+_impl = _import_module("itinerary_domain.activity_training_model")
+for _name in dir(_impl):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_impl, _name)
 
-
-@dataclass(frozen=True)
-class IndexedActivityTrainingEntry:
-    entry: ActivityTrainingEntry; city_key: str; title_normalized: str; title_tokens: frozenset[str]
+__all__ = getattr(
+    _impl,
+    "__all__",
+    tuple(name for name in globals() if not name.startswith("_")),
+)

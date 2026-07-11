@@ -34,6 +34,8 @@ def _main_city(facts: DayFacts) -> str:
 
 
 def _mode(facts: DayFacts) -> str:
+    if facts.has_self_drive:
+        return "self-drive route"
     if facts.has_overnight_transport and facts.has_cruise:
         return "cruise"
     if facts.has_overnight_transport and facts.has_train:
@@ -52,6 +54,13 @@ def _mode(facts: DayFacts) -> str:
 def _travel_phrase(facts: DayFacts, *, imperative: bool = False) -> str:
     origin = _city(facts.route_origin or facts.start_city)
     destination = _city(facts.route_destination or facts.end_city or facts.onward_destination)
+    if facts.has_self_drive:
+        verb = "Continue driving" if imperative else "Drive"
+        if origin and destination and origin.casefold() != destination.casefold():
+            return f"{verb} from {origin} to {destination}"
+        if destination:
+            return f"{verb} to {destination}"
+        return f"{verb} along the listed route"
     mode = _mode(facts)
     verb = "Continue" if imperative else "Travel"
     if origin and destination and origin.casefold() != destination.casefold():
@@ -125,6 +134,9 @@ def _departure_transfer_intro(facts: DayFacts) -> str:
         return ""
     match = re.search(r"\bto\s+([A-ZÀ-Ý][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]*?Airport)\b", text)
     airport = _clean(match.group(1)) if match else "the airport"
+    if facts.has_self_drive:
+        rental_clause = " Return your rental vehicle before continuing with your onward journey." if re.search(r"\b(?:rental|hire)\s+(?:car|vehicle)|return\s+(?:the\s+)?(?:car|vehicle)", lower) else " Continue with your onward journey after returning the vehicle."
+        return f"After check-out, drive to {airport}.{rental_clause}"
     if any(marker in lower for marker in ("self transfer", "self-arranged", "self arranged", "own way")):
         return f"After check-out, please make your own way to {airport} for your onward journey."
     route_rows = [row for row in facts.rows if get_row_type(dict(row)) == "Transfer"]
@@ -225,6 +237,36 @@ def _arrival_onward_intro(facts: DayFacts) -> str:
     return f"Arrive in {arrival} and continue with the onward travel arrangements listed below."
 
 
+def _return_visit_intro(facts: DayFacts, profile_route_intro: str, city: str) -> str:
+    """Describe a return stay from route truth instead of admin fallback copy."""
+
+    place = city or _city(facts.end_city) or "the destination"
+    destinations = [_city(item) for item in facts.route_destinations if _city(item)]
+    round_trip = bool(
+        place
+        and len(destinations) >= 2
+        and destinations[-1].casefold() == place.casefold()
+        and any(item.casefold() != place.casefold() for item in destinations[:-1])
+    )
+    if round_trip:
+        return (
+            f"Head out on today’s planned journey before returning to {place}, "
+            "with the travel timings and overnight stay kept together below."
+        )
+    if profile_route_intro:
+        return profile_route_intro
+    if facts.has_self_drive:
+        origin = _city(facts.route_origin or facts.start_city)
+        if origin and origin.casefold() != place.casefold():
+            return f"Drive from {origin} back to {place}, with the route and overnight stay forming the focus of the day."
+        return f"Drive back to {place}, with the route and overnight stay forming the focus of the day."
+    if facts.has_travel:
+        if facts.has_activity:
+            return f"Return to {place}, with the onward route and included experience arranged together."
+        return f"Return to {place}. The journey and arrival at your next stay are kept straightforward below."
+    return f"Back in {place}, the day continues around the arrangements already confirmed for your stay."
+
+
 def _write_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> str:
     """Return intro copy after day facts have been classified."""
 
@@ -251,12 +293,7 @@ def _write_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
             return profile_route_intro
 
     if intent == DayIntent.RETURN_VISIT:
-        if profile_route_intro and "Norway in a Nutshell" in profile_route_intro:
-            return profile_route_intro
-        place = city or facts.end_city or "the destination"
-        if facts.has_travel:
-            return f"Return to {place}. Today is arranged around your onward logistics and listed activities."
-        return f"Back in {place}, the day’s arrangements are listed below."
+        return _return_visit_intro(facts, profile_route_intro, city)
 
     if intent == DayIntent.DEPARTURE_DAY:
         departure_transfer = _departure_transfer_intro(facts)

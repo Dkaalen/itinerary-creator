@@ -169,3 +169,29 @@ def test_fixture_tagging_and_qa_index_are_deterministic(monkeypatch: pytest.Monk
     assert tag_index["candidate_count"] == 3
     assert qa_index["score_report"]["selected_fixture_ids"]
     assert "# Real Output QA Index" in markdown
+
+
+def test_crystal_lavvo_stay_is_not_misclassified_as_transport_product() -> None:
+    from scripts.real_output_qa.rendering import render_candidate_review
+
+    candidate = next(
+        item for item in build_candidate_index()
+        if item.fixture_id == "Standard-Itinerary-Finland-Norway.xlsx::1205"
+    )
+    review = render_candidate_review(candidate)
+    codes = {issue.code for issue in review.score.issues}
+
+    assert "transport_product_rendered_as_activity" not in codes
+
+
+def test_fjordcruise_sightseeing_activity_is_not_misclassified_as_transport_product() -> None:
+    from scripts.real_output_qa.rendering import render_candidate_review
+
+    candidate = next(
+        item for item in build_candidate_index()
+        if item.fixture_id == "Standard-Itinerary-Norway.xlsx::212"
+    )
+    review = render_candidate_review(candidate)
+    codes = {issue.code for issue in review.score.issues}
+
+    assert "transport_product_rendered_as_activity" not in codes

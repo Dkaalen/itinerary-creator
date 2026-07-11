@@ -55,3 +55,12 @@ def test_run_on_supplier_sections_still_extract_clean_inclusions() -> None:
         "Harbor ferry ride through the canals",
         "Change of guards at the royal palace",
     ]
+
+
+def test_parallel_supplier_time_options_are_paired_by_position():
+    source = (
+        "Helsinki: A Finntastic Walking Tour - Time: "
+        "10:30 am / 1:30 pm - 12:45 pm / 3:45 pm - Meeting point: Senate Square"
+    )
+
+    assert extract_time_from_description(source) == "10:30 AM - 12:45 PM / 1:30 PM - 3:45 PM"

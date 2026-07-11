@@ -182,3 +182,43 @@ def test_legacy_string_image_match_is_normalized_for_audit_and_render_slot():
         assert not any(warning.severity == "error" for warning in warnings)
         assert 'data-image-path="' in html
         assert "Oslo_Summer_City_01.webp" in html
+
+
+def test_automatic_conflicting_default_is_an_error_if_it_reaches_audit():
+    with tempfile.TemporaryDirectory() as tmp:
+        bank = Path(tmp) / "image_bank"
+        default_dir = bank / "Default"
+        default_dir.mkdir(parents=True)
+        image_path = default_dir / "Default_Winter_Reindeer_Sledding_01.webp"
+        image_path.write_bytes(b"fake image")
+
+        grouped = {
+            "Day 2": [
+                {
+                    "day": "Day 2",
+                    "date": "02.07.2027",
+                    "type": "Activity",
+                    "effective_type": "Activity",
+                    "city": "Reykjavik",
+                    "title": "Whale watching from the harbour",
+                }
+            ]
+        }
+        matches = {
+            "Day 2": {
+                "path": str(image_path),
+                "city": "Default",
+                "is_default": True,
+                "reason": "global default fallback",
+            }
+        }
+
+        warnings = audit_day_image_matches(grouped, matches, output_edits={}, image_bank_scan_paths=bank)
+
+        mismatches = [
+            warning
+            for warning in warnings
+            if warning.code in {"automatic_image_context_mismatch", "image_protected_specialty_mismatch"}
+        ]
+        assert mismatches
+        assert all(warning.severity == "error" for warning in mismatches)

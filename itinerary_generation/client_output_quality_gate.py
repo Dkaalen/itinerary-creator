@@ -13,7 +13,7 @@ from itinerary_generation.generation_quality_gate import BLOCKING, WARNING, Itin
 from itinerary_generation.quality_gate_patterns import AURORA_REVIEW_PATTERN, FORBIDDEN_CLIENT_PATTERNS, PRICE_CLIENT_PATTERN_MESSAGE, RAW_SUPPLIER_FIELD_RE, SUSPICIOUS_AM_PM_TIME_RANGE_RE
 
 
-def evaluate_client_output_quality(render_document: Any, *, day_images: Mapping | None = None, image_bank_status: Mapping[str, Any] | None = None) -> ClientOutputQualityGateReport:
+def evaluate_client_output_quality(render_document: Any, *, day_images: Mapping | None = None, image_bank_status: Mapping[str, Any] | None = None, source_rows: Any = None) -> ClientOutputQualityGateReport:
     issues = []; text = render_document_text(render_document)
     for code, pattern, message in FORBIDDEN_CLIENT_PATTERNS:
         if re.search(pattern, text, flags=re.IGNORECASE): issues.append(ItineraryValidationIssue(BLOCKING, code, message))
@@ -23,7 +23,7 @@ def evaluate_client_output_quality(render_document: Any, *, day_images: Mapping 
     if RAW_SUPPLIER_FIELD_RE.search(raw_supplier_scan_text(render_document)): issues.append(ItineraryValidationIssue(BLOCKING, "raw_supplier_field_leak", "Raw supplier section labels leaked into generated client output."))
     for context in _meta_lines_with_time_warnings(render_document): issues.append(ItineraryValidationIssue(BLOCKING, "supplier_warning_in_time_field", "Supplier warning text leaked into a Time field.", context=context))
     for context in _bare_activity_blocks(render_document): issues.append(ItineraryValidationIssue(BLOCKING, "bare_activity_inclusion_heading", "Activity block has a heading but no supporting client-facing text.", context=context))
-    issues.extend(_journey_arc_phrase_issues(render_document)); issues.extend(client_truth_issues(render_document)); issues.extend(_image_match_issues(day_images)); issues.extend(_image_bank_status_issues(image_bank_status))
+    issues.extend(_journey_arc_phrase_issues(render_document)); issues.extend(client_truth_issues(render_document, source_rows=source_rows)); issues.extend(_image_match_issues(day_images)); issues.extend(_image_bank_status_issues(image_bank_status))
     return ClientOutputQualityGateReport(tuple(issues))
 
 

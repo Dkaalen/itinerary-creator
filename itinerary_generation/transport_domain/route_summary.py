@@ -10,8 +10,9 @@ from __future__ import annotations
 import re
 from typing import Mapping, Sequence
 
-from itinerary_generation.common import TRANSPORT_TYPES, get_row_type
-from itinerary_generation.day_route_text import _canonical_route_city
+from itinerary_generation.common_constants import TRANSPORT_TYPES
+from itinerary_generation.row_filters import get_row_type
+from itinerary_generation.transport_domain.route_cleaning import canonical_route_city
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title
@@ -85,9 +86,9 @@ def summarize_route_from_rows(day_rows: Sequence[Mapping[str, object]]) -> tuple
                 mode = row_type.lower()
         route_origin, route_destination = get_route_points_for_transport(row_dict)
         if route_origin and not origin:
-            origin = _canonical_route_city(base_destination_from_terminal(route_origin) or route_origin)
+            origin = canonical_route_city(base_destination_from_terminal(route_origin) or route_origin)
         if route_destination:
-            destination = _canonical_route_city(base_destination_from_terminal(route_destination) or route_destination)
+            destination = canonical_route_city(base_destination_from_terminal(route_destination) or route_destination)
     return origin, destination, mode
 
 
@@ -176,7 +177,7 @@ def destination_city_from_travel_rows(day_rows: Sequence[Mapping[str, object]]) 
         if candidate and lower_candidate not in _INVALID_TRAVEL_DESTINATION_WORDS and not any(
             bad in lower_candidate for bad in _BAD_DESTINATION_FRAGMENTS
         ):
-            destination_city = _canonical_route_city(base_destination_from_terminal(candidate) or candidate)
+            destination_city = canonical_route_city(base_destination_from_terminal(candidate) or candidate)
             continue
         title_match = re.search(
             r"\bto\s+([A-Za-zÀ-ÿøØåÅäÄöÖ]+(?:\s+[A-Za-zÀ-ÿøØåÅäÄöÖ]+)?)\s*$",
@@ -184,7 +185,7 @@ def destination_city_from_travel_rows(day_rows: Sequence[Mapping[str, object]]) 
             flags=re.IGNORECASE,
         )
         if title_match and title_match.group(1).lower() not in _INVALID_TRAVEL_DESTINATION_WORDS:
-            destination_city = _canonical_route_city(base_destination_from_terminal(title_match.group(1)) or title_match.group(1))
+            destination_city = canonical_route_city(base_destination_from_terminal(title_match.group(1)) or title_match.group(1))
     return destination_city
 
 

@@ -6,6 +6,7 @@ import re
 from typing import Mapping
 
 from itinerary_generation.activity_identity_contract import ActivityIdentity
+from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text
 
@@ -36,6 +37,21 @@ def description_for_activity_identity(row: Mapping[str, object], identity: Activ
     city = canonicalize_place_name(row.get("city", ""))
     place = f" in {city}" if city else ""
     family = identity.canonical_family.casefold()
+
+    if family == "norway_in_a_nutshell" or identity.product_type == "scenic_route":
+        journey = resolve_nutshell_journey(row)
+        origin = journey.origin if journey else city
+        destination = journey.destination if journey else ""
+        route = (
+            f" from {origin} to {destination}"
+            if origin and destination
+            else f" towards {destination}"
+            if destination
+            else ""
+        )
+        return polish_client_text(
+            f"Follow the Norway in a Nutshell route{route}, with rail, coach and fjord-cruise segments arranged as one scenic journey."
+        )
 
     if family == "northern_lights_activity" and (
         "ice floating" in lower

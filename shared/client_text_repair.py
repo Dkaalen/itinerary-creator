@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 
+from shared.text_cleanup_rules import apply_case_replacements, apply_common_text_replacements
 from text_polish import polish_client_text
 
 COMMON_TEXT_REWRITES: tuple[tuple[str, str], ...] = (
@@ -24,6 +25,7 @@ COMMON_TEXT_REWRITES: tuple[tuple[str, str], ...] = (
     (r"\bcenrally\b", "centrally"),
     (r"\bofficie\b|\boffcie\b", "office"),
     (r"\bluggaes\b|\bluagges\b|\bluggages\b", "luggage"),
+    (r"\bmilage\b", "mileage"),
     (r"\bFight\s*:", "Flight:"),
     (r"\bDate\s+dependant\b|\bDate\s+dependent\b", "Timing to be confirmed"),
     (r"\b2s\s+Sitting\b", "Second class seating"),
@@ -56,6 +58,8 @@ def repair_messy_client_text(value: str) -> str:
     if not text:
         return ""
     text = text.replace("–", "-").replace("—", "-")
+    text = apply_common_text_replacements(text)
+    text = apply_case_replacements(text)
     for pattern, repl in COMMON_TEXT_REWRITES:
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
     for pattern, repl in PLACE_REWRITES:

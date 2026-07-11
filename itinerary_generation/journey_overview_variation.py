@@ -22,6 +22,27 @@ def _activity_title(rows: Sequence[Mapping[str, object]]) -> str:
     return ""
 
 
+def _compact_activity_title(rows: Sequence[Mapping[str, object]], chapter: str) -> str:
+    title = _activity_title(rows)
+    if not title:
+        return ""
+    if len(title) <= 48:
+        return title
+
+    source = " ".join(
+        _clean(value)
+        for row in rows
+        for value in (row.get("title", ""), row.get("original_title", ""), row.get("details", ""))
+    ).casefold()
+    if "northern lights" in source or "aurora" in source:
+        return "Northern Lights experience"
+    if "whale" in source:
+        return "Whale watching experience"
+    if "fjord" in source or "cruise" in source:
+        return "Fjord and coastal scenery"
+    return f"Arranged experiences in {chapter}" if chapter else "Arranged experiences"
+
+
 def distinct_chapter_experience(
     rows: Sequence[Mapping[str, object]],
     chapter: str,
@@ -45,7 +66,7 @@ def distinct_chapter_experience(
         alternatives = [f"Return to {chapter}"]
     else:
         alternatives = []
-    activity = _activity_title(rows)
+    activity = _compact_activity_title(rows, chapter)
     if activity:
         alternatives.append(activity)
     if "Arrival" in row_types:

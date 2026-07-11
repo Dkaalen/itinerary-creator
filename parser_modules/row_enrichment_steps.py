@@ -23,8 +23,8 @@ from parser_modules.hotels import parse_hotel_details
 from parser_modules.raw_row_context import fix_common_text_for_row, strip_matching_type_prefix
 from parser_modules.row_quality import annotate_parser_quality
 
-_CITY_REQUIRED_TYPES = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
-_TRANSPORT_EFFECTIVE_TYPES = {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
+_CITY_REQUIRED_TYPES = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
+_TRANSPORT_EFFECTIVE_TYPES = {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
 
 
 def prepare_main_text(row: dict, *, description: str, item_type: str, separate_city: str) -> str:

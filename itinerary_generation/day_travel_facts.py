@@ -9,7 +9,7 @@ from itinerary_generation.day_city_facts import canonical_city, row_text
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
 
-TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus"}
+TRAVEL_ROW_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bus", "Drive"}
 STATION_WORDS = ("station", "airport", "harbour", "harbor", "port", "terminal", "pier", "dock")
 OVERNIGHT_MARKERS = ("overnight", "night train", "sleeper", "sleeping compartment", "night ferry", "night cruise")
 

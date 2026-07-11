@@ -46,4 +46,4 @@ def group_tour_day_intro(rows: Iterable[Mapping[str, Any]]) -> str:
         if meeting: logistics.append(f"from {meeting}")
         return polish_client_text(f"{lead}{' with ' + ' '.join(logistics) if logistics else ''}. The first{f' {season}' if season in {'summer', 'winter'} else ''} programme day focuses on {title}.")
     if duration and segment.package_day_number == duration: return polish_client_text(f"Complete your guided group tour with {title}, following the final planned route and conditions shown below.")
-    return polish_client_text(f"Continue your guided group tour with {title}, following the day-by-day programme arranged for this stage of the journey.")
+    return polish_client_text(f"{title} is the focus of today’s guided programme, following the planned route and arrangements for this stage of the journey.")

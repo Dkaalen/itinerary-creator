@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from itinerary_generation.activity_products import fingerprint_activity
+from itinerary_domain.activity_products import fingerprint_activity
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
-from itinerary_generation.transport_norway import (
+from itinerary_domain.transport_norway import (
     _is_norway_in_a_nutshell_text,
     explicit_norway_nutshell_title,
     extract_norway_nutshell_route_points,

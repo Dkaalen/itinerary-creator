@@ -8,6 +8,7 @@ from itinerary_generation.canonical_activity import canonical_activity_block
 from itinerary_generation.common import get_primary_city, get_row_type
 from itinerary_generation.day_facts import build_day_facts
 from itinerary_generation.day_intent import classify_day_intent
+from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
 from itinerary_generation.day_leisure_writer import create_leisure_copy, plan_leisure_decision
 from itinerary_generation.render_model import RenderBlock, RenderMetaLine
 from itinerary_generation.render_text_helpers import normalize_list
@@ -19,6 +20,8 @@ from text_polish import polish_client_text, polish_inclusion_items, polish_title
 def _is_blank_activity_row(row):
     if get_row_type(row) != "Activity":
         return False
+    if is_blank_activity_or_leisure(row):
+        return True
     raw = " ".join(str(row.get(key, "") or "").strip() for key in ["title", "details", "original_title"] if str(row.get(key, "") or "").strip())
     raw = " ".join(raw.split()).strip()
     city = " ".join(str(row.get("city", "") or "").split()).strip()
