@@ -1,8 +1,8 @@
 {
   "summary": {
-    "Discovered test modules": 300,
-    "Discovered test functions": 1604,
-    "Modules covered by at least one named group": 300,
+    "Discovered test modules": 301,
+    "Discovered test functions": 1609,
+    "Modules covered by at least one named group": 301,
     "Modules covered only by full/remaining": 0,
     "Critical group modules": 3,
     "Fast group modules": 19,

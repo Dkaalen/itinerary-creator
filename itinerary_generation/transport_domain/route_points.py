@@ -116,6 +116,22 @@ def _scheduled_route_points_from_source(source_text: str) -> tuple[str, str]:
     return "", ""
 
 
+
+
+def _route_from_self_drive_row(row) -> tuple[str, str]:
+    """Use the row city as origin for imperative self-drive titles."""
+
+    row_type = str(row.get("effective_type") or row.get("type") or "")
+    if row_type != "Drive":
+        return "", ""
+    origin = _row_city_origin(row)
+    for key in ("title", "original_title", "details"):
+        _parsed_origin, destination = extract_route_points(str(row.get(key, "") or ""))
+        destination = _clean_route_place(destination)
+        if origin and destination and origin.casefold() != destination.casefold():
+            return origin, destination
+    return "", ""
+
 def _route_from_structured_transport_sources(row, source_text: str) -> tuple[str, str]:
     for origin, destination in (
         _explicit_product_route_from_row_city(row),
@@ -197,8 +213,12 @@ def _route_from_title_with_source_origin(row) -> tuple[str, str]:
     title_lower = str(row.get("title", "") or "").lower()
     city_origin = _clean_route_place(row.get("city", ""))
     if city_origin and city_origin.lower() != title_destination.lower() and (
-        row_type in {"Flight", "Cruise", "Ferry", "Train"}
-        or "flight" in title_lower or "cruise" in title_lower or "ferry" in title_lower or "train" in title_lower
+        row_type in {"Flight", "Cruise", "Ferry", "Train", "Drive"}
+        or "flight" in title_lower
+        or "cruise" in title_lower
+        or "ferry" in title_lower
+        or "train" in title_lower
+        or title_lower.startswith("drive ")
     ):
         return city_origin, title_destination
     return title_origin, title_destination
@@ -224,6 +244,7 @@ def _route_from_unstructured_fallbacks(row) -> tuple[str, str]:
 def _get_route_points_for_transport_uncached(row):
     source_text = _transport_source_text(row)
     for resolver in (
+        lambda: _route_from_self_drive_row(row),
         lambda: _route_from_structured_transport_sources(row, source_text),
         lambda: _route_from_explicit_transport_fields(row, source_text),
         lambda: _route_from_dash_or_station_patterns(row, source_text),

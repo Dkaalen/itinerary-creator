@@ -8,6 +8,7 @@ from typing import Any, Sequence
 from generator import group_rows_by_day
 from itinerary_generation.transport_domain.facts import build_transport_facts
 from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
+from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
 from itinerary_generation.quality_gate import evaluate_client_output_quality
 from itinerary_generation.generation_quality_gate import BLOCKING
@@ -310,7 +311,9 @@ def _score_city_activity_mismatch(issues: list[OutputTextIssue], day_id: str, da
     if match:
         first_city = _clean_text(match.group(1))
         second_city = _clean_text(match.group(2)).rstrip(".")
-        if first_city and second_city and first_city.casefold() != second_city.casefold():
+        first_record = destination_for_alias(first_city)
+        second_record = destination_for_alias(second_city)
+        if first_record and second_record and first_record.name.casefold() != second_record.name.casefold():
             _add_issue(
                 issues,
                 "activity_city_mismatch",

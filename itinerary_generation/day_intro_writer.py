@@ -153,6 +153,10 @@ def _route_intro(facts: DayFacts) -> str:
 
 
 def _profile_route_intro(facts: DayFacts) -> str:
+    # Self-drive prose is owned by Day Brain so route profiles cannot replace
+    # clear "Drive from ... to ..." or return-visit wording.
+    if facts.has_self_drive:
+        return ""
     combined_text = " ".join(row_text(row) for row in facts.rows).lower()
     if "tallinn" in combined_text:
         return ""
@@ -217,6 +221,8 @@ def _scheduled_activity_intro(facts: DayFacts) -> str:
     combined_title = f"{first} and {last}" if first != last else first
     if schedule.has_morning_activity and schedule.has_evening_activity:
         return f"Today is built around {first}, followed by {last} later on, with the time between them kept light and easy."
+    if schedule.has_evening_activity:
+        return f"Begin with {first} at your own pace, then join {last} later in the day, with the schedule kept flexible between the two experiences."
     composed_intro = client_activity_intro(combined_title, city, source_text)
     if "main arranged experience" not in composed_intro:
         return composed_intro
@@ -253,13 +259,13 @@ def _return_visit_intro(facts: DayFacts, profile_route_intro: str, city: str) ->
             f"Head out on today’s planned journey before returning to {place}, "
             "with the travel timings and overnight stay kept together below."
         )
-    if profile_route_intro:
-        return profile_route_intro
     if facts.has_self_drive:
         origin = _city(facts.route_origin or facts.start_city)
         if origin and origin.casefold() != place.casefold():
             return f"Drive from {origin} back to {place}, with the route and overnight stay forming the focus of the day."
         return f"Drive back to {place}, with the route and overnight stay forming the focus of the day."
+    if profile_route_intro:
+        return profile_route_intro
     if facts.has_travel:
         if facts.has_activity:
             return f"Return to {place}, with the onward route and included experience arranged together."
@@ -336,6 +342,8 @@ def _write_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
         return activity_text
 
     if intent == DayIntent.TRAVEL_DAY:
+        if facts.has_self_drive:
+            return f"{_travel_phrase(facts)}, with the route and key logistics listed below."
         route_intro = _route_intro(facts)
         if route_intro:
             return route_intro

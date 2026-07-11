@@ -197,8 +197,10 @@ def _add_route_and_city_candidates(candidates, signals):
         candidates.append("Oslofjord cruise and capital welcome" if signals.has_arrival else "City sights and Oslofjord cruising")
     if signals.chapter_city.lower() == "kristiansand" and _has(text, "coastal cruise", "cruise to bergen", "southern norway", "southern coastal"):
         candidates.append("South Coast and coastal cruise")
-    if _has(text, "otra river", "kayaking", "kayak"):
+    if _has(text, "otra river") or (signals.chapter_city.lower() == "kristiansand" and _has(text, "kayaking", "kayak")):
         candidates.append("Otra River kayaking and southern coast")
+    elif _has(text, "nærøyfjord", "naeroyfjord") and _has(text, "kayaking", "kayak"):
+        candidates.append("Nærøyfjord kayaking and onward travel")
     if _has(text, "lysefjord", "preikestolen", "pulpit rock"):
         candidates.append("Lysefjord and Preikestolen cruise")
     if _has(text, "guided walking tour of bergen", "bergen past & present") and signals.has_cable:

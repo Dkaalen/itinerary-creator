@@ -1,10 +1,10 @@
 Test-suite QA health report
 ===========================
-Discovered test modules: 300
-Discovered test functions: 1604
+Discovered test modules: 301
+Discovered test functions: 1609
 Named runner groups: critical, fast, parser, activity, architecture, calculator, editor, images, storage, ui, workflow, quality, pdf, slow
 Release candidate groups: critical, fast, calculator, storage, workflow, parser, activity, architecture, editor, images, ui, quality, pdf
-Modules covered by at least one named group: 300
+Modules covered by at least one named group: 301
 Modules covered only by full/remaining: 0
 Critical group modules: 3
 Fast group modules: 19

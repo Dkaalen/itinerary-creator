@@ -269,7 +269,7 @@ def route_profile_for_row(row: Mapping[str, object]) -> RouteCopyProfile | None:
 
 
 def _main_route_row(day_rows: Sequence[Mapping[str, object]]) -> Mapping[str, object] | None:
-    travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) == "Transfer" or is_route_transfer(row)]
+    travel_rows = [row for row in day_rows if get_row_type(row) in TRANSPORT_TYPES or get_row_type(row) in {"Transfer", "Drive"} or is_route_transfer(row)]
     if not travel_rows:
         return None
     # Prefer named/scenic product rows over local transfers.
@@ -280,6 +280,16 @@ def _main_route_row(day_rows: Sequence[Mapping[str, object]]) -> Mapping[str, ob
     for row in travel_rows:
         source = get_transport_source_text(row).lower()
         if "coastal" in source and "cruise" in source:
+            return row
+    # Prefer a real route row over local first/last-mile transfer instructions.
+    # Service prose such as "self transfer ... to the car rental office" must
+    # never become the geographic origin of a self-drive day.
+    for row in travel_rows:
+        row_type = get_row_type(row)
+        if row_type == "Transfer":
+            continue
+        origin, destination = get_route_points_for_transport(row)
+        if origin and destination and origin.casefold() != destination.casefold():
             return row
     for row in travel_rows:
         if get_row_type(row) in TRANSPORT_TYPES:

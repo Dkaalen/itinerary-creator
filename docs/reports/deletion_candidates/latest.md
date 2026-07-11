@@ -105,7 +105,7 @@ Held back for compatibility/safety: 235
 | `itinerary_generation/destination_copy.py` | facade-like module with production importers | 7 | still has static importers |
 | `itinerary_generation/destination_profile_model.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/destination_profiles.py` | facade-like module with production importers | 3 | still has static importers |
-| `itinerary_generation/destination_registry.py` | facade-like module with production importers | 19 | still has static importers |
+| `itinerary_generation/destination_registry.py` | facade-like module with production importers | 20 | still has static importers |
 | `itinerary_generation/editable_draft.py` | facade-like module with production importers | 18 | still has static importers |
 | `itinerary_generation/editable_draft_core.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/editable_draft_legacy_bridge.py` | facade-like module with production importers | 1 | still has static importers |

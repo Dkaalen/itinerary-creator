@@ -935,6 +935,7 @@
         "itinerary_generation/input_review_rows.py",
         "itinerary_generation/route_intelligence.py",
         "scripts/export_destination_registry.py",
+        "scripts/real_output_qa/scoring.py",
         "tests/test_content1_destination_copy_library.py",
         "tests/test_denmark_destination_expansion_regression.py",
         "tests/test_destination_copy_profiles3_regression.py",

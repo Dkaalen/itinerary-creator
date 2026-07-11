@@ -87,6 +87,10 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
         lambda title, city: f"Walk through {city} with {title}, using local stories, historic streets and key landmarks to give the place more context.",
     ),
     TextRule(
+        ("crystal lavvo", "lavvo stay", "glass igloo", "igloo stay"),
+        lambda title, city: f"Travel from {city} for {title}, with the overnight setting, included activities and evening sky-watching forming one complete Arctic experience.",
+    ),
+    TextRule(
         ("northern lights", "aurora"),
         lambda title, city: "The day is kept easy around your evening Northern Lights experience, giving you time to settle before heading out with local guidance after dark.",
     ),
@@ -109,7 +113,7 @@ ACTIVITY_INTRO_RULES: tuple[TextRule, ...] = (
     ),
     TextRule(
         ("photo", "sommar", "landscape"),
-        lambda title, city: f"Set out from {city} for a scenery-led experience, with the route shaped around light, weather and the best viewpoints of the day.",
+        lambda title, city: f"Set out from {city} on {title}, with the route shaped around light, weather and the best viewpoints of the day.",
     ),
 )
 
