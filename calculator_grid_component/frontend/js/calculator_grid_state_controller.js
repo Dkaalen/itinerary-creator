@@ -3,7 +3,10 @@ let activeCell = null;
 let activeBackendRevision = null;
 let activeDraftStorageKey = null;
 let hasLocalDraft = false;
-let backendSyncTimer = null;
+let localDraftSaveTimer = null;
+let recoverySnapshotTimer = null;
+const LOCAL_DRAFT_SAVE_DELAY_MS = 400;
+const RECOVERY_SNAPSHOT_DELAY_MS = 2500;
 
 function initializeState(payload) {
   const incomingDraftStorageKey = setCalculatorDraftStorageKey(payload.draft_storage_key);
@@ -79,18 +82,37 @@ function markLocalDraft(captureVersion = true, runValidation = true) {
   calculatorState.dirty = true;
   calculatorState.syncStatus = 'Unsaved changes';
   if (runValidation) validateCalculatorState(calculatorState);
-  saveCalculatorDraft(calculatorState, activeBackendRevision);
-  if (captureVersion) calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'edit');
-  scheduleBackendSync();
+  scheduleLocalDraftSave();
+  if (captureVersion) scheduleRecoverySnapshot();
   refreshSyncStatusOnly();
 }
 
-function scheduleBackendSync(delay = 650) {
-  window.clearTimeout(backendSyncTimer);
-  backendSyncTimer = window.setTimeout(() => submitAction('sync'), delay);
+function scheduleLocalDraftSave(delay = LOCAL_DRAFT_SAVE_DELAY_MS) {
+  window.clearTimeout(localDraftSaveTimer);
+  localDraftSaveTimer = window.setTimeout(() => {
+    localDraftSaveTimer = null;
+    saveCalculatorDraft(calculatorState, activeBackendRevision);
+  }, delay);
 }
 
-function flushBackendSync() {
-  window.clearTimeout(backendSyncTimer);
-  submitAction('sync');
+function flushLocalDraftSave() {
+  window.clearTimeout(localDraftSaveTimer);
+  localDraftSaveTimer = null;
+  saveCalculatorDraft(calculatorState, activeBackendRevision);
+}
+
+function scheduleRecoverySnapshot(reason = 'edit', delay = RECOVERY_SNAPSHOT_DELAY_MS) {
+  window.clearTimeout(recoverySnapshotTimer);
+  recoverySnapshotTimer = window.setTimeout(() => {
+    recoverySnapshotTimer = null;
+    calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, reason);
+    refreshVersionHistoryCount();
+  }, delay);
+}
+
+function flushRecoverySnapshot(reason = 'edit') {
+  window.clearTimeout(recoverySnapshotTimer);
+  recoverySnapshotTimer = null;
+  calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, reason);
+  refreshVersionHistoryCount();
 }

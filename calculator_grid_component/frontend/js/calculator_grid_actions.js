@@ -42,18 +42,12 @@ function bindEvents() {
     refreshTotalsOnly();
     refreshValidationAndStatus();
   });
-  paxInput?.addEventListener('blur', () => {
-    commitCellEdit();
-    scheduleBackendSync(250);
-  });
+  paxInput?.addEventListener('blur', commitCellEdit);
 
   const formulaBar = document.querySelector('[data-action="formula-bar"]');
   formulaBar?.addEventListener('focus', beginCellEdit);
   formulaBar?.addEventListener('input', (event) => updateActiveCellFromFormulaBar(event.target.value));
-  formulaBar?.addEventListener('blur', () => {
-    commitCellEdit();
-    scheduleBackendSync(250);
-  });
+  formulaBar?.addEventListener('blur', commitCellEdit);
   formulaBar?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -92,8 +86,9 @@ function bindEvents() {
 }
 
 function submitAction(action) {
-  window.clearTimeout(backendSyncTimer);
   commitCellEdit();
+  flushLocalDraftSave();
+  flushRecoverySnapshot();
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
   const errors = validateCalculatorState(calculatorState);
   if (errors.length) {
@@ -104,7 +99,7 @@ function submitAction(action) {
   saveCalculatorDraft(calculatorState, activeBackendRevision);
   const rows = normalizeRowsForPython(calculatorState.rows);
   calculatorState.dirty = false;
-  calculatorState.syncStatus = action === 'sync' ? 'Syncing…' : 'Saving latest grid…';
+  calculatorState.syncStatus = action === 'sync' ? 'Syncing…' : 'Preparing latest grid…';
   refreshSyncStatusOnly();
   Streamlit.setComponentValue(JSON.stringify({
     action,
@@ -139,8 +134,16 @@ function handleGlobalCalculatorShortcut(event) {
 
 document.addEventListener('keydown', handleGlobalCalculatorShortcut);
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden' || !calculatorState?.dirty) return;
+  flushLocalDraftSave();
+  flushRecoverySnapshot();
+});
+
 window.addEventListener('beforeunload', (event) => {
   if (!calculatorState?.dirty) return;
+  flushLocalDraftSave();
+  flushRecoverySnapshot();
   event.preventDefault();
   event.returnValue = '';
 });

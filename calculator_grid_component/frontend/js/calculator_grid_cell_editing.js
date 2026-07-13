@@ -1,4 +1,26 @@
 let activeCellEditing = false;
+const CALCULATOR_RECALCULATION_INPUT_KEYS = new Set([
+  'gross_price_per_unit',
+  'units',
+  'supplier_commission',
+  'supplier_currency',
+  'sales_price_per_unit',
+  'sales_currency',
+  'vat25',
+  'vat15',
+  'vat12',
+  'vat0_domestic',
+  'vat0_international',
+  'gross_price',
+  'net_price',
+  'supplier_x_rate',
+  'net_price_nok',
+  'price',
+  'sales_x_rate',
+  'sales_price_nok_total',
+  'gp_nok',
+  'gp_percent'
+]);
 
 function sameActiveCell(rowIndex, key) {
   return Boolean(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === key);
@@ -66,13 +88,15 @@ function handleCellInput(event) {
   const cell = event.currentTarget;
   const rowIndex = Number(cell.dataset.rowIndex || 0);
   const key = cell.dataset.key;
-  updateRowValue(rowIndex, key, cell.textContent || '');
+  const recalculated = updateRowValue(rowIndex, key, cell.textContent || '');
   markLocalDraft(false, false);
   if (key === 'day' || key === 'from_date') refreshDateCells();
-  refreshDefaultedEditableCells(rowIndex);
-  refreshFormulaCells(calculatorUsesA1References() ? null : rowIndex);
-  refreshTotalsOnly();
-  refreshValidationAndStatus();
+  if (recalculated) {
+    refreshDefaultedEditableCells(rowIndex);
+    refreshFormulaCells(calculatorUsesA1References() ? null : rowIndex);
+    refreshTotalsOnly();
+    refreshValidationAndStatus();
+  }
   refreshFormulaBarOnly();
   if (key === 'travel_element') scheduleSuggestions(rowIndex, cell.textContent || '');
 }
@@ -201,7 +225,6 @@ function handleCellBlur(event) {
   }
   commitCellEdit();
   setCellEditingMode(cell, false);
-  scheduleBackendSync(250);
 }
 
 function handleCheckboxChange(event) {
@@ -211,7 +234,6 @@ function handleCheckboxChange(event) {
   recordHistory();
   updateRowValue(rowIndex, key, Boolean(checkbox.checked));
   markLocalDraft();
-  scheduleBackendSync(250);
 }
 
 function columnKind(key) {
@@ -237,9 +259,15 @@ function updateRowValue(rowIndex, key, rawValue, recalculate = true) {
   else if (kind === 'number') row[key] = rawValue === '' ? '' : numericStorageValue(rawValue);
   else row[key] = normalizedTextValue(key, rawValue);
   if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
-  if (recalculate) {
+  const needsCalculation = recalculate && calculatorInputAffectsCalculations(key);
+  if (needsCalculation) {
     calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   }
+  return needsCalculation;
+}
+
+function calculatorInputAffectsCalculations(key) {
+  return CALCULATOR_RECALCULATION_INPUT_KEYS.has(key);
 }
 
 function numericStorageValue(rawValue) {
@@ -340,12 +368,14 @@ function activeCellRawValue() {
 
 function updateActiveCellFromFormulaBar(value) {
   if (!activeCell) return;
-  updateRowValue(activeCell.rowIndex, activeCell.key, value);
+  const recalculated = updateRowValue(activeCell.rowIndex, activeCell.key, value);
   markLocalDraft(false, false);
-  refreshDefaultedEditableCells(activeCell.rowIndex);
-  refreshFormulaCells(calculatorUsesA1References() ? null : activeCell.rowIndex);
-  refreshTotalsOnly();
-  refreshValidationAndStatus();
+  if (recalculated) {
+    refreshDefaultedEditableCells(activeCell.rowIndex);
+    refreshFormulaCells(calculatorUsesA1References() ? null : activeCell.rowIndex);
+    refreshTotalsOnly();
+    refreshValidationAndStatus();
+  }
 }
 
 function restoreActiveCellFocus() {

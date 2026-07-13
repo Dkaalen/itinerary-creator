@@ -58,11 +58,13 @@ def test_calculator_component_payload_revision_changes_when_rows_change() -> Non
     repeat_payload = build_calculator_grid_payload(first, library_read)
     second_payload = build_calculator_grid_payload(second, library_read)
     advanced_payload = build_calculator_grid_payload(first, library_read, show_advanced=True)
+    changed_rates_payload = build_calculator_grid_payload(first, library_read, currency_rates={"NOK": 1, "EUR": 99})
     pax_payload = build_calculator_grid_payload(pax_changed, library_read)
 
     assert first_payload["state_revision"] == repeat_payload["state_revision"]
     assert first_payload["state_revision"] != second_payload["state_revision"]
-    assert first_payload["state_revision"] != advanced_payload["state_revision"]
+    assert first_payload["state_revision"] == advanced_payload["state_revision"]
+    assert first_payload["state_revision"] == changed_rates_payload["state_revision"]
     assert first_payload["state_revision"] != pax_payload["state_revision"]
 
 

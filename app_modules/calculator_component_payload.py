@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from dataclasses import asdict
 from typing import Any, Mapping
 
 from app_modules.calculator_grid_data import rows_to_table_data
@@ -33,7 +34,7 @@ def build_calculator_grid_payload(
         "itinerary_name": state.itinerary_name,
         "number_of_pax": state.number_of_pax,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
-        "state_revision": _calculator_state_revision(state, active_rates, show_advanced),
+        "state_revision": _calculator_state_revision(state),
         "draft_storage_key": _draft_storage_key(draft_namespace),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
@@ -48,16 +49,17 @@ def build_calculator_grid_payload(
 
 def _calculator_state_revision(
     state: CalculatorState,
-    currency_rates: Mapping[str, float],
-    show_advanced: bool,
 ) -> str:
-    """Return a stable row-state revision for browser draft protection."""
+    """Return a stable editable-state revision for browser draft protection.
+
+    Currency-rate and presentation changes must not invalidate an unsynced
+    browser draft. Only canonical calculator inputs and passenger count define
+    whether the backend owns a genuinely newer calculator state.
+    """
 
     payload = {
-        "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=currency_rates),
+        "rows": [asdict(row) for row in state.rows],
         "number_of_pax": state.number_of_pax,
-        "show_advanced": bool(show_advanced),
-        "currency_rates": dict(currency_rates),
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]

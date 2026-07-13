@@ -23,8 +23,7 @@ function commitCellEdit() {
   if (before !== after) {
     pushUndoSnapshot(pendingCellEditSnapshot);
     if (calculatorState) {
-      calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'edit');
-      refreshVersionHistoryCount();
+      scheduleRecoverySnapshot();
     }
   }
   pendingCellEditSnapshot = null;

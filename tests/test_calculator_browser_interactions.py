@@ -102,6 +102,208 @@ def test_arrow_keys_move_inside_text_only_while_cell_is_being_edited() -> None:
         manager.stop()
 
 
+def test_typing_pause_never_triggers_streamlit_sync_or_replaces_active_edit() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "type": "", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+            revision="non-blocking-edit",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(event.data.value);
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="type"]')
+        cell.click()
+        page.keyboard.type("Ar")
+        page.wait_for_timeout(800)
+        page.keyboard.type("rival")
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(900)
+
+        assert cell.text_content().strip() == "Arrival"
+        assert page.evaluate("calculatorState.rows[0].type") == "Arrival"
+        assert page.evaluate("document.activeElement.dataset.key") == "type"
+        assert page.evaluate("activeCellEditing") is True
+        assert page.evaluate("window.getSelection().anchorOffset") == len("Arrival") - 1
+        assert page.evaluate("window.__calculatorComponentValues") == []
+        assert page.locator("#calculator-sync-status").text_content() == "Unsaved changes"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_travel_element_autocomplete_stays_open_during_a_typing_pause() -> None:
+    library_row = {
+        "library_id": "oslo-hotel",
+        "label": "Oslo Hotel",
+        "preview": "Hotel in Oslo",
+        "travel_element": "Oslo Hotel",
+        "supplier": "Supplier",
+        "country": "Norway",
+        "category": "Hotel",
+        "type": "Hotel",
+        "comments": "",
+        "search_text": "oslo hotel norway",
+        "url": "",
+        "row_data": {
+            "row_id": "",
+            "type": "Hotel",
+            "travel_element": "Oslo Hotel",
+            "supplier": "Supplier",
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
+        },
+    }
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+            library_rows=[library_row],
+            revision="autocomplete-no-sync",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(event.data.value);
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        page.keyboard.type("Osl")
+        page.wait_for_timeout(900)
+
+        assert page.locator(".suggestion-item").count() == 1
+        assert page.evaluate("document.activeElement.dataset.key") == "travel_element"
+        assert page.evaluate("activeCellEditing") is True
+        assert page.evaluate("window.__calculatorComponentValues") == []
+
+        page.locator(".suggestion-item").click()
+        assert cell.text_content().strip() == "Oslo Hotel"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_large_grid_text_typing_avoids_full_recalculation_and_per_key_draft_writes() -> None:
+    rows = [
+        {
+            "row_id": str(index + 1),
+            "travel_element": "",
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
+            "gross_price_per_unit": 100,
+            "units": 1,
+        }
+        for index in range(93)
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="large-grid-fast-text"))
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculateRowsCalls = 0;
+                window.__draftSaveCalls = 0;
+                const originalCalculateRows = calculateRows;
+                const originalSaveCalculatorDraft = saveCalculatorDraft;
+                calculateRows = (...args) => {
+                    window.__calculateRowsCalls += 1;
+                    return originalCalculateRows(...args);
+                };
+                saveCalculatorDraft = (...args) => {
+                    window.__draftSaveCalls += 1;
+                    return originalSaveCalculatorDraft(...args);
+                };
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        page.keyboard.type("Oslo arrival hotel")
+        page.wait_for_timeout(550)
+
+        assert cell.text_content().strip() == "Oslo arrival hotel"
+        assert page.evaluate("window.__calculateRowsCalls") == 0
+        assert page.evaluate("window.__draftSaveCalls") == 1
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_explicit_download_submits_the_latest_unsynced_browser_state() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "type": "", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+            revision="explicit-submit",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="type"]')
+        cell.click()
+        page.keyboard.type("Arrival")
+        page.get_by_role("button", name="Download Excel").click()
+
+        values = page.evaluate("window.__calculatorComponentValues")
+        assert len(values) == 1
+        assert values[0]["action"] == "download"
+        assert values[0]["rows"][0]["type"] == "Arrival"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_currency_rate_rerender_keeps_the_unsynced_browser_draft() -> None:
+    initial_payload = _payload(
+        [{"row_id": "1", "travel_element": "", "supplier_currency": "EUR", "sales_currency": "NOK"}],
+        revision="stable-editable-state",
+    )
+    manager, browser, page = _browser_page(initial_payload)
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        page.keyboard.type("Oslo arrival")
+        page.wait_for_timeout(500)
+
+        changed_rates_payload = {
+            **initial_payload,
+            "rows": [{"row_id": "1", "travel_element": "", "supplier_currency": "EUR", "sales_currency": "NOK"}],
+            "currency_rates": {"NOK": 1, "EUR": 14},
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            changed_rates_payload,
+        )
+        page.wait_for_selector('td[data-row-index="0"][data-key="travel_element"]')
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Oslo arrival"
+        assert page.evaluate("calculatorState.rows[0].travel_element") == "Oslo arrival"
+        assert page.evaluate("calculatorState.currencyRates.EUR") == 14
+        assert page.locator("#calculator-sync-status").text_content() == "Unsaved changes"
+    finally:
+        browser.close()
+        manager.stop()
+
+
 def test_fetched_suggestion_returns_focus_to_grid_navigation_mode() -> None:
     library_row = {
         "library_id": "hotel-1",
@@ -298,6 +500,7 @@ def test_local_version_history_restores_an_earlier_calculator_state() -> None:
         page.keyboard.press("Tab")
 
         versions = page.get_by_role("button", name=re.compile(r"Versions \(\d+\)"))
+        page.evaluate("flushRecoverySnapshot()")
         assert int(re.search(r"\d+", versions.text_content()).group()) >= 2
         versions.click()
         version_items = page.locator('[data-version-id]')

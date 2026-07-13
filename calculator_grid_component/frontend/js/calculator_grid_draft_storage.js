@@ -158,7 +158,6 @@ function restoreCalculatorRecoverySnapshot(snapshotId) {
   hasLocalDraft = true;
   validateCalculatorState(calculatorState);
   saveCalculatorDraft(calculatorState, activeBackendRevision);
-  scheduleBackendSync();
   rerender();
   return true;
 }

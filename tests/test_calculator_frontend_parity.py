@@ -164,7 +164,9 @@ def test_frontend_contains_excel_style_state_safety_features() -> None:
     history = (_FRONTEND / "calculator_grid_history.js").read_text(encoding="utf-8")
     render = (_FRONTEND / "calculator_grid_render.js").read_text(encoding="utf-8")
 
-    assert "scheduleBackendSync" in controller and "submitAction('sync')" in controller
+    assert "scheduleLocalDraftSave" in controller
+    assert "scheduleRecoverySnapshot" in controller
+    assert "submitAction('sync')" not in controller
     assert "applyTsvAtActiveCell" in selection
     assert "fillSelection" in selection
     assert "undoCalculatorChange" in history
