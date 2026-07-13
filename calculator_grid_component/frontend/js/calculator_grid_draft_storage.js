@@ -81,3 +81,93 @@ function rowHasUserContent(row) {
   }
   return false;
 }
+
+const CALCULATOR_RECOVERY_MAX_SNAPSHOTS = 20;
+
+function calculatorRecoveryStorageKey() {
+  return `${calculatorDraftStorageKey}.versions`;
+}
+
+function loadCalculatorRecoverySnapshots() {
+  try {
+    const raw = window.localStorage.getItem(calculatorRecoveryStorageKey());
+    if (!raw) return [];
+    const snapshots = JSON.parse(raw);
+    if (!Array.isArray(snapshots)) return [];
+    const cutoff = Date.now() - CALCULATOR_DRAFT_MAX_AGE_MS;
+    return snapshots
+      .filter((snapshot) => snapshot && Array.isArray(snapshot.rows) && Number(snapshot.savedAt || 0) >= cutoff)
+      .slice(0, CALCULATOR_RECOVERY_MAX_SNAPSHOTS);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function calculatorRecoverySignature(state) {
+  return JSON.stringify({
+    rows: normalizeRowsForPython(state.rows),
+    numberOfPax: state.numberOfPax ?? null,
+    showAdvanced: Boolean(state.showAdvanced),
+    columnWidths: {...(state.columnWidths || {})}
+  });
+}
+
+function saveCalculatorRecoverySnapshot(state, backendRevision, reason = 'edit') {
+  if (!state || !Array.isArray(state.rows)) return [];
+  try {
+    const snapshots = loadCalculatorRecoverySnapshots();
+    const signature = calculatorRecoverySignature(state);
+    if (snapshots[0]?.signature === signature) return snapshots;
+    const snapshot = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      rows: normalizeRowsForPython(state.rows),
+      numberOfPax: state.numberOfPax ?? null,
+      showAdvanced: Boolean(state.showAdvanced),
+      selectedRowIndex: Number(state.selectedRowIndex || 0),
+      activeCell: activeCell ? {...activeCell} : null,
+      selection: state.selection ? {...state.selection} : null,
+      columnWidths: {...(state.columnWidths || {})},
+      backendRevision: String(backendRevision || ''),
+      savedAt: Date.now(),
+      reason: String(reason || 'edit'),
+      signature
+    };
+    const updated = [snapshot, ...snapshots].slice(0, CALCULATOR_RECOVERY_MAX_SNAPSHOTS);
+    window.localStorage.setItem(calculatorRecoveryStorageKey(), JSON.stringify(updated));
+    return updated;
+  } catch (_error) {
+    return [];
+  }
+}
+
+function restoreCalculatorRecoverySnapshot(snapshotId) {
+  const snapshot = loadCalculatorRecoverySnapshots().find((item) => item.id === snapshotId);
+  if (!snapshot || !calculatorState) return false;
+  recordHistory();
+  calculatorState.rows = calculateRows(cloneRows(snapshot.rows), calculatorState.currencyRates);
+  calculatorState.numberOfPax = snapshot.numberOfPax ?? null;
+  calculatorState.showAdvanced = Boolean(snapshot.showAdvanced);
+  calculatorState.selectedRowIndex = Number(snapshot.selectedRowIndex || 0);
+  calculatorState.selection = snapshot.selection ? {...snapshot.selection} : null;
+  calculatorState.columnWidths = {...(snapshot.columnWidths || {})};
+  activeCell = snapshot.activeCell ? {...snapshot.activeCell} : null;
+  calculatorState.dirty = true;
+  calculatorState.syncStatus = `Recovered version from ${new Date(snapshot.savedAt).toLocaleString()}`;
+  calculatorState.showVersionHistory = false;
+  calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'restored');
+  hasLocalDraft = true;
+  validateCalculatorState(calculatorState);
+  saveCalculatorDraft(calculatorState, activeBackendRevision);
+  scheduleBackendSync();
+  rerender();
+  return true;
+}
+
+function clearCalculatorRecoverySnapshots() {
+  try {
+    window.localStorage.removeItem(calculatorRecoveryStorageKey());
+  } catch (_error) {
+    // No-op.
+  }
+  if (calculatorState) calculatorState.recoverySnapshots = [];
+}

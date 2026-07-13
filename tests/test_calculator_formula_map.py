@@ -12,7 +12,9 @@ from calculator.formula_map import (
     validate_formula_map,
 )
 
+from calculator.calculator_state import CalculatorState
 from calculator.template_structure import default_template_path
+from calculator.workbook_export import export_calculation_workbook
 
 def test_expected_formula_map_for_first_data_row() -> None:
     assert expected_row_formulas(7) == {
@@ -23,7 +25,7 @@ def test_expected_formula_map_for_first_data_row() -> None:
         "Y": "=Q7",
         "Z": "=ROUND(Y7*R7,2)",
         "AB": "=IFERROR(VLOOKUP(AA7,Curr!$B$2:$C$13,2,FALSE),0)",
-        "AC": "=ROUND(Y7*AB7*R7,2)",
+        "AC": "=ROUND(Z7*AB7,2)",
         "AD": "=ROUND(AC7-X7,2)",
         "AE": "=IFERROR(AD7/AC7,0)",
     }
@@ -37,8 +39,15 @@ def test_expected_formula_map_rejects_non_data_rows() -> None:
         expected_row_formulas(100)
 
 
-def test_template_formula_map_matches_representative_rows() -> None:
-    formula_map = inspect_formula_map()
+def _export_path(tmp_path):
+    path = tmp_path / "canonical-export.xlsx"
+    path.write_bytes(export_calculation_workbook(CalculatorState()).content)
+    return path
+
+
+def test_export_formula_map_matches_representative_rows(tmp_path) -> None:
+    path = _export_path(tmp_path)
+    formula_map = inspect_formula_map(path)
 
     assert tuple(formula_map.row_formulas[7]) == ROW_FORMULA_COLUMNS
     assert formula_map.row_formulas[7] == expected_row_formulas(7)
@@ -46,15 +55,15 @@ def test_template_formula_map_matches_representative_rows() -> None:
     assert formula_map.row_formulas[99] == expected_row_formulas(99)
 
 
-def test_template_totals_and_payment_formulas_are_locked() -> None:
-    formula_map = inspect_formula_map()
+def test_export_totals_and_payment_formulas_are_locked(tmp_path) -> None:
+    formula_map = inspect_formula_map(_export_path(tmp_path))
 
     assert formula_map.total_formulas == TOTAL_FORMULAS
     assert formula_map.payment_formulas == PAYMENT_FORMULAS
 
 
-def test_formula_map_validator_accepts_bundled_template() -> None:
-    assert validate_formula_map() == ()
+def test_formula_map_validator_accepts_generated_export(tmp_path) -> None:
+    assert validate_formula_map(_export_path(tmp_path)) == ()
 
 
 def test_bundled_template_preserves_excel_package_metadata() -> None:

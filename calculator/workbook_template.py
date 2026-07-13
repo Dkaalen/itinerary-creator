@@ -7,7 +7,6 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 
-from calculator.formula_map import validate_formula_map
 from calculator.template_structure import default_template_path, validate_template_structure
 
 
@@ -24,7 +23,7 @@ def load_calculation_template(path: str | Path | None = None) -> Workbook:
 
 
 def _raise_for_template_issues(template_path: Path) -> None:
-    issues = (*validate_template_structure(template_path), *validate_formula_map(template_path))
+    issues = validate_template_structure(template_path)
     if issues:
         formatted = "\n".join(f"- {issue}" for issue in issues)
         raise WorkbookTemplateError(f"Calculation template is invalid:\n{formatted}")

@@ -1,5 +1,42 @@
 const DEFAULT_RATES = {NOK: 1, EUR: 11, USD: 10, GBP: 13, DKK: 1.5, SEK: 1, ISK: 0.08, CHF: 12, CAD: 7.5, AUD: 7, PLN: 2.5, JPY: 0.07};
 const DEFAULT_CURRENCY = 'EUR';
+const CALCULATOR_DATA_START_ROW = 7;
+const CALCULATOR_DATA_END_ROW = 99;
+
+const NUMERIC_FIELD_BY_EXCEL_COLUMN = {
+  Q: 'gross_price_per_unit',
+  R: 'units',
+  T: 'supplier_commission',
+  AF: 'vat25',
+  AG: 'vat15',
+  AH: 'vat12',
+  AI: 'vat0_domestic',
+  AJ: 'vat0_international'
+};
+const FORMULA_FIELD_BY_EXCEL_COLUMN = {
+  S: 'gross_price',
+  U: 'net_price',
+  W: 'supplier_x_rate',
+  X: 'net_price_nok',
+  Z: 'price',
+  AB: 'sales_x_rate',
+  AC: 'sales_price_nok_total',
+  AD: 'gp_nok',
+  AE: 'gp_percent'
+};
+const EXCEL_COLUMN_BY_FIELD = Object.fromEntries([
+  ...Object.entries(NUMERIC_FIELD_BY_EXCEL_COLUMN),
+  ...Object.entries(FORMULA_FIELD_BY_EXCEL_COLUMN),
+  ['Y', 'sales_price_per_unit']
+].map(([column, field]) => [field, column]));
+
+class CalculatorGridFormulaError extends Error {
+  constructor(code, message, cell = '') {
+    super(message);
+    this.code = code;
+    this.cell = cell;
+  }
+}
 
 function numberValue(value) {
   const parsed = parseNumericInput(value);
@@ -18,9 +55,6 @@ function roundHalfAwayFromZero(value, digits) {
   if (!Number.isFinite(number)) return 0;
   const factor = 10 ** digits;
   const scaled = Math.abs(number) * factor;
-  // Decimal-looking inputs often land microscopically below an exact .5 after
-  // JavaScript multiplication. Use a magnitude-aware machine tolerance so the
-  // preview matches Excel ROUND and the canonical Python Decimal engine.
   const tolerance = Number.EPSILON * Math.max(1, scaled) * 4;
   const magnitude = Math.floor(scaled + 0.5 + tolerance) / factor;
   return number < 0 ? -magnitude : magnitude;
@@ -53,7 +87,7 @@ function rowHasUserValues(row) {
   for (const key of ALL_EDITABLE_KEYS) {
     if (ignore.has(key)) continue;
     const column = columnByKey(key);
-    if (column?.formula && row[formulaOverrideKey(key)] === null) continue;
+    if (column?.formula && (row[formulaOverrideKey(key)] === null || row[formulaOverrideKey(key)] === undefined)) continue;
     const value = column?.formula ? row[formulaOverrideKey(key)] : row[key];
     if (typeof value === 'boolean') {
       if (value) return true;
@@ -66,56 +100,145 @@ function rowHasUserValues(row) {
   return false;
 }
 
-function formulaValue(row, key, calculated) {
-  const override = optionalNumberValue(row[formulaOverrideKey(key)]);
-  if (override === null) return calculated;
-  if (key === 'supplier_x_rate' || key === 'sales_x_rate') return roundRate(override);
-  if (key === 'gp_percent') return roundPercent(override);
-  return roundMoney(override);
+class CalculatorGridFormulaEvaluator {
+  constructor(rows, rates) {
+    this.rows = rows || [];
+    this.rates = rates || DEFAULT_RATES;
+    this.cache = new Map();
+    this.visiting = [];
+    this.errors = {};
+  }
+
+  evaluateExpression(value, currentCell = '') {
+    try {
+      const result = evaluateNumericInput(value, (reference) => this.evaluateCell(reference));
+      return result === null ? 0 : result;
+    } catch (error) {
+      if (error instanceof CalculatorGridFormulaError) throw error;
+      const code = String(error?.message || '').startsWith('#') ? String(error.message) : '#VALUE!';
+      throw new CalculatorGridFormulaError(code, `${currentCell || 'Formula'} is invalid.`, currentCell);
+    }
+  }
+
+  evaluateCell(reference) {
+    const normalized = String(reference || '').replaceAll('$', '').toUpperCase();
+    if (this.cache.has(normalized)) return this.cache.get(normalized);
+    const match = normalized.match(/^([A-Z]{1,2})(\d+)$/);
+    if (!match) throw new CalculatorGridFormulaError('#REF!', `Invalid reference ${reference}.`, normalized);
+    const column = match[1];
+    const rowNumber = Number(match[2]);
+    if (rowNumber < CALCULATOR_DATA_START_ROW || rowNumber > CALCULATOR_DATA_END_ROW) {
+      throw new CalculatorGridFormulaError('#REF!', `${normalized} is outside calculator rows.`, normalized);
+    }
+    const rowIndex = rowNumber - CALCULATOR_DATA_START_ROW;
+    if (rowIndex >= this.rows.length) return 0;
+    const cycleIndex = this.visiting.indexOf(normalized);
+    if (cycleIndex >= 0) {
+      const cycle = [...this.visiting.slice(cycleIndex), normalized].join(' → ');
+      throw new CalculatorGridFormulaError('#CIRC!', `Circular reference: ${cycle}.`, normalized);
+    }
+    this.visiting.push(normalized);
+    try {
+      const result = this.evaluateCellValue(column, rowNumber, this.rows[rowIndex]);
+      this.cache.set(normalized, result);
+      return result;
+    } finally {
+      this.visiting.pop();
+    }
+  }
+
+  evaluateCellValue(column, rowNumber, row) {
+    const ref = `${column}${rowNumber}`;
+    const inputField = NUMERIC_FIELD_BY_EXCEL_COLUMN[column];
+    if (inputField) {
+      const value = this.evaluateExpression(row[inputField], ref);
+      // The grid displays commission as percentage points while Excel/Python stores a decimal.
+      return column === 'T' ? value / 100 : value;
+    }
+    if (column === 'Y') {
+      const gross = this.evaluateCell(`Q${rowNumber}`);
+      const raw = row.sales_price_per_unit;
+      if (raw === null || raw === undefined || String(raw).trim() === '') return gross;
+      const value = this.evaluateExpression(raw, ref);
+      return value === 0 && gross > 0 && !row._sales_price_per_unit_touched ? gross : value;
+    }
+
+    const formulaField = FORMULA_FIELD_BY_EXCEL_COLUMN[column];
+    if (formulaField) {
+      const override = row[formulaOverrideKey(formulaField)];
+      if (override !== null && override !== undefined && String(override).trim() !== '') {
+        const value = this.evaluateExpression(override, ref);
+        if (column === 'W' || column === 'AB') return roundRate(value);
+        if (column === 'AE') return roundPercent(value);
+        return roundMoney(value);
+      }
+    }
+
+    if (column === 'S') return roundMoney(this.evaluateCell(`Q${rowNumber}`) * this.evaluateCell(`R${rowNumber}`));
+    if (column === 'U') return roundMoney(this.evaluateCell(`S${rowNumber}`) * (1 - roundPercent(this.evaluateCell(`T${rowNumber}`))));
+    if (column === 'W') return currencyRate(row.supplier_currency, this.rates);
+    if (column === 'X') return roundMoney(this.evaluateCell(`U${rowNumber}`) * this.evaluateCell(`W${rowNumber}`));
+    if (column === 'Z') return roundMoney(this.evaluateCell(`Y${rowNumber}`) * this.evaluateCell(`R${rowNumber}`));
+    if (column === 'AB') return currencyRate(row.sales_currency, this.rates);
+    if (column === 'AC') return roundMoney(this.evaluateCell(`Z${rowNumber}`) * this.evaluateCell(`AB${rowNumber}`));
+    if (column === 'AD') return roundMoney(this.evaluateCell(`AC${rowNumber}`) - this.evaluateCell(`X${rowNumber}`));
+    if (column === 'AE') {
+      const sales = this.evaluateCell(`AC${rowNumber}`);
+      return sales === 0 ? 0 : this.evaluateCell(`AD${rowNumber}`) / sales;
+    }
+    throw new CalculatorGridFormulaError('#VALUE!', `${ref} is text or unsupported.`, ref);
+  }
+
+  errorForCell(reference, error) {
+    const normalized = String(reference || '').replaceAll('$', '').toUpperCase();
+    const formulaError = error instanceof CalculatorGridFormulaError
+      ? error
+      : new CalculatorGridFormulaError('#VALUE!', `${normalized} is invalid.`, normalized);
+    this.errors[normalized] = {code: formulaError.code, message: formulaError.message, cell: normalized};
+    return formulaError.code;
+  }
 }
 
 function calculateRow(row, rates) {
-  if (!rowHasUserValues(row)) {
-    for (const column of FORMULA_COLUMNS) row[column.key] = null;
-    return row;
-  }
-  const grossPerUnit = numberValue(row.gross_price_per_unit);
-  const units = numberValue(row.units);
-  const supplierCommissionDecimal = roundPercent(numberValue(row.supplier_commission) / 100);
-  const grossPrice = formulaValue(row, 'gross_price', roundMoney(grossPerUnit * units));
-  const netPrice = formulaValue(row, 'net_price', roundMoney(grossPrice * (1 - supplierCommissionDecimal)));
-  const supplierRate = formulaValue(row, 'supplier_x_rate', currencyRate(row.supplier_currency, rates));
-  const netPriceNok = formulaValue(row, 'net_price_nok', roundMoney(netPrice * supplierRate));
-  const salesPerUnit = salesPricePerUnit(row, grossPerUnit);
-  row.sales_price_per_unit = grossPerUnit === 0 && !row._sales_price_per_unit_touched ? '' : salesPerUnit;
-  const price = formulaValue(row, 'price', roundMoney(salesPerUnit * units));
-  const salesRate = formulaValue(row, 'sales_x_rate', currencyRate(row.sales_currency, rates));
-  const salesNok = formulaValue(row, 'sales_price_nok_total', roundMoney(price * salesRate));
-  const gpNok = formulaValue(row, 'gp_nok', roundMoney(salesNok - netPriceNok));
-  const gpPercent = formulaValue(row, 'gp_percent', salesNok === 0 ? 0 : gpNok / salesNok);
-
-  row.gross_price = grossPrice;
-  row.net_price = netPrice;
-  row.supplier_x_rate = supplierRate;
-  row.net_price_nok = netPriceNok;
-  row.price = price;
-  row.sales_x_rate = salesRate;
-  row.sales_price_nok_total = salesNok;
-  row.gp_nok = gpNok;
-  row.gp_percent = gpPercent;
-  return row;
-}
-
-function salesPricePerUnit(row, grossPerUnit) {
-  const salesOverride = optionalNumberValue(row.sales_price_per_unit);
-  if (!row._sales_price_per_unit_touched && (salesOverride === null || salesOverride === 0) && grossPerUnit > 0) {
-    return grossPerUnit;
-  }
-  return salesOverride === null ? grossPerUnit : salesOverride;
+  return calculateRows([row], rates)[0];
 }
 
 function calculateRows(rows, rates) {
-  return rows.map((row) => calculateRow(row, rates));
+  const evaluator = new CalculatorGridFormulaEvaluator(rows, rates);
+  rows.forEach((row, index) => {
+    row._formula_errors = {};
+    const rowNumber = CALCULATOR_DATA_START_ROW + index;
+    if (!rowHasUserValues(row)) {
+      for (const column of FORMULA_COLUMNS) row[column.key] = null;
+      return;
+    }
+
+    const grossReference = `Q${rowNumber}`;
+    let gross = 0;
+    try {
+      gross = evaluator.evaluateCell(grossReference);
+    } catch (error) {
+      row._formula_errors[grossReference] = evaluator.errorForCell(grossReference, error);
+    }
+    const salesRaw = row.sales_price_per_unit;
+    if ((salesRaw === null || salesRaw === undefined || String(salesRaw).trim() === '') && gross !== 0 && !row._sales_price_per_unit_touched) {
+      row.sales_price_per_unit = gross;
+      evaluator.cache.delete(`Y${rowNumber}`);
+    }
+
+    for (const [column, field] of Object.entries(FORMULA_FIELD_BY_EXCEL_COLUMN)) {
+      const reference = `${column}${rowNumber}`;
+      try {
+        row[field] = evaluator.evaluateCell(reference);
+      } catch (error) {
+        const code = evaluator.errorForCell(reference, error);
+        row[field] = code;
+        row._formula_errors[reference] = code;
+      }
+    }
+  });
+  if (typeof calculatorState !== 'undefined' && calculatorState) calculatorState.formulaErrors = evaluator.errors;
+  return rows;
 }
 
 function calculateTotals(rows) {
@@ -184,6 +307,7 @@ function positiveIntegerOrNull(value) {
 
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'string' && value.startsWith('#')) return value;
   const number = numberValue(value);
   if (!Number.isFinite(number)) return '';
   return number.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits});
@@ -191,7 +315,7 @@ function formatNumber(value, digits = 2) {
 
 function formatFormula(value, kind) {
   if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'string' && value.startsWith('#')) return value;
   if (kind === 'formulaPercent') return `${(numberValue(value) * 100).toFixed(1)}%`;
-  if (kind === 'formula' && Math.abs(numberValue(value)) < 100) return formatNumber(value, 2);
   return formatNumber(value, 2);
 }

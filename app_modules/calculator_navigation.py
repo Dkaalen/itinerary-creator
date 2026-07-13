@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any, MutableMapping
 from uuid import uuid4
 
-import streamlit as st
+try:
+    import streamlit as st
+except ModuleNotFoundError:  # Keep navigation helpers testable without Streamlit.
+    st = None
 
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.calculator_session_state import calculator_state_from_session
@@ -15,6 +18,15 @@ APP_PAGE_KEY = "active_app_page"
 WORKFLOW_PAGE = "workflow"
 CALCULATOR_PAGE = "calculator"
 LOCAL_LIBRARY_PAGE = "local_library"
+
+
+def _streamlit_api():
+    global st
+    if st is None:
+        import streamlit as streamlit_api
+
+        st = streamlit_api
+    return st
 
 
 def calculator_page_is_active(state: MutableMapping[str, Any]) -> bool:
@@ -76,12 +88,13 @@ def close_calculator_page(state: MutableMapping[str, Any]) -> None:
 def render_calculator_entry_button() -> None:
     """Render a calm calculator entry action for the input workspace."""
 
-    open_requested = st.button(
+    ui = _streamlit_api()
+    open_requested = ui.button(
         "Open calculator",
         use_container_width=True,
         help="Build, price, export, and generate an itinerary from the in-app spreadsheet.",
     )
-    st.caption("Pricing, Local Library autocomplete, Excel export, then itinerary generation.")
+    ui.caption("Pricing, Local Library autocomplete, Excel export, then itinerary generation.")
     if open_requested:
-        open_calculator_page(st.session_state)
-        st.rerun()
+        open_calculator_page(ui.session_state)
+        ui.rerun()

@@ -16,7 +16,7 @@ from app_modules.calculator_grid_values import (
     row_has_no_user_values,
     text_value,
 )
-from calculator.calculations import calculate_row
+from calculator.calculations import calculate_rows
 from calculator.row_model import (
     ADVANCED_FIELD_KEYS,
     BASIC_FIELD_KEYS,
@@ -37,7 +37,12 @@ def rows_to_table_data(
     """Return table-editor dictionaries for calculator rows."""
 
     visible_fields = visible_grid_fields(show_advanced)
-    return [_row_to_table_data(row, visible_fields, currency_rates) for row in rows]
+    source_rows = tuple(rows)
+    calculated = calculate_rows(source_rows, currency_rates)
+    return [
+        _row_to_table_data(row, result, visible_fields)
+        for row, result in zip(source_rows, calculated)
+    ]
 
 
 def table_data_to_rows(
@@ -88,10 +93,9 @@ def visible_grid_fields(show_advanced: bool) -> tuple[str, ...]:
 
 def _row_to_table_data(
     row: CalculatorRow,
+    calculated: Any,
     visible_fields: Iterable[str],
-    currency_rates: Mapping[str, float] | None,
 ) -> dict[str, Any]:
-    calculated = calculate_row(row, currency_rates)
     row_is_blank = row_has_no_user_values(row)
     data: dict[str, Any] = {}
     for field_name in visible_fields:

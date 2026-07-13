@@ -22,6 +22,7 @@ from calculator.formula_map import (
 from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.validation import ensure_valid_calculator_state
+from calculator.workbook_package_export import export_reference_workbook_package
 from calculator.workbook_template import load_calculation_template
 
 _MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
@@ -72,12 +73,19 @@ def export_calculation_workbook(
 ) -> WorkbookExport:
     """Return an XLSX payload for the supplied calculator state."""
 
-    workbook = build_calculation_workbook(state, template_path, currency_rates=currency_rates)
-    buffer = BytesIO()
-    workbook.save(buffer)
+    rows = tuple(state.rows)
+    active_rates = normalize_currency_rates(currency_rates)
+    if len(rows) > _MAX_DATA_ROWS:
+        raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
+    ensure_valid_calculator_state(state, active_rates)
+    package = export_reference_workbook_package(
+        state,
+        template_path,
+        currency_rates=active_rates,
+    )
     return WorkbookExport(
         filename=calculation_workbook_filename(state.itinerary_name),
-        content=buffer.getvalue(),
+        content=package.content,
     )
 
 
@@ -106,9 +114,9 @@ def build_calculation_workbook(
 
     rows = tuple(state.rows)
     active_rates = normalize_currency_rates(currency_rates)
-    ensure_valid_calculator_state(state, active_rates)
     if len(rows) > _MAX_DATA_ROWS:
         raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
+    ensure_valid_calculator_state(state, active_rates)
 
     workbook = load_calculation_template(template_path)
     _write_default_currency_rates(workbook, active_rates)

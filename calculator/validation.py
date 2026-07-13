@@ -7,6 +7,7 @@ from math import isfinite
 from typing import Mapping
 
 from calculator.calculator_state import CalculatorState
+from calculator.cell_formula_engine import CalculatorCellFormulaEvaluator, CellFormulaError
 from calculator.currency_rates import normalize_currency_rates, normalized_currency_code
 from calculator.row_model import CalculatorRow
 from calculator.numeric_input import parse_decimal_input_strict
@@ -42,6 +43,7 @@ def validate_calculator_state(
     rates = normalize_currency_rates(currency_rates)
     issues: list[CalculatorValidationIssue] = []
     seen_ids: set[str] = set()
+    evaluator = CalculatorCellFormulaEvaluator(state.rows, rates)
 
     if state.number_of_pax is not None and state.number_of_pax <= 0:
         issues.append(
@@ -64,7 +66,7 @@ def validate_calculator_state(
                 )
             )
         seen_ids.add(row_id)
-        issues.extend(_validate_row(row, row_id, rates))
+        issues.extend(_validate_row(row, row_id, rates, evaluator, index + 6))
     return tuple(issues)
 
 
@@ -83,51 +85,50 @@ def _validate_row(
     row: CalculatorRow,
     row_id: str,
     rates: Mapping[str, float],
+    evaluator: CalculatorCellFormulaEvaluator,
+    row_number: int,
 ) -> list[CalculatorValidationIssue]:
     issues: list[CalculatorValidationIssue] = []
-    numeric_fields = (
-        "gross_price_per_unit",
-        "units",
-        "supplier_commission",
-        "sales_price_per_unit",
-        "vat25",
-        "vat15",
-        "vat12",
-        "vat0_domestic",
-        "vat0_international",
-        "gross_price_override",
-        "net_price_override",
-        "supplier_x_rate_override",
-        "net_price_nok_override",
-        "price_override",
-        "sales_x_rate_override",
-        "sales_price_nok_total_override",
-        "gp_nok_override",
-        "gp_percent_override",
-    )
-    for field in numeric_fields:
+    numeric_cells = {
+        "gross_price_per_unit": "Q",
+        "units": "R",
+        "supplier_commission": "T",
+        "sales_price_per_unit": "Y",
+        "vat25": "AF",
+        "vat15": "AG",
+        "vat12": "AH",
+        "vat0_domestic": "AI",
+        "vat0_international": "AJ",
+        "gross_price_override": "S",
+        "net_price_override": "U",
+        "supplier_x_rate_override": "W",
+        "net_price_nok_override": "X",
+        "price_override": "Z",
+        "sales_x_rate_override": "AB",
+        "sales_price_nok_total_override": "AC",
+        "gp_nok_override": "AD",
+        "gp_percent_override": "AE",
+    }
+    for field, column in numeric_cells.items():
         value = getattr(row, field)
-        if value is None:
+        if value is None or value == "":
             continue
         try:
-            parse_decimal_input_strict(value)
-            finite = True
-        except ValueError:
-            finite = False
-        if not finite:
+            evaluator.evaluate_cell(f"{column}{row_number}")
+        except (CellFormulaError, ValueError) as error:
+            code = error.code if isinstance(error, CellFormulaError) else "invalid_number"
             issues.append(
                 CalculatorValidationIssue(
-                    code="invalid_number",
+                    code=code,
                     row_id=row_id,
                     field=field,
-                    message=f"Row {row_id}: {field.replace('_', ' ')} is not a valid finite number.",
+                    message=f"Row {row_id}: {field.replace('_', ' ')} has an invalid formula ({error}).",
                 )
             )
 
     try:
-        commission_value = parse_decimal_input_strict(row.supplier_commission, allow_blank=False)
-        commission = float(commission_value) if commission_value is not None else 0.0
-    except ValueError:
+        commission = float(evaluator.evaluate_cell(f"T{row_number}"))
+    except (CellFormulaError, ValueError):
         commission = 0.0
     if commission < 0 or commission > 1:
         issues.append(
@@ -147,9 +148,10 @@ def _validate_row(
         override = getattr(row, override_field)
         if override is not None:
             try:
-                parsed_override = parse_decimal_input_strict(override, allow_blank=False)
-                valid_override = parsed_override is not None and parsed_override > 0
-            except ValueError:
+                rate_column = "W" if field == "supplier_currency" else "AB"
+                parsed_override = evaluator.evaluate_cell(f"{rate_column}{row_number}")
+                valid_override = parsed_override > 0
+            except (CellFormulaError, ValueError):
                 valid_override = False
             if not valid_override:
                 issues.append(

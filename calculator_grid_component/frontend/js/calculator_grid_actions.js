@@ -23,6 +23,10 @@ function bindEvents() {
   document.querySelector('[data-action="fill-down"]')?.addEventListener('click', () => fillSelection('down'));
   document.querySelector('[data-action="fill-right"]')?.addEventListener('click', () => fillSelection('right'));
   document.querySelector('[data-action="find-replace"]')?.addEventListener('click', () => toggleFindReplace());
+  document.querySelector('[data-action="version-history"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = !calculatorState.showVersionHistory; rerender(); });
+  document.querySelector('[data-action="close-versions"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = false; rerender(); });
+  document.querySelector('[data-action="clear-versions"]')?.addEventListener('click', () => { clearCalculatorRecoverySnapshots(); calculatorState.showVersionHistory = false; rerender(); });
+  document.querySelectorAll('[data-version-id]').forEach((button) => button.addEventListener('click', () => restoreCalculatorRecoverySnapshot(button.dataset.versionId)));
   document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
   document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
@@ -34,7 +38,7 @@ function bindEvents() {
   paxInput?.addEventListener('focus', beginCellEdit);
   paxInput?.addEventListener('input', (event) => {
     calculatorState.numberOfPax = event.target.value;
-    markLocalDraft();
+    markLocalDraft(false, false);
     refreshTotalsOnly();
     refreshValidationAndStatus();
   });

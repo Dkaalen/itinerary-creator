@@ -20,7 +20,18 @@ def _html() -> str:
         f"<script>{(ROOT / source).read_text(encoding='utf-8')}</script>"
         for source in re.findall(r'<script src="([^"]+)"', index)
     )
-    return f"<html><head><style>{css}</style></head><body><div id='root'></div>{scripts}</body></html>"
+    storage = """<script>
+      (() => {
+        const store = new Map();
+        Object.defineProperty(window, 'localStorage', {value: {
+          getItem: (key) => store.has(String(key)) ? store.get(String(key)) : null,
+          setItem: (key, value) => store.set(String(key), String(value)),
+          removeItem: (key) => store.delete(String(key)),
+          clear: () => store.clear()
+        }});
+      })();
+    </script>"""
+    return f"<html><head><style>{css}</style></head><body><div id='root'></div>{storage}{scripts}</body></html>"
 
 
 def _payload(rows: list[dict], *, library_rows: list[dict] | None = None, revision: str = "browser-test") -> dict:
@@ -268,6 +279,56 @@ def test_selecting_prefilled_library_cell_does_not_open_suggestions_or_steal_arr
         assert page.locator('.suggestion-panel').count() == 0
         page.keyboard.press("ArrowRight")
         assert page.evaluate("document.activeElement.dataset.key") == "url"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_local_version_history_restores_an_earlier_calculator_state() -> None:
+    rows = [
+        {"row_id": "1", "travel_element": "Original service", "supplier_currency": "NOK", "sales_currency": "NOK", "gross_price_per_unit": 100, "units": 1},
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="version-history"))
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("Updated service")
+        page.keyboard.press("Tab")
+
+        versions = page.get_by_role("button", name=re.compile(r"Versions \(\d+\)"))
+        assert int(re.search(r"\d+", versions.text_content()).group()) >= 2
+        versions.click()
+        version_items = page.locator('[data-version-id]')
+        assert version_items.count() >= 2
+        version_items.last.click()
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Original service"
+        assert page.locator('#calculator-sync-status').text_content().startswith("Recovered version from")
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_cross_row_formula_dependents_refresh_immediately_after_edit() -> None:
+    rows = [
+        {"row_id": "1", "gross_price_per_unit": 100, "units": 2, "supplier_currency": "NOK", "sales_currency": "NOK"},
+        {"row_id": "2", "gross_price_per_unit": "=S7/4", "units": 1, "supplier_currency": "NOK", "sales_currency": "NOK"},
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="a1-dependent-refresh"))
+    try:
+        dependent = page.locator('td[data-row-index="1"][data-key="gross_price"]')
+        assert dependent.text_content().strip() == "50.00"
+
+        source = page.locator('td[data-row-index="0"][data-key="gross_price_per_unit"]')
+        source.click()
+        source.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("200")
+        page.keyboard.press("Tab")
+
+        assert dependent.text_content().strip() == "100.00"
     finally:
         browser.close()
         manager.stop()

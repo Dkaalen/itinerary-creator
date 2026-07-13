@@ -87,6 +87,17 @@ function copyableCellValue(row, column) {
   return String(row[column.key] ?? '');
 }
 
+
+function translatedCellValue(value, sourceRowIndex, sourceColumn, targetRowIndex, targetColumn) {
+  const sourceColumnIndex = CALCULATOR_COLUMNS.findIndex((column) => column.key === sourceColumn?.key);
+  const targetColumnIndex = CALCULATOR_COLUMNS.findIndex((column) => column.key === targetColumn?.key);
+  return translateFormulaReferences(
+    value,
+    Number(targetRowIndex) - Number(sourceRowIndex),
+    targetColumnIndex - sourceColumnIndex
+  );
+}
+
 function applyTsvAtActiveCell(text) {
   if (!activeCell) return false;
   const matrix = String(text || '').replace(/\r/g, '').split('\n').map((line) => line.split('\t'));
@@ -95,19 +106,22 @@ function applyTsvAtActiveCell(text) {
   const startCol = visibleColumnIndex(activeCell.key);
   if (startCol < 0) return false;
   recordHistory();
-  while (calculatorState.rows.length < activeCell.rowIndex + matrix.length) {
+  while (calculatorState.rows.length < Math.min(MAX_CALCULATOR_ROWS, activeCell.rowIndex + matrix.length)) {
     calculatorState.rows = addRows(calculatorState.rows, 1);
   }
   matrix.forEach((values, rowOffset) => {
+    if (activeCell.rowIndex + rowOffset >= MAX_CALCULATOR_ROWS) return;
     values.forEach((value, colOffset) => {
       const column = columns[startCol + colOffset];
       if (!column) return;
-      updateRowValue(activeCell.rowIndex + rowOffset, column.key, value);
+      updateRowValue(activeCell.rowIndex + rowOffset, column.key, value, false);
     });
   });
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  validateCalculatorState(calculatorState);
   calculatorState.selection = {
     startRow: activeCell.rowIndex,
-    endRow: activeCell.rowIndex + matrix.length - 1,
+    endRow: Math.min(MAX_CALCULATOR_ROWS - 1, activeCell.rowIndex + matrix.length - 1),
     startCol,
     endCol: Math.min(columns.length - 1, startCol + Math.max(...matrix.map((row) => row.length)) - 1)
   };
@@ -123,15 +137,24 @@ function fillSelection(direction) {
   recordHistory();
   if (direction === 'down') {
     for (let col = selection.left; col <= selection.right; col += 1) {
-      const source = copyableCellValue(calculatorState.rows[selection.top], columns[col]);
-      for (let row = selection.top + 1; row <= selection.bottom; row += 1) updateRowValue(row, columns[col].key, source);
+      const sourceColumn = columns[col];
+      const source = copyableCellValue(calculatorState.rows[selection.top], sourceColumn);
+      for (let row = selection.top + 1; row <= selection.bottom; row += 1) {
+        updateRowValue(row, sourceColumn.key, translatedCellValue(source, selection.top, sourceColumn, row, sourceColumn), false);
+      }
     }
   } else {
     for (let row = selection.top; row <= selection.bottom; row += 1) {
-      const source = copyableCellValue(calculatorState.rows[row], columns[selection.left]);
-      for (let col = selection.left + 1; col <= selection.right; col += 1) updateRowValue(row, columns[col].key, source);
+      const sourceColumn = columns[selection.left];
+      const source = copyableCellValue(calculatorState.rows[row], sourceColumn);
+      for (let col = selection.left + 1; col <= selection.right; col += 1) {
+        const targetColumn = columns[col];
+        updateRowValue(row, targetColumn.key, translatedCellValue(source, row, sourceColumn, row, targetColumn), false);
+      }
     }
   }
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  validateCalculatorState(calculatorState);
   markLocalDraft();
   rerender();
 }

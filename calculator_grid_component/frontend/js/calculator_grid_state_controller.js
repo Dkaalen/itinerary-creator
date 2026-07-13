@@ -14,7 +14,7 @@ function initializeState(payload) {
     return;
   }
 
-  const incomingRows = cloneRows(payload.rows || []);
+  const incomingRows = cloneRows(payload.rows || []).slice(0, MAX_CALCULATOR_ROWS);
   const storedDraft = loadCalculatorDraft();
   const useStoredDraft = shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision);
   const rows = calculateRows(useStoredDraft ? cloneRows(storedDraft.rows) : incomingRows, payload.currency_rates || DEFAULT_RATES);
@@ -34,6 +34,8 @@ function initializeState(payload) {
     selection: useStoredDraft && storedDraft.selection ? {...storedDraft.selection} : null,
     columnWidths: useStoredDraft ? {...(storedDraft.columnWidths || {})} : {},
     showFindReplace: false,
+    showVersionHistory: false,
+    recoverySnapshots: loadCalculatorRecoverySnapshots(),
     findQuery: '',
     replaceQuery: '',
     findMatchCursor: -1,
@@ -45,6 +47,7 @@ function initializeState(payload) {
   activeDraftStorageKey = incomingDraftStorageKey;
   hasLocalDraft = Boolean(useStoredDraft);
   validateCalculatorState(calculatorState);
+  calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft ? 'draft restored' : 'loaded');
   if (useStoredDraft) saveCalculatorDraft(calculatorState, activeBackendRevision);
 }
 
@@ -71,12 +74,13 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   validateCalculatorState(calculatorState);
 }
 
-function markLocalDraft() {
+function markLocalDraft(captureVersion = true, runValidation = true) {
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.syncStatus = 'Unsaved changes';
-  validateCalculatorState(calculatorState);
+  if (runValidation) validateCalculatorState(calculatorState);
   saveCalculatorDraft(calculatorState, activeBackendRevision);
+  if (captureVersion) calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'edit');
   scheduleBackendSync();
   refreshSyncStatusOnly();
 }

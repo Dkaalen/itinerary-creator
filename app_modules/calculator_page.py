@@ -31,6 +31,7 @@ from app_modules.calculator_session_state import (
 from app_modules.calculator_state_keys import (
     CALCULATOR_ADVANCED_TOGGLE_KEY,
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+    CURRENCY_RATES_STATE_KEY,
 )
 from app_modules.validation_gate import block_generation, render_blocking_issues
 from ui.style_calculator import CALCULATOR_PAGE_CSS
@@ -147,11 +148,16 @@ def _render_generation_result(state: CalculatorState, *, output_brand: str) -> N
 
 
 def _render_backup_controls(state: CalculatorState) -> None:
-    imported_state = render_calculator_backup_controls(state)
-    if imported_state is None:
+    imported = render_calculator_backup_controls(state)
+    if imported is None:
         return
-    store_calculator_state(st.session_state, imported_state, sync_name_input=True)
-    st.success("Calculator backup reopened.")
+    if imported.currency_rates:
+        st.session_state[CURRENCY_RATES_STATE_KEY] = imported.currency_rates
+        for code, value in imported.currency_rates.items():
+            st.session_state[f"calculator_currency_rate_{code}"] = float(value)
+    store_calculator_state(st.session_state, imported.state, sync_name_input=True)
+    message = "Calculation Excel reopened." if imported.source == "xlsx" else "Calculator backup reopened."
+    st.success(message)
     st.rerun()
 
 

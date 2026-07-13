@@ -20,7 +20,13 @@ function commitCellEdit() {
   if (!pendingCellEditSnapshot) return;
   const before = JSON.stringify(pendingCellEditSnapshot);
   const after = JSON.stringify(currentStateSnapshot());
-  if (before !== after) pushUndoSnapshot(pendingCellEditSnapshot);
+  if (before !== after) {
+    pushUndoSnapshot(pendingCellEditSnapshot);
+    if (calculatorState) {
+      calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'edit');
+      refreshVersionHistoryCount();
+    }
+  }
   pendingCellEditSnapshot = null;
 }
 

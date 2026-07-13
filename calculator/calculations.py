@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Mapping
 
+from calculator.cell_formula_engine import CalculatorCellFormulaEvaluator
 from calculator.currency_rates import normalize_currency_rates, normalized_currency_code
 from calculator.numeric_input import parse_decimal_input
 from calculator.precision import as_float, decimal_value, round_money, round_percent, round_rate
@@ -44,45 +45,23 @@ def calculate_row(
     row: CalculatorRow,
     currency_rates: Mapping[str, float] | None = None,
 ) -> CalculatedRow:
-    """Apply the canonical Kalk row formulas to one calculator row."""
+    """Apply canonical formulas to one row.
 
-    rates = normalize_currency_rates(currency_rates)
-    gross_price_per_unit = _decimal(row.gross_price_per_unit)
-    units = _decimal(row.units)
-    supplier_commission = round_percent(_decimal(row.supplier_commission))
+    Cross-row A1 formulas require :func:`calculate_rows`, which evaluates the
+    complete dependency graph.
+    """
 
-    gross_price = _money_override(row.gross_price_override, gross_price_per_unit * units)
-    net_price = _money_override(row.net_price_override, gross_price * (Decimal("1") - supplier_commission))
-    supplier_x_rate = _rate_override(
-        row.supplier_x_rate_override,
-        lookup_currency_rate_decimal(row.supplier_currency, rates),
-    )
-    net_price_nok = _money_override(row.net_price_nok_override, net_price * supplier_x_rate)
-    calculated_sales_price_per_unit = _sales_price_per_unit(row)
-    price = _money_override(row.price_override, calculated_sales_price_per_unit * units)
-    sales_x_rate = _rate_override(
-        row.sales_x_rate_override,
-        lookup_currency_rate_decimal(row.sales_currency, rates),
-    )
-    sales_price_nok_total = _money_override(
-        row.sales_price_nok_total_override,
-        price * sales_x_rate,
-    )
-    gp_nok = _money_override(row.gp_nok_override, sales_price_nok_total - net_price_nok)
-    gp_percent = _percent_override(row.gp_percent_override, _safe_ratio(gp_nok, sales_price_nok_total))
-    return CalculatedRow(
-        source=row,
-        gross_price=as_float(gross_price),
-        net_price=as_float(net_price),
-        supplier_x_rate=as_float(supplier_x_rate),
-        net_price_nok=as_float(net_price_nok),
-        calculated_sales_price_per_unit=as_float(calculated_sales_price_per_unit),
-        price=as_float(price),
-        sales_x_rate=as_float(sales_x_rate),
-        sales_price_nok_total=as_float(sales_price_nok_total),
-        gp_nok=as_float(gp_nok),
-        gp_percent=as_float(gp_percent),
-    )
+    return calculate_rows((row,), currency_rates)[0]
+
+
+def calculate_rows(
+    rows: tuple[CalculatorRow, ...] | list[CalculatorRow],
+    currency_rates: Mapping[str, float] | None = None,
+) -> tuple[CalculatedRow, ...]:
+    """Calculate all rows with A1 dependency and circular-reference handling."""
+
+    evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
+    return evaluator.calculated_rows()
 
 
 def calculate_totals(
@@ -91,8 +70,8 @@ def calculate_totals(
 ) -> CalculatorTotals:
     """Calculate totals from already rounded canonical row results."""
 
-    rates = normalize_currency_rates(currency_rates)
-    calculated_rows = [calculate_row(row, rates) for row in rows]
+    evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
+    calculated_rows = evaluator.calculated_rows()
     price = round_money(sum((_decimal(row.price) for row in calculated_rows), Decimal("0")))
     sales_price_nok_total = round_money(
         sum((_decimal(row.sales_price_nok_total) for row in calculated_rows), Decimal("0"))
@@ -103,11 +82,11 @@ def calculate_totals(
         sales_price_nok_total=as_float(sales_price_nok_total),
         gp_nok=as_float(gp_nok),
         gp_percent=as_float(_safe_ratio(gp_nok, sales_price_nok_total)),
-        vat25=as_float(_sum_money(rows, "vat25")),
-        vat15=as_float(_sum_money(rows, "vat15")),
-        vat12=as_float(_sum_money(rows, "vat12")),
-        vat0_domestic=as_float(_sum_money(rows, "vat0_domestic")),
-        vat0_international=as_float(_sum_money(rows, "vat0_international")),
+        vat25=as_float(_sum_formula_cells(evaluator, "AF", len(rows))),
+        vat15=as_float(_sum_formula_cells(evaluator, "AG", len(rows))),
+        vat12=as_float(_sum_formula_cells(evaluator, "AH", len(rows))),
+        vat0_domestic=as_float(_sum_formula_cells(evaluator, "AI", len(rows))),
+        vat0_international=as_float(_sum_formula_cells(evaluator, "AJ", len(rows))),
     )
 
 
@@ -118,21 +97,31 @@ def calculate_dashboard(
 ) -> CalculatorDashboard:
     """Return display-only dashboard totals and optional per-pax values."""
 
-    rates = normalize_currency_rates(currency_rates)
-    calculated_rows = [calculate_row(row, rates) for row in rows]
+    evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
+    calculated_rows = evaluator.calculated_rows()
     total_cost = round_money(sum((_decimal(row.net_price_nok) for row in calculated_rows), Decimal("0")))
-    totals = calculate_totals(rows, rates)
+    total_sales = round_money(
+        sum((_decimal(row.sales_price_nok_total) for row in calculated_rows), Decimal("0"))
+    )
+    profit = round_money(sum((_decimal(row.gp_nok) for row in calculated_rows), Decimal("0")))
+    margin = _safe_ratio(profit, total_sales)
     pax = int(number_of_pax) if number_of_pax is not None and int(number_of_pax) > 0 else None
     cost_per_pax = round_money(total_cost / pax) if pax else None
-    sales_per_pax = round_money(_decimal(totals.sales_price_nok_total) / pax) if pax else None
+    sales_per_pax = round_money(total_sales / pax) if pax else None
     return CalculatorDashboard(
         total_cost_nok=as_float(total_cost),
-        total_sales_nok=totals.sales_price_nok_total,
-        profit_nok=totals.gp_nok,
-        margin_percent=totals.gp_percent,
+        total_sales_nok=as_float(total_sales),
+        profit_nok=as_float(profit),
+        margin_percent=as_float(margin),
         number_of_pax=pax,
         cost_per_pax=as_float(cost_per_pax) if cost_per_pax is not None else None,
         sales_per_pax=as_float(sales_per_pax) if sales_per_pax is not None else None,
+    )
+
+
+def _sum_formula_cells(evaluator: CalculatorCellFormulaEvaluator, column: str, count: int) -> Decimal:
+    return round_money(
+        sum((evaluator.evaluate_cell(f"{column}{7 + index}") for index in range(count)), Decimal("0"))
     )
 
 

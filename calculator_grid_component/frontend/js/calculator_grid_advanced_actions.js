@@ -14,7 +14,13 @@ function selectedRowBounds() {
 function insertRowsAtSelection(position) {
   commitCellEdit();
   const bounds = selectedRowBounds();
-  const count = Math.max(1, bounds.bottom - bounds.top + 1);
+  const requested = Math.max(1, bounds.bottom - bounds.top + 1);
+  const count = Math.min(requested, MAX_CALCULATOR_ROWS - calculatorState.rows.length);
+  if (count <= 0) {
+    calculatorState.syncStatus = `The Excel template supports at most ${MAX_CALCULATOR_ROWS} rows.`;
+    refreshSyncStatusOnly();
+    return;
+  }
   const insertAt = position === 'below' ? bounds.bottom + 1 : bounds.top;
   recordHistory();
   const additions = [];
@@ -35,13 +41,22 @@ function insertRowsAtSelection(position) {
 function duplicateSelectedRows() {
   commitCellEdit();
   const bounds = selectedRowBounds();
-  const sourceRows = calculatorState.rows.slice(bounds.top, bounds.bottom + 1);
-  if (!sourceRows.length) return;
+  const available = MAX_CALCULATOR_ROWS - calculatorState.rows.length;
+  const sourceRows = calculatorState.rows.slice(bounds.top, bounds.bottom + 1).slice(0, available);
+  if (!sourceRows.length) {
+    calculatorState.syncStatus = `The Excel template supports at most ${MAX_CALCULATOR_ROWS} rows.`;
+    refreshSyncStatusOnly();
+    return;
+  }
   recordHistory();
   const copies = [];
   let working = [...calculatorState.rows];
-  for (const source of sourceRows) {
-    const copy = {...source, row_id: nextRowId([...working, ...copies])};
+  for (let offset = 0; offset < sourceRows.length; offset += 1) {
+    const source = sourceRows[offset];
+    const sourceIndex = bounds.top + offset;
+    const targetIndex = bounds.bottom + 1 + offset;
+    const copy = translatedRowCopy(source, targetIndex - sourceIndex);
+    copy.row_id = nextRowId([...working, ...copies]);
     copies.push(copy);
   }
   working.splice(bounds.bottom + 1, 0, ...copies);
@@ -57,6 +72,16 @@ function duplicateSelectedRows() {
   activeCell = {rowIndex: bounds.bottom + 1, key: columns[0].key};
   markLocalDraft();
   rerender();
+}
+
+
+function translatedRowCopy(source, rowDelta) {
+  const copy = {...source};
+  for (const [key, value] of Object.entries(copy)) {
+    if (typeof value !== 'string' || !value.trim().startsWith('=')) continue;
+    copy[key] = translateFormulaReferences(value, rowDelta, 0);
+  }
+  return copy;
 }
 
 function deleteSelectedRows() {
@@ -129,10 +154,17 @@ function finishFillDrag() {
   for (let row = target.top; row <= target.bottom; row += 1) {
     for (let col = target.left; col <= target.right; col += 1) {
       if (row >= source.top && row <= source.bottom && col >= source.left && col <= source.right) continue;
-      const value = sourceValues[(row - target.top) % sourceValues.length][(col - target.left) % sourceValues[0].length];
-      updateRowValue(row, columns[col].key, value);
+      const sourceRowOffset = (row - target.top) % sourceValues.length;
+      const sourceColOffset = (col - target.left) % sourceValues[0].length;
+      const sourceRow = source.top + sourceRowOffset;
+      const sourceColumn = columns[source.left + sourceColOffset];
+      const targetColumn = columns[col];
+      const value = translatedCellValue(sourceValues[sourceRowOffset][sourceColOffset], sourceRow, sourceColumn, row, targetColumn);
+      updateRowValue(row, targetColumn.key, value, false);
     }
   }
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  validateCalculatorState(calculatorState);
   markLocalDraft();
   rerender();
 }
@@ -249,8 +281,10 @@ function replaceAllCalculatorMatches() {
   }
   recordHistory();
   for (const entry of entries) {
-    updateRowValue(entry.rowIndex, entry.key, replaceTextInsensitive(entry.value, query, String(calculatorState.replaceQuery || ''), true));
+    updateRowValue(entry.rowIndex, entry.key, replaceTextInsensitive(entry.value, query, String(calculatorState.replaceQuery || ''), true), false);
   }
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  validateCalculatorState(calculatorState);
   calculatorState.findMatchCursor = -1;
   markLocalDraft();
   rerender();

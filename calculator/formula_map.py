@@ -19,7 +19,7 @@ ROW_FORMULA_TEMPLATES = {
     "Y": "=Q{row}",
     "Z": "=ROUND(Y{row}*R{row},2)",
     "AB": "=IFERROR(VLOOKUP(AA{row},Curr!$B$2:$C$13,2,FALSE),0)",
-    "AC": "=ROUND(Y{row}*AB{row}*R{row},2)",
+    "AC": "=ROUND(Z{row}*AB{row},2)",
     "AD": "=ROUND(AC{row}-X{row},2)",
     "AE": "=IFERROR(AD{row}/AC{row},0)",
 }

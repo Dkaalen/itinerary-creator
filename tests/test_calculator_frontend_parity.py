@@ -355,3 +355,96 @@ console.log(JSON.stringify(calculateDashboard({rows, numberOfPax: 5})));
     assert dashboard["cost_per_pax"] == pytest.approx(dashboard["net_price_nok"] / 5, abs=0.01)
     assert dashboard["currency_exposure"]["supplier"] == [["EUR", 200], ["USD", 50]]
     assert dashboard["currency_exposure"]["sales"] == [["EUR", 80], ["NOK", 300]]
+
+
+def test_frontend_a1_references_match_python_dependency_engine() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+
+    source = "\n".join(
+        (_FRONTEND / filename).read_text(encoding="utf-8")
+        for filename in (
+            "calculator_grid_columns.js",
+            "calculator_grid_formula_input.js",
+            "calculator_grid_math.js",
+            "calculator_grid_state.js",
+        )
+    )
+    script = source + """
+const rows = [createBlankRow('1'), createBlankRow('2')];
+rows[0].gross_price_per_unit = 100;
+rows[0].units = 2;
+rows[0].supplier_currency = 'NOK';
+rows[0].sales_currency = 'NOK';
+rows[1].gross_price_per_unit = '=S7/4';
+rows[1].units = 3;
+rows[1].supplier_currency = 'NOK';
+rows[1].sales_currency = 'NOK';
+rows[1].price_override = '=$Q$7*R8';
+calculateRows(rows, DEFAULT_RATES);
+console.log(JSON.stringify(rows));
+"""
+    completed = subprocess.run(["node"], input=script, check=True, capture_output=True, text=True, timeout=15)
+    frontend = json.loads(completed.stdout)
+
+    backend_rows = (
+        CalculatorRow(row_id="1", gross_price_per_unit=100, units=2, supplier_currency="NOK", sales_currency="NOK"),
+        CalculatorRow(row_id="2", gross_price_per_unit="=S7/4", units=3, supplier_currency="NOK", sales_currency="NOK", price_override="=$Q$7*R8"),
+    )
+    from calculator.calculations import calculate_rows
+
+    backend = calculate_rows(backend_rows)
+    assert frontend[1]["gross_price"] == backend[1].gross_price
+    assert frontend[1]["price"] == backend[1].price
+    assert frontend[1]["sales_price_nok_total"] == backend[1].sales_price_nok_total
+
+
+def test_frontend_formula_translation_respects_relative_and_absolute_references() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+    source = (_FRONTEND / "calculator_grid_formula_input.js").read_text(encoding="utf-8")
+    script = source + """
+console.log(JSON.stringify({
+  down: translateFormulaReferences('=Q7*$R$7+$S7+T$7', 2, 0),
+  right: translateFormulaReferences('=Q7*$R$7+$S7+T$7', 0, 2),
+  invalid: translateFormulaReferences('=A1', -2, 0)
+}));
+"""
+    completed = subprocess.run(["node"], input=script, check=True, capture_output=True, text=True, timeout=15)
+    result = json.loads(completed.stdout)
+    assert result == {
+        "down": "=Q9*$R$7+$S9+T$7",
+        "right": "=S7*$R$7+$S7+V$7",
+        "invalid": "=#REF!",
+    }
+
+
+def test_frontend_formula_engine_handles_full_93_row_dependency_chain_quickly() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+    source = "\n".join(
+        (_FRONTEND / filename).read_text(encoding="utf-8")
+        for filename in (
+            "calculator_grid_columns.js",
+            "calculator_grid_formula_input.js",
+            "calculator_grid_math.js",
+            "calculator_grid_state.js",
+        )
+    )
+    script = source + """
+const rows = Array.from({length: 93}, (_, index) => {
+  const row = createBlankRow(String(index + 1));
+  row.gross_price_per_unit = index === 0 ? 100 : `=S${6 + index}/2`;
+  row.units = 2;
+  row.supplier_currency = 'NOK';
+  row.sales_currency = 'NOK';
+  return row;
+});
+const started = Date.now();
+for (let pass = 0; pass < 50; pass += 1) calculateRows(rows, DEFAULT_RATES);
+console.log(JSON.stringify({elapsed: Date.now() - started, final: rows[92].gross_price}));
+"""
+    completed = subprocess.run(["node"], input=script, check=True, capture_output=True, text=True, timeout=15)
+    result = json.loads(completed.stdout)
+    assert result["elapsed"] < 5000
+    assert result["final"] == 200

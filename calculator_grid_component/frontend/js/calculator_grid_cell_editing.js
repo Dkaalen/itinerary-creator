@@ -67,10 +67,10 @@ function handleCellInput(event) {
   const rowIndex = Number(cell.dataset.rowIndex || 0);
   const key = cell.dataset.key;
   updateRowValue(rowIndex, key, cell.textContent || '');
-  markLocalDraft();
+  markLocalDraft(false, false);
   if (key === 'day' || key === 'from_date') refreshDateCells();
   refreshDefaultedEditableCells(rowIndex);
-  refreshFormulaCells(rowIndex);
+  refreshFormulaCells(calculatorUsesA1References() ? null : rowIndex);
   refreshTotalsOnly();
   refreshValidationAndStatus();
   refreshFormulaBarOnly();
@@ -195,7 +195,7 @@ function handleCellBlur(event) {
     cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
   } else if (['formula', 'formulaPercent'].includes(columnKind(key))) {
     const override = row[formulaOverrideKey(key)];
-    cell.textContent = override !== null && parseNumericInput(override) === null ? String(override) : formatFormula(row[key], columnKind(key));
+    cell.textContent = formatFormula(row[key], columnKind(key));
   } else if (key === 'supplier_currency' || key === 'sales_currency') {
     cell.textContent = row[key] || '';
   }
@@ -219,7 +219,7 @@ function columnKind(key) {
   return column?.kind || 'text';
 }
 
-function updateRowValue(rowIndex, key, rawValue) {
+function updateRowValue(rowIndex, key, rawValue, recalculate = true) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
   const kind = columnKind(key);
@@ -237,8 +237,9 @@ function updateRowValue(rowIndex, key, rawValue) {
   else if (kind === 'number') row[key] = rawValue === '' ? '' : numericStorageValue(rawValue);
   else row[key] = normalizedTextValue(key, rawValue);
   if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
-  calculateRow(row, calculatorState.currencyRates);
-  validateCalculatorState(calculatorState);
+  if (recalculate) {
+    calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  }
 }
 
 function numericStorageValue(rawValue) {
@@ -303,15 +304,26 @@ function refreshDefaultedEditableCells(rowIndex) {
   }
 }
 
-function refreshFormulaCells(rowIndex) {
-  const row = calculatorState.rows[rowIndex];
-  for (const column of FORMULA_COLUMNS) {
-    const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${column.key}"]`);
-    if (cell && !(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === column.key && document.activeElement === cell)) {
-      const override = row[formulaOverrideKey(column.key)];
-      cell.textContent = override !== null && parseNumericInput(override) === null ? String(override) : formatFormula(row[column.key], column.kind);
-    }
-  }
+function refreshFormulaCells(rowIndex = null) {
+  const cells = rowIndex === null
+    ? document.querySelectorAll('td.formula-cell[data-row-index][data-key]')
+    : document.querySelectorAll(`td.formula-cell[data-row-index="${rowIndex}"][data-key]`);
+  cells.forEach((cell) => {
+    const currentRowIndex = Number(cell.dataset.rowIndex || 0);
+    const key = cell.dataset.key;
+    const row = calculatorState.rows[currentRowIndex];
+    const column = columnByKey(key);
+    if (!row || !column) return;
+    if (activeCell && activeCell.rowIndex === currentRowIndex && activeCell.key === key && document.activeElement === cell) return;
+    cell.textContent = formatFormula(row[key], column.kind);
+  });
+}
+
+function calculatorUsesA1References() {
+  return calculatorState.rows.some((row) => Object.entries(row).some(([key, value]) => {
+    if (key.startsWith('_') || typeof value !== 'string' || !value.trim().startsWith('=')) return false;
+    return /\$?[A-Za-z]{1,2}\$?\d+/.test(value);
+  }));
 }
 
 function activeCellRawValue() {
@@ -329,9 +341,9 @@ function activeCellRawValue() {
 function updateActiveCellFromFormulaBar(value) {
   if (!activeCell) return;
   updateRowValue(activeCell.rowIndex, activeCell.key, value);
-  markLocalDraft();
+  markLocalDraft(false, false);
   refreshDefaultedEditableCells(activeCell.rowIndex);
-  refreshFormulaCells(activeCell.rowIndex);
+  refreshFormulaCells(calculatorUsesA1References() ? null : activeCell.rowIndex);
   refreshTotalsOnly();
   refreshValidationAndStatus();
 }

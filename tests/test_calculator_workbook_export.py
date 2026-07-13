@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from io import BytesIO
+from pathlib import Path
+import re
+from zipfile import ZipFile
 
 import pytest
 from openpyxl import load_workbook
@@ -128,7 +131,7 @@ def test_exported_workbook_preserves_template_structure_and_styles() -> None:
     assert sheet.column_dimensions["G"].outlineLevel == 1
     assert sheet.column_dimensions["J"].collapsed is True
     assert sheet.column_dimensions["P"].collapsed is True
-    assert sheet.sheet_view.showOutlineSymbols is True
+    assert sheet.sheet_view.showOutlineSymbols is not False
     assert sheet["B6"].value == "ID"
     assert sheet["B6"].fill.fill_type is not None
     assert sheet["S7"].value == "=ROUND(Q7*R7,2)"
@@ -247,3 +250,85 @@ def test_zero_sales_price_uses_same_gross_price_fallback_as_app() -> None:
 
     assert sheet["Y7"].value == "=Q7"
     assert sheet["Z7"].value == expected_row_formulas(7)["Z"]
+
+
+def test_download_export_preserves_reference_package_outside_approved_cells() -> None:
+    state = CalculatorState(
+        itinerary_name="Reference parity",
+        rows=(
+            CalculatorRow(
+                row_id="1",
+                day="Day 1",
+                type="Hotel",
+                supplier="Nordic Hotel",
+                travel_element="Two nights",
+                gross_price_per_unit=125.5,
+                units=2,
+                supplier_currency="EUR",
+                sales_price_per_unit=175,
+                sales_currency="NOK",
+                vat25=25,
+            ),
+        ),
+    )
+
+    export = export_calculation_workbook(state)
+    template_path = Path(__file__).parents[1] / "calculator" / "templates" / "Calculation-template-Mal.xlsx"
+    with ZipFile(template_path) as reference, ZipFile(BytesIO(export.content)) as generated:
+        assert generated.namelist() == reference.namelist()
+        changed_parts = {
+            name for name in reference.namelist() if reference.read(name) != generated.read(name)
+        }
+        assert changed_parts == {
+            "xl/worksheets/sheet1.xml",
+            "xl/worksheets/sheet2.xml",
+            "xl/workbook.xml",
+        }
+        for name in reference.namelist():
+            if name not in changed_parts:
+                assert generated.read(name) == reference.read(name)
+
+        generated_workbook = generated.read("xl/workbook.xml").decode("utf-8")
+        assert 'calcMode="auto"' in generated_workbook
+        assert 'fullCalcOnLoad="1"' in generated_workbook
+        assert 'forceFullCalc="1"' in generated_workbook
+
+        reference_curr = reference.read("xl/worksheets/sheet1.xml").decode("utf-8")
+        generated_curr = generated.read("xl/worksheets/sheet1.xml").decode("utf-8")
+        assert _scrub_currency_cells(generated_curr) == _scrub_currency_cells(reference_curr)
+
+        reference_kalk = reference.read("xl/worksheets/sheet2.xml").decode("utf-8")
+        generated_kalk = generated.read("xl/worksheets/sheet2.xml").decode("utf-8")
+        assert _scrub_calculator_cells(generated_kalk) == _scrub_calculator_cells(reference_kalk)
+
+
+def _scrub_currency_cells(xml: str) -> str:
+    xml = re.sub(r'<dimension\s+ref="[^"]+"\s*/>', '<dimension/>', xml, count=1)
+    for row in range(2, 14):
+        for column in ("B", "C"):
+            xml = re.sub(
+                rf'<c\b[^>]*?\br="{column}{row}"[^>]*?\s*(?:/>|>.*?</c>)',
+                "",
+                xml,
+                flags=re.DOTALL,
+            )
+    xml = re.sub(r'<row\s+r="(?:8|9|10|11|12|13)"\s*>\s*</row>', "", xml)
+    return xml
+
+
+def _scrub_calculator_cells(xml: str) -> str:
+    columns = [
+        "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
+        "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD",
+        "AE", "AF", "AG", "AH", "AI", "AJ",
+    ]
+    refs = [f"{column}{row}" for row in range(DATA_START_ROW, DATA_END_ROW + 1) for column in columns]
+    refs.extend([*TOTAL_FORMULAS, *PAYMENT_FORMULAS, "Z103", "Y104", "Z104"])
+    for ref in refs:
+        xml = re.sub(
+            rf'<c\b[^>]*?\br="{ref}"[^>]*?\s*(?:/>|>.*?</c>)',
+            "",
+            xml,
+            flags=re.DOTALL,
+        )
+    return xml

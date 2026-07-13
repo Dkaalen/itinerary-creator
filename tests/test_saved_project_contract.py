@@ -164,7 +164,7 @@ def test_saved_project_validation_rejects_malformed_calculator_rows() -> None:
     payload = saved_project_to_dict(build_saved_project_from_state(_generated_state(), clock=_clock))
     payload["calculator_snapshot"]["rows"] = [{"row_id": "1", "gross_price_per_unit": float("nan")}]
 
-    with pytest.raises(SavedProjectError, match="not a valid finite number"):
+    with pytest.raises(SavedProjectError, match="must be finite"):
         validate_saved_project_payload(payload)
 
 

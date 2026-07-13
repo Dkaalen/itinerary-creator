@@ -1,14 +1,14 @@
-"""Render calculator backup import/export controls."""
+"""Render calculator backup and Excel reopen controls."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-import streamlit as st
 
 from calculator.calculator_state import CalculatorState
 from calculator.filename_sanitizer import sanitize_filename_stem
 from calculator.state_serialization import calculator_state_from_json, calculator_state_to_json
+from calculator.workbook_import import import_calculation_workbook
 
 CALCULATOR_BACKUP_MIME = "application/json"
 
@@ -19,6 +19,16 @@ class CalculatorBackupDownload:
 
     filename: str
     content: bytes
+
+
+@dataclass(frozen=True)
+class CalculatorUploadImport:
+    """One reopened calculator plus optional workbook currency rates."""
+
+    state: CalculatorState
+    currency_rates: dict[str, float] | None = None
+    warnings: tuple[str, ...] = ()
+    source: str = "json"
 
 
 def prepare_calculator_backup_download(state: CalculatorState) -> CalculatorBackupDownload:
@@ -32,15 +42,29 @@ def prepare_calculator_backup_download(state: CalculatorState) -> CalculatorBack
 def read_calculator_backup(uploaded_file: object) -> CalculatorState:
     """Read calculator state from a Streamlit uploaded JSON file object."""
 
-    if hasattr(uploaded_file, "getvalue"):
-        return calculator_state_from_json(uploaded_file.getvalue())
-    if hasattr(uploaded_file, "read"):
-        return calculator_state_from_json(uploaded_file.read())
-    raise ValueError("Unsupported calculator backup upload.")
+    return calculator_state_from_json(_uploaded_bytes(uploaded_file))
 
 
-def render_calculator_backup_controls(state: CalculatorState) -> CalculatorState | None:
-    """Render calculator backup controls and return imported state when provided."""
+def read_calculator_upload(uploaded_file: object) -> CalculatorUploadImport:
+    """Read either a JSON backup or a compatible calculator Excel workbook."""
+
+    content = _uploaded_bytes(uploaded_file)
+    filename = str(getattr(uploaded_file, "name", "") or "")
+    if filename.lower().endswith(".xlsx") or content.startswith(b"PK"):
+        imported = import_calculation_workbook(content, filename=filename)
+        return CalculatorUploadImport(
+            state=imported.state,
+            currency_rates=imported.currency_rates,
+            warnings=imported.warnings,
+            source="xlsx",
+        )
+    return CalculatorUploadImport(state=calculator_state_from_json(content), source="json")
+
+
+def render_calculator_backup_controls(state: CalculatorState) -> CalculatorUploadImport | None:
+    """Render backup controls and return imported state/rates when provided."""
+
+    import streamlit as st
 
     with st.expander("Advanced: backup / reopen calculator", expanded=False):
         backup = prepare_calculator_backup_download(state)
@@ -52,17 +76,28 @@ def render_calculator_backup_controls(state: CalculatorState) -> CalculatorState
             use_container_width=True,
         )
         uploaded_file = st.file_uploader(
-            "Choose calculator backup JSON",
-            type=("json",),
+            "Choose calculator backup JSON or calculation Excel",
+            type=("json", "xlsx"),
             accept_multiple_files=False,
             key="calculator_backup_upload",
         )
         if uploaded_file is None:
             return None
-        if not st.button("Reopen selected backup", use_container_width=True):
+        if not st.button("Reopen selected calculation", use_container_width=True):
             return None
         try:
-            return read_calculator_backup(uploaded_file)
+            imported = read_calculator_upload(uploaded_file)
         except (ValueError, TypeError) as exc:
-            st.warning(f"Could not open calculator backup: {exc}")
+            st.warning(f"Could not open calculator file: {exc}")
             return None
+        for warning in imported.warnings:
+            st.warning(warning)
+        return imported
+
+
+def _uploaded_bytes(uploaded_file: object) -> bytes:
+    if hasattr(uploaded_file, "getvalue"):
+        return bytes(uploaded_file.getvalue())
+    if hasattr(uploaded_file, "read"):
+        return bytes(uploaded_file.read())
+    raise ValueError("Unsupported calculator upload.")

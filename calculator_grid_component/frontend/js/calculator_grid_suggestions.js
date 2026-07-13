@@ -39,7 +39,7 @@ function applySuggestion(index) {
   const row = calculatorState.rows[active.rowIndex];
   calculatorState.rows[active.rowIndex] = applyLibrarySuggestion(row, active.results[index].item);
   autofillDatesFromArrival(calculatorState.rows);
-  calculatorState.rows[active.rowIndex] = calculateRow(calculatorState.rows[active.rowIndex], calculatorState.currencyRates);
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   calculatorState.activeSuggestion = null;
   activeCell = {rowIndex: active.rowIndex, key: 'travel_element'};
   activeCellEditing = false;

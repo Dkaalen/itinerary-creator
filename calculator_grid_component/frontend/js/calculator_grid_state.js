@@ -1,3 +1,5 @@
+const MAX_CALCULATOR_ROWS = CALCULATOR_DATA_END_ROW - CALCULATOR_DATA_START_ROW + 1;
+
 function cloneRows(rows) {
   return (rows || []).map((row) => ({...row}));
 }
@@ -43,8 +45,9 @@ function nextRowId(rows) {
 }
 
 function addRows(rows, count) {
-  const updated = [...rows];
-  for (let index = 0; index < count; index += 1) {
+  const updated = [...rows].slice(0, MAX_CALCULATOR_ROWS);
+  const allowed = Math.max(0, Math.min(Number(count || 0), MAX_CALCULATOR_ROWS - updated.length));
+  for (let index = 0; index < allowed; index += 1) {
     updated.push(createBlankRow(nextRowId(updated)));
   }
   return updated;

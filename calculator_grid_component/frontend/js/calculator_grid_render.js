@@ -19,6 +19,7 @@ function buildToolbarHtml(state) {
         <button class="calc-btn" data-action="fill-down">Fill down</button>
         <button class="calc-btn" data-action="fill-right">Fill right</button>
         <button class="calc-btn" data-action="find-replace">Find / replace</button>
+        <button class="calc-btn" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
         <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Advanced columns</label>
         <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       </div>
@@ -32,6 +33,12 @@ function buildToolbarHtml(state) {
       <span>${escapeHtml(libraryText)}</span>
       <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
     </div>`;
+}
+
+
+function refreshVersionHistoryCount() {
+  const button = document.querySelector('[data-action="version-history"]');
+  if (button) button.textContent = `Versions (${(calculatorState?.recoverySnapshots || []).length})`;
 }
 
 function buildFormulaBarHtml(state) {
@@ -55,6 +62,28 @@ function buildFindReplaceHtml(state) {
       <button class="calc-btn" data-action="replace-current">Replace</button>
       <button class="calc-btn" data-action="replace-all">Replace all</button>
       <button class="calc-btn" data-action="close-find" aria-label="Close search panel">Close</button>
+    </div>`;
+}
+
+
+function buildVersionHistoryHtml(state) {
+  if (!state.showVersionHistory) return '';
+  const snapshots = state.recoverySnapshots || [];
+  const items = snapshots.length
+    ? snapshots.map((snapshot) => `
+      <button class="calculator-version-item" data-version-id="${escapeHtml(snapshot.id)}">
+        <strong>${escapeHtml(new Date(snapshot.savedAt).toLocaleString())}</strong>
+        <span>${escapeHtml(snapshot.reason || 'edit')} · ${snapshot.rows.length} row(s)</span>
+      </button>`).join('')
+    : '<div class="calculator-version-empty">No recovery versions yet.</div>';
+  return `
+    <div class="calculator-version-panel" role="dialog" aria-label="Calculator version history">
+      <div class="calculator-version-heading"><strong>Local recovery versions</strong><span>Newest first · stored in this browser</span></div>
+      <div class="calculator-version-list">${items}</div>
+      <div class="calculator-version-actions">
+        <button class="calc-btn danger" data-action="clear-versions" ${snapshots.length ? '' : 'disabled'}>Clear versions</button>
+        <button class="calc-btn" data-action="close-versions">Close</button>
+      </div>
     </div>`;
 }
 
@@ -109,7 +138,7 @@ function buildTableHtml(state) {
   }).join('');
   return `
     <div class="calculator-grid-scroll">
-      <table class="calculator-grid-table" style="min-width:max(100%, ${tableWidth(columns)}px)">
+      <table class="calculator-grid-table" aria-label="Itinerary calculation spreadsheet" style="min-width:max(100%, ${tableWidth(columns)}px)">
         <colgroup>${colgroup}</colgroup>
         <thead><tr>${headers}</tr></thead>
         <tbody>${body}</tbody>
@@ -150,17 +179,18 @@ function stickyColumnClass(index) {
 
 function cellHtml(row, rowIndex, column, colIndex) {
   const raw = row[column.key];
-  const common = `data-row-index="${rowIndex}" data-key="${column.key}"`;
+  const ariaLabel = `${column.label}, row ${row.row_id || rowIndex + 1}`;
+  const common = `data-row-index="${rowIndex}" data-key="${column.key}" aria-label="${escapeHtml(ariaLabel)}"`;
   const width = column.renderedWidth || column.width;
   const widthStyle = `style="width:${width}px; min-width:${width}px; max-width:${width}px"`;
   const error = validationErrorForCell(rowIndex, column.key);
   const hasOverride = Boolean(column.formula && row[formulaOverrideKey(column.key)] !== null && row[formulaOverrideKey(column.key)] !== undefined);
   const classes = [stickyColumnClass(colIndex), error ? 'invalid-cell' : '', hasOverride ? 'override-cell' : '', cellIsSelected(rowIndex, column.key) ? 'selected-cell' : ''].filter(Boolean).join(' ');
   const titleText = error ? error.message : hasOverride ? `Manual override active · ${cellTitle(raw, column)}` : cellTitle(raw, column);
-  const title = `title="${escapeHtml(titleText)}"`;
+  const title = `title="${escapeHtml(titleText)}" aria-invalid="${error ? 'true' : 'false'}"`;
   if (column.formula) {
     const override = row[formulaOverrideKey(column.key)];
-    const display = override !== null && override !== undefined && parseNumericInput(override) === null ? String(override) : formatFormula(raw, column.kind);
+    const display = formatFormula(raw, column.kind);
     const fillHandle = cellIsFillHandleCorner(rowIndex, column.key) ? '<span class="fill-handle" contenteditable="false" aria-hidden="true"></span>' : '';
     return `<td class="cell editable formula-cell ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(display)}${fillHandle}</td>`;
   }
@@ -197,6 +227,7 @@ function renderShell(state) {
       ${buildToolbarHtml(state)}
       ${buildFormulaBarHtml(state)}
       ${buildFindReplaceHtml(state)}
+      ${buildVersionHistoryHtml(state)}
       <div id="calculator-dashboard-container">${dashboardTotalsHtml(state)}</div>
       <div id="calculator-validation-container">${validationSummaryHtml(state)}</div>
       ${buildTableHtml(state)}
