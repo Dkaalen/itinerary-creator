@@ -12,10 +12,16 @@ from openpyxl.workbook.workbook import Workbook
 from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TOTALS_ROW
 from calculator.filename_sanitizer import calculation_workbook_filename
-from calculator.calculations import calculate_row
-from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
-from calculator.formula_map import PAYMENT_FORMULAS, TOTAL_FORMULAS, expected_row_formulas
+from calculator.currency_rates import normalize_currency_rates
+from calculator.formula_map import (
+    LEGACY_PAYMENT_CELLS_TO_CLEAR,
+    PAYMENT_FORMULAS,
+    TOTAL_FORMULAS,
+    expected_row_formulas,
+)
+from calculator.numeric_input import parse_numeric_input
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
+from calculator.validation import ensure_valid_calculator_state
 from calculator.workbook_template import load_calculation_template
 
 _MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
@@ -100,6 +106,7 @@ def build_calculation_workbook(
 
     rows = tuple(state.rows)
     active_rates = normalize_currency_rates(currency_rates)
+    ensure_valid_calculator_state(state, active_rates)
     if len(rows) > _MAX_DATA_ROWS:
         raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
 
@@ -107,7 +114,7 @@ def build_calculation_workbook(
     _write_default_currency_rates(workbook, active_rates)
     sheet = workbook[KALK_SHEET_NAME]
     for row_number, row in zip(_data_row_numbers(), rows):
-        _write_row(sheet, row_number, row, active_rates)
+        _write_row(sheet, row_number, row)
     _restore_total_and_payment_formulas(sheet)
     _prepare_workbook_recalculation(workbook)
     _restore_excel_advanced_view(sheet)
@@ -118,24 +125,25 @@ def _data_row_numbers() -> Iterable[int]:
     return range(DATA_START_ROW, DATA_END_ROW + 1)
 
 
-def _write_row(sheet: object, row_number: int, row: CalculatorRow, currency_rates: Mapping[str, float]) -> None:
-    calculated = calculate_row(row, currency_rates)
+def _write_row(sheet: object, row_number: int, row: CalculatorRow) -> None:
     for column, field_name in _ROW_VALUE_COLUMNS.items():
         sheet[f"{column}{row_number}"] = _cell_value(row, field_name)
     _write_sales_price_cell(sheet, row_number, row)
-    _restore_formula_cells(sheet, row_number, row, calculated)
+    _restore_formula_cells(sheet, row_number, row)
 
 
 def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) -> None:
     cell = sheet[f"Y{row_number}"]
     value = row.sales_price_per_unit
-    if value is None:
+    if value is None or (parse_numeric_input(value) == 0 and parse_numeric_input(row.gross_price_per_unit) > 0):
         cell.value = f"=Q{row_number}"
         return
     cell.value = value
 
 
-def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow, calculated: object) -> None:
+def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow) -> None:
+    """Write canonical formulas unless a user explicitly overrode the result cell."""
+
     formulas = expected_row_formulas(row_number)
     field_by_column = {
         "S": "gross_price",
@@ -150,12 +158,6 @@ def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow, c
     }
     for column, formula in formulas.items():
         if column == "Y":
-            continue
-        if column == "W":
-            sheet[f"{column}{row_number}"] = calculated.supplier_x_rate
-            continue
-        if column == "AB":
-            sheet[f"{column}{row_number}"] = calculated.sales_x_rate
             continue
         field_name = field_by_column.get(column, "")
         override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
@@ -184,12 +186,13 @@ def _write_default_currency_rates(workbook: Workbook, currency_rates: Mapping[st
 
 
 
-
 def _restore_total_and_payment_formulas(sheet: object) -> None:
     """Restore template total/payment formulas even if a previous export dirtied cells."""
 
     for cell, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: f"=Z{TOTALS_ROW}"}.items():
         sheet[cell] = formula
+    for cell in LEGACY_PAYMENT_CELLS_TO_CLEAR:
+        sheet[cell] = None
 
 
 def _prepare_workbook_recalculation(workbook: Workbook) -> None:
@@ -198,6 +201,7 @@ def _prepare_workbook_recalculation(workbook: Workbook) -> None:
     workbook.calculation.fullCalcOnLoad = True
     workbook.calculation.forceFullCalc = True
     workbook.calculation.calcMode = "auto"
+
 
 def _restore_excel_advanced_view(sheet: object) -> None:
     """Keep the template's grouped hidden columns expandable in Excel."""

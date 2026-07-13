@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from decimal import Decimal, DecimalException
 import operator
 import re
 from typing import Any
@@ -46,6 +47,32 @@ def parse_numeric_input(value: Any, *, default: float = 0.0) -> float:
     return float(result)
 
 
+def parse_decimal_input(value: Any, *, default: Decimal = Decimal("0")) -> Decimal:
+    """Return an exact finite Decimal from spreadsheet-style arithmetic input."""
+
+    if value in (None, ""):
+        return default
+    if isinstance(value, Decimal):
+        return value if value.is_finite() else default
+    if isinstance(value, (int, float)):
+        try:
+            result = Decimal(str(value))
+        except (DecimalException, ValueError):
+            return default
+        return result if result.is_finite() else default
+    text = _normalise_expression_text(value)
+    if text.casefold() in _BLANK_MARKERS or not text:
+        return default
+    if not _ALLOWED_CHARS_RE.fullmatch(text):
+        return default
+    try:
+        parsed = ast.parse(text, mode="eval")
+        result = _eval_decimal_node(parsed.body)
+    except (SyntaxError, ValueError, ZeroDivisionError, TypeError, DecimalException):
+        return default
+    return result if result.is_finite() else default
+
+
 def optional_numeric_input(value: Any) -> float | None:
     """Return None for blank markers, otherwise parse spreadsheet-style input."""
 
@@ -72,4 +99,25 @@ def _eval_node(node: ast.AST) -> float:
         return float(_OPERATORS[type(node.op)](_eval_node(node.left), _eval_node(node.right)))
     if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
         return float(_UNARY_OPERATORS[type(node.op)](_eval_node(node.operand)))
+    raise ValueError(f"Unsupported numeric expression: {ast.dump(node)}")
+
+
+def _eval_decimal_node(node: ast.AST) -> Decimal:
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return Decimal(str(node.value))
+    if isinstance(node, ast.BinOp) and type(node.op) in _OPERATORS:
+        left = _eval_decimal_node(node.left)
+        right = _eval_decimal_node(node.right)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if right == 0:
+            raise ZeroDivisionError
+        return left / right
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
+        value = _eval_decimal_node(node.operand)
+        return value if isinstance(node.op, ast.UAdd) else -value
     raise ValueError(f"Unsupported numeric expression: {ast.dump(node)}")

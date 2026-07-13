@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from zipfile import ZipFile
 
 from calculator.formula_map import (
     PAYMENT_FORMULAS,
@@ -11,18 +12,19 @@ from calculator.formula_map import (
     validate_formula_map,
 )
 
+from calculator.template_structure import default_template_path
 
 def test_expected_formula_map_for_first_data_row() -> None:
     assert expected_row_formulas(7) == {
-        "S": "=+Q7*R7",
-        "U": "=S7*(1-T7)",
+        "S": "=ROUND(Q7*R7,2)",
+        "U": "=ROUND(S7*(1-T7),2)",
         "W": "=IFERROR(VLOOKUP(V7,Curr!$B$2:$C$13,2,FALSE),0)",
-        "X": "=U7*W7",
+        "X": "=ROUND(U7*W7,2)",
         "Y": "=Q7",
-        "Z": "=+Y7*R7",
+        "Z": "=ROUND(Y7*R7,2)",
         "AB": "=IFERROR(VLOOKUP(AA7,Curr!$B$2:$C$13,2,FALSE),0)",
-        "AC": "=+Y7*AB7*R7",
-        "AD": "=+AC7-X7",
+        "AC": "=ROUND(Y7*AB7*R7,2)",
+        "AD": "=ROUND(AC7-X7,2)",
         "AE": "=IFERROR(AD7/AC7,0)",
     }
 
@@ -53,3 +55,16 @@ def test_template_totals_and_payment_formulas_are_locked() -> None:
 
 def test_formula_map_validator_accepts_bundled_template() -> None:
     assert validate_formula_map() == ()
+
+
+def test_bundled_template_preserves_excel_package_metadata() -> None:
+    with ZipFile(default_template_path()) as workbook_package:
+        names = set(workbook_package.namelist())
+
+    assert {
+        "customXml/item1.xml",
+        "xl/calcChain.xml",
+        "xl/printerSettings/printerSettings1.bin",
+        "xl/sharedStrings.xml",
+        "xl/worksheets/_rels/sheet2.xml.rels",
+    } <= names

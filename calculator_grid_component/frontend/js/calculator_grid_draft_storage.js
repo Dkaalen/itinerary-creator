@@ -32,8 +32,11 @@ function saveCalculatorDraft(state, backendRevision) {
   try {
     window.localStorage.setItem(calculatorDraftStorageKey, JSON.stringify({
       rows: normalizeRowsForPython(state.rows),
+      numberOfPax: state.numberOfPax ?? null,
       showAdvanced: Boolean(state.showAdvanced),
       selectedRowIndex: Number(state.selectedRowIndex || 0),
+      activeCell: activeCell ? {...activeCell} : null,
+      selection: state.selection ? {...state.selection} : null,
       backendRevision: String(backendRevision || ''),
       savedAt: Date.now()
     }));
@@ -52,10 +55,11 @@ function clearCalculatorDraft() {
 
 function shouldRestoreCalculatorDraft(draft, incomingRows, incomingRevision) {
   if (!draft || !Array.isArray(draft.rows) || !draft.rows.length) return false;
-  if (!Array.isArray(incomingRows) || !incomingRows.length) return true;
-  if (gridRowsAreBlank(incomingRows)) return true;
   const draftRevision = String(draft.backendRevision || '');
-  return Boolean(draftRevision && incomingRevision && draftRevision === String(incomingRevision));
+  const revisionsMatch = Boolean(draftRevision && incomingRevision && draftRevision === String(incomingRevision));
+  if (!Array.isArray(incomingRows) || !incomingRows.length) return revisionsMatch || !incomingRevision;
+  if (gridRowsAreBlank(incomingRows)) return revisionsMatch;
+  return revisionsMatch;
 }
 
 function gridRowsAreBlank(rows) {

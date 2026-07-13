@@ -1,62 +1,61 @@
-"""Shared pytest configuration for marker discipline and Streamlit stubbing."""
+"""Browser E2E fixtures for the Streamlit itinerary workflow."""
 
 from __future__ import annotations
 
-from pathlib import Path
-import sys
+import os
+import shutil
+import subprocess
+import time
+from collections.abc import Iterator
 
 import pytest
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
-from support.streamlit_stub import install_streamlit_stub
-
-from scripts.test_groups import (
-    critical_module_names,
-    fast_module_names,
-    group_module_names,
-    pdf_module_names,
-    quality_module_names,
-    slow_module_names,
-)
-
-GROUP_MODULES = group_module_names()
-CRITICAL_MODULES = critical_module_names()
-FAST_MODULES = fast_module_names()
-PDF_MODULES = pdf_module_names()
-SLOW_MODULES = slow_module_names()
-QUALITY_MODULES = quality_module_names()
-KNOWN_GROUPED_MODULES = set().union(*GROUP_MODULES.values())
+APP_URL_ENV = "ITINERARY_E2E_APP_URL"
+RUN_E2E_ENV = "ITINERARY_RUN_BROWSER_E2E"
 
 
-def pytest_configure(config: pytest.Config) -> None:
-    """Install the shared Streamlit stub before test modules are imported."""
-
-    install_streamlit_stub()
+def pytest_configure(config):
+    config.addinivalue_line("markers", "browser_e2e: real browser workflow tests")
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """Apply runner-group and coarse test markers by module name."""
+@pytest.fixture(scope="session")
+def e2e_app_url() -> Iterator[str]:
+    """Return an existing app URL or start Streamlit for browser tests."""
 
-    for item in items:
-        module_name = Path(str(item.fspath)).name
+    explicit_url = os.getenv(APP_URL_ENV)
+    if explicit_url:
+        yield explicit_url.rstrip("/")
+        return
 
-        for group_name, module_names in GROUP_MODULES.items():
-            if module_name in module_names:
-                item.add_marker(getattr(pytest.mark, group_name))
+    if os.getenv(RUN_E2E_ENV) != "1":
+        pytest.skip(f"Set {RUN_E2E_ENV}=1 or {APP_URL_ENV} to run browser E2E tests.")
 
-        if module_name in QUALITY_MODULES:
-            item.add_marker(pytest.mark.quality)
+    if shutil.which("streamlit") is None:
+        pytest.skip("streamlit executable is not available for browser E2E tests.")
 
-        if module_name in PDF_MODULES:
-            item.add_marker(pytest.mark.pdf)
-
-        if module_name in SLOW_MODULES:
-            item.add_marker(pytest.mark.slow)
-
-        if module_name in CRITICAL_MODULES or module_name in FAST_MODULES:
-            item.add_marker(pytest.mark.unit)
-        elif module_name in KNOWN_GROUPED_MODULES:
-            item.add_marker(pytest.mark.integration)
+    port = int(os.getenv("ITINERARY_E2E_PORT", "8509"))
+    url = f"http://127.0.0.1:{port}"
+    process = subprocess.Popen(
+        [
+            "streamlit",
+            "run",
+            "app.py",
+            "--server.port",
+            str(port),
+            "--server.headless",
+            "true",
+            "--browser.gatherUsageStats",
+            "false",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        time.sleep(8)
+        yield url
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()

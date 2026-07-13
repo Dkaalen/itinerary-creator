@@ -13,6 +13,31 @@ function optionalNumberValue(value) {
   return parseNumericInput(value);
 }
 
+function roundHalfAwayFromZero(value, digits) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  const factor = 10 ** digits;
+  const scaled = Math.abs(number) * factor;
+  // Decimal-looking inputs often land microscopically below an exact .5 after
+  // JavaScript multiplication. Use a magnitude-aware machine tolerance so the
+  // preview matches Excel ROUND and the canonical Python Decimal engine.
+  const tolerance = Number.EPSILON * Math.max(1, scaled) * 4;
+  const magnitude = Math.floor(scaled + 0.5 + tolerance) / factor;
+  return number < 0 ? -magnitude : magnitude;
+}
+
+function roundMoney(value) {
+  return roundHalfAwayFromZero(value, 2);
+}
+
+function roundRate(value) {
+  return roundHalfAwayFromZero(value, 6);
+}
+
+function roundPercent(value) {
+  return roundHalfAwayFromZero(value, 6);
+}
+
 function currencyCode(value) {
   const text = String(value || '').trim().toUpperCase();
   return text || DEFAULT_CURRENCY;
@@ -20,7 +45,7 @@ function currencyCode(value) {
 
 function currencyRate(value, rates) {
   const code = currencyCode(value);
-  return numberValue((rates || DEFAULT_RATES)[code]);
+  return roundRate(numberValue((rates || DEFAULT_RATES)[code]));
 }
 
 function rowHasUserValues(row) {
@@ -43,7 +68,10 @@ function rowHasUserValues(row) {
 
 function formulaValue(row, key, calculated) {
   const override = optionalNumberValue(row[formulaOverrideKey(key)]);
-  return override === null ? calculated : override;
+  if (override === null) return calculated;
+  if (key === 'supplier_x_rate' || key === 'sales_x_rate') return roundRate(override);
+  if (key === 'gp_percent') return roundPercent(override);
+  return roundMoney(override);
 }
 
 function calculateRow(row, rates) {
@@ -52,21 +80,18 @@ function calculateRow(row, rates) {
     return row;
   }
   const grossPerUnit = numberValue(row.gross_price_per_unit);
-  applyDefaultUnits(row, grossPerUnit);
   const units = numberValue(row.units);
-  const supplierCommissionDecimal = numberValue(row.supplier_commission) / 100;
-  const grossPrice = formulaValue(row, 'gross_price', grossPerUnit * units);
-  const netPrice = formulaValue(row, 'net_price', grossPrice * (1 - supplierCommissionDecimal));
+  const supplierCommissionDecimal = roundPercent(numberValue(row.supplier_commission) / 100);
+  const grossPrice = formulaValue(row, 'gross_price', roundMoney(grossPerUnit * units));
+  const netPrice = formulaValue(row, 'net_price', roundMoney(grossPrice * (1 - supplierCommissionDecimal)));
   const supplierRate = formulaValue(row, 'supplier_x_rate', currencyRate(row.supplier_currency, rates));
-  const netPriceNok = formulaValue(row, 'net_price_nok', netPrice * supplierRate);
+  const netPriceNok = formulaValue(row, 'net_price_nok', roundMoney(netPrice * supplierRate));
   const salesPerUnit = salesPricePerUnit(row, grossPerUnit);
   row.sales_price_per_unit = grossPerUnit === 0 && !row._sales_price_per_unit_touched ? '' : salesPerUnit;
-  const calculatedPrice = salesPerUnit * units;
-  const price = formulaValue(row, 'price', calculatedPrice);
+  const price = formulaValue(row, 'price', roundMoney(salesPerUnit * units));
   const salesRate = formulaValue(row, 'sales_x_rate', currencyRate(row.sales_currency, rates));
-  const calculatedSalesNok = price * salesRate;
-  const salesNok = formulaValue(row, 'sales_price_nok_total', calculatedSalesNok);
-  const gpNok = formulaValue(row, 'gp_nok', salesNok - netPriceNok);
+  const salesNok = formulaValue(row, 'sales_price_nok_total', roundMoney(price * salesRate));
+  const gpNok = formulaValue(row, 'gp_nok', roundMoney(salesNok - netPriceNok));
   const gpPercent = formulaValue(row, 'gp_percent', salesNok === 0 ? 0 : gpNok / salesNok);
 
   row.gross_price = grossPrice;
@@ -79,13 +104,6 @@ function calculateRow(row, rates) {
   row.gp_nok = gpNok;
   row.gp_percent = gpPercent;
   return row;
-}
-
-function applyDefaultUnits(row, grossPerUnit) {
-  if (row._units_touched) return;
-  if (grossPerUnit <= 0) return;
-  const current = optionalNumberValue(row.units);
-  if (current === null || current === 0) row.units = 1;
 }
 
 function salesPricePerUnit(row, grossPerUnit) {
@@ -124,8 +142,28 @@ function calculateTotals(rows) {
     totals.vat0_domestic += numberValue(row.vat0_domestic);
     totals.vat0_international += numberValue(row.vat0_international);
   }
+  for (const key of ['price', 'net_price_nok', 'sales_price_nok_total', 'gp_nok', 'vat25', 'vat15', 'vat12', 'vat0_domestic', 'vat0_international']) {
+    totals[key] = roundMoney(totals[key]);
+  }
   totals.gp_percent = totals.sales_price_nok_total === 0 ? 0 : totals.gp_nok / totals.sales_price_nok_total;
   return totals;
+}
+
+function calculateDashboard(state) {
+  const totals = calculateTotals(state.rows);
+  const pax = positiveIntegerOrNull(state.numberOfPax);
+  return {
+    ...totals,
+    number_of_pax: pax,
+    cost_per_pax: pax ? roundMoney(totals.net_price_nok / pax) : null,
+    sales_per_pax: pax ? roundMoney(totals.sales_price_nok_total / pax) : null
+  };
+}
+
+function positiveIntegerOrNull(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
 }
 
 function formatNumber(value, digits = 2) {
@@ -138,5 +176,6 @@ function formatNumber(value, digits = 2) {
 function formatFormula(value, kind) {
   if (value === null || value === undefined || value === '') return '';
   if (kind === 'formulaPercent') return `${(numberValue(value) * 100).toFixed(1)}%`;
+  if (kind === 'formula' && Math.abs(numberValue(value)) < 100) return formatNumber(value, 2);
   return formatNumber(value, 2);
 }

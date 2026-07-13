@@ -118,3 +118,59 @@ def test_saved_project_payload_size_guard() -> None:
 
     with pytest.raises(SavedProjectError, match="payload is too large"):
         validate_saved_project_payload(payload, max_bytes=100)
+
+
+def test_saved_project_round_trip_preserves_current_calculator_snapshot() -> None:
+    from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY, CURRENCY_RATES_STATE_KEY
+    from calculator.calculator_state import CalculatorState
+    from calculator.row_model import CalculatorRow
+
+    state = _generated_state()
+    state[CALCULATOR_STATE_KEY] = CalculatorState(
+        itinerary_name="Calculator Group",
+        number_of_pax=21,
+        rows=(
+            CalculatorRow(
+                row_id="1",
+                travel_element="Oslo hotel",
+                gross_price_per_unit=100,
+                units=2,
+                supplier_currency="EUR",
+                sales_currency="NOK",
+            ),
+        ),
+    )
+    state[CURRENCY_RATES_STATE_KEY] = {"NOK": 1, "EUR": 12.5}
+
+    payload_json = saved_project_to_json(build_saved_project_from_state(state, clock=_clock))
+    restored = saved_project_from_dict(json.loads(payload_json))
+    snapshot = restored.calculator_snapshot
+
+    assert snapshot.schema_version == 2
+    assert snapshot.number_of_pax == 21
+    assert snapshot.rows[0]["travel_element"] == "Oslo hotel"
+    assert snapshot.currency_rates["EUR"] == 12.5
+
+
+def test_saved_project_validation_rejects_invalid_calculator_currency_rate() -> None:
+    payload = saved_project_to_dict(build_saved_project_from_state(_generated_state(), clock=_clock))
+    payload["calculator_snapshot"]["currency_rates"]["EUR"] = 0
+
+    with pytest.raises(SavedProjectError, match="currency rates must be positive"):
+        validate_saved_project_payload(payload)
+
+
+def test_saved_project_validation_rejects_malformed_calculator_rows() -> None:
+    payload = saved_project_to_dict(build_saved_project_from_state(_generated_state(), clock=_clock))
+    payload["calculator_snapshot"]["rows"] = [{"row_id": "1", "gross_price_per_unit": float("nan")}]
+
+    with pytest.raises(SavedProjectError, match="not a valid finite number"):
+        validate_saved_project_payload(payload)
+
+
+def test_saved_project_validation_rejects_non_object_calculator_rows() -> None:
+    payload = saved_project_to_dict(build_saved_project_from_state(_generated_state(), clock=_clock))
+    payload["calculator_snapshot"]["rows"] = ["broken row"]
+
+    with pytest.raises(SavedProjectError, match="rows must contain objects"):
+        validate_saved_project_payload(payload)

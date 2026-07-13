@@ -130,3 +130,63 @@ def test_calculate_totals_sums_money_gp_and_vat_fields() -> None:
     assert totals.vat12 == 2
     assert totals.vat0_domestic == 3
     assert totals.vat0_international == 4
+
+
+def test_calculator_rounds_money_like_excel_half_away_from_zero() -> None:
+    positive = calculate_row(
+        CalculatorRow(gross_price_per_unit=1.005, units=1, supplier_currency="NOK", sales_currency="NOK")
+    )
+    negative = calculate_row(
+        CalculatorRow(gross_price_per_unit=-1.005, units=1, supplier_currency="NOK", sales_currency="NOK")
+    )
+
+    assert positive.gross_price == 1.01
+    assert positive.sales_price_nok_total == 1.01
+    assert negative.gross_price == -1.01
+    assert negative.sales_price_nok_total == -1.01
+
+
+def test_zero_units_remain_zero_in_canonical_engine() -> None:
+    calculated = calculate_row(
+        CalculatorRow(gross_price_per_unit=100, units=0, supplier_currency="NOK", sales_currency="NOK")
+    )
+
+    assert calculated.gross_price == 0
+    assert calculated.sales_price_nok_total == 0
+
+
+def test_dashboard_pax_values_are_display_only() -> None:
+    from calculator.calculations import calculate_dashboard
+
+    rows = [
+        CalculatorRow(
+            gross_price_per_unit=100,
+            units=2,
+            supplier_currency="NOK",
+            sales_price_per_unit=150,
+            sales_currency="NOK",
+        )
+    ]
+
+    dashboard = calculate_dashboard(rows, 4)
+    without_pax = calculate_dashboard(rows, None)
+
+    assert dashboard.total_cost_nok == 200
+    assert dashboard.total_sales_nok == 300
+    assert dashboard.cost_per_pax == 50
+    assert dashboard.sales_per_pax == 75
+    assert without_pax.cost_per_pax is None
+    assert without_pax.sales_per_pax is None
+
+
+def test_calculator_rounds_spreadsheet_expressions_with_decimal_precision() -> None:
+    calculated = calculate_row(
+        CalculatorRow(
+            gross_price_per_unit="=404.775*12.2",
+            units=1,
+            supplier_currency="NOK",
+            sales_currency="NOK",
+        )
+    )
+
+    assert calculated.gross_price == 4938.26

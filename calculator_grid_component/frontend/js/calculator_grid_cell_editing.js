@@ -1,11 +1,30 @@
+function handleCellMouseDown(event) {
+  const cell = event.currentTarget;
+  const rowIndex = Number(cell.dataset.rowIndex || 0);
+  const key = cell.dataset.key;
+  selectionDragging = true;
+  if (event.shiftKey && calculatorState.selection) extendCellSelection(rowIndex, key);
+  else setSingleCellSelection(rowIndex, key);
+  refreshSelectionClasses();
+}
+
+function handleCellMouseEnter(event) {
+  if (!selectionDragging || !(event.buttons & 1)) return;
+  const cell = event.currentTarget;
+  extendCellSelection(Number(cell.dataset.rowIndex || 0), cell.dataset.key);
+}
+
 function handleCellFocus(event) {
   const cell = event.currentTarget;
   const rowIndex = Number(cell.dataset.rowIndex || 0);
   const key = cell.dataset.key;
   calculatorState.selectedRowIndex = rowIndex;
   activeCell = {rowIndex, key};
+  beginCellEdit();
+  if (!calculatorState.selection) setSingleCellSelection(rowIndex, key);
   if (key === 'travel_element') scheduleSuggestions(rowIndex, cell.textContent || '');
   markSelectedRow(rowIndex);
+  refreshFormulaBarOnly();
 }
 
 function handleCellInput(event) {
@@ -18,16 +37,17 @@ function handleCellInput(event) {
   refreshDefaultedEditableCells(rowIndex);
   refreshFormulaCells(rowIndex);
   refreshTotalsOnly();
-  if (key === 'travel_element') {
-    scheduleSuggestions(rowIndex, cell.textContent || '');
-  }
+  refreshValidationAndStatus();
+  refreshFormulaBarOnly();
+  if (key === 'travel_element') scheduleSuggestions(rowIndex, cell.textContent || '');
 }
 
 function handleCellKeydown(event) {
   const movement = navigationMovement(event);
   if (!movement) return;
   event.preventDefault();
-  moveActiveCell(event.currentTarget, movement.rowDelta, movement.colDelta);
+  commitCellEdit();
+  moveActiveCell(event.currentTarget, movement.rowDelta, movement.colDelta, event.shiftKey);
 }
 
 function navigationMovement(event) {
@@ -40,7 +60,7 @@ function navigationMovement(event) {
   return null;
 }
 
-function moveActiveCell(cell, rowDelta, colDelta) {
+function moveActiveCell(cell, rowDelta, colDelta, extendSelection = false) {
   const columns = visibleColumns(calculatorState.showAdvanced);
   const currentRowIndex = Number(cell.dataset.rowIndex || 0);
   const currentKey = cell.dataset.key;
@@ -49,6 +69,8 @@ function moveActiveCell(cell, rowDelta, colDelta) {
   const targetRowIndex = Math.max(0, Math.min(calculatorState.rows.length - 1, currentRowIndex + rowDelta));
   const targetColIndex = Math.max(0, Math.min(columns.length - 1, currentColIndex + colDelta));
   const targetKey = columns[targetColIndex].key;
+  if (extendSelection) extendCellSelection(targetRowIndex, targetKey);
+  else setSingleCellSelection(targetRowIndex, targetKey);
   const target = document.querySelector(`[data-row-index="${targetRowIndex}"][data-key="${targetKey}"]`);
   if (!target) return;
   const input = target.matches('input') ? target : target.querySelector?.('input');
@@ -78,18 +100,23 @@ function handleCellBlur(event) {
     const value = row[key];
     cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
   } else if (['formula', 'formulaPercent'].includes(columnKind(key))) {
-    cell.textContent = formatFormula(row[key], columnKind(key));
+    const override = row[formulaOverrideKey(key)];
+    cell.textContent = override !== null && parseNumericInput(override) === null ? String(override) : formatFormula(row[key], columnKind(key));
   } else if (key === 'supplier_currency' || key === 'sales_currency') {
     cell.textContent = row[key] || '';
   }
+  commitCellEdit();
+  scheduleBackendSync(250);
 }
 
 function handleCheckboxChange(event) {
   const checkbox = event.currentTarget;
   const rowIndex = Number(checkbox.dataset.rowIndex || 0);
   const key = checkbox.dataset.key;
+  recordHistory();
   updateRowValue(rowIndex, key, Boolean(checkbox.checked));
   markLocalDraft();
+  scheduleBackendSync(250);
 }
 
 function columnKind(key) {
@@ -109,14 +136,25 @@ function updateRowValue(rowIndex, key, rawValue) {
   if (key === 'day') markDayChanged(row);
   if (key === 'from_date') markDateManualState(row, key, rawValue);
   if (kind === 'checkbox') row[key] = Boolean(rawValue);
-  else if (kind === 'numberOptional') row[key] = optionalNumberValue(rawValue);
-  else if (kind === 'formula' || kind === 'formulaPercent') {
-    row[formulaOverrideKey(key)] = formulaOverrideValue(rawValue, kind);
-  } else if (kind === 'percent') row[key] = rawValue === '' ? '' : percentPointInputValue(rawValue);
-  else if (kind === 'number') row[key] = rawValue === '' ? '' : numberValue(rawValue);
+  else if (kind === 'numberOptional') row[key] = optionalNumericStorageValue(rawValue);
+  else if (kind === 'formula' || kind === 'formulaPercent') row[formulaOverrideKey(key)] = formulaOverrideValue(rawValue, kind);
+  else if (kind === 'percent') row[key] = rawValue === '' ? '' : percentPointInputValue(rawValue);
+  else if (kind === 'number') row[key] = rawValue === '' ? '' : numericStorageValue(rawValue);
   else row[key] = normalizedTextValue(key, rawValue);
   if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
   calculateRow(row, calculatorState.currencyRates);
+  validateCalculatorState(calculatorState);
+}
+
+function numericStorageValue(rawValue) {
+  const parsed = parseNumericInput(rawValue);
+  return parsed === null ? String(rawValue ?? '').trim() : parsed;
+}
+
+function optionalNumericStorageValue(rawValue) {
+  const text = String(rawValue ?? '').trim();
+  if (!text || ['none', 'nan', 'null'].includes(text.toLowerCase())) return null;
+  return numericStorageValue(rawValue);
 }
 
 function normalizedTextValue(key, rawValue) {
@@ -127,8 +165,10 @@ function normalizedTextValue(key, rawValue) {
 
 function formulaOverrideValue(rawValue, kind) {
   if (rawValue === null || rawValue === undefined || String(rawValue).trim() === '') return null;
+  const parsed = parseNumericInput(rawValue);
+  if (parsed === null) return String(rawValue).trim();
   if (kind === 'formulaPercent') return percentInputValue(rawValue);
-  return numberValue(rawValue);
+  return parsed;
 }
 
 function percentInputValue(rawValue) {
@@ -139,8 +179,9 @@ function percentInputValue(rawValue) {
 
 function percentPointInputValue(rawValue) {
   const text = String(rawValue || '').trim();
-  const number = numberValue(rawValue);
-  return text.includes('%') ? number * 100 : number;
+  const parsed = parseNumericInput(rawValue);
+  if (parsed === null) return text;
+  return text.includes('%') ? parsed * 100 : parsed;
 }
 
 function markSelectedRow(rowIndex) {
@@ -172,24 +213,38 @@ function refreshFormulaCells(rowIndex) {
   for (const column of FORMULA_COLUMNS) {
     const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${column.key}"]`);
     if (cell && !(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === column.key && document.activeElement === cell)) {
-      cell.textContent = formatFormula(row[column.key], column.kind);
+      const override = row[formulaOverrideKey(column.key)];
+      cell.textContent = override !== null && parseNumericInput(override) === null ? String(override) : formatFormula(row[column.key], column.kind);
     }
   }
 }
 
-function refreshTotalsOnly() {
-  const totalsPanel = document.querySelector('.calculator-totals-panel');
-  if (!totalsPanel) return;
-  const totals = calculateTotals(calculatorState.rows);
-  totalsPanel.innerHTML = `
-    <span>Total price: <strong>${formatNumber(totals.price, 0)}</strong></span>
-    <span>Total sales NOK: <strong>${formatNumber(totals.sales_price_nok_total, 0)}</strong></span>
-    <span>Total net NOK: <strong>${formatNumber(totals.net_price_nok, 0)}</strong></span>
-    <span>Earnings / GP NOK: <strong>${formatNumber(totals.gp_nok, 0)}</strong></span>
-    <span>GP %: <strong>${(totals.gp_percent * 100).toFixed(1)}%</strong></span>
-    <span>VAT25: <strong>${formatNumber(totals.vat25, 0)}</strong></span>
-    <span>VAT15: <strong>${formatNumber(totals.vat15, 0)}</strong></span>
-    <span>VAT12: <strong>${formatNumber(totals.vat12, 0)}</strong></span>
-    <span>VAT0-D: <strong>${formatNumber(totals.vat0_domestic, 0)}</strong></span>
-    <span>VAT0-I: <strong>${formatNumber(totals.vat0_international, 0)}</strong></span>`;
+function activeCellRawValue() {
+  if (!activeCell) return '';
+  const row = calculatorState.rows[activeCell.rowIndex];
+  const column = columnByKey(activeCell.key);
+  if (!row || !column) return '';
+  if (column.formula) {
+    const override = row[formulaOverrideKey(column.key)];
+    return override === null || override === undefined ? formatFormula(row[column.key], column.kind) : String(override);
+  }
+  return String(row[column.key] ?? '');
+}
+
+function updateActiveCellFromFormulaBar(value) {
+  if (!activeCell) return;
+  updateRowValue(activeCell.rowIndex, activeCell.key, value);
+  markLocalDraft();
+  refreshDefaultedEditableCells(activeCell.rowIndex);
+  refreshFormulaCells(activeCell.rowIndex);
+  refreshTotalsOnly();
+  refreshValidationAndStatus();
+}
+
+function restoreActiveCellFocus() {
+  refreshSelectionClasses();
+  if (!activeCell) return;
+  const target = document.querySelector(`[data-row-index="${activeCell.rowIndex}"][data-key="${activeCell.key}"]`);
+  if (!target || target.matches('input')) return;
+  target.focus({preventScroll: true});
 }

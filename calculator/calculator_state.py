@@ -14,12 +14,19 @@ class CalculatorState:
     """Current in-app calculator state independent of Streamlit."""
 
     itinerary_name: str = ""
+    number_of_pax: int | None = None
     rows: tuple[CalculatorRow, ...] = ()
 
     def with_itinerary_name(self, itinerary_name: str) -> "CalculatorState":
         """Return a copy with a new itinerary name."""
 
         return replace(self, itinerary_name=itinerary_name)
+
+    def with_number_of_pax(self, number_of_pax: int | None) -> "CalculatorState":
+        """Return a copy with an optional dashboard passenger count."""
+
+        normalized = None if number_of_pax in (None, 0) else int(number_of_pax)
+        return replace(self, number_of_pax=normalized)
 
 
 def create_calculator_state(itinerary_name: str = "") -> CalculatorState:

@@ -1,31 +1,69 @@
 function bindEvents() {
   document.querySelectorAll('[data-action="add"]').forEach((button) => {
     button.addEventListener('click', () => {
+      recordHistory();
       calculatorState.rows = calculateRows(addRows(calculatorState.rows, Number(button.dataset.count || 1)), calculatorState.currencyRates);
       markLocalDraft();
       rerender();
     });
   });
   document.querySelector('[data-action="duplicate"]')?.addEventListener('click', () => {
+    recordHistory();
     calculatorState.rows = calculateRows(duplicateRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
     markLocalDraft();
     rerender();
   });
   document.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+    recordHistory();
     calculatorState.rows = calculateRows(deleteRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
     calculatorState.selectedRowIndex = Math.min(calculatorState.selectedRowIndex, calculatorState.rows.length - 1);
     markLocalDraft();
     rerender();
   });
   document.querySelector('[data-action="toggle-advanced"]')?.addEventListener('change', (event) => {
+    recordHistory();
     calculatorState.showAdvanced = Boolean(event.target.checked);
+    calculatorState.selection = null;
     markLocalDraft();
     rerender();
   });
+  document.querySelector('[data-action="undo"]')?.addEventListener('click', undoCalculatorChange);
+  document.querySelector('[data-action="redo"]')?.addEventListener('click', redoCalculatorChange);
+  document.querySelector('[data-action="fill-down"]')?.addEventListener('click', () => fillSelection('down'));
+  document.querySelector('[data-action="fill-right"]')?.addEventListener('click', () => fillSelection('right'));
+  document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
+  document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
   document.querySelector('[data-action="generate-agent"]')?.addEventListener('click', () => submitAction('generate_agent'));
   document.querySelector('[data-action="generate-customer"]')?.addEventListener('click', () => submitAction('generate_customer'));
   document.querySelector('[data-action="toggle-fullscreen"]')?.addEventListener('click', toggleCalculatorFullscreen);
+
+  const paxInput = document.querySelector('[data-action="set-pax"]');
+  paxInput?.addEventListener('focus', beginCellEdit);
+  paxInput?.addEventListener('input', (event) => {
+    calculatorState.numberOfPax = event.target.value;
+    markLocalDraft();
+    refreshTotalsOnly();
+    refreshValidationAndStatus();
+  });
+  paxInput?.addEventListener('blur', () => {
+    commitCellEdit();
+    scheduleBackendSync(250);
+  });
+
+  const formulaBar = document.querySelector('[data-action="formula-bar"]');
+  formulaBar?.addEventListener('focus', beginCellEdit);
+  formulaBar?.addEventListener('input', (event) => updateActiveCellFromFormulaBar(event.target.value));
+  formulaBar?.addEventListener('blur', () => {
+    commitCellEdit();
+    scheduleBackendSync(250);
+  });
+  formulaBar?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+  });
 
   document.querySelectorAll('.calc-row').forEach((rowElement) => {
     rowElement.addEventListener('mousedown', () => {
@@ -36,6 +74,8 @@ function bindEvents() {
   });
 
   document.querySelectorAll('td.editable').forEach((cell) => {
+    cell.addEventListener('mousedown', handleCellMouseDown);
+    cell.addEventListener('mouseenter', handleCellMouseEnter);
     cell.addEventListener('focus', handleCellFocus);
     cell.addEventListener('input', handleCellInput);
     cell.addEventListener('keydown', handleCellKeydown);
@@ -50,16 +90,45 @@ function bindEvents() {
       applySuggestion(Number(button.dataset.suggestionIndex || 0));
     });
   });
+  bindClipboardEvents();
+  restoreActiveCellFocus();
 }
 
 function submitAction(action) {
+  window.clearTimeout(backendSyncTimer);
+  commitCellEdit();
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  const errors = validateCalculatorState(calculatorState);
+  if (errors.length) {
+    calculatorState.syncStatus = 'Fix validation errors';
+    refreshValidationAndStatus();
+    return;
+  }
   saveCalculatorDraft(calculatorState, activeBackendRevision);
   const rows = normalizeRowsForPython(calculatorState.rows);
+  calculatorState.dirty = false;
+  calculatorState.syncStatus = action === 'sync' ? 'Syncing…' : 'Saving latest grid…';
+  refreshSyncStatusOnly();
   Streamlit.setComponentValue(JSON.stringify({
     action,
     rows,
+    number_of_pax: positiveIntegerOrNull(calculatorState.numberOfPax),
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision
   }));
 }
+
+function handleGlobalCalculatorShortcut(event) {
+  const modifier = event.ctrlKey || event.metaKey;
+  if (!modifier) return;
+  const key = event.key.toLowerCase();
+  if (key === 'z' && !event.shiftKey) {
+    event.preventDefault();
+    undoCalculatorChange();
+  } else if (key === 'y' || (key === 'z' && event.shiftKey)) {
+    event.preventDefault();
+    redoCalculatorChange();
+  }
+}
+
+document.addEventListener('keydown', handleGlobalCalculatorShortcut);

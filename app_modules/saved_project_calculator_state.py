@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-from app_modules.calculator_currency_controls import CURRENCY_RATES_STATE_KEY
+from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
 from app_modules.calculator_session_state import store_calculator_state
 from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY
 from calculator.calculator_state import CalculatorState, create_calculator_state
@@ -13,7 +13,7 @@ from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_from_dict, calculator_state_to_dict
 
 CALCULATOR_SNAPSHOT_KIND = "booknordics_calculator_state"
-CALCULATOR_SNAPSHOT_SCHEMA_VERSION = 1
+CALCULATOR_SNAPSHOT_SCHEMA_VERSION = 2
 
 
 def calculator_snapshot_from_workflow_state(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -38,6 +38,7 @@ def normalize_calculator_snapshot(payload: Mapping[str, Any] | None) -> dict[str
         "schema_version": int(raw.get("schema_version") or CALCULATOR_SNAPSHOT_SCHEMA_VERSION),
         "kind": str(raw.get("kind") or CALCULATOR_SNAPSHOT_KIND),
         "itinerary_name": str(raw.get("itinerary_name") or ""),
+        "number_of_pax": raw.get("number_of_pax"),
         "rows": [dict(row) for row in rows if isinstance(row, Mapping)],
         "currency_rates": normalize_currency_rates(raw.get("currency_rates")),
     }

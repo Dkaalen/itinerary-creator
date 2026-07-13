@@ -1,4 +1,6 @@
-from calculator.numeric_input import optional_numeric_input, parse_numeric_input
+from decimal import Decimal
+
+from calculator.numeric_input import optional_numeric_input, parse_decimal_input, parse_numeric_input
 
 
 def test_parse_numeric_input_supports_spreadsheet_arithmetic() -> None:
@@ -17,3 +19,9 @@ def test_optional_numeric_input_preserves_blank_values() -> None:
     assert optional_numeric_input("") is None
     assert optional_numeric_input("None") is None
     assert optional_numeric_input("=10/2") == 5
+
+
+def test_parse_decimal_input_preserves_spreadsheet_precision() -> None:
+    assert parse_decimal_input("=404.775*12.2") == Decimal("4938.2550")
+    assert parse_decimal_input("100 * (1 - 20%)") == Decimal("80.0")
+    assert parse_decimal_input("=1/0") == Decimal("0")

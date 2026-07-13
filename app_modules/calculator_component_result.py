@@ -20,7 +20,15 @@ class CalculatorGridResult:
     client_state_revision: str = ""
 
 
-_VALID_ACTIONS = {"download", "download_ack", "generate_agent", "generate_customer", "sync"}
+_VALID_ACTIONS = {
+    "close",
+    "download",
+    "download_ack",
+    "generate_agent",
+    "generate_customer",
+    "open_library",
+    "sync",
+}
 
 
 def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> CalculatorGridResult | None:
@@ -37,7 +45,11 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
     rows = table_data_to_rows(data.get("rows") or (), ())
     return CalculatorGridResult(
         action=action,
-        state=CalculatorState(itinerary_name=itinerary_name, rows=rows),
+        state=CalculatorState(
+            itinerary_name=itinerary_name,
+            number_of_pax=_optional_positive_int(data.get("number_of_pax")),
+            rows=rows,
+        ),
         show_advanced=bool(data.get("show_advanced")),
         client_state_revision=str(data.get("client_state_revision") or ""),
     )
@@ -53,3 +65,13 @@ def _json_object(raw_result: object) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
+
+
+def _optional_positive_int(value: object) -> int | None:
+    if value in (None, "", 0, "0"):
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 CALCULATOR_STATE_KEY = "calculator_state"
+CURRENCY_RATES_STATE_KEY = "calculator_currency_rates"
 CALCULATOR_DRAFT_NAMESPACE_KEY = "calculator_draft_namespace"
 CALCULATOR_ADVANCED_TOGGLE_KEY = "calculator_component_show_advanced"
 CALCULATOR_READY_DOWNLOAD_KEY = "calculator_ready_xlsx_download"

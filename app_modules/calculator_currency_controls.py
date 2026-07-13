@@ -7,8 +7,7 @@ from collections.abc import MutableMapping
 import streamlit as st
 
 from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
-
-CURRENCY_RATES_STATE_KEY = "calculator_currency_rates"
+from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
 
 
 def currency_rates_from_session(session_state: MutableMapping[str, object]) -> dict[str, float]:
@@ -33,9 +32,9 @@ def render_currency_rate_editor(session_state: MutableMapping[str, object]) -> d
                     st.number_input(
                         code,
                         value=float(rates.get(code, default_rate)),
-                        min_value=0.0,
+                        min_value=0.000001,
                         step=_rate_step(default_rate),
-                        format="%.4f",
+                        format="%.6f",
                         key=f"calculator_currency_rate_{code}",
                     )
                 )

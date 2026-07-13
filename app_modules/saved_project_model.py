@@ -47,9 +47,10 @@ class SavedProjectExportState:
 
 @dataclass(frozen=True)
 class SavedProjectCalculatorSnapshot:
-    schema_version: int = 1
+    schema_version: int = 2
     kind: str = "booknordics_calculator_state"
     itinerary_name: str = ""
+    number_of_pax: int | None = None
     rows: list[dict[str, Any]] = field(default_factory=list)
     currency_rates: dict[str, float] = field(default_factory=dict)
 

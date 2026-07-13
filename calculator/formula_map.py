@@ -12,35 +12,35 @@ from calculator.template_structure import default_template_path
 
 ROW_FORMULA_COLUMNS = ("S", "U", "W", "X", "Y", "Z", "AB", "AC", "AD", "AE")
 ROW_FORMULA_TEMPLATES = {
-    "S": "=+Q{row}*R{row}",
-    "U": "=S{row}*(1-T{row})",
+    "S": "=ROUND(Q{row}*R{row},2)",
+    "U": "=ROUND(S{row}*(1-T{row}),2)",
     "W": "=IFERROR(VLOOKUP(V{row},Curr!$B$2:$C$13,2,FALSE),0)",
-    "X": "=U{row}*W{row}",
+    "X": "=ROUND(U{row}*W{row},2)",
     "Y": "=Q{row}",
-    "Z": "=+Y{row}*R{row}",
+    "Z": "=ROUND(Y{row}*R{row},2)",
     "AB": "=IFERROR(VLOOKUP(AA{row},Curr!$B$2:$C$13,2,FALSE),0)",
-    "AC": "=+Y{row}*AB{row}*R{row}",
-    "AD": "=+AC{row}-X{row}",
+    "AC": "=ROUND(Y{row}*AB{row}*R{row},2)",
+    "AD": "=ROUND(AC{row}-X{row},2)",
     "AE": "=IFERROR(AD{row}/AC{row},0)",
 }
 TOTAL_FORMULAS = {
-    f"Z{TOTALS_ROW}": "=SUM(Z7:Z99)",
-    f"AC{TOTALS_ROW}": "=SUM(AC7:AC99)",
-    f"AD{TOTALS_ROW}": "=SUM(AD7:AD99)",
-    f"AE{TOTALS_ROW}": "=IFERROR(AD101/AC101,0)",
-    f"AF{TOTALS_ROW}": "=SUM(AF8:AF100)",
-    f"AG{TOTALS_ROW}": "=SUM(AG8:AG100)",
-    f"AH{TOTALS_ROW}": "=SUM(AH8:AH100)",
-    f"AI{TOTALS_ROW}": "=SUM(AI8:AI100)",
-    f"AJ{TOTALS_ROW}": "=SUM(AJ8:AJ100)",
+    f"Z{TOTALS_ROW}": f"=SUM(Z{DATA_START_ROW}:Z{DATA_END_ROW})",
+    f"AC{TOTALS_ROW}": f"=SUM(AC{DATA_START_ROW}:AC{DATA_END_ROW})",
+    f"AD{TOTALS_ROW}": f"=SUM(AD{DATA_START_ROW}:AD{DATA_END_ROW})",
+    f"AE{TOTALS_ROW}": f"=IFERROR(AD{TOTALS_ROW}/AC{TOTALS_ROW},0)",
+    f"AF{TOTALS_ROW}": f"=SUM(AF{DATA_START_ROW}:AF{DATA_END_ROW})",
+    f"AG{TOTALS_ROW}": f"=SUM(AG{DATA_START_ROW}:AG{DATA_END_ROW})",
+    f"AH{TOTALS_ROW}": f"=SUM(AH{DATA_START_ROW}:AH{DATA_END_ROW})",
+    f"AI{TOTALS_ROW}": f"=SUM(AI{DATA_START_ROW}:AI{DATA_END_ROW})",
+    f"AJ{TOTALS_ROW}": f"=SUM(AJ{DATA_START_ROW}:AJ{DATA_END_ROW})",
 }
 PAYMENT_FORMULAS = {
-    "Z104": "=Z103/2",
     "Z106": "=Z103-Z107",
     "Z109": "=Z103*0.3",
     "Z110": "=Z107-Z109",
     "Z111": "=Z103-Z109-Z110",
 }
+LEGACY_PAYMENT_CELLS_TO_CLEAR = ("Y104", "Z104")
 
 
 @dataclass(frozen=True)

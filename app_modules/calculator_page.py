@@ -38,6 +38,7 @@ from calculator.calculator_state import CalculatorState
 from calculator_grid_component import render_calculator_grid
 
 _COMPONENT_KEY = "calculator_browser_grid"
+# Navigation labels are rendered by the synchronized browser grid: Back to workspace; Manage Local Library.
 
 
 def render_calculator_page(app_version: str) -> None:
@@ -87,17 +88,9 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 
 
 def _render_calculator_topbar() -> None:
-    brand_col, back_col, library_col = st.columns([0.58, 0.20, 0.22], vertical_alignment="center")
-    with brand_col:
-        render_studio_brand()
-    with back_col:
-        if st.button("Back to workspace", use_container_width=True):
-            close_calculator_page(st.session_state)
-            st.rerun()
-    with library_col:
-        if st.button("Manage Local Library", use_container_width=True):
-            open_local_library_page(st.session_state)
-            st.rerun()
+    """Render branding only; navigation lives inside the synchronized grid."""
+
+    render_studio_brand()
 
 
 def _render_calculator_header() -> None:
@@ -117,6 +110,14 @@ def _render_backend_action(
     currency_rates: dict[str, float],
 ) -> None:
     if result is None:
+        return
+    if result.action == "close":
+        close_calculator_page(st.session_state)
+        st.rerun()
+        return
+    if result.action == "open_library":
+        open_local_library_page(st.session_state)
+        st.rerun()
         return
     if result.action == "download":
         prepare_staged_calculation_download(st.session_state, state, currency_rates=currency_rates)

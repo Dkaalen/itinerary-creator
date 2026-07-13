@@ -1,16 +1,23 @@
 function buildToolbarHtml(state) {
-  const totals = calculateTotals(state.rows);
   const libraryText = state.libraryStatus || 'Local Library status unknown.';
+  const undoDisabled = state.undoStack.length ? '' : 'disabled';
+  const redoDisabled = state.redoStack.length ? '' : 'disabled';
   return `
     <div class="calculator-toolbar">
       <div class="calculator-toolbar-left">
+        <button class="calc-btn" data-action="close">Back to workspace</button>
+        <button class="calc-btn" data-action="open-library">Manage Local Library</button>
+        <span class="toolbar-separator"></span>
         <button class="calc-btn" data-action="add" data-count="1">+1 row</button>
         <button class="calc-btn" data-action="add" data-count="5">+5 rows</button>
-        <button class="calc-btn" data-action="add" data-count="10">+10 rows</button>
         <button class="calc-btn" data-action="duplicate">Duplicate row</button>
         <button class="calc-btn danger" data-action="delete">Delete row</button>
-        <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Show advanced columns</label>
-        <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen calculator'}</button>
+        <button class="calc-btn" data-action="undo" ${undoDisabled}>Undo</button>
+        <button class="calc-btn" data-action="redo" ${redoDisabled}>Redo</button>
+        <button class="calc-btn" data-action="fill-down">Fill down</button>
+        <button class="calc-btn" data-action="fill-right">Fill right</button>
+        <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Advanced columns</label>
+        <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       </div>
       <div class="calculator-toolbar-right">
         <button class="calc-btn primary" data-action="download">Download Excel</button>
@@ -20,18 +27,42 @@ function buildToolbarHtml(state) {
     </div>
     <div class="calculator-status-row">
       <span>${escapeHtml(libraryText)}</span>
+      <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
+    </div>`;
+}
+
+function buildFormulaBarHtml(state) {
+  const column = activeCell ? columnByKey(activeCell.key) : null;
+  const row = activeCell ? state.rows[activeCell.rowIndex] : null;
+  const reference = column && row ? `${column.label} · row ${escapeHtml(row.row_id || activeCell.rowIndex + 1)}` : 'Select a cell';
+  return `
+    <div class="calculator-formula-bar">
+      <span class="formula-reference">${reference}</span>
+      <input data-action="formula-bar" aria-label="Active cell value" value="${escapeHtml(activeCellRawValue())}" ${activeCell ? '' : 'disabled'}>
+    </div>`;
+}
+
+function dashboardTotalsHtml(state) {
+  const totals = calculateDashboard(state);
+  const costPerPax = totals.cost_per_pax === null ? '—' : formatNumber(totals.cost_per_pax, 2);
+  const salesPerPax = totals.sales_per_pax === null ? '—' : formatNumber(totals.sales_per_pax, 2);
+  const paxValue = state.numberOfPax === null || state.numberOfPax === undefined ? '' : String(state.numberOfPax);
+  return `
+    <div class="calculator-dashboard">
+      <label class="pax-control">No. of pax<input type="number" min="1" step="1" data-action="set-pax" value="${escapeHtml(paxValue)}" placeholder="Optional"></label>
+      <span>Total cost NOK <strong>${formatNumber(totals.net_price_nok, 2)}</strong></span>
+      <span>Cost per pax <strong>${costPerPax}</strong></span>
+      <span>Total sales NOK <strong>${formatNumber(totals.sales_price_nok_total, 2)}</strong></span>
+      <span>Sales per pax <strong>${salesPerPax}</strong></span>
+      <span>Profit / GP NOK <strong>${formatNumber(totals.gp_nok, 2)}</strong></span>
+      <span>Margin <strong>${(totals.gp_percent * 100).toFixed(1)}%</strong></span>
     </div>
-    <div class="calculator-totals-panel">
-      <span>Total price: <strong>${formatNumber(totals.price, 0)}</strong></span>
-      <span>Total sales NOK: <strong>${formatNumber(totals.sales_price_nok_total, 0)}</strong></span>
-      <span>Total net NOK: <strong>${formatNumber(totals.net_price_nok, 0)}</strong></span>
-      <span>Earnings / GP NOK: <strong>${formatNumber(totals.gp_nok, 0)}</strong></span>
-      <span>GP %: <strong>${(totals.gp_percent * 100).toFixed(1)}%</strong></span>
-      <span>VAT25: <strong>${formatNumber(totals.vat25, 0)}</strong></span>
-      <span>VAT15: <strong>${formatNumber(totals.vat15, 0)}</strong></span>
-      <span>VAT12: <strong>${formatNumber(totals.vat12, 0)}</strong></span>
-      <span>VAT0-D: <strong>${formatNumber(totals.vat0_domestic, 0)}</strong></span>
-      <span>VAT0-I: <strong>${formatNumber(totals.vat0_international, 0)}</strong></span>
+    <div class="calculator-vat-summary">
+      <span>VAT25 <strong>${formatNumber(totals.vat25, 2)}</strong></span>
+      <span>VAT15 <strong>${formatNumber(totals.vat15, 2)}</strong></span>
+      <span>VAT12 <strong>${formatNumber(totals.vat12, 2)}</strong></span>
+      <span>VAT0-D <strong>${formatNumber(totals.vat0_domestic, 2)}</strong></span>
+      <span>VAT0-I <strong>${formatNumber(totals.vat0_international, 2)}</strong></span>
     </div>`;
 }
 
@@ -41,10 +72,10 @@ function buildTableHtml(state) {
     renderedWidth: dynamicColumnWidth(column, state.rows)
   }));
   const colgroup = columns.map((column) => `<col style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px">`).join('');
-  const headers = columns.map((column) => `<th style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
+  const headers = columns.map((column, index) => `<th class="${stickyColumnClass(index)}" style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
   const body = state.rows.map((row, rowIndex) => {
     const selectedClass = rowIndex === state.selectedRowIndex ? ' selected-row' : '';
-    const cells = columns.map((column) => cellHtml(row, rowIndex, column)).join('');
+    const cells = columns.map((column, colIndex) => cellHtml(row, rowIndex, column, colIndex)).join('');
     return `<tr class="calc-row${selectedClass}" data-row-index="${rowIndex}">${cells}</tr>`;
   }).join('');
   return `
@@ -80,21 +111,33 @@ function maxVisibleCellChars(column, rows) {
   return longest;
 }
 
-function cellHtml(row, rowIndex, column) {
+function stickyColumnClass(index) {
+  if (index === 0) return 'sticky-col sticky-col-0';
+  if (index === 1) return 'sticky-col sticky-col-1';
+  return '';
+}
+
+function cellHtml(row, rowIndex, column, colIndex) {
   const raw = row[column.key];
   const common = `data-row-index="${rowIndex}" data-key="${column.key}"`;
   const width = column.renderedWidth || column.width;
   const widthStyle = `style="width:${width}px; min-width:${width}px; max-width:${width}px"`;
-  const title = `title="${escapeHtml(cellTitle(raw, column))}"`;
+  const error = validationErrorForCell(rowIndex, column.key);
+  const hasOverride = Boolean(column.formula && row[formulaOverrideKey(column.key)] !== null && row[formulaOverrideKey(column.key)] !== undefined);
+  const classes = [stickyColumnClass(colIndex), error ? 'invalid-cell' : '', hasOverride ? 'override-cell' : '', cellIsSelected(rowIndex, column.key) ? 'selected-cell' : ''].filter(Boolean).join(' ');
+  const titleText = error ? error.message : hasOverride ? `Manual override active · ${cellTitle(raw, column)}` : cellTitle(raw, column);
+  const title = `title="${escapeHtml(titleText)}"`;
   if (column.formula) {
-    return `<td class="cell editable formula-cell" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(formatFormula(raw, column.kind))}</td>`;
+    const override = row[formulaOverrideKey(column.key)];
+    const display = override !== null && override !== undefined && parseNumericInput(override) === null ? String(override) : formatFormula(raw, column.kind);
+    return `<td class="cell editable formula-cell ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(display)}</td>`;
   }
   if (column.kind === 'checkbox') {
-    return `<td class="cell checkbox-cell" ${common} ${widthStyle}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
+    return `<td class="cell checkbox-cell ${classes}" ${common} ${widthStyle}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
   }
   const value = raw === null || raw === undefined ? '' : String(raw);
   const autocompleteClass = column.autocomplete ? ' autocomplete-cell' : '';
-  return `<td class="cell editable${autocompleteClass}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}</td>`;
+  return `<td class="cell editable${autocompleteClass} ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}</td>`;
 }
 
 function cellTitle(value, column) {
@@ -105,31 +148,61 @@ function cellTitle(value, column) {
 function buildSuggestionHtml(state) {
   if (!state.activeSuggestion) return '';
   const {rowIndex, query, results} = state.activeSuggestion;
-  if (!results.length) {
-    return `<div class="suggestion-panel"><div class="suggestion-empty">No Local Library matches for “${escapeHtml(query)}”.</div></div>`;
-  }
+  if (!results.length) return `<div class="suggestion-panel"><div class="suggestion-empty">No Local Library matches for “${escapeHtml(query)}”.</div></div>`;
   const buttons = results.map((result, index) => {
     const item = result.item;
-    return `
-      <button class="suggestion-item" data-suggestion-index="${index}">
-        <strong>${escapeHtml(item.label || item.travel_element || item.library_id)}</strong>
-        <span>${escapeHtml(item.preview || '')}</span>
-      </button>`;
+    return `<button class="suggestion-item" data-suggestion-index="${index}"><strong>${escapeHtml(item.label || item.travel_element || item.library_id)}</strong><span>${escapeHtml(item.preview || '')}</span></button>`;
   }).join('');
-  return `
-    <div class="suggestion-panel">
-      <div class="suggestion-title">Suggestions for row ${escapeHtml(state.rows[rowIndex]?.row_id || rowIndex + 1)}: “${escapeHtml(query)}”</div>
-      ${buttons}
-    </div>`;
+  return `<div class="suggestion-panel"><div class="suggestion-title">Suggestions for row ${escapeHtml(state.rows[rowIndex]?.row_id || rowIndex + 1)}: “${escapeHtml(query)}”</div>${buttons}</div>`;
 }
 
 function renderShell(state) {
+  validateCalculatorState(state);
   const root = document.getElementById('root');
   root.innerHTML = `
     <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}">
       ${buildToolbarHtml(state)}
+      ${buildFormulaBarHtml(state)}
+      <div id="calculator-dashboard-container">${dashboardTotalsHtml(state)}</div>
+      <div id="calculator-validation-container">${validationSummaryHtml(state)}</div>
       ${buildTableHtml(state)}
       ${buildSuggestionHtml(state)}
     </div>`;
   requestAnimationFrame(setCalculatorFrameHeight);
+}
+
+function refreshTotalsOnly() {
+  const container = document.getElementById('calculator-dashboard-container');
+  if (container) container.innerHTML = dashboardTotalsHtml(calculatorState);
+}
+
+function refreshSyncStatusOnly() {
+  const element = document.getElementById('calculator-sync-status');
+  if (!element) return;
+  element.textContent = calculatorState.syncStatus || (calculatorState.dirty ? 'Unsaved changes' : 'Saved');
+  element.classList.toggle('dirty', Boolean(calculatorState.dirty));
+  element.classList.toggle('saved', !calculatorState.dirty);
+}
+
+function refreshValidationAndStatus() {
+  validateCalculatorState(calculatorState);
+  const container = document.getElementById('calculator-validation-container');
+  if (container) container.innerHTML = validationSummaryHtml(calculatorState);
+  document.querySelectorAll('td.invalid-cell').forEach((cell) => cell.classList.remove('invalid-cell'));
+  for (const error of calculatorState.validationErrors) {
+    if (error.rowIndex < 0) continue;
+    document.querySelector(`td[data-row-index="${error.rowIndex}"][data-key="${error.key}"]`)?.classList.add('invalid-cell');
+  }
+  refreshSyncStatusOnly();
+}
+
+function refreshFormulaBarOnly() {
+  const input = document.querySelector('[data-action="formula-bar"]');
+  const label = document.querySelector('.formula-reference');
+  if (input && document.activeElement !== input) input.value = activeCellRawValue();
+  if (label) {
+    const column = activeCell ? columnByKey(activeCell.key) : null;
+    const row = activeCell ? calculatorState.rows[activeCell.rowIndex] : null;
+    label.textContent = column && row ? `${column.label} · row ${row.row_id || activeCell.rowIndex + 1}` : 'Select a cell';
+  }
 }

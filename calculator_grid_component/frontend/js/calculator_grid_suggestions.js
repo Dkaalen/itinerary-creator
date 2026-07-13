@@ -35,6 +35,7 @@ function updateSuggestions(rowIndex, query) {
 function applySuggestion(index) {
   const active = calculatorState.activeSuggestion;
   if (!active || !active.results[index]) return;
+  recordHistory();
   const row = calculatorState.rows[active.rowIndex];
   calculatorState.rows[active.rowIndex] = applyLibrarySuggestion(row, active.results[index].item);
   autofillDatesFromArrival(calculatorState.rows);

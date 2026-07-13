@@ -67,6 +67,29 @@ function normalizeRowsForPython(rows) {
   return rows.map((row, index) => {
     const clean = {...row, row_id: String(row.row_id || index + 1)};
     for (const column of FORMULA_COLUMNS) delete clean[column.key];
+    for (const key of Object.keys(clean)) {
+      if (key.startsWith('_')) delete clean[key];
+    }
     return clean;
   });
+}
+
+function currentStateSnapshot() {
+  return {
+    rows: normalizeRowsForPython(calculatorState.rows),
+    numberOfPax: calculatorState.numberOfPax,
+    showAdvanced: calculatorState.showAdvanced,
+    selectedRowIndex: calculatorState.selectedRowIndex,
+    activeCell: activeCell ? {...activeCell} : null,
+    selection: calculatorState.selection ? {...calculatorState.selection} : null
+  };
+}
+
+function restoreStateSnapshot(snapshot) {
+  calculatorState.rows = calculateRows(cloneRows(snapshot.rows || []), calculatorState.currencyRates);
+  calculatorState.numberOfPax = snapshot.numberOfPax ?? null;
+  calculatorState.showAdvanced = Boolean(snapshot.showAdvanced);
+  calculatorState.selectedRowIndex = Number(snapshot.selectedRowIndex || 0);
+  activeCell = snapshot.activeCell ? {...snapshot.activeCell} : null;
+  calculatorState.selection = snapshot.selection ? {...snapshot.selection} : null;
 }

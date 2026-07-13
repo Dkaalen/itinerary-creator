@@ -99,16 +99,15 @@ def test_build_workbook_fills_rows_and_preserves_core_formulas() -> None:
 
     expected = expected_row_formulas(7)
     for column, formula in expected.items():
-        if column in {"Y", "W", "AB"}:
+        if column == "Y":
             continue
         assert sheet[f"{column}7"].value == formula
-    assert sheet["W7"].value == 11
-    assert sheet["AB7"].value == 1
 
     assert sheet["Z101"].value == TOTAL_FORMULAS["Z101"]
     assert sheet["AC101"].value == TOTAL_FORMULAS["AC101"]
     assert sheet["Z103"].value == "=Z101"
-    assert sheet["Z104"].value == PAYMENT_FORMULAS["Z104"]
+    assert sheet["Y104"].value is None
+    assert sheet["Z104"].value is None
 
 
 def test_exported_workbook_preserves_template_structure_and_styles() -> None:
@@ -132,7 +131,7 @@ def test_exported_workbook_preserves_template_structure_and_styles() -> None:
     assert sheet.sheet_view.showOutlineSymbols is True
     assert sheet["B6"].value == "ID"
     assert sheet["B6"].fill.fill_type is not None
-    assert sheet["S7"].value == "=+Q7*R7"
+    assert sheet["S7"].value == "=ROUND(Q7*R7,2)"
 
 
 def test_save_calculation_workbook_writes_xlsx_file(tmp_path) -> None:
@@ -174,10 +173,10 @@ def test_exported_workbook_writes_default_currency_table_and_xrates() -> None:
     assert curr["C3"].value == 11
     assert curr["B4"].value == "USD"
     assert curr["C4"].value == 10
-    assert sheet["W7"].value == 11
-    assert sheet["AB7"].value == 10
-    assert sheet["W8"].value == 1
-    assert sheet["AB8"].value == 13
+    assert sheet["W7"].value == expected_row_formulas(7)["W"]
+    assert sheet["AB7"].value == expected_row_formulas(7)["AB"]
+    assert sheet["W8"].value == expected_row_formulas(8)["W"]
+    assert sheet["AB8"].value == expected_row_formulas(8)["AB"]
 
 
 def test_exported_workbook_uses_edited_currency_rates() -> None:
@@ -193,5 +192,58 @@ def test_exported_workbook_uses_edited_currency_rates() -> None:
     assert curr["C2"].value == 1
     assert curr["C3"].value == 12.25
     assert curr["C4"].value == 9.75
-    assert sheet["W7"].value == 12.25
-    assert sheet["AB7"].value == 9.75
+    assert sheet["W7"].value == expected_row_formulas(7)["W"]
+    assert sheet["AB7"].value == expected_row_formulas(7)["AB"]
+
+
+def test_workbook_vat_totals_cover_every_data_row() -> None:
+    workbook = build_calculation_workbook(
+        CalculatorState(rows=(CalculatorRow(row_id="1", vat25=123, supplier_currency="NOK", sales_currency="NOK"),))
+    )
+    sheet = workbook["Kalk"]
+
+    assert sheet["AF101"].value == "=SUM(AF7:AF99)"
+    assert sheet["AG101"].value == "=SUM(AG7:AG99)"
+    assert sheet["AJ101"].value == "=SUM(AJ7:AJ99)"
+
+
+def test_workbook_keeps_live_currency_lookups_unless_rate_is_overridden() -> None:
+    state = CalculatorState(
+        rows=(
+            CalculatorRow(row_id="1", supplier_currency="EUR", sales_currency="USD"),
+            CalculatorRow(
+                row_id="2",
+                supplier_currency="EUR",
+                supplier_x_rate_override=12.34,
+                sales_currency="USD",
+                sales_x_rate_override=9.87,
+            ),
+        )
+    )
+
+    sheet = build_calculation_workbook(state)["Kalk"]
+
+    assert sheet["W7"].value == expected_row_formulas(7)["W"]
+    assert sheet["AB7"].value == expected_row_formulas(7)["AB"]
+    assert sheet["W8"].value == 12.34
+    assert sheet["AB8"].value == 9.87
+
+
+def test_zero_sales_price_uses_same_gross_price_fallback_as_app() -> None:
+    state = CalculatorState(
+        rows=(
+            CalculatorRow(
+                row_id="1",
+                gross_price_per_unit=125,
+                units=2,
+                sales_price_per_unit=0,
+                supplier_currency="NOK",
+                sales_currency="NOK",
+            ),
+        )
+    )
+
+    sheet = build_calculation_workbook(state)["Kalk"]
+
+    assert sheet["Y7"].value == "=Q7"
+    assert sheet["Z7"].value == expected_row_formulas(7)["Z"]

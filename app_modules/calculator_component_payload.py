@@ -31,8 +31,9 @@ def build_calculator_grid_payload(
     active_rates = normalize_currency_rates(currency_rates)
     return {
         "itinerary_name": state.itinerary_name,
+        "number_of_pax": state.number_of_pax,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
-        "state_revision": _calculator_state_revision(state, active_rates),
+        "state_revision": _calculator_state_revision(state, active_rates, show_advanced),
         "draft_storage_key": _draft_storage_key(draft_namespace),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
@@ -45,11 +46,17 @@ def build_calculator_grid_payload(
     }
 
 
-def _calculator_state_revision(state: CalculatorState, currency_rates: Mapping[str, float]) -> str:
+def _calculator_state_revision(
+    state: CalculatorState,
+    currency_rates: Mapping[str, float],
+    show_advanced: bool,
+) -> str:
     """Return a stable row-state revision for browser draft protection."""
 
     payload = {
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=currency_rates),
+        "number_of_pax": state.number_of_pax,
+        "show_advanced": bool(show_advanced),
         "currency_rates": dict(currency_rates),
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

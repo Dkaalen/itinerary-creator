@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from math import isfinite
 from collections.abc import Mapping
 from typing import Any
 
@@ -114,12 +115,44 @@ def _validate_calculator_snapshot(snapshot: Mapping[str, Any] | None) -> None:
         return
     if snapshot.get("kind") not in {None, "booknordics_calculator_state"}:
         raise SavedProjectError("Saved project calculator snapshot kind is not supported.")
-    if int(snapshot.get("schema_version") or 1) != 1:
+    if int(snapshot.get("schema_version") or 1) not in {1, 2}:
         raise SavedProjectError("Saved project calculator snapshot schema version is not supported.")
-    if not isinstance(snapshot.get("rows", []), list):
+    pax = snapshot.get("number_of_pax")
+    if pax not in (None, ""):
+        try:
+            valid_pax = int(pax) > 0
+        except (TypeError, ValueError):
+            valid_pax = False
+        if not valid_pax:
+            raise SavedProjectError("Saved project calculator number_of_pax must be a positive integer or blank.")
+    rows = snapshot.get("rows", [])
+    if not isinstance(rows, list):
         raise SavedProjectError("Saved project calculator snapshot rows must be a list.")
-    if not isinstance(snapshot.get("currency_rates", {}), Mapping):
+    if any(not isinstance(row, Mapping) for row in rows):
+        raise SavedProjectError("Saved project calculator snapshot rows must contain objects.")
+    currency_rates = snapshot.get("currency_rates", {})
+    if not isinstance(currency_rates, Mapping):
         raise SavedProjectError("Saved project calculator snapshot currency rates must be an object.")
+    for code, value in currency_rates.items():
+        try:
+            valid_rate = bool(str(code).strip()) and isfinite(float(value)) and float(value) > 0
+        except (TypeError, ValueError):
+            valid_rate = False
+        if not valid_rate:
+            raise SavedProjectError("Saved project calculator currency rates must be positive finite numbers.")
+
+    try:
+        from calculator.state_serialization import calculator_state_from_dict
+        from calculator.validation import validate_calculator_state
+
+        calculator_state = calculator_state_from_dict(snapshot)
+    except (TypeError, ValueError) as error:
+        raise SavedProjectError(f"Saved project calculator snapshot is invalid: {error}") from error
+    calculator_issues = validate_calculator_state(calculator_state, dict(currency_rates))
+    if calculator_issues:
+        raise SavedProjectError(
+            f"Saved project calculator snapshot is invalid: {calculator_issues[0].message}"
+        )
 
 
 def _enforce_payload_size(payload: Mapping[str, Any], *, max_bytes: int) -> None:
