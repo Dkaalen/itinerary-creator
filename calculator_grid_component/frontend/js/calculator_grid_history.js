@@ -24,6 +24,15 @@ function commitCellEdit() {
   pendingCellEditSnapshot = null;
 }
 
+
+function cancelCellEdit() {
+  if (!pendingCellEditSnapshot) return false;
+  const snapshot = pendingCellEditSnapshot;
+  pendingCellEditSnapshot = null;
+  restoreStateSnapshot(snapshot);
+  return true;
+}
+
 function undoCalculatorChange() {
   commitCellEdit();
   const snapshot = calculatorState.undoStack.pop();

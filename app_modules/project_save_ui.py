@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.project_file_download_cache import cached_project_file_payload
+from app_modules.project_save_rollback import capture_project_save_baseline, restore_project_save_baseline
 from app_modules.saved_project_file_action import PROJECT_FILE_MIME, prepare_saved_project_file_download
 from app_modules.saved_project_validation import SavedProjectError
 from project_storage.errors import storage_user_message
@@ -25,14 +26,17 @@ def render_save_project_file_action(*, key_suffix: str = "current") -> None:
 
 def _render_cloud_save_project_action(*, key_suffix: str) -> None:
     if st.button("Save project", use_container_width=True, key=f"save_cloud_project_{key_suffix}"):
+        baseline = capture_project_save_baseline(st.session_state)
         try:
             project_file = prepare_saved_project_file_download(st.session_state)
         except SavedProjectError as error:
+            restore_project_save_baseline(st.session_state, baseline)
             st.warning(str(error))
             return
         if save_project_payload_snapshot(st.session_state, project_file.payload, source_type="manual_save"):
             st.success("Project saved to Supabase.")
             return
+        restore_project_save_baseline(st.session_state, baseline)
         st.warning(str(st.session_state.get("project_storage_last_error") or storage_user_message("save")))
 
 

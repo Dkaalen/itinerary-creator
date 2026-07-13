@@ -23,6 +23,45 @@ _PERCENT_RE = re.compile(r"(?P<number>(?:\d+(?:\.\d*)?|\.\d+))\s*%")
 _ALLOWED_CHARS_RE = re.compile(r"^[0-9+\-*/().\s%]+$")
 
 
+def parse_decimal_input_strict(value: Any, *, allow_blank: bool = True) -> Decimal | None:
+    """Return an exact Decimal or raise ValueError for malformed input.
+
+    Blank markers return ``None`` when ``allow_blank`` is true. This is the
+    validation boundary used before save/export so malformed expressions cannot
+    silently become zero.
+    """
+
+    if value is None or (isinstance(value, str) and value.strip().casefold() in _BLANK_MARKERS):
+        if allow_blank:
+            return None
+        raise ValueError("A numeric value is required.")
+    if isinstance(value, Decimal):
+        if value.is_finite():
+            return value
+        raise ValueError("Numeric value must be finite.")
+    if isinstance(value, bool):
+        raise ValueError("Boolean values are not valid numbers.")
+    if isinstance(value, (int, float)):
+        try:
+            result = Decimal(str(value))
+        except (DecimalException, ValueError) as error:
+            raise ValueError("Numeric value is invalid.") from error
+        if not result.is_finite():
+            raise ValueError("Numeric value must be finite.")
+        return result
+    text = _normalise_expression_text(value)
+    if not text or not _ALLOWED_CHARS_RE.fullmatch(text):
+        raise ValueError("Numeric expression contains unsupported characters.")
+    try:
+        parsed = ast.parse(text, mode="eval")
+        result = _eval_decimal_node(parsed.body)
+    except (SyntaxError, ValueError, ZeroDivisionError, TypeError, DecimalException) as error:
+        raise ValueError("Numeric expression is invalid.") from error
+    if not result.is_finite():
+        raise ValueError("Numeric value must be finite.")
+    return result
+
+
 def parse_numeric_input(value: Any, *, default: float = 0.0) -> float:
     """Return a float from a number or simple Excel-style arithmetic input.
 
@@ -50,27 +89,11 @@ def parse_numeric_input(value: Any, *, default: float = 0.0) -> float:
 def parse_decimal_input(value: Any, *, default: Decimal = Decimal("0")) -> Decimal:
     """Return an exact finite Decimal from spreadsheet-style arithmetic input."""
 
-    if value in (None, ""):
-        return default
-    if isinstance(value, Decimal):
-        return value if value.is_finite() else default
-    if isinstance(value, (int, float)):
-        try:
-            result = Decimal(str(value))
-        except (DecimalException, ValueError):
-            return default
-        return result if result.is_finite() else default
-    text = _normalise_expression_text(value)
-    if text.casefold() in _BLANK_MARKERS or not text:
-        return default
-    if not _ALLOWED_CHARS_RE.fullmatch(text):
-        return default
     try:
-        parsed = ast.parse(text, mode="eval")
-        result = _eval_decimal_node(parsed.body)
-    except (SyntaxError, ValueError, ZeroDivisionError, TypeError, DecimalException):
+        result = parse_decimal_input_strict(value)
+    except ValueError:
         return default
-    return result if result.is_finite() else default
+    return default if result is None else result
 
 
 def optional_numeric_input(value: Any) -> float | None:

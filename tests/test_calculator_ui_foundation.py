@@ -278,11 +278,12 @@ def test_calculator_component_supports_keyboard_navigation_and_totals_panel() ->
     css_classes = set(re.findall(r"class=\"([^\"]+)\"", render_source))
 
     assert "ArrowRight" in handled_keys
-    assert "calculator-totals-panel" in css_classes
+    assert "calculator-dashboard" in css_classes
     assert "calculator-grid-hint" not in css_classes
-    totals_labels = set(re.findall(r"<span>([^:<]+):", render_source))
-
-    assert {"Total net NOK", "Earnings / GP NOK"}.issubset(totals_labels)
+    assert "Total cost NOK" in render_source
+    assert "Profit / GP NOK" in render_source
+    assert "Cost per pax" in render_source
+    assert "Sales per pax" in render_source
 
 
 def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:

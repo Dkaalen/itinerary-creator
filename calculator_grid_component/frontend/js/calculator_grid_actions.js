@@ -7,19 +7,10 @@ function bindEvents() {
       rerender();
     });
   });
-  document.querySelector('[data-action="duplicate"]')?.addEventListener('click', () => {
-    recordHistory();
-    calculatorState.rows = calculateRows(duplicateRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
-    markLocalDraft();
-    rerender();
-  });
-  document.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
-    recordHistory();
-    calculatorState.rows = calculateRows(deleteRow(calculatorState.rows, calculatorState.selectedRowIndex), calculatorState.currencyRates);
-    calculatorState.selectedRowIndex = Math.min(calculatorState.selectedRowIndex, calculatorState.rows.length - 1);
-    markLocalDraft();
-    rerender();
-  });
+  document.querySelector('[data-action="insert-above"]')?.addEventListener('click', () => insertRowsAtSelection('above'));
+  document.querySelector('[data-action="insert-below"]')?.addEventListener('click', () => insertRowsAtSelection('below'));
+  document.querySelector('[data-action="duplicate"]')?.addEventListener('click', duplicateSelectedRows);
+  document.querySelector('[data-action="delete"]')?.addEventListener('click', deleteSelectedRows);
   document.querySelector('[data-action="toggle-advanced"]')?.addEventListener('change', (event) => {
     recordHistory();
     calculatorState.showAdvanced = Boolean(event.target.checked);
@@ -31,6 +22,7 @@ function bindEvents() {
   document.querySelector('[data-action="redo"]')?.addEventListener('click', redoCalculatorChange);
   document.querySelector('[data-action="fill-down"]')?.addEventListener('click', () => fillSelection('down'));
   document.querySelector('[data-action="fill-right"]')?.addEventListener('click', () => fillSelection('right'));
+  document.querySelector('[data-action="find-replace"]')?.addEventListener('click', () => toggleFindReplace());
   document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
   document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));
   document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
@@ -91,6 +83,7 @@ function bindEvents() {
     });
   });
   bindClipboardEvents();
+  bindAdvancedCalculatorEvents();
   restoreActiveCellFocus();
 }
 
@@ -128,7 +121,22 @@ function handleGlobalCalculatorShortcut(event) {
   } else if (key === 'y' || (key === 'z' && event.shiftKey)) {
     event.preventDefault();
     redoCalculatorChange();
+  } else if (key === 'd') {
+    event.preventDefault();
+    fillSelection('down');
+  } else if (key === 'r') {
+    event.preventDefault();
+    fillSelection('right');
+  } else if (key === 'f' || key === 'h') {
+    event.preventDefault();
+    toggleFindReplace(true);
   }
 }
 
 document.addEventListener('keydown', handleGlobalCalculatorShortcut);
+
+window.addEventListener('beforeunload', (event) => {
+  if (!calculatorState?.dirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+});

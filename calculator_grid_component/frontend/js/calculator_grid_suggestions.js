@@ -41,6 +41,9 @@ function applySuggestion(index) {
   autofillDatesFromArrival(calculatorState.rows);
   calculatorState.rows[active.rowIndex] = calculateRow(calculatorState.rows[active.rowIndex], calculatorState.currencyRates);
   calculatorState.activeSuggestion = null;
+  activeCell = {rowIndex: active.rowIndex, key: 'travel_element'};
+  activeCellEditing = false;
+  setSingleCellSelection(active.rowIndex, 'travel_element');
   markLocalDraft();
   rerender();
 }

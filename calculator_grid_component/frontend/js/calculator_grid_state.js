@@ -50,19 +50,6 @@ function addRows(rows, count) {
   return updated;
 }
 
-function duplicateRow(rows, rowIndex) {
-  if (rowIndex < 0 || rowIndex >= rows.length) return rows;
-  const copy = {...rows[rowIndex], row_id: nextRowId(rows)};
-  const updated = [...rows];
-  updated.splice(rowIndex + 1, 0, copy);
-  return updated;
-}
-
-function deleteRow(rows, rowIndex) {
-  if (rows.length <= 1 || rowIndex < 0 || rowIndex >= rows.length) return rows;
-  return rows.filter((_, index) => index !== rowIndex);
-}
-
 function normalizeRowsForPython(rows) {
   return rows.map((row, index) => {
     const clean = {...row, row_id: String(row.row_id || index + 1)};
@@ -81,7 +68,8 @@ function currentStateSnapshot() {
     showAdvanced: calculatorState.showAdvanced,
     selectedRowIndex: calculatorState.selectedRowIndex,
     activeCell: activeCell ? {...activeCell} : null,
-    selection: calculatorState.selection ? {...calculatorState.selection} : null
+    selection: calculatorState.selection ? {...calculatorState.selection} : null,
+    columnWidths: {...(calculatorState.columnWidths || {})}
   };
 }
 
@@ -92,4 +80,5 @@ function restoreStateSnapshot(snapshot) {
   calculatorState.selectedRowIndex = Number(snapshot.selectedRowIndex || 0);
   activeCell = snapshot.activeCell ? {...snapshot.activeCell} : null;
   calculatorState.selection = snapshot.selection ? {...snapshot.selection} : null;
+  calculatorState.columnWidths = {...(snapshot.columnWidths || {})};
 }

@@ -9,6 +9,7 @@ from typing import Mapping
 from calculator.calculator_state import CalculatorState
 from calculator.currency_rates import normalize_currency_rates, normalized_currency_code
 from calculator.row_model import CalculatorRow
+from calculator.numeric_input import parse_decimal_input_strict
 
 
 @dataclass(frozen=True)
@@ -109,8 +110,9 @@ def _validate_row(
         if value is None:
             continue
         try:
-            finite = isfinite(float(value))
-        except (TypeError, ValueError):
+            parse_decimal_input_strict(value)
+            finite = True
+        except ValueError:
             finite = False
         if not finite:
             issues.append(
@@ -123,8 +125,9 @@ def _validate_row(
             )
 
     try:
-        commission = float(row.supplier_commission)
-    except (TypeError, ValueError):
+        commission_value = parse_decimal_input_strict(row.supplier_commission, allow_blank=False)
+        commission = float(commission_value) if commission_value is not None else 0.0
+    except ValueError:
         commission = 0.0
     if commission < 0 or commission > 1:
         issues.append(
@@ -144,8 +147,9 @@ def _validate_row(
         override = getattr(row, override_field)
         if override is not None:
             try:
-                valid_override = isfinite(float(override)) and float(override) > 0
-            except (TypeError, ValueError):
+                parsed_override = parse_decimal_input_strict(override, allow_blank=False)
+                valid_override = parsed_override is not None and parsed_override > 0
+            except ValueError:
                 valid_override = False
             if not valid_override:
                 issues.append(

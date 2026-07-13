@@ -33,6 +33,12 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
     padding: .75rem .85rem;
 }
 
+.cloud-project-card.active {
+    border-color: rgba(102, 126, 96, .58);
+    background: rgba(243, 247, 239, .88);
+    box-shadow: inset 4px 0 0 rgba(76, 112, 79, .72);
+}
+
 .cloud-project-card strong {
     display: block;
     color: var(--ink) !important;

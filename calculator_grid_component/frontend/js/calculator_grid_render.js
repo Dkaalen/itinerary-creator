@@ -10,12 +10,15 @@ function buildToolbarHtml(state) {
         <span class="toolbar-separator"></span>
         <button class="calc-btn" data-action="add" data-count="1">+1 row</button>
         <button class="calc-btn" data-action="add" data-count="5">+5 rows</button>
-        <button class="calc-btn" data-action="duplicate">Duplicate row</button>
-        <button class="calc-btn danger" data-action="delete">Delete row</button>
+        <button class="calc-btn" data-action="insert-above">Insert above</button>
+        <button class="calc-btn" data-action="insert-below">Insert below</button>
+        <button class="calc-btn" data-action="duplicate">Duplicate selected rows</button>
+        <button class="calc-btn danger" data-action="delete">Delete selected rows</button>
         <button class="calc-btn" data-action="undo" ${undoDisabled}>Undo</button>
         <button class="calc-btn" data-action="redo" ${redoDisabled}>Redo</button>
         <button class="calc-btn" data-action="fill-down">Fill down</button>
         <button class="calc-btn" data-action="fill-right">Fill right</button>
+        <button class="calc-btn" data-action="find-replace">Find / replace</button>
         <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Advanced columns</label>
         <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       </div>
@@ -42,6 +45,19 @@ function buildFormulaBarHtml(state) {
     </div>`;
 }
 
+function buildFindReplaceHtml(state) {
+  if (!state.showFindReplace) return '';
+  return `
+    <div class="calculator-find-replace">
+      <input data-action="find-query" aria-label="Find" placeholder="Find" value="${escapeHtml(state.findQuery || '')}">
+      <input data-action="replace-query" aria-label="Replace with" placeholder="Replace with" value="${escapeHtml(state.replaceQuery || '')}">
+      <button class="calc-btn" data-action="find-next">Find next</button>
+      <button class="calc-btn" data-action="replace-current">Replace</button>
+      <button class="calc-btn" data-action="replace-all">Replace all</button>
+      <button class="calc-btn" data-action="close-find" aria-label="Close search panel">Close</button>
+    </div>`;
+}
+
 function dashboardTotalsHtml(state) {
   const totals = calculateDashboard(state);
   const costPerPax = totals.cost_per_pax === null ? '—' : formatNumber(totals.cost_per_pax, 2);
@@ -63,16 +79,29 @@ function dashboardTotalsHtml(state) {
       <span>VAT12 <strong>${formatNumber(totals.vat12, 2)}</strong></span>
       <span>VAT0-D <strong>${formatNumber(totals.vat0_domestic, 2)}</strong></span>
       <span>VAT0-I <strong>${formatNumber(totals.vat0_international, 2)}</strong></span>
+    </div>
+    ${currencyExposureHtml(totals.currency_exposure)}`;
+}
+
+function currencyExposureHtml(exposure) {
+  const supplier = (exposure?.supplier || []).map(([currency, value]) => `<span>${escapeHtml(currency)} ${formatNumber(value, 2)}</span>`).join('');
+  const sales = (exposure?.sales || []).map(([currency, value]) => `<span>${escapeHtml(currency)} ${formatNumber(value, 2)}</span>`).join('');
+  if (!supplier && !sales) return '';
+  return `
+    <div class="calculator-currency-exposure">
+      <div><strong>Supplier exposure</strong>${supplier || '<span>—</span>'}</div>
+      <div><strong>Sales exposure</strong>${sales || '<span>—</span>'}</div>
     </div>`;
 }
+
 
 function buildTableHtml(state) {
   const columns = visibleColumns(state.showAdvanced).map((column) => ({
     ...column,
     renderedWidth: dynamicColumnWidth(column, state.rows)
   }));
-  const colgroup = columns.map((column) => `<col style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px">`).join('');
-  const headers = columns.map((column, index) => `<th class="${stickyColumnClass(index)}" style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px" title="${escapeHtml(column.label)}">${escapeHtml(column.label)}</th>`).join('');
+  const colgroup = columns.map((column) => `<col data-column-key="${column.key}" style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px">`).join('');
+  const headers = columns.map((column, index) => `<th data-column-key="${column.key}" class="${stickyColumnClass(index)}" style="width:${column.renderedWidth}px; min-width:${column.renderedWidth}px; max-width:${column.renderedWidth}px" title="${escapeHtml(column.label)}"><span>${escapeHtml(column.label)}</span><span class="column-resize-handle" data-column-key="${column.key}" aria-hidden="true"></span></th>`).join('');
   const body = state.rows.map((row, rowIndex) => {
     const selectedClass = rowIndex === state.selectedRowIndex ? ' selected-row' : '';
     const cells = columns.map((column, colIndex) => cellHtml(row, rowIndex, column, colIndex)).join('');
@@ -93,6 +122,8 @@ function tableWidth(columns) {
 }
 
 function dynamicColumnWidth(column, rows) {
+  const customWidth = Number(calculatorState?.columnWidths?.[column.key]);
+  if (Number.isFinite(customWidth) && customWidth > 0) return customWidth;
   const headerWidth = Math.ceil(String(column.label || '').length * 6.4 + 30);
   const cellWidth = Math.ceil(maxVisibleCellChars(column, rows) * 6.9 + 28);
   const minimum = Number(column.minWidth || column.width || headerWidth);
@@ -130,14 +161,16 @@ function cellHtml(row, rowIndex, column, colIndex) {
   if (column.formula) {
     const override = row[formulaOverrideKey(column.key)];
     const display = override !== null && override !== undefined && parseNumericInput(override) === null ? String(override) : formatFormula(raw, column.kind);
-    return `<td class="cell editable formula-cell ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(display)}</td>`;
+    const fillHandle = cellIsFillHandleCorner(rowIndex, column.key) ? '<span class="fill-handle" contenteditable="false" aria-hidden="true"></span>' : '';
+    return `<td class="cell editable formula-cell ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(display)}${fillHandle}</td>`;
   }
   if (column.kind === 'checkbox') {
     return `<td class="cell checkbox-cell ${classes}" ${common} ${widthStyle}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
   }
   const value = raw === null || raw === undefined ? '' : String(raw);
   const autocompleteClass = column.autocomplete ? ' autocomplete-cell' : '';
-  return `<td class="cell editable${autocompleteClass} ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}</td>`;
+  const fillHandle = cellIsFillHandleCorner(rowIndex, column.key) ? '<span class="fill-handle" contenteditable="false" aria-hidden="true"></span>' : '';
+  return `<td class="cell editable${autocompleteClass} ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}${fillHandle}</td>`;
 }
 
 function cellTitle(value, column) {
@@ -160,9 +193,10 @@ function renderShell(state) {
   validateCalculatorState(state);
   const root = document.getElementById('root');
   root.innerHTML = `
-    <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}">
+    <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}" style="--sticky-col-1-left:${dynamicColumnWidth(columnByKey('row_id'), state.rows)}px">
       ${buildToolbarHtml(state)}
       ${buildFormulaBarHtml(state)}
+      ${buildFindReplaceHtml(state)}
       <div id="calculator-dashboard-container">${dashboardTotalsHtml(state)}</div>
       <div id="calculator-validation-container">${validationSummaryHtml(state)}</div>
       ${buildTableHtml(state)}

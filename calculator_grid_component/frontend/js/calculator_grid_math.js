@@ -156,7 +156,23 @@ function calculateDashboard(state) {
     ...totals,
     number_of_pax: pax,
     cost_per_pax: pax ? roundMoney(totals.net_price_nok / pax) : null,
-    sales_per_pax: pax ? roundMoney(totals.sales_price_nok_total / pax) : null
+    sales_per_pax: pax ? roundMoney(totals.sales_price_nok_total / pax) : null,
+    currency_exposure: calculateCurrencyExposure(state.rows)
+  };
+}
+
+function calculateCurrencyExposure(rows) {
+  const supplier = {};
+  const sales = {};
+  for (const row of rows || []) {
+    const supplierCurrency = String(row.supplier_currency || DEFAULT_CURRENCY).toUpperCase();
+    const salesCurrency = String(row.sales_currency || DEFAULT_CURRENCY).toUpperCase();
+    supplier[supplierCurrency] = roundMoney((supplier[supplierCurrency] || 0) + numberValue(row.net_price));
+    sales[salesCurrency] = roundMoney((sales[salesCurrency] || 0) + numberValue(row.price));
+  }
+  return {
+    supplier: Object.entries(supplier).filter(([, value]) => value !== 0).sort(([left], [right]) => left.localeCompare(right)),
+    sales: Object.entries(sales).filter(([, value]) => value !== 0).sort(([left], [right]) => left.localeCompare(right))
   };
 }
 

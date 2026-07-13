@@ -37,6 +37,7 @@ function saveCalculatorDraft(state, backendRevision) {
       selectedRowIndex: Number(state.selectedRowIndex || 0),
       activeCell: activeCell ? {...activeCell} : null,
       selection: state.selection ? {...state.selection} : null,
+      columnWidths: {...(state.columnWidths || {})},
       backendRevision: String(backendRevision || ''),
       savedAt: Date.now()
     }));

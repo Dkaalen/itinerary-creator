@@ -12,14 +12,22 @@ from app_modules.project_browser_formatting import short_storage_time
 from app_modules.project_browser_state import (
     clear_delete_confirmation,
     clear_file_delete_confirmation,
+    clear_open_candidate,
+    clear_rename_candidate,
     delete_candidate_id,
+    open_candidate_id,
     remember_delete_candidate,
+    remember_open_candidate,
+    remember_rename_candidate,
+    rename_candidate_id,
 )
 from app_modules.project_delete_cleanup import clear_deleted_project_from_session
-from app_modules.project_identity import set_active_project_id
+from app_modules.project_identity import active_project_id_from_state, set_active_project_id
 from app_modules.project_io import load_project_json
 from app_modules.saved_project_load_action import load_saved_project
 from app_modules.saved_project_validation import SavedProjectError
+from app_modules.project_unsaved_state import active_project_has_unsaved_changes
+from app_modules.project_rename_state import apply_active_project_rename
 from project_storage.errors import storage_user_message
 from project_storage.project_browser import (
     delete_cloud_itinerary_result,
@@ -27,6 +35,7 @@ from project_storage.project_browser import (
     load_latest_cloud_project_payload,
 )
 from project_storage.runtime import project_storage_is_configured
+from project_storage.project_management import duplicate_cloud_project, rename_cloud_project
 
 
 OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
@@ -102,24 +111,108 @@ def _render_cloud_project_card(project: dict[str, Any]) -> None:
         return
     name = str(project.get("name") or "Untitled itinerary")
     updated = short_storage_time(project.get("updated_at") or project.get("created_at"))
+    is_active = active_project_id_from_state(st.session_state) == project_id
+    active_label = " · Active project" if is_active else ""
     st.html(
         f"""
-        <div class="cloud-project-card">
+        <div class="cloud-project-card{' active' if is_active else ''}">
           <strong>{escape(name)}</strong>
-          <span>Last saved {escape(updated)} · {escape(project_id[:8])}</span>
+          <span>Last saved {escape(updated)} · {escape(project_id[:8])}{escape(active_label)}</span>
         </div>
         """
     )
-    open_col, delete_col = st.columns([0.68, 0.32])
+    open_col, rename_col, duplicate_col, delete_col = st.columns([0.38, 0.22, 0.22, 0.18])
     with open_col:
-        if st.button(f"Open {name}", key=f"open_cloud_project_{project_id}", use_container_width=True):
-            _open_cloud_project(project_id)
+        if st.button("Open", key=f"open_cloud_project_{project_id}", use_container_width=True, disabled=is_active):
+            _request_open_cloud_project(project_id)
+    with rename_col:
+        if st.button("Rename", key=f"rename_cloud_project_{project_id}", use_container_width=True):
+            remember_rename_candidate(st.session_state, project_id)
+            st.rerun()
+    with duplicate_col:
+        if st.button("Duplicate", key=f"duplicate_cloud_project_{project_id}", use_container_width=True):
+            _duplicate_cloud_project(project_id, name)
     with delete_col:
         if st.button("Delete", key=f"delete_cloud_project_{project_id}", use_container_width=True):
             remember_delete_candidate(st.session_state, project_id=project_id, name=name)
             st.rerun()
+    _render_open_confirmation(project_id, name)
+    _render_rename_form(project_id, name)
     _render_delete_confirmation(project_id, name)
     render_calculation_files(project_id)
+
+
+def _request_open_cloud_project(project_id: str) -> None:
+    active_id = active_project_id_from_state(st.session_state)
+    if active_id and active_id != project_id and active_project_has_unsaved_changes(st.session_state):
+        remember_open_candidate(st.session_state, project_id)
+        st.rerun()
+        return
+    _open_cloud_project(project_id)
+
+
+def _render_open_confirmation(project_id: str, name: str) -> None:
+    if open_candidate_id(st.session_state) != project_id:
+        return
+    st.warning(f"Unsaved changes in the active project will be left behind when opening {name}.")
+    cancel_col, confirm_col = st.columns(2)
+    with cancel_col:
+        if st.button("Keep current project", key=f"cancel_open_cloud_project_{project_id}", use_container_width=True):
+            clear_open_candidate(st.session_state)
+            st.rerun()
+    with confirm_col:
+        if st.button("Open anyway", key=f"confirm_open_cloud_project_{project_id}", use_container_width=True):
+            clear_open_candidate(st.session_state)
+            _open_cloud_project(project_id)
+
+
+def _render_rename_form(project_id: str, name: str) -> None:
+    if rename_candidate_id(st.session_state) != project_id:
+        return
+    with st.form(f"rename_cloud_project_form_{project_id}"):
+        new_name = st.text_input("Project name", value=name, max_chars=160)
+        save_col, cancel_col = st.columns(2)
+        with save_col:
+            save = st.form_submit_button("Save name", use_container_width=True)
+        with cancel_col:
+            cancel = st.form_submit_button("Cancel", use_container_width=True)
+    if cancel:
+        clear_rename_candidate(st.session_state)
+        st.rerun()
+    if not save:
+        return
+    try:
+        result = rename_cloud_project(project_id, new_name)
+    except ValueError as error:
+        st.error(str(error))
+        return
+    except Exception:
+        st.error(storage_user_message("save"))
+        return
+    if not result:
+        st.warning("Cloud storage is unavailable. Project was not renamed.")
+        return
+    if active_project_id_from_state(st.session_state) == project_id:
+        apply_active_project_rename(st.session_state, result)
+    clear_rename_candidate(st.session_state)
+    st.session_state["project_storage_browser_success"] = f"Renamed project to {result['name']}."
+    st.rerun()
+
+
+def _duplicate_cloud_project(project_id: str, name: str) -> None:
+    try:
+        result = duplicate_cloud_project(project_id, f"{name} — Copy")
+    except ValueError as error:
+        st.error(str(error))
+        return
+    except Exception:
+        st.error(storage_user_message("save"))
+        return
+    if not result:
+        st.warning("Cloud storage is unavailable. Project was not duplicated.")
+        return
+    st.session_state["project_storage_browser_success"] = f"Created {result['name']}."
+    st.rerun()
 
 
 def _render_delete_confirmation(project_id: str, name: str) -> None:
@@ -179,6 +272,8 @@ def _open_cloud_project(project_id: str) -> None:
         set_active_project_id(st.session_state, project_id)
         clear_delete_confirmation(st.session_state)
         clear_file_delete_confirmation(st.session_state)
+        clear_open_candidate(st.session_state)
+        clear_rename_candidate(st.session_state)
         st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
         st.success(result.message or "Cloud project opened.")
         st.rerun()

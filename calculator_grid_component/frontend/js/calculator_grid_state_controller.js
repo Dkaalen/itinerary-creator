@@ -32,6 +32,11 @@ function initializeState(payload) {
     dirty: Boolean(useStoredDraft),
     syncStatus: useStoredDraft ? 'Unsaved browser draft restored' : 'Saved',
     selection: useStoredDraft && storedDraft.selection ? {...storedDraft.selection} : null,
+    columnWidths: useStoredDraft ? {...(storedDraft.columnWidths || {})} : {},
+    showFindReplace: false,
+    findQuery: '',
+    replaceQuery: '',
+    findMatchCursor: -1,
     undoStack: [],
     redoStack: []
   };

@@ -1,17 +1,53 @@
+let activeCellEditing = false;
+
+function sameActiveCell(rowIndex, key) {
+  return Boolean(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === key);
+}
+
+function setCellEditingMode(cell, editing, {selectAll = false, caretAtEnd = false} = {}) {
+  activeCellEditing = Boolean(editing);
+  document.querySelectorAll('td.editing-cell').forEach((item) => item.classList.remove('editing-cell'));
+  if (!cell || !activeCellEditing) return;
+  cell.classList.add('editing-cell');
+  beginCellEdit();
+  if (selectAll) selectCellText(cell);
+  else if (caretAtEnd) placeCaretAtEnd(cell);
+}
+
 function handleCellMouseDown(event) {
   const cell = event.currentTarget;
   const rowIndex = Number(cell.dataset.rowIndex || 0);
   const key = cell.dataset.key;
+  const wasActive = sameActiveCell(rowIndex, key);
   selectionDragging = true;
   if (event.shiftKey && calculatorState.selection) extendCellSelection(rowIndex, key);
   else setSingleCellSelection(rowIndex, key);
   refreshSelectionClasses();
+
+  if (!wasActive) {
+    event.preventDefault();
+    activeCell = {rowIndex, key};
+    calculatorState.selectedRowIndex = rowIndex;
+    setCellEditingMode(cell, false);
+    cell.focus({preventScroll: true});
+    selectCellText(cell);
+    markSelectedRow(rowIndex);
+    refreshFormulaBarOnly();
+    return;
+  }
+
+  if (!activeCellEditing) setCellEditingMode(cell, true);
 }
 
 function handleCellMouseEnter(event) {
-  if (!selectionDragging || !(event.buttons & 1)) return;
   const cell = event.currentTarget;
-  extendCellSelection(Number(cell.dataset.rowIndex || 0), cell.dataset.key);
+  const rowIndex = Number(cell.dataset.rowIndex || 0);
+  if (fillDragSource) {
+    updateFillDrag(rowIndex, cell.dataset.key);
+    return;
+  }
+  if (!selectionDragging || !(event.buttons & 1)) return;
+  extendCellSelection(rowIndex, cell.dataset.key);
 }
 
 function handleCellFocus(event) {
@@ -20,9 +56,8 @@ function handleCellFocus(event) {
   const key = cell.dataset.key;
   calculatorState.selectedRowIndex = rowIndex;
   activeCell = {rowIndex, key};
-  beginCellEdit();
   if (!calculatorState.selection) setSingleCellSelection(rowIndex, key);
-  if (key === 'travel_element') scheduleSuggestions(rowIndex, cell.textContent || '');
+  if (key === 'travel_element' && activeCellEditing) scheduleSuggestions(rowIndex, cell.textContent || '');
   markSelectedRow(rowIndex);
   refreshFormulaBarOnly();
 }
@@ -43,11 +78,61 @@ function handleCellInput(event) {
 }
 
 function handleCellKeydown(event) {
+  const cell = event.currentTarget;
+
+  if (activeCellEditing) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      activeCellEditing = false;
+      if (cancelCellEdit()) rerender();
+      else setCellEditingMode(cell, false);
+      return;
+    }
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      commitCellEdit();
+      setCellEditingMode(cell, false);
+      const rowDelta = event.key === 'Enter' ? (event.shiftKey ? -1 : 1) : 0;
+      const colDelta = event.key === 'Tab' ? (event.shiftKey ? -1 : 1) : 0;
+      moveActiveCell(cell, rowDelta, colDelta, false);
+    }
+    return;
+  }
+
+  if (event.key === 'F2' || event.key === 'Enter') {
+    event.preventDefault();
+    setCellEditingMode(cell, true, {caretAtEnd: true});
+    return;
+  }
+
+  if (event.key === 'Backspace' || event.key === 'Delete') {
+    event.preventDefault();
+    beginCellEdit();
+    updateRowValue(Number(cell.dataset.rowIndex || 0), cell.dataset.key, '');
+    cell.textContent = '';
+    commitCellEdit();
+    markLocalDraft();
+    refreshDefaultedEditableCells(Number(cell.dataset.rowIndex || 0));
+    refreshFormulaCells(Number(cell.dataset.rowIndex || 0));
+    refreshTotalsOnly();
+    refreshValidationAndStatus();
+    refreshFormulaBarOnly();
+    return;
+  }
+
+  if (isPrintableCellKey(event)) {
+    setCellEditingMode(cell, true, {selectAll: true});
+    return;
+  }
+
   const movement = navigationMovement(event);
   if (!movement) return;
   event.preventDefault();
-  commitCellEdit();
-  moveActiveCell(event.currentTarget, movement.rowDelta, movement.colDelta, event.shiftKey);
+  moveActiveCell(cell, movement.rowDelta, movement.colDelta, event.shiftKey);
+}
+
+function isPrintableCellKey(event) {
+  return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
 
 function navigationMovement(event) {
@@ -56,7 +141,6 @@ function navigationMovement(event) {
   if (event.key === 'ArrowDown') return {rowDelta: 1, colDelta: 0};
   if (event.key === 'ArrowUp') return {rowDelta: -1, colDelta: 0};
   if (event.key === 'Tab') return {rowDelta: 0, colDelta: event.shiftKey ? -1 : 1};
-  if (event.key === 'Enter') return {rowDelta: event.shiftKey ? -1 : 1, colDelta: 0};
   return null;
 }
 
@@ -69,6 +153,7 @@ function moveActiveCell(cell, rowDelta, colDelta, extendSelection = false) {
   const targetRowIndex = Math.max(0, Math.min(calculatorState.rows.length - 1, currentRowIndex + rowDelta));
   const targetColIndex = Math.max(0, Math.min(columns.length - 1, currentColIndex + colDelta));
   const targetKey = columns[targetColIndex].key;
+  activeCellEditing = false;
   if (extendSelection) extendCellSelection(targetRowIndex, targetKey);
   else setSingleCellSelection(targetRowIndex, targetKey);
   const target = document.querySelector(`[data-row-index="${targetRowIndex}"][data-key="${targetKey}"]`);
@@ -90,6 +175,15 @@ function selectCellText(cell) {
   selection.addRange(range);
 }
 
+function placeCaretAtEnd(cell) {
+  const range = document.createRange();
+  range.selectNodeContents(cell);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function handleCellBlur(event) {
   const cell = event.currentTarget;
   const rowIndex = Number(cell.dataset.rowIndex || 0);
@@ -106,6 +200,7 @@ function handleCellBlur(event) {
     cell.textContent = row[key] || '';
   }
   commitCellEdit();
+  setCellEditingMode(cell, false);
   scheduleBackendSync(250);
 }
 
@@ -246,5 +341,7 @@ function restoreActiveCellFocus() {
   if (!activeCell) return;
   const target = document.querySelector(`[data-row-index="${activeCell.rowIndex}"][data-key="${activeCell.key}"]`);
   if (!target || target.matches('input')) return;
+  activeCellEditing = false;
   target.focus({preventScroll: true});
+  selectCellText(target);
 }

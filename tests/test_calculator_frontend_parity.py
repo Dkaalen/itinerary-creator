@@ -253,3 +253,105 @@ def test_frontend_and_python_expression_inputs_match() -> None:
     ]
 
     assert frontend_values == backend_values
+
+
+def test_frontend_distinguishes_grid_navigation_from_cell_text_editing() -> None:
+    editing = (_FRONTEND / "calculator_grid_cell_editing.js").read_text(encoding="utf-8")
+    suggestions = (_FRONTEND / "calculator_grid_suggestions.js").read_text(encoding="utf-8")
+
+    assert "let activeCellEditing = false" in editing
+    assert "if (activeCellEditing)" in editing
+    assert "event.key === 'F2' || event.key === 'Enter'" in editing
+    assert "isPrintableCellKey" in editing
+    assert "placeCaretAtEnd" in editing
+    assert "activeCellEditing = false" in suggestions
+    assert "setSingleCellSelection(active.rowIndex, 'travel_element')" in suggestions
+
+
+def test_navigation_movement_leaves_enter_for_edit_mode() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+
+    source = (_FRONTEND / "calculator_grid_cell_editing.js").read_text(encoding="utf-8")
+    script = source + """
+console.log(JSON.stringify({
+  left: navigationMovement({key: 'ArrowLeft', shiftKey: false}),
+  tab: navigationMovement({key: 'Tab', shiftKey: true}),
+  enter: navigationMovement({key: 'Enter', shiftKey: false}),
+  printable: isPrintableCellKey({key: 'a', ctrlKey: false, metaKey: false, altKey: false}),
+  modified: isPrintableCellKey({key: 'a', ctrlKey: true, metaKey: false, altKey: false})
+}));
+"""
+    completed = subprocess.run(
+        ["node"],
+        input=script,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    result = json.loads(completed.stdout)
+
+    assert result == {
+        "left": {"rowDelta": 0, "colDelta": -1},
+        "tab": {"rowDelta": 0, "colDelta": -1},
+        "enter": None,
+        "printable": True,
+        "modified": False,
+    }
+
+
+def test_frontend_exposes_advanced_excel_interactions() -> None:
+    advanced = (_FRONTEND / "calculator_grid_advanced_actions.js").read_text(encoding="utf-8")
+    render = (_FRONTEND / "calculator_grid_render.js").read_text(encoding="utf-8")
+    actions = (_FRONTEND / "calculator_grid_actions.js").read_text(encoding="utf-8")
+    draft = (_FRONTEND / "calculator_grid_draft_storage.js").read_text(encoding="utf-8")
+
+    for contract in (
+        "insertRowsAtSelection",
+        "duplicateSelectedRows",
+        "deleteSelectedRows",
+        "startFillDrag",
+        "beginColumnResize",
+        "findNextCalculatorMatch",
+        "replaceAllCalculatorMatches",
+    ):
+        assert contract in advanced
+    assert 'data-action="insert-above"' in render
+    assert 'data-action="find-replace"' in render
+    assert 'class="column-resize-handle"' in render
+    assert "bindAdvancedCalculatorEvents" in actions
+    assert "beforeunload" in actions
+    assert "columnWidths" in draft
+
+
+def test_frontend_dashboard_reports_currency_exposure_without_changing_totals() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+
+    source = "\n".join(
+        (_FRONTEND / filename).read_text(encoding="utf-8")
+        for filename in (
+            "calculator_grid_columns.js",
+            "calculator_grid_formula_input.js",
+            "calculator_grid_math.js",
+            "calculator_grid_state.js",
+        )
+    )
+    script = source + """
+const rows = [
+  {...createBlankRow('1'), gross_price_per_unit: 100, units: 2, supplier_currency: 'EUR', sales_price_per_unit: 150, sales_currency: 'NOK'},
+  {...createBlankRow('2'), gross_price_per_unit: 50, units: 1, supplier_currency: 'USD', sales_price_per_unit: 80, sales_currency: 'EUR'}
+];
+calculateRows(rows, {NOK: 1, EUR: 12, USD: 10});
+console.log(JSON.stringify(calculateDashboard({rows, numberOfPax: 5})));
+"""
+    completed = subprocess.run(
+        ["node"], input=script, check=True, capture_output=True, text=True, timeout=15
+    )
+    dashboard = json.loads(completed.stdout)
+
+    assert dashboard["number_of_pax"] == 5
+    assert dashboard["cost_per_pax"] == pytest.approx(dashboard["net_price_nok"] / 5, abs=0.01)
+    assert dashboard["currency_exposure"]["supplier"] == [["EUR", 200], ["USD", 50]]
+    assert dashboard["currency_exposure"]["sales"] == [["EUR", 80], ["NOK", 300]]

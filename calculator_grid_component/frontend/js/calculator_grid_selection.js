@@ -41,6 +41,24 @@ function refreshSelectionClasses() {
     const selected = cellIsSelected(Number(cell.dataset.rowIndex), cell.dataset.key);
     cell.classList.toggle('selected-cell', selected);
   });
+  refreshFillHandle();
+}
+
+function refreshFillHandle() {
+  document.querySelectorAll('.fill-handle').forEach((handle) => handle.remove());
+  const selection = normalizedSelection();
+  if (!selection) return;
+  const columns = visibleColumns(calculatorState.showAdvanced);
+  const key = columns[selection.right]?.key;
+  if (!key) return;
+  const cell = document.querySelector(`td[data-row-index="${selection.bottom}"][data-key="${key}"]`);
+  if (!cell) return;
+  const handle = document.createElement('span');
+  handle.className = 'fill-handle';
+  handle.contentEditable = 'false';
+  handle.setAttribute('aria-hidden', 'true');
+  handle.addEventListener('mousedown', startFillDrag);
+  cell.appendChild(handle);
 }
 
 function selectedCellsAsTsv() {
