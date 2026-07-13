@@ -5,6 +5,7 @@ from tests.support.static_contracts import read_contract_text
 
 from scripts import architecture_guards
 from scripts.architecture_guards import (
+    accidental_file_alias_hits,
     compressed_python_statement_hits,
     destination_transport_cycle_hits,
     itinerary_domain_generation_import_hits,
@@ -101,6 +102,10 @@ def test_right_inspector_does_not_depend_on_canvas_image_replacement_modules() -
 def test_and_duplicate_tests_do_not_return() -> None:
     assert root_patch_artifact_hits() == ()
     assert duplicate_test_path_hits() == ()
+
+
+def test_public_and_root_files_are_not_replaced_by_nested_modules() -> None:
+    assert accidental_file_alias_hits() == ()
 
 
 def test_shared_clean_space_is_the_single_source_of_truth() -> None:

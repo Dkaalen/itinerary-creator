@@ -26,6 +26,7 @@ from scripts.architecture_guard_size_checks import (
 )
 from scripts.architecture_guard_source_checks import (
     _read,
+    accidental_file_alias_hits,
     all_import_hits,
     destination_transport_cycle_hits,
     duplicate_shared_clean_space_hits,
@@ -165,6 +166,10 @@ def _architecture_checks() -> tuple[ArchitectureCheck, ...]:
         ArchitectureCheck("Right inspector scope", _inspector_image_replacement_failures),
         ArchitectureCheck("Root patch artifacts", lambda: _fail_if_any("root patch artifact", root_patch_artifact_hits())),
         ArchitectureCheck("Duplicate test module names", lambda: _fail_if_any("duplicate test module", duplicate_test_path_hits())),
+        ArchitectureCheck(
+            "Public/root file identity",
+            lambda: _fail_if_any("accidental cross-file overwrite", accidental_file_alias_hits()),
+        ),
         ArchitectureCheck("Shared clean_space ownership", lambda: _fail_if_any("duplicate clean_space definition", duplicate_shared_clean_space_hits())),
         ArchitectureCheck("Top-level compatibility facade scope", lambda: _fail_if_any("compatibility facade grew implementation logic", top_level_compatibility_facade_hits())),
         ArchitectureCheck("Destination/transport import cycle", lambda: _fail_if_any("destination transport cycle", destination_transport_cycle_hits())),

@@ -9,6 +9,7 @@ from scripts.architecture_guard_config import (
     DEBUG_ALLOWED_SOURCES,
     DUPLICATE_TEST_DIRS,
     EXACT_VAGUE_FILE_NAMES,
+    FILES_THAT_MUST_STAY_DISTINCT,
     FORBIDDEN_NORMAL_UI_MARKERS,
     GENERATION_CORE_FACADE_MODULES,
     GENERATION_IMPLEMENTATION_MODULES_THAT_MUST_NOT_IMPORT_CORE,
@@ -163,6 +164,24 @@ def duplicate_test_path_hits() -> tuple[str, ...]:
                 continue
             by_name.setdefault(path.name, []).append(_repo_path(path))
     return tuple(sorted(path for paths in by_name.values() if len(paths) > 1 for path in paths))
+
+
+def accidental_file_alias_hits() -> tuple[str, ...]:
+    """Return public/root files that were replaced by unrelated nested files."""
+
+    hits: list[str] = []
+    for public_relative, nested_relative in FILES_THAT_MUST_STAY_DISTINCT:
+        public_path = REPO_ROOT / public_relative
+        nested_path = REPO_ROOT / nested_relative
+        if not public_path.exists():
+            hits.append(f"{public_relative}: missing")
+            continue
+        if not nested_path.exists():
+            hits.append(f"{nested_relative}: missing comparison source")
+            continue
+        if public_path.read_bytes() == nested_path.read_bytes():
+            hits.append(f"{public_relative} duplicates {nested_relative}")
+    return tuple(hits)
 
 
 def generation_implementation_core_import_hits() -> tuple[str, ...]:

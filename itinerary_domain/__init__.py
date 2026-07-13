@@ -1,13 +1,6 @@
-"""Activity product family matchers."""
+"""Neutral itinerary truth contracts shared by parsing and generation.
 
-from .iceland import match_iceland_activity
-from .nordic import match_nordic_activity
-from .norway import match_norway_activity
-from .scandinavia import match_scandinavia_activity
-
-__all__ = [
-    "match_iceland_activity",
-    "match_nordic_activity",
-    "match_norway_activity",
-    "match_scandinavia_activity",
-]
+This package owns source-backed product, route, title-cleaning and group-tour
+truth. Rendering modules may consume these contracts, but parser/normalizer
+code no longer imports the generation layer to discover neutral facts.
+"""

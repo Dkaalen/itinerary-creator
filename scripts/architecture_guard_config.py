@@ -87,6 +87,26 @@ ROOT_PATCH_ARTIFACT_NAMES = frozenset({"CHANGED_FILES_MANIFEST.md", "DELETION_MA
 PATCH_METADATA_DIR_NAMES = frozenset({"_patch_metadata"})
 DUPLICATE_TEST_DIRS = ("tests", "visual_editor_component/tests")
 
+FILES_THAT_MUST_STAY_DISTINCT = (
+    ("ARCHITECTURE_CLEANUP_PROGRESS.md", "docs/archive/ARCHITECTURE_CLEANUP_PROGRESS.md"),
+    ("README.md", "docs/reports/README.md"),
+    ("calculator/__init__.py", "calculator/data/__init__.py"),
+    ("diagnostics.py", "images/diagnostics.py"),
+    ("itinerary_domain/__init__.py", "itinerary_domain/activity_product_rules/__init__.py"),
+    ("itinerary_generation/__init__.py", "itinerary_generation/transport_domain/__init__.py"),
+    (
+        "itinerary_generation/common.py",
+        "itinerary_generation/data/nordic_destination_registry_data/common.py",
+    ),
+    (
+        "itinerary_generation/data/__init__.py",
+        "itinerary_generation/data/nordic_destination_registry_data/__init__.py",
+    ),
+    ("itinerary_generation/inclusions.py", "itinerary_generation/transport_domain/inclusions.py"),
+    ("itinerary_generation/titles.py", "itinerary_generation/transport_domain/titles.py"),
+    ("tests/conftest.py", "tests/e2e/conftest.py"),
+)
+
 TOP_LEVEL_COMPATIBILITY_FACADES = {
     "generator.py": 90,
     "image_matcher.py": 40,
