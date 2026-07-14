@@ -29,10 +29,17 @@ function bindEvents() {
   document.querySelectorAll('[data-version-id]').forEach((button) => button.addEventListener('click', () => restoreCalculatorRecoverySnapshot(button.dataset.versionId)));
   document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
   document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));
-  document.querySelector('[data-action="download"]')?.addEventListener('click', () => submitAction('download'));
+  document.querySelector('[data-action="download"]')?.addEventListener('click', () => {
+    if (calculatorState.pendingDownload?.content_base64) downloadPreparedExcel(calculatorState.pendingDownload);
+    else submitAction('download');
+  });
   document.querySelector('[data-action="generate-agent"]')?.addEventListener('click', () => submitAction('generate_agent'));
   document.querySelector('[data-action="generate-customer"]')?.addEventListener('click', () => submitAction('generate_customer'));
   document.querySelector('[data-action="toggle-fullscreen"]')?.addEventListener('click', toggleCalculatorFullscreen);
+  document.querySelectorAll('[data-action="sales-margin"]').forEach((button) => {
+    button.addEventListener('click', () => applySalesMargin(Number(button.dataset.margin || 0)));
+  });
+  document.querySelector('[data-action="sales-price-use-gross"]')?.addEventListener('click', useGrossAsSalesPrice);
 
   const paxInput = document.querySelector('[data-action="set-pax"]');
   paxInput?.addEventListener('focus', beginCellEdit);
@@ -83,6 +90,64 @@ function bindEvents() {
   bindClipboardEvents();
   bindAdvancedCalculatorEvents();
   restoreActiveCellFocus();
+}
+
+function applySalesMargin(margin) {
+  if (!activeCell || activeCell.key !== 'sales_price_per_unit') return;
+  if (!(margin > 0 && margin < 1)) return;
+  const rowIndex = activeCell.rowIndex;
+  const row = calculatorState.rows[rowIndex];
+  if (!row) return;
+  const evaluator = new CalculatorGridFormulaEvaluator(calculatorState.rows, calculatorState.currencyRates);
+  let gross;
+  try {
+    gross = evaluator.evaluateCell(`Q${CALCULATOR_DATA_START_ROW + rowIndex}`);
+  } catch (_error) {
+    gross = numberValue(row.gross_price_per_unit);
+  }
+  if (!Number.isFinite(gross) || gross <= 0) {
+    calculatorState.syncStatus = 'Enter a gross price first';
+    refreshSyncStatusOnly();
+    return;
+  }
+  recordHistory();
+  row._sales_price_per_unit_touched = true;
+  row.sales_price_per_unit = gross / (1 - margin);
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  markLocalDraft();
+  rerender();
+}
+
+function useGrossAsSalesPrice() {
+  if (!activeCell || activeCell.key !== 'sales_price_per_unit') return;
+  const row = calculatorState.rows[activeCell.rowIndex];
+  if (!row) return;
+  recordHistory();
+  row._sales_price_per_unit_touched = false;
+  row.sales_price_per_unit = null;
+  calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
+  markLocalDraft();
+  rerender();
+}
+
+function downloadPreparedExcel(download) {
+  const encoded = String(download?.content_base64 || '');
+  if (!encoded) return;
+  const binary = window.atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  const blob = new Blob([bytes], {type: String(download.mime || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = String(download.filename || 'itinerary-calculation.xlsx');
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  calculatorState.syncStatus = 'Excel downloaded';
+  refreshSyncStatusOnly();
 }
 
 function submitAction(action) {

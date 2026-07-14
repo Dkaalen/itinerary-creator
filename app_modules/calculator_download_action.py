@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from collections.abc import Mapping, MutableMapping
@@ -82,6 +83,32 @@ def prepare_staged_calculation_download(
         "download_signature": calculator_download_signature(state, currency_rates=currency_rates),
     }
     return export
+
+
+def ready_calculation_download_payload(
+    session_state: MutableMapping[str, Any],
+    current_state: CalculatorState,
+    *,
+    currency_rates: Mapping[str, float] | None = None,
+) -> dict[str, Any]:
+    """Return a browser-download payload for the current prepared workbook."""
+
+    payload = session_state.get(CALCULATOR_READY_DOWNLOAD_KEY)
+    if not isinstance(payload, dict) or not payload.get("content"):
+        return {}
+    if payload.get("download_signature") != calculator_download_signature(
+        current_state,
+        currency_rates=currency_rates,
+    ):
+        clear_ready_calculation_download(session_state)
+        return {}
+    content = bytes(payload["content"])
+    return {
+        "filename": str(payload.get("filename") or "itinerary-calculation.xlsx"),
+        "mime": str(payload.get("mime") or CALCULATION_XLSX_MIME),
+        "content_base64": base64.b64encode(content).decode("ascii"),
+        "saved_to_cloud": bool(payload.get("saved_to_cloud")),
+    }
 
 
 def render_ready_calculation_download(

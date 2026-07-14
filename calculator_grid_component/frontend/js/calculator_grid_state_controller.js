@@ -69,7 +69,9 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   calculatorState.libraryRows = payload.library_rows || calculatorState.libraryRows || [];
   calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
   calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
-  calculatorState.pendingDownload = payload.pending_download || null;
+  // A same-revision backend render means the browser still owns newer, unsynced
+  // edits. Any workbook prepared from the backend copy is therefore stale.
+  calculatorState.pendingDownload = null;
   calculatorState.numberOfPax = calculatorState.numberOfPax ?? payload.number_of_pax ?? null;
   activeBackendRevision = incomingRevision;
   activeDraftStorageKey = getCalculatorDraftStorageKey();
@@ -80,10 +82,12 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
 function markLocalDraft(captureVersion = true, runValidation = true) {
   hasLocalDraft = true;
   calculatorState.dirty = true;
+  calculatorState.pendingDownload = null;
   calculatorState.syncStatus = 'Unsaved changes';
   if (runValidation) validateCalculatorState(calculatorState);
   scheduleLocalDraftSave();
   if (captureVersion) scheduleRecoverySnapshot();
+  refreshDownloadStateOnly();
   refreshSyncStatusOnly();
 }
 

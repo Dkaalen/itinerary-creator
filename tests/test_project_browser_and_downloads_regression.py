@@ -4,18 +4,19 @@ from pathlib import Path
 from tests.support.static_contracts import read_contract_text
 
 
-def test_calculator_no_longer_auto_clicks_browser_downloads() -> None:
+def test_calculator_prepares_then_downloads_excel_from_the_grid_toolbar() -> None:
     action_source = read_contract_text("app_modules/calculator_download_action.py")
+    actions_source = read_contract_text("calculator_grid_component/frontend/js/calculator_grid_actions.js")
     render_source = read_contract_text("calculator_grid_component/frontend/js/calculator_grid_render.js")
     page_source = read_contract_text("app_modules/calculator_page.py")
 
     assert "prepare_staged_calculation_download" in action_source
-    assert "render_ready_calculation_download" in action_source
-    assert "base64" not in action_source
-    assert "link.click()" not in render_source
-    assert "triggerPendingDownload" not in render_source
-    assert "pending_download=None" in page_source
-    assert "Download prepared Excel" in action_source
+    assert "ready_calculation_download_payload" in action_source
+    assert '"content_base64"' in action_source
+    assert "downloadPreparedExcel" in actions_source
+    assert "anchor.click()" in actions_source
+    assert "pending_download=pending_download" in page_source
+    assert "Excel ready" in render_source
 
 
 def test_open_project_browser_has_search_delete_files_and_inline_contrast_css() -> None:

@@ -26,14 +26,14 @@ function sameActiveCell(rowIndex, key) {
   return Boolean(activeCell && activeCell.rowIndex === rowIndex && activeCell.key === key);
 }
 
-function setCellEditingMode(cell, editing, {selectAll = false, caretAtEnd = false} = {}) {
+function setCellEditingMode(cell, editing, {caretAtEnd = false} = {}) {
   activeCellEditing = Boolean(editing);
   document.querySelectorAll('td.editing-cell').forEach((item) => item.classList.remove('editing-cell'));
   if (!cell || !activeCellEditing) return;
   cell.classList.add('editing-cell');
+  cell.querySelector(':scope > .fill-handle')?.remove();
   beginCellEdit();
-  if (selectAll) selectCellText(cell);
-  else if (caretAtEnd) placeCaretAtEnd(cell);
+  if (caretAtEnd) placeCaretAtEnd(cell);
 }
 
 function handleCellMouseDown(event) {
@@ -52,7 +52,7 @@ function handleCellMouseDown(event) {
     calculatorState.selectedRowIndex = rowIndex;
     setCellEditingMode(cell, false);
     cell.focus({preventScroll: true});
-    selectCellText(cell);
+    clearBrowserTextSelection();
     markSelectedRow(rowIndex);
     refreshFormulaBarOnly();
     return;
@@ -145,7 +145,8 @@ function handleCellKeydown(event) {
   }
 
   if (isPrintableCellKey(event)) {
-    setCellEditingMode(cell, true, {selectAll: true});
+    event.preventDefault();
+    replaceSelectedCellWithTypedCharacter(cell, event.key);
     return;
   }
 
@@ -188,15 +189,39 @@ function moveActiveCell(cell, rowDelta, colDelta, extendSelection = false) {
     return;
   }
   target.focus();
-  selectCellText(target);
+  clearBrowserTextSelection();
 }
 
-function selectCellText(cell) {
-  const range = document.createRange();
-  range.selectNodeContents(cell);
+function clearBrowserTextSelection() {
   const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
+  if (selection) selection.removeAllRanges();
+}
+
+function replaceSelectedCellWithTypedCharacter(cell, character) {
+  const rowIndex = Number(cell.dataset.rowIndex || 0);
+  const key = cell.dataset.key;
+  setCellEditingMode(cell, true);
+  setCellDisplayText(cell, character);
+  placeCaretAtEnd(cell);
+  const recalculated = updateRowValue(rowIndex, key, character);
+  markLocalDraft(false, false);
+  if (key === 'day' || key === 'from_date') refreshDateCells();
+  if (recalculated) {
+    refreshDefaultedEditableCells(rowIndex);
+    refreshFormulaCells(calculatorUsesA1References() ? null : rowIndex);
+    refreshTotalsOnly();
+    refreshValidationAndStatus();
+  }
+  refreshFormulaBarOnly();
+  if (key === 'travel_element') scheduleSuggestions(rowIndex, character);
+}
+
+function setCellDisplayText(cell, value) {
+  if (!cell) return;
+  const handle = cell.querySelector(':scope > .fill-handle');
+  if (handle) handle.remove();
+  cell.textContent = String(value ?? '');
+  if (handle && !cell.classList.contains('editing-cell')) cell.appendChild(handle);
 }
 
 function placeCaretAtEnd(cell) {
@@ -216,15 +241,19 @@ function handleCellBlur(event) {
   if (!row) return;
   if (['number', 'numberOptional', 'percent'].includes(columnKind(key))) {
     const value = row[key];
-    cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
+    const display = key === 'sales_price_per_unit' && value !== null && value !== undefined && value !== ''
+      ? formatNumber(numberValue(value), 2)
+      : (value === null || value === undefined || value === '' ? '' : String(value));
+    setCellDisplayText(cell, display);
   } else if (['formula', 'formulaPercent'].includes(columnKind(key))) {
     const override = row[formulaOverrideKey(key)];
-    cell.textContent = formatFormula(row[key], columnKind(key));
+    setCellDisplayText(cell, formatFormula(row[key], columnKind(key)));
   } else if (key === 'supplier_currency' || key === 'sales_currency') {
-    cell.textContent = row[key] || '';
+    setCellDisplayText(cell, row[key] || '');
   }
   commitCellEdit();
   setCellEditingMode(cell, false);
+  refreshSelectionClasses();
 }
 
 function handleCheckboxChange(event) {
@@ -282,8 +311,8 @@ function optionalNumericStorageValue(rawValue) {
 }
 
 function normalizedTextValue(key, rawValue) {
-  const text = String(rawValue || '').trim();
-  if (key === 'supplier_currency' || key === 'sales_currency') return text.toUpperCase();
+  const text = String(rawValue ?? '');
+  if (key === 'supplier_currency' || key === 'sales_currency') return text.trim().toUpperCase();
   return text;
 }
 
@@ -317,7 +346,7 @@ function refreshDateCells() {
   for (let index = 0; index < calculatorState.rows.length; index += 1) {
     const cell = document.querySelector(`td[data-row-index="${index}"][data-key="from_date"]`);
     if (!cell || document.activeElement === cell) continue;
-    cell.textContent = calculatorState.rows[index].from_date || '';
+    setCellDisplayText(cell, calculatorState.rows[index].from_date || '');
   }
 }
 
@@ -328,7 +357,10 @@ function refreshDefaultedEditableCells(rowIndex) {
     const cell = document.querySelector(`td[data-row-index="${rowIndex}"][data-key="${key}"]`);
     if (!cell || document.activeElement === cell) continue;
     const value = row[key];
-    cell.textContent = value === null || value === undefined || value === '' ? '' : String(value);
+    const display = key === 'sales_price_per_unit' && value !== null && value !== undefined && value !== ''
+      ? formatNumber(numberValue(value), 2)
+      : (value === null || value === undefined || value === '' ? '' : String(value));
+    setCellDisplayText(cell, display);
   }
 }
 
@@ -343,7 +375,7 @@ function refreshFormulaCells(rowIndex = null) {
     const column = columnByKey(key);
     if (!row || !column) return;
     if (activeCell && activeCell.rowIndex === currentRowIndex && activeCell.key === key && document.activeElement === cell) return;
-    cell.textContent = formatFormula(row[key], column.kind);
+    setCellDisplayText(cell, formatFormula(row[key], column.kind));
   });
 }
 
@@ -363,6 +395,12 @@ function activeCellRawValue() {
     const override = row[formulaOverrideKey(column.key)];
     return override === null || override === undefined ? formatFormula(row[column.key], column.kind) : String(override);
   }
+  if (column.key === 'sales_price_per_unit') {
+    const value = row[column.key];
+    if (value === null || value === undefined || value === '') return '';
+    const parsed = parseNumericInput(value);
+    return parsed === null ? String(value) : formatNumber(parsed, 2);
+  }
   return String(row[column.key] ?? '');
 }
 
@@ -370,12 +408,25 @@ function updateActiveCellFromFormulaBar(value) {
   if (!activeCell) return;
   const recalculated = updateRowValue(activeCell.rowIndex, activeCell.key, value);
   markLocalDraft(false, false);
+  refreshActiveCellDisplayFromState();
   if (recalculated) {
     refreshDefaultedEditableCells(activeCell.rowIndex);
     refreshFormulaCells(calculatorUsesA1References() ? null : activeCell.rowIndex);
     refreshTotalsOnly();
     refreshValidationAndStatus();
   }
+}
+
+function refreshActiveCellDisplayFromState() {
+  if (!activeCell) return;
+  const row = calculatorState.rows[activeCell.rowIndex];
+  const column = columnByKey(activeCell.key);
+  const cell = document.querySelector(`td[data-row-index="${activeCell.rowIndex}"][data-key="${activeCell.key}"]`);
+  if (!row || !column || !cell) return;
+  const display = column.formula
+    ? formatFormula(row[column.key], column.kind)
+    : editableCellDisplayValue(row, column);
+  setCellDisplayText(cell, display);
 }
 
 function restoreActiveCellFocus() {
@@ -385,5 +436,5 @@ function restoreActiveCellFocus() {
   if (!target || target.matches('input')) return;
   activeCellEditing = false;
   target.focus({preventScroll: true});
-  selectCellText(target);
+  clearBrowserTextSelection();
 }

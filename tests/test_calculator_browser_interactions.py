@@ -535,3 +535,210 @@ def test_cross_row_formula_dependents_refresh_immediately_after_edit() -> None:
     finally:
         browser.close()
         manager.stop()
+
+
+def test_selected_day_cell_stays_compact_and_never_highlights_text() -> None:
+    manager, browser, page = _browser_page(
+        _payload([{"row_id": "1", "day": "Day 1", "supplier_currency": "NOK", "sales_currency": "NOK"}], revision="clean-selection")
+    )
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="day"]')
+        cell.click()
+
+        assert page.evaluate("activeCellEditing") is False
+        assert page.evaluate("window.getSelection().toString()") == ""
+        assert page.evaluate("getComputedStyle(document.activeElement).overflow") == "hidden"
+        assert "editing-cell" not in (cell.get_attribute("class") or "")
+
+        page.keyboard.type("Day 2")
+        assert cell.text_content().strip() == "Day 2"
+        assert page.evaluate("window.getSelection().toString()") == ""
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_formula_bar_and_selected_grid_cell_stay_in_sync() -> None:
+    manager, browser, page = _browser_page(
+        _payload([{"row_id": "3", "travel_element": "Original hotel", "supplier_currency": "NOK", "sales_currency": "NOK"}], revision="formula-grid-sync")
+    )
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        formula_bar = page.get_by_label("Active cell value")
+        formula_bar.fill("Oslo: Hotel Dennis - Breakfast included")
+
+        assert cell.text_content().strip() == "Oslo: Hotel Dennis - Breakfast included"
+        assert page.evaluate("calculatorState.rows[0].travel_element") == "Oslo: Hotel Dennis - Breakfast included"
+        assert page.locator(".formula-reference").text_content() == "Travel element · row 3"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_sales_price_expression_is_precise_internally_and_shows_two_decimals() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "1",
+                "gross_price_per_unit": 600,
+                "units": 1,
+                "supplier_commission": 0,
+                "supplier_currency": "NOK",
+                "sales_price_per_unit": 600,
+                "sales_currency": "NOK",
+            }],
+            revision="sales-price-expression",
+        )
+    )
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="sales_price_per_unit"]')
+        cell.click()
+        page.keyboard.type("600/0.7")
+        page.keyboard.press("Tab")
+
+        assert cell.text_content().strip() == "857.14"
+        assert page.evaluate("calculatorState.rows[0].sales_price_per_unit") == pytest.approx(600 / 0.7)
+        assert page.evaluate("calculatorState.rows[0].price") == pytest.approx(857.14)
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_sales_margin_shortcuts_apply_10_15_20_percent_and_reset_to_gross() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "1",
+                "gross_price_per_unit": 600,
+                "units": 1,
+                "supplier_commission": 0,
+                "supplier_currency": "NOK",
+                "sales_price_per_unit": 600,
+                "sales_currency": "NOK",
+            }],
+            revision="sales-margin-shortcuts",
+        )
+    )
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="sales_price_per_unit"]')
+        cell.click()
+        tools = page.locator("#sales-price-tools")
+        assert tools.is_visible()
+
+        tools.get_by_role("button", name="20%").click()
+        assert page.evaluate("calculatorState.rows[0].sales_price_per_unit") == pytest.approx(750)
+        assert cell.text_content().strip() == "750.00"
+
+        page.locator("#sales-price-tools").get_by_role("button", name="15%").click()
+        assert page.evaluate("calculatorState.rows[0].sales_price_per_unit") == pytest.approx(600 / 0.85)
+        assert cell.text_content().strip() == "705.88"
+
+        page.locator("#sales-price-tools").get_by_role("button", name="10%").click()
+        assert page.evaluate("calculatorState.rows[0].sales_price_per_unit") == pytest.approx(600 / 0.9)
+        assert cell.text_content().strip() == "666.67"
+
+        page.locator("#sales-price-tools").get_by_role("button", name="Use gross").click()
+        assert page.evaluate("calculatorState.rows[0].sales_price_per_unit") == pytest.approx(600)
+        assert cell.text_content().strip() == "600.00"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_prepared_excel_downloads_from_the_grid_toolbar() -> None:
+    import base64
+
+    payload = _payload(
+        [{"row_id": "1", "travel_element": "Hotel", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="prepared-excel",
+    )
+    payload["pending_download"] = {
+        "filename": "Oslo Trip.xlsx",
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content_base64": base64.b64encode(b"xlsx-test-content").decode("ascii"),
+    }
+    manager, browser, page = _browser_page(payload)
+    try:
+        with page.expect_download() as download_info:
+            page.get_by_role("button", name="Download Excel").click()
+        download = download_info.value
+
+        assert download.suggested_filename == "Oslo Trip.xlsx"
+        assert page.locator("#calculator-sync-status").text_content() == "Excel downloaded"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_editing_after_excel_is_prepared_invalidates_the_stale_browser_download() -> None:
+    import base64
+
+    payload = _payload(
+        [{"row_id": "1", "type": "Hotel", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="invalidate-prepared-excel",
+    )
+    payload["pending_download"] = {
+        "filename": "Old.xlsx",
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content_base64": base64.b64encode(b"old").decode("ascii"),
+    }
+    manager, browser, page = _browser_page(payload)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="type"]')
+        cell.click()
+        page.keyboard.type("Transfer")
+
+        assert page.evaluate("calculatorState.pendingDownload") is None
+        assert page.locator("#calculator-excel-ready-status").count() == 0
+
+        page.get_by_role("button", name="Download Excel").click()
+        values = page.evaluate("window.__calculatorComponentValues")
+        assert len(values) == 1
+        assert values[0]["action"] == "download"
+        assert values[0]["rows"][0]["type"] == "Transfer"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_same_revision_backend_rerender_cannot_restore_a_stale_excel_download() -> None:
+    import base64
+
+    payload = _payload(
+        [{"row_id": "1", "type": "Hotel", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="stale-download-rerender",
+    )
+    payload["pending_download"] = {
+        "filename": "Old.xlsx",
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content_base64": base64.b64encode(b"old").decode("ascii"),
+    }
+    manager, browser, page = _browser_page(payload)
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="type"]')
+        cell.click()
+        page.keyboard.type("Transfer")
+        assert page.evaluate("calculatorState.pendingDownload") is None
+
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            payload,
+        )
+
+        assert page.evaluate("calculatorState.rows[0].type") == "Transfer"
+        assert page.evaluate("calculatorState.pendingDownload") is None
+        assert page.locator("#calculator-excel-ready-status").count() == 0
+    finally:
+        browser.close()
+        manager.stop()

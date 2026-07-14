@@ -2,35 +2,51 @@ function buildToolbarHtml(state) {
   const libraryText = state.libraryStatus || 'Local Library status unknown.';
   const undoDisabled = state.undoStack.length ? '' : 'disabled';
   const redoDisabled = state.redoStack.length ? '' : 'disabled';
+  const excelReady = Boolean(state.pendingDownload?.content_base64);
+  const excelClass = excelReady ? 'calc-btn primary ready' : 'calc-btn primary';
+  const excelTitle = excelReady ? 'Excel ready — click to download' : 'Prepare the latest Excel workbook';
   return `
     <div class="calculator-toolbar">
-      <div class="calculator-toolbar-left">
-        <button class="calc-btn" data-action="close">Back to workspace</button>
-        <button class="calc-btn" data-action="open-library">Manage Local Library</button>
-        <span class="toolbar-separator"></span>
-        <button class="calc-btn" data-action="add" data-count="1">+1 row</button>
-        <button class="calc-btn" data-action="add" data-count="5">+5 rows</button>
-        <button class="calc-btn" data-action="insert-above">Insert above</button>
-        <button class="calc-btn" data-action="insert-below">Insert below</button>
-        <button class="calc-btn" data-action="duplicate">Duplicate selected rows</button>
-        <button class="calc-btn danger" data-action="delete">Delete selected rows</button>
-        <button class="calc-btn" data-action="undo" ${undoDisabled}>Undo</button>
-        <button class="calc-btn" data-action="redo" ${redoDisabled}>Redo</button>
-        <button class="calc-btn" data-action="fill-down">Fill down</button>
-        <button class="calc-btn" data-action="fill-right">Fill right</button>
-        <button class="calc-btn" data-action="find-replace">Find / replace</button>
-        <button class="calc-btn" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
-        <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> Advanced columns</label>
-        <button class="calc-btn" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
+      <div class="calculator-toolbar-primary-row">
+        <div class="toolbar-group toolbar-group-navigation" aria-label="Workspace">
+          <button class="calc-btn" data-action="close" aria-label="Back to workspace">Back</button>
+          <button class="calc-btn" data-action="open-library" aria-label="Manage Local Library">Local Library</button>
+        </div>
+        <div class="toolbar-group toolbar-group-delivery" aria-label="Delivery actions">
+          <button class="${excelClass}" data-action="download" title="${excelTitle}">Download Excel</button>
+          <button class="calc-btn" data-action="generate-agent" aria-label="Generate agent itinerary">Agent itinerary</button>
+          <button class="calc-btn" data-action="generate-customer" aria-label="Generate customer itinerary">Customer itinerary</button>
+        </div>
       </div>
-      <div class="calculator-toolbar-right">
-        <button class="calc-btn primary" data-action="download">Download Excel</button>
-        <button class="calc-btn" data-action="generate-agent">Generate agent itinerary</button>
-        <button class="calc-btn" data-action="generate-customer">Generate customer itinerary</button>
+      <div class="calculator-toolbar-secondary-row">
+        <div class="toolbar-group" aria-label="Rows">
+          <span class="toolbar-group-label">Rows</span>
+          <button class="calc-btn compact" data-action="add" data-count="1">+ Row</button>
+          <button class="calc-btn compact" data-action="add" data-count="5">+ 5</button>
+          <button class="calc-btn compact" data-action="insert-above" aria-label="Insert above">Insert ↑</button>
+          <button class="calc-btn compact" data-action="insert-below" aria-label="Insert below">Insert ↓</button>
+          <button class="calc-btn compact" data-action="duplicate" aria-label="Duplicate selected rows">Duplicate</button>
+          <button class="calc-btn compact danger" data-action="delete" aria-label="Delete selected rows">Delete</button>
+        </div>
+        <div class="toolbar-group" aria-label="Edit">
+          <span class="toolbar-group-label">Edit</span>
+          <button class="calc-btn compact" data-action="undo" ${undoDisabled}>Undo</button>
+          <button class="calc-btn compact" data-action="redo" ${redoDisabled}>Redo</button>
+          <button class="calc-btn compact" data-action="fill-down" aria-label="Fill down">Fill ↓</button>
+          <button class="calc-btn compact" data-action="fill-right" aria-label="Fill right">Fill →</button>
+          <button class="calc-btn compact" data-action="find-replace">Find / replace</button>
+        </div>
+        <div class="toolbar-group" aria-label="View">
+          <span class="toolbar-group-label">View</span>
+          <button class="calc-btn compact" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
+          <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" aria-label="Advanced columns" ${state.showAdvanced ? 'checked' : ''}> Advanced</label>
+          <button class="calc-btn compact" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>
+        </div>
       </div>
     </div>
     <div class="calculator-status-row">
       <span>${escapeHtml(libraryText)}</span>
+      ${excelReady ? '<span id="calculator-excel-ready-status" class="excel-ready-status">Excel ready</span>' : ''}
       <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
     </div>`;
 }
@@ -49,6 +65,18 @@ function buildFormulaBarHtml(state) {
     <div class="calculator-formula-bar">
       <span class="formula-reference">${reference}</span>
       <input data-action="formula-bar" aria-label="Active cell value" value="${escapeHtml(activeCellRawValue())}" ${activeCell ? '' : 'disabled'}>
+    </div>`;
+}
+
+function buildSalesPriceToolsHtml(state) {
+  const visible = Boolean(activeCell && activeCell.key === 'sales_price_per_unit');
+  return `
+    <div id="sales-price-tools" class="sales-price-tools${visible ? '' : ' hidden'}" aria-label="Sales price margin shortcuts">
+      <span>Sales margin from gross</span>
+      <button class="margin-shortcut" data-action="sales-margin" data-margin="0.10">10%</button>
+      <button class="margin-shortcut" data-action="sales-margin" data-margin="0.15">15%</button>
+      <button class="margin-shortcut" data-action="sales-margin" data-margin="0.20">20%</button>
+      <button class="margin-shortcut reset" data-action="sales-price-use-gross">Use gross</button>
     </div>`;
 }
 
@@ -197,10 +225,20 @@ function cellHtml(row, rowIndex, column, colIndex) {
   if (column.kind === 'checkbox') {
     return `<td class="cell checkbox-cell ${classes}" ${common} ${widthStyle}><input type="checkbox" ${raw ? 'checked' : ''} ${common}></td>`;
   }
-  const value = raw === null || raw === undefined ? '' : String(raw);
+  const value = editableCellDisplayValue(row, column);
   const autocompleteClass = column.autocomplete ? ' autocomplete-cell' : '';
   const fillHandle = cellIsFillHandleCorner(rowIndex, column.key) ? '<span class="fill-handle" contenteditable="false" aria-hidden="true"></span>' : '';
   return `<td class="cell editable${autocompleteClass} ${classes}" contenteditable="true" spellcheck="false" ${common} ${widthStyle} ${title}>${escapeHtml(value)}${fillHandle}</td>`;
+}
+
+function editableCellDisplayValue(row, column) {
+  const value = row[column.key];
+  if (value === null || value === undefined || value === '') return '';
+  if (column.key === 'sales_price_per_unit') {
+    const parsed = parseNumericInput(value);
+    return parsed === null ? String(value) : formatNumber(parsed, 2);
+  }
+  return String(value);
 }
 
 function cellTitle(value, column) {
@@ -226,6 +264,7 @@ function renderShell(state) {
     <div class="calculator-grid-shell${calculatorFullscreen ? ' fullscreen' : ''}" style="--sticky-col-1-left:${dynamicColumnWidth(columnByKey('row_id'), state.rows)}px">
       ${buildToolbarHtml(state)}
       ${buildFormulaBarHtml(state)}
+      ${buildSalesPriceToolsHtml(state)}
       ${buildFindReplaceHtml(state)}
       ${buildVersionHistoryHtml(state)}
       <div id="calculator-dashboard-container">${dashboardTotalsHtml(state)}</div>
@@ -239,6 +278,16 @@ function renderShell(state) {
 function refreshTotalsOnly() {
   const container = document.getElementById('calculator-dashboard-container');
   if (container) container.innerHTML = dashboardTotalsHtml(calculatorState);
+}
+
+function refreshDownloadStateOnly() {
+  const ready = Boolean(calculatorState?.pendingDownload?.content_base64);
+  const button = document.querySelector('[data-action="download"]');
+  if (button) {
+    button.classList.toggle('ready', ready);
+    button.title = ready ? 'Excel ready — click to download' : 'Prepare the latest Excel workbook';
+  }
+  if (!ready) document.getElementById('calculator-excel-ready-status')?.remove();
 }
 
 function refreshSyncStatusOnly() {
@@ -264,10 +313,20 @@ function refreshValidationAndStatus() {
 function refreshFormulaBarOnly() {
   const input = document.querySelector('[data-action="formula-bar"]');
   const label = document.querySelector('.formula-reference');
-  if (input && document.activeElement !== input) input.value = activeCellRawValue();
+  if (input) {
+    input.disabled = !activeCell;
+    if (document.activeElement !== input) input.value = activeCellRawValue();
+  }
   if (label) {
     const column = activeCell ? columnByKey(activeCell.key) : null;
     const row = activeCell ? calculatorState.rows[activeCell.rowIndex] : null;
     label.textContent = column && row ? `${column.label} · row ${row.row_id || activeCell.rowIndex + 1}` : 'Select a cell';
   }
+  refreshSalesPriceToolsOnly();
+}
+
+function refreshSalesPriceToolsOnly() {
+  const tools = document.getElementById('sales-price-tools');
+  if (!tools) return;
+  tools.classList.toggle('hidden', !(activeCell && activeCell.key === 'sales_price_per_unit'));
 }

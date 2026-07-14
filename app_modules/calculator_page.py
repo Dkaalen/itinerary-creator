@@ -12,7 +12,7 @@ from app_modules.calculator_component_result import CalculatorGridResult, parse_
 from app_modules.calculator_currency_controls import render_currency_rate_editor
 from app_modules.calculator_download_action import (
     prepare_staged_calculation_download,
-    render_ready_calculation_download,
+    ready_calculation_download_payload,
 )
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_library_cache import read_cached_local_library
@@ -62,13 +62,18 @@ def render_calculator_page(app_version: str) -> None:
     )
     state = update_calculator_itinerary_name(st.session_state, itinerary_name)
 
+    pending_download = ready_calculation_download_payload(
+        st.session_state,
+        state,
+        currency_rates=currency_rates,
+    )
     payload = build_calculator_grid_payload(
         state,
         library_read,
         show_advanced=bool(st.session_state.get(CALCULATOR_ADVANCED_TOGGLE_KEY, False)),
         currency_rates=currency_rates,
         draft_namespace=_calculator_draft_namespace(),
-        pending_download=None,
+        pending_download=pending_download,
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
@@ -76,7 +81,6 @@ def render_calculator_page(app_version: str) -> None:
         state = _apply_component_result(parsed_result)
 
     _render_backend_action(parsed_result, state, currency_rates)
-    render_ready_calculation_download(st.session_state, state, currency_rates=currency_rates)
     _render_backup_controls(state)
 
 
