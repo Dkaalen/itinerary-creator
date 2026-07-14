@@ -200,7 +200,7 @@ def _patch_data_row(
         xml = _set_cell(xml, f"{column}{row_number}", value, value_kind=kind)
 
     if row is None:
-        sales_value: object = f"=Q{row_number}"
+        sales_value: object = f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
     else:
         sales_value = _sales_price_cell_value(row, row_number, evaluator)
     xml = _set_cell(xml, f"Y{row_number}", sales_value, value_kind=_numeric_or_formula_kind(sales_value))
@@ -246,11 +246,11 @@ def _sales_price_cell_value(
 ) -> object:
     value = row.sales_price_per_unit
     if value in (None, ""):
-        return f"=Q{row_number}"
+        return f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
     parsed = evaluator.evaluate_expression(value, current_cell=f"Y{row_number}")
     gross = evaluator.evaluate_cell(f"Q{row_number}")
     if parsed == 0 and gross > 0:
-        return f"=Q{row_number}"
+        return f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
     return value
 
 

@@ -278,7 +278,7 @@ function updateRowValue(rowIndex, key, rawValue, recalculate = true) {
   if (key === 'supplier_currency') row.supplier_x_rate_override = null;
   if (key === 'sales_currency') row.sales_x_rate_override = null;
   if (key === 'units') row._units_touched = true;
-  if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = true;
+  if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = String(rawValue ?? '').trim() !== '';
   if (key === 'day') markDayChanged(row);
   if (key === 'from_date') markDateManualState(row, key, rawValue);
   if (kind === 'checkbox') row[key] = Boolean(rawValue);

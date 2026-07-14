@@ -56,6 +56,7 @@ function addRows(rows, count) {
 function normalizeRowsForPython(rows) {
   return rows.map((row, index) => {
     const clean = {...row, row_id: String(row.row_id || index + 1)};
+    if (clean._sales_price_per_unit_touched === false) clean.sales_price_per_unit = null;
     for (const column of FORMULA_COLUMNS) delete clean[column.key];
     for (const key of Object.keys(clean)) {
       if (key.startsWith('_')) delete clean[key];

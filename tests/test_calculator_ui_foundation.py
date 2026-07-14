@@ -294,3 +294,20 @@ def test_calculator_page_exposes_local_library_refresh_controls() -> None:
     imports = _python_imported_names("app_modules/calculator_page.py")
 
     assert "render_local_library_refresh_control" in imports
+
+
+def test_calculator_table_marks_automatic_sales_price_and_round_trips_it_as_none() -> None:
+    source = CalculatorRow(
+        row_id="1",
+        gross_price_per_unit=1200,
+        units=1,
+        supplier_currency="NOK",
+        sales_currency="EUR",
+    )
+    table = rows_to_table_data((source,), show_advanced=False, currency_rates={"NOK": 1, "EUR": 12})
+
+    assert table[0]["sales_price_per_unit"] == 100
+    assert table[0]["_sales_price_per_unit_touched"] is False
+
+    restored = table_data_to_rows(table, (source,))
+    assert restored[0].sales_price_per_unit is None

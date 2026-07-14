@@ -67,6 +67,8 @@ def table_data_to_rows(
             override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(str(field_name))
             if override_field:
                 values[override_field] = formula_override_value(str(field_name), raw_value)
+        if item.get("_sales_price_per_unit_touched") is False:
+            values["sales_price_per_unit"] = None
         if not values.get("row_id"):
             values["row_id"] = row_id
         values["supplier_currency"] = currency_or_default(values.get("supplier_currency"))
@@ -97,7 +99,16 @@ def _row_to_table_data(
     visible_fields: Iterable[str],
 ) -> dict[str, Any]:
     row_is_blank = row_has_no_user_values(row)
-    data: dict[str, Any] = {}
+    sales_price_is_default = (
+        row.sales_price_per_unit is None
+        or (
+            number_value(row.sales_price_per_unit) == 0
+            and number_value(row.gross_price_per_unit) > 0
+        )
+    )
+    data: dict[str, Any] = {
+        "_sales_price_per_unit_touched": not sales_price_is_default,
+    }
     for field_name in visible_fields:
         if field_name in FORMULA_FIELD_KEYS:
             override_field = FORMULA_OVERRIDE_FIELD_BY_KEY[field_name]

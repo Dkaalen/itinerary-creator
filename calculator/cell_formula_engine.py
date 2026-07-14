@@ -161,10 +161,16 @@ class CalculatorCellFormulaEvaluator:
         if column == "Y":
             raw = row.sales_price_per_unit
             gross = self.evaluate_cell(f"Q{row_number}")
+            sales_rate = self.evaluate_cell(f"AB{row_number}")
+            default_value = (
+                Decimal("0")
+                if sales_rate == 0
+                else gross * self.evaluate_cell(f"W{row_number}") / sales_rate
+            )
             if raw is None or raw == "":
-                return gross
+                return default_value
             value = self.evaluate_expression(raw, current_cell=ref)
-            return gross if value == 0 and gross > 0 else value
+            return default_value if value == 0 and gross > 0 else value
 
         formula_field = _FORMULA_COLUMN_BY_FIELD.get(column)
         if formula_field:

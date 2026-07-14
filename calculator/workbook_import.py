@@ -234,7 +234,11 @@ def _field_value(field_name: str, cell: _CellData) -> object:
 
 
 def _sales_price_value(cell: _CellData, row_number: int) -> object:
-    if cell.formula and _formula_equal(cell.formula, f"=Q{row_number}"):
+    automatic_formulas = {
+        f"=Q{row_number}",
+        f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)",
+    }
+    if cell.formula and any(_formula_equal(cell.formula, formula) for formula in automatic_formulas):
         return None
     if cell.formula:
         return cell.formula

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from calculator.calculator_state import CalculatorState, add_row, next_row_id
+from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
 from calculator.library_model import LocalLibraryRow
 from calculator.library_normalize import library_row_to_calculator_row
 from calculator.library_search import search_library_rows
@@ -25,7 +26,13 @@ _FETCH_SIGNAL_FIELDS = (
 def calculator_row_from_library_line(library_row: LocalLibraryRow, row_id: str) -> CalculatorRow:
     """Return a calculator row filled from one Local Library line."""
 
-    return library_row_to_calculator_row(library_row, row_id=row_id)
+    row = library_row_to_calculator_row(library_row, row_id=row_id)
+    if row.sales_price_per_unit in (None, 0, 0.0, ""):
+        return row.with_changes(
+            sales_price_per_unit=None,
+            sales_currency=DEFAULT_CALCULATOR_CURRENCY,
+        )
+    return row
 
 
 def fetch_library_line_into_row(
@@ -115,6 +122,8 @@ def _merge_fetched_row_with_context(row: CalculatorRow, library_row: LocalLibrar
         field_name: getattr(row, field_name) or getattr(fetched, field_name)
         for field_name in _PRESERVED_CONTEXT_FIELDS
     }
+    if fetched.sales_price_per_unit is None:
+        preserved["sales_currency"] = row.sales_currency or fetched.sales_currency
     return fetched.with_changes(**preserved)
 
 

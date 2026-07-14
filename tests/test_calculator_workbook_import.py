@@ -80,3 +80,27 @@ def test_reference_template_can_be_imported_without_creating_fake_rows() -> None
 
     assert imported.state.rows == ()
     assert imported.currency_rates["NOK"] == 1
+
+
+def test_export_import_keeps_converted_default_sales_price_automatic() -> None:
+    rates = {"NOK": 1, "EUR": 12}
+    state = CalculatorState(
+        itinerary_name="Converted Sales",
+        rows=(
+            CalculatorRow(
+                row_id="1",
+                gross_price_per_unit=1200,
+                units=1,
+                supplier_currency="NOK",
+                sales_currency="EUR",
+            ),
+        ),
+    )
+
+    exported = export_calculation_workbook(state, currency_rates=rates)
+    imported = import_calculation_workbook(exported.content, filename=exported.filename)
+
+    assert imported.state.rows[0].sales_price_per_unit is None
+    totals = calculate_totals(imported.state.rows, imported.currency_rates)
+    assert totals.sales_price_nok_total == 1200
+    assert totals.gp_nok == 0

@@ -144,7 +144,7 @@ def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) 
     cell = sheet[f"Y{row_number}"]
     value = row.sales_price_per_unit
     if value is None or (parse_numeric_input(value) == 0 and parse_numeric_input(row.gross_price_per_unit) > 0):
-        cell.value = f"=Q{row_number}"
+        cell.value = f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
         return
     cell.value = value
 

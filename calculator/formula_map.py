@@ -16,7 +16,7 @@ ROW_FORMULA_TEMPLATES = {
     "U": "=ROUND(S{row}*(1-T{row}),2)",
     "W": "=IFERROR(VLOOKUP(V{row},Curr!$B$2:$C$13,2,FALSE),0)",
     "X": "=ROUND(U{row}*W{row},2)",
-    "Y": "=Q{row}",
+    "Y": "=IFERROR(Q{row}*W{row}/AB{row},0)",
     "Z": "=ROUND(Y{row}*R{row},2)",
     "AB": "=IFERROR(VLOOKUP(AA{row},Curr!$B$2:$C$13,2,FALSE),0)",
     "AC": "=ROUND(Z{row}*AB{row},2)",
@@ -85,7 +85,10 @@ def validate_formula_map(path: str | Path | None = None) -> tuple[str, ...]:
         expected = expected_row_formulas(row)
         for column, expected_formula in expected.items():
             actual_formula = formulas[column]
-            if actual_formula != expected_formula:
+            accepted = {expected_formula}
+            if column == "Y":
+                accepted.add(f"=Q{row}")  # Original reference-template default.
+            if actual_formula not in accepted:
                 issues.append(f"{column}{row}: expected {expected_formula!r}, got {actual_formula!r}.")
     issues.extend(_mismatches(formula_map.total_formulas, TOTAL_FORMULAS))
     issues.extend(_mismatches(formula_map.payment_formulas, PAYMENT_FORMULAS))

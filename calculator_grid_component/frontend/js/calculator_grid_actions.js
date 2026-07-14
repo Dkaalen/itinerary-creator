@@ -99,20 +99,20 @@ function applySalesMargin(margin) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
   const evaluator = new CalculatorGridFormulaEvaluator(calculatorState.rows, calculatorState.currencyRates);
-  let gross;
+  let grossInSalesCurrency;
   try {
-    gross = evaluator.evaluateCell(`Q${CALCULATOR_DATA_START_ROW + rowIndex}`);
+    grossInSalesCurrency = evaluator.defaultSalesPricePerUnit(CALCULATOR_DATA_START_ROW + rowIndex, row);
   } catch (_error) {
-    gross = numberValue(row.gross_price_per_unit);
+    grossInSalesCurrency = 0;
   }
-  if (!Number.isFinite(gross) || gross <= 0) {
+  if (!Number.isFinite(grossInSalesCurrency) || grossInSalesCurrency <= 0) {
     calculatorState.syncStatus = 'Enter a gross price first';
     refreshSyncStatusOnly();
     return;
   }
   recordHistory();
   row._sales_price_per_unit_touched = true;
-  row.sales_price_per_unit = gross / (1 - margin);
+  row.sales_price_per_unit = grossInSalesCurrency / (1 - margin);
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   markLocalDraft();
   rerender();

@@ -197,7 +197,7 @@ def _clean_input_mapping(block_name: str, row: Mapping[str, object]) -> Mapping[
         "Units": 1 if price not in (None, "", 0) else 0,
         "Supp Comm": row.get("Supp Margin"),
         "Supp curr": "NOK",
-        "Sales curr": "NOK",
+        "Sales curr": "EUR",
         "updated_by": "bundled_clean_inputs",
     }
 

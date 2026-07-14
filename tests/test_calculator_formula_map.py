@@ -22,7 +22,7 @@ def test_expected_formula_map_for_first_data_row() -> None:
         "U": "=ROUND(S7*(1-T7),2)",
         "W": "=IFERROR(VLOOKUP(V7,Curr!$B$2:$C$13,2,FALSE),0)",
         "X": "=ROUND(U7*W7,2)",
-        "Y": "=Q7",
+        "Y": "=IFERROR(Q7*W7/AB7,0)",
         "Z": "=ROUND(Y7*R7,2)",
         "AB": "=IFERROR(VLOOKUP(AA7,Curr!$B$2:$C$13,2,FALSE),0)",
         "AC": "=ROUND(Z7*AB7,2)",

@@ -138,3 +138,24 @@ def test_fetch_library_line_into_row_preserving_context_keeps_dates() -> None:
     assert updated.rows[0].type == "Hotel"
     assert updated.rows[0].supplier == "RateHawk"
     assert updated.rows[0].travel_element == "Fetched hotel"
+
+
+def test_fetch_without_explicit_sales_price_defaults_to_eur_and_preserves_target_sales_currency() -> None:
+    library_row = LocalLibraryRow(
+        travel_element="Oslo activity",
+        gross_price_per_unit=1200,
+        supplier_currency="NOK",
+        sales_price_per_unit=0,
+        sales_currency="NOK",
+    )
+
+    new_row = calculator_row_from_library_line(library_row, row_id="1")
+    assert new_row.sales_price_per_unit is None
+    assert new_row.sales_currency == "EUR"
+
+    state = CalculatorState(
+        rows=(CalculatorRow(row_id="1", day="Day 1", sales_currency="USD"),)
+    )
+    updated = fetch_library_line_into_row_preserving_context(state, library_row, "1")
+    assert updated.rows[0].sales_price_per_unit is None
+    assert updated.rows[0].sales_currency == "USD"

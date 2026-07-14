@@ -22,12 +22,12 @@ def test_calculate_row_matches_core_kalk_formulas_with_default_sales_price() -> 
     assert calculated.net_price == 180
     assert calculated.supplier_x_rate == 11
     assert isclose(calculated.net_price_nok, 1980)
-    assert calculated.calculated_sales_price_per_unit == 100
-    assert calculated.price == 200
+    assert calculated.calculated_sales_price_per_unit == 1100
+    assert calculated.price == 2200
     assert calculated.sales_x_rate == 1
-    assert calculated.sales_price_nok_total == 200
-    assert isclose(calculated.gp_nok, -1780)
-    assert isclose(calculated.gp_percent, -8.9)
+    assert calculated.sales_price_nok_total == 2200
+    assert isclose(calculated.gp_nok, 220)
+    assert isclose(calculated.gp_percent, 0.1)
 
 
 def test_calculate_row_uses_sales_price_override_and_sales_currency() -> None:
@@ -190,3 +190,20 @@ def test_calculator_rounds_spreadsheet_expressions_with_decimal_precision() -> N
     )
 
     assert calculated.gross_price == 4938.26
+
+
+def test_default_sales_price_converts_supplier_currency_into_sales_currency() -> None:
+    calculated = calculate_row(
+        CalculatorRow(
+            gross_price_per_unit=1200,
+            units=2,
+            supplier_currency="NOK",
+            sales_currency="EUR",
+        ),
+        {"NOK": 1, "EUR": 12},
+    )
+
+    assert calculated.calculated_sales_price_per_unit == 100
+    assert calculated.price == 200
+    assert calculated.sales_price_nok_total == 2400
+    assert calculated.gp_nok == 0

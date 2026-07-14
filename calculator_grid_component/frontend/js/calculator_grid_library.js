@@ -75,8 +75,15 @@ function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}) {
 function applyLibrarySuggestion(row, suggestion) {
   const fetched = {...(suggestion.row_data || {})};
   const grossPerUnit = numberValue(fetched.gross_price_per_unit);
-  if (grossPerUnit > 0 && optionalNumberValue(fetched.sales_price_per_unit) === 0) {
+  const rawSalesPrice = fetched.sales_price_per_unit;
+  const parsedSalesPrice = optionalNumberValue(rawSalesPrice);
+  const hasExplicitSalesPrice = rawSalesPrice !== null
+    && rawSalesPrice !== undefined
+    && String(rawSalesPrice).trim() !== ''
+    && !(parsedSalesPrice === 0 && grossPerUnit > 0);
+  if (!hasExplicitSalesPrice) {
     fetched.sales_price_per_unit = '';
+    fetched.sales_currency = row.sales_currency || DEFAULT_CURRENCY;
   }
   const preserved = {
     row_id: row.row_id,
@@ -86,5 +93,10 @@ function applyLibrarySuggestion(row, suggestion) {
     from_time: row.from_time || fetched.from_time || '',
     to_time: row.to_time || fetched.to_time || ''
   };
-  return {...fetched, ...preserved, _supplier_commission_touched: false, _sales_price_per_unit_touched: false};
+  return {
+    ...fetched,
+    ...preserved,
+    _supplier_commission_touched: false,
+    _sales_price_per_unit_touched: hasExplicitSalesPrice
+  };
 }

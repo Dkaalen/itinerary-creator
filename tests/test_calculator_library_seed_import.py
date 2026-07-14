@@ -171,7 +171,7 @@ def test_import_clean_inputs_workbook_reads_general_inputs_block(tmp_path) -> No
     assert rows[0].gross_price_per_unit == 25
     assert rows[0].supplier_commission == 0.2
     assert rows[0].supplier_currency == "NOK"
-    assert rows[0].sales_currency == "NOK"
+    assert rows[0].sales_currency == "EUR"
 
 
 def test_library_row_can_be_converted_to_calculator_row_without_metadata() -> None:

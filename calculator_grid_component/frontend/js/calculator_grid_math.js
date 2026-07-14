@@ -82,6 +82,14 @@ function currencyRate(value, rates) {
   return roundRate(numberValue((rates || DEFAULT_RATES)[code]));
 }
 
+function salesPriceWasTouched(row) {
+  if (typeof row?._sales_price_per_unit_touched === 'boolean') return row._sales_price_per_unit_touched;
+  const raw = row?.sales_price_per_unit;
+  if (raw === null || raw === undefined || String(raw).trim() === '') return false;
+  const parsed = optionalNumberValue(raw);
+  return !(parsed === 0 && numberValue(row?.gross_price_per_unit) > 0);
+}
+
 function rowHasUserValues(row) {
   const ignore = new Set(['row_id', 'supplier_currency', 'sales_currency']);
   for (const key of ALL_EDITABLE_KEYS) {
@@ -158,9 +166,10 @@ class CalculatorGridFormulaEvaluator {
     if (column === 'Y') {
       const gross = this.evaluateCell(`Q${rowNumber}`);
       const raw = row.sales_price_per_unit;
-      if (raw === null || raw === undefined || String(raw).trim() === '') return gross;
+      const defaultValue = this.defaultSalesPricePerUnit(rowNumber, row);
+      if (!salesPriceWasTouched(row) || raw === null || raw === undefined || String(raw).trim() === '') return defaultValue;
       const value = this.evaluateExpression(raw, ref);
-      return value === 0 && gross > 0 && !row._sales_price_per_unit_touched ? gross : value;
+      return value === 0 && gross > 0 ? defaultValue : value;
     }
 
     const formulaField = FORMULA_FIELD_BY_EXCEL_COLUMN[column];
@@ -187,6 +196,14 @@ class CalculatorGridFormulaEvaluator {
       return sales === 0 ? 0 : this.evaluateCell(`AD${rowNumber}`) / sales;
     }
     throw new CalculatorGridFormulaError('#VALUE!', `${ref} is text or unsupported.`, ref);
+  }
+
+  defaultSalesPricePerUnit(rowNumber, row) {
+    const gross = this.evaluateCell(`Q${rowNumber}`);
+    const supplierRate = this.evaluateCell(`W${rowNumber}`);
+    const salesRate = this.evaluateCell(`AB${rowNumber}`);
+    if (salesRate === 0) return 0;
+    return gross * supplierRate / salesRate;
   }
 
   errorForCell(reference, error) {
@@ -220,10 +237,15 @@ function calculateRows(rows, rates) {
     } catch (error) {
       row._formula_errors[grossReference] = evaluator.errorForCell(grossReference, error);
     }
-    const salesRaw = row.sales_price_per_unit;
-    if ((salesRaw === null || salesRaw === undefined || String(salesRaw).trim() === '') && gross !== 0 && !row._sales_price_per_unit_touched) {
-      row.sales_price_per_unit = gross;
-      evaluator.cache.delete(`Y${rowNumber}`);
+    row._sales_price_per_unit_touched = salesPriceWasTouched(row);
+    if (!row._sales_price_per_unit_touched && gross !== 0) {
+      try {
+        row.sales_price_per_unit = evaluator.defaultSalesPricePerUnit(rowNumber, row);
+        evaluator.cache.delete(`Y${rowNumber}`);
+      } catch (error) {
+        const reference = `Y${rowNumber}`;
+        row._formula_errors[reference] = evaluator.errorForCell(reference, error);
+      }
     }
 
     for (const [column, field] of Object.entries(FORMULA_FIELD_BY_EXCEL_COLUMN)) {

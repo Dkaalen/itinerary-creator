@@ -742,3 +742,159 @@ def test_same_revision_backend_rerender_cannot_restore_a_stale_excel_download() 
     finally:
         browser.close()
         manager.stop()
+
+
+def test_single_cell_copy_and_paste_work_in_grid_selection_mode() -> None:
+    rows = [
+        {"row_id": "1", "travel_element": "Oslo hotel", "supplier_currency": "NOK", "sales_currency": "EUR"},
+        {"row_id": "2", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "EUR"},
+        {"row_id": "3", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "EUR"},
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="single-cell-clipboard"))
+    try:
+        source = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        target = page.locator('td[data-row-index="1"][data-key="travel_element"]')
+        source.click()
+        copied = page.evaluate(
+            """() => {
+                const data = new DataTransfer();
+                document.dispatchEvent(new ClipboardEvent('copy', {clipboardData: data, bubbles: true}));
+                return data.getData('text/plain');
+            }"""
+        )
+        target.click()
+        page.evaluate(
+            """text => {
+                const data = new DataTransfer();
+                data.setData('text/plain', text);
+                document.dispatchEvent(new ClipboardEvent('paste', {clipboardData: data, bubbles: true}));
+            }""",
+            copied,
+        )
+
+        assert copied == "Oslo hotel"
+        assert target.text_content().strip() == "Oslo hotel"
+        assert page.evaluate("calculatorState.rows[1].travel_element") == "Oslo hotel"
+
+        blank = page.locator('td[data-row-index="2"][data-key="travel_element"]')
+        blank.click()
+        blank_text = page.evaluate(
+            """() => {
+                const data = new DataTransfer();
+                document.dispatchEvent(new ClipboardEvent('copy', {clipboardData: data, bubbles: true}));
+                return data.getData('text/plain');
+            }"""
+        )
+        source.click()
+        page.evaluate(
+            """text => {
+                const data = new DataTransfer();
+                data.setData('text/plain', text);
+                document.dispatchEvent(new ClipboardEvent('paste', {clipboardData: data, bubbles: true}));
+            }""",
+            blank_text,
+        )
+        assert source.text_content().strip() == ""
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_paste_while_editing_inserts_plain_text_at_the_caret() -> None:
+    rows = [{"row_id": "1", "travel_element": "Oslo hotel", "supplier_currency": "NOK", "sales_currency": "EUR"}]
+    manager, browser, page = _browser_page(_payload(rows, revision="editing-cell-clipboard"))
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("End")
+        page.evaluate(
+            """() => {
+                const data = new DataTransfer();
+                data.setData('text/plain', ' arrival');
+                document.activeElement.dispatchEvent(new ClipboardEvent('paste', {clipboardData: data, bubbles: true}));
+            }"""
+        )
+
+        assert cell.text_content().strip() == "Oslo hotel arrival"
+        assert page.evaluate("calculatorState.rows[0].travel_element") == "Oslo hotel arrival"
+        assert page.evaluate("activeCellEditing") is True
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_fetched_nok_product_defaults_sales_price_to_eur_conversion() -> None:
+    library_row = {
+        "library_id": "nok-activity",
+        "label": "Oslo activity",
+        "preview": "Priced in NOK",
+        "travel_element": "Oslo activity",
+        "supplier": "Supplier",
+        "country": "Norway",
+        "category": "Activity",
+        "type": "Activity",
+        "comments": "",
+        "search_text": "oslo activity",
+        "url": "",
+        "row_data": {
+            "row_id": "",
+            "type": "Activity",
+            "travel_element": "Oslo activity",
+            "gross_price_per_unit": 1200,
+            "units": 1,
+            "supplier_currency": "NOK",
+            "sales_price_per_unit": 0,
+            "sales_currency": "NOK",
+            "_sales_price_per_unit_touched": False,
+        },
+    }
+    payload = _payload(
+        [{"row_id": "1", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+        library_rows=[library_row],
+        revision="nok-to-eur-fetch",
+    )
+    payload["currency_rates"] = {"NOK": 1, "EUR": 12}
+    manager, browser, page = _browser_page(payload)
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        page.keyboard.type("Oslo activity")
+        page.locator(".suggestion-item").first.click()
+
+        sales_cell = page.locator('td[data-row-index="0"][data-key="sales_price_per_unit"]')
+        assert sales_cell.text_content().strip() == "100.00"
+        assert page.evaluate("calculatorState.rows[0].sales_currency") == "EUR"
+        assert page.evaluate("calculatorState.rows[0]._sales_price_per_unit_touched") is False
+        assert page.evaluate("calculatorState.rows[0].sales_price_nok_total") == 1200
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_sales_margin_shortcut_uses_converted_gross_price() -> None:
+    payload = _payload(
+        [{
+            "row_id": "1",
+            "gross_price_per_unit": 1200,
+            "units": 1,
+            "supplier_currency": "NOK",
+            "sales_price_per_unit": None,
+            "sales_currency": "EUR",
+            "_sales_price_per_unit_touched": False,
+        }],
+        revision="converted-margin",
+    )
+    payload["currency_rates"] = {"NOK": 1, "EUR": 12}
+    manager, browser, page = _browser_page(payload)
+    try:
+        sales_cell = page.locator('td[data-row-index="0"][data-key="sales_price_per_unit"]')
+        sales_cell.click()
+        page.get_by_role("button", name="20%").click()
+
+        assert sales_cell.text_content().strip() == "125.00"
+        assert page.evaluate("calculatorState.rows[0]._sales_price_per_unit_touched") is True
+        assert page.evaluate("calculatorState.rows[0].sales_price_nok_total") == 1500
+    finally:
+        browser.close()
+        manager.stop()

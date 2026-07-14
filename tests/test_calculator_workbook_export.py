@@ -98,7 +98,7 @@ def test_build_workbook_fills_rows_and_preserves_core_formulas() -> None:
 
     assert sheet["B8"].value == "2"
     assert sheet["J8"].value == "Northern lights tour"
-    assert sheet["Y8"].value == "=Q8"
+    assert sheet["Y8"].value == "=IFERROR(Q8*W8/AB8,0)"
 
     expected = expected_row_formulas(7)
     for column, formula in expected.items():
@@ -248,7 +248,7 @@ def test_zero_sales_price_uses_same_gross_price_fallback_as_app() -> None:
 
     sheet = build_calculation_workbook(state)["Kalk"]
 
-    assert sheet["Y7"].value == "=Q7"
+    assert sheet["Y7"].value == "=IFERROR(Q7*W7/AB7,0)"
     assert sheet["Z7"].value == expected_row_formulas(7)["Z"]
 
 

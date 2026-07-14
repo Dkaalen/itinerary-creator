@@ -98,9 +98,14 @@ function translatedCellValue(value, sourceRowIndex, sourceColumn, targetRowIndex
   );
 }
 
+function clipboardMatrix(text) {
+  const normalized = String(text ?? '').replace(/\r/g, '').replace(/\n+$/, '');
+  return normalized.split('\n').map((line) => line.split('\t'));
+}
+
 function applyTsvAtActiveCell(text) {
   if (!activeCell) return false;
-  const matrix = String(text || '').replace(/\r/g, '').split('\n').map((line) => line.split('\t'));
+  const matrix = clipboardMatrix(text);
   if (!matrix.length) return false;
   const columns = visibleColumns(calculatorState.showAdvanced);
   const startCol = visibleColumnIndex(activeCell.key);
@@ -159,18 +164,48 @@ function fillSelection(direction) {
   rerender();
 }
 
+function clipboardTargetIsNativeTextField(target) {
+  return Boolean(target && (target.matches?.('input, textarea') || target.isContentEditable && !target.matches?.('td.editable')));
+}
+
+function insertPlainTextAtCaret(cell, text) {
+  if (!cell) return false;
+  const selection = window.getSelection();
+  const normalized = String(text ?? '').replace(/\r/g, '');
+  if (!selection || !selection.rangeCount || !cell.contains(selection.anchorNode)) {
+    setCellDisplayText(cell, `${cell.textContent || ''}${normalized}`);
+    placeCaretAtEnd(cell);
+    return true;
+  }
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const node = document.createTextNode(normalized);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return true;
+}
+
 function bindClipboardEvents() {
   document.oncopy = (event) => {
+    if (clipboardTargetIsNativeTextField(event.target) || activeCellEditing) return;
     const text = selectedCellsAsTsv();
-    if (!text || !event.clipboardData) return;
+    if (!normalizedSelection() || !event.clipboardData) return;
     event.preventDefault();
     event.clipboardData.setData('text/plain', text);
   };
   document.onpaste = (event) => {
-    if (!event.clipboardData || !activeCell) return;
+    if (!event.clipboardData || !activeCell || clipboardTargetIsNativeTextField(event.target)) return;
     const text = event.clipboardData.getData('text/plain');
-    if (!text.includes('\t') && !text.includes('\n')) return;
+    const editingCell = activeCellEditing ? event.target?.closest?.('td.editable') : null;
     event.preventDefault();
+    if (editingCell) {
+      insertPlainTextAtCaret(editingCell, text);
+      handleCellInput({currentTarget: editingCell});
+      return;
+    }
     applyTsvAtActiveCell(text);
   };
   document.onmouseup = () => { selectionDragging = false; };
