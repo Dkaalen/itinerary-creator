@@ -100,7 +100,7 @@ def update_local_library_row(
 
 
 def mark_local_library_row_deleted(row: LocalLibraryRow, *, now: datetime | None = None) -> LocalLibraryRow:
-    """Return a soft-deleted row so Google Sheets history remains recoverable."""
+    """Return a soft-deleted row for storage implementations that support editing."""
 
     return replace(
         row,

@@ -43,6 +43,7 @@ def _render_local_library_header() -> None:
         <section class="workspace-page-heading local-library-heading">
           <span class="local-library-kicker">Reusable rows</span>
           <h1>Local Library</h1>
+          <p>Browse the bundled Excel workbook used by Calculator autocomplete.</p>
         </section>
         """
     )

@@ -6,6 +6,7 @@ from time import monotonic
 from typing import Any, Callable, MutableMapping
 
 from calculator.library_store import LocalLibraryReadResult, LocalLibraryStore
+from calculator.library_workbook import clear_local_library_workbook_cache
 
 CALCULATOR_LIBRARY_CACHE_KEY = "calculator_library_read_result"
 CALCULATOR_LIBRARY_CACHE_TIME_KEY = "calculator_library_read_time"
@@ -28,6 +29,8 @@ def read_cached_local_library(
     if not force_refresh and isinstance(cached, LocalLibraryReadResult) and _cache_is_fresh(cached_at, ttl_seconds):
         return cached
 
+    if force_refresh and reader is None:
+        clear_local_library_workbook_cache()
     result = (reader or LocalLibraryStore().list_rows)()
     session_state[CALCULATOR_LIBRARY_CACHE_KEY] = result
     session_state[CALCULATOR_LIBRARY_CACHE_TIME_KEY] = monotonic()

@@ -77,6 +77,7 @@ def _library_row_payload(row: LocalLibraryRow, currency_rates: Mapping[str, floa
         "supplier": row.supplier,
         "country": row.country,
         "category": row.category,
+        "source_sheet": row.source_sheet,
         "type": row.type,
         "comments": row.comments,
         "search_text": row.search_text,
@@ -96,13 +97,9 @@ def _compact_preview(row: LocalLibraryRow) -> str:
 def _autocomplete_rows(read_result: LocalLibraryReadResult) -> tuple[LocalLibraryRow, ...]:
     """Return rows available to the browser autocomplete.
 
-    Google Sheets keeps the explicit fetchable filter. The bundled Cheat Sheet fallback
-    also includes section/header rows because users need the whole 501-item cheat sheet
-    searchable while offline/read-only.
+    The bundled Excel workbook is already normalized and validated.
     """
 
-    if read_result.source == "fixture":
-        return tuple(row for row in read_result.rows if not row.is_deleted and (row.search_text or row.travel_element))
     return tuple(row for row in read_result.rows if row.is_available_for_fetch)
 
 

@@ -1,73 +1,17 @@
-from __future__ import annotations
-
 from calculator.library_model import LocalLibraryRow
 from calculator.library_read_summary import summarize_local_library_read
 from calculator.library_store import LocalLibraryReadResult
 
-
-def test_local_library_read_summary_reports_google_sheets_connection() -> None:
-    result = LocalLibraryReadResult(
-        rows=(
-            LocalLibraryRow(library_id="fetchable", travel_element="Hotel"),
-            LocalLibraryRow(library_id="deleted", is_deleted=True, travel_element="Old hotel"),
-        ),
-        source="google_sheets",
-        read_only=False,
-    )
-
+def test_summary_reports_local_excel_workbook():
+    result = LocalLibraryReadResult((LocalLibraryRow(travel_element="Hotel"),), "local_excel", True)
     summary = summarize_local_library_read(result)
-
     assert summary.level == "success"
-    assert summary.total_rows == 2
     assert summary.fetchable_rows == 1
-    assert "Local Library connected" in summary.headline
-    assert summary.component_text == "Local Library connected (1 fetchable lines)."
+    assert summary.component_text == "Local Excel Library (1 fetchable lines)."
+    assert "workbook only" in summary.detail
 
-
-def test_local_library_read_summary_keeps_fixture_fallback_quiet() -> None:
-    result = LocalLibraryReadResult(
-        rows=(LocalLibraryRow(library_id="fallback", travel_element="Fallback hotel"),),
-        source="fixture",
-        read_only=True,
-        message="Google service account secrets are missing: private_key",
-    )
-
+def test_summary_reports_actionable_workbook_error():
+    result = LocalLibraryReadResult((), "local_excel", True, "Local Library workbook is missing")
     summary = summarize_local_library_read(result)
-
-    assert summary.level == "info"
-    assert summary.fetchable_rows == 1
-    assert "Bundled Local Library" in summary.headline
-    assert "1 autocomplete lines" in summary.headline
-    assert "private_key" in summary.detail
-    assert "Bundled Local Library" in summary.component_text
-
-
-def test_local_library_read_summary_counts_fixture_sections_as_autocomplete_rows() -> None:
-    result = LocalLibraryReadResult(
-        rows=(
-            LocalLibraryRow(library_id="section", record_type="section", is_fetchable=False, travel_element="HELSINKI"),
-            LocalLibraryRow(library_id="line", record_type="line", is_fetchable=True, travel_element="Helsinki hotel"),
-        ),
-        source="fixture",
-        read_only=True,
-    )
-
-    summary = summarize_local_library_read(result)
-
-    assert summary.total_rows == 2
-    assert summary.fetchable_rows == 2
-    assert "2 autocomplete lines" in summary.component_text
-
-
-def test_local_library_read_summary_does_not_show_secret_jargon_in_component_status() -> None:
-    result = LocalLibraryReadResult(
-        rows=(LocalLibraryRow(library_id="fallback", travel_element="Fallback hotel"),),
-        source="fixture",
-        read_only=True,
-        message="Google Sheets connection is not configured.",
-    )
-
-    summary = summarize_local_library_read(result)
-
-    assert "secret" not in summary.component_text.casefold()
-    assert "read-only" not in summary.component_text.casefold()
+    assert summary.level == "error"
+    assert summary.detail == "Local Library workbook is missing"

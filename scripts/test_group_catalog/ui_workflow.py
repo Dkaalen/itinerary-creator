@@ -154,9 +154,8 @@ CALCULATOR_TESTS = (
     "tests/test_calculator_grid_values.py",
     "tests/test_calculator_library_cache.py",
     "tests/test_calculator_library_read_summary.py",
+    "tests/test_local_excel_library.py",
     "tests/test_calculator_library_search.py",
-    "tests/test_calculator_library_seed_import.py",
-    "tests/test_calculator_library_store.py",
     "tests/test_calculator_numeric_input.py",
     "tests/test_calculator_row_model.py",
     "tests/test_calculator_session_state.py",
@@ -182,7 +181,6 @@ STORAGE_TESTS = (
     "tests/test_local_draft_delta_regression.py",
     "tests/test_saved_project_contract.py",
     "tests/test_saved_project_rebuild_path_regression.py",
-    "tests/test_local_library_config_sources.py",
     "tests/test_local_library_editor.py",
     "tests/test_local_library_page_foundation.py",
 

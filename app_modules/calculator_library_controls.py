@@ -18,11 +18,11 @@ def render_local_library_refresh_control() -> bool:
         refresh_requested = st.button(
             "Refresh library",
             key=_REFRESH_BUTTON_KEY,
-            help="Reload autocomplete rows from the active Local Library source.",
+            help="Reload autocomplete rows from the bundled Excel workbook.",
             use_container_width=True,
         )
     with right:
-        st.caption("Autocomplete reads from the Local Library. Refresh after editing the shared sheet.")
+        st.caption("Autocomplete reads from the bundled Excel workbook. Refresh after deploying a replacement workbook.")
     return bool(refresh_requested)
 
 

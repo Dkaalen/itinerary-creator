@@ -19,6 +19,7 @@ function librarySearchFields(item) {
     item.supplier,
     item.country,
     item.category,
+    item.source_sheet,
     item.type,
     item.comments,
     item.search_text,
@@ -32,7 +33,7 @@ function scoreLibraryItem(item, query, context = {}) {
   const normalizedQuery = normalizeSearchText(query);
   if (normalizedQuery.length < 2) return 0;
   const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
-  const fieldWeights = [70, 42, 25, 28, 34, 12, 10, 3, 12, 8];
+  const fieldWeights = [70, 42, 25, 28, 34, 34, 12, 10, 3, 12, 8];
   let score = 0;
   librarySearchFields(item).forEach((field, index) => {
     const text = normalizeSearchText(field);
@@ -53,6 +54,12 @@ function contextScore(item, context = {}) {
   let score = 0;
   const rowType = normalizeSearchText(context.type);
   const itemType = normalizeSearchText(item.type || item.category);
+  const sourceSheet = normalizeSearchText(item.source_sheet || item.category);
+  const expectedSheet = expectedLibrarySheet(rowType, normalizeSearchText(context.travel_element));
+  if (expectedSheet && sourceSheet) {
+    if (sourceSheet === expectedSheet) score += 1400;
+    else score -= 220;
+  }
   if (rowType && itemType) {
     if (itemType === rowType) score += 900;
     else if (itemType.includes(rowType) || rowType.includes(itemType)) score += 450;
@@ -62,6 +69,16 @@ function contextScore(item, context = {}) {
   const country = normalizeSearchText(item.country);
   if (country && rowText.includes(country)) score += 120;
   return score;
+}
+
+function expectedLibrarySheet(rowType, travelElement) {
+  const text = `${rowType} ${travelElement}`;
+  if (/hotel|accommodation|overnight/.test(text)) return 'hotels';
+  if (/transfer|airport|station|pickup|drop off/.test(text)) return 'transfers';
+  if (/coach|train|rail|flight|ferry|boat|transport/.test(text)) return 'transport';
+  if (/activity|tour|museum|excursion|visit|experience/.test(text)) return 'activities';
+  if (/arrival|departure|leisure|welcome/.test(text)) return 'general';
+  return '';
 }
 
 function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}) {

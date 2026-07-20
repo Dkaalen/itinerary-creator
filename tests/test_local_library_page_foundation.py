@@ -32,7 +32,7 @@ def test_local_library_page_has_required_management_actions() -> None:
     assert "Save Local Library row" in sources
     assert "Remove Local Library row" in sources
     assert "read_only" in sources
-    assert "Google Sheets" in sources
+    assert "Excel workbook" in sources
 
 
 def test_local_library_page_is_split_by_responsibility() -> None:

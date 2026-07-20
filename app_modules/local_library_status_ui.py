@@ -17,5 +17,5 @@ def render_local_library_source_status(library_read: LocalLibraryReadResult) -> 
         st.caption(summary.detail)
         return
 
-    st.info(summary.headline)
-    st.caption("Built-in autocomplete remains available. Add/edit/remove becomes active when Google Sheets is connected.")
+    st.error(summary.headline)
+    st.caption(summary.detail)

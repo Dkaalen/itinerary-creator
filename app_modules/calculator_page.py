@@ -50,9 +50,11 @@ def render_calculator_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _render_calculator_topbar()
     _render_calculator_header()
-    currency_rates = render_currency_rate_editor(st.session_state)
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
+    if CURRENCY_RATES_STATE_KEY not in st.session_state and library_read.currency_rates:
+        st.session_state[CURRENCY_RATES_STATE_KEY] = dict(library_read.currency_rates)
+    currency_rates = render_currency_rate_editor(st.session_state)
     render_local_library_status(library_read, refreshed=refresh_library)
 
     sync_calculator_itinerary_name_input(st.session_state)
