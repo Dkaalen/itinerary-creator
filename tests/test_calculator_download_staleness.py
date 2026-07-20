@@ -106,3 +106,26 @@ def test_stale_ready_excel_payload_is_removed_before_component_render() -> None:
 
     assert payload == {}
     assert CALCULATOR_READY_DOWNLOAD_KEY not in session_state
+
+
+def test_prepare_download_never_waits_for_cloud_storage(monkeypatch) -> None:
+    import app_modules.calculator_download_action as action
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        action,
+        "prepare_calculation_download",
+        lambda state, currency_rates=None: action.WorkbookExport(
+            filename="Trip.xlsx",
+            content=b"xlsx",
+        ),
+    )
+    session_state: dict[str, object] = {}
+
+    action.prepare_staged_calculation_download(session_state, _state(), currency_rates={"EUR": 11.0})
+
+    payload = session_state[CALCULATOR_READY_DOWNLOAD_KEY]
+    assert isinstance(payload, dict)
+    assert payload["content"] == b"xlsx"
+    assert payload["saved_to_cloud"] is False
+    assert calls == []

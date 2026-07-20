@@ -78,6 +78,7 @@ def _library_row_payload(row: LocalLibraryRow, currency_rates: Mapping[str, floa
         "country": row.country,
         "category": row.category,
         "source_sheet": row.source_sheet,
+        "source_row": row.source_row,
         "type": row.type,
         "comments": row.comments,
         "search_text": row.search_text,

@@ -67,7 +67,10 @@ function contextScore(item, context = {}) {
   }
   const rowText = normalizeSearchText([context.travel_element, context.supplier, context.comments].filter(Boolean).join(' '));
   const country = normalizeSearchText(item.country);
-  if (country && rowText.includes(country)) score += 120;
+  const supplier = normalizeSearchText(item.supplier);
+  if (country && rowText.includes(country)) score += 300;
+  if (supplier && normalizeSearchText(context.supplier) === supplier) score += 360;
+  if (supplier && rowText.includes(supplier)) score += 180;
   return score;
 }
 
@@ -85,7 +88,7 @@ function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}) {
   return (libraryRows || [])
     .map((item) => ({item, score: scoreLibraryItem(item, query, context)}))
     .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score || String(a.item.label || '').localeCompare(String(b.item.label || '')))
+    .sort((a, b) => b.score - a.score || String(a.item.source_sheet || '').localeCompare(String(b.item.source_sheet || '')) || Number(a.item.source_row || 0) - Number(b.item.source_row || 0) || String(a.item.label || '').localeCompare(String(b.item.label || '')))
     .slice(0, limit);
 }
 

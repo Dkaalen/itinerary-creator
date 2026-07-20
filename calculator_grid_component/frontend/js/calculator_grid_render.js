@@ -4,43 +4,43 @@ function buildToolbarHtml(state) {
   const redoDisabled = state.redoStack.length ? '' : 'disabled';
   const excelReady = Boolean(state.pendingDownload?.content_base64);
   const excelClass = excelReady ? 'calc-btn primary ready' : 'calc-btn primary';
-  const excelTitle = excelReady ? 'Excel ready — click to download' : 'Prepare the latest Excel workbook';
+  const excelTitle = excelReady ? 'Excel ready — click to download' : 'Create and download the current calculation workbook';
   return `
     <div class="calculator-toolbar">
-      <div class="calculator-toolbar-primary-row">
+      <div class="calculator-toolbar-main-row">
         <div class="toolbar-group toolbar-group-navigation" aria-label="Workspace">
-          <button class="calc-btn" data-action="close" aria-label="Back to workspace">Back</button>
-          <button class="calc-btn" data-action="open-library" aria-label="Manage Local Library">Local Library</button>
+          <button class="calc-btn" data-action="close" title="Return to the main workspace">Back</button>
+          <button class="calc-btn" data-action="open-library" title="View workbook source and refresh status">Local Library</button>
         </div>
         <div class="toolbar-group toolbar-group-delivery" aria-label="Delivery actions">
           <button class="${excelClass}" data-action="download" title="${excelTitle}">Download Excel</button>
-          <button class="calc-btn" data-action="generate-agent" aria-label="Generate agent itinerary">Agent itinerary</button>
-          <button class="calc-btn" data-action="generate-customer" aria-label="Generate customer itinerary">Customer itinerary</button>
+          <button class="calc-btn" data-action="generate-agent" title="Build an itinerary for an agent">Agent itinerary</button>
+          <button class="calc-btn" data-action="generate-customer" title="Build a customer-facing itinerary">Customer itinerary</button>
         </div>
       </div>
-      <div class="calculator-toolbar-secondary-row">
-        <div class="toolbar-group" aria-label="Rows">
+      <div class="calculator-toolbar-tools-row">
+        <div class="toolbar-group toolbar-group-rows" aria-label="Row tools">
           <span class="toolbar-group-label">Rows</span>
-          <button class="calc-btn compact" data-action="add" data-count="1">+ Row</button>
-          <button class="calc-btn compact" data-action="add" data-count="5">+ 5</button>
-          <button class="calc-btn compact" data-action="insert-above" aria-label="Insert above">Insert ↑</button>
-          <button class="calc-btn compact" data-action="insert-below" aria-label="Insert below">Insert ↓</button>
-          <button class="calc-btn compact" data-action="duplicate" aria-label="Duplicate selected rows">Duplicate</button>
-          <button class="calc-btn compact danger" data-action="delete" aria-label="Delete selected rows">Delete</button>
+          <button class="calc-btn compact" data-action="add" data-count="1" title="Add one blank row">Add row</button>
+          <button class="calc-btn compact" data-action="add" data-count="5" title="Add five blank rows">Add 5</button>
+          <button class="calc-btn compact" data-action="insert-above" aria-label="Insert above" title="Insert a blank row above the selection">Above</button>
+          <button class="calc-btn compact" data-action="insert-below" aria-label="Insert below" title="Insert a blank row below the selection">Below</button>
+          <button class="calc-btn compact" data-action="duplicate" aria-label="Duplicate selected rows" title="Copy the selected row or rows">Duplicate</button>
+          <button class="calc-btn compact danger" data-action="delete" aria-label="Delete selected rows" title="Delete the selected row or rows">Delete</button>
         </div>
-        <div class="toolbar-group" aria-label="Edit">
-          <span class="toolbar-group-label">Edit</span>
-          <button class="calc-btn compact" data-action="undo" ${undoDisabled}>Undo</button>
-          <button class="calc-btn compact" data-action="redo" ${redoDisabled}>Redo</button>
-          <button class="calc-btn compact" data-action="fill-down" aria-label="Fill down">Fill ↓</button>
-          <button class="calc-btn compact" data-action="fill-right" aria-label="Fill right">Fill →</button>
-          <button class="calc-btn compact" data-action="find-replace">Find / replace</button>
+        <div class="toolbar-group toolbar-group-edit" aria-label="Editing tools">
+          <span class="toolbar-group-label">Tools</span>
+          <button class="calc-btn compact" data-action="undo" ${undoDisabled} title="Undo the latest calculator edit">Undo</button>
+          <button class="calc-btn compact" data-action="redo" ${redoDisabled} title="Redo the latest undone edit">Redo</button>
+          <button class="calc-btn compact" data-action="fill-down" aria-label="Fill down" title="Copy the first selected cell down through the selection">Fill down</button>
+          <button class="calc-btn compact" data-action="fill-right" aria-label="Fill right" title="Copy the first selected cell across the selection">Fill right</button>
+          <button class="calc-btn compact" data-action="find-replace" title="Find or replace text in calculator cells">Find / replace</button>
         </div>
-        <div class="toolbar-group" aria-label="View">
+        <div class="toolbar-group toolbar-group-view" aria-label="View tools">
           <span class="toolbar-group-label">View</span>
-          <button class="calc-btn compact" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
-          <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" aria-label="Advanced columns" ${state.showAdvanced ? 'checked' : ''}> Advanced</label>
-          <button class="calc-btn compact" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>
+          <button class="calc-btn compact" data-action="version-history" title="Restore browser recovery snapshots">Versions (${(state.recoverySnapshots || []).length})</button>
+          <label class="advanced-toggle" title="Show additional financial and formula columns"><input type="checkbox" data-action="toggle-advanced" aria-label="Advanced columns" ${state.showAdvanced ? 'checked' : ''}> More columns</label>
+          <button class="calc-btn compact" data-action="toggle-fullscreen" title="Use the full browser window">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>
         </div>
       </div>
     </div>

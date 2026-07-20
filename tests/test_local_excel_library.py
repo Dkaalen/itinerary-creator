@@ -23,3 +23,14 @@ def test_runtime_store_has_no_google_or_supabase_route():
     assert "gspread" not in source
     assert "supabase" not in source
     assert "fallback" not in source
+
+
+def test_intentional_duplicate_rows_are_preserved_with_distinct_source_identity():
+    library = load_local_library_workbook()
+    grouped: dict[tuple[object, ...], list[object]] = {}
+    for row in library.rows:
+        key = (row.source_sheet, row.travel_element, row.supplier, row.gross_price_per_unit, row.supplier_currency)
+        grouped.setdefault(key, []).append(row)
+    duplicate_group = next(group for group in grouped.values() if len(group) > 1)
+    assert len({row.library_id for row in duplicate_group}) == len(duplicate_group)
+    assert len({row.source_row for row in duplicate_group}) == len(duplicate_group)

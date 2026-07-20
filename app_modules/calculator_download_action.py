@@ -63,18 +63,14 @@ def prepare_staged_calculation_download(
     *,
     currency_rates: dict[str, float] | None = None,
 ) -> WorkbookExport:
-    """Prepare an Excel file, save it to cloud, and expose a safe download button."""
+    """Prepare an Excel file for immediate browser download.
 
-    from project_storage.workflow_hooks import save_calculation_workbook
+    Project persistence is handled by the normal calculator save workflow.
+    Download preparation must never wait for a network/cloud write.
+    """
 
     export = prepare_calculation_download(state, currency_rates=currency_rates)
-    saved_to_cloud = save_calculation_workbook(
-        session_state,
-        state,
-        content=export.content,
-        filename=export.filename,
-        currency_rates=currency_rates or {},
-    )
+    saved_to_cloud = False
     session_state[CALCULATOR_READY_DOWNLOAD_KEY] = {
         "filename": export.filename,
         "mime": CALCULATION_XLSX_MIME,
