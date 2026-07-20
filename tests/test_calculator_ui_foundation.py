@@ -7,10 +7,12 @@ from app_modules.calculator_navigation import (
     CALCULATOR_PAGE,
     WORKFLOW_PAGE,
     calculator_page_is_active,
+    calculator_return_is_available,
     close_calculator_page,
     open_calculator_page,
 )
 from app_modules.calculator_grid_data import rows_to_table_data, table_data_to_rows
+from app_modules.calculator_state_keys import CALCULATOR_RETURN_AVAILABLE_KEY
 from calculator.calculator_state import CalculatorState
 from calculator.row_model import CalculatorRow
 
@@ -41,6 +43,24 @@ def test_calculator_navigation_sets_standalone_page_without_changing_workflow_st
     assert state["active_app_page"] == WORKFLOW_PAGE
     assert calculator_page_is_active(state) is False
 
+
+def test_generated_itinerary_can_return_to_preserved_calculator_state() -> None:
+    calculator_state = CalculatorState(
+        itinerary_name="Return Trip",
+        rows=(CalculatorRow(row_id="1", travel_element="Preserved hotel"),),
+    )
+    state = {
+        "active_app_page": WORKFLOW_PAGE,
+        "calculator_state": calculator_state,
+        CALCULATOR_RETURN_AVAILABLE_KEY: True,
+    }
+
+    assert calculator_return_is_available(state) is True
+
+    open_calculator_page(state)
+
+    assert state["active_app_page"] == CALCULATOR_PAGE
+    assert state["calculator_state"] == calculator_state
 
 def test_calculator_navigation_rehydrates_empty_saved_snapshot_with_blank_rows() -> None:
     state = {"itinerary_name": "Saved Trip", "calculator_state": CalculatorState(itinerary_name="Saved Trip", rows=())}
@@ -187,8 +207,6 @@ def test_calculator_download_action_returns_xlsx_payload() -> None:
 
     assert export.filename == "Tromsø Northern Lights 2026 - Calculation.xlsx"
     assert export.content.startswith(b"PK")
-
-
 
 def _python_module_calls(relative_path: str) -> set[str]:
     import ast

@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 import re
+from time import perf_counter
 from zipfile import ZipFile
 
 import pytest
@@ -251,6 +252,31 @@ def test_zero_sales_price_uses_same_gross_price_fallback_as_app() -> None:
     assert sheet["Y7"].value == "=IFERROR(Q7*W7/AB7,0)"
     assert sheet["Z7"].value == expected_row_formulas(7)["Z"]
 
+
+def test_download_export_completes_within_interactive_budget() -> None:
+    state = CalculatorState(
+        itinerary_name="Performance",
+        rows=tuple(
+            CalculatorRow(
+                row_id=str(index),
+                day=f"Day {index}",
+                type="Hotel",
+                travel_element=f"Hotel {index}",
+                gross_price_per_unit=100 + index,
+                units=2,
+                supplier_currency="NOK",
+                sales_currency="EUR",
+            )
+            for index in range(1, 31)
+        ),
+    )
+
+    started = perf_counter()
+    export = export_calculation_workbook(state)
+    elapsed = perf_counter() - started
+
+    assert export.content.startswith(b"PK")
+    assert elapsed < 1.25
 
 def test_download_export_preserves_reference_package_outside_approved_cells() -> None:
     state = CalculatorState(

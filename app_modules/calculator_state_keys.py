@@ -10,6 +10,8 @@ CALCULATOR_READY_DOWNLOAD_KEY = "calculator_ready_xlsx_download"
 CALCULATOR_ITINERARY_NAME_INPUT_KEY = "calculator_itinerary_name_input"
 CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY = "calculator_itinerary_name_sync_required"
 CALCULATOR_BACKUP_UPLOAD_KEY = "calculator_backup_upload"
+CALCULATOR_NOTICE_KEY = "calculator_notice"
+CALCULATOR_RETURN_AVAILABLE_KEY = "calculator_return_available"
 
 # Retired Streamlit-data-editor/autocomplete keys.  They are cleared at hard
 # project boundaries so old browser/session state cannot affect the custom grid.

@@ -1,19 +1,52 @@
+let streamlitBridgeRenderReceived = false;
+let streamlitBridgeDisposed = false;
+let pendingStreamlitFrameHeight = null;
+
+function postStreamlitBridgeMessage(message, {requiresRender = true} = {}) {
+  if (streamlitBridgeDisposed) return false;
+  if (requiresRender && !streamlitBridgeRenderReceived) {
+    if (message.type === 'streamlit:setFrameHeight') pendingStreamlitFrameHeight = message.height;
+    return false;
+  }
+  window.parent.postMessage({isStreamlitMessage: true, ...message}, '*');
+  return true;
+}
+
+function markStreamlitRenderReceived() {
+  if (streamlitBridgeDisposed) return;
+  streamlitBridgeRenderReceived = true;
+  if (pendingStreamlitFrameHeight !== null) {
+    const height = pendingStreamlitFrameHeight;
+    pendingStreamlitFrameHeight = null;
+    postStreamlitBridgeMessage({type: 'streamlit:setFrameHeight', height});
+  }
+}
+
 const Streamlit = {
   setComponentReady: function() {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1}, '*');
+    return postStreamlitBridgeMessage(
+      {type: 'streamlit:componentReady', apiVersion: 1},
+      {requiresRender: false}
+    );
   },
   setFrameHeight: function(height) {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height: height}, '*');
+    return postStreamlitBridgeMessage({type: 'streamlit:setFrameHeight', height});
   },
   setComponentValue: function(value) {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: value}, '*');
+    return postStreamlitBridgeMessage({type: 'streamlit:setComponentValue', value});
   }
 };
 
-let streamlitRenderReceived = false;
+function disposeStreamlitBridge() {
+  streamlitBridgeDisposed = true;
+  pendingStreamlitFrameHeight = null;
+}
+
+window.addEventListener('pagehide', disposeStreamlitBridge, {once: true});
+window.addEventListener('beforeunload', disposeStreamlitBridge, {once: true});
 
 function syncEditorFrameHeight() {
-  if (!streamlitRenderReceived) return;
+  if (!streamlitBridgeRenderReceived) return;
   const shell = document.querySelector('.editor-shell');
   const measured = Math.ceil((shell?.getBoundingClientRect?.().height || document.body.scrollHeight || 900) + 24);
   const bounded = Math.max(780, Math.min(1080, measured));
@@ -36,7 +69,7 @@ function safeRender(payload, commitNonce = null) {
 }
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'streamlit:render') {
-    streamlitRenderReceived = true;
+    markStreamlitRenderReceived();
     const args = event.data.args || {};
     safeRender(args.payload, args.commit_nonce);
   }

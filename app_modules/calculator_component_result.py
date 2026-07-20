@@ -18,15 +18,17 @@ class CalculatorGridResult:
     state: CalculatorState
     show_advanced: bool = False
     client_state_revision: str = ""
+    upload_filename: str = ""
+    upload_content_base64: str = ""
 
 
 _VALID_ACTIONS = {
     "close",
     "download",
-    "download_ack",
     "generate_agent",
     "generate_customer",
     "open_library",
+    "open_excel",
     "sync",
 }
 
@@ -52,6 +54,8 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         ),
         show_advanced=bool(data.get("show_advanced")),
         client_state_revision=str(data.get("client_state_revision") or ""),
+        upload_filename=str(data.get("upload_filename") or ""),
+        upload_content_base64=str(data.get("upload_content_base64") or ""),
     )
 
 

@@ -22,13 +22,16 @@ def _html() -> str:
     )
     storage = """<script>
       (() => {
-        const store = new Map();
-        Object.defineProperty(window, 'localStorage', {value: {
+        const localStore = new Map();
+        const sessionStore = new Map();
+        const storageApi = (store) => ({
           getItem: (key) => store.has(String(key)) ? store.get(String(key)) : null,
           setItem: (key, value) => store.set(String(key), String(value)),
           removeItem: (key) => store.delete(String(key)),
           clear: () => store.clear()
-        }});
+        });
+        Object.defineProperty(window, 'localStorage', {value: storageApi(localStore)});
+        Object.defineProperty(window, 'sessionStorage', {value: storageApi(sessionStore)});
       })();
     </script>"""
     return f"<html><head><style>{css}</style></head><body><div id='root'></div>{storage}{scripts}</body></html>"
@@ -262,6 +265,7 @@ def test_explicit_download_submits_the_latest_unsynced_browser_state() -> None:
         cell.click()
         page.keyboard.type("Arrival")
         page.get_by_role("button", name="Download Excel").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
 
         values = page.evaluate("window.__calculatorComponentValues")
         assert len(values) == 1
@@ -703,6 +707,7 @@ def test_editing_after_excel_is_prepared_invalidates_the_stale_browser_download(
         assert page.locator("#calculator-excel-ready-status").count() == 0
 
         page.get_by_role("button", name="Download Excel").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
         values = page.evaluate("window.__calculatorComponentValues")
         assert len(values) == 1
         assert values[0]["action"] == "download"
@@ -895,6 +900,158 @@ def test_sales_margin_shortcut_uses_converted_gross_price() -> None:
         assert sales_cell.text_content().strip() == "125.00"
         assert page.evaluate("calculatorState.rows[0]._sales_price_per_unit_touched") is True
         assert page.evaluate("calculatorState.rows[0].sales_price_nok_total") == 1500
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_component_bridge_does_not_send_session_messages_before_first_render() -> None:
+    executable = shutil.which("chromium") or shutil.which("chromium-browser")
+    if not executable:
+        pytest.skip("Chromium is unavailable.")
+    manager = sync_playwright().start()
+    browser = manager.chromium.launch(executable_path=executable, headless=True, args=["--no-sandbox"])
+    page = browser.new_page()
+    try:
+        page.set_content(_html(), wait_until="load")
+        page.evaluate(
+            """() => {
+                window.__bridgeMessages = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.isStreamlitMessage) window.__bridgeMessages.push(event.data.type);
+                });
+                Streamlit.setFrameHeight(321);
+                Streamlit.setComponentValue('too-early');
+            }"""
+        )
+        page.wait_for_timeout(50)
+        assert page.evaluate("window.__bridgeMessages") == []
+
+        payload = _payload(
+            [{"row_id": "1", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+            revision="bridge-render-gate",
+        )
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            payload,
+        )
+        page.wait_for_selector('td[data-key="travel_element"]')
+        page.wait_for_timeout(50)
+
+        messages = page.evaluate("window.__bridgeMessages")
+        assert "streamlit:setFrameHeight" in messages
+        assert "streamlit:setComponentValue" not in messages
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_open_excel_sends_file_bytes_to_the_backend_action() -> None:
+    import base64
+
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+            revision="open-excel",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.locator('[data-action="excel-file-input"]').set_input_files(
+            {
+                "name": "Imported Trip.xlsx",
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "buffer": b"PK\x03\x04test-workbook",
+            }
+        )
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        value = page.evaluate("window.__calculatorComponentValues[0]")
+        assert value["action"] == "open_excel"
+        assert value["upload_filename"] == "Imported Trip.xlsx"
+        assert value["upload_content_base64"] == base64.b64encode(b"PK\x03\x04test-workbook").decode("ascii")
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_prepared_excel_auto_downloads_once_per_signature() -> None:
+    import base64
+
+    initial = _payload(
+        [{"row_id": "1", "travel_element": "Hotel", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+        revision="auto-download-initial",
+    )
+    manager, browser, page = _browser_page(initial)
+    downloads: list[str] = []
+    page.on("download", lambda download: downloads.append(download.suggested_filename))
+    try:
+        prepared = _payload(initial["rows"], revision="auto-download-prepared")
+        prepared["pending_download"] = {
+            "filename": "Immediate.xlsx",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "content_base64": base64.b64encode(b"fast-xlsx").decode("ascii"),
+            "download_signature": "signature-1",
+            "auto_download": True,
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            prepared,
+        )
+        page.wait_for_timeout(300)
+        assert downloads == ["Immediate.xlsx"]
+        assert page.locator("#calculator-sync-status").text_content() == "Excel downloaded"
+
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            prepared,
+        )
+        page.wait_for_timeout(300)
+        assert downloads == ["Immediate.xlsx"]
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_open_project_requires_confirmation_before_replacing_current_work() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "travel_element": "Existing hotel", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+            revision="open-project-confirmation",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.confirm = () => false;
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.locator('[data-action="excel-file-input"]').set_input_files(
+            {
+                "name": "Replacement.xlsx",
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "buffer": b"PK\x03\x04replacement",
+            }
+        )
+        page.wait_for_timeout(150)
+
+        assert page.evaluate("window.__calculatorComponentValues") == []
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Existing hotel"
     finally:
         browser.close()
         manager.stop()

@@ -88,6 +88,8 @@ def test_ready_excel_payload_is_embedded_for_the_grid_download() -> None:
         "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "content_base64": "eGxzeA==",
         "saved_to_cloud": True,
+        "download_signature": calculator_download_signature(_state(), currency_rates={"EUR": 10.0}),
+        "auto_download": False,
     }
 
 
@@ -127,5 +129,8 @@ def test_prepare_download_never_waits_for_cloud_storage(monkeypatch) -> None:
     payload = session_state[CALCULATOR_READY_DOWNLOAD_KEY]
     assert isinstance(payload, dict)
     assert payload["content"] == b"xlsx"
+    assert payload["content_base64"] == "eGxzeA=="
     assert payload["saved_to_cloud"] is False
+    assert payload["auto_download"] is True
+    assert payload["download_signature"] == calculator_download_signature(_state(), currency_rates={"EUR": 11.0})
     assert calls == []

@@ -7,7 +7,7 @@ function updateAutosaveNote(message) {
 function safeSendComponentValue(serialized, stateName = 'saving') {
   captureEditorScrollState(stateName);
   try {
-    Streamlit.setComponentValue(serialized);
+    if (!Streamlit.setComponentValue(serialized)) throw new Error('Editor component session is not ready.');
     return true;
   } catch (err) {
     persistLocalDraft({fullSnapshot: true});

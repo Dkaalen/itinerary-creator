@@ -13,6 +13,8 @@ function buildToolbarHtml(state) {
           <button class="calc-btn" data-action="open-library" title="View workbook source and refresh status">Local Library</button>
         </div>
         <div class="toolbar-group toolbar-group-delivery" aria-label="Delivery actions">
+          <input class="calculator-excel-file-input" data-action="excel-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+          <button class="calc-btn" data-action="open-excel" title="Open a local calculation Excel file in this Calculator">Open project</button>
           <button class="${excelClass}" data-action="download" title="${excelTitle}">Download Excel</button>
           <button class="calc-btn" data-action="generate-agent" title="Build an itinerary for an agent">Agent itinerary</button>
           <button class="calc-btn" data-action="generate-customer" title="Build a customer-facing itinerary">Customer itinerary</button>

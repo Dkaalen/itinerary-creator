@@ -12,7 +12,7 @@ from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 import re
-from typing import Iterable, Mapping
+from typing import Mapping
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
@@ -83,9 +83,8 @@ _NUMERIC_INPUT_FIELDS = {
     "vat0_domestic",
     "vat0_international",
 }
-_CELL_RE_TEMPLATE = r'<c\b(?P<attrs>[^>]*?\br="{ref}"[^>]*?)\s*(?:/>|>(?P<body>.*?)</c>)'
-_ROW_RE_TEMPLATE = r'(<row\b[^>]*\br="{row}"[^>]*>)(?P<body>.*?)(</row>)'
-_REF_RE = re.compile(r'\br="([A-Z]+)(\d+)"')
+_CELL_RE = re.compile(r'<c\b(?P<attrs>[^>]*?\br="(?P<ref>[A-Z]+\d+)"[^>]*?)\s*(?:/>|>(?P<body>.*?)</c>)', re.DOTALL)
+_ROW_RE = re.compile(r'(?P<open><row\b[^>]*?\br="(?P<row>\d+)"[^>]*>)(?P<body>.*?)(?P<close></row>)', re.DOTALL)
 _TYPE_ATTR_RE = re.compile(r'\s+t="[^"]*"')
 
 
@@ -158,16 +157,18 @@ def _patch_workbook_calculation_properties(xml: str) -> str:
 
 def _patch_currency_sheet(xml: str, rates: Mapping[str, float]) -> str:
     items = tuple(rates.items())
+    changes: dict[str, tuple[object, str]] = {}
     for offset in range(12):
         row_number = _CURRENCY_START_ROW + offset
         if offset < len(items):
             code, rate = items[offset]
-            xml = _set_cell(xml, f"B{row_number}", str(code).upper(), value_kind="text")
-            xml = _set_cell(xml, f"C{row_number}", rate, value_kind="number")
+            changes[f"B{row_number}"] = (str(code).upper(), "text")
+            changes[f"C{row_number}"] = (rate, "number")
         else:
-            xml = _set_cell(xml, f"B{row_number}", None)
-            xml = _set_cell(xml, f"C{row_number}", None)
-    return re.sub(r'<dimension\s+ref="[^"]+"\s*/>', '<dimension ref="B1:C13"/>', xml, count=1)
+            changes[f"B{row_number}"] = (None, "blank")
+            changes[f"C{row_number}"] = (None, "blank")
+    patched = _patch_cells(xml, changes)
+    return re.sub(r'<dimension\s+ref="[^"]+"\s*/>', '<dimension ref="B1:C13"/>', patched, count=1)
 
 
 def _patch_kalk_sheet(
@@ -176,37 +177,35 @@ def _patch_kalk_sheet(
     currency_rates: Mapping[str, float],
 ) -> str:
     evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
+    changes: dict[str, tuple[object, str]] = {}
     for row_offset, row_number in enumerate(range(DATA_START_ROW, DATA_END_ROW + 1)):
         row = rows[row_offset] if row_offset < len(rows) else None
-        xml = _patch_data_row(xml, row_number, row, evaluator)
+        changes.update(_data_row_changes(row_number, row, evaluator))
 
-    formulas = {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: "=Z101"}
-    for ref, formula in formulas.items():
-        xml = _set_cell(xml, ref, formula, value_kind="formula")
+    for ref, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: "=Z101"}.items():
+        changes[ref] = (formula, "formula")
     for ref in LEGACY_PAYMENT_CELLS_TO_CLEAR:
-        xml = _set_cell(xml, ref, None)
-    return xml
+        changes[ref] = (None, "blank")
+    return _patch_cells(xml, changes)
 
 
-def _patch_data_row(
-    xml: str,
+def _data_row_changes(
     row_number: int,
     row: CalculatorRow | None,
     evaluator: CalculatorCellFormulaEvaluator,
-) -> str:
+) -> dict[str, tuple[object, str]]:
+    changes: dict[str, tuple[object, str]] = {}
     for column, field_name in _ROW_VALUE_COLUMNS.items():
         value = None if row is None else _row_cell_value(row, field_name)
-        kind = _row_value_kind(field_name, value)
-        xml = _set_cell(xml, f"{column}{row_number}", value, value_kind=kind)
+        changes[f"{column}{row_number}"] = (value, _row_value_kind(field_name, value))
 
     if row is None:
         sales_value: object = f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
     else:
         sales_value = _sales_price_cell_value(row, row_number, evaluator)
-    xml = _set_cell(xml, f"Y{row_number}", sales_value, value_kind=_numeric_or_formula_kind(sales_value))
+    changes[f"Y{row_number}"] = (sales_value, _numeric_or_formula_kind(sales_value))
 
-    canonical = expected_row_formulas(row_number)
-    for column, formula in canonical.items():
+    for column, formula in expected_row_formulas(row_number).items():
         if column == "Y":
             continue
         value: object = formula
@@ -216,8 +215,8 @@ def _patch_data_row(
             override_value = getattr(row, override_field, None) if override_field else None
             if override_value is not None:
                 value = override_value
-        xml = _set_cell(xml, f"{column}{row_number}", value, value_kind=_numeric_or_formula_kind(value))
-    return xml
+        changes[f"{column}{row_number}"] = (value, _numeric_or_formula_kind(value))
+    return changes
 
 
 def _row_cell_value(row: CalculatorRow, field_name: str) -> object:
@@ -262,15 +261,130 @@ def _numeric_or_formula_kind(value: object) -> str:
     return "number"
 
 
-def _set_cell(xml: str, ref: str, value: object, *, value_kind: str = "blank") -> str:
-    pattern = re.compile(_CELL_RE_TEMPLATE.format(ref=re.escape(ref)), re.DOTALL)
-    match = pattern.search(xml)
-    fragment = _cell_fragment(ref, match.group("attrs") if match else f' r="{ref}"', value, value_kind)
-    if match:
-        return xml[: match.start()] + fragment + xml[match.end() :]
-    if value is None and value_kind == "blank":
-        return xml
-    return _insert_cell(xml, ref, fragment)
+def _patch_cells(xml: str, changes: Mapping[str, tuple[object, str]]) -> str:
+    """Patch all requested cells in one worksheet pass.
+
+    The previous implementation rescanned the complete worksheet XML once per
+    cell. A normal export updates thousands of cells, so that quadratic pattern
+    dominated download time. Grouping changes by row keeps the exact template
+    package contract while making export linear in worksheet size.
+    """
+
+    by_row: dict[int, dict[str, tuple[object, str]]] = {}
+    for ref, change in changes.items():
+        row_number = int(re.search(r"\d+$", ref).group())
+        by_row.setdefault(row_number, {})[ref] = change
+
+    sheet_data = re.search(r'(<sheetData>)(?P<body>.*?)(</sheetData>)', xml, re.DOTALL)
+    if not sheet_data:
+        raise ValueError("Reference workbook is missing sheetData.")
+
+    body = sheet_data.group("body")
+    output: list[str] = []
+    cursor = 0
+    emitted_rows: set[int] = set()
+    changed_row_numbers = tuple(sorted(by_row))
+    for row_match in _ROW_RE.finditer(body):
+        row_number = int(row_match.group("row"))
+        output.append(body[cursor:row_match.start()])
+        for missing_row in changed_row_numbers:
+            if missing_row >= row_number:
+                break
+            if missing_row not in emitted_rows:
+                output.append(_new_row_fragment(missing_row, by_row[missing_row]))
+                emitted_rows.add(missing_row)
+        row_changes = by_row.get(row_number)
+        if row_changes:
+            output.append(_patched_row_fragment(row_match, row_changes))
+            emitted_rows.add(row_number)
+        else:
+            output.append(row_match.group(0))
+        cursor = row_match.end()
+
+    for missing_row in changed_row_numbers:
+        if missing_row not in emitted_rows:
+            output.append(_new_row_fragment(missing_row, by_row[missing_row]))
+    output.append(body[cursor:])
+
+    new_body = "".join(output)
+    replacement = sheet_data.group(1) + new_body + sheet_data.group(3)
+    return xml[: sheet_data.start()] + replacement + xml[sheet_data.end() :]
+
+
+def _patched_row_fragment(
+    row_match: re.Match[str],
+    changes: Mapping[str, tuple[object, str]],
+) -> str:
+    body = row_match.group("body")
+    output: list[str] = []
+    cursor = 0
+    emitted: set[str] = set()
+    for cell_match in _CELL_RE.finditer(body):
+        output.append(body[cursor:cell_match.start()])
+        ref = cell_match.group("ref")
+        change = changes.get(ref)
+        if change is None:
+            output.append(cell_match.group(0))
+        else:
+            value, value_kind = change
+            output.append(_cell_fragment(ref, cell_match.group("attrs"), value, value_kind))
+            emitted.add(ref)
+        cursor = cell_match.end()
+    output.append(body[cursor:])
+
+    missing = [
+        (ref, change)
+        for ref, change in changes.items()
+        if ref not in emitted and not (change[0] is None and change[1] == "blank")
+    ]
+    if missing:
+        fragments = [
+            _cell_fragment(ref, f' r="{ref}"', value, value_kind)
+            for ref, (value, value_kind) in sorted(missing, key=lambda item: _cell_ref_sort_key(item[0]))
+        ]
+        patched_body = _merge_missing_cells("".join(output), fragments)
+    else:
+        patched_body = "".join(output)
+    return row_match.group("open") + patched_body + row_match.group("close")
+
+
+def _merge_missing_cells(body: str, fragments: list[str]) -> str:
+    existing = list(_CELL_RE.finditer(body))
+    if not existing:
+        return body + "".join(fragments)
+
+    additions_by_position: dict[int, list[tuple[tuple[int, int], str]]] = {}
+    for fragment in fragments:
+        ref_match = re.search(r'\br="([A-Z]+\d+)"', fragment)
+        assert ref_match is not None
+        target_key = _cell_ref_sort_key(ref_match.group(1))
+        insertion = len(body)
+        for cell_match in existing:
+            if _cell_ref_sort_key(cell_match.group("ref")) > target_key:
+                insertion = cell_match.start()
+                break
+        additions_by_position.setdefault(insertion, []).append((target_key, fragment))
+
+    for insertion in sorted(additions_by_position, reverse=True):
+        ordered = "".join(fragment for _, fragment in sorted(additions_by_position[insertion]))
+        body = body[:insertion] + ordered + body[insertion:]
+    return body
+
+
+def _new_row_fragment(row_number: int, changes: Mapping[str, tuple[object, str]]) -> str:
+    cells = [
+        _cell_fragment(ref, f' r="{ref}"', value, value_kind)
+        for ref, (value, value_kind) in sorted(changes.items(), key=lambda item: _cell_ref_sort_key(item[0]))
+        if not (value is None and value_kind == "blank")
+    ]
+    return f'<row r="{row_number}">{"".join(cells)}</row>' if cells else ""
+
+
+def _cell_ref_sort_key(ref: str) -> tuple[int, int]:
+    match = re.fullmatch(r"([A-Z]+)(\d+)", ref)
+    if not match:
+        raise ValueError(f"Invalid cell reference: {ref}")
+    return int(match.group(2)), _column_number(match.group(1))
 
 
 def _cell_fragment(ref: str, attrs: str, value: object, value_kind: str) -> str:
@@ -288,40 +402,6 @@ def _cell_fragment(ref: str, attrs: str, value: object, value_kind: str) -> str:
         formula = escape(str(value).strip().lstrip("="))
         return f"<c{clean_attrs}><f>{formula}</f></c>"
     return f"<c{clean_attrs}><v>{_number_text(value)}</v></c>"
-
-
-def _insert_cell(xml: str, ref: str, fragment: str) -> str:
-    row_number = int(re.search(r"\d+$", ref).group())
-    row_pattern = re.compile(_ROW_RE_TEMPLATE.format(row=row_number), re.DOTALL)
-    row_match = row_pattern.search(xml)
-    if not row_match:
-        return _insert_missing_row(xml, row_number, fragment)
-    body = row_match.group("body")
-    target_column = _column_number(re.match(r"[A-Z]+", ref).group())
-    insertion = len(body)
-    for cell_match in re.finditer(r'<c\b[^>]*\br="([A-Z]+)\d+"[^>]*(?:/>|>.*?</c>)', body, re.DOTALL):
-        if _column_number(cell_match.group(1)) > target_column:
-            insertion = cell_match.start()
-            break
-    new_body = body[:insertion] + fragment + body[insertion:]
-    replacement = row_match.group(1) + new_body + row_match.group(3)
-    return xml[: row_match.start()] + replacement + xml[row_match.end() :]
-
-
-def _insert_missing_row(xml: str, row_number: int, fragment: str) -> str:
-    sheet_data_match = re.search(r'(<sheetData>)(?P<body>.*?)(</sheetData>)', xml, re.DOTALL)
-    if not sheet_data_match:
-        raise ValueError("Reference workbook is missing sheetData.")
-    body = sheet_data_match.group("body")
-    new_row = f'<row r="{row_number}">{fragment}</row>'
-    insertion = len(body)
-    for row_match in re.finditer(r'<row\b[^>]*\br="(\d+)"[^>]*>.*?</row>', body, re.DOTALL):
-        if int(row_match.group(1)) > row_number:
-            insertion = row_match.start()
-            break
-    new_body = body[:insertion] + new_row + body[insertion:]
-    replacement = sheet_data_match.group(1) + new_body + sheet_data_match.group(3)
-    return xml[: sheet_data_match.start()] + replacement + xml[sheet_data_match.end() :]
 
 
 def _number_text(value: object) -> str:

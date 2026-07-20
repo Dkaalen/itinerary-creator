@@ -6,7 +6,10 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from app_modules.calculator_navigation import close_calculator_page
-from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
+from app_modules.calculator_state_keys import (
+    CALCULATOR_RETURN_AVAILABLE_KEY,
+    CURRENCY_RATES_STATE_KEY,
+)
 from app_modules.generation_action import generate_itinerary
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from app_modules.workflow_result import WorkflowActionResult
@@ -44,6 +47,7 @@ def generate_itinerary_from_calculator(
     _seed_generation_request(state, calculator_state, output_brand)
     result = generate_itinerary(state, raw_text)
     if result.ok:
+        state[CALCULATOR_RETURN_AVAILABLE_KEY] = True
         close_calculator_page(state)
     return result
 

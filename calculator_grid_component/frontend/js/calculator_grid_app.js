@@ -2,6 +2,7 @@ function rerender() {
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
   renderShell(calculatorState);
   bindEvents();
+  requestAnimationFrame(maybeAutoDownloadPreparedExcel);
 }
 
 function renderError(error) {
@@ -14,6 +15,7 @@ let componentHasReceivedRender = false;
 function handleStreamlitRender(event) {
   if (!event.data || event.data.type !== 'streamlit:render') return;
   componentHasReceivedRender = true;
+  markStreamlitRenderReceived();
   try {
     initializeState((event.data.args || {}).payload || {});
     rerender();

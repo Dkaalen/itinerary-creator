@@ -71,7 +71,7 @@ function gridRowsAreBlank(rows) {
 function rowHasUserContent(row) {
   const ignored = new Set(['row_id', 'supplier_currency', 'sales_currency']);
   for (const [key, value] of Object.entries(row || {})) {
-    if (ignored.has(key) || key.endsWith('_override')) continue;
+    if (ignored.has(key) || key.startsWith('_') || key.endsWith('_override')) continue;
     if (typeof value === 'boolean') {
       if (value) return true;
       continue;

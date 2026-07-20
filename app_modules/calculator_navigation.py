@@ -12,7 +12,11 @@ except ModuleNotFoundError:  # Keep navigation helpers testable without Streamli
 
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.calculator_session_state import calculator_state_from_session
-from app_modules.calculator_state_keys import CALCULATOR_DRAFT_NAMESPACE_KEY, CALCULATOR_STATE_KEY
+from app_modules.calculator_state_keys import (
+    CALCULATOR_DRAFT_NAMESPACE_KEY,
+    CALCULATOR_RETURN_AVAILABLE_KEY,
+    CALCULATOR_STATE_KEY,
+)
 
 APP_PAGE_KEY = "active_app_page"
 WORKFLOW_PAGE = "workflow"
@@ -83,6 +87,27 @@ def close_calculator_page(state: MutableMapping[str, Any]) -> None:
     """Route the app back to the normal itinerary workflow."""
 
     state[APP_PAGE_KEY] = WORKFLOW_PAGE
+
+def calculator_return_is_available(state: MutableMapping[str, Any]) -> bool:
+    """Return whether the current itinerary was generated from Calculator state."""
+
+    return bool(state.get(CALCULATOR_RETURN_AVAILABLE_KEY) and state.get(CALCULATOR_STATE_KEY))
+
+
+def render_return_to_calculator_button() -> None:
+    """Render a safe route back to the preserved Calculator workspace."""
+
+    ui = _streamlit_api()
+    if not calculator_return_is_available(ui.session_state):
+        return
+    if ui.button(
+        "Back to Calculator",
+        use_container_width=True,
+        help="Return to the same calculation rows without regenerating the itinerary.",
+        key="return_to_calculator_from_itinerary",
+    ):
+        open_calculator_page(ui.session_state)
+        ui.rerun()
 
 
 def render_calculator_entry_button() -> None:

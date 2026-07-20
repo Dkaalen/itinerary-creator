@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+
 import streamlit as st
 
 from app_modules.app_header import _render_app_header
-from app_modules.input_workspace import render_studio_brand
-from app_modules.calculator_backup_action import render_calculator_backup_controls
+from app_modules.calculator_backup_action import (
+    read_calculator_upload_bytes,
+    render_calculator_backup_controls,
+)
 from app_modules.calculator_component_payload import build_calculator_grid_payload
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
 from app_modules.calculator_currency_controls import render_currency_rate_editor
@@ -21,18 +26,20 @@ from app_modules.calculator_library_controls import (
     render_local_library_status,
 )
 from app_modules.calculator_navigation import calculator_draft_namespace, close_calculator_page, open_local_library_page
+from app_modules.calculator_open_action import apply_calculator_upload_import
 from app_modules.calculator_session_state import (
     apply_calculator_grid_result,
     calculator_state_from_session,
-    store_calculator_state,
     sync_calculator_itinerary_name_input,
     update_calculator_itinerary_name,
 )
 from app_modules.calculator_state_keys import (
+    CALCULATOR_NOTICE_KEY,
     CALCULATOR_ADVANCED_TOGGLE_KEY,
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
     CURRENCY_RATES_STATE_KEY,
 )
+from app_modules.input_workspace import render_studio_brand
 from app_modules.validation_gate import block_generation, render_blocking_issues
 from ui.style_calculator import CALCULATOR_PAGE_CSS
 from calculator.calculator_state import CalculatorState
@@ -50,6 +57,7 @@ def render_calculator_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _render_calculator_topbar()
     _render_calculator_header()
+    _render_calculator_notice()
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
     if CURRENCY_RATES_STATE_KEY not in st.session_state and library_read.currency_rates:
@@ -130,11 +138,55 @@ def _render_backend_action(
         prepare_staged_calculation_download(st.session_state, state, currency_rates=currency_rates)
         st.rerun()
         return
+    if result.action == "open_excel":
+        _open_uploaded_excel(result)
+        return
     if result.action == "generate_agent":
         _render_generation_result(state, output_brand="agent")
         return
     if result.action == "generate_customer":
         _render_generation_result(state, output_brand="booknordics_customer")
+
+
+def _render_calculator_notice() -> None:
+    notice = st.session_state.pop(CALCULATOR_NOTICE_KEY, None)
+    if not isinstance(notice, dict):
+        return
+    message = str(notice.get("message") or "").strip()
+    if not message:
+        return
+    level = str(notice.get("level") or "info")
+    renderer = getattr(st, level, st.info)
+    renderer(message)
+
+
+def _open_uploaded_excel(result: CalculatorGridResult) -> None:
+    filename = str(result.upload_filename or "calculation.xlsx").strip()
+    encoded = str(result.upload_content_base64 or "").strip()
+    if not encoded:
+        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "No Excel file was received."}
+        st.rerun()
+        return
+    try:
+        content = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error):
+        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "The selected Excel file could not be read."}
+        st.rerun()
+        return
+    if len(content) > 12 * 1024 * 1024:
+        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "The selected Excel file is larger than the 12 MB Calculator limit."}
+        st.rerun()
+        return
+    try:
+        imported = read_calculator_upload_bytes(content, filename=filename)
+    except (ValueError, TypeError) as exc:
+        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": f"Could not open Excel: {exc}"}
+        st.rerun()
+        return
+
+    notice = apply_calculator_upload_import(st.session_state, imported, filename=filename)
+    st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
+    st.rerun()
 
 
 def _render_generation_result(state: CalculatorState, *, output_brand: str) -> None:
@@ -157,15 +209,9 @@ def _render_backup_controls(state: CalculatorState) -> None:
     imported = render_calculator_backup_controls(state)
     if imported is None:
         return
-    if imported.currency_rates:
-        st.session_state[CURRENCY_RATES_STATE_KEY] = imported.currency_rates
-        for code, value in imported.currency_rates.items():
-            st.session_state[f"calculator_currency_rate_{code}"] = float(value)
-    store_calculator_state(st.session_state, imported.state, sync_name_input=True)
-    message = "Calculation Excel reopened." if imported.source == "xlsx" else "Calculator backup reopened."
-    st.success(message)
+    notice = apply_calculator_upload_import(st.session_state, imported)
+    st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
     st.rerun()
-
 
 
 def _render_calculator_page_css() -> None:

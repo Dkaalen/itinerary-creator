@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app_modules.calculator_navigation import CALCULATOR_PAGE
+from app_modules.calculator_state_keys import CALCULATOR_RETURN_AVAILABLE_KEY
 from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.workflow_result import WorkflowActionResult
 from calculator.calculator_state import CalculatorState
@@ -36,6 +37,7 @@ def test_generate_itinerary_from_calculator_reuses_existing_generation_pipeline(
     assert session_state["active_app_page"] == "workflow"
     assert session_state["itinerary_name"] == "Tromsø Northern Lights"
     assert session_state["requested_output_brand"] == "booknordics_customer"
+    assert session_state[CALCULATOR_RETURN_AVAILABLE_KEY] is True
     assert calls["raw_text"] == "Day 1\tActivity\t\t\t\t\t\t\tTromsø: Northern lights chase"
 
 
@@ -49,3 +51,4 @@ def test_generate_itinerary_from_calculator_blocks_empty_calculator_rows() -> No
     assert result.stage == "input"
     assert "Add at least one calculator row" in result.message
     assert session_state["active_app_page"] == CALCULATOR_PAGE
+    assert CALCULATOR_RETURN_AVAILABLE_KEY not in session_state

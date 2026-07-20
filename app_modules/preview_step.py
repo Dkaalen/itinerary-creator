@@ -10,6 +10,7 @@ from app_modules.add_pictures_cta import (
     render_add_pictures_cta,
 )
 from app_modules.generation_messages import render_generation_messages
+from app_modules.calculator_navigation import render_return_to_calculator_button
 from app_modules.project_io import rebuild_current_preview
 from app_modules.workflow_config import STAGE_COPY
 from itinerary_generation.common import group_rows_by_day
@@ -50,6 +51,7 @@ def render_edit_page(app_version: str) -> None:
     _render_app_header(app_version, stage="edit")
     render_generation_messages(st.session_state)
     _render_stage_actions("edit")
+    render_return_to_calculator_button()
     _stage_panel(STAGE_COPY["edit"]["panel_title"], STAGE_COPY["edit"]["panel_text"])
 
     was_waiting_for_apply = add_pictures_apply_pending()

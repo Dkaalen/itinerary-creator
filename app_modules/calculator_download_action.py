@@ -71,12 +71,16 @@ def prepare_staged_calculation_download(
 
     export = prepare_calculation_download(state, currency_rates=currency_rates)
     saved_to_cloud = False
+    signature = calculator_download_signature(state, currency_rates=currency_rates)
+    encoded = base64.b64encode(export.content).decode("ascii")
     session_state[CALCULATOR_READY_DOWNLOAD_KEY] = {
         "filename": export.filename,
         "mime": CALCULATION_XLSX_MIME,
         "content": export.content,
+        "content_base64": encoded,
         "saved_to_cloud": bool(saved_to_cloud),
-        "download_signature": calculator_download_signature(state, currency_rates=currency_rates),
+        "download_signature": signature,
+        "auto_download": True,
     }
     return export
 
@@ -98,12 +102,17 @@ def ready_calculation_download_payload(
     ):
         clear_ready_calculation_download(session_state)
         return {}
-    content = bytes(payload["content"])
+    encoded = str(payload.get("content_base64") or "")
+    if not encoded:
+        encoded = base64.b64encode(bytes(payload["content"])).decode("ascii")
+        payload["content_base64"] = encoded
     return {
         "filename": str(payload.get("filename") or "itinerary-calculation.xlsx"),
         "mime": str(payload.get("mime") or CALCULATION_XLSX_MIME),
-        "content_base64": base64.b64encode(content).decode("ascii"),
+        "content_base64": encoded,
         "saved_to_cloud": bool(payload.get("saved_to_cloud")),
+        "download_signature": str(payload.get("download_signature") or ""),
+        "auto_download": bool(payload.get("auto_download")),
     }
 
 

@@ -82,3 +82,21 @@ def test_calculator_component_persists_browser_draft_across_page_changes() -> No
     assert "incomingDraftStorageKey === activeDraftStorageKey" in source
     assert "loadCalculatorDraft()" in source
     assert "shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision)" in source
+
+
+def test_component_bridge_queues_session_messages_until_first_render() -> None:
+    bridge_source = read_contract_text(FRONTEND_DIR / "js/streamlit_bridge.js")
+    app_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_app.js")
+
+    assert "streamlitBridgeRenderReceived = false" in bridge_source
+    assert "requiresRender && !streamlitBridgeRenderReceived" in bridge_source
+    assert "pendingStreamlitFrameHeight" in bridge_source
+    assert "markStreamlitRenderReceived();" in app_source
+    assert "pagehide" in bridge_source
+    assert "beforeunload" in bridge_source
+
+
+def test_streamlit_dependency_includes_session_info_race_fix() -> None:
+    requirements = Path("requirements.txt").read_text(encoding="utf-8")
+
+    assert "streamlit==1.45.1" in requirements

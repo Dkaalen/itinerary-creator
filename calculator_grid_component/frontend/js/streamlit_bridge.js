@@ -1,14 +1,49 @@
+let streamlitBridgeRenderReceived = false;
+let streamlitBridgeDisposed = false;
+let pendingStreamlitFrameHeight = null;
+
+function postStreamlitBridgeMessage(message, {requiresRender = true} = {}) {
+  if (streamlitBridgeDisposed) return false;
+  if (requiresRender && !streamlitBridgeRenderReceived) {
+    if (message.type === 'streamlit:setFrameHeight') pendingStreamlitFrameHeight = message.height;
+    return false;
+  }
+  window.parent.postMessage({isStreamlitMessage: true, ...message}, '*');
+  return true;
+}
+
+function markStreamlitRenderReceived() {
+  if (streamlitBridgeDisposed) return;
+  streamlitBridgeRenderReceived = true;
+  if (pendingStreamlitFrameHeight !== null) {
+    const height = pendingStreamlitFrameHeight;
+    pendingStreamlitFrameHeight = null;
+    postStreamlitBridgeMessage({type: 'streamlit:setFrameHeight', height});
+  }
+}
+
 const Streamlit = {
   setComponentReady: function() {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1}, '*');
+    return postStreamlitBridgeMessage(
+      {type: 'streamlit:componentReady', apiVersion: 1},
+      {requiresRender: false}
+    );
   },
   setFrameHeight: function(height) {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height: height}, '*');
+    return postStreamlitBridgeMessage({type: 'streamlit:setFrameHeight', height});
   },
   setComponentValue: function(value) {
-    window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: value}, '*');
+    return postStreamlitBridgeMessage({type: 'streamlit:setComponentValue', value});
   }
 };
+
+function disposeStreamlitBridge() {
+  streamlitBridgeDisposed = true;
+  pendingStreamlitFrameHeight = null;
+}
+
+window.addEventListener('pagehide', disposeStreamlitBridge, {once: true});
+window.addEventListener('beforeunload', disposeStreamlitBridge, {once: true});
 
 function setCalculatorFrameHeight() {
   const shell = document.querySelector('.calculator-grid-shell');
@@ -69,7 +104,6 @@ function renderComponentBootMessage(message) {
 
 window.addEventListener('resize', () => requestAnimationFrame(setCalculatorFrameHeight));
 
-
 function renderCalculatorFrontendError(error) {
   const root = document.getElementById('root');
   const message = error && error.message ? error.message : error;
@@ -91,6 +125,6 @@ function escapeCalculatorErrorHtml(value) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('\"', '&quot;')
+    .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }

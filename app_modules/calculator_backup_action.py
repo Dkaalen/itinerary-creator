@@ -50,6 +50,12 @@ def read_calculator_upload(uploaded_file: object) -> CalculatorUploadImport:
 
     content = _uploaded_bytes(uploaded_file)
     filename = str(getattr(uploaded_file, "name", "") or "")
+    return read_calculator_upload_bytes(content, filename=filename)
+
+
+def read_calculator_upload_bytes(content: bytes, *, filename: str = "") -> CalculatorUploadImport:
+    """Read calculator JSON or Excel bytes from any trusted upload boundary."""
+
     if filename.lower().endswith(".xlsx") or content.startswith(b"PK"):
         imported = import_calculation_workbook(content, filename=filename)
         return CalculatorUploadImport(

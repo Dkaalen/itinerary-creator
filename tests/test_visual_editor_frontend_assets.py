@@ -236,3 +236,15 @@ def test_replacement_options_are_bounded_and_use_tiny_previews_by_default():
     assert _asset_contains("../editor_payload_images.py", "DAY_REPLACEMENT_OPTION_LIMIT = 8")
     assert _asset_contains("../editor_payload_images.py", "OPTION_PREVIEW_LIMIT = DAY_REPLACEMENT_OPTION_LIMIT")
     assert _asset_contains("../editor_payload_images.py", "get_image_preview_for_path(path, option=True)")
+
+
+def test_visual_editor_bridge_waits_for_render_and_disposes_stale_frames() -> None:
+    bridge = _asset_text("js/streamlit_bridge.js")
+    editing = _asset_text("js/editing.js")
+
+    assert "streamlitBridgeRenderReceived = false" in bridge
+    assert "requiresRender && !streamlitBridgeRenderReceived" in bridge
+    assert "markStreamlitRenderReceived();" in bridge
+    assert "pagehide" in bridge
+    assert "beforeunload" in bridge
+    assert "if (!Streamlit.setComponentValue(serialized))" in editing

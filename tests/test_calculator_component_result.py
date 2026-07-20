@@ -51,3 +51,15 @@ def test_parse_calculator_grid_result_accepts_synchronized_navigation_actions() 
     assert result is not None
     assert result.action == "close"
     assert result.state.number_of_pax == 3
+
+
+def test_parse_calculator_grid_result_accepts_excel_upload_payload() -> None:
+    result = parse_calculator_grid_result(
+        '{"action":"open_excel","rows":[],"upload_filename":"Oslo.xlsx","upload_content_base64":"eGxzeA=="}',
+        "Current Trip",
+    )
+
+    assert result is not None
+    assert result.action == "open_excel"
+    assert result.upload_filename == "Oslo.xlsx"
+    assert result.upload_content_base64 == "eGxzeA=="
