@@ -1001,7 +1001,6 @@ def test_prepared_excel_auto_downloads_once_per_signature() -> None:
             "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "content_base64": base64.b64encode(b"fast-xlsx").decode("ascii"),
             "download_signature": "signature-1",
-            "auto_download": True,
         }
         page.evaluate(
             "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
@@ -1198,6 +1197,227 @@ def test_edits_made_after_submit_are_rebased_on_the_accepted_backend_revision() 
         assert page.evaluate("calculatorState.dirty") is True
         assert page.evaluate("activeBackendRevision") == "rebase-server"
         assert page.locator("#calculator-sync-status").text_content() == "Unsaved changes"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_back_navigation_submits_invalid_financial_draft_without_blocking() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "1",
+                "day": "Day 1",
+                "type": "Hotel",
+                "travel_element": "Oslo hotel",
+                "gross_price_per_unit": "=10/0",
+                "supplier_currency": "XYZ",
+                "sales_currency": "NOK",
+            }],
+            revision="draft-safe-back",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.get_by_role("button", name="Back").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+        assert submitted["action"] == "close"
+        assert submitted["client_has_validation_errors"] is True
+        assert submitted["rows"][0]["gross_price_per_unit"] == "=10/0"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_generation_blocks_only_missing_itinerary_fields_with_row_feedback() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "12",
+                "day": "Day 1",
+                "type": "Hotel",
+                "travel_element": "",
+                "supplier_currency": "NOK",
+                "sales_currency": "NOK",
+            }],
+            revision="generation-fields",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.get_by_role("button", name="Agent itinerary").click()
+        page.wait_for_timeout(100)
+
+        assert page.evaluate("window.__calculatorComponentValues") == []
+        assert "Row 12" in page.locator(".calculator-validation-panel").text_content()
+        assert "Travel element" in page.locator(".calculator-validation-panel").text_content()
+        assert page.locator("#calculator-sync-status").text_content() == "Complete the highlighted itinerary fields"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_generation_allows_financial_errors_when_itinerary_fields_are_complete() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "3",
+                "day": "Day 1",
+                "type": "Hotel",
+                "travel_element": "Oslo hotel",
+                "gross_price_per_unit": "=10/0",
+                "supplier_currency": "XYZ",
+                "sales_currency": "NOK",
+            }],
+            revision="generation-finance-independent",
+        )
+    )
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.get_by_role("button", name="Agent itinerary").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+        assert submitted["action"] == "generate_agent"
+        assert submitted["client_has_validation_errors"] is True
+        assert submitted["rows"][0]["gross_price_per_unit"] == "=10/0"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_transient_ack_keeps_invalid_browser_draft_on_same_backend_revision() -> None:
+    initial = _payload(
+        [{
+            "row_id": "1",
+            "day": "Day 1",
+            "type": "Hotel",
+            "travel_element": "Oslo hotel",
+            "gross_price_per_unit": 100,
+            "units": 1,
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
+        }],
+        revision="transient-draft-base",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="gross_price_per_unit"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("=10/0")
+        page.keyboard.press("Tab")
+        page.get_by_role("button", name="Agent itinerary").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+        assert submitted["client_has_validation_errors"] is True
+
+        transient = dict(initial)
+        transient["component_ack"] = {
+            "request_id": submitted["request_id"],
+            "action": "generate_agent",
+            "status": "accepted_transient",
+            "message": "Draft kept in the browser until its highlighted values are resolved.",
+            "server_state_revision": initial["state_revision"],
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            transient,
+        )
+        page.wait_for_function("pendingCalculatorRequest === null")
+
+        assert page.evaluate("calculatorState.rows[0].gross_price_per_unit") == "=10/0"
+        assert page.evaluate("calculatorState.dirty") is True
+        assert page.locator('td[data-row-index="0"][data-key="gross_price"]').text_content().strip() == "#DIV/0!"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
+    initial = _payload(
+        [{
+            "row_id": "1",
+            "day": "Day 1",
+            "type": "Hotel",
+            "travel_element": "Oslo hotel",
+            "gross_price_per_unit": 100,
+            "units": 1,
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
+        }],
+        revision="draft-safe-remount",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="gross_price_per_unit"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("=10/0")
+        page.keyboard.press("Tab")
+        page.get_by_role("button", name="Back").click()
+        page.wait_for_function("pendingCalculatorRequest !== null")
+
+        page.evaluate(
+            """payload => {
+                flushLocalDraftSave();
+                pendingCalculatorRequest = null;
+                calculatorState = null;
+                activeCell = null;
+                activeBackendRevision = null;
+                activeDraftStorageKey = null;
+                hasLocalDraft = false;
+                initializeState(payload);
+                rerender();
+            }""",
+            initial,
+        )
+
+        assert page.evaluate("calculatorState.rows[0].gross_price_per_unit") == "=10/0"
+        assert page.evaluate("calculatorState.dirty") is True
+        assert page.locator("#calculator-sync-status").text_content() == "Unsaved browser draft restored"
     finally:
         browser.close()
         manager.stop()

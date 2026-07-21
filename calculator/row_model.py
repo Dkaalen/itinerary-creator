@@ -88,26 +88,26 @@ class CalculatorRow:
     non_refundable: bool = False
     refundable: bool = False
     url: str = ""
-    gross_price_per_unit: float = 0.0
-    units: float = 0.0
-    supplier_commission: float = 0.0
+    gross_price_per_unit: float | str = 0.0
+    units: float | str = 0.0
+    supplier_commission: float | str = 0.0
     supplier_currency: str = DEFAULT_CALCULATOR_CURRENCY
-    sales_price_per_unit: float | None = None
+    sales_price_per_unit: float | str | None = None
     sales_currency: str = DEFAULT_CALCULATOR_CURRENCY
-    vat25: float = 0.0
-    vat15: float = 0.0
-    vat12: float = 0.0
-    vat0_domestic: float = 0.0
-    vat0_international: float = 0.0
-    gross_price_override: float | None = None
-    net_price_override: float | None = None
-    supplier_x_rate_override: float | None = None
-    net_price_nok_override: float | None = None
-    price_override: float | None = None
-    sales_x_rate_override: float | None = None
-    sales_price_nok_total_override: float | None = None
-    gp_nok_override: float | None = None
-    gp_percent_override: float | None = None
+    vat25: float | str = 0.0
+    vat15: float | str = 0.0
+    vat12: float | str = 0.0
+    vat0_domestic: float | str = 0.0
+    vat0_international: float | str = 0.0
+    gross_price_override: float | str | None = None
+    net_price_override: float | str | None = None
+    supplier_x_rate_override: float | str | None = None
+    net_price_nok_override: float | str | None = None
+    price_override: float | str | None = None
+    sales_x_rate_override: float | str | None = None
+    sales_price_nok_total_override: float | str | None = None
+    gp_nok_override: float | str | None = None
+    gp_percent_override: float | str | None = None
 
     def with_changes(self, **changes: Any) -> "CalculatorRow":
         """Return a copy of this row with selected fields changed."""

@@ -3,58 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Mapping
 
 from openpyxl.workbook.workbook import Workbook
 
 from calculator.calculator_state import CalculatorState
-from calculator.columns import DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME, TOTALS_ROW
-from calculator.filename_sanitizer import calculation_workbook_filename
+from calculator.columns import CURRENCY_SHEET_NAME, KALK_SHEET_NAME
 from calculator.currency_rates import normalize_currency_rates
-from calculator.formula_map import (
-    LEGACY_PAYMENT_CELLS_TO_CLEAR,
-    PAYMENT_FORMULAS,
-    TOTAL_FORMULAS,
-    expected_row_formulas,
-)
-from calculator.numeric_input import parse_numeric_input
-from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
+from calculator.filename_sanitizer import calculation_workbook_filename
 from calculator.validation import ensure_valid_calculator_state
+from calculator.workbook_export_plan import (
+    WorkbookExportPlan,
+    build_workbook_export_plan,
+    ensure_workbook_export_capacity,
+)
 from calculator.workbook_package_export import export_reference_workbook_package
 from calculator.workbook_template import load_calculation_template
-
-_MAX_DATA_ROWS = DATA_END_ROW - DATA_START_ROW + 1
-_QUOTE_CELL = "Z103"
-_CURRENCY_START_ROW = 2
-_ROW_VALUE_COLUMNS = {
-    "B": "row_id",
-    "C": "day",
-    "D": "type",
-    "E": "from_date",
-    "F": "to_date",
-    "G": "from_time",
-    "H": "to_time",
-    "I": "supplier",
-    "J": "travel_element",
-    "K": "manual_booking",
-    "L": "status",
-    "M": "comments",
-    "N": "non_refundable",
-    "O": "refundable",
-    "P": "url",
-    "Q": "gross_price_per_unit",
-    "R": "units",
-    "T": "supplier_commission",
-    "V": "supplier_currency",
-    "AA": "sales_currency",
-    "AF": "vat25",
-    "AG": "vat15",
-    "AH": "vat12",
-    "AI": "vat0_domestic",
-    "AJ": "vat0_international",
-}
 
 
 @dataclass(frozen=True)
@@ -71,18 +36,13 @@ def export_calculation_workbook(
     *,
     currency_rates: Mapping[str, float] | None = None,
 ) -> WorkbookExport:
-    """Return an XLSX payload for the supplied calculator state."""
+    """Return a fast reference-package XLSX payload for calculator state."""
 
-    rows = tuple(state.rows)
     active_rates = normalize_currency_rates(currency_rates)
-    if len(rows) > _MAX_DATA_ROWS:
-        raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
+    ensure_workbook_export_capacity(state)
     ensure_valid_calculator_state(state, active_rates)
-    package = export_reference_workbook_package(
-        state,
-        template_path,
-        currency_rates=active_rates,
-    )
+    plan = build_workbook_export_plan(state, active_rates)
+    package = export_reference_workbook_package(plan, template_path)
     return WorkbookExport(
         filename=calculation_workbook_filename(state.itinerary_name),
         content=package.content,
@@ -110,105 +70,35 @@ def build_calculation_workbook(
     *,
     currency_rates: Mapping[str, float] | None = None,
 ) -> Workbook:
-    """Fill a fresh template workbook with calculator rows."""
+    """Render the canonical export plan through openpyxl.
 
-    rows = tuple(state.rows)
+    The package renderer is the production download path. This renderer remains
+    as an intentional compatibility and parity-check API for callers that need
+    a mutable :class:`openpyxl.Workbook`.
+    """
+
     active_rates = normalize_currency_rates(currency_rates)
-    if len(rows) > _MAX_DATA_ROWS:
-        raise ValueError(f"Calculator export supports at most {_MAX_DATA_ROWS} rows.")
+    ensure_workbook_export_capacity(state)
     ensure_valid_calculator_state(state, active_rates)
-
+    plan = build_workbook_export_plan(state, active_rates)
     workbook = load_calculation_template(template_path)
-    _write_default_currency_rates(workbook, active_rates)
-    sheet = workbook[KALK_SHEET_NAME]
-    for row_number, row in zip(_data_row_numbers(), rows):
-        _write_row(sheet, row_number, row)
-    _restore_total_and_payment_formulas(sheet)
-    _prepare_workbook_recalculation(workbook)
-    _restore_excel_advanced_view(sheet)
+    _apply_export_plan(workbook, plan)
+    _restore_excel_advanced_view(workbook[KALK_SHEET_NAME])
     return workbook
 
 
-def _data_row_numbers() -> Iterable[int]:
-    return range(DATA_START_ROW, DATA_END_ROW + 1)
+def _apply_export_plan(workbook: Workbook, plan: WorkbookExportPlan) -> None:
+    currency_sheet = workbook[CURRENCY_SHEET_NAME]
+    calculator_sheet = workbook[KALK_SHEET_NAME]
+    for cell in plan.currency_cells:
+        currency_sheet[cell.reference] = cell.value
+    for cell in plan.calculator_cells:
+        calculator_sheet[cell.reference] = cell.value
 
-
-def _write_row(sheet: object, row_number: int, row: CalculatorRow) -> None:
-    for column, field_name in _ROW_VALUE_COLUMNS.items():
-        sheet[f"{column}{row_number}"] = _cell_value(row, field_name)
-    _write_sales_price_cell(sheet, row_number, row)
-    _restore_formula_cells(sheet, row_number, row)
-
-
-def _write_sales_price_cell(sheet: object, row_number: int, row: CalculatorRow) -> None:
-    cell = sheet[f"Y{row_number}"]
-    value = row.sales_price_per_unit
-    if value is None or (parse_numeric_input(value) == 0 and parse_numeric_input(row.gross_price_per_unit) > 0):
-        cell.value = f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
-        return
-    cell.value = value
-
-
-def _restore_formula_cells(sheet: object, row_number: int, row: CalculatorRow) -> None:
-    """Write canonical formulas unless a user explicitly overrode the result cell."""
-
-    formulas = expected_row_formulas(row_number)
-    field_by_column = {
-        "S": "gross_price",
-        "U": "net_price",
-        "W": "supplier_x_rate",
-        "X": "net_price_nok",
-        "Z": "price",
-        "AB": "sales_x_rate",
-        "AC": "sales_price_nok_total",
-        "AD": "gp_nok",
-        "AE": "gp_percent",
-    }
-    for column, formula in formulas.items():
-        if column == "Y":
-            continue
-        field_name = field_by_column.get(column, "")
-        override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
-        override_value = getattr(row, override_field, None) if override_field else None
-        sheet[f"{column}{row_number}"] = formula if override_value is None else override_value
-
-
-def _cell_value(row: CalculatorRow, field_name: str) -> object:
-    value = getattr(row, field_name)
-    if field_name == "row_id" and not value:
-        return None
-    if field_name in {"supplier_currency", "sales_currency"}:
-        return str(value or "EUR").upper()
-    return value
-
-
-def _write_default_currency_rates(workbook: Workbook, currency_rates: Mapping[str, float]) -> None:
-    """Write editable default NOK exchange rates into the Curr lookup sheet."""
-
-    sheet = workbook["Curr"]
-    active_rates = normalize_currency_rates(currency_rates)
-    for offset, (code, rate) in enumerate(active_rates.items()):
-        row_number = _CURRENCY_START_ROW + offset
-        sheet[f"B{row_number}"] = code
-        sheet[f"C{row_number}"] = rate
-
-
-
-def _restore_total_and_payment_formulas(sheet: object) -> None:
-    """Restore template total/payment formulas even if a previous export dirtied cells."""
-
-    for cell, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: f"=Z{TOTALS_ROW}"}.items():
-        sheet[cell] = formula
-    for cell in LEGACY_PAYMENT_CELLS_TO_CLEAR:
-        sheet[cell] = None
-
-
-def _prepare_workbook_recalculation(workbook: Workbook) -> None:
-    """Tell Excel/Sheets to recalculate formula cells after opening the export."""
-
-    workbook.calculation.fullCalcOnLoad = True
-    workbook.calculation.forceFullCalc = True
-    workbook.calculation.calcMode = "auto"
+    properties = dict(plan.calculation_properties)
+    workbook.calculation.calcMode = str(properties["calcMode"])
+    workbook.calculation.fullCalcOnLoad = bool(properties["fullCalcOnLoad"])
+    workbook.calculation.forceFullCalc = bool(properties["forceFullCalc"])
 
 
 def _restore_excel_advanced_view(sheet: object) -> None:

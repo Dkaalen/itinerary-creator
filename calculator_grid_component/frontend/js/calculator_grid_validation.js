@@ -1,12 +1,24 @@
 const NUMERIC_COLUMN_KINDS = new Set(['number', 'numberOptional', 'percent', 'formula', 'formulaPercent']);
+const CALCULATOR_VALIDATION_SCOPE = Object.freeze({
+  DISPLAY: 'display',
+  DRAFT_SAFE: 'draft_safe',
+  PERSISTENCE: 'persistence',
+  EXPORT: 'export',
+  GENERATION: 'generation',
+  IMPORT: 'import'
+});
 
-function validateCalculatorState(state) {
+function calculatorValidationErrors(state, scope = CALCULATOR_VALIDATION_SCOPE.DISPLAY) {
+  if (scope === CALCULATOR_VALIDATION_SCOPE.DRAFT_SAFE || scope === CALCULATOR_VALIDATION_SCOPE.IMPORT) return [];
+  if (scope === CALCULATOR_VALIDATION_SCOPE.GENERATION) return generationValidationErrors(state);
+  if (scope === CALCULATOR_VALIDATION_SCOPE.PERSISTENCE) return persistenceValidationErrors(state);
+
   const errors = [];
   const seenIds = new Set();
   const rates = state.currencyRates || DEFAULT_RATES;
   const evaluator = new CalculatorGridFormulaEvaluator(state.rows, rates);
   const paxText = state.numberOfPax === null || state.numberOfPax === undefined ? '' : String(state.numberOfPax).trim();
-  if (paxText && positiveIntegerOrNull(paxText) === null) {
+  if (scope === CALCULATOR_VALIDATION_SCOPE.DISPLAY && paxText && positiveIntegerOrNull(paxText) === null) {
     errors.push({code: 'invalid_pax', rowIndex: -1, key: 'number_of_pax', message: 'No. of pax must be a positive whole number or blank.'});
   }
 
@@ -49,8 +61,84 @@ function validateCalculatorState(state) {
     validateCurrencyRate(errors, evaluator, row, rowIndex, rowId, excelRow, 'sales_currency', 'sales_x_rate_override', 'AB', rates);
   });
 
-  state.validationErrors = deduplicateValidationErrors(errors);
+  return deduplicateValidationErrors(errors);
+}
+
+function validateCalculatorState(state, scope = CALCULATOR_VALIDATION_SCOPE.DISPLAY) {
+  state.validationErrors = calculatorValidationErrors(state, scope);
   return state.validationErrors;
+}
+
+function validationScopeForAction(action) {
+  if (action === 'close' || action === 'open_library') return CALCULATOR_VALIDATION_SCOPE.DRAFT_SAFE;
+  if (action === 'download') return CALCULATOR_VALIDATION_SCOPE.EXPORT;
+  if (action === 'generate_agent' || action === 'generate_customer') return CALCULATOR_VALIDATION_SCOPE.GENERATION;
+  if (action === 'open_excel') return CALCULATOR_VALIDATION_SCOPE.IMPORT;
+  return CALCULATOR_VALIDATION_SCOPE.PERSISTENCE;
+}
+
+function persistenceValidationErrors(state) {
+  const errors = [];
+  const evaluator = new CalculatorGridFormulaEvaluator(state.rows, state.currencyRates || DEFAULT_RATES);
+  const paxText = state.numberOfPax === null || state.numberOfPax === undefined ? '' : String(state.numberOfPax).trim();
+  if (paxText && positiveIntegerOrNull(paxText) === null) {
+    errors.push({code: 'invalid_pax', rowIndex: -1, key: 'number_of_pax', message: 'No. of pax must be a positive whole number or blank before saving.'});
+  }
+  const seenIds = new Set();
+  state.rows.forEach((row, rowIndex) => {
+    const rowId = String(row.row_id || rowIndex + 1).trim();
+    if (seenIds.has(rowId)) {
+      errors.push({code: 'duplicate_row_id', rowIndex, key: 'row_id', message: `Row ID ${rowId} is duplicated.`});
+    }
+    seenIds.add(rowId);
+    for (const column of CALCULATOR_COLUMNS) {
+      if (!NUMERIC_COLUMN_KINDS.has(column.kind)) continue;
+      const storageKey = column.formula ? formulaOverrideKey(column.key) : column.key;
+      const value = row[storageKey];
+      if (value === null || value === undefined || String(value).trim() === '') continue;
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        errors.push({code: 'non_persistable_number', rowIndex, key: column.key, message: `Row ${rowId}: ${column.label} must be finite or contain a formula before saving.`});
+        continue;
+      }
+      const excelColumn = EXCEL_COLUMN_BY_FIELD[column.key];
+      if (!excelColumn) continue;
+      try {
+        evaluator.evaluateCell(`${excelColumn}${CALCULATOR_DATA_START_ROW + rowIndex}`);
+      } catch (error) {
+        const formulaCode = error instanceof CalculatorGridFormulaError ? error.code : '#VALUE!';
+        const detail = error instanceof Error ? error.message : 'Invalid formula.';
+        errors.push({code: column.formula ? 'invalid_formula' : 'invalid_number', formulaCode, rowIndex, key: column.key, message: `Row ${rowId}: ${column.label} ${formulaCode} — ${detail}`});
+      }
+    }
+  });
+  return deduplicateValidationErrors(errors);
+}
+
+function generationValidationErrors(state) {
+  const errors = [];
+  let completeRows = 0;
+  const contentKeys = ['day', 'type', 'from_date', 'to_date', 'from_time', 'to_time', 'supplier', 'travel_element', 'comments', 'url'];
+  state.rows.forEach((row, rowIndex) => {
+    const rowId = String(row.row_id || rowIndex + 1).trim();
+    const rowType = String(row.type || '').trim();
+    const travelElement = String(row.travel_element || '').trim();
+    if (!contentKeys.some((key) => String(row[key] || '').trim())) return;
+    if (['', 'total', 'subtotal', 'sub total'].includes(rowType.toLowerCase())) {
+      if (!rowType) {
+        errors.push({code: 'missing_generation_type', rowIndex, key: 'type', message: `Row ${rowId}: Type is required before generating an itinerary.`});
+      }
+      return;
+    }
+    if (!travelElement) {
+      errors.push({code: 'missing_generation_travel_element', rowIndex, key: 'travel_element', message: `Row ${rowId}: Travel element is required before generating an itinerary.`});
+      return;
+    }
+    completeRows += 1;
+  });
+  if (completeRows === 0 && errors.length === 0) {
+    errors.push({code: 'no_generatable_rows', rowIndex: -1, key: 'travel_element', message: 'Add at least one calculator row with both Type and Travel element before generating an itinerary.'});
+  }
+  return deduplicateValidationErrors(errors);
 }
 
 function validateCurrencyRate(errors, evaluator, row, rowIndex, rowId, excelRow, currencyKey, overrideKey, excelColumn, rates) {
@@ -96,5 +184,5 @@ function validationSummaryHtml(state) {
   if (!errors.length) return '';
   const first = errors.slice(0, 4).map((error) => `<li>${escapeHtml(error.message)}</li>`).join('');
   const extra = errors.length > 4 ? `<li>And ${errors.length - 4} more issue(s).</li>` : '';
-  return `<div class="calculator-validation-panel"><strong>Fix these cells before saving, exporting, or leaving:</strong><ul>${first}${extra}</ul></div>`;
+  return `<div class="calculator-validation-panel"><strong>Some cells need attention for this action:</strong><ul>${first}${extra}</ul></div>`;
 }

@@ -1,14 +1,14 @@
-"""Patch approved calculator cells directly inside the reference XLSX package.
+"""Apply a canonical calculator export plan to the reference XLSX package.
 
-The workbook is treated as an immutable visual/structural template. Export only
-rewrites calculator data, currency lookup values, and canonical formula cells;
-every other package part is copied byte-for-byte from the reference workbook.
+The workbook is an immutable visual/structural template. This renderer owns
+only package/XML mechanics; every calculator-to-cell decision comes from
+:mod:`calculator.workbook_export_plan`.
 """
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
-from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 import re
@@ -16,76 +16,18 @@ from typing import Mapping
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
-from calculator.calculator_state import CalculatorState
-from calculator.cell_formula_engine import CalculatorCellFormulaEvaluator
-from calculator.columns import DATA_END_ROW, DATA_START_ROW
-from calculator.currency_rates import normalize_currency_rates
-from calculator.formula_map import (
-    LEGACY_PAYMENT_CELLS_TO_CLEAR,
-    PAYMENT_FORMULAS,
-    TOTAL_FORMULAS,
-    expected_row_formulas,
-)
 from calculator.numeric_input import parse_decimal_input_strict
-from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.template_structure import default_template_path
+from calculator.workbook_export_plan import ExportCell, WorkbookExportPlan
 
 _CURR_SHEET_PART = "xl/worksheets/sheet1.xml"
 _KALK_SHEET_PART = "xl/worksheets/sheet2.xml"
 _WORKBOOK_PART = "xl/workbook.xml"
-_QUOTE_CELL = "Z103"
-_CURRENCY_START_ROW = 2
-_ROW_VALUE_COLUMNS = {
-    "B": "row_id",
-    "C": "day",
-    "D": "type",
-    "E": "from_date",
-    "F": "to_date",
-    "G": "from_time",
-    "H": "to_time",
-    "I": "supplier",
-    "J": "travel_element",
-    "K": "manual_booking",
-    "L": "status",
-    "M": "comments",
-    "N": "non_refundable",
-    "O": "refundable",
-    "P": "url",
-    "Q": "gross_price_per_unit",
-    "R": "units",
-    "T": "supplier_commission",
-    "V": "supplier_currency",
-    "AA": "sales_currency",
-    "AF": "vat25",
-    "AG": "vat15",
-    "AH": "vat12",
-    "AI": "vat0_domestic",
-    "AJ": "vat0_international",
-}
-_FORMULA_FIELD_BY_COLUMN = {
-    "S": "gross_price",
-    "U": "net_price",
-    "W": "supplier_x_rate",
-    "X": "net_price_nok",
-    "Z": "price",
-    "AB": "sales_x_rate",
-    "AC": "sales_price_nok_total",
-    "AD": "gp_nok",
-    "AE": "gp_percent",
-}
-_NUMERIC_INPUT_FIELDS = {
-    "gross_price_per_unit",
-    "units",
-    "supplier_commission",
-    "vat25",
-    "vat15",
-    "vat12",
-    "vat0_domestic",
-    "vat0_international",
-}
 _CELL_RE = re.compile(r'<c\b(?P<attrs>[^>]*?\br="(?P<ref>[A-Z]+\d+)"[^>]*?)\s*(?:/>|>(?P<body>.*?)</c>)', re.DOTALL)
 _ROW_RE = re.compile(r'(?P<open><row\b[^>]*?\br="(?P<row>\d+)"[^>]*>)(?P<body>.*?)(?P<close></row>)', re.DOTALL)
 _TYPE_ATTR_RE = re.compile(r'\s+t="[^"]*"')
+_EXPORT_CACHE_LIMIT = 2
+_EXPORT_CACHE: OrderedDict[tuple[str, str, int, int], "PackageExportResult"] = OrderedDict()
 
 
 @dataclass(frozen=True)
@@ -97,55 +39,71 @@ class PackageExportResult:
 
 
 def export_reference_workbook_package(
-    state: CalculatorState,
+    plan: WorkbookExportPlan,
     template_path: str | Path | None = None,
-    *,
-    currency_rates: Mapping[str, float] | None = None,
 ) -> PackageExportResult:
-    """Clone the reference package and patch only approved worksheet cells."""
+    """Clone the reference package and apply the supplied canonical plan."""
 
     source_path = Path(template_path) if template_path is not None else default_template_path()
+    source_path = source_path.resolve()
+    stat = source_path.stat()
+    cache_key = (plan.fingerprint, str(source_path), stat.st_mtime_ns, stat.st_size)
+    cached = _EXPORT_CACHE.get(cache_key)
+    if cached is not None:
+        _EXPORT_CACHE.move_to_end(cache_key)
+        return cached
+
     with ZipFile(source_path, "r") as source:
         curr_xml = source.read(_CURR_SHEET_PART).decode("utf-8")
         kalk_xml = source.read(_KALK_SHEET_PART).decode("utf-8")
         workbook_xml = source.read(_WORKBOOK_PART).decode("utf-8")
-        normalized_rates = normalize_currency_rates(currency_rates)
-        curr_xml = _patch_currency_sheet(curr_xml, normalized_rates)
-        kalk_xml = _patch_kalk_sheet(kalk_xml, tuple(state.rows), normalized_rates)
-        workbook_xml = _patch_workbook_calculation_properties(workbook_xml)
+        curr_xml = _patch_currency_sheet(curr_xml, plan.currency_cells)
+        kalk_xml = _patch_kalk_sheet(kalk_xml, plan.calculator_cells)
+        workbook_xml = _patch_workbook_calculation_properties(
+            workbook_xml,
+            dict(plan.calculation_properties),
+        )
 
+        replacements = {
+            _CURR_SHEET_PART: curr_xml.encode("utf-8"),
+            _KALK_SHEET_PART: kalk_xml.encode("utf-8"),
+            _WORKBOOK_PART: workbook_xml.encode("utf-8"),
+        }
         buffer = BytesIO()
         with ZipFile(buffer, "w") as target:
             for info in source.infolist():
-                data = source.read(info.filename)
-                if info.filename == _CURR_SHEET_PART:
-                    data = curr_xml.encode("utf-8")
-                elif info.filename == _KALK_SHEET_PART:
-                    data = kalk_xml.encode("utf-8")
-                elif info.filename == _WORKBOOK_PART:
-                    data = workbook_xml.encode("utf-8")
+                data = replacements.get(info.filename)
+                if data is None:
+                    data = source.read(info.filename)
                 target.writestr(_clone_zip_info(info), data)
 
-    return PackageExportResult(
+    result = PackageExportResult(
         content=buffer.getvalue(),
         changed_parts=(_CURR_SHEET_PART, _KALK_SHEET_PART, _WORKBOOK_PART),
     )
+    _EXPORT_CACHE[cache_key] = result
+    _EXPORT_CACHE.move_to_end(cache_key)
+    while len(_EXPORT_CACHE) > _EXPORT_CACHE_LIMIT:
+        _EXPORT_CACHE.popitem(last=False)
+    return result
 
 
-def _patch_workbook_calculation_properties(xml: str) -> str:
-    """Require Excel to recalculate formulas while preserving workbook metadata."""
+def clear_workbook_package_export_cache() -> None:
+    """Clear the bounded in-process package cache used by tests and diagnostics."""
+
+    _EXPORT_CACHE.clear()
+
+
+def _patch_workbook_calculation_properties(xml: str, properties: Mapping[str, object]) -> str:
+    """Apply calculation properties while preserving workbook metadata."""
 
     match = re.search(r"<calcPr\b(?P<attrs>[^>]*)/>", xml)
     if not match:
         raise ValueError("Reference workbook is missing calcPr metadata.")
     attrs = match.group("attrs")
-    required = {
-        "calcMode": "auto",
-        "fullCalcOnLoad": "1",
-        "forceFullCalc": "1",
-    }
-    for name, value in required.items():
-        pattern = re.compile(rf'\s+{name}="[^"]*"')
+    for name, raw_value in properties.items():
+        value = "1" if raw_value is True else "0" if raw_value is False else str(raw_value)
+        pattern = re.compile(rf'\s+{re.escape(name)}="[^"]*"')
         replacement = f' {name}="{value}"'
         if pattern.search(attrs):
             attrs = pattern.sub(replacement, attrs, count=1)
@@ -155,110 +113,17 @@ def _patch_workbook_calculation_properties(xml: str) -> str:
     return xml[: match.start()] + replacement + xml[match.end() :]
 
 
-def _patch_currency_sheet(xml: str, rates: Mapping[str, float]) -> str:
-    items = tuple(rates.items())
-    changes: dict[str, tuple[object, str]] = {}
-    for offset in range(12):
-        row_number = _CURRENCY_START_ROW + offset
-        if offset < len(items):
-            code, rate = items[offset]
-            changes[f"B{row_number}"] = (str(code).upper(), "text")
-            changes[f"C{row_number}"] = (rate, "number")
-        else:
-            changes[f"B{row_number}"] = (None, "blank")
-            changes[f"C{row_number}"] = (None, "blank")
-    patched = _patch_cells(xml, changes)
+def _patch_currency_sheet(xml: str, cells: tuple[ExportCell, ...]) -> str:
+    patched = _patch_cells(xml, _cell_changes(cells))
     return re.sub(r'<dimension\s+ref="[^"]+"\s*/>', '<dimension ref="B1:C13"/>', patched, count=1)
 
 
-def _patch_kalk_sheet(
-    xml: str,
-    rows: tuple[CalculatorRow, ...],
-    currency_rates: Mapping[str, float],
-) -> str:
-    evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
-    changes: dict[str, tuple[object, str]] = {}
-    for row_offset, row_number in enumerate(range(DATA_START_ROW, DATA_END_ROW + 1)):
-        row = rows[row_offset] if row_offset < len(rows) else None
-        changes.update(_data_row_changes(row_number, row, evaluator))
-
-    for ref, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, _QUOTE_CELL: "=Z101"}.items():
-        changes[ref] = (formula, "formula")
-    for ref in LEGACY_PAYMENT_CELLS_TO_CLEAR:
-        changes[ref] = (None, "blank")
-    return _patch_cells(xml, changes)
+def _patch_kalk_sheet(xml: str, cells: tuple[ExportCell, ...]) -> str:
+    return _patch_cells(xml, _cell_changes(cells))
 
 
-def _data_row_changes(
-    row_number: int,
-    row: CalculatorRow | None,
-    evaluator: CalculatorCellFormulaEvaluator,
-) -> dict[str, tuple[object, str]]:
-    changes: dict[str, tuple[object, str]] = {}
-    for column, field_name in _ROW_VALUE_COLUMNS.items():
-        value = None if row is None else _row_cell_value(row, field_name)
-        changes[f"{column}{row_number}"] = (value, _row_value_kind(field_name, value))
-
-    if row is None:
-        sales_value: object = f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
-    else:
-        sales_value = _sales_price_cell_value(row, row_number, evaluator)
-    changes[f"Y{row_number}"] = (sales_value, _numeric_or_formula_kind(sales_value))
-
-    for column, formula in expected_row_formulas(row_number).items():
-        if column == "Y":
-            continue
-        value: object = formula
-        if row is not None:
-            field_name = _FORMULA_FIELD_BY_COLUMN.get(column, "")
-            override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
-            override_value = getattr(row, override_field, None) if override_field else None
-            if override_value is not None:
-                value = override_value
-        changes[f"{column}{row_number}"] = (value, _numeric_or_formula_kind(value))
-    return changes
-
-
-def _row_cell_value(row: CalculatorRow, field_name: str) -> object:
-    value = getattr(row, field_name)
-    if field_name == "row_id" and not value:
-        return None
-    if field_name in {"supplier_currency", "sales_currency"}:
-        return str(value or "EUR").upper()
-    return value
-
-
-def _row_value_kind(field_name: str, value: object) -> str:
-    if value in (None, ""):
-        return "blank"
-    if field_name in {"manual_booking", "non_refundable", "refundable"}:
-        return "boolean"
-    if field_name in _NUMERIC_INPUT_FIELDS:
-        return _numeric_or_formula_kind(value)
-    return "text"
-
-
-def _sales_price_cell_value(
-    row: CalculatorRow,
-    row_number: int,
-    evaluator: CalculatorCellFormulaEvaluator,
-) -> object:
-    value = row.sales_price_per_unit
-    if value in (None, ""):
-        return f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
-    parsed = evaluator.evaluate_expression(value, current_cell=f"Y{row_number}")
-    gross = evaluator.evaluate_cell(f"Q{row_number}")
-    if parsed == 0 and gross > 0:
-        return f"=IFERROR(Q{row_number}*W{row_number}/AB{row_number},0)"
-    return value
-
-
-def _numeric_or_formula_kind(value: object) -> str:
-    if value in (None, ""):
-        return "blank"
-    if isinstance(value, str) and value.strip().startswith("="):
-        return "formula"
-    return "number"
+def _cell_changes(cells: tuple[ExportCell, ...]) -> dict[str, tuple[object, str]]:
+    return {cell.reference: (cell.value, cell.kind) for cell in cells}
 
 
 def _patch_cells(xml: str, changes: Mapping[str, tuple[object, str]]) -> str:

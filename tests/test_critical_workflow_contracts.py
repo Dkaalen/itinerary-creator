@@ -12,6 +12,7 @@ from app_modules.saved_project_current_state import refresh_active_saved_project
 from app_modules.saved_project_serialization import saved_project_to_dict
 from app_modules.workflow_state import ensure_workflow_defaults, mark_pdf_dirty
 from calculator.calculator_state import CalculatorState
+from calculator.formula_map import expected_row_formulas
 from calculator.row_model import CalculatorRow
 from calculator.workbook_export import export_calculation_workbook
 from app_modules.parse_workflow import parse_and_normalize_itinerary
@@ -82,7 +83,7 @@ def test_calculator_to_excel_contract_creates_real_workbook_bytes() -> None:
     assert export.filename == "Critical Calculator - Calculation.xlsx"
     assert workbook.sheetnames == ["Curr", "Kalk"]
     assert workbook["Kalk"]["J7"].value == "Hotel Bristol"
-    assert workbook["Kalk"]["S7"].value == "=+Q7*R7"
+    assert workbook["Kalk"]["S7"].value == expected_row_formulas(7)["S"]
 
 
 def test_saved_project_round_trip_preserves_identity_images_export_and_calculator_state() -> None:

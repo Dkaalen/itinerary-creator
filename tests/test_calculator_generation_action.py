@@ -52,3 +52,37 @@ def test_generate_itinerary_from_calculator_blocks_empty_calculator_rows() -> No
     assert "Add at least one calculator row" in result.message
     assert session_state["active_app_page"] == CALCULATOR_PAGE
     assert CALCULATOR_RETURN_AVAILABLE_KEY not in session_state
+
+
+def test_generation_validation_keeps_existing_workflow_stage() -> None:
+    session_state = {"active_app_page": CALCULATOR_PAGE, "app_stage": "edit"}
+    calculator_state = CalculatorState(
+        rows=(CalculatorRow(row_id="4", day="Day 1", type="Hotel"),)
+    )
+
+    result = generate_itinerary_from_calculator(session_state, calculator_state)
+
+    assert result.ok is False
+    assert result.stage == "edit"
+    assert session_state["app_stage"] == "edit"
+    assert "Row 4" in result.message
+    assert "Travel element" in result.message
+
+
+def test_downstream_generation_failure_restores_existing_workflow_stage(monkeypatch) -> None:
+    def fail_generation(state, _raw_text):
+        state["app_stage"] = "input"
+        return WorkflowActionResult(ok=False, stage="input", message="blocked")
+
+    monkeypatch.setattr("app_modules.calculator_generation_action.generate_itinerary", fail_generation)
+    session_state = {"active_app_page": CALCULATOR_PAGE, "app_stage": "pictures"}
+    calculator_state = CalculatorState(
+        rows=(CalculatorRow(row_id="1", type="Hotel", travel_element="Oslo hotel"),)
+    )
+
+    result = generate_itinerary_from_calculator(session_state, calculator_state)
+
+    assert result.ok is False
+    assert result.stage == "pictures"
+    assert session_state["app_stage"] == "pictures"
+    assert session_state["active_app_page"] == CALCULATOR_PAGE

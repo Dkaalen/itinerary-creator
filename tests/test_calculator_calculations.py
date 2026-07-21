@@ -207,3 +207,13 @@ def test_default_sales_price_converts_supplier_currency_into_sales_currency() ->
     assert calculated.price == 200
     assert calculated.sales_price_nok_total == 2400
     assert calculated.gp_nok == 0
+
+
+def test_dashboard_ignores_fractional_or_invalid_pax_without_crashing() -> None:
+    from calculator.calculations import calculate_dashboard
+
+    rows = [CalculatorRow(gross_price_per_unit=100, units=1, supplier_currency="NOK", sales_currency="NOK")]
+
+    assert calculate_dashboard(rows, "2.5").number_of_pax is None
+    assert calculate_dashboard(rows, "unfinished").number_of_pax is None
+    assert calculate_dashboard(rows, "2.0").number_of_pax == 2

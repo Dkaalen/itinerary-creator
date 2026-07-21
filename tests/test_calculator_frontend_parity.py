@@ -209,6 +209,51 @@ console.log(JSON.stringify(validateCalculatorState(state)));
     assert {error["code"] for error in errors} == {"invalid_number", "invalid_pax", "missing_rate"}
 
 
+def test_frontend_validation_scopes_match_calculator_actions() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node is unavailable.")
+
+    source = "\n".join(
+        (_FRONTEND / filename).read_text(encoding="utf-8")
+        for filename in (
+            "calculator_grid_columns.js",
+            "calculator_grid_formula_input.js",
+            "calculator_grid_math.js",
+            "calculator_grid_state.js",
+            "calculator_grid_validation.js",
+        )
+    )
+    script = source + """
+const row = createBlankRow('9');
+row.day = 'Day 1';
+row.type = 'Hotel';
+row.travel_element = 'Oslo hotel';
+row.gross_price_per_unit = '=10/0';
+row.supplier_currency = 'XYZ';
+row.sales_currency = 'NOK';
+const state = {rows: [row], numberOfPax: '2.5', currencyRates: DEFAULT_RATES};
+console.log(JSON.stringify({
+  draft: calculatorValidationErrors(state, CALCULATOR_VALIDATION_SCOPE.DRAFT_SAFE),
+  persistence: calculatorValidationErrors(state, CALCULATOR_VALIDATION_SCOPE.PERSISTENCE),
+  export: calculatorValidationErrors(state, CALCULATOR_VALIDATION_SCOPE.EXPORT),
+  generation: calculatorValidationErrors(state, CALCULATOR_VALIDATION_SCOPE.GENERATION)
+}));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    scopes = json.loads(completed.stdout)
+
+    assert scopes["draft"] == []
+    assert {error["code"] for error in scopes["persistence"]} == {"invalid_number", "invalid_pax"}
+    assert {error["code"] for error in scopes["export"]} == {"invalid_number", "missing_rate"}
+    assert scopes["generation"] == []
+
+
 def test_frontend_and_python_expression_inputs_match() -> None:
     if shutil.which("node") is None:
         pytest.skip("Node is unavailable.")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from math import isfinite
 from typing import Mapping
 
 from calculator.cell_formula_engine import CalculatorCellFormulaEvaluator
@@ -92,7 +93,7 @@ def calculate_totals(
 
 def calculate_dashboard(
     rows: tuple[CalculatorRow, ...] | list[CalculatorRow],
-    number_of_pax: int | None,
+    number_of_pax: int | str | None,
     currency_rates: Mapping[str, float] | None = None,
 ) -> CalculatorDashboard:
     """Return display-only dashboard totals and optional per-pax values."""
@@ -105,7 +106,7 @@ def calculate_dashboard(
     )
     profit = round_money(sum((_decimal(row.gp_nok) for row in calculated_rows), Decimal("0")))
     margin = _safe_ratio(profit, total_sales)
-    pax = int(number_of_pax) if number_of_pax is not None and int(number_of_pax) > 0 else None
+    pax = _positive_whole_pax_or_none(number_of_pax)
     cost_per_pax = round_money(total_cost / pax) if pax else None
     sales_per_pax = round_money(total_sales / pax) if pax else None
     return CalculatorDashboard(
@@ -117,6 +118,18 @@ def calculate_dashboard(
         cost_per_pax=as_float(cost_per_pax) if cost_per_pax is not None else None,
         sales_per_pax=as_float(sales_per_pax) if sales_per_pax is not None else None,
     )
+
+
+def _positive_whole_pax_or_none(value: object) -> int | None:
+    if value in (None, "") or isinstance(value, bool):
+        return None
+    try:
+        number = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    if not isfinite(number) or number <= 0 or not number.is_integer():
+        return None
+    return int(number)
 
 
 def _sum_formula_cells(evaluator: CalculatorCellFormulaEvaluator, column: str, count: int) -> Decimal:

@@ -113,6 +113,7 @@ body {
   font-size: 0.85rem;
 }
 .calculator-status-row strong { color: var(--text); }
+.calculator-recovery-warning { color: var(--red-dark); font-weight: 700; }
 .calculator-grid-scroll {
   width: 100%;
   max-width: 100%;

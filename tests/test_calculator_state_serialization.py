@@ -88,3 +88,28 @@ def test_calculator_backup_rejects_non_finite_numbers() -> None:
 
     with pytest.raises(ValueError):
         calculator_state_to_json(state)
+
+
+def test_calculator_backup_normalizes_whole_number_pax_text() -> None:
+    payload = {
+        "schema_version": 2,
+        "kind": "booknordics_calculator_state",
+        "number_of_pax": "2.0",
+        "rows": [],
+    }
+
+    restored = calculator_state_from_json(json.dumps(payload))
+
+    assert restored.number_of_pax == 2
+
+
+def test_calculator_backup_rejects_fractional_pax_without_truncating() -> None:
+    payload = {
+        "schema_version": 2,
+        "kind": "booknordics_calculator_state",
+        "number_of_pax": 2.5,
+        "rows": [],
+    }
+
+    with pytest.raises(ValueError, match="positive integer"):
+        calculator_state_from_json(json.dumps(payload))

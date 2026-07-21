@@ -10,8 +10,6 @@ try:
 except ModuleNotFoundError:  # Keep navigation helpers testable without Streamlit.
     st = None
 
-from app_modules.project_identity import active_project_id_from_state
-from app_modules.calculator_session_state import calculator_state_from_session
 from app_modules.calculator_state_keys import (
     CALCULATOR_DRAFT_NAMESPACE_KEY,
     CALCULATOR_RETURN_AVAILABLE_KEY,
@@ -48,6 +46,8 @@ def calculator_draft_namespace(state: MutableMapping[str, Any]) -> str:
     leaking rows into another itinerary.
     """
 
+    from app_modules.project_identity import active_project_id_from_state
+
     project_id = active_project_id_from_state(state)
     if project_id:
         namespace = f"project:{project_id}"
@@ -65,6 +65,8 @@ def calculator_draft_namespace(state: MutableMapping[str, Any]) -> str:
 
 def open_calculator_page(state: MutableMapping[str, Any]) -> None:
     """Route the app to the calculator and create startup rows if needed."""
+
+    from app_modules.calculator_session_state import calculator_state_from_session
 
     state[APP_PAGE_KEY] = CALCULATOR_PAGE
     calculator_draft_namespace(state)

@@ -37,7 +37,7 @@ def test_calculator_state_from_session_rehydrates_blank_saved_snapshot() -> None
 def test_store_calculator_state_clears_stale_prepared_excel_after_real_change() -> None:
     session_state: dict[str, object] = {
         CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1"),)),
-        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content": b"old"},
+        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content_base64": "b2xk"},
     }
     changed = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="Hotel"),))
 
@@ -52,7 +52,7 @@ def test_store_calculator_state_keeps_ready_excel_when_state_is_unchanged() -> N
     state = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="Hotel"),))
     session_state: dict[str, object] = {
         CALCULATOR_STATE_KEY: state,
-        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "current.xlsx", "content": b"xlsx"},
+        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "current.xlsx", "content_base64": "eGxzeA=="},
     }
 
     store_calculator_state(session_state, state)
@@ -63,7 +63,7 @@ def test_store_calculator_state_keeps_ready_excel_when_state_is_unchanged() -> N
 def test_update_calculator_itinerary_name_uses_same_state_authority() -> None:
     session_state: dict[str, object] = {
         CALCULATOR_STATE_KEY: CalculatorState(itinerary_name="Old", rows=(CalculatorRow(row_id="1"),)),
-        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content": b"old"},
+        CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content_base64": "b2xk"},
     }
 
     state = update_calculator_itinerary_name(session_state, "New")
@@ -123,7 +123,7 @@ def test_store_calculator_state_does_not_write_widget_owned_name_key() -> None:
 def test_apply_calculator_grid_result_persists_rows_and_advanced_toggle() -> None:
     grid_state = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="Museum"),))
     result = CalculatorGridResult(action="sync", state=grid_state, show_advanced=True)
-    session_state: dict[str, object] = {CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content": b"old"}}
+    session_state: dict[str, object] = {CALCULATOR_READY_DOWNLOAD_KEY: {"filename": "old.xlsx", "content_base64": "b2xk"}}
 
     applied = apply_calculator_grid_result(session_state, result)
 
@@ -138,7 +138,7 @@ def test_clear_calculator_project_state_removes_current_and_retired_keys() -> No
         CALCULATOR_STATE_KEY: object(),
         CALCULATOR_ADVANCED_TOGGLE_KEY: True,
         CALCULATOR_DRAFT_NAMESPACE_KEY: "session:abc",
-        CALCULATOR_READY_DOWNLOAD_KEY: {"content": b"xlsx"},
+        CALCULATOR_READY_DOWNLOAD_KEY: {"content_base64": "eGxzeA=="},
         CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY: True,
         "calculator_grid_revision": 7,
         "calculator_grid_editor_7": [{"row_id": "old"}],

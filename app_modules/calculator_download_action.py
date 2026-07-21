@@ -8,11 +8,6 @@ import json
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-try:
-    import streamlit as st
-except ModuleNotFoundError:  # Allow pure calculator tests without Streamlit installed.
-    st = None
-
 from calculator.calculator_state import CalculatorState
 from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_to_dict
@@ -21,15 +16,6 @@ from app_modules.calculator_state_keys import CALCULATOR_READY_DOWNLOAD_KEY
 from app_modules.calculator_session_state import clear_ready_calculation_download
 
 CALCULATION_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-
-def _streamlit_api():
-    global st
-    if st is None:
-        import streamlit as streamlit_api
-
-        st = streamlit_api
-    return st
 
 
 def calculator_download_signature(
@@ -62,27 +48,22 @@ def prepare_staged_calculation_download(
     state: CalculatorState,
     *,
     currency_rates: dict[str, float] | None = None,
-) -> WorkbookExport:
+) -> None:
     """Prepare an Excel file for immediate browser download.
 
-    Project persistence is handled by the normal calculator save workflow.
-    Download preparation must never wait for a network/cloud write.
+    Project persistence is independent from calculator workbook downloads. The
+    session retains only the browser-ready base64 payload, not a second raw-byte
+    copy of the same workbook.
     """
 
     export = prepare_calculation_download(state, currency_rates=currency_rates)
-    saved_to_cloud = False
-    signature = calculator_download_signature(state, currency_rates=currency_rates)
-    encoded = base64.b64encode(export.content).decode("ascii")
     session_state[CALCULATOR_READY_DOWNLOAD_KEY] = {
         "filename": export.filename,
         "mime": CALCULATION_XLSX_MIME,
-        "content": export.content,
-        "content_base64": encoded,
-        "saved_to_cloud": bool(saved_to_cloud),
-        "download_signature": signature,
-        "auto_download": True,
+        "content_base64": base64.b64encode(export.content).decode("ascii"),
+        "download_signature": calculator_download_signature(state, currency_rates=currency_rates),
     }
-    return export
+    return None
 
 
 def ready_calculation_download_payload(
@@ -91,10 +72,10 @@ def ready_calculation_download_payload(
     *,
     currency_rates: Mapping[str, float] | None = None,
 ) -> dict[str, Any]:
-    """Return a browser-download payload for the current prepared workbook."""
+    """Return the current browser-download payload when it is still valid."""
 
     payload = session_state.get(CALCULATOR_READY_DOWNLOAD_KEY)
-    if not isinstance(payload, dict) or not payload.get("content"):
+    if not isinstance(payload, dict) or not payload.get("content_base64"):
         return {}
     if payload.get("download_signature") != calculator_download_signature(
         current_state,
@@ -102,54 +83,9 @@ def ready_calculation_download_payload(
     ):
         clear_ready_calculation_download(session_state)
         return {}
-    encoded = str(payload.get("content_base64") or "")
-    if not encoded:
-        encoded = base64.b64encode(bytes(payload["content"])).decode("ascii")
-        payload["content_base64"] = encoded
     return {
         "filename": str(payload.get("filename") or "itinerary-calculation.xlsx"),
         "mime": str(payload.get("mime") or CALCULATION_XLSX_MIME),
-        "content_base64": encoded,
-        "saved_to_cloud": bool(payload.get("saved_to_cloud")),
+        "content_base64": str(payload.get("content_base64") or ""),
         "download_signature": str(payload.get("download_signature") or ""),
-        "auto_download": bool(payload.get("auto_download")),
     }
-
-
-def render_ready_calculation_download(
-    session_state: MutableMapping[str, Any],
-    current_state: CalculatorState | None = None,
-    *,
-    currency_rates: Mapping[str, float] | None = None,
-) -> None:
-    """Render a user-clicked Streamlit download button to avoid browser-blocked popups."""
-
-    ui = _streamlit_api()
-    payload = session_state.get(CALCULATOR_READY_DOWNLOAD_KEY)
-    if not isinstance(payload, dict) or not payload.get("content"):
-        return
-    if current_state is not None and payload.get("download_signature") != calculator_download_signature(
-        current_state,
-        currency_rates=currency_rates,
-    ):
-        clear_ready_calculation_download(session_state)
-        ui.info("Prepared Excel was cleared because the calculator changed. Prepare the download again.")
-        return
-    filename = str(payload.get("filename") or "itinerary-calculation.xlsx")
-    ui.html('<div class="calculator-download-ready-panel">')
-    if payload.get("saved_to_cloud"):
-        ui.success("Excel is ready and saved to the cloud.")
-    else:
-        ui.info("Excel is ready. Cloud save is unavailable for this session.")
-    ui.download_button(
-        label="Download prepared Excel",
-        data=bytes(payload["content"]),
-        file_name=filename,
-        mime=str(payload.get("mime") or CALCULATION_XLSX_MIME),
-        use_container_width=True,
-        key=f"download_prepared_calculation_{filename}",
-    )
-    if ui.button("Clear prepared Excel", use_container_width=True, key="clear_prepared_calculation_download"):
-        clear_ready_calculation_download(session_state)
-        ui.rerun()
-    ui.html("</div>")

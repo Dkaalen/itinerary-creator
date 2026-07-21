@@ -6,7 +6,9 @@
 - `calculator/calculations.py` aggregates canonical row, total, and dashboard results.
 - `calculator_grid_component/frontend/js/calculator_grid_math.js` is the immediate browser preview and is parity-tested against Python.
 - `calculator/formula_map.py` owns canonical Excel formulas.
-- `calculator/workbook_package_export.py` clones the retained reference XLSX package and changes only approved worksheet cells.
+- `calculator/workbook_export_plan.py` owns all calculator-to-workbook mappings, value kinds, formulas, currency rows, totals, payments, and blank-row decisions.
+- `calculator/workbook_package_export.py` is the production renderer; it applies the canonical plan while cloning the retained reference XLSX package.
+- `calculator/workbook_export.py` retains an openpyxl renderer only as a mutable-workbook compatibility and parity-check API.
 - `calculator/workbook_import.py` reads compatible calculation workbooks without rebuilding them.
 - `calculator/state_serialization.py` owns JSON backup/schema migration.
 - `app_modules/saved_project_calculator_state.py` is the cloud-project persistence boundary.
@@ -26,10 +28,13 @@ A1 formulas support relative and absolute references, dependency recalculation, 
 
 The bundled `Calculation-template-Mal.xlsx` is the visual and structural source of truth. Export:
 
-1. Copies the exact XLSX ZIP package.
-2. Rewrites only approved cells in `Curr` and `Kalk`.
-3. Leaves all other package parts byte-for-byte unchanged.
-4. Restores canonical formulas while retaining explicit user overrides.
+1. Builds one immutable export plan from Calculator state and currency rates.
+2. Applies that plan through the fast XLSX-package renderer used by production downloads.
+3. Copies the exact XLSX ZIP package and rewrites only approved cells in `Curr` and `Kalk`.
+4. Leaves all other package parts byte-for-byte unchanged.
+5. Restores canonical formulas while retaining explicit user overrides.
+6. Reuses unchanged package bytes through a bounded, template-aware in-process cache.
+7. Stages one browser-ready base64 workbook payload for direct component download; cloud project persistence is a separate workflow.
 
 Import preserves editable data, compatible A1 formulas, overrides, VAT values, and currency rates. Export → import → recalculate must preserve totals.
 

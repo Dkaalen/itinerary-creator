@@ -48,11 +48,22 @@ def test_parse_calculator_grid_result_ignores_unknown_actions() -> None:
 
 
 def test_parse_calculator_grid_result_accepts_synchronized_navigation_actions() -> None:
-    result = parse_calculator_grid_result('{"action":"close","number_of_pax":3,"rows":[]}', "Trip")
+    result = parse_calculator_grid_result(
+        '{"action":"close","number_of_pax":"2.5","client_has_validation_errors":true,"rows":[]}',
+        "Trip",
+    )
 
     assert result is not None
     assert result.action == "close"
-    assert result.state.number_of_pax == 3
+    assert result.state.number_of_pax == "2.5"
+    assert result.client_has_validation_errors is True
+
+
+def test_parse_calculator_grid_result_normalizes_whole_number_pax_text() -> None:
+    result = parse_calculator_grid_result('{"action":"sync","number_of_pax":"2.0","rows":[]}', "Trip")
+
+    assert result is not None
+    assert result.state.number_of_pax == 2
 
 
 def test_parse_calculator_grid_result_accepts_excel_upload_payload() -> None:

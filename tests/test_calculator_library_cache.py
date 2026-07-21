@@ -49,3 +49,15 @@ def test_cached_local_library_force_refresh_reads_again() -> None:
     assert calls == 2
     assert first.rows[0].library_id == "row_1"
     assert second.rows[0].library_id == "row_2"
+
+
+def test_cached_local_library_records_measured_load_time(monkeypatch) -> None:
+    import app_modules.calculator_library_cache as cache_module
+
+    ticks = iter((10.0, 10.125))
+    monkeypatch.setattr(cache_module, "perf_counter", lambda: next(ticks))
+    result = LocalLibraryReadResult(rows=(), source="test", read_only=True)
+
+    measured = read_cached_local_library({}, reader=lambda: result)
+
+    assert measured.load_time_seconds == 0.125

@@ -4,10 +4,7 @@ from html import escape
 
 import streamlit as st
 
-from app_modules.project_file_ui import render_save_project_file_action
-from app_modules.project_io import rebuild_current_preview, reset_project_state
 from app_modules.workflow_config import STAGE_LABELS
-from app_modules.workflow_shell import build_project_metrics, project_title
 from app_modules.workflow_state import set_workflow_stage
 
 
@@ -35,6 +32,8 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
     if not parsed_rows:
         return None
 
+    from app_modules.workflow_shell import build_project_metrics, project_title
+
     output_edits = session_state.get("output_edits") or {}
     metrics = build_project_metrics(parsed_rows, output_edits)
     title = str(session_state.get("itinerary_name") or project_title(output_edits)).strip() or "New itinerary"
@@ -55,6 +54,9 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
 
 
 def _render_stage_actions(stage: str) -> None:
+    from app_modules.project_file_ui import render_save_project_file_action
+    from app_modules.project_io import rebuild_current_preview, reset_project_state
+
     left, middle, right = st.columns([1, 1, 1])
     with left:
         if st.button("Start over", use_container_width=True):

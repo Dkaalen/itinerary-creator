@@ -14,7 +14,7 @@ from calculator.library_model import (
     LOCAL_LIBRARY_SCHEMA_VERSION,
     LocalLibraryRow,
 )
-from calculator.numeric_input import parse_numeric_input
+from calculator.numeric_input import parse_decimal_input_strict, parse_numeric_input
 from calculator.row_model import CalculatorRow
 
 _FIELD_NAMES = {field.name for field in fields(LocalLibraryRow)}
@@ -44,14 +44,44 @@ _EXTERNAL_CURR_REFERENCE_RE = re.compile(r"'?\[[^\]]+\]Curr'?!")
 _SPACE_RE = re.compile(r"\s+")
 
 
-def normalize_library_mapping(raw_row: Mapping[str, object]) -> LocalLibraryRow:
+class LocalLibraryNumericValueError(ValueError):
+    """Raised when strict Local Library numeric normalization fails."""
+
+    def __init__(self, source_field: str, field_name: str, value: object, reason: str) -> None:
+        super().__init__(reason)
+        self.source_field = source_field
+        self.field_name = field_name
+        self.value = value
+        self.reason = reason
+
+
+def normalize_library_mapping(
+    raw_row: Mapping[str, object],
+    *,
+    strict_numeric: bool = False,
+) -> LocalLibraryRow:
     """Return one normalized Local Library row from sheet headers or field names."""
 
     normalized = _blank_values()
     for key, value in raw_row.items():
-        field_name = _field_name(str(key))
+        source_field = str(key).strip()
+        field_name = _field_name(source_field)
         if field_name in normalized:
-            normalized[field_name] = _normalize_value(field_name, value)
+            try:
+                normalized[field_name] = _normalize_value(
+                    field_name,
+                    value,
+                    strict_numeric=strict_numeric,
+                )
+            except ValueError as error:
+                if strict_numeric and field_name in _FLOAT_FIELDS:
+                    raise LocalLibraryNumericValueError(
+                        source_field,
+                        field_name,
+                        value,
+                        str(error),
+                    ) from error
+                raise
 
     normalized["schema_version"] = normalized["schema_version"] or LOCAL_LIBRARY_SCHEMA_VERSION
     normalized["record_type"] = (normalized["record_type"] or LINE_RECORD_TYPE).lower()
@@ -141,12 +171,14 @@ def _field_name(key: str) -> str:
     return LOCAL_LIBRARY_FIELD_BY_HEADER.get(stripped, stripped)
 
 
-def _normalize_value(field_name: str, value: object) -> object:
+def _normalize_value(field_name: str, value: object, *, strict_numeric: bool = False) -> object:
     if field_name in FORMULA_FIELD_NAMES:
         return clean_formula_text(value)
     if field_name in _BOOL_FIELDS:
         return _bool(value)
     if field_name in _FLOAT_FIELDS:
+        if strict_numeric:
+            return _strict_optional_float(value) if field_name == "sales_price_per_unit" else _strict_float(value)
         return _optional_float(value) if field_name == "sales_price_per_unit" else _float(value)
     if field_name == "source_row":
         return _int_or_none(value)
@@ -185,6 +217,16 @@ def _optional_float(value: object) -> float | None:
     if value in (None, ""):
         return None
     return _float(value)
+
+
+def _strict_float(value: object) -> float:
+    parsed = parse_decimal_input_strict(value, allow_blank=True)
+    return 0.0 if parsed is None else float(parsed)
+
+
+def _strict_optional_float(value: object) -> float | None:
+    parsed = parse_decimal_input_strict(value, allow_blank=True)
+    return None if parsed is None else float(parsed)
 
 
 def _float(value: object) -> float:

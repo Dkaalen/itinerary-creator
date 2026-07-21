@@ -50,9 +50,28 @@ function buildToolbarHtml(state) {
       <span>${escapeHtml(libraryText)}</span>
       ${excelReady ? '<span id="calculator-excel-ready-status" class="excel-ready-status">Excel ready</span>' : ''}
       <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
+      ${state.recoveryWarning ? `<span id="calculator-recovery-warning" class="calculator-recovery-warning">${escapeHtml(state.recoveryWarning)}</span>` : ''}
     </div>`;
 }
 
+
+function refreshRecoveryWarningOnly() {
+  const statusRow = document.querySelector('.calculator-status-row');
+  if (!statusRow || !calculatorState) return;
+  let warning = document.getElementById('calculator-recovery-warning');
+  const message = calculatorState.recoveryWarning || '';
+  if (!message) {
+    if (warning) warning.remove();
+    return;
+  }
+  if (!warning) {
+    warning = document.createElement('span');
+    warning.id = 'calculator-recovery-warning';
+    warning.className = 'calculator-recovery-warning';
+    statusRow.appendChild(warning);
+  }
+  warning.textContent = message;
+}
 
 function refreshVersionHistoryCount() {
   const button = document.querySelector('[data-action="version-history"]');
@@ -99,6 +118,7 @@ function buildFindReplaceHtml(state) {
 function buildVersionHistoryHtml(state) {
   if (!state.showVersionHistory) return '';
   const snapshots = state.recoverySnapshots || [];
+  const storageText = formatCalculatorStorageBytes(state.recoveryStorageBytes || calculatorRecoveryStorageUsage().totalBytes);
   const items = snapshots.length
     ? snapshots.map((snapshot) => `
       <button class="calculator-version-item" data-version-id="${escapeHtml(snapshot.id)}">
@@ -108,7 +128,7 @@ function buildVersionHistoryHtml(state) {
     : '<div class="calculator-version-empty">No recovery versions yet.</div>';
   return `
     <div class="calculator-version-panel" role="dialog" aria-label="Calculator version history">
-      <div class="calculator-version-heading"><strong>Local recovery versions</strong><span>Newest first · stored in this browser</span></div>
+      <div class="calculator-version-heading"><strong>Local recovery versions</strong><span>Newest first · ${escapeHtml(storageText)} stored in this browser</span></div>
       <div class="calculator-version-list">${items}</div>
       <div class="calculator-version-actions">
         <button class="calc-btn danger" data-action="clear-versions" ${snapshots.length ? '' : 'disabled'}>Clear versions</button>
@@ -300,8 +320,8 @@ function refreshSyncStatusOnly() {
   element.classList.toggle('saved', !calculatorState.dirty);
 }
 
-function refreshValidationAndStatus() {
-  validateCalculatorState(calculatorState);
+function refreshValidationAndStatus(runValidation = true) {
+  if (runValidation) validateCalculatorState(calculatorState);
   const container = document.getElementById('calculator-validation-container');
   if (container) container.innerHTML = validationSummaryHtml(calculatorState);
   document.querySelectorAll('td.invalid-cell').forEach((cell) => cell.classList.remove('invalid-cell'));

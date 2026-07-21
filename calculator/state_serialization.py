@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import fields
+from math import isfinite
 from typing import Any, Mapping
 
 from calculator.calculator_state import CalculatorState, add_row, create_calculator_state
@@ -102,10 +103,12 @@ def _row_from_dict(payload: Mapping[str, Any]) -> CalculatorRow:
 def _optional_positive_int(value: Any) -> int | None:
     if value in (None, "", 0, "0"):
         return None
+    if isinstance(value, bool):
+        raise ValueError("Calculator number_of_pax must be a positive integer or blank.")
     try:
-        number = int(value)
+        number = float(str(value).strip())
     except (TypeError, ValueError) as error:
         raise ValueError("Calculator number_of_pax must be a positive integer or blank.") from error
-    if number <= 0:
+    if not isfinite(number) or number <= 0 or not number.is_integer():
         raise ValueError("Calculator number_of_pax must be a positive integer or blank.")
-    return number
+    return int(number)

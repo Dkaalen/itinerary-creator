@@ -18,7 +18,7 @@ def test_reset_workflow_state_clears_calculator_transients_and_legacy_widget_sta
     state = {
         "calculator_state": object(),
         "calculator_component_show_advanced": True,
-        CALCULATOR_READY_DOWNLOAD_KEY: {"content": b"xlsx"},
+        CALCULATOR_READY_DOWNLOAD_KEY: {"content_base64": "eGxzeA=="},
         "calculator_grid_revision": 7,
         "calculator_backup_upload": object(),
         "calculator_travel_element_autocomplete_query": "hotel",

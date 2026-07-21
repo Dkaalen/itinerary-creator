@@ -18,10 +18,12 @@ def test_calculation_ownership_is_explicit() -> None:
 
 
 def test_export_uses_formula_map_instead_of_a_parallel_formula_engine() -> None:
-    export_source = (ROOT / "calculator" / "workbook_export.py").read_text(encoding="utf-8")
-    assert "expected_row_formulas" in export_source
-    assert "TOTAL_FORMULAS" in export_source
-    assert "VLOOKUP(" not in export_source
+    plan_source = (ROOT / "calculator" / "workbook_export_plan.py").read_text(encoding="utf-8")
+    renderer_source = (ROOT / "calculator" / "workbook_export.py").read_text(encoding="utf-8")
+    assert "expected_row_formulas" in plan_source
+    assert "TOTAL_FORMULAS" in plan_source
+    assert "VLOOKUP(" not in plan_source
+    assert "VLOOKUP(" not in renderer_source
 
 
 def test_project_management_domain_module_is_ui_independent() -> None:
@@ -36,3 +38,19 @@ def test_calculator_architecture_document_names_state_boundaries() -> None:
     assert "authoritative financial engine" in text
     assert "Selection mode" in text
     assert "Save → reload → recalculate" in text
+
+
+def test_workbook_renderers_consume_one_canonical_export_plan() -> None:
+    plan_source = (ROOT / "calculator" / "workbook_export_plan.py").read_text(encoding="utf-8")
+    openpyxl_source = (ROOT / "calculator" / "workbook_export.py").read_text(encoding="utf-8")
+    package_source = (ROOT / "calculator" / "workbook_package_export.py").read_text(encoding="utf-8")
+    import_source = (ROOT / "calculator" / "workbook_import.py").read_text(encoding="utf-8")
+
+    assert "ROW_VALUE_COLUMNS" in plan_source
+    assert "FORMULA_FIELD_BY_COLUMN" in plan_source
+    assert "build_workbook_export_plan" in openpyxl_source
+    assert "WorkbookExportPlan" in package_source
+    assert "CalculatorState" not in package_source
+    assert "_ROW_VALUE_COLUMNS = {" not in openpyxl_source
+    assert "_ROW_VALUE_COLUMNS = {" not in package_source
+    assert "from calculator.workbook_export_plan import" in import_source

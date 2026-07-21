@@ -13,6 +13,11 @@ def test_calculator_prepares_then_downloads_excel_from_the_grid_toolbar() -> Non
     assert "prepare_staged_calculation_download" in action_source
     assert "ready_calculation_download_payload" in action_source
     assert '"content_base64"' in action_source
+    assert '"content": export.content' not in action_source
+    assert "saved_to_cloud" not in action_source
+    assert "render_ready_calculation_download" not in action_source
+    assert "auto_download" not in action_source
+    assert "auto_download" not in actions_source
     assert "downloadPreparedExcel" in actions_source
     assert "anchor.click()" in actions_source
     assert "pending_download=pending_download" in page_source

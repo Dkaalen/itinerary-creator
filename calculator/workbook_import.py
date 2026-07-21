@@ -15,6 +15,7 @@ from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW
 from calculator.formula_map import expected_row_formulas
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
+from calculator.workbook_export_plan import FORMULA_FIELD_BY_COLUMN, ROW_VALUE_COLUMNS
 
 _MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 _NS = {"x": _MAIN_NS}
@@ -22,44 +23,8 @@ _CURR_SHEET = "xl/worksheets/sheet1.xml"
 _KALK_SHEET = "xl/worksheets/sheet2.xml"
 _SHARED_STRINGS = "xl/sharedStrings.xml"
 
-_ROW_VALUE_COLUMNS = {
-    "B": "row_id",
-    "C": "day",
-    "D": "type",
-    "E": "from_date",
-    "F": "to_date",
-    "G": "from_time",
-    "H": "to_time",
-    "I": "supplier",
-    "J": "travel_element",
-    "K": "manual_booking",
-    "L": "status",
-    "M": "comments",
-    "N": "non_refundable",
-    "O": "refundable",
-    "P": "url",
-    "Q": "gross_price_per_unit",
-    "R": "units",
-    "T": "supplier_commission",
-    "V": "supplier_currency",
-    "AA": "sales_currency",
-    "AF": "vat25",
-    "AG": "vat15",
-    "AH": "vat12",
-    "AI": "vat0_domestic",
-    "AJ": "vat0_international",
-}
-_FORMULA_FIELD_BY_COLUMN = {
-    "S": "gross_price",
-    "U": "net_price",
-    "W": "supplier_x_rate",
-    "X": "net_price_nok",
-    "Z": "price",
-    "AB": "sales_x_rate",
-    "AC": "sales_price_nok_total",
-    "AD": "gp_nok",
-    "AE": "gp_percent",
-}
+_ROW_VALUE_COLUMNS = dict(ROW_VALUE_COLUMNS)
+_FORMULA_FIELD_BY_COLUMN = dict(FORMULA_FIELD_BY_COLUMN)
 _TEXT_FIELDS = {
     "row_id",
     "day",

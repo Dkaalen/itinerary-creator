@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from time import monotonic
+from dataclasses import replace
+from time import monotonic, perf_counter
 from typing import Any, Callable, MutableMapping
 
 from calculator.library_store import LocalLibraryReadResult, LocalLibraryStore
@@ -35,7 +36,9 @@ def read_cached_local_library(
         clear_calculator_library_payload_cache()
         if reader is None:
             clear_local_library_workbook_cache()
+    started_at = perf_counter()
     result = (reader or LocalLibraryStore().list_rows)()
+    result = replace(result, load_time_seconds=max(0.0, perf_counter() - started_at))
     session_state[CALCULATOR_LIBRARY_CACHE_KEY] = result
     session_state[CALCULATOR_LIBRARY_CACHE_TIME_KEY] = monotonic()
     return result

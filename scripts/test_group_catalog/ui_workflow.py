@@ -181,12 +181,13 @@ STORAGE_TESTS = (
     "tests/test_local_draft_delta_regression.py",
     "tests/test_saved_project_contract.py",
     "tests/test_saved_project_rebuild_path_regression.py",
-    "tests/test_local_library_editor.py",
+    "tests/test_local_library_browser.py",
     "tests/test_local_library_page_foundation.py",
 
 )
 
 WORKFLOW_TESTS = (
+    "tests/test_lazy_page_imports.py",
     "tests/test_workflow_reliability_regression.py",
     "tests/test_hosted_workflow_guardrails_regression.py",
     "tests/test_ui_workflow_shell.py",

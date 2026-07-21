@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from math import isfinite
 from typing import Any
 
 from app_modules.calculator_grid_data import table_data_to_rows
@@ -21,6 +22,7 @@ class CalculatorGridResult:
     request_id: str = ""
     upload_filename: str = ""
     upload_content_base64: str = ""
+    client_has_validation_errors: bool = False
 
 
 _VALID_ACTIONS = {
@@ -50,7 +52,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         action=action,
         state=CalculatorState(
             itinerary_name=itinerary_name,
-            number_of_pax=_optional_positive_int(data.get("number_of_pax")),
+            number_of_pax=_pax_value(data.get("number_of_pax")),
             rows=rows,
         ),
         show_advanced=bool(data.get("show_advanced")),
@@ -58,6 +60,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         request_id=str(data.get("request_id") or ""),
         upload_filename=str(data.get("upload_filename") or ""),
         upload_content_base64=str(data.get("upload_content_base64") or ""),
+        client_has_validation_errors=bool(data.get("client_has_validation_errors")),
     )
 
 
@@ -73,11 +76,16 @@ def _json_object(raw_result: object) -> dict[str, Any] | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-def _optional_positive_int(value: object) -> int | None:
+def _pax_value(value: object) -> int | str | None:
     if value in (None, "", 0, "0"):
         return None
+    text = str(value).strip()
+    if isinstance(value, bool):
+        return text
     try:
-        number = int(value)
+        number = float(text)
     except (TypeError, ValueError):
-        return None
-    return number if number > 0 else None
+        return text
+    if isfinite(number) and number > 0 and number.is_integer():
+        return int(number)
+    return text

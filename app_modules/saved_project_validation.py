@@ -120,7 +120,13 @@ def _validate_calculator_snapshot(snapshot: Mapping[str, Any] | None) -> None:
     pax = snapshot.get("number_of_pax")
     if pax not in (None, ""):
         try:
-            valid_pax = int(pax) > 0
+            pax_number = float(str(pax).strip())
+            valid_pax = (
+                not isinstance(pax, bool)
+                and isfinite(pax_number)
+                and pax_number > 0
+                and pax_number.is_integer()
+            )
         except (TypeError, ValueError):
             valid_pax = False
         if not valid_pax:
@@ -143,12 +149,16 @@ def _validate_calculator_snapshot(snapshot: Mapping[str, Any] | None) -> None:
 
     try:
         from calculator.state_serialization import calculator_state_from_dict
-        from calculator.validation import validate_calculator_state
+        from calculator.validation import CalculatorValidationScope, validate_calculator_state
 
         calculator_state = calculator_state_from_dict(snapshot)
     except (TypeError, ValueError) as error:
         raise SavedProjectError(f"Saved project calculator snapshot is invalid: {error}") from error
-    calculator_issues = validate_calculator_state(calculator_state, dict(currency_rates))
+    calculator_issues = validate_calculator_state(
+        calculator_state,
+        dict(currency_rates),
+        scope=CalculatorValidationScope.PERSISTENCE,
+    )
     if calculator_issues:
         raise SavedProjectError(
             f"Saved project calculator snapshot is invalid: {calculator_issues[0].message}"

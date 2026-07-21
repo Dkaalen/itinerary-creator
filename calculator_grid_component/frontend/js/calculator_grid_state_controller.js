@@ -54,6 +54,8 @@ function initializeState(payload) {
     showFindReplace: false,
     showVersionHistory: false,
     recoverySnapshots: loadCalculatorRecoverySnapshots(),
+    recoveryWarning: calculatorStorageWarningMessage(),
+    recoveryStorageBytes: calculatorRecoveryStorageUsage().totalBytes,
     findQuery: '',
     replaceQuery: '',
     findMatchCursor: -1,

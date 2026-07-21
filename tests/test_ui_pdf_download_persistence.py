@@ -34,9 +34,8 @@ def test_dirty_state_clears_durable_pdf_artifact():
 
     assert "st.session_state.export_pdf_bytes = None" in output_edits
     assert "st.session_state.export_pdf_signature = None" in output_edits
-    assert "PDF_ARTIFACT_KEYS" in workflow_state
-    assert "export_pdf_bytes" in workflow_state
-    assert "export_pdf_signature" in workflow_state
+    assert "from app_modules.pdf_artifact_state import clear_pdf_artifact_state" in workflow_state
+    assert "clear_pdf_artifact_state(state, status=status)" in workflow_state
     assert "mark_pdf_dirty_state(state" in preview_rebuild
 
 

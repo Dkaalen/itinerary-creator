@@ -10,16 +10,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Mapping, MutableMapping
 
-from itinerary_generation.common import group_rows_by_day, is_optional_row
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
-from ui.output_edits import apply_output_edits
 from ui.picture_workflow import pictures_are_added
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
-from app_modules.calculator_session_state import clear_calculator_project_state
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
 from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
-from app_modules.pdf_artifact_state import PDF_ARTIFACT_KEYS, clear_pdf_artifact_state
-from app_modules.project_session_cleanup import clear_project_save_marker
 
 
 WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
@@ -89,6 +84,8 @@ def reset_workflow_state(state: MutableMapping[str, Any], *, clear_raw_text: boo
     for key in RESET_PROJECT_KEYS:
         if key in state:
             del state[key]
+    from app_modules.calculator_session_state import clear_calculator_project_state
+
     clear_calculator_project_state(state)
     for key, value in DEFAULT_WORKFLOW_SESSION_STATE.items():
         state[key] = _copy_default(value)
@@ -123,6 +120,8 @@ def session_stage_from_state(state: Mapping[str, Any]) -> str:
 def clear_pdf_artifacts(state: MutableMapping[str, Any], status: str = "Not created") -> None:
     """Drop cached PDF bytes/signatures and export-only transient caches."""
 
+    from app_modules.pdf_artifact_state import clear_pdf_artifact_state
+
     clear_pdf_artifact_state(state, status=status)
 
 
@@ -130,6 +129,8 @@ def mark_pdf_dirty(state: MutableMapping[str, Any], status: str = "Needs refresh
     """Invalidate PDF artifacts and cloud-saved marker after real content changes."""
 
     clear_pdf_artifacts(state, status=status)
+    from app_modules.project_session_cleanup import clear_project_save_marker
+
     clear_project_save_marker(state)
 
 
@@ -177,6 +178,9 @@ def image_grouped_days_from_state(state: Mapping[str, Any]) -> dict:
     day-level destination/title signals. Optional supplier rows are excluded
     unless they are the only rows available for the day.
     """
+
+    from itinerary_generation.common import group_rows_by_day, is_optional_row
+    from ui.output_edits import apply_output_edits
 
     parsed_rows = state.get("parsed_rows", []) or []
     output_edits = state.get("output_edits", {}) or {}

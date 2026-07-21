@@ -14,7 +14,7 @@ class CalculatorState:
     """Current in-app calculator state independent of Streamlit."""
 
     itinerary_name: str = ""
-    number_of_pax: int | None = None
+    number_of_pax: int | str | None = None
     rows: tuple[CalculatorRow, ...] = ()
 
     def with_itinerary_name(self, itinerary_name: str) -> "CalculatorState":

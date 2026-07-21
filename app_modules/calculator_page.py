@@ -24,7 +24,6 @@ from app_modules.calculator_download_action import (
     prepare_staged_calculation_download,
     ready_calculation_download_payload,
 )
-from app_modules.calculator_generation_action import generate_itinerary_from_calculator
 from app_modules.calculator_library_cache import read_cached_local_library
 from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
@@ -46,9 +45,9 @@ from app_modules.calculator_state_keys import (
     CURRENCY_RATES_STATE_KEY,
 )
 from app_modules.input_workspace import render_studio_brand
-from app_modules.validation_gate import block_generation, render_blocking_issues
 from ui.style_calculator import CALCULATOR_PAGE_CSS
 from calculator.calculator_state import CalculatorState
+from calculator.validation import CalculatorValidationScope, validate_calculator_state
 from calculator_grid_component import render_calculator_grid
 
 _COMPONENT_KEY = "calculator_browser_grid"
@@ -97,15 +96,41 @@ def render_calculator_page(app_version: str) -> None:
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
     accepted_result = _accept_component_result(parsed_result, state)
     if accepted_result is not None:
-        state = _apply_component_result(accepted_result)
+        action_issues = _component_action_validation_issues(accepted_result, currency_rates)
+        if action_issues:
+            acknowledge_calculator_grid_result(
+                st.session_state,
+                accepted_result,
+                status="rejected_validation",
+                message=action_issues[0].message,
+                server_state=state,
+            )
+            st.session_state[CALCULATOR_NOTICE_KEY] = {
+                "level": "warning",
+                "message": action_issues[0].message,
+            }
+            st.rerun()
+            return
+
+        result_state = accepted_result.state
+        state_was_applied = _component_result_updates_session_state(accepted_result, currency_rates)
+        if state_was_applied:
+            state = _apply_component_result(accepted_result)
         acknowledge_calculator_grid_result(
             st.session_state,
             accepted_result,
-            status="accepted",
+            status="accepted" if state_was_applied else "accepted_transient",
+            message=(
+                "Draft kept in the browser until its highlighted values are resolved."
+                if not state_was_applied
+                else ""
+            ),
             server_state=state,
         )
+    else:
+        result_state = state
 
-    _render_backend_action(accepted_result, state, currency_rates)
+    _render_backend_action(accepted_result, result_state, currency_rates)
     _render_backup_controls(state)
 
 
@@ -132,6 +157,42 @@ def _calculator_draft_namespace() -> str:
 
 def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
     return apply_calculator_grid_result(st.session_state, result)
+
+
+def _component_action_validation_issues(
+    result: CalculatorGridResult,
+    currency_rates: dict[str, float] | None = None,
+):
+    """Validate one browser action again at the backend trust boundary."""
+
+    scope = {
+        "download": CalculatorValidationScope.EXPORT,
+        "generate_agent": CalculatorValidationScope.GENERATION,
+        "generate_customer": CalculatorValidationScope.GENERATION,
+        "sync": CalculatorValidationScope.PERSISTENCE,
+    }.get(result.action, CalculatorValidationScope.DRAFT_SAFE)
+    return validate_calculator_state(result.state, currency_rates, scope=scope)
+
+
+def _component_result_updates_session_state(
+    result: CalculatorGridResult,
+    currency_rates: dict[str, float] | None = None,
+) -> bool:
+    """Return whether browser rows are safe to make the backend authority now."""
+
+    if result.action == "open_excel":
+        return False
+    if result.action in {"close", "open_library", "generate_agent", "generate_customer"}:
+        backend_has_display_errors = bool(
+            validate_calculator_state(
+                result.state,
+                currency_rates,
+                scope=CalculatorValidationScope.EXPORT,
+            )
+        )
+        if result.client_has_validation_errors or backend_has_display_errors:
+            return False
+    return True
 
 
 def _render_calculator_topbar() -> None:
@@ -198,6 +259,8 @@ def _render_calculator_notice() -> None:
 def _render_generation_feedback() -> None:
     report = st.session_state.pop(CALCULATOR_GENERATION_FEEDBACK_KEY, None)
     if report is not None:
+        from app_modules.validation_gate import render_blocking_issues
+
         render_blocking_issues(report)
 
 
@@ -225,12 +288,28 @@ def _open_uploaded_excel(result: CalculatorGridResult) -> None:
         st.rerun()
         return
 
+    import_issues = validate_calculator_state(
+        imported.state,
+        imported.currency_rates,
+        scope=CalculatorValidationScope.IMPORT,
+    )
+    if import_issues:
+        st.session_state[CALCULATOR_NOTICE_KEY] = {
+            "level": "warning",
+            "message": import_issues[0].message,
+        }
+        st.rerun()
+        return
+
     notice = apply_calculator_upload_import(st.session_state, imported, filename=filename)
     st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
     st.rerun()
 
 
 def _render_generation_result(state: CalculatorState, *, output_brand: str) -> None:
+    from app_modules.calculator_generation_action import generate_itinerary_from_calculator
+    from app_modules.validation_gate import block_generation
+
     with st.spinner("Building your itinerary…"):
         result = generate_itinerary_from_calculator(st.session_state, state, output_brand=output_brand)
 

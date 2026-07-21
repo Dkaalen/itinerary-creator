@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import fields
 from datetime import date, datetime
+import re
 from typing import Any
 
 from calculator.defaults import DEFAULT_CALCULATOR_CURRENCY
-from calculator.numeric_input import optional_numeric_input, parse_numeric_input
+from calculator.numeric_input import optional_numeric_input, parse_decimal_input_strict, parse_numeric_input
 from calculator.row_model import FORMULA_OVERRIDE_FIELDS, CalculatorRow
 
 NUMERIC_FIELDS = {
@@ -35,15 +36,15 @@ def field_value(field_name: str, value: Any) -> Any:
     if field_name in BOOLEAN_FIELDS:
         return bool_value(value)
     if field_name in OPTIONAL_NUMERIC_FIELDS:
-        return optional_number_value(value)
+        return editable_number_value(value, optional=True)
     if field_name in PERCENT_UI_FIELDS:
         return percent_to_decimal(value)
     if field_name in NUMERIC_FIELDS:
-        return number_value(value)
+        return editable_number_value(value)
     return text_value(value)
 
 
-def formula_override_value(field_name: str, value: Any) -> float | None:
+def formula_override_value(field_name: str, value: Any) -> float | str | None:
     """Normalize a formula override cell value."""
 
     if value is None:
@@ -53,7 +54,7 @@ def formula_override_value(field_name: str, value: Any) -> float | None:
         return None
     if field_name in {"gp_percent", "gp_percent_override"}:
         return percent_to_decimal(text)
-    return number_value(text)
+    return editable_number_value(text, optional=True)
 
 
 def text_value(value: Any) -> str:
@@ -75,21 +76,58 @@ def optional_number_value(value: Any) -> float | None:
     return optional_numeric_input(value)
 
 
-def percent_to_decimal(value: Any) -> float:
+def editable_number_value(value: Any, *, optional: bool = False) -> float | str | None:
+    """Preserve unfinished formulas instead of silently replacing them with zero."""
+
+    if value is None:
+        return None if optional else 0.0
+    text = str(value).strip()
+    if text.casefold() in BLANK_NUMERIC_MARKERS:
+        return None if optional else 0.0
+    try:
+        parsed = parse_decimal_input_strict(value, allow_blank=optional)
+    except ValueError:
+        return text
+    if parsed is None:
+        return None if optional else 0.0
+    return float(parsed)
+
+
+def percent_to_decimal(value: Any) -> float | str:
     """Convert UI percentage input to the decimal value used by formulas."""
 
     if value is None:
         return 0.0
     text = str(value).strip()
-    number = number_value(value)
+    try:
+        parsed = parse_decimal_input_strict(value)
+    except ValueError:
+        if not text.startswith("="):
+            return text
+        expression = text[1:].strip()
+        return f"=({expression})/100"
+    number = 0.0 if parsed is None else float(parsed)
     if number == 0:
         return 0.0
     return number if "%" in text else number / 100
 
 
-def decimal_to_percent(value: Any) -> float:
+def decimal_to_percent(value: Any) -> float | str:
     """Convert formula decimal percentage to the visible grid percentage."""
 
+    if isinstance(value, str):
+        text = value.strip()
+        wrapped = re.fullmatch(r"=\((.*)\)/100", text, flags=re.DOTALL)
+        if wrapped:
+            return f"={wrapped.group(1)}"
+        try:
+            parsed = parse_decimal_input_strict(text)
+        except ValueError:
+            if not text.startswith("="):
+                return text
+            expression = text[1:].strip()
+            return f"=({expression})*100"
+        return (0.0 if parsed is None else float(parsed)) * 100
     return number_value(value) * 100
 
 
@@ -137,6 +175,7 @@ __all__ = [
     "bool_value",
     "currency_or_default",
     "decimal_to_percent",
+    "editable_number_value",
     "field_value",
     "formula_override_value",
     "number_value",

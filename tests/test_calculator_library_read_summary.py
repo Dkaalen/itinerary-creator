@@ -1,6 +1,7 @@
 from calculator.library_model import LocalLibraryRow
 from calculator.library_read_summary import summarize_local_library_read
 from calculator.library_store import LocalLibraryReadResult
+from calculator.library_workbook import LocalLibraryDiagnostic
 
 def test_summary_reports_local_excel_workbook():
     result = LocalLibraryReadResult((LocalLibraryRow(travel_element="Hotel"),), "local_excel", True)
@@ -15,3 +16,21 @@ def test_summary_reports_actionable_workbook_error():
     summary = summarize_local_library_read(result)
     assert summary.level == "error"
     assert summary.detail == "Local Library workbook is missing"
+
+
+def test_summary_reports_skipped_rows_and_warnings_without_disabling_library():
+    result = LocalLibraryReadResult(
+        (LocalLibraryRow(travel_element="Hotel"),),
+        "local_excel",
+        True,
+        diagnostics=(
+            LocalLibraryDiagnostic("invalid_record", "invalid_numeric_value", "Hotels row 9"),
+            LocalLibraryDiagnostic("warning", "invalid_currency_rate", "Curr row 3"),
+        ),
+    )
+
+    summary = summarize_local_library_read(result)
+
+    assert summary.level == "warning"
+    assert "1 invalid row was skipped" in summary.detail
+    assert "1 warning" in summary.detail

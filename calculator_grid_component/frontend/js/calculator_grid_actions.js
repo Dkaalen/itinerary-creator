@@ -192,7 +192,7 @@ function submitExcelUpload(filename, contentBase64) {
     action: 'open_excel',
     request_id: requestId,
     rows: normalizeRowsForPython(calculatorState.rows),
-    number_of_pax: positiveIntegerOrNull(calculatorState.numberOfPax),
+    number_of_pax: calculatorState.numberOfPax ?? null,
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision,
     upload_filename: String(filename || 'calculation.xlsx'),
@@ -208,7 +208,7 @@ function submitExcelUpload(filename, contentBase64) {
 function maybeAutoDownloadPreparedExcel() {
   const download = calculatorState?.pendingDownload;
   const signature = String(download?.download_signature || '');
-  if (!download?.auto_download || !download?.content_base64 || !signature) return;
+  if (!download?.content_base64 || !signature) return;
   const storageKey = `itineraryCalculatorDownloaded.${signature}`;
   try {
     if (window.sessionStorage.getItem(storageKey) === '1') return;
@@ -249,10 +249,11 @@ function submitAction(action) {
   flushLocalDraftSave();
   flushRecoverySnapshot();
   calculateRows(calculatorState.rows, calculatorState.currencyRates);
-  const errors = validateCalculatorState(calculatorState);
+  const clientHasValidationErrors = calculatorValidationErrors(calculatorState, CALCULATOR_VALIDATION_SCOPE.DISPLAY).length > 0;
+  const errors = validateCalculatorState(calculatorState, validationScopeForAction(action));
   if (errors.length) {
-    calculatorState.syncStatus = 'Fix validation errors';
-    refreshValidationAndStatus();
+    calculatorState.syncStatus = action.startsWith('generate_') ? 'Complete the highlighted itinerary fields' : 'Fix validation errors for this action';
+    refreshValidationAndStatus(false);
     return;
   }
   saveCalculatorDraft(calculatorState, activeBackendRevision);
@@ -265,9 +266,10 @@ function submitAction(action) {
     action,
     request_id: requestId,
     rows,
-    number_of_pax: positiveIntegerOrNull(calculatorState.numberOfPax),
+    number_of_pax: calculatorState.numberOfPax ?? null,
     show_advanced: calculatorState.showAdvanced,
-    client_state_revision: activeBackendRevision
+    client_state_revision: activeBackendRevision,
+    client_has_validation_errors: clientHasValidationErrors
   }));
   if (!sent) {
     cancelCalculatorRequest(requestId);

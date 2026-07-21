@@ -1,14 +1,94 @@
 let calculatorDraftStorageKey = 'itineraryCalculatorBrowserDraft.v3.global';
 const CALCULATOR_DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+const CALCULATOR_RECOVERY_SCHEMA_VERSION = 4;
+const CALCULATOR_RECOVERY_MAX_SNAPSHOTS = 20;
+const CALCULATOR_RECOVERY_STORAGE_BUDGET_BYTES = 4 * 1024 * 1024;
+const calculatorStorageWarnings = {draft: '', recovery: ''};
 
 function setCalculatorDraftStorageKey(key) {
   const value = String(key || '').trim();
-  calculatorDraftStorageKey = value || 'itineraryCalculatorBrowserDraft.v3.global';
+  const nextKey = value || 'itineraryCalculatorBrowserDraft.v3.global';
+  if (nextKey !== calculatorDraftStorageKey) {
+    calculatorStorageWarnings.draft = '';
+    calculatorStorageWarnings.recovery = '';
+  }
+  calculatorDraftStorageKey = nextKey;
   return calculatorDraftStorageKey;
 }
 
 function getCalculatorDraftStorageKey() {
   return calculatorDraftStorageKey;
+}
+
+function calculatorRecoveryStorageKey() {
+  return `${calculatorDraftStorageKey}.versions`;
+}
+
+function calculatorStorageWarningMessage() {
+  return calculatorStorageWarnings.draft || calculatorStorageWarnings.recovery || '';
+}
+
+function setCalculatorStorageWarning(kind, message) {
+  if (!(kind in calculatorStorageWarnings)) return;
+  const previous = calculatorStorageWarningMessage();
+  calculatorStorageWarnings[kind] = String(message || '');
+  const current = calculatorStorageWarningMessage();
+  if (calculatorState) calculatorState.recoveryWarning = current;
+  if (previous !== current && typeof refreshRecoveryWarningOnly === 'function') {
+    refreshRecoveryWarningOnly();
+  }
+}
+
+function calculatorUtf8Bytes(value) {
+  const text = String(value || '');
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(text).length;
+  return unescape(encodeURIComponent(text)).length;
+}
+
+function calculatorQuotaBytes(key, value) {
+  const text = `${String(key || '')}${String(value || '')}`;
+  return Math.max(calculatorUtf8Bytes(text), text.length * 2);
+}
+
+function calculatorStoredValue(key) {
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch (_error) {
+    return '';
+  }
+}
+
+function calculatorRecoveryStorageUsage(draftRaw = null, recoveryRaw = null) {
+  const resolvedDraft = draftRaw === null ? calculatorStoredValue(calculatorDraftStorageKey) : String(draftRaw || '');
+  const resolvedRecovery = recoveryRaw === null ? calculatorStoredValue(calculatorRecoveryStorageKey()) : String(recoveryRaw || '');
+  const draftBytes = calculatorUtf8Bytes(resolvedDraft);
+  const recoveryBytes = calculatorUtf8Bytes(resolvedRecovery);
+  return {
+    draftBytes,
+    recoveryBytes,
+    totalBytes: draftBytes + recoveryBytes,
+    quotaBytes: calculatorQuotaBytes(calculatorDraftStorageKey, resolvedDraft)
+      + calculatorQuotaBytes(calculatorRecoveryStorageKey(), resolvedRecovery)
+  };
+}
+
+function formatCalculatorStorageBytes(bytes) {
+  const value = Math.max(0, Number(bytes || 0));
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(value < 10240 ? 1 : 0)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function calculatorStorageErrorIsQuota(error) {
+  return Boolean(
+    error
+    && (
+      error.name === 'QuotaExceededError'
+      || error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      || Number(error.code) === 22
+      || Number(error.code) === 1014
+    )
+  );
 }
 
 function loadCalculatorDraft() {
@@ -23,35 +103,62 @@ function loadCalculatorDraft() {
     }
     return draft;
   } catch (_error) {
+    setCalculatorStorageWarning('draft', 'Browser draft recovery is unavailable because stored data could not be read.');
     return null;
   }
 }
 
+function calculatorDraftPayload(state, backendRevision) {
+  return {
+    schemaVersion: CALCULATOR_RECOVERY_SCHEMA_VERSION,
+    rows: normalizeRowsForPython(state.rows),
+    numberOfPax: state.numberOfPax ?? null,
+    showAdvanced: Boolean(state.showAdvanced),
+    selectedRowIndex: Number(state.selectedRowIndex || 0),
+    activeCell: activeCell ? {...activeCell} : null,
+    selection: state.selection ? {...state.selection} : null,
+    columnWidths: {...(state.columnWidths || {})},
+    backendRevision: String(backendRevision || ''),
+    savedAt: Date.now()
+  };
+}
+
 function saveCalculatorDraft(state, backendRevision) {
-  if (!state || !Array.isArray(state.rows)) return;
+  if (!state || !Array.isArray(state.rows)) return false;
+  const serialized = JSON.stringify(calculatorDraftPayload(state, backendRevision));
+  pruneCalculatorRecoveryForDraft(serialized);
   try {
-    window.localStorage.setItem(calculatorDraftStorageKey, JSON.stringify({
-      rows: normalizeRowsForPython(state.rows),
-      numberOfPax: state.numberOfPax ?? null,
-      showAdvanced: Boolean(state.showAdvanced),
-      selectedRowIndex: Number(state.selectedRowIndex || 0),
-      activeCell: activeCell ? {...activeCell} : null,
-      selection: state.selection ? {...state.selection} : null,
-      columnWidths: {...(state.columnWidths || {})},
-      backendRevision: String(backendRevision || ''),
-      savedAt: Date.now()
-    }));
-  } catch (_error) {
-    // localStorage can be unavailable in private mode. The grid should still work.
+    window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+    setCalculatorStorageWarning('draft', '');
+    updateCalculatorRecoveryStorageUsage();
+    return true;
+  } catch (error) {
+    if (calculatorStorageErrorIsQuota(error)) {
+      clearCalculatorRecoveryStorageOnly();
+      try {
+        window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+        setCalculatorStorageWarning('draft', '');
+        setCalculatorStorageWarning('recovery', 'Older browser recovery versions were removed to protect the current Calculator draft.');
+        updateCalculatorRecoveryStorageUsage();
+        return true;
+      } catch (_retryError) {
+        // Fall through to the visible warning below.
+      }
+    }
+    setCalculatorStorageWarning('draft', 'Browser storage is full or unavailable. The current Calculator draft could not be protected locally.');
+    updateCalculatorRecoveryStorageUsage();
+    return false;
   }
 }
 
 function clearCalculatorDraft() {
   try {
     window.localStorage.removeItem(calculatorDraftStorageKey);
+    setCalculatorStorageWarning('draft', '');
   } catch (_error) {
-    // No-op.
+    setCalculatorStorageWarning('draft', 'Browser draft recovery is unavailable because browser storage could not be changed.');
   }
+  updateCalculatorRecoveryStorageUsage();
 }
 
 function shouldRestoreCalculatorDraft(draft, incomingRows, incomingRevision) {
@@ -67,7 +174,6 @@ function gridRowsAreBlank(rows) {
   return (rows || []).every((row) => !rowHasUserContent(row));
 }
 
-
 function rowHasUserContent(row) {
   const ignored = new Set(['row_id', 'supplier_currency', 'sales_currency']);
   for (const [key, value] of Object.entries(row || {})) {
@@ -82,62 +188,221 @@ function rowHasUserContent(row) {
   return false;
 }
 
-const CALCULATOR_RECOVERY_MAX_SNAPSHOTS = 20;
+function calculatorRecoveryHash(value) {
+  const text = String(value || '');
+  let first = 0xdeadbeef ^ text.length;
+  let second = 0x41c6ce57 ^ text.length;
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    first = Math.imul(first ^ code, 2654435761);
+    second = Math.imul(second ^ code, 1597334677);
+  }
+  first = Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
+  second = Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
+  return `${(second >>> 0).toString(16).padStart(8, '0')}${(first >>> 0).toString(16).padStart(8, '0')}`;
+}
 
-function calculatorRecoveryStorageKey() {
-  return `${calculatorDraftStorageKey}.versions`;
+function calculatorRecoveryComparable(snapshot) {
+  return {
+    rows: snapshot.rows,
+    numberOfPax: snapshot.numberOfPax ?? null,
+    showAdvanced: Boolean(snapshot.showAdvanced),
+    columnWidths: {...(snapshot.columnWidths || {})}
+  };
+}
+
+function calculatorRecoverySnapshot(state, backendRevision, reason) {
+  const snapshot = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    rows: normalizeRowsForPython(state.rows),
+    numberOfPax: state.numberOfPax ?? null,
+    showAdvanced: Boolean(state.showAdvanced),
+    selectedRowIndex: Number(state.selectedRowIndex || 0),
+    activeCell: activeCell ? {...activeCell} : null,
+    selection: state.selection ? {...state.selection} : null,
+    columnWidths: {...(state.columnWidths || {})},
+    backendRevision: String(backendRevision || ''),
+    savedAt: Date.now(),
+    reason: String(reason || 'edit')
+  };
+  snapshot.hash = calculatorRecoveryHash(JSON.stringify(calculatorRecoveryComparable(snapshot)));
+  return snapshot;
+}
+
+function calculatorRecoverySnapshotLimit(snapshotBytes) {
+  const size = Math.max(0, Number(snapshotBytes || 0));
+  if (size <= 64 * 1024) return CALCULATOR_RECOVERY_MAX_SNAPSHOTS;
+  if (size <= 192 * 1024) return 14;
+  if (size <= 512 * 1024) return 8;
+  if (size <= 1024 * 1024) return 4;
+  return 2;
+}
+
+function calculatorRowsDelta(baseRows, targetRows) {
+  const source = Array.isArray(baseRows) ? baseRows : [];
+  const target = Array.isArray(targetRows) ? targetRows : [];
+  const changes = [];
+  for (let index = 0; index < target.length; index += 1) {
+    const sourceRow = source[index];
+    const targetRow = target[index];
+    if (JSON.stringify(sourceRow) !== JSON.stringify(targetRow)) changes.push([index, targetRow]);
+  }
+  return {rowCount: target.length, rowChanges: changes};
+}
+
+function applyCalculatorRowsDelta(baseRows, entry) {
+  const rowCount = Math.max(0, Number(entry.rowCount || 0));
+  const rows = cloneRows(baseRows).slice(0, rowCount);
+  while (rows.length < rowCount) rows.push({});
+  for (const change of entry.rowChanges || []) {
+    if (!Array.isArray(change) || change.length !== 2) continue;
+    const index = Number(change[0]);
+    if (!Number.isInteger(index) || index < 0 || index >= rowCount) continue;
+    rows[index] = {...(change[1] || {})};
+  }
+  return rows;
+}
+
+function calculatorRecoveryMetadata(snapshot) {
+  return {
+    id: String(snapshot.id || ''),
+    numberOfPax: snapshot.numberOfPax ?? null,
+    showAdvanced: Boolean(snapshot.showAdvanced),
+    selectedRowIndex: Number(snapshot.selectedRowIndex || 0),
+    activeCell: snapshot.activeCell ? {...snapshot.activeCell} : null,
+    selection: snapshot.selection ? {...snapshot.selection} : null,
+    columnWidths: {...(snapshot.columnWidths || {})},
+    backendRevision: String(snapshot.backendRevision || ''),
+    savedAt: Number(snapshot.savedAt || 0),
+    reason: String(snapshot.reason || 'edit'),
+    hash: String(snapshot.hash || calculatorRecoveryHash(JSON.stringify(calculatorRecoveryComparable(snapshot))))
+  };
+}
+
+function encodeCalculatorRecoverySnapshots(snapshots) {
+  const entries = [];
+  let newerSnapshot = null;
+  for (const snapshot of snapshots || []) {
+    const metadata = calculatorRecoveryMetadata(snapshot);
+    if (!newerSnapshot) {
+      entries.push({...metadata, kind: 'full', rows: snapshot.rows});
+      newerSnapshot = snapshot;
+      continue;
+    }
+    const delta = calculatorRowsDelta(newerSnapshot.rows, snapshot.rows);
+    const deltaEntry = {...metadata, kind: 'delta', ...delta};
+    const fullEntry = {...metadata, kind: 'full', rows: snapshot.rows};
+    entries.push(JSON.stringify(deltaEntry).length < JSON.stringify(fullEntry).length ? deltaEntry : fullEntry);
+    newerSnapshot = snapshot;
+  }
+  return JSON.stringify({schemaVersion: CALCULATOR_RECOVERY_SCHEMA_VERSION, entries});
+}
+
+function decodeCalculatorRecoveryPayload(parsed) {
+  if (Array.isArray(parsed)) {
+    return parsed.map((snapshot) => ({
+      ...snapshot,
+      rows: cloneRows(snapshot?.rows || []),
+      hash: String(snapshot?.hash || calculatorRecoveryHash(JSON.stringify(calculatorRecoveryComparable(snapshot || {}))))
+    }));
+  }
+  if (!parsed || Number(parsed.schemaVersion) !== CALCULATOR_RECOVERY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) return [];
+  const snapshots = [];
+  let newerRows = [];
+  for (const entry of parsed.entries) {
+    if (!entry || !entry.id) continue;
+    let rows;
+    if (entry.kind === 'full' && Array.isArray(entry.rows)) {
+      rows = cloneRows(entry.rows);
+    } else if (entry.kind === 'delta' && snapshots.length) {
+      rows = applyCalculatorRowsDelta(newerRows, entry);
+    } else {
+      continue;
+    }
+    const snapshot = {...calculatorRecoveryMetadata({...entry, rows}), rows};
+    snapshots.push(snapshot);
+    newerRows = rows;
+  }
+  return snapshots;
+}
+
+function readCalculatorRecoverySnapshots() {
+  const raw = window.localStorage.getItem(calculatorRecoveryStorageKey());
+  if (!raw) return [];
+  return decodeCalculatorRecoveryPayload(JSON.parse(raw));
 }
 
 function loadCalculatorRecoverySnapshots() {
   try {
-    const raw = window.localStorage.getItem(calculatorRecoveryStorageKey());
-    if (!raw) return [];
-    const snapshots = JSON.parse(raw);
-    if (!Array.isArray(snapshots)) return [];
     const cutoff = Date.now() - CALCULATOR_DRAFT_MAX_AGE_MS;
-    return snapshots
+    return readCalculatorRecoverySnapshots()
       .filter((snapshot) => snapshot && Array.isArray(snapshot.rows) && Number(snapshot.savedAt || 0) >= cutoff)
       .slice(0, CALCULATOR_RECOVERY_MAX_SNAPSHOTS);
   } catch (_error) {
+    setCalculatorStorageWarning('recovery', 'Browser recovery versions could not be read and will be rebuilt from the current draft.');
     return [];
   }
 }
 
-function calculatorRecoverySignature(state) {
-  return JSON.stringify({
-    rows: normalizeRowsForPython(state.rows),
-    numberOfPax: state.numberOfPax ?? null,
-    showAdvanced: Boolean(state.showAdvanced),
-    columnWidths: {...(state.columnWidths || {})}
-  });
+function calculatorRecoverySerializedWithinBudget(snapshots, draftRaw = null) {
+  let retained = [...(snapshots || [])];
+  let serialized = encodeCalculatorRecoverySnapshots(retained);
+  while (
+    retained.length
+    && calculatorRecoveryStorageUsage(draftRaw, serialized).quotaBytes > CALCULATOR_RECOVERY_STORAGE_BUDGET_BYTES
+  ) {
+    retained = retained.slice(0, -1);
+    serialized = encodeCalculatorRecoverySnapshots(retained);
+  }
+  return {snapshots: retained, serialized};
+}
+
+function writeCalculatorRecoverySnapshots(snapshots, draftRaw = null) {
+  let candidate = calculatorRecoverySerializedWithinBudget(snapshots, draftRaw);
+  while (candidate.snapshots.length) {
+    try {
+      window.localStorage.setItem(calculatorRecoveryStorageKey(), candidate.serialized);
+      setCalculatorStorageWarning('recovery', candidate.snapshots.length < snapshots.length
+        ? 'Older browser recovery versions were pruned to stay within browser storage limits.'
+        : '');
+      updateCalculatorRecoveryStorageUsage();
+      return candidate.snapshots;
+    } catch (error) {
+      if (!calculatorStorageErrorIsQuota(error)) break;
+      candidate = calculatorRecoverySerializedWithinBudget(candidate.snapshots.slice(0, -1), draftRaw);
+    }
+  }
+  clearCalculatorRecoveryStorageOnly();
+  setCalculatorStorageWarning('recovery', 'Older browser recovery versions could not be maintained. The current Calculator draft remains the priority.');
+  updateCalculatorRecoveryStorageUsage();
+  return [];
+}
+
+function pruneCalculatorRecoveryForDraft(draftRaw) {
+  let snapshots;
+  try {
+    snapshots = loadCalculatorRecoverySnapshots();
+  } catch (_error) {
+    snapshots = [];
+  }
+  if (!snapshots.length) return;
+  const candidate = calculatorRecoverySerializedWithinBudget(snapshots, draftRaw);
+  if (candidate.snapshots.length === snapshots.length) return;
+  const retained = writeCalculatorRecoverySnapshots(candidate.snapshots, draftRaw);
+  if (retained.length < snapshots.length) {
+    setCalculatorStorageWarning('recovery', 'Older browser recovery versions were pruned to protect the current Calculator draft.');
+  }
 }
 
 function saveCalculatorRecoverySnapshot(state, backendRevision, reason = 'edit') {
   if (!state || !Array.isArray(state.rows)) return [];
-  try {
-    const snapshots = loadCalculatorRecoverySnapshots();
-    const signature = calculatorRecoverySignature(state);
-    if (snapshots[0]?.signature === signature) return snapshots;
-    const snapshot = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      rows: normalizeRowsForPython(state.rows),
-      numberOfPax: state.numberOfPax ?? null,
-      showAdvanced: Boolean(state.showAdvanced),
-      selectedRowIndex: Number(state.selectedRowIndex || 0),
-      activeCell: activeCell ? {...activeCell} : null,
-      selection: state.selection ? {...state.selection} : null,
-      columnWidths: {...(state.columnWidths || {})},
-      backendRevision: String(backendRevision || ''),
-      savedAt: Date.now(),
-      reason: String(reason || 'edit'),
-      signature
-    };
-    const updated = [snapshot, ...snapshots].slice(0, CALCULATOR_RECOVERY_MAX_SNAPSHOTS);
-    window.localStorage.setItem(calculatorRecoveryStorageKey(), JSON.stringify(updated));
-    return updated;
-  } catch (_error) {
-    return [];
-  }
+  const snapshots = loadCalculatorRecoverySnapshots();
+  const snapshot = calculatorRecoverySnapshot(state, backendRevision, reason);
+  if (snapshots[0]?.hash === snapshot.hash) return snapshots;
+  const fullSnapshotBytes = calculatorUtf8Bytes(JSON.stringify(snapshot));
+  const retentionLimit = calculatorRecoverySnapshotLimit(fullSnapshotBytes);
+  const updated = [snapshot, ...snapshots].slice(0, retentionLimit);
+  return writeCalculatorRecoverySnapshots(updated);
 }
 
 function restoreCalculatorRecoverySnapshot(snapshotId) {
@@ -162,11 +427,23 @@ function restoreCalculatorRecoverySnapshot(snapshotId) {
   return true;
 }
 
-function clearCalculatorRecoverySnapshots() {
+function clearCalculatorRecoveryStorageOnly() {
   try {
     window.localStorage.removeItem(calculatorRecoveryStorageKey());
   } catch (_error) {
-    // No-op.
+    // The visible warning is set by the caller.
   }
   if (calculatorState) calculatorState.recoverySnapshots = [];
+  if (typeof refreshVersionHistoryCount === 'function') refreshVersionHistoryCount();
+}
+
+function clearCalculatorRecoverySnapshots() {
+  clearCalculatorRecoveryStorageOnly();
+  setCalculatorStorageWarning('recovery', '');
+  if (calculatorState) calculatorState.recoverySnapshots = [];
+  updateCalculatorRecoveryStorageUsage();
+}
+
+function updateCalculatorRecoveryStorageUsage() {
+  if (calculatorState) calculatorState.recoveryStorageBytes = calculatorRecoveryStorageUsage().totalBytes;
 }
