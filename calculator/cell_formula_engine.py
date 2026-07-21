@@ -7,6 +7,7 @@ import re
 from typing import Mapping, Sequence
 
 from calculator.currency_rates import normalize_currency_rates, normalized_currency_code
+from calculator.financial_rules import round_formula_result
 from calculator.numeric_input import parse_decimal_input_strict
 from calculator.precision import round_money, round_percent, round_rate
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow, CalculatedRow
@@ -178,11 +179,7 @@ class CalculatorCellFormulaEvaluator:
             override = getattr(row, override_field)
             if override is not None and override != "":
                 value = self.evaluate_expression(override, current_cell=ref)
-                if column in {"W", "AB"}:
-                    return round_rate(value)
-                if column == "AE":
-                    return round_percent(value)
-                return round_money(value)
+                return round_formula_result(formula_field, value)
 
         if column == "S":
             return round_money(self.evaluate_cell(f"Q{row_number}") * self.evaluate_cell(f"R{row_number}"))
@@ -215,6 +212,21 @@ class CalculatorCellFormulaEvaluator:
     def _currency_rate(self, code: object) -> Decimal:
         normalized = normalized_currency_code(code, default="")
         return round_rate(self.rates.get(normalized, 0.0))
+
+    def sales_price_per_unit_for_margin(self, row_number: int, margin: object) -> Decimal:
+        """Return the unit sales price required for a target GP margin."""
+
+        margin_value = parse_decimal_input_strict(margin, allow_blank=False)
+        assert margin_value is not None
+        if margin_value <= 0 or margin_value >= 1:
+            return Decimal("0")
+        units = self.evaluate_cell(f"R{row_number}")
+        sales_rate = self.evaluate_cell(f"AB{row_number}")
+        net_price_nok = self.evaluate_cell(f"X{row_number}")
+        denominator = units * sales_rate * (Decimal("1") - margin_value)
+        if denominator <= 0 or net_price_nok <= 0:
+            return Decimal("0")
+        return net_price_nok / denominator
 
 
 def formula_references(value: object) -> tuple[str, ...]:

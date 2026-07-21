@@ -18,11 +18,12 @@ from itinerary_generation.day_leisure_writer import write_leisure_copy
 from itinerary_generation.destination_profile_builder import destination_profile_for
 from itinerary_generation.route_intelligence import route_intro_for_day
 from place_aliases import country_for_place
+from shared.text import clean_space
 from text_polish import polish_title
 
 
 def _clean(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def _city(value: object) -> str:

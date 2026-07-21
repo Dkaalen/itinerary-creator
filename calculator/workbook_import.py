@@ -14,6 +14,7 @@ from zipfile import BadZipFile, ZipFile
 from calculator.calculator_state import CalculatorState
 from calculator.columns import DATA_END_ROW, DATA_START_ROW
 from calculator.formula_map import expected_row_formulas
+from calculator.financial_rules import unwrap_canonical_export_formula
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 from calculator.workbook_export_plan import FORMULA_FIELD_BY_COLUMN, ROW_VALUE_COLUMNS
 
@@ -183,7 +184,7 @@ def _field_value(field_name: str, cell: _CellData) -> object:
     if cell.formula:
         if field_name in _TEXT_FIELDS or field_name in _BOOLEAN_FIELDS:
             return cell.value if cell.value is not None else ""
-        return cell.formula
+        return unwrap_canonical_export_formula(field_name, cell.formula)
     value = cell.value
     if field_name in _BOOLEAN_FIELDS:
         if isinstance(value, bool):
@@ -217,6 +218,10 @@ def _formula_override(
     row_number: int,
 ) -> object:
     if cell.formula:
+        formula_field = _FORMULA_FIELD_BY_COLUMN.get(column, "")
+        unwrapped = unwrap_canonical_export_formula(formula_field, cell.formula)
+        if unwrapped != cell.formula:
+            return unwrapped
         return None if _known_template_formula(cell.formula, canonical_formula, column, row_number) else cell.formula
     return None if cell.value in (None, "") else cell.value
 

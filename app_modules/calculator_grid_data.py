@@ -17,6 +17,7 @@ from app_modules.calculator_grid_values import (
     text_value,
 )
 from calculator.calculations import calculate_rows
+from calculator.numeric_input import parse_decimal_input_strict
 from calculator.row_model import (
     ADVANCED_FIELD_KEYS,
     BASIC_FIELD_KEYS,
@@ -101,10 +102,7 @@ def _row_to_table_data(
     row_is_blank = row_has_no_user_values(row)
     sales_price_is_default = (
         row.sales_price_per_unit is None
-        or (
-            number_value(row.sales_price_per_unit) == 0
-            and number_value(row.gross_price_per_unit) > 0
-        )
+        or (_is_explicit_numeric_zero(row.sales_price_per_unit) and number_value(row.gross_price_per_unit) > 0)
     )
     data: dict[str, Any] = {
         "_sales_price_per_unit_touched": not sales_price_is_default,
@@ -120,7 +118,7 @@ def _row_to_table_data(
         if field_name == "sales_price_per_unit" and value is None:
             data[field_name] = "" if row_is_blank else calculated.calculated_sales_price_per_unit
             continue
-        if field_name == "sales_price_per_unit" and number_value(value) == 0 and number_value(row.gross_price_per_unit) > 0:
+        if field_name == "sales_price_per_unit" and _is_explicit_numeric_zero(value) and number_value(row.gross_price_per_unit) > 0:
             data[field_name] = calculated.calculated_sales_price_per_unit
             continue
         if row_is_blank and field_name in NUMERIC_FIELDS:
@@ -131,3 +129,13 @@ def _row_to_table_data(
             continue
         data[field_name] = value
     return data
+
+
+def _is_explicit_numeric_zero(value: object) -> bool:
+    """Return True only for a valid numeric expression that evaluates to zero."""
+
+    try:
+        parsed = parse_decimal_input_strict(value, allow_blank=False)
+    except ValueError:
+        return False
+    return parsed == 0

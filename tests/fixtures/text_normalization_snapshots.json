@@ -1,0 +1,56 @@
+{
+  "whitespace": [
+    {"input": "  Oslo\u00a0  City\r\nCentre  ", "expected": "Oslo City Centre"},
+    {"input": "Flåm\tRailway\n  and fjord cruise", "expected": "Flåm Railway and fjord cruise"},
+    {"input": "", "expected": ""}
+  ],
+  "place_keys": [
+    {"input": "Flåm", "expected": "flam"},
+    {"input": "Reykjavík", "expected": "reykjavik"},
+    {"input": "Mývatn", "expected": "myvatn"},
+    {"input": "Þingvellir", "expected": "thingvellir"},
+    {"input": "Ålesund", "expected": "alesund"},
+    {"input": "Ærø", "expected": "aero"},
+    {"input": "Höfn", "expected": "hofn"},
+    {"input": "Egilsstaðir", "expected": "egilsstadir"},
+    {"input": "Saariselkä", "expected": "saariselka"}
+  ],
+  "client_text": [
+    {"input": "Hlesinki: Private Trasnfer to Staion inclueded", "expected": "Helsinki: Private Transfer to Station included"},
+    {"input": "SOUTH COAST WHALE WATCHING", "expected": "South Coast Whale Watching"}
+  ],
+  "titles": [
+    {"input": "NORWAY IN A NUTSHELL WITH TRANSFERS", "expected": "Norway in a Nutshell"},
+    {"input": "Meet Santa Claus and His Friends", "expected": "Meet Santa Claus and his friends"},
+    {"input": "SOUTH COAST WHALE WATCHING", "expected": "South Coast Whale Watching"}
+  ],
+  "destination_title_cleanup": [
+    {"input": "Northern Lights Tour with 97% Success Rate Included", "expected": "Northern Lights Tour"},
+    {"input": "Fjord cruise with Professional Photographer Included", "expected": "Fjord cruise"}
+  ],
+  "destination_display": [
+    {"input": "Vík area", "expected": "Vík"},
+    {"input": "Tromso", "expected": "Tromsø"},
+    {"input": "Flåm area", "expected": "Flåm"}
+  ],
+  "travel_day_intro": [
+    {
+      "origin": "Oslo",
+      "destination": "Bergen",
+      "mode": "train",
+      "expected": "Travel from Oslo to Bergen by rail, with the day shaped around the move into Bergen’s coastal setting and harbour atmosphere."
+    },
+    {
+      "origin": "Bergen",
+      "destination": "Flam",
+      "mode": "coach",
+      "expected": "Travel from Bergen to Flåm by coach, with the day shaped around the move into Flåm’s coastal setting and harbour atmosphere."
+    },
+    {
+      "origin": "Tromso",
+      "destination": "Tromsø",
+      "mode": "flight",
+      "expected": "Travel to Tromsø by flight, with the day shaped around Tromsø’s Arctic landscapes and northern atmosphere."
+    }
+  ]
+}

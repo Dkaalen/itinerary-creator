@@ -32,6 +32,8 @@ compatibility surfaces only.
 
 Patch 57 removed verified-unreferenced debug/UI/render wrappers such as `app_modules/performance_telemetry_debug.py`, `app_modules/saved_project_storage_ui.py`, `pdf_exporter_modules/renderers.py`, `project_storage/status.py`, and `text_polish_modules/core.py`. Their replacement owners are direct package exports or focused implementation modules.
 
+Patch 15/28 removed the verified-unreferenced HTML wrappers `ui/day_overview_blocks.py` and `ui/transport_row_blocks.py`. Their active owners are `ui/day_blocks.py` for day-overview HTML and `itinerary_generation/transport_render_blocks.py` for transport render blocks.
+
 ## Cleanup rule
 
 A facade can only be removed when all of these are true:

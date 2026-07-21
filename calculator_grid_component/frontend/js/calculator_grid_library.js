@@ -1,39 +1,110 @@
 let preparedLibraryFingerprint = '';
+let preparedLibraryRankingVersion = '';
 let preparedLibraryBundle = null;
+let preparedNormalizationVersion = '';
+let preparedNormalizationRuntime = null;
+let preparedRankingRuntimeVersion = '';
+let preparedRankingRuntime = null;
 
-function normalizeSearchText(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replaceAll('ø', 'o')
-    .replaceAll('Ø', 'O')
-    .replaceAll('æ', 'ae')
-    .replaceAll('Æ', 'AE')
-    .replaceAll('å', 'a')
-    .replaceAll('Å', 'A')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+function normalizationRuntime(rankingSpec = {}) {
+  const version = String(rankingSpec.version || '');
+  if (version && version === preparedNormalizationVersion && preparedNormalizationRuntime) {
+    return preparedNormalizationRuntime;
+  }
+  const normalization = rankingSpec.normalization || {};
+  const runtime = {
+    unicodeForm: String(normalization.unicode_form || 'NFKD'),
+    transliteration: Object.entries(normalization.transliteration || {}).map(([source, replacement]) => (
+      [String(source), String(replacement)]
+    ))
+  };
+  if (version) {
+    preparedNormalizationVersion = version;
+    preparedNormalizationRuntime = runtime;
+  }
+  return runtime;
 }
 
-function prepareLibraryBundle(rawRows, fieldNames = [], fingerprint = '') {
+function normalizeSearchText(value, rankingSpec = {}) {
+  const runtime = normalizationRuntime(rankingSpec);
+  let text = String(value || '').toLowerCase();
+  for (const [source, replacement] of runtime.transliteration) {
+    text = text.split(source).join(replacement);
+  }
+  return text
+    .normalize(runtime.unicodeForm)
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function libraryRankingRuntime(rankingSpec = {}) {
+  const version = String(rankingSpec.version || '');
+  if (version && version === preparedRankingRuntimeVersion && preparedRankingRuntime) {
+    return preparedRankingRuntime;
+  }
+  const runtime = {
+    version,
+    minimumQueryLength: Number(rankingSpec.minimum_query_length || 2),
+    fieldRules: Array.isArray(rankingSpec.search_fields)
+      ? rankingSpec.search_fields.filter((rule) => rule && rule.name).map((rule) => ({
+          name: String(rule.name),
+          weight: Number(rule.weight || 0)
+        }))
+      : [],
+    matchWeights: Object.fromEntries(
+      Object.entries(rankingSpec.match_weights || {}).map(([key, value]) => [key, Number(value || 0)])
+    ),
+    contextWeights: Object.fromEntries(
+      Object.entries(rankingSpec.context_weights || {}).map(([key, value]) => [key, Number(value || 0)])
+    ),
+    routes: (rankingSpec.sheet_routes || []).map((route) => ({
+      sheet: normalizeSearchText(route.sheet, rankingSpec),
+      terms: (route.terms || []).map((term) => normalizeSearchText(term, rankingSpec)).filter(Boolean)
+    })),
+    aliases: (rankingSpec.cross_type_aliases || []).map((alias) => ({
+      id: String(alias.id || ''),
+      phrase: normalizeSearchText(alias.phrase, rankingSpec),
+      contextTypes: normalizedAliasValues(alias.context_types, rankingSpec),
+      contextSheets: normalizedAliasValues(alias.context_sheets, rankingSpec),
+      sourceTypes: normalizedAliasValues(alias.source_types, rankingSpec),
+      sourceSheets: normalizedAliasValues(alias.source_sheets, rankingSpec)
+    })),
+    tieBreak: Array.isArray(rankingSpec.tie_break) ? rankingSpec.tie_break.map(String) : []
+  };
+  if (version) {
+    preparedRankingRuntimeVersion = version;
+    preparedRankingRuntime = runtime;
+  }
+  return runtime;
+}
+
+function prepareLibraryBundle(rawRows, fieldNames = [], fingerprint = '', rankingSpec = {}) {
   const cacheKey = String(fingerprint || '');
-  if (cacheKey && cacheKey === preparedLibraryFingerprint && preparedLibraryBundle) {
+  const runtime = libraryRankingRuntime(rankingSpec);
+  if (
+    cacheKey
+    && cacheKey === preparedLibraryFingerprint
+    && runtime.version === preparedLibraryRankingVersion
+    && preparedLibraryBundle
+  ) {
     return preparedLibraryBundle;
   }
 
-  const rows = (rawRows || []).map((item) => expandLibraryItem(item, fieldNames));
+  const rows = (rawRows || []).map((item) => expandLibraryItem(item, fieldNames, rankingSpec, runtime));
   const bundle = {rows, index: buildLibrarySearchIndex(rows)};
   if (cacheKey) {
     preparedLibraryFingerprint = cacheKey;
+    preparedLibraryRankingVersion = runtime.version;
     preparedLibraryBundle = bundle;
   }
   return bundle;
 }
 
-function expandLibraryItem(item, fieldNames = []) {
-  if (!item || typeof item !== 'object') return prepareExpandedLibraryItem({});
-  if (!item.v || typeof item.v !== 'object') return prepareExpandedLibraryItem({...item});
+function expandLibraryItem(item, fieldNames = [], rankingSpec = {}, runtime = libraryRankingRuntime(rankingSpec)) {
+  if (!item || typeof item !== 'object') return prepareExpandedLibraryItem({}, rankingSpec, runtime);
+  if (!item.v || typeof item.v !== 'object') return prepareExpandedLibraryItem({...item}, rankingSpec, runtime);
 
   const rowData = {};
   if (Array.isArray(item.v)) {
@@ -58,10 +129,10 @@ function expandLibraryItem(item, fieldNames = []) {
     type: rowData.type,
     comments: rowData.comments,
     url: rowData.url
-  });
+  }, rankingSpec, runtime);
 }
 
-function prepareExpandedLibraryItem(item) {
+function prepareExpandedLibraryItem(item, rankingSpec = {}, runtime = libraryRankingRuntime(rankingSpec)) {
   const prepared = {...item};
   prepared.row_data = {...(item.row_data || {})};
   prepared.travel_element = item.travel_element ?? prepared.row_data.travel_element ?? '';
@@ -71,10 +142,17 @@ function prepareExpandedLibraryItem(item) {
   prepared.url = item.url ?? prepared.row_data.url ?? '';
   prepared.label = item.label || buildLibraryLabel(prepared);
   prepared.preview = item.preview || buildLibraryPreview(prepared);
-  prepared._normalized_fields = librarySearchFields(prepared).map(normalizeSearchText);
-  prepared._search_bigrams = searchBigrams(prepared._normalized_fields.join(' '));
-  prepared._normalized_sheet = normalizeSearchText(prepared.source_sheet || prepared.category);
-  prepared._normalized_type = normalizeSearchText(prepared.type || prepared.category);
+  prepared._normalized_fields = runtime.fieldRules.map((rule) => (
+    normalizeSearchText(librarySearchFieldValue(prepared, rule.name), rankingSpec)
+  ));
+  prepared._normalized_field_tokens = prepared._normalized_fields.map((text) => text.split(/\s+/).filter(Boolean));
+  prepared._normalized_search_blob = prepared._normalized_fields.join(' ');
+  prepared._search_bigrams = searchBigramsFromNormalized(prepared._normalized_search_blob);
+  prepared._normalized_sheet = normalizeSearchText(prepared.source_sheet || prepared.category, rankingSpec);
+  prepared._normalized_type = normalizeSearchText(prepared.type || prepared.category, rankingSpec);
+  prepared._normalized_country = normalizeSearchText(prepared.country, rankingSpec);
+  prepared._normalized_supplier = normalizeSearchText(prepared.supplier, rankingSpec);
+  prepared._tie_break_values = runtime.tieBreak.map((fieldName) => libraryTieBreakValue(prepared, fieldName, rankingSpec));
   return prepared;
 }
 
@@ -99,75 +177,125 @@ function buildLibraryPreview(item) {
   return parts.filter(Boolean).join(' • ').slice(0, 450);
 }
 
-function librarySearchFields(item) {
-  return [
-    item.travel_element,
-    item.supplier,
-    item.country,
-    item.category,
-    item.source_sheet,
-    item.type,
-    item.comments,
-    item.search_text,
-    item.url,
-    item.label,
-    item.preview
-  ];
+function librarySearchFieldValue(item, fieldName) {
+  if (Object.prototype.hasOwnProperty.call(item, fieldName)) return item[fieldName];
+  return (item.row_data || {})[fieldName] ?? '';
 }
 
-function scoreLibraryItem(item, query, context = {}) {
-  const normalizedQuery = normalizeSearchText(query);
-  if (normalizedQuery.length < 2) return 0;
-  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
-  const fieldWeights = [70, 42, 25, 28, 34, 34, 12, 10, 3, 12, 8];
-  const normalizedFields = item._normalized_fields || librarySearchFields(item).map(normalizeSearchText);
+function prepareLibrarySearchRequest(query, context = {}, rankingSpec = {}, runtime = libraryRankingRuntime(rankingSpec)) {
+  const normalizedQuery = normalizeSearchText(query, rankingSpec);
+  const rowType = normalizeSearchText(context.type, rankingSpec);
+  const expectedSheet = expectedLibrarySheetFromRuntime(rowType, context.travel_element, rankingSpec, runtime);
+  const aliases = runtime.aliases.filter((alias) => (
+    alias.phrase
+    && normalizedQuery.includes(alias.phrase)
+    && alias.contextTypes.includes(rowType)
+    && (!expectedSheet || alias.contextSheets.includes(expectedSheet))
+  ));
+  return {
+    normalizedQuery,
+    queryTokens: normalizedQuery.split(/\s+/).filter(Boolean),
+    rowType,
+    expectedSheet,
+    rowText: normalizeSearchText(
+      [context.travel_element, context.supplier, context.comments].filter(Boolean).join(' '),
+      rankingSpec
+    ),
+    contextSupplier: normalizeSearchText(context.supplier, rankingSpec),
+    aliases,
+    runtime
+  };
+}
+
+function scoreLibraryItem(item, query, context = {}, rankingSpec = {}) {
+  const runtime = libraryRankingRuntime(rankingSpec);
+  const request = prepareLibrarySearchRequest(query, context, rankingSpec, runtime);
+  return scorePreparedLibraryItem(item, request);
+}
+
+function scorePreparedLibraryItem(item, request) {
+  if (request.normalizedQuery.length < request.runtime.minimumQueryLength) return 0;
   let score = 0;
-  normalizedFields.forEach((text, index) => {
-    if (!text) return;
-    let fieldScore = 0;
-    for (const token of tokens) {
-      if (text === token) fieldScore += 6;
-      else if (text.startsWith(token)) fieldScore += 5;
-      else if (text.includes(token)) fieldScore += 2;
-    }
-    if (text.includes(normalizedQuery)) fieldScore += 6;
-    score += fieldScore * fieldWeights[index];
+  item._normalized_fields.forEach((text, index) => {
+    const fieldScore = libraryFieldMatchScore(
+      text,
+      item._normalized_field_tokens[index] || [],
+      request.normalizedQuery,
+      request.queryTokens,
+      request.runtime.matchWeights
+    );
+    score += fieldScore * Number(request.runtime.fieldRules[index]?.weight || 0);
   });
-  return score + contextScore(item, context);
+  return score + preparedContextScore(item, request);
 }
 
-function contextScore(item, context = {}) {
+function libraryFieldMatchScore(text, fieldTokens, normalizedQuery, queryTokens, matchWeights = {}) {
+  if (!text) return 0;
   let score = 0;
-  const rowType = normalizeSearchText(context.type);
-  const itemType = item._normalized_type || normalizeSearchText(item.type || item.category);
-  const sourceSheet = item._normalized_sheet || normalizeSearchText(item.source_sheet || item.category);
-  const expectedSheet = expectedLibrarySheet(rowType, normalizeSearchText(context.travel_element));
-  if (expectedSheet && sourceSheet) {
-    if (sourceSheet === expectedSheet) score += 1400;
-    else score -= 220;
+  if (text === normalizedQuery) score += matchWeights.query_exact || 0;
+  else if (text.startsWith(normalizedQuery)) score += matchWeights.query_prefix || 0;
+  else if (text.includes(normalizedQuery)) score += matchWeights.query_contains || 0;
+
+  for (const token of queryTokens) {
+    if (fieldTokens.includes(token)) score += matchWeights.token_exact || 0;
+    else if (fieldTokens.some((fieldToken) => fieldToken.startsWith(token))) score += matchWeights.token_prefix || 0;
+    else if (text.includes(token)) score += matchWeights.token_contains || 0;
   }
-  if (rowType && itemType) {
-    if (itemType === rowType) score += 900;
-    else if (itemType.includes(rowType) || rowType.includes(itemType)) score += 450;
-    else score -= 160;
-  }
-  const rowText = normalizeSearchText([context.travel_element, context.supplier, context.comments].filter(Boolean).join(' '));
-  const country = normalizeSearchText(item.country);
-  const supplier = normalizeSearchText(item.supplier);
-  if (country && rowText.includes(country)) score += 300;
-  if (supplier && normalizeSearchText(context.supplier) === supplier) score += 360;
-  if (supplier && rowText.includes(supplier)) score += 180;
   return score;
 }
 
-function expectedLibrarySheet(rowType, travelElement) {
-  const text = `${rowType} ${travelElement}`;
-  if (/hotel|accommodation|overnight/.test(text)) return 'hotels';
-  if (/transfer|airport|station|pickup|drop off/.test(text)) return 'transfers';
-  if (/coach|train|rail|flight|ferry|boat|transport/.test(text)) return 'transport';
-  if (/activity|tour|museum|excursion|visit|experience/.test(text)) return 'activities';
-  if (/arrival|departure|leisure|welcome/.test(text)) return 'general';
+function preparedContextScore(item, request) {
+  const weights = request.runtime.contextWeights;
+  const alias = matchingPreparedCrossTypeAlias(item, request);
+  let score = 0;
+  if (request.expectedSheet && item._normalized_sheet) {
+    if (item._normalized_sheet === request.expectedSheet) score += weights.sheet_exact || 0;
+    else if (alias) score += weights.sheet_alias || 0;
+    else score += weights.sheet_mismatch || 0;
+  }
+  if (request.rowType && item._normalized_type) {
+    if (item._normalized_type === request.rowType) score += weights.type_exact || 0;
+    else if (alias) score += weights.type_alias || 0;
+    else if (item._normalized_type.includes(request.rowType) || request.rowType.includes(item._normalized_type)) {
+      score += weights.type_partial || 0;
+    } else score += weights.type_mismatch || 0;
+  }
+  if (item._normalized_country && request.rowText.includes(item._normalized_country)) {
+    score += weights.country_in_context || 0;
+  }
+  if (item._normalized_supplier && request.contextSupplier === item._normalized_supplier) {
+    score += weights.supplier_exact || 0;
+  }
+  if (item._normalized_supplier && request.rowText.includes(item._normalized_supplier)) {
+    score += weights.supplier_in_context || 0;
+  }
+  return score;
+}
+
+function expectedLibrarySheet(rowType, travelElement, rankingSpec = {}) {
+  return expectedLibrarySheetFromRuntime(rowType, travelElement, rankingSpec, libraryRankingRuntime(rankingSpec));
+}
+
+function expectedLibrarySheetFromRuntime(rowType, travelElement, rankingSpec, runtime) {
+  const text = normalizeSearchText(`${rowType || ''} ${travelElement || ''}`, rankingSpec);
+  for (const route of runtime.routes) {
+    if (route.terms.some((term) => text.includes(term))) return route.sheet;
+  }
   return '';
+}
+
+function matchingPreparedCrossTypeAlias(item, request) {
+  for (const alias of request.aliases) {
+    if (!item._normalized_search_blob.includes(alias.phrase)) continue;
+    if (!alias.sourceTypes.includes(item._normalized_type)) continue;
+    if (!alias.sourceSheets.includes(item._normalized_sheet)) continue;
+    return alias;
+  }
+  return null;
+}
+
+function normalizedAliasValues(values, rankingSpec = {}) {
+  return (values || []).map((value) => normalizeSearchText(value, rankingSpec)).filter(Boolean);
 }
 
 function buildLibrarySearchIndex(rows) {
@@ -189,37 +317,57 @@ function addLibraryIndexValue(index, key, rowIndex) {
   else index.set(key, [rowIndex]);
 }
 
-function searchBigrams(value) {
-  const text = normalizeSearchText(value).replaceAll(' ', '_');
+function searchBigramsFromNormalized(value) {
+  const text = String(value || '').replaceAll(' ', '_');
   const result = new Set();
   if (text.length < 2) return result;
   for (let index = 0; index < text.length - 1; index += 1) result.add(text.slice(index, index + 2));
   return result;
 }
 
-function candidateLibraryIndexes(libraryRows, query, context, searchIndex) {
+function candidateLibraryIndexes(libraryRows, request, searchIndex) {
   if (!searchIndex) return libraryRows.map((_item, index) => index);
   const candidates = new Set();
-  for (const bigram of searchBigrams(query)) {
+  for (const bigram of searchBigramsFromNormalized(request.normalizedQuery)) {
     for (const index of searchIndex.bigrams.get(bigram) || []) candidates.add(index);
   }
-
-  const expectedSheet = expectedLibrarySheet(normalizeSearchText(context.type), normalizeSearchText(context.travel_element));
-  for (const index of searchIndex.sheets.get(expectedSheet) || []) candidates.add(index);
-  const rowType = normalizeSearchText(context.type);
-  for (const index of searchIndex.types.get(rowType) || []) candidates.add(index);
-
+  for (const index of searchIndex.sheets.get(request.expectedSheet) || []) candidates.add(index);
+  for (const index of searchIndex.types.get(request.rowType) || []) candidates.add(index);
   return candidates.size ? [...candidates] : libraryRows.map((_item, index) => index);
 }
 
-function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}, searchIndex = null) {
-  return candidateLibraryIndexes(libraryRows || [], query, context, searchIndex)
+function findLibrarySuggestions(libraryRows, query, limit = 8, context = {}, searchIndex = null, rankingSpec = {}) {
+  const runtime = libraryRankingRuntime(rankingSpec);
+  const request = prepareLibrarySearchRequest(query, context, rankingSpec, runtime);
+  return candidateLibraryIndexes(libraryRows || [], request, searchIndex)
     .map((index) => libraryRows[index])
     .filter(Boolean)
-    .map((item) => ({item, score: scoreLibraryItem(item, query, context)}))
+    .map((item) => ({item, score: scorePreparedLibraryItem(item, request)}))
     .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score || String(a.item.source_sheet || '').localeCompare(String(b.item.source_sheet || '')) || Number(a.item.source_row || 0) - Number(b.item.source_row || 0) || String(a.item.label || '').localeCompare(String(b.item.label || '')))
+    .sort((a, b) => b.score - a.score || compareLibraryItems(a.item, b.item, rankingSpec, runtime))
     .slice(0, limit);
+}
+
+function libraryTieBreakValue(item, fieldName, rankingSpec = {}) {
+  if (fieldName === 'source_row') {
+    const raw = item.source_row;
+    return raw !== null && raw !== undefined && String(raw).trim() !== '' && Number.isFinite(Number(raw))
+      ? Number(raw)
+      : Number.MAX_SAFE_INTEGER;
+  }
+  return normalizeSearchText(librarySearchFieldValue(item, fieldName), rankingSpec);
+}
+
+function compareLibraryItems(left, right, rankingSpec = {}, runtime = libraryRankingRuntime(rankingSpec)) {
+  const leftValues = left._tie_break_values || runtime.tieBreak.map((fieldName) => libraryTieBreakValue(left, fieldName, rankingSpec));
+  const rightValues = right._tie_break_values || runtime.tieBreak.map((fieldName) => libraryTieBreakValue(right, fieldName, rankingSpec));
+  for (let index = 0; index < runtime.tieBreak.length; index += 1) {
+    const leftValue = leftValues[index];
+    const rightValue = rightValues[index];
+    if (leftValue < rightValue) return -1;
+    if (leftValue > rightValue) return 1;
+  }
+  return 0;
 }
 
 function applyLibrarySuggestion(row, suggestion) {

@@ -61,3 +61,47 @@ def test_facade_audit_notes_are_kept_with_architecture_docs():
 
     assert "Do not delete them just because they look thin" in notes
     assert "Import search shows no app, script, or test imports remain" in notes
+
+
+def test_retired_ui_render_facades_remain_absent_and_owners_stay_available():
+    retired_modules = {"ui.day_overview_blocks", "ui.transport_row_blocks"}
+    assert all(importlib.util.find_spec(module_name) is None for module_name in retired_modules)
+
+    root = Path(__file__).resolve().parents[1]
+    production_roots = (
+        root / "app.py",
+        root / "app_modules",
+        root / "calculator",
+        root / "images",
+        root / "itinerary_domain",
+        root / "itinerary_generation",
+        root / "normalizer_modules",
+        root / "parser_modules",
+        root / "pdf_exporter_modules",
+        root / "project_storage",
+        root / "shared",
+        root / "text_polish_modules",
+        root / "ui",
+        root / "visual_editor_component",
+    )
+    production_files = []
+    for source in production_roots:
+        if source.is_file():
+            production_files.append(source)
+        elif source.exists():
+            production_files.extend(source.rglob("*.py"))
+    offenders = []
+    for source in production_files:
+        text = source.read_text(encoding="utf-8", errors="ignore")
+        for module_name in retired_modules:
+            if module_name in text or module_name.replace(".", "/") + ".py" in text:
+                offenders.append(str(source.relative_to(root)))
+    assert offenders == []
+
+    from itinerary_generation.day_overview_blocks import build_day_overview_render_block
+    from itinerary_generation.transport_render_blocks import build_transport_render_block
+    from ui.day_blocks import build_day_overview_block
+
+    assert callable(build_day_overview_render_block)
+    assert callable(build_day_overview_block)
+    assert callable(build_transport_render_block)

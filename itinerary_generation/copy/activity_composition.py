@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 from typing import Callable
 
 from itinerary_generation.activity_location_contract import activity_location_facts
 from itinerary_generation.activity_mode_contract import resolve_activity_mode
+from shared.text import clean_space
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class TextRule:
 
 
 def _normalise_text(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "").strip())
+    return clean_space(value)
 
 
 def _specific_iceland_intro(title: str, city: str, source_text: str) -> str:

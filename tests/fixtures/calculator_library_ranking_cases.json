@@ -1,0 +1,234 @@
+{
+  "normalization": [
+    {
+      "input": "Flåm / Nærøyfjord – Tour!",
+      "expected": "flam naeroyfjord tour"
+    },
+    {
+      "input": "TROMSØ, ÅLESUND & ÆRØ",
+      "expected": "tromso alesund aero"
+    },
+    {
+      "input": "  Bergen---Railway  ",
+      "expected": "bergen railway"
+    }
+  ],
+  "ranking": [
+    {
+      "name": "strong_title_match_beats_weak_supplier_match",
+      "query": "Oslo fjord cruise",
+      "context": {
+        "type": "Activity",
+        "travel_element": "Oslo fjord cruise"
+      },
+      "rows": [
+        {
+          "library_id": "weak",
+          "source_sheet": "Activities",
+          "source_row": 20,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Oslo Fjord Cruise Company",
+          "travel_element": "Generic sightseeing"
+        },
+        {
+          "library_id": "strong",
+          "source_sheet": "Activities",
+          "source_row": 21,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Vendor",
+          "travel_element": "Oslo: Fjord Cruise"
+        }
+      ],
+      "expected_ids": [
+        "strong",
+        "weak"
+      ]
+    },
+    {
+      "name": "nordic_characters_and_punctuation",
+      "query": "Flam Naeroyfjord tour",
+      "context": {
+        "type": "Activity",
+        "travel_element": "Flam Naeroyfjord tour"
+      },
+      "rows": [
+        {
+          "library_id": "flam",
+          "source_sheet": "Activities",
+          "source_row": 30,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Fjord Tours",
+          "travel_element": "Flåm: Nærøyfjord – Tour"
+        },
+        {
+          "library_id": "generic",
+          "source_sheet": "Activities",
+          "source_row": 31,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Flam Supplier",
+          "travel_element": "Generic excursion"
+        }
+      ],
+      "expected_ids": [
+        "flam",
+        "generic"
+      ]
+    },
+    {
+      "name": "supplier_country_city_and_type_context",
+      "query": "Reykjavik northern lights",
+      "context": {
+        "type": "Activity",
+        "travel_element": "Iceland Reykjavik northern lights",
+        "supplier": "Arctic Co"
+      },
+      "rows": [
+        {
+          "library_id": "context",
+          "source_sheet": "Activities",
+          "source_row": 40,
+          "country": "Iceland",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Arctic Co",
+          "travel_element": "Reykjavik: Northern Lights Tour"
+        },
+        {
+          "library_id": "wrong_type",
+          "source_sheet": "Transfers",
+          "source_row": 41,
+          "country": "Iceland",
+          "category": "Transfers",
+          "type": "Transfer",
+          "supplier": "Other",
+          "travel_element": "Reykjavik northern lights transfer"
+        },
+        {
+          "library_id": "weak_country",
+          "source_sheet": "Activities",
+          "source_row": 42,
+          "country": "Iceland",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Other",
+          "travel_element": "Generic evening tour"
+        }
+      ],
+      "expected_ids": [
+        "context",
+        "weak_country",
+        "wrong_type"
+      ]
+    },
+    {
+      "name": "intentional_duplicates_remain_separate_and_stable",
+      "query": "Bergen walking tour",
+      "context": {
+        "type": "Activity",
+        "travel_element": "Bergen walking tour"
+      },
+      "rows": [
+        {
+          "library_id": "dup-later",
+          "source_sheet": "Activities",
+          "source_row": 51,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Guide",
+          "travel_element": "Bergen: Walking Tour"
+        },
+        {
+          "library_id": "dup-first",
+          "source_sheet": "Activities",
+          "source_row": 50,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "Guide",
+          "travel_element": "Bergen: Walking Tour"
+        }
+      ],
+      "expected_ids": [
+        "dup-first",
+        "dup-later"
+      ]
+    },
+    {
+      "name": "nutshell_activity_alias",
+      "query": "Oslo Norway in a Nutshell",
+      "context": {
+        "type": "Activity",
+        "travel_element": "Oslo Norway in a Nutshell"
+      },
+      "rows": [
+        {
+          "library_id": "nutshell-oslo",
+          "source_sheet": "Transport",
+          "source_row": 7,
+          "country": "NO",
+          "category": "Transport",
+          "type": "Activity",
+          "supplier": "",
+          "travel_element": "Oslo: Norway in a Nutshell to Bergen"
+        },
+        {
+          "library_id": "generic-activity",
+          "source_sheet": "Activities",
+          "source_row": 90,
+          "country": "NO",
+          "category": "Activities",
+          "type": "Activity",
+          "supplier": "",
+          "travel_element": "Oslo: Norway sightseeing activity"
+        }
+      ],
+      "expected_ids": [
+        "nutshell-oslo",
+        "generic-activity"
+      ]
+    },
+    {
+      "name": "nutshell_transfer_alias",
+      "query": "Flam Norway in a Nutshell",
+      "context": {
+        "type": "Transfer",
+        "travel_element": "Flam Norway in a Nutshell"
+      },
+      "rows": [
+        {
+          "library_id": "nutshell-flam",
+          "source_sheet": "Transport",
+          "source_row": 9,
+          "country": "NO",
+          "category": "Transport",
+          "type": "Activity",
+          "supplier": "",
+          "travel_element": "Flåm: Norway in a Nutshell to Bergen"
+        },
+        {
+          "library_id": "generic-transfer",
+          "source_sheet": "Transfers",
+          "source_row": 90,
+          "country": "NO",
+          "category": "Transfers",
+          "type": "Transfer",
+          "supplier": "",
+          "travel_element": "Flåm: Private transfer"
+        }
+      ],
+      "expected_ids": [
+        "nutshell-flam",
+        "generic-transfer"
+      ]
+    }
+  ]
+}

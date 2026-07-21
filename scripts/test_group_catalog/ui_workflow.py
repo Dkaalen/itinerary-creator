@@ -140,22 +140,32 @@ DAY_BRAIN_TESTS = (
 )
 
 CALCULATOR_TESTS = (
+    "tests/test_calculator_architecture_guards.py",
     "tests/test_calculator_backup_action.py",
     "tests/test_calculator_calculations.py",
     "tests/test_calculator_cleanup_state.py",
     "tests/test_calculator_component_mounting.py",
     "tests/test_calculator_component_payload.py",
     "tests/test_calculator_component_result.py",
+    "tests/test_calculator_browser_editing_and_caret.py",
+    "tests/test_calculator_browser_navigation_and_focus.py",
+    "tests/test_calculator_browser_clipboard_and_paste.py",
+    "tests/test_calculator_browser_autocomplete_and_fetching.py",
+    "tests/test_calculator_browser_formulas_and_currencies.py",
+    "tests/test_calculator_browser_download_and_import.py",
+    "tests/test_calculator_browser_component_lifecycle_and_messaging.py",
+    "tests/test_calculator_browser_drafts_and_recovery.py",
     "tests/test_calculator_download_staleness.py",
-    "tests/test_calculator_fetch_lines.py",
     "tests/test_calculator_formula_map.py",
+    "tests/test_calculator_financial_parity.py",
     "tests/test_calculator_generation_action.py",
-    "tests/test_calculator_grid_autocomplete.py",
     "tests/test_calculator_grid_values.py",
     "tests/test_calculator_library_cache.py",
     "tests/test_calculator_library_read_summary.py",
     "tests/test_local_excel_library.py",
     "tests/test_calculator_library_search.py",
+    "tests/test_calculator_library_ranking_parity.py",
+    "tests/test_calculator_library_ranking_workbook.py",
     "tests/test_calculator_numeric_input.py",
     "tests/test_calculator_row_model.py",
     "tests/test_calculator_session_state.py",
@@ -166,6 +176,7 @@ CALCULATOR_TESTS = (
     "tests/test_calculator_ui_foundation.py",
     "tests/test_calculator_layout_regression.py",
     "tests/test_calculator_workbook_export.py",
+    "tests/test_calculator_workbook_package_modules.py",
 )
 
 STORAGE_TESTS = (

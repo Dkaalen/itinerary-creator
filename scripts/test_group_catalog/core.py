@@ -28,6 +28,7 @@ FAST_TESTS = (
     "tests/test_output_layout_contract.py",
     "tests/test_image_match_audit.py",
     "tests/test_text_cleanup_caching_regression.py",
+    "tests/test_text_normalization_snapshots.py",
     "tests/test_hot_path_caching_regression.py",
     "tests/test_destination_image_delivery_regression.py",
     "tests/test_fixture_quality_polish.py",

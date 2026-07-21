@@ -17,10 +17,11 @@ from typing import Iterable, Sequence
 
 from itinerary_generation.common import get_primary_city, get_row_type, has_hotel
 from itinerary_generation.copy.activity_composition import client_activity_intro, client_group_tour_intro
+from shared.text import clean_space
 
 
 def _normalise_text(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "").strip())
+    return clean_space(value)
 
 
 def _contains(text: str, *markers: str) -> bool:

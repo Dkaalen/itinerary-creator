@@ -11,10 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Iterable
-import re
-import unicodedata
 
 from place_alias_data import PLACES
+from place_alias_text import normalize_place_key
 
 from itinerary_generation.data.nordic_destination_registry_data import (
     AIR_HUB_NAMES,
@@ -314,21 +313,9 @@ def travel_destination_records(records: Iterable[NordicDestination] | None = Non
 
 
 def _normalise(value: object) -> str:
-    text = str(value or "").strip().lower()
-    text = (
-        text.replace("æ", "ae")
-        .replace("ø", "o")
-        .replace("å", "a")
-        .replace("ä", "a")
-        .replace("ö", "o")
-        .replace("ü", "u")
-        .replace("ð", "d")
-        .replace("þ", "th")
-    )
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    return " ".join(text.split())
+    """Compatibility wrapper around the canonical Nordic place-key owner."""
+
+    return normalize_place_key(value)
 
 
 @lru_cache(maxsize=1)

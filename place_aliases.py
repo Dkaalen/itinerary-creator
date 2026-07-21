@@ -23,7 +23,7 @@ from place_alias_queries import (
     kind_for_place,
     normalize_place_text,
 )
-from place_alias_text import _key, _strip_accents
+from place_alias_text import _key, _strip_accents, normalize_place_key
 
 __all__ = [
     "ALIAS_PATTERNS",
@@ -45,5 +45,6 @@ __all__ = [
     "is_known_place",
     "is_likely_service_text",
     "kind_for_place",
+    "normalize_place_key",
     "normalize_place_text",
 ]

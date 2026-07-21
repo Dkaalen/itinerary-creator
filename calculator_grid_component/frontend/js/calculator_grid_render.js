@@ -93,11 +93,11 @@ function buildSalesPriceToolsHtml(state) {
   const visible = Boolean(activeCell && activeCell.key === 'sales_price_per_unit');
   return `
     <div id="sales-price-tools" class="sales-price-tools${visible ? '' : ' hidden'}" aria-label="Sales price margin shortcuts">
-      <span>Sales margin from gross</span>
+      <span>Target GP margin</span>
       <button class="margin-shortcut" data-action="sales-margin" data-margin="0.10">10%</button>
       <button class="margin-shortcut" data-action="sales-margin" data-margin="0.15">15%</button>
       <button class="margin-shortcut" data-action="sales-margin" data-margin="0.20">20%</button>
-      <button class="margin-shortcut reset" data-action="sales-price-use-gross">Use gross</button>
+      <button class="margin-shortcut reset" data-action="sales-price-use-gross">Use automatic</button>
     </div>`;
 }
 

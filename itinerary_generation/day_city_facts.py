@@ -11,13 +11,14 @@ from typing import Any, Mapping, Sequence
 from itinerary_generation.destination_validation import is_valid_destination_city
 from itinerary_generation.transport_safety import base_destination_from_terminal
 from place_aliases import canonicalize_place_name
+from shared.text import clean_space
 from text_polish import polish_title
 
 
 def text_value(value: object) -> str:
     """Return normalized one-line text."""
 
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def row_text(row: Mapping[str, Any]) -> str:

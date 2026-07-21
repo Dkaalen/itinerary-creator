@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+from shared.text import clean_space
+
 
 _TEXT_FIXES: tuple[tuple[str, str], ...] = (
     (r"\bdate\s+depend(?:a|e)nt\b", "time to be confirmed"),
@@ -47,7 +49,7 @@ _TIME_PLACEHOLDERS = {
 
 
 def _clean_spaces(value: str) -> str:
-    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = clean_space(value)
     text = re.sub(r"\s+([,.;:])", r"\1", text)
     return text
 

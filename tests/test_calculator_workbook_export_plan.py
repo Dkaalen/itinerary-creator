@@ -63,7 +63,7 @@ def test_canonical_plan_owns_currency_rows_formulas_and_blank_rows() -> None:
     assert currency["B2"].value == "NOK"
     assert currency["C3"].value == 12
     assert cells["K7"].kind == "boolean"
-    assert cells["U7"].value == "=S7*0.75"
+    assert cells["U7"].value == "=ROUND((S7*0.75),2)"
     assert cells["Y8"].value == "=IFERROR(Q8*W8/AB8,0)"
     assert cells["B9"].kind == "blank"
     assert cells["S9"].value == "=ROUND(Q9*R9,2)"

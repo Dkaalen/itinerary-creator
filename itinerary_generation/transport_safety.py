@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from place_aliases import canonicalize_place_name
 from shared.client_text_repair import repair_messy_client_text
+from shared.text import clean_space
 from text_polish import polish_client_text, polish_title
 
 
@@ -61,7 +62,7 @@ class ClientOutputFinding:
 
 
 def _clean_space(value: str) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def normalize_transport_place(value: str) -> str:

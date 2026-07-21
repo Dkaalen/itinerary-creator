@@ -153,6 +153,21 @@ def lookup_currency_rate_decimal(
     return round_rate(rates.get(normalized_code, 0.0))
 
 
+def sales_price_per_unit_for_margin(
+    rows: tuple[CalculatorRow, ...] | list[CalculatorRow],
+    row_index: int,
+    margin: object,
+    currency_rates: Mapping[str, float] | None = None,
+) -> float:
+    """Return the sales unit price that produces the requested GP margin."""
+
+    if row_index < 0 or row_index >= len(rows):
+        return 0.0
+    evaluator = CalculatorCellFormulaEvaluator(rows, currency_rates)
+    value = evaluator.sales_price_per_unit_for_margin(7 + row_index, margin)
+    return as_float(value)
+
+
 def _sales_price_per_unit(row: CalculatorRow) -> Decimal:
     gross_price_per_unit = _decimal(row.gross_price_per_unit)
     if row.sales_price_per_unit is None:

@@ -8,6 +8,7 @@ from typing import Iterable
 
 from itinerary_generation.day_facts import DayFacts
 from itinerary_generation.day_intent import DayIntent
+from shared.text import clean_space
 
 FORBIDDEN_DAY_COPY_PHRASES: tuple[str, ...] = (
     "unhurried",
@@ -28,7 +29,7 @@ class DayCopyIssue:
 
 
 def _norm(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def _contains(text: str, phrase: str) -> bool:

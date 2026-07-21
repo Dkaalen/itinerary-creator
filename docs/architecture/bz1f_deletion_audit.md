@@ -4,7 +4,7 @@ This audit records the evidence used before removing obsolete compatibility file
 
 | Removed path | Production importers | Dynamic/string references | Replacement |
 |---|---:|---:|---|
-| `ui/transport_blocks.py` | 0 | 0 | `ui.transport_row_blocks` and `ui.travel_sequence_blocks` |
+| `ui/transport_blocks.py` | 0 | 0 | `itinerary_generation.transport_render_blocks` and `ui.travel_sequence_blocks` |
 | `visual_editor_component/app_modules/main_view.py` | 0 | 0 | `app_modules.main_view` |
 | `visual_editor_component/app_modules/export_step.py` | 0 | 0 | `app_modules.export_step` |
 | `visual_editor_component/app_modules/workflow_shell.py` | 0 | 0 | `app_modules.workflow_shell` |

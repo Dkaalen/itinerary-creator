@@ -206,9 +206,9 @@ def test_workbook_vat_totals_cover_every_data_row() -> None:
     )
     sheet = workbook["Kalk"]
 
-    assert sheet["AF101"].value == "=SUM(AF7:AF99)"
-    assert sheet["AG101"].value == "=SUM(AG7:AG99)"
-    assert sheet["AJ101"].value == "=SUM(AJ7:AJ99)"
+    assert sheet["AF101"].value == "=ROUND(SUM(AF7:AF99),2)"
+    assert sheet["AG101"].value == "=ROUND(SUM(AG7:AG99),2)"
+    assert sheet["AJ101"].value == "=ROUND(SUM(AJ7:AJ99),2)"
 
 
 def test_workbook_keeps_live_currency_lookups_unless_rate_is_overridden() -> None:

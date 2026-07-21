@@ -14,6 +14,7 @@ from typing import Any, Iterable, Mapping
 from itinerary_generation.generation_quality_gate import BLOCKING, ItineraryValidationIssue
 from itinerary_generation.schedule_occupancy import analyze_time_intervals
 from itinerary_generation.schedule_time_ranges import ParsedTimeRange, parse_time_range
+from shared.text import clean_space
 
 _INTERNAL_COPY_RE = re.compile(
     r"\b(?:raw supplier notes?|internal fallback|developer(?:-| )only|implementation detail|debug output|generated placeholder)\b",
@@ -58,7 +59,7 @@ _SUPPORTED_ENTITY_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 
 def _text(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def _normalised_place(value: object) -> str:

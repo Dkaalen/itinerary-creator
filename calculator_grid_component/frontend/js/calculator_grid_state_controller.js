@@ -9,6 +9,7 @@ const LOCAL_DRAFT_SAVE_DELAY_MS = 400;
 const RECOVERY_SNAPSHOT_DELAY_MS = 2500;
 
 function initializeState(payload) {
+  setActiveFinancialRules(payload.financial_rules || DEFAULT_FINANCIAL_RULES);
   const incomingDraftStorageKey = setCalculatorDraftStorageKey(payload.draft_storage_key);
   const incomingRevision = String(payload.state_revision || '');
   const ackOutcome = consumeCalculatorComponentAck(payload.component_ack, incomingRevision);
@@ -30,7 +31,8 @@ function initializeState(payload) {
   const libraryBundle = prepareLibraryBundle(
     payload.library_rows || [],
     payload.library_row_fields || [],
-    payload.library_fingerprint || ''
+    payload.library_fingerprint || '',
+    payload.library_ranking_spec || {}
   );
   const storedDraft = loadCalculatorDraft();
   const useStoredDraft = shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision);
@@ -40,6 +42,7 @@ function initializeState(payload) {
     numberOfPax: useStoredDraft ? storedDraft.numberOfPax ?? null : payload.number_of_pax ?? null,
     libraryRows: libraryBundle.rows,
     libraryIndex: libraryBundle.index,
+    libraryRankingSpec: payload.library_ranking_spec || {},
     currencyRates: payload.currency_rates || DEFAULT_RATES,
     libraryStatus: payload.library_status || '',
     pendingDownload: payload.pending_download || null,
@@ -86,13 +89,16 @@ function shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey) {
 }
 
 function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
+  setActiveFinancialRules(payload.financial_rules || activeFinancialRules || DEFAULT_FINANCIAL_RULES);
   const libraryBundle = prepareLibraryBundle(
     payload.library_rows || [],
     payload.library_row_fields || [],
-    payload.library_fingerprint || ''
+    payload.library_fingerprint || '',
+    payload.library_ranking_spec || calculatorState.libraryRankingSpec || {}
   );
   calculatorState.libraryRows = libraryBundle.rows;
   calculatorState.libraryIndex = libraryBundle.index;
+  calculatorState.libraryRankingSpec = payload.library_ranking_spec || calculatorState.libraryRankingSpec || {};
   calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
   calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
   // A same-revision backend render means the browser still owns newer, unsynced

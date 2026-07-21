@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "automatic_sale_with_supplier_commission",
+      "rates": {"NOK": 1, "EUR": 11, "USD": 10},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": 100,
+          "units": 2,
+          "supplier_commission": 0.2,
+          "supplier_currency": "EUR",
+          "sales_price_per_unit": null,
+          "sales_currency": "EUR",
+          "vat25": 12.345
+        }
+      ]
+    },
+    {
+      "name": "automatic_nok_to_eur_conversion",
+      "rates": {"NOK": 1, "EUR": 12.25, "USD": 10.5},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": 1200,
+          "units": 3,
+          "supplier_commission": 0,
+          "supplier_currency": "NOK",
+          "sales_price_per_unit": null,
+          "sales_currency": "EUR",
+          "vat15": 2.505
+        }
+      ]
+    },
+    {
+      "name": "manual_sale_cross_currency_and_quantity",
+      "rates": {"NOK": 1, "EUR": 12, "USD": 9.5},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": 100,
+          "units": 4,
+          "supplier_commission": 0.15,
+          "supplier_currency": "USD",
+          "sales_price_per_unit": 140,
+          "sales_currency": "EUR",
+          "vat12": 3.335,
+          "vat0_domestic": 1.005
+        }
+      ]
+    },
+    {
+      "name": "formula_rounding_and_cross_row_references",
+      "rates": {"NOK": 1, "EUR": 11.123456789, "USD": 10},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": "=404.775*12.2",
+          "units": 1,
+          "supplier_commission": "=(10+5)/100",
+          "supplier_currency": "EUR",
+          "sales_price_per_unit": "=Q7*1.25",
+          "sales_currency": "EUR",
+          "vat0_international": 4.445
+        },
+        {
+          "row_id": "2",
+          "gross_price_per_unit": "=S7/4",
+          "units": 3,
+          "supplier_commission": "=T7/2",
+          "supplier_currency": "NOK",
+          "sales_price_per_unit": null,
+          "sales_currency": "USD",
+          "price_override": "=$Q$7*R8"
+        }
+      ]
+    },
+    {
+      "name": "manual_formula_overrides_and_rate_precision",
+      "rates": {"NOK": 1, "EUR": 11.123456789, "USD": 9.876543219},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": 150,
+          "units": 2,
+          "supplier_commission": 0.1,
+          "supplier_currency": "EUR",
+          "sales_price_per_unit": null,
+          "sales_currency": "USD",
+          "net_price_override": "=S7*0.812345678",
+          "supplier_x_rate_override": "=10/3",
+          "net_price_nok_override": "=U7*W7+0.005",
+          "sales_x_rate_override": "=29/3",
+          "sales_price_nok_total_override": "=Z7*AB7+0.005",
+          "gp_nok_override": "=AC7-X7+0.005",
+          "gp_percent_override": "=1/3"
+        }
+      ]
+    },
+    {
+      "name": "half_away_rounding_and_zero_units",
+      "rates": {"NOK": 1, "EUR": 11},
+      "rows": [
+        {
+          "row_id": "1",
+          "gross_price_per_unit": 1.005,
+          "units": 1,
+          "supplier_commission": 0,
+          "supplier_currency": "NOK",
+          "sales_price_per_unit": null,
+          "sales_currency": "NOK",
+          "vat25": 0.005
+        },
+        {
+          "row_id": "2",
+          "gross_price_per_unit": -1.005,
+          "units": 1,
+          "supplier_commission": 0,
+          "supplier_currency": "NOK",
+          "sales_price_per_unit": -2.25,
+          "sales_currency": "NOK",
+          "vat25": 0.005
+        },
+        {
+          "row_id": "3",
+          "gross_price_per_unit": 100,
+          "units": 0,
+          "supplier_commission": 0,
+          "supplier_currency": "NOK",
+          "sales_price_per_unit": null,
+          "sales_currency": "NOK"
+        }
+      ]
+    }
+  ]
+}

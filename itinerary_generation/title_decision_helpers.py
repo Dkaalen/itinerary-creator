@@ -15,11 +15,12 @@ from itinerary_generation.copy_decision_contract import (
     finalize_decision,
 )
 from itinerary_generation.title_decision_contract import join_title_text
+from shared.text import clean_space
 from text_polish import polish_title
 
 
 def clean_title_value(value: object) -> str:
-    return " ".join(str(value or "").split())
+    return clean_space(value)
 
 
 def shorten_day_title(value: str) -> str:

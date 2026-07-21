@@ -33,7 +33,8 @@ function updateSuggestions(rowIndex, query) {
       text,
       8,
       calculatorState.rows[rowIndex] || {},
-      calculatorState.libraryIndex
+      calculatorState.libraryIndex,
+      calculatorState.libraryRankingSpec
     )
   };
 }

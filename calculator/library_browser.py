@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from math import ceil
 
 from calculator.library_model import LocalLibraryRow
+from calculator.library_ranking import normalize_search_text
 
 
 @dataclass(frozen=True)
@@ -140,4 +141,4 @@ def _unique_sorted(values: object) -> tuple[str, ...]:
 
 
 def _normalized(value: object) -> str:
-    return " ".join(str(value or "").casefold().split())
+    return normalize_search_text(value)

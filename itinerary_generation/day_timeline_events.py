@@ -14,6 +14,7 @@ from itinerary_generation.transport_domain.route_summary import transport_endpoi
 from itinerary_generation.transport_safety import base_destination_from_terminal
 from place_aliases import canonicalize_place_name
 from shared.source_rows import source_row_id
+from shared.text import clean_space
 from text_polish import polish_title
 
 _STATION_WORDS = ("station", "airport", "harbour", "harbor", "port", "terminal", "pier", "dock")
@@ -24,7 +25,7 @@ _TRANSPORT_TYPES = set(TRANSPORT_TYPES) | {"Transfer", "Transport", "Coach", "Bu
 
 
 def clean_event_text(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def source_text_for_event(row: Mapping[str, Any]) -> str:

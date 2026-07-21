@@ -2,18 +2,30 @@
   "candidates": [],
   "held_back": [
     {
-      "path": "app_modules/__init__.py",
+      "path": "app.py",
       "reason": "module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "production application entrypoint"
     },
     {
-      "path": "app_modules/app_version.py",
-      "reason": "module with zero production importers",
+      "path": "app_modules/calculator_open_action.py",
+      "reason": "facade-like module with production importers",
       "static_importers": [
-        "app.py"
+        "app_modules/calculator_page.py",
+        "tests/test_calculator_open_action.py",
+        "tests/test_reconstruction_authorities.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "app_modules/calculator_restore.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/calculator_open_action.py",
+        "app_modules/calculator_session_state.py",
+        "app_modules/saved_project_calculator_state.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "app_modules/export_issue_display.py",
@@ -28,7 +40,8 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "app_modules/export_actions.py",
-        "tests/test_critical_workflow_contracts.py"
+        "tests/test_critical_workflow_contracts.py",
+        "tests/test_saved_project_hardening_regression.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -39,15 +52,6 @@
         "app_modules/generation_action.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "app_modules/main_view.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "app.py",
-        "tests/test_critical_feature_smoke.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "app_modules/pdf_export_blockers.py",
@@ -72,7 +76,7 @@
         "app_modules/generation_action.py",
         "app_modules/project_save_ui.py",
         "app_modules/project_session_cleanup.py",
-        "app_modules/saved_project_load_action.py",
+        "app_modules/saved_project_restore.py",
         "tests/test_optimization_product_batch_foundation.py"
       ],
       "safety_note": "still has static importers"
@@ -115,12 +119,34 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "app_modules/saved_project_baseline_restore.py",
-      "reason": "module with zero production importers",
+      "path": "app_modules/session_state_keys.py",
+      "reason": "facade-like module with production importers",
       "static_importers": [
-        "tests/test_saved_project_hardening_regression.py"
+        "app_modules/app_header.py",
+        "app_modules/calculator_generation_action.py",
+        "app_modules/calculator_navigation.py",
+        "app_modules/generation_action.py",
+        "app_modules/image_stage_action.py",
+        "app_modules/input_generation_action.py",
+        "app_modules/project_browser_calculation_files.py",
+        "app_modules/project_browser_ui.py",
+        "app_modules/project_identity.py",
+        "app_modules/project_rename_state.py",
+        "app_modules/project_save_rollback.py",
+        "app_modules/project_save_ui.py",
+        "app_modules/project_session_cleanup.py",
+        "app_modules/project_unsaved_state.py",
+        "app_modules/saved_project_current_state.py",
+        "app_modules/saved_project_file_action.py",
+        "app_modules/saved_project_generation.py",
+        "app_modules/saved_project_load_action.py",
+        "app_modules/saved_project_restore.py",
+        "app_modules/session_transitions.py",
+        "app_modules/workflow_state.py",
+        "project_storage/workflow_hooks.py",
+        "tests/test_session_state_transitions.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "app_modules/workflow_actions.py",
@@ -139,51 +165,274 @@
     },
     {
       "path": "calculator/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/calculator_backup_action.py",
+        "app_modules/calculator_component_payload.py",
+        "app_modules/calculator_component_protocol.py",
+        "app_modules/calculator_component_result.py",
+        "app_modules/calculator_currency_controls.py",
+        "app_modules/calculator_download_action.py",
+        "app_modules/calculator_generation_action.py",
+        "app_modules/calculator_grid_data.py",
+        "app_modules/calculator_grid_values.py",
+        "app_modules/calculator_library_cache.py",
+        "app_modules/calculator_library_controls.py",
+        "app_modules/calculator_page.py",
+        "app_modules/calculator_restore.py",
+        "app_modules/calculator_session_state.py",
+        "app_modules/local_library_browser_ui.py",
+        "app_modules/local_library_status_ui.py",
+        "app_modules/pdf_filename.py",
+        "app_modules/project_rename_state.py",
+        "app_modules/project_unsaved_state.py",
+        "app_modules/saved_project_calculator_state.py",
+        "app_modules/saved_project_validation.py",
+        "calculator/calculations.py",
+        "calculator/calculator_state.py",
+        "calculator/cell_formula_engine.py",
+        "calculator/formula_map.py",
+        "calculator/library_browser.py",
+        "calculator/library_normalize.py",
+        "calculator/library_read_summary.py",
+        "calculator/library_search.py",
+        "calculator/library_store.py",
+        "calculator/library_workbook.py",
+        "calculator/row_model.py",
+        "calculator/state_serialization.py",
+        "calculator/template_structure.py",
+        "calculator/to_itinerary_input.py",
+        "calculator/validation.py",
+        "calculator/workbook_export.py",
+        "calculator/workbook_export_plan.py",
+        "calculator/workbook_import.py",
+        "calculator/workbook_package_export.py",
+        "calculator/workbook_template.py",
+        "project_storage/workflow_hooks.py",
+        "scripts/smoke_hosted_generation_path.py",
+        "tests/test_calculator_action_validation.py",
+        "tests/test_calculator_backup_action.py",
+        "tests/test_calculator_calculations.py",
+        "tests/test_calculator_cell_formulas.py",
+        "tests/test_calculator_component_payload.py",
+        "tests/test_calculator_component_protocol.py",
+        "tests/test_calculator_download_staleness.py",
+        "tests/test_calculator_formula_map.py",
+        "tests/test_calculator_frontend_parity.py",
+        "tests/test_calculator_generation_action.py",
+        "tests/test_calculator_grid_values.py",
+        "tests/test_calculator_library_cache.py",
+        "tests/test_calculator_library_read_summary.py",
+        "tests/test_calculator_library_search.py",
+        "tests/test_calculator_numeric_input.py",
+        "tests/test_calculator_open_action.py",
+        "tests/test_calculator_real_workflows.py",
+        "tests/test_calculator_row_model.py",
+        "tests/test_calculator_session_state.py",
+        "tests/test_calculator_state.py",
+        "tests/test_calculator_state_serialization.py",
+        "tests/test_calculator_template_structure.py",
+        "tests/test_calculator_to_itinerary_input.py",
+        "tests/test_calculator_ui_foundation.py",
+        "tests/test_calculator_validation.py",
+        "tests/test_calculator_workbook_export.py",
+        "tests/test_calculator_workbook_export_plan.py",
+        "tests/test_calculator_workbook_import.py",
+        "tests/test_calculator_workflow_invariant.py",
+        "tests/test_critical_workflow_contracts.py",
+        "tests/test_local_excel_library.py",
+        "tests/test_local_library_browser.py",
+        "tests/test_local_library_workbook_diagnostics.py",
+        "tests/test_project_management.py",
+        "tests/test_project_storage_foundation.py",
+        "tests/test_reconstruction_authorities.py",
+        "tests/test_saved_project_contract.py",
+        "tests/test_workflow_reliability_regression.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
       "path": "calculator/data/__init__.py",
       "reason": "module with zero production importers",
       "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "calculator/fetch_lines.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_calculator_fetch_lines.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "calculator/grid_autocomplete.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_calculator_grid_autocomplete.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "calculator/library_seed_import.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_calculator_library_seed_import.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "images/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
-      "path": "images/app_image_bank.py",
+      "path": "calculator/library_search.py",
       "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "static_importers": [
+        "tests/test_calculator_library_search.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "generator.py",
+      "reason": "facade-like module with zero production importers",
+      "static_importers": [
+        "scripts/debug_day_brain.py",
+        "scripts/real_output_qa/rendering.py",
+        "scripts/real_output_qa/scoring.py",
+        "scripts/review_day_brain_outputs.py",
+        "scripts/review_output_regression.py",
+        "tests/rendered_pdf_quality.py",
+        "tests/test_activity_catalogue_hardening_quality_gate.py",
+        "tests/test_activity_compound_stress_fixtures.py",
+        "tests/test_activity_cruise_classification.py",
+        "tests/test_activity_product_fingerprints_quality_gate.py",
+        "tests/test_architecture_consolidation.py",
+        "tests/test_broad_logic_stress_regressions.py",
+        "tests/test_client_output_quality_regression.py",
+        "tests/test_compound_experience_transport_timing.py",
+        "tests/test_content_classification_priority.py",
+        "tests/test_copy1_premium_day_intro_engine.py",
+        "tests/test_copy_decision_contracts.py",
+        "tests/test_day_brain_proof_hardening.py",
+        "tests/test_day_heading_dates.py",
+        "tests/test_day_sub_brains.py",
+        "tests/test_destination_route_journey_intelligence.py",
+        "tests/test_enforcement_gaps_regression.py",
+        "tests/test_extra_day_wrapper_rows.py",
+        "tests/test_finland_source_fidelity_regression.py",
+        "tests/test_fixture_hardening_quality_gate.py",
+        "tests/test_inclusions_preview_accommodation_transport_followups.py",
+        "tests/test_leisure_arrival_metadata_cleanup.py",
+        "tests/test_messy_transport_safety_net.py",
+        "tests/test_nordic_quality_sample.py",
+        "tests/test_norway_coastal_cruise_transfer_regression.py",
+        "tests/test_norway_source_fidelity_quality_gate.py",
+        "tests/test_nutshell_consumer_parity_regression.py",
+        "tests/test_optional_commercial_safety.py",
+        "tests/test_output_layout_contract.py",
+        "tests/test_output_qa1_client_risk_quality.py",
+        "tests/test_output_quality_and_images_regression.py",
+        "tests/test_output_quality_engine_regression.py",
+        "tests/test_premium_optional_output.py",
+        "tests/test_premium_output_regression_followup.py",
+        "tests/test_preview_pdf_parity.py",
+        "tests/test_product_rule_registry.py",
+        "tests/test_real_fixture_quality_gate.py",
+        "tests/test_real_output_quality_gate_iceland_regression.py",
+        "tests/test_regressions_content_basics.py",
+        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_parser_normalizer.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_travel_text.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/test_render_document_source_of_truth.py",
+        "tests/test_self_drive_pdf_preview_parity.py",
+        "tests/test_source_fidelity_quality_gate.py",
+        "tests/test_stress_logic_followups.py",
+        "tests/test_tallinn_excursion_wording_quality_gate.py",
+        "tests/test_text_engine_consolidation_regression.py",
+        "tests/test_transport_preview_quality_regression.py",
+        "tests/test_ui22_qc4_arc1_scroll_and_quality.py",
+        "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+        "tests/tools/quality_report.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
+      "path": "image_matcher.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "images/day_image_ui.py",
+        "images/replacement_options.py",
+        "tests/test_app_image_bank_paths.py",
+        "tests/test_image_matcher_selection.py",
+        "tests/test_image_matcher_selection_fallbacks.py",
+        "tests/test_lightweight_package_initializers.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
+      "path": "images/__init__.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/add_pictures_cta.py",
+        "app_modules/export_image_validation.py",
+        "app_modules/export_render_context.py",
+        "app_modules/export_step.py",
+        "app_modules/generation_action.py",
+        "app_modules/image_gateway_ui.py",
+        "app_modules/image_stage_action.py",
+        "app_modules/project_load_action.py",
+        "image_matcher.py",
+        "images/app_image_bank.py",
+        "images/app_image_selection.py",
+        "images/day_image_selection.py",
+        "images/day_image_ui.py",
+        "images/diagnostics.py",
+        "images/fallback.py",
+        "images/image_bank.py",
+        "images/image_bank_bootstrap.py",
+        "images/image_bank_bootstrap_status.py",
+        "images/image_bank_discovery.py",
+        "images/image_bank_fetch.py",
+        "images/image_bank_index.py",
+        "images/image_bank_scan.py",
+        "images/image_bank_settings.py",
+        "images/image_bank_status.py",
+        "images/image_match_audit.py",
+        "images/image_uploads.py",
+        "images/matcher.py",
+        "images/matcher_context.py",
+        "images/matcher_destination_context.py",
+        "images/matcher_scoring.py",
+        "images/matcher_selection.py",
+        "images/matcher_service_context.py",
+        "images/remote_archive_install.py",
+        "images/remote_distribution.py",
+        "images/remote_distribution_locking.py",
+        "images/remote_distribution_prefetch.py",
+        "images/remote_distribution_requests.py",
+        "images/remote_manifest.py",
+        "images/remote_pack_resolver.py",
+        "images/replacement_options.py",
+        "images/scanner.py",
+        "images/seasonal_policy.py",
+        "tests/test_app_image_bank_paths.py",
+        "tests/test_client_sanitizer_default_images_regression.py",
+        "tests/test_code_cleanup_hygiene_regression.py",
+        "tests/test_denmark_destination_expansion_regression.py",
+        "tests/test_destination_image_delivery_regression.py",
+        "tests/test_destination_image_profiles_visual_consistency.py",
+        "tests/test_editor_image_safety_regression.py",
+        "tests/test_finland_destination_expansion_regression.py",
+        "tests/test_finland_messy_input_fidelity.py",
+        "tests/test_hot_path_caching_regression.py",
+        "tests/test_iceland_destination_expansion_regression.py",
+        "tests/test_image_bank_bootstrap_regression.py",
+        "tests/test_image_bank_bootstrap_rollback_regression.py",
+        "tests/test_image_bank_enforcement_regression.py",
+        "tests/test_image_bank_shared_fallback_logic.py",
+        "tests/test_image_match_audit.py",
+        "tests/test_image_matcher_selection_fallbacks.py",
+        "tests/test_image_qa1_service_aware_matching.py",
+        "tests/test_itinerary_wide_image_assignment.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_norway_destination_expansion_regression.py",
+        "tests/test_output_quality_and_images_regression.py",
+        "tests/test_output_quality_engine_regression.py",
+        "tests/test_pdf_image_export_reliability.py",
+        "tests/test_picture_destination_accommodation_quality_gate.py",
+        "tests/test_preview_pdf_group_tours_regression.py",
+        "tests/test_qc_input_img_pdf_combined_regression.py",
+        "tests/test_qc_input_pdf_style_image_regression.py",
+        "tests/test_real_output_quality_gate_iceland_regression.py",
+        "tests/test_reliability_diagnostics_regression.py",
+        "tests/test_remote_image_bank_connector_regression.py",
+        "tests/test_southern_coastal_image_season_policy.py",
+        "tests/test_sweden_destination_expansion_regression.py",
+        "tests/test_ui_document_flow.py",
+        "tests/test_ui_image_bank_gateway.py",
+        "ui/day_page_sections.py",
+        "visual_editor_component/editor_payload_images.py",
+        "visual_editor_component/editor_result_days.py"
+      ],
+      "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
       "path": "images/destination_image_library.py",
@@ -191,7 +440,7 @@
       "static_importers": [
         "tests/test_qc_input_img_pdf_combined_regression.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "images/diagnostics.py",
@@ -199,7 +448,7 @@
       "static_importers": [
         "tests/test_reliability_diagnostics_regression.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "images/matcher_context.py",
@@ -207,6 +456,7 @@
       "static_importers": [
         "images/image_match_audit.py",
         "images/matcher.py",
+        "images/matcher_selection.py",
         "tests/test_denmark_destination_expansion_regression.py",
         "tests/test_destination_image_profiles_visual_consistency.py",
         "tests/test_editor_image_safety_regression.py",
@@ -242,31 +492,105 @@
       "static_importers": [
         "app_modules/export_image_validation.py",
         "app_modules/image_gateway_ui.py",
+        "images/diagnostics.py",
         "images/image_bank.py",
         "images/image_bank_bootstrap.py",
         "images/image_bank_discovery.py",
         "images/image_bank_status.py",
         "images/image_match_audit.py",
         "images/image_uploads.py",
+        "images/matcher_selection.py",
         "images/remote_manifest.py",
         "images/replacement_options.py",
         "tests/test_finland_messy_input_fidelity.py",
         "tests/test_hot_path_caching_regression.py",
+        "tests/test_reliability_diagnostics_regression.py",
         "visual_editor_component/editor_payload_images.py"
       ],
       "safety_note": "still has static importers"
     },
     {
-      "path": "images/seasonal_policy.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "path": "itinerary_domain/activity_product_rules/__init__.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/activity_products.py"
+      ],
+      "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
-      "path": "itinerary_generation/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "path": "itinerary_domain/activity_training_catalogue.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/activity_products.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/group_tour_domain.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/group_tour_parsing.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/group_tour_orphan_days.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/group_tour_parsing.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/nutshell_constants.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/nutshell_domain.py",
+        "itinerary_domain/nutshell_journey_builder.py",
+        "itinerary_domain/nutshell_model.py",
+        "itinerary_domain/nutshell_source.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/nutshell_domain.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/activity_product_rules/norway.py",
+        "itinerary_domain/nutshell_labels.py",
+        "itinerary_domain/title_routes.py",
+        "normalizer_modules/row_normalizer.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/nutshell_model.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/nutshell_domain.py",
+        "itinerary_domain/nutshell_journey_builder.py",
+        "itinerary_domain/nutshell_route_parser.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/product_rules.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/title_cleanup.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "itinerary_domain/transport_norway.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_domain/activity_product_rules/norway.py",
+        "normalizer_modules/row_normalizer.py",
+        "normalizer_modules/transport_activity_detection.py",
+        "normalizer_modules/transport_title.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/accommodation_inclusions.py",
@@ -436,7 +760,7 @@
         "app_modules/preview_rebuild.py",
         "app_modules/preview_step.py",
         "app_modules/project_load_action.py",
-        "app_modules/saved_project_load_action.py",
+        "app_modules/saved_project_restore.py",
         "app_modules/workflow_shell.py",
         "app_modules/workflow_state.py",
         "itinerary_generation/activity_titles_core.py",
@@ -526,8 +850,10 @@
         "tests/test_preview_pdf_group_tours_regression.py",
         "tests/test_project_file_mvp_regression.py",
         "tests/test_project_identity_state.py",
+        "tests/test_reconstruction_authorities.py",
         "tests/test_saved_project_hardening_regression.py",
         "tests/test_saved_project_rebuild_path_regression.py",
+        "tests/test_session_state_transitions.py",
         "tests/test_structured_core_model.py",
         "tests/test_structured_core_model_validation.py",
         "tests/test_structured_html_source_identity.py",
@@ -595,12 +921,28 @@
         "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
         "tests/tools/quality_report.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/copy/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/canonical_day_builder.py",
+        "itinerary_generation/client_text_decisions.py",
+        "itinerary_generation/day_brain_report.py",
+        "itinerary_generation/day_content_resolver.py",
+        "itinerary_generation/day_render_document_adapter.py",
+        "itinerary_generation/render_document_builder.py",
+        "scripts/real_output_qa/scoring.py",
+        "scripts/review_day_brain_outputs.py",
+        "tests/fixtures/day_brain_cases.py",
+        "tests/test_day_brain_copy.py",
+        "tests/test_day_brain_intelligence.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_output_truth_contracts.py",
+        "tests/test_real_output_quality_gate_iceland_regression.py",
+        "ui/output_edits.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
@@ -609,7 +951,7 @@
       "static_importers": [
         "scripts/real_output_qa/scoring.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/cover_theme.py",
@@ -626,58 +968,12 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "itinerary_generation/data/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
       "path": "itinerary_generation/data/nordic_destination_registry_data/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/data/nordic_destination_registry.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/common.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/denmark.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/finland.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/iceland.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/norway.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/sweden.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "itinerary_generation/data/nordic_destination_registry_data/transport.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "itinerary_generation/day_accommodation_state.py",
@@ -696,7 +992,7 @@
         "scripts/smoke_hosted_generation_path.py",
         "tests/test_day_brain_proof_hardening.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/day_copy_audit.py",
@@ -1211,12 +1507,13 @@
         "tests/test_stress_logic_followups.py",
         "tests/test_transport_preview_quality_regression.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/inclusion_transport.py",
-      "reason": "facade-like module with zero production importers",
+      "reason": "facade-like module with production importers",
       "static_importers": [
+        "itinerary_generation/inclusion_sections.py",
         "tests/test_fixture_quality_polish.py"
       ],
       "safety_note": "still has static importers"
@@ -1250,7 +1547,7 @@
       "static_importers": [
         "app_modules/generation_action.py",
         "app_modules/project_load_action.py",
-        "app_modules/saved_project_load_action.py",
+        "app_modules/saved_project_restore.py",
         "tests/test_accept_supplier_corrections_regression.py",
         "tests/test_qc_input_img_pdf_combined_regression.py",
         "tests/test_qc_input_pdf_style_image_regression.py",
@@ -1398,8 +1695,10 @@
     },
     {
       "path": "itinerary_generation/public_api.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "generator.py"
+      ],
       "safety_note": "documented public compatibility surface"
     },
     {
@@ -1424,6 +1723,7 @@
         "scripts/real_output_qa/scoring.py",
         "tests/test_activity_catalogue_hardening_quality_gate.py",
         "tests/test_client_sanitizer_default_images_regression.py",
+        "tests/test_correctness_diagnostics_regression.py",
         "tests/test_generation_architecture_cleanup.py",
         "tests/test_group_tour_rendering_regression.py",
         "tests/test_image_bank_enforcement_regression.py",
@@ -1456,7 +1756,7 @@
         "tests/test_iceland_group_tour_parsing_regression.py",
         "tests/test_reference_corpus_regression.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/schedule_occupancy.py",
@@ -1473,7 +1773,7 @@
       "static_importers": [
         "tests/test_architecture_consolidation.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/structured_builder.py",
@@ -1689,8 +1989,58 @@
     },
     {
       "path": "itinerary_generation/transport_domain/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/day_intro_classification.py",
+        "itinerary_generation/day_intro_writer.py",
+        "itinerary_generation/day_planner.py",
+        "itinerary_generation/day_route_text.py",
+        "itinerary_generation/day_timeline_events.py",
+        "itinerary_generation/day_title_planner.py",
+        "itinerary_generation/day_travel_facts.py",
+        "itinerary_generation/destination_helpers.py",
+        "itinerary_generation/exclusion_row_rules.py",
+        "itinerary_generation/inclusion_transport.py",
+        "itinerary_generation/render_document_builder.py",
+        "itinerary_generation/route_intelligence.py",
+        "itinerary_generation/structured_inclusions.py",
+        "itinerary_generation/title_brain.py",
+        "itinerary_generation/transport.py",
+        "itinerary_generation/transport_detection.py",
+        "itinerary_generation/transport_domain/coastal_cruise_render.py",
+        "itinerary_generation/transport_domain/exclusions.py",
+        "itinerary_generation/transport_domain/inclusions.py",
+        "itinerary_generation/transport_domain/model.py",
+        "itinerary_generation/transport_domain/render.py",
+        "itinerary_generation/transport_domain/render_arrangements.py",
+        "itinerary_generation/transport_domain/render_sequences.py",
+        "itinerary_generation/transport_domain/render_special_routes.py",
+        "itinerary_generation/transport_domain/route_points.py",
+        "itinerary_generation/transport_domain/route_summary.py",
+        "itinerary_generation/transport_domain/routes.py",
+        "itinerary_generation/transport_domain/titles.py",
+        "itinerary_generation/transport_routes.py",
+        "itinerary_generation/transport_titles.py",
+        "itinerary_generation/travel_sequence_blocks.py",
+        "normalizer_modules/transport_title.py",
+        "parser_modules/common.py",
+        "parser_modules/transport_titles.py",
+        "scripts/real_output_qa/scoring.py",
+        "tests/test_booknordics_preview_pdf_parity_polish.py",
+        "tests/test_destination_image_profiles_visual_consistency.py",
+        "tests/test_destination_route_journey_intelligence.py",
+        "tests/test_finland_source_fidelity_regression.py",
+        "tests/test_fixture_hardening_quality_gate.py",
+        "tests/test_itinerary_stability_fidelity_repair.py",
+        "tests/test_output_truth_contracts.py",
+        "tests/test_premium_output_regression_followup.py",
+        "tests/test_premium_output_upgrade.py",
+        "tests/test_route_truth_precedence.py",
+        "tests/test_scandinavian_winter_quality_regressions.py",
+        "tests/test_source_fidelity_commercial_status_regression.py",
+        "tests/test_structural_cleanup_tools.py",
+        "tests/test_transport_domain_regression.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
@@ -1699,7 +2049,7 @@
       "static_importers": [
         "tests/test_transport_domain_regression.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "itinerary_generation/transport_domain/render.py",
@@ -1779,15 +2129,197 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "itinerary_parser.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/parse_workflow.py",
+        "itinerary_generation/time_display.py",
+        "scripts/benchmark_text_cleanup.py",
+        "scripts/debug_day_brain.py",
+        "scripts/real_output_qa/rendering.py",
+        "scripts/review_day_brain_outputs.py",
+        "scripts/review_output_regression.py",
+        "scripts/vipin_corpus/parser_runner.py",
+        "tests/rendered_pdf_quality.py",
+        "tests/test_accommodation_stress_fixtures.py",
+        "tests/test_activity_catalogue_and_qa_regression.py",
+        "tests/test_activity_catalogue_hardening_quality_gate.py",
+        "tests/test_activity_compound_stress_fixtures.py",
+        "tests/test_activity_cruise_classification.py",
+        "tests/test_activity_product_fingerprints_quality_gate.py",
+        "tests/test_activity_training_catalogue_regression.py",
+        "tests/test_architecture_consolidation.py",
+        "tests/test_broad_logic_stress_regressions.py",
+        "tests/test_calculator_to_itinerary_input.py",
+        "tests/test_client_output_quality_regression.py",
+        "tests/test_client_sanitizer_default_images_regression.py",
+        "tests/test_compound_experience_transport_timing.py",
+        "tests/test_content_classification_priority.py",
+        "tests/test_copy_decision_contracts.py",
+        "tests/test_corpus_driven_hotel_parser_regression.py",
+        "tests/test_corpus_driven_parser_fixes_regression.py",
+        "tests/test_cover_background_selection.py",
+        "tests/test_day_brain_proof_hardening.py",
+        "tests/test_day_sub_brains.py",
+        "tests/test_destination_route_journey_intelligence.py",
+        "tests/test_extra_day_wrapper_rows.py",
+        "tests/test_finland_source_fidelity_regression.py",
+        "tests/test_finland_transport_regressions.py",
+        "tests/test_fixture_hardening_quality_gate.py",
+        "tests/test_group_tour_domain_regression.py",
+        "tests/test_group_tour_rendering_regression.py",
+        "tests/test_iceland_group_tour_parsing_regression.py",
+        "tests/test_inclusions_preview_accommodation_transport_followups.py",
+        "tests/test_leisure_arrival_metadata_cleanup.py",
+        "tests/test_messy_transport_safety_net.py",
+        "tests/test_nordic_quality_sample.py",
+        "tests/test_norway_coastal_cruise_transfer_regression.py",
+        "tests/test_norway_source_fidelity_quality_gate.py",
+        "tests/test_nutshell_characterization_regression.py",
+        "tests/test_nutshell_consumer_parity_regression.py",
+        "tests/test_nutshell_domain_regression.py",
+        "tests/test_optional_commercial_safety.py",
+        "tests/test_output_layout_contract.py",
+        "tests/test_output_quality_and_images_regression.py",
+        "tests/test_output_quality_engine_regression.py",
+        "tests/test_premium_optional_output.py",
+        "tests/test_premium_output_regression_followup.py",
+        "tests/test_preview_pdf_group_tours_regression.py",
+        "tests/test_preview_pdf_parity.py",
+        "tests/test_qc_input_img_pdf_combined_regression.py",
+        "tests/test_real_fixture_quality_gate.py",
+        "tests/test_real_output_quality_gate_iceland_regression.py",
+        "tests/test_regressions_content_basics.py",
+        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_parser_normalizer.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_travel_text.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/test_render_document_source_of_truth.py",
+        "tests/test_self_drive_pdf_preview_parity.py",
+        "tests/test_self_drive_truth_contract.py",
+        "tests/test_source_fidelity_quality_gate.py",
+        "tests/test_stress_logic_followups.py",
+        "tests/test_tallinn_excursion_wording_quality_gate.py",
+        "tests/test_transport_preview_quality_regression.py",
+        "tests/test_vipin_messy_excel_rows_regression.py",
+        "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+        "tests/tools/quality_report.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
+      "path": "normalizer.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/parse_workflow.py",
+        "scripts/benchmark_text_cleanup.py",
+        "scripts/real_output_qa/rendering.py",
+        "tests/rendered_pdf_quality.py",
+        "tests/test_accommodation_stress_fixtures.py",
+        "tests/test_activity_catalogue_and_qa_regression.py",
+        "tests/test_activity_catalogue_hardening_quality_gate.py",
+        "tests/test_activity_compound_stress_fixtures.py",
+        "tests/test_activity_cruise_classification.py",
+        "tests/test_activity_product_fingerprints_quality_gate.py",
+        "tests/test_activity_training_catalogue_regression.py",
+        "tests/test_architecture_consolidation.py",
+        "tests/test_broad_logic_stress_regressions.py",
+        "tests/test_client_output_quality_regression.py",
+        "tests/test_client_sanitizer_default_images_regression.py",
+        "tests/test_compound_experience_transport_timing.py",
+        "tests/test_content_classification_priority.py",
+        "tests/test_copy_decision_contracts.py",
+        "tests/test_cover_background_selection.py",
+        "tests/test_destination_route_journey_intelligence.py",
+        "tests/test_extra_day_wrapper_rows.py",
+        "tests/test_finland_source_fidelity_regression.py",
+        "tests/test_finland_transport_regressions.py",
+        "tests/test_fixture_hardening_quality_gate.py",
+        "tests/test_group_tour_domain_regression.py",
+        "tests/test_group_tour_rendering_regression.py",
+        "tests/test_iceland_group_tour_parsing_regression.py",
+        "tests/test_inclusions_preview_accommodation_transport_followups.py",
+        "tests/test_leisure_arrival_metadata_cleanup.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_messy_transport_safety_net.py",
+        "tests/test_nordic_quality_sample.py",
+        "tests/test_norway_coastal_cruise_transfer_regression.py",
+        "tests/test_norway_source_fidelity_quality_gate.py",
+        "tests/test_nutshell_characterization_regression.py",
+        "tests/test_nutshell_consumer_parity_regression.py",
+        "tests/test_nutshell_cover_toolbar_regression.py",
+        "tests/test_nutshell_domain_regression.py",
+        "tests/test_nutshell_fjordtours_regression.py",
+        "tests/test_optional_commercial_safety.py",
+        "tests/test_output_layout_contract.py",
+        "tests/test_output_quality_and_images_regression.py",
+        "tests/test_output_quality_engine_regression.py",
+        "tests/test_premium_optional_output.py",
+        "tests/test_premium_output_regression_followup.py",
+        "tests/test_preview_pdf_group_tours_regression.py",
+        "tests/test_preview_pdf_parity.py",
+        "tests/test_real_fixture_quality_gate.py",
+        "tests/test_real_output_quality_gate_iceland_regression.py",
+        "tests/test_regressions_content_basics.py",
+        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_parser_normalizer.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_travel_text.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/test_render_document_source_of_truth.py",
+        "tests/test_self_drive_pdf_preview_parity.py",
+        "tests/test_self_drive_truth_contract.py",
+        "tests/test_source_fidelity_quality_gate.py",
+        "tests/test_stress_logic_followups.py",
+        "tests/test_tallinn_excursion_wording_quality_gate.py",
+        "tests/test_transport_preview_quality_regression.py",
+        "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+        "tests/tools/quality_report.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
       "path": "normalizer_modules/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "normalizer.py",
+        "normalizer_modules/activities.py",
+        "normalizer_modules/context.py",
+        "normalizer_modules/core.py",
+        "normalizer_modules/hotel_amenities.py",
+        "normalizer_modules/hotel_names.py",
+        "normalizer_modules/hotel_rooms.py",
+        "normalizer_modules/hotel_row.py",
+        "normalizer_modules/hotels.py",
+        "normalizer_modules/rental.py",
+        "normalizer_modules/row_classification.py",
+        "normalizer_modules/row_normalizer.py",
+        "normalizer_modules/times.py",
+        "normalizer_modules/transport_activity_detection.py",
+        "normalizer_modules/transport_title.py",
+        "normalizer_modules/transport_transfer_detection.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_normalizer_context_architecture.py",
+        "tests/test_picture_destination_accommodation_quality_gate.py",
+        "tests/test_scandinavian_winter_quality_regressions.py",
+        "tests/test_source_fidelity_commercial_status_regression.py",
+        "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
+        "ui/output_edits.py"
+      ],
+      "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
       "path": "normalizer_modules/core.py",
       "reason": "facade-like module with zero production importers",
       "static_importers": [
+        "tests/test_lightweight_package_initializers.py",
         "tests/test_normalizer_context_architecture.py",
         "tests/test_picture_destination_accommodation_quality_gate.py",
         "tests/test_source_fidelity_commercial_status_regression.py",
@@ -1843,12 +2375,6 @@
         "normalizer_modules/row_normalizer.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "parser_modules/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "parser_modules/common.py",
@@ -1935,22 +2461,17 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "parser_modules/parser_main.py",
-      "reason": "module with zero production importers",
+      "path": "parser_modules/time_parsing.py",
+      "reason": "facade-like module with production importers",
       "static_importers": [
         "itinerary_parser.py",
-        "tests/test_copy1_premium_day_intro_engine.py",
-        "tests/test_itinerary_stability_fidelity_repair.py",
-        "tests/test_nutshell_cover_toolbar_regression.py",
-        "tests/test_nutshell_fjordtours_regression.py",
-        "tests/test_output_qa1_client_risk_quality.py",
-        "tests/test_picture_destination_accommodation_quality_gate.py",
-        "tests/test_regressions_parser_normalizer.py",
-        "tests/test_source_fidelity_commercial_status_regression.py",
-        "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
-        "tests/test_ui22_qc4_arc1_scroll_and_quality.py"
+        "parser_modules/detail_extractors.py",
+        "parser_modules/extract_time.py",
+        "parser_modules/list_parsing.py",
+        "parser_modules/row_text_standardization.py",
+        "parser_modules/title_cleanup.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "parser_modules/transport_titles.py",
@@ -1970,67 +2491,120 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "pdf_exporter.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "tests/rendered_pdf_quality.py",
+        "tests/test_finland_source_fidelity_regression.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_pdf.py",
+        "tests/test_pdf_day_layout_regression.py",
+        "tests/test_pdf_render_model_regression.py",
+        "tests/test_preview_pdf_parity.py",
+        "tests/test_self_drive_pdf_preview_parity.py",
+        "ui/export_files.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
       "path": "pdf_exporter_modules/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "pdf_exporter.py",
+        "pdf_exporter_modules/background_flowables.py",
+        "pdf_exporter_modules/cover_page.py",
+        "pdf_exporter_modules/day_images.py",
+        "pdf_exporter_modules/day_page_guard.py",
+        "pdf_exporter_modules/decorative_flowables.py",
+        "pdf_exporter_modules/exporter.py",
+        "pdf_exporter_modules/image_flowables.py",
+        "pdf_exporter_modules/image_layout.py",
+        "pdf_exporter_modules/pdf_cover_renderer.py",
+        "pdf_exporter_modules/pdf_day_renderer.py",
+        "pdf_exporter_modules/pdf_final_section_renderer.py",
+        "pdf_exporter_modules/pdf_html_fallback.py",
+        "pdf_exporter_modules/pdf_image_prewarm.py",
+        "pdf_exporter_modules/pdf_image_renderer.py",
+        "pdf_exporter_modules/pdf_internal_review_appendix.py",
+        "pdf_exporter_modules/pdf_style_base.py",
+        "pdf_exporter_modules/pdf_style_cover.py",
+        "pdf_exporter_modules/pdf_style_day.py",
+        "pdf_exporter_modules/pdf_style_summary.py",
+        "pdf_exporter_modules/pdf_style_tables.py",
+        "pdf_exporter_modules/pdf_summary_renderer.py",
+        "pdf_exporter_modules/pdf_supported_html_renderer.py",
+        "pdf_exporter_modules/public_api.py",
+        "pdf_exporter_modules/render_content.py",
+        "pdf_exporter_modules/render_content_blocks.py",
+        "pdf_exporter_modules/render_controlled_content.py",
+        "pdf_exporter_modules/render_cover.py",
+        "pdf_exporter_modules/render_flowables.py",
+        "pdf_exporter_modules/render_glance.py",
+        "pdf_exporter_modules/render_inclusion_content.py",
+        "pdf_exporter_modules/render_pages.py",
+        "pdf_exporter_modules/render_tables.py",
+        "pdf_exporter_modules/render_text.py",
+        "pdf_exporter_modules/same_page_image_flowable.py",
+        "pdf_exporter_modules/story.py",
+        "pdf_exporter_modules/styles.py",
+        "pdf_exporter_modules/typed_exporter.py",
+        "scripts/benchmark_text_cleanup.py",
+        "tests/test_booknordics_cover_contrast_speed.py",
+        "tests/test_booknordics_preview_pdf_parity_polish.py",
+        "tests/test_brand1_proposal_profiles.py",
+        "tests/test_cleanup_final_regression.py",
+        "tests/test_correctness_diagnostics_regression.py",
+        "tests/test_day_heading_dates.py",
+        "tests/test_destination_copy_profiles3_regression.py",
+        "tests/test_destination_image_profiles_visual_consistency.py",
+        "tests/test_editor_styling_regression.py",
+        "tests/test_group_tour_rendering_regression.py",
+        "tests/test_lightweight_package_initializers.py",
+        "tests/test_optimization_product_batch_foundation.py",
+        "tests/test_output_brand_theme.py",
+        "tests/test_pdf.py",
+        "tests/test_pdf6_luxury_proposal.py",
+        "tests/test_pdf7_proposal_footer.py",
+        "tests/test_pdf8_luxury_day_layout.py",
+        "tests/test_pdf_cover_page_shared.py",
+        "tests/test_pdf_creation_flow_and_layout_cleanup.py",
+        "tests/test_pdf_day_layout_regression.py",
+        "tests/test_preview_pdf_group_tours_regression.py",
+        "tests/test_preview_pdf_parity_regression.py",
+        "tests/test_qc_input_img_pdf_combined_regression.py",
+        "tests/test_sync_regression_suite1.py",
+        "ui/export_files.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
-    },
-    {
-      "path": "pdf_exporter_modules/background_flowables.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_correctness_diagnostics_regression.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/day_images.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/decorative_flowables.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_pdf8_luxury_day_layout.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "pdf_exporter_modules/exporter.py",
       "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "static_importers": [
+        "tests/test_lightweight_package_initializers.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "pdf_exporter_modules/image_flowables.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
+        "pdf_exporter_modules/cover_page.py",
+        "pdf_exporter_modules/day_images.py",
         "pdf_exporter_modules/pdf_image_renderer.py",
-        "pdf_exporter_modules/pdf_summary_renderer.py"
+        "pdf_exporter_modules/pdf_summary_renderer.py",
+        "pdf_exporter_modules/render_glance.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "pdf_exporter_modules/image_paths.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "pdf_exporter_modules/pdf_reportlab_config.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
+        "pdf_exporter_modules/exporter.py",
         "pdf_exporter_modules/typed_exporter.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "pdf_exporter_modules/pdf_style_tokens.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "pdf_exporter_modules/pdf_supported_html_renderer.py",
@@ -2043,14 +2617,18 @@
     },
     {
       "path": "pdf_exporter_modules/public_api.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "pdf_exporter.py",
+        "tests/test_lightweight_package_initializers.py"
+      ],
       "safety_note": "documented public compatibility surface"
     },
     {
       "path": "pdf_exporter_modules/render_content.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
+        "pdf_exporter_modules/exporter.py",
         "pdf_exporter_modules/pdf_supported_html_renderer.py",
         "tests/test_destination_copy_profiles3_regression.py",
         "tests/test_editor_styling_regression.py",
@@ -2059,68 +2637,19 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "pdf_exporter_modules/render_content_blocks.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/render_controlled_content.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/render_cover.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_pdf_cover_page_shared.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
       "path": "pdf_exporter_modules/render_flowables.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
+        "pdf_exporter_modules/cover_page.py",
         "pdf_exporter_modules/pdf_final_section_renderer.py",
         "pdf_exporter_modules/pdf_internal_review_appendix.py",
-        "pdf_exporter_modules/pdf_summary_renderer.py"
+        "pdf_exporter_modules/pdf_summary_renderer.py",
+        "pdf_exporter_modules/render_controlled_content.py",
+        "pdf_exporter_modules/render_glance.py",
+        "pdf_exporter_modules/render_inclusion_content.py",
+        "pdf_exporter_modules/render_pages.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "pdf_exporter_modules/render_glance.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_pdf6_luxury_proposal.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/render_inclusion_content.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/render_pages.py",
-      "reason": "module with zero production importers",
-      "static_importers": [
-        "tests/test_pdf_creation_flow_and_layout_cleanup.py"
-      ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/render_tables.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "pdf_exporter_modules/same_page_image_flowable.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "pdf_exporter_modules/typed_exporter.py",
@@ -2130,6 +2659,7 @@
         "tests/test_destination_copy_profiles3_regression.py",
         "tests/test_destination_image_profiles_visual_consistency.py",
         "tests/test_group_tour_rendering_regression.py",
+        "tests/test_lightweight_package_initializers.py",
         "tests/test_pdf_cover_page_shared.py",
         "tests/test_preview_pdf_group_tours_regression.py",
         "tests/test_sync_regression_suite1.py"
@@ -2137,15 +2667,270 @@
       "safety_note": "still has static importers"
     },
     {
+      "path": "place_alias_data.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/data/nordic_destination_registry.py",
+        "itinerary_generation/data/nordic_destination_registry_data/transport.py",
+        "place_alias_maps.py",
+        "place_alias_queries.py",
+        "place_aliases.py",
+        "tests/test_destination_registry_regression.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "place_aliases.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "images/remote_pack_resolver.py",
+        "itinerary_domain/activity_product_text.py",
+        "itinerary_domain/activity_training_loader.py",
+        "itinerary_domain/activity_training_matcher.py",
+        "itinerary_domain/activity_training_validation.py",
+        "itinerary_domain/group_tour_day_parser.py",
+        "itinerary_domain/nutshell_cleaning.py",
+        "itinerary_domain/nutshell_parsing.py",
+        "itinerary_domain/nutshell_route_parser.py",
+        "itinerary_domain/title_cleanup.py",
+        "itinerary_generation/activity_descriptions.py",
+        "itinerary_generation/activity_identity_descriptions.py",
+        "itinerary_generation/activity_location_contract.py",
+        "itinerary_generation/day_arrival_text.py",
+        "itinerary_generation/day_city_facts.py",
+        "itinerary_generation/day_intro_writer.py",
+        "itinerary_generation/day_timeline_events.py",
+        "itinerary_generation/day_title_planner.py",
+        "itinerary_generation/description_composer.py",
+        "itinerary_generation/description_templates.py",
+        "itinerary_generation/destination_helpers.py",
+        "itinerary_generation/destination_validation.py",
+        "itinerary_generation/group_tour_accommodation.py",
+        "itinerary_generation/group_tour_render_inclusions.py",
+        "itinerary_generation/group_tour_render_titles.py",
+        "itinerary_generation/route_formatter.py",
+        "itinerary_generation/title_intent_decisions.py",
+        "itinerary_generation/transport_domain/inclusions.py",
+        "itinerary_generation/transport_domain/route_cleaning.py",
+        "itinerary_generation/transport_domain/routes.py",
+        "itinerary_generation/transport_domain/titles.py",
+        "itinerary_generation/transport_safety.py",
+        "normalizer_modules/activities.py",
+        "normalizer_modules/context.py",
+        "normalizer_modules/hotel_names.py",
+        "normalizer_modules/row_classification.py",
+        "normalizer_modules/row_normalizer.py",
+        "parser_modules/city_inference.py",
+        "parser_modules/common.py",
+        "parser_modules/contextual_city.py",
+        "parser_modules/detail_extractors.py",
+        "parser_modules/list_parsing.py",
+        "parser_modules/place_parsing.py",
+        "parser_modules/row_enrichment_steps.py",
+        "parser_modules/row_text_standardization.py",
+        "parser_modules/text_cleanup.py",
+        "parser_modules/title_cleanup.py",
+        "scripts/reference_corpus_build/common.py",
+        "tests/test_regressions_parser_normalizer.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
       "path": "project_storage/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/export_actions.py",
+        "app_modules/generation_action.py",
+        "app_modules/project_browser_calculation_files.py",
+        "app_modules/project_browser_ui.py",
+        "app_modules/project_save_ui.py",
+        "project_storage/http_client.py",
+        "project_storage/project_browser.py",
+        "project_storage/project_management.py",
+        "project_storage/repository.py",
+        "project_storage/runtime.py",
+        "project_storage/workflow_hooks.py",
+        "tests/test_failure_mode_regressions.py",
+        "tests/test_foundation_cleanup_regression.py",
+        "tests/test_project_cloud_lifecycle_hardening.py",
+        "tests/test_project_management.py",
+        "tests/test_project_storage_file_writer.py",
+        "tests/test_project_storage_foundation.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
+      "path": "shared/client_text_repair.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/transport_safety.py",
+        "normalizer_modules/row_normalizer.py",
+        "tests/test_structural_cleanup_tools.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "shared/place_label_policy.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "itinerary_generation/destination_validation.py",
+        "normalizer_modules/context.py",
+        "normalizer_modules/row_classification.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "shared/text_cleanup_cache.py",
+      "reason": "module with zero production importers",
+      "static_importers": [
+        "scripts/benchmark_text_cleanup.py",
+        "tests/test_text_cleanup_caching_regression.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "text_polish.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/render_final_sections_html.py",
+        "images/image_uploads.py",
+        "itinerary_domain/activity_product_rules/nordic.py",
+        "itinerary_domain/activity_product_text.py",
+        "itinerary_domain/activity_training_loader.py",
+        "itinerary_domain/activity_training_text.py",
+        "itinerary_domain/group_tour_commercial_items.py",
+        "itinerary_domain/group_tour_day_parser.py",
+        "itinerary_domain/group_tour_master_rows.py",
+        "itinerary_domain/group_tour_optional_extras.py",
+        "itinerary_domain/group_tour_supplier_titles.py",
+        "itinerary_domain/nutshell_cleaning.py",
+        "itinerary_domain/nutshell_parsing.py",
+        "itinerary_domain/nutshell_route_parsing.py",
+        "itinerary_domain/tallinn.py",
+        "itinerary_domain/title_cleanup.py",
+        "itinerary_domain/title_routes.py",
+        "itinerary_generation/accommodation_brain.py",
+        "itinerary_generation/accommodation_inclusions.py",
+        "itinerary_generation/activity_description_helpers.py",
+        "itinerary_generation/activity_descriptions.py",
+        "itinerary_generation/activity_identity_contract.py",
+        "itinerary_generation/activity_identity_descriptions.py",
+        "itinerary_generation/activity_inclusions.py",
+        "itinerary_generation/activity_location_contract.py",
+        "itinerary_generation/activity_title_matchers.py",
+        "itinerary_generation/activity_titles_core.py",
+        "itinerary_generation/canonical_accommodation.py",
+        "itinerary_generation/canonical_activity.py",
+        "itinerary_generation/canonical_day_builder.py",
+        "itinerary_generation/client_sanitizer.py",
+        "itinerary_generation/day_city_facts.py",
+        "itinerary_generation/day_intro_classification.py",
+        "itinerary_generation/day_intro_writer.py",
+        "itinerary_generation/day_leisure_writer.py",
+        "itinerary_generation/day_overview_blocks.py",
+        "itinerary_generation/day_planner.py",
+        "itinerary_generation/day_render_activity_blocks.py",
+        "itinerary_generation/day_render_block_ordering.py",
+        "itinerary_generation/day_render_transport_blocks.py",
+        "itinerary_generation/day_timeline_events.py",
+        "itinerary_generation/day_title_planner.py",
+        "itinerary_generation/description_composer.py",
+        "itinerary_generation/description_facts.py",
+        "itinerary_generation/description_known_activity_rules.py",
+        "itinerary_generation/description_sources.py",
+        "itinerary_generation/description_templates.py",
+        "itinerary_generation/destination_content.py",
+        "itinerary_generation/destination_profile_builder.py",
+        "itinerary_generation/destination_profile_copy.py",
+        "itinerary_generation/destination_visit_memory.py",
+        "itinerary_generation/display_text_safety.py",
+        "itinerary_generation/exclusion_row_rules.py",
+        "itinerary_generation/exclusion_source_items.py",
+        "itinerary_generation/group_tour_accommodation.py",
+        "itinerary_generation/group_tour_render_blocks.py",
+        "itinerary_generation/group_tour_render_inclusions.py",
+        "itinerary_generation/group_tour_render_titles.py",
+        "itinerary_generation/inclusion_activities.py",
+        "itinerary_generation/inclusion_cleanup.py",
+        "itinerary_generation/inclusion_flat.py",
+        "itinerary_generation/inclusion_rentals.py",
+        "itinerary_generation/journey_overview_evidence.py",
+        "itinerary_generation/journey_overview_variation.py",
+        "itinerary_generation/route_formatter.py",
+        "itinerary_generation/route_intelligence.py",
+        "itinerary_generation/schedule_brain.py",
+        "itinerary_generation/time_display.py",
+        "itinerary_generation/title_brain.py",
+        "itinerary_generation/title_decision_contract.py",
+        "itinerary_generation/title_decision_helpers.py",
+        "itinerary_generation/title_intent_decisions.py",
+        "itinerary_generation/title_travel_composition.py",
+        "itinerary_generation/train_details.py",
+        "itinerary_generation/transport_details.py",
+        "itinerary_generation/transport_domain/coastal_cruise_render.py",
+        "itinerary_generation/transport_domain/exclusions.py",
+        "itinerary_generation/transport_domain/facts.py",
+        "itinerary_generation/transport_domain/inclusions.py",
+        "itinerary_generation/transport_domain/nutshell_render.py",
+        "itinerary_generation/transport_domain/render_arrangements.py",
+        "itinerary_generation/transport_domain/render_sequences.py",
+        "itinerary_generation/transport_domain/render_special_routes.py",
+        "itinerary_generation/transport_domain/route_summary.py",
+        "itinerary_generation/transport_domain/routes.py",
+        "itinerary_generation/transport_domain/titles.py",
+        "itinerary_generation/transport_render_blocks.py",
+        "itinerary_generation/transport_safety.py",
+        "normalizer_modules/activities.py",
+        "normalizer_modules/hotel_amenities.py",
+        "normalizer_modules/hotel_meals.py",
+        "normalizer_modules/hotel_names.py",
+        "normalizer_modules/hotel_rooms.py",
+        "normalizer_modules/hotel_row.py",
+        "normalizer_modules/inclusions.py",
+        "normalizer_modules/row_normalizer.py",
+        "normalizer_modules/times.py",
+        "normalizer_modules/transport_title.py",
+        "parser_modules/common.py",
+        "parser_modules/hotel_parser_details.py",
+        "parser_modules/text_cleanup.py",
+        "pdf_exporter_modules/render_content.py",
+        "shared/client_text_repair.py",
+        "tests/test_activity_catalogue_hardening_quality_gate.py",
+        "tests/test_activity_product_fingerprints_quality_gate.py",
+        "tests/test_output_qa1_client_risk_quality.py",
+        "tests/test_output_quality_engine_regression.py",
+        "tests/test_regressions_content_basics.py",
+        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_parser_normalizer.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_travel_text.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/test_scandinavian_winter_quality_regressions.py",
+        "tests/test_source_fidelity_commercial_status_regression.py",
+        "tests/test_tallinn_excursion_wording_quality_gate.py",
+        "ui/custom_final_pages.py",
+        "ui/optional_addons.py",
+        "ui/premium_final_notes.py"
+      ],
+      "safety_note": "documented public compatibility surface"
+    },
+    {
       "path": "text_polish_modules/__init__.py",
-      "reason": "facade-like module with zero production importers",
-      "static_importers": [],
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "shared/text_cleanup_cache.py",
+        "tests/test_cleanup_final_regression.py",
+        "tests/test_structural_cleanup_tools.py",
+        "tests/test_text_cleanup_caching_regression.py",
+        "tests/test_text_cleanup_performance_regression.py",
+        "text_polish.py",
+        "text_polish_modules/inclusions.py",
+        "text_polish_modules/prices.py",
+        "text_polish_modules/text_cleanup.py",
+        "text_polish_modules/titles.py"
+      ],
       "safety_note": "package initializer; never delete from static import evidence alone"
     },
     {
@@ -2155,12 +2940,6 @@
         "tests/test_cleanup_final_regression.py"
       ],
       "safety_note": "still has static importers"
-    },
-    {
-      "path": "ui/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
     },
     {
       "path": "ui/accommodation_display_helpers.py",
@@ -2196,10 +2975,57 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "ui/day_overview_blocks.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "path": "ui/day_blocks.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "tests/test_activity_cruise_classification.py",
+        "tests/test_architecture_consolidation.py",
+        "tests/test_canonical_block_renderers.py",
+        "tests/test_compatibility_facade_audit.py",
+        "tests/test_fixture_hardening_quality_gate.py",
+        "tests/test_norway_source_fidelity_quality_gate.py",
+        "tests/test_nutshell_characterization_regression.py",
+        "tests/test_nutshell_consumer_parity_regression.py",
+        "tests/test_regressions_fixture_quality.py",
+        "tests/test_regressions_fixture_quality_transport.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_travel_text.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/test_self_drive_pdf_preview_parity.py",
+        "tests/test_source_fidelity_quality_gate.py",
+        "tests/test_tallinn_excursion_wording_quality_gate.py",
+        "tests/test_travel_sequence_and_day_fidelity_quality_gate.py",
+        "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
+        "visual_editor_component/editor_payload_days.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "ui/day_pages.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "tests/test_day_heading_dates.py",
+        "tests/test_preview_pdf_parity.py",
+        "tests/test_real_fixture_quality_gate.py",
+        "tests/test_regressions_fixture_quality_transport.py",
+        "tests/test_regressions_layout_preview.py",
+        "tests/test_regressions_pdf_inclusions.py",
+        "tests/test_regressions_transport_cruise.py",
+        "tests/test_regressions_ui_boundaries.py",
+        "tests/tools/quality_report.py",
+        "visual_editor_component/editor_payload_final_pages.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "ui/optional_day_blocks.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "ui/day_blocks.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "ui/render_helpers.py",
@@ -2239,84 +3065,13 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "ui/style_app_chrome.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_app_shell.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_debug.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_export.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_forms.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_image_bank.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_input_workspace.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_project_browser.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_responsive.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_tokens.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_workflow.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/style_workspace_header.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "ui/styles.py",
-      "reason": "module with zero production importers",
+      "path": "ui/simple_day_blocks.py",
+      "reason": "facade-like module with production importers",
       "static_importers": [
-        "app.py"
+        "tests/test_leisure_arrival_metadata_cleanup.py",
+        "ui/day_blocks.py"
       ],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "safety_note": "still has static importers"
     },
     {
       "path": "ui/time_display.py",
@@ -2335,16 +3090,20 @@
       "safety_note": "still has static importers"
     },
     {
-      "path": "ui/transport_row_blocks.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
-    },
-    {
-      "path": "visual_editor_component/__init__.py",
-      "reason": "module with zero production importers",
-      "static_importers": [],
-      "safety_note": "not facade-like; review for dynamic/data ownership before deletion"
+      "path": "ui/travel_sequence_blocks.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "tests/test_broad_logic_stress_regressions.py",
+        "tests/test_compound_experience_transport_timing.py",
+        "tests/test_content_classification_priority.py",
+        "tests/test_editor_image_safety_regression.py",
+        "tests/test_finland_transport_regressions.py",
+        "tests/test_messy_transport_safety_net.py",
+        "tests/test_stress_logic_followups.py",
+        "tests/test_transport_preview_quality_regression.py",
+        "ui/day_blocks.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "visual_editor_component/editor_result_codec.py",

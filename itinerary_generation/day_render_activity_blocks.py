@@ -14,6 +14,7 @@ from itinerary_generation.render_model import RenderBlock, RenderMetaLine
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.time_display import display_time_with_duration
 from itinerary_generation.titles import create_client_activity_title, normalize_client_day_title
+from shared.text import clean_space
 from text_polish import polish_client_text, polish_inclusion_items, polish_title, strip_price_fragments
 
 
@@ -23,8 +24,8 @@ def _is_blank_activity_row(row):
     if is_blank_activity_or_leisure(row):
         return True
     raw = " ".join(str(row.get(key, "") or "").strip() for key in ["title", "details", "original_title"] if str(row.get(key, "") or "").strip())
-    raw = " ".join(raw.split()).strip()
-    city = " ".join(str(row.get("city", "") or "").split()).strip()
+    raw = clean_space(raw)
+    city = clean_space(row.get("city", ""))
     if not raw:
         return True
     lower = raw.lower().strip(" -:|")
@@ -32,7 +33,7 @@ def _is_blank_activity_row(row):
         return True
 
     def _matches_leisure(value):
-        item = " ".join(str(value or "").split()).lower().strip(" -:|")
+        item = clean_space(value).lower().strip(" -:|")
         if not item:
             return False
         pattern = r"spend time at leisure\.?"

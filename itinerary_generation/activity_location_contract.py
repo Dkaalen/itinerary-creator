@@ -13,6 +13,7 @@ import re
 from typing import Iterable, Mapping
 
 from place_aliases import canonicalize_place_name
+from shared.text import clean_space
 from text_polish import polish_title
 
 
@@ -36,7 +37,7 @@ class ActivityLocationFacts:
 
 
 def _clean(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def _norm(value: object) -> str:

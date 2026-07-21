@@ -1,11 +1,37 @@
 from pathlib import Path
+
+from openpyxl import load_workbook
 from calculator.library_store import LocalLibraryStore
-from calculator.library_workbook import REQUIRED_SHEETS, WORKBOOK_PATH, load_local_library_workbook
+from calculator.library_workbook import (
+    DATA_SHEETS,
+    REQUIRED_SHEETS,
+    WORKBOOK_PATH,
+    _has_product_content,
+    _headers,
+    load_local_library_workbook,
+)
 
 def test_bundled_workbook_is_authoritative_and_complete():
     library = load_local_library_workbook()
     assert WORKBOOK_PATH.is_file()
-    assert len(library.rows) == 5946
+    workbook = load_workbook(WORKBOOK_PATH, read_only=True, data_only=True)
+    try:
+        source_product_rows = 0
+        for sheet_name in DATA_SHEETS:
+            sheet = workbook[sheet_name]
+            headers, header_row = _headers(sheet)
+            for cells in sheet.iter_rows(min_row=header_row + 1, values_only=True):
+                mapping = {header: value for header, value in zip(headers, cells) if header}
+                source_product_rows += int(_has_product_content(mapping))
+    finally:
+        workbook.close()
+
+    invalid_source_rows = {
+        (diagnostic.worksheet, diagnostic.excel_row)
+        for diagnostic in library.invalid_records
+        if diagnostic.worksheet and diagnostic.excel_row is not None
+    }
+    assert len(library.rows) + len(invalid_source_rows) == source_product_rows
     assert {row.source_sheet for row in library.rows} == set(REQUIRED_SHEETS) - {"Curr"}
     assert library.currency_rates["EUR"] == 11.0
     assert library.currency_rates["NOK"] == 1.0

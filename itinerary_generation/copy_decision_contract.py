@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable, Mapping
 
+from shared.text import clean_space
+
 
 @dataclass(frozen=True)
 class CopyDecisionCandidate:
@@ -85,7 +87,7 @@ class CopyDecisionTrace:
 
 
 def clean_decision_text(value: object) -> str:
-    return " ".join(str(value or "").split()).strip()
+    return clean_space(value)
 
 
 def decision_candidate(

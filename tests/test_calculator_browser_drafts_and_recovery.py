@@ -1,108 +1,98 @@
 from __future__ import annotations
 
 import re
-import shutil
-from pathlib import Path
 
 import pytest
 
-pytest.importorskip("playwright.sync_api")
-from playwright.sync_api import sync_playwright
+from support.calculator_browser_harness import (
+    install_storage_quota as _install_storage_quota,
+    open_recovery_browser_page as _recovery_browser_page,
+    recovery_payload as _recovery_payload,
+    calculator_payload as _payload,
+    open_calculator_browser_page as _browser_page,
+)
 
 
-ROOT = Path(__file__).resolve().parents[1] / "calculator_grid_component" / "frontend"
+def _recovery_page(*, revision: str = "recovery-test"):
+    return _recovery_browser_page(revision=revision)
 
 
-def _html() -> str:
-    index = (ROOT / "index.html").read_text(encoding="utf-8")
-    css = (ROOT / "styles" / "calculator_grid.css").read_text(encoding="utf-8")
-    scripts = "".join(
-        f"<script>{(ROOT / source).read_text(encoding='utf-8')}</script>"
-        for source in re.findall(r'<script src="([^"]+)"', index)
-    )
-    storage = """<script>
-      (() => {
-        const localStore = new Map();
-        const sessionStore = new Map();
-        const storageApi = (store) => ({
-          getItem: (key) => store.has(String(key)) ? store.get(String(key)) : null,
-          setItem: (key, value) => store.set(String(key), String(value)),
-          removeItem: (key) => store.delete(String(key)),
-          clear: () => store.clear()
-        });
-        Object.defineProperty(window, 'localStorage', {value: storageApi(localStore)});
-        Object.defineProperty(window, 'sessionStorage', {value: storageApi(sessionStore)});
-      })();
-    </script>"""
-    return f"<html><head><style>{css}</style></head><body><div id='root'></div>{storage}{scripts}</body></html>"
+def test_local_version_history_restores_an_earlier_calculator_state() -> None:
+    rows = [
+        {"row_id": "1", "travel_element": "Original service", "supplier_currency": "NOK", "sales_currency": "NOK", "gross_price_per_unit": 100, "units": 1},
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="version-history"))
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("Updated service")
+        page.keyboard.press("Tab")
 
+        versions = page.get_by_role("button", name=re.compile(r"Versions \(\d+\)"))
+        page.evaluate("flushRecoverySnapshot()")
+        assert int(re.search(r"\d+", versions.text_content()).group()) >= 2
+        versions.click()
+        version_items = page.locator('[data-version-id]')
+        assert version_items.count() >= 2
+        version_items.last.click()
 
-def _payload(*, revision: str = "recovery-test") -> dict:
-    return {
-        "rows": [{
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Original service"
+        assert page.locator('#calculator-sync-status').text_content().startswith("Recovered version from")
+    finally:
+        browser.close()
+        manager.stop()
+
+def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
+    initial = _payload(
+        [{
             "row_id": "1",
-            "travel_element": "Original service",
-            "supplier_currency": "NOK",
-            "sales_currency": "NOK",
+            "day": "Day 1",
+            "type": "Hotel",
+            "travel_element": "Oslo hotel",
             "gross_price_per_unit": 100,
             "units": 1,
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
         }],
-        "number_of_pax": None,
-        "state_revision": revision,
-        "draft_storage_key": f"calculator.browser.test.{revision}",
-        "show_advanced": False,
-        "currency_rates": {"NOK": 1, "EUR": 12},
-        "library_status": "Ready",
-        "library_rows": [],
-    }
-
-
-def _browser_page(*, revision: str = "recovery-test"):
-    executable = shutil.which("chromium") or shutil.which("chromium-browser")
-    if not executable:
-        pytest.skip("Chromium is unavailable.")
-    manager = sync_playwright().start()
-    browser = manager.chromium.launch(executable_path=executable, headless=True, args=["--no-sandbox"])
-    page = browser.new_page()
-    page.set_content(_html(), wait_until="load")
-    payload = _payload(revision=revision)
-    page.evaluate(
-        "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
-        payload,
+        revision="draft-safe-remount",
     )
-    page.wait_for_selector('td[data-key="travel_element"]')
-    return manager, browser, page, payload
+    manager, browser, page = _browser_page(initial)
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="gross_price_per_unit"]')
+        cell.click()
+        cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("=10/0")
+        page.keyboard.press("Tab")
+        page.get_by_role("button", name="Back").click()
+        page.wait_for_function("pendingCalculatorRequest !== null")
 
+        page.evaluate(
+            """payload => {
+                flushLocalDraftSave();
+                pendingCalculatorRequest = null;
+                calculatorState = null;
+                activeCell = null;
+                activeBackendRevision = null;
+                activeDraftStorageKey = null;
+                hasLocalDraft = false;
+                initializeState(payload);
+                rerender();
+            }""",
+            initial,
+        )
 
-def _install_storage_quota(page, limit_bytes: int) -> None:
-    page.evaluate(
-        """limitBytes => {
-          const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
-          const originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
-          const knownKeys = () => [getCalculatorDraftStorageKey(), calculatorRecoveryStorageKey()];
-          window.localStorage.setItem = (key, value) => {
-            const candidateKey = String(key);
-            const candidateValue = String(value);
-            let total = 0;
-            for (const knownKey of knownKeys()) {
-              const storedValue = knownKey === candidateKey
-                ? candidateValue
-                : (window.localStorage.getItem(knownKey) || '');
-              if (storedValue) total += (knownKey.length + storedValue.length) * 2;
-            }
-            if (total > limitBytes) {
-              throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
-            }
-            originalSetItem(candidateKey, candidateValue);
-          };
-          window.localStorage.removeItem = (key) => originalRemoveItem(String(key));
-        }""",
-        limit_bytes,
-    )
-
+        assert page.evaluate("calculatorState.rows[0].gross_price_per_unit") == "=10/0"
+        assert page.evaluate("calculatorState.dirty") is True
+        assert page.locator("#calculator-sync-status").text_content() == "Unsaved browser draft restored"
+    finally:
+        browser.close()
+        manager.stop()
 
 def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
-    manager, browser, page, payload = _browser_page(revision="compact-delta")
+    manager, browser, page, payload = _recovery_page(revision="compact-delta")
     try:
         page.evaluate(
             """() => {
@@ -153,9 +143,8 @@ def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
         browser.close()
         manager.stop()
 
-
 def test_large_projects_adapt_retention_and_preserve_long_values() -> None:
-    manager, browser, page, _payload_data = _browser_page(revision="large-recovery")
+    manager, browser, page, _payload_data = _recovery_page(revision="large-recovery")
     try:
         rows = [
             {
@@ -192,9 +181,8 @@ def test_large_projects_adapt_retention_and_preserve_long_values() -> None:
         browser.close()
         manager.stop()
 
-
 def test_quota_prunes_old_versions_before_current_draft() -> None:
-    manager, browser, page, payload = _browser_page(revision="quota-prune")
+    manager, browser, page, payload = _recovery_page(revision="quota-prune")
     try:
         page.evaluate(
             """() => {
@@ -226,9 +214,8 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         browser.close()
         manager.stop()
 
-
 def test_unavailable_storage_shows_one_clear_warning() -> None:
-    manager, browser, page, _payload_data = _browser_page(revision="quota-warning")
+    manager, browser, page, _payload_data = _recovery_page(revision="quota-warning")
     try:
         _install_storage_quota(page, 2_000)
         saved = page.evaluate(
@@ -246,9 +233,8 @@ def test_unavailable_storage_shows_one_clear_warning() -> None:
         browser.close()
         manager.stop()
 
-
 def test_legacy_recovery_arrays_remain_readable() -> None:
-    manager, browser, page, _payload_data = _browser_page(revision="legacy-recovery")
+    manager, browser, page, _payload_data = _recovery_page(revision="legacy-recovery")
     try:
         snapshots = page.evaluate("loadCalculatorRecoverySnapshots()")
         legacy = [{key: value for key, value in snapshots[0].items() if key != "hash"}]

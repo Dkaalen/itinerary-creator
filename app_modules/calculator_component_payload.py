@@ -13,11 +13,16 @@ from app_modules.calculator_grid_data import rows_to_table_data
 from app_modules.calculator_grid_values import decimal_to_percent
 from calculator.calculator_state import CalculatorState
 from calculator.currency_rates import normalize_currency_rates
+from calculator.financial_rules import financial_rules_payload
 from calculator.library_model import LocalLibraryRow
+from calculator.library_ranking import (
+    LOCAL_LIBRARY_RANKING_VERSION,
+    local_library_ranking_spec_payload,
+)
 from calculator.library_read_summary import summarize_local_library_read
 from calculator.library_store import LocalLibraryReadResult
 
-_LIBRARY_PAYLOAD_VERSION = "compact-v1"
+_LIBRARY_PAYLOAD_VERSION = "compact-v2"
 _LIBRARY_ROW_FIELDS: tuple[str, ...] = (
     "day",
     "type",
@@ -72,6 +77,7 @@ def build_calculator_grid_payload(
         "draft_storage_key": _draft_storage_key(draft_namespace),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
+        "financial_rules": financial_rules_payload(),
         "library_status": _library_read_status(library_read),
         "library_source": library_read.source,
         "library_read_only": library_read.read_only,
@@ -79,6 +85,7 @@ def build_calculator_grid_payload(
         "library_payload_version": _LIBRARY_PAYLOAD_VERSION,
         "library_fingerprint": library_fingerprint,
         "library_row_fields": _LIBRARY_ROW_FIELDS,
+        "library_ranking_spec": local_library_ranking_spec_payload(),
         "library_rows": _cached_library_rows(library_read, library_fingerprint),
         "pending_download": dict(pending_download or {}),
         "component_ack": dict(component_ack or {}),
@@ -162,7 +169,7 @@ def _library_payload_value_is_meaningful(value: Any) -> bool:
 def _library_fingerprint(read_result: LocalLibraryReadResult) -> str:
     explicit = str(read_result.fingerprint or "").strip()
     if explicit:
-        return f"{_LIBRARY_PAYLOAD_VERSION}:{explicit}"
+        return f"{_LIBRARY_PAYLOAD_VERSION}:{LOCAL_LIBRARY_RANKING_VERSION}:{explicit}"
     identity = json.dumps(
         [asdict(row) for row in _autocomplete_rows(read_result)],
         ensure_ascii=False,
@@ -170,7 +177,7 @@ def _library_fingerprint(read_result: LocalLibraryReadResult) -> str:
         separators=(",", ":"),
     )
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
-    return f"{_LIBRARY_PAYLOAD_VERSION}:inline:{digest}"
+    return f"{_LIBRARY_PAYLOAD_VERSION}:{LOCAL_LIBRARY_RANKING_VERSION}:inline:{digest}"
 
 
 def _library_read_status(read_result: LocalLibraryReadResult) -> str:

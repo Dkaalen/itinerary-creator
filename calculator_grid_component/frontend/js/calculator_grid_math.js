@@ -2,6 +2,30 @@ const DEFAULT_RATES = {NOK: 1, EUR: 11, USD: 10, GBP: 13, DKK: 1.5, SEK: 1, ISK:
 const DEFAULT_CURRENCY = 'EUR';
 const CALCULATOR_DATA_START_ROW = 7;
 const CALCULATOR_DATA_END_ROW = 99;
+const DEFAULT_FINANCIAL_RULES = {
+  version: 'financial-v1',
+  precision_digits: {money: 2, rate: 6, percent: 6},
+  commission_ui_scale: 100,
+  formula_result_kind_by_field: {
+    gross_price: 'money',
+    net_price: 'money',
+    supplier_x_rate: 'rate',
+    net_price_nok: 'money',
+    price: 'money',
+    sales_x_rate: 'rate',
+    sales_price_nok_total: 'money',
+    gp_nok: 'money',
+    gp_percent: 'percent'
+  },
+  margin_basis: 'net_price_nok',
+  sales_price_derived_override_fields: [
+    'price_override',
+    'sales_price_nok_total_override',
+    'gp_nok_override',
+    'gp_percent_override'
+  ]
+};
+let activeFinancialRules = DEFAULT_FINANCIAL_RULES;
 
 const NUMERIC_FIELD_BY_EXCEL_COLUMN = {
   Q: 'gross_price_per_unit',
@@ -61,15 +85,45 @@ function roundHalfAwayFromZero(value, digits) {
 }
 
 function roundMoney(value) {
-  return roundHalfAwayFromZero(value, 2);
+  return roundHalfAwayFromZero(value, financialPrecisionDigits('money'));
 }
 
 function roundRate(value) {
-  return roundHalfAwayFromZero(value, 6);
+  return roundHalfAwayFromZero(value, financialPrecisionDigits('rate'));
 }
 
 function roundPercent(value) {
-  return roundHalfAwayFromZero(value, 6);
+  return roundHalfAwayFromZero(value, financialPrecisionDigits('percent'));
+}
+
+function setActiveFinancialRules(spec) {
+  const incoming = spec && typeof spec === 'object' ? spec : {};
+  activeFinancialRules = {
+    ...DEFAULT_FINANCIAL_RULES,
+    ...incoming,
+    precision_digits: {...DEFAULT_FINANCIAL_RULES.precision_digits, ...(incoming.precision_digits || {})},
+    formula_result_kind_by_field: {
+      ...DEFAULT_FINANCIAL_RULES.formula_result_kind_by_field,
+      ...(incoming.formula_result_kind_by_field || {})
+    },
+    sales_price_derived_override_fields: Array.isArray(incoming.sales_price_derived_override_fields)
+      ? [...incoming.sales_price_derived_override_fields]
+      : [...DEFAULT_FINANCIAL_RULES.sales_price_derived_override_fields]
+  };
+}
+
+function financialPrecisionDigits(kind) {
+  const value = Number(activeFinancialRules?.precision_digits?.[kind]);
+  return Number.isInteger(value) && value >= 0 && value <= 12
+    ? value
+    : DEFAULT_FINANCIAL_RULES.precision_digits[kind];
+}
+
+function roundFormulaResult(field, value) {
+  const kind = activeFinancialRules?.formula_result_kind_by_field?.[field] || 'money';
+  if (kind === 'rate') return roundRate(value);
+  if (kind === 'percent') return roundPercent(value);
+  return roundMoney(value);
 }
 
 function currencyCode(value) {
@@ -161,7 +215,7 @@ class CalculatorGridFormulaEvaluator {
     if (inputField) {
       const value = this.evaluateExpression(row[inputField], ref);
       // The grid displays commission as percentage points while Excel/Python stores a decimal.
-      return column === 'T' ? value / 100 : value;
+      return column === 'T' ? value / Number(activeFinancialRules.commission_ui_scale || 100) : value;
     }
     if (column === 'Y') {
       const gross = this.evaluateCell(`Q${rowNumber}`);
@@ -177,9 +231,7 @@ class CalculatorGridFormulaEvaluator {
       const override = row[formulaOverrideKey(formulaField)];
       if (override !== null && override !== undefined && String(override).trim() !== '') {
         const value = this.evaluateExpression(override, ref);
-        if (column === 'W' || column === 'AB') return roundRate(value);
-        if (column === 'AE') return roundPercent(value);
-        return roundMoney(value);
+        return roundFormulaResult(formulaField, value);
       }
     }
 
@@ -204,6 +256,17 @@ class CalculatorGridFormulaEvaluator {
     const salesRate = this.evaluateCell(`AB${rowNumber}`);
     if (salesRate === 0) return 0;
     return gross * supplierRate / salesRate;
+  }
+
+  salesPricePerUnitForMargin(rowNumber, margin) {
+    const marginValue = numberValue(margin);
+    if (!(marginValue > 0 && marginValue < 1)) return 0;
+    const units = this.evaluateCell(`R${rowNumber}`);
+    const salesRate = this.evaluateCell(`AB${rowNumber}`);
+    const netPriceNok = this.evaluateCell(`X${rowNumber}`);
+    const denominator = units * salesRate * (1 - marginValue);
+    if (!(denominator > 0) || !(netPriceNok > 0)) return 0;
+    return netPriceNok / denominator;
   }
 
   errorForCell(reference, error) {

@@ -5,6 +5,7 @@ from typing import Any, Iterable, Mapping
 
 from itinerary_generation.health_check_models import CONTENT_TYPES, TRANSFER_TYPES
 from itinerary_generation.row_filters import get_row_type, is_optional_row
+from shared.text import clean_space
 
 
 def rows_list(rows: Iterable[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
@@ -25,7 +26,7 @@ def has_hotel_name(row: Mapping[str, Any]) -> bool: return bool(row_text(row, "h
 
 
 def normalise_fingerprint(value: str) -> str:
-    text = re.sub(r"\s+", " ", str(value or "").lower()).strip()
+    text = clean_space(value).lower()
     return re.sub(r"[^a-z0-9à-ÿøåäö .'-]", "", text)[:160]
 
 

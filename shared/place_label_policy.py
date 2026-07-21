@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from shared.text import clean_space
+
 
 _NON_DESTINATION_EXACT = {
     "self explore",
@@ -20,7 +22,7 @@ _NON_DESTINATION_EXACT = {
 def is_non_destination_label(value: object) -> bool:
     """Return true when a label is programme/service text, not geography."""
 
-    text = re.sub(r"\s+", " ", str(value or "").strip()).casefold().strip(" -:|.,")
+    text = clean_space(value).casefold().strip(" -:|.,")
     if not text:
         return False
     if text in _NON_DESTINATION_EXACT:

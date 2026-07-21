@@ -8,17 +8,22 @@ Every listed path still needs a dedicated deletion patch with targeted tests.
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
 import sys
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.audit_legacy_facades import audit_modules
+from scripts.audit_legacy_facades import (
+    audit_modules,
+    imported_modules_for_path,
+    module_name_for_path,
+)
+
 EXCLUDED_PARTS = {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv", "venv"}
 REQUIRED_PUBLIC_SURFACES = {
     "generator.py",
@@ -32,6 +37,7 @@ REQUIRED_PUBLIC_SURFACES = {
 }
 PACKAGE_INIT_BASENAME = "__init__.py"
 SCRIPT_ENTRYPOINT_ROOT = "scripts/"
+PRODUCTION_ENTRYPOINTS = {"app.py"}
 
 
 @dataclass(frozen=True)
@@ -64,26 +70,8 @@ def iter_python_files(root: Path = ROOT) -> tuple[Path, ...]:
     )
 
 
-def _module_name(path: Path, root: Path = ROOT) -> str:
-    return path.relative_to(root).with_suffix("").as_posix().replace("/", ".")
-
-
-def _imports(path: Path) -> set[str]:
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-    except SyntaxError:
-        return set()
-    modules: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            modules.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            modules.add(node.module)
-    return modules
-
-
 def _import_map(all_files: tuple[Path, ...], root: Path = ROOT) -> dict[Path, set[str]]:
-    return {path: _imports(path) for path in all_files}
+    return {path: imported_modules_for_path(path, root) for path in all_files}
 
 
 def _static_importers(
@@ -91,7 +79,7 @@ def _static_importers(
     imports_by_file: dict[Path, set[str]],
     root: Path = ROOT,
 ) -> tuple[str, ...]:
-    module = _module_name(target, root)
+    module = module_name_for_path(target, root)
     importers: list[str] = []
     for path, imported_modules in imports_by_file.items():
         if path == target:
@@ -123,6 +111,8 @@ def _should_hold_back(path: str, importers: tuple[str, ...]) -> str | None:
         return "package initializer; never delete from static import evidence alone"
     if _is_required_public_surface(path):
         return "documented public compatibility surface"
+    if path in PRODUCTION_ENTRYPOINTS:
+        return "production application entrypoint"
     if path.startswith(SCRIPT_ENTRYPOINT_ROOT):
         return "script entrypoint; verify CLI/backwards compatibility before deletion"
     if importers:
@@ -133,7 +123,7 @@ def _should_hold_back(path: str, importers: tuple[str, ...]) -> str | None:
 def build_report(root: Path = ROOT) -> DeletionCandidateReport:
     all_files = iter_python_files(root)
     imports_by_file = _import_map(all_files, root)
-    module_audit = audit_modules()
+    module_audit = audit_modules(root)
     candidates: list[DeletionCandidate] = []
     held_back: list[DeletionCandidate] = []
     for item in module_audit:
@@ -153,7 +143,9 @@ def build_report(root: Path = ROOT) -> DeletionCandidateReport:
             )
         elif not item.production_importers:
             reason = "module with zero production importers"
-            note = "not facade-like; review for dynamic/data ownership before deletion"
+            note = _should_hold_back(path, importers) or (
+                "not facade-like; review for dynamic/data ownership before deletion"
+            )
         else:
             reason = "facade-like module with production importers"
             note = _should_hold_back(path, importers)

@@ -97,6 +97,21 @@ def test_free_text_search_covers_record_content_and_identity() -> None:
     assert [row.library_id for row in by_id] == ["activity_1"]
 
 
+def test_browser_search_uses_canonical_nordic_normalization() -> None:
+    rows = (
+        LocalLibraryRow(
+            library_id="flam_1",
+            source_sheet="Activities",
+            type="Activity",
+            travel_element="Flåm: Nærøyfjord cruise",
+        ),
+    )
+
+    result = filter_local_library_rows(rows, LocalLibraryBrowserFilters(query="Flam Naeroyfjord"))
+
+    assert [row.library_id for row in result] == ["flam_1"]
+
+
 def test_pagination_is_bounded_and_clamps_requested_page() -> None:
     rows = tuple(LocalLibraryRow(library_id=f"row_{index}") for index in range(12))
 

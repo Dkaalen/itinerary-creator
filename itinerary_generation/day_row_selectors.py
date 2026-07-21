@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from itinerary_generation.common import get_row_type
+from shared.text import clean_space
 
 
 def _text(row: dict) -> str:
@@ -22,12 +23,12 @@ def _is_empty_activity(row: dict) -> bool:
     city = str(row.get("city", "") or "").strip()
     if not raw:
         return True
-    cleaned = re.sub(r"\s+", " ", raw).strip(" -:|")
+    cleaned = clean_space(raw).strip(" -:|")
     lower = cleaned.lower()
     if city and lower == city.lower():
         return True
     def _matches_leisure(value: str) -> bool:
-        item = re.sub(r"\s+", " ", str(value or "")).strip(" -:|").lower()
+        item = clean_space(value).strip(" -:|").lower()
         if not item:
             return False
         pattern = r"spend time at leisure\.?"

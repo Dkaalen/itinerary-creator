@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
+from calculator.precision import as_float, round_rate
+
 # Conservative editable defaults used when live currency rates are not configured.
 # Keep this list within the template lookup range Curr!$B$2:$C$13.
 DEFAULT_CURRENCY_RATES: dict[str, float] = {
@@ -42,6 +46,9 @@ def normalized_currency_code(value: object, *, default: str = "EUR") -> str:
 
 def _rate_value(value: object, fallback: float) -> float:
     try:
-        return float(value)
-    except (TypeError, ValueError):
-        return float(fallback)
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        parsed = Decimal(str(fallback))
+    if not parsed.is_finite():
+        parsed = Decimal(str(fallback))
+    return as_float(round_rate(parsed))

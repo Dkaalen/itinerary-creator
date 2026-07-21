@@ -2,12 +2,17 @@
 
 ## Ownership
 
+- `calculator/financial_rules.py` owns the versioned precision, commission scale, margin basis, formula-result kinds, and Excel precision-wrapper contract.
 - `calculator/cell_formula_engine.py` is the authoritative financial engine and A1 dependency evaluator.
 - `calculator/calculations.py` aggregates canonical row, total, and dashboard results.
 - `calculator_grid_component/frontend/js/calculator_grid_math.js` is the immediate browser preview and is parity-tested against Python.
 - `calculator/formula_map.py` owns canonical Excel formulas.
 - `calculator/workbook_export_plan.py` owns all calculator-to-workbook mappings, value kinds, formulas, currency rows, totals, payments, and blank-row decisions.
-- `calculator/workbook_package_export.py` is the production renderer; it applies the canonical plan while cloning the retained reference XLSX package.
+- `calculator/workbook_package_export.py` is the production package-renderer facade; it owns orchestration and the bounded export cache only.
+- `calculator/workbook_package_cell_changes.py` validates and translates canonical plan cells into package changes.
+- `calculator/workbook_worksheet_xml.py` owns worksheet row, cell, value, formula, and dimension XML mutation.
+- `calculator/workbook_recalculation_xml.py` owns `calcPr` recalculation metadata.
+- `calculator/workbook_zip_package.py` owns metadata-preserving XLSX ZIP cloning and approved part replacement.
 - `calculator/workbook_export.py` retains an openpyxl renderer only as a mutable-workbook compatibility and parity-check API.
 - `calculator/workbook_import.py` reads compatible calculation workbooks without rebuilding them.
 - `calculator/state_serialization.py` owns JSON backup/schema migration.
@@ -24,17 +29,54 @@ Browser edits are written to a project-scoped local draft and synchronized to St
 
 A1 formulas support relative and absolute references, dependency recalculation, copy/fill translation, and circular-reference errors. Python and JavaScript are independently parity-tested.
 
+### Bounded Chromium workflows
+
+Calculator browser coverage is split by responsibility so every file runs independently below the 45-second command ceiling:
+
+- editing and caret behavior
+- navigation and focus
+- clipboard and paste
+- autocomplete and fetching
+- formulas and currencies
+- download and import
+- component lifecycle and messaging
+- drafts and recovery
+
+`tests/support/calculator_browser_harness.py` owns the shared production-asset loading, payload, Chromium launch, and recovery-quota fixtures. Browser test files must not duplicate that setup or depend on another browser test module.
+
+## Financial parity
+
+- Python owns the versioned financial rule contract and sends it to the component in every payload.
+- Browser previews consume that contract for money, exchange-rate, percentage, commission, formula-result, and margin-shortcut behavior.
+- Margin shortcuts target GP from actual `net_price_nok`, not supplier gross price, and clear only downstream sales-derived overrides.
+- Money uses two decimal places; exchange rates and percentages use six. Rounding is decimal half-away-from-zero.
+- Excel export wraps user formulas with canonical `ROUND` precision and import removes only those app-generated wrappers, preserving the original editable expression.
+- `tests/fixtures/calculator_financial_parity_cases.json` covers browser, Python, saved-project, and Excel round-trip parity.
+- `docs/CALCULATOR_FINANCIAL_RULES.md` documents the complete contract.
+
+## Local Library autocomplete
+
+- `calculator/library_ranking.py` owns the versioned normalization, field and match weights, worksheet routing, context bonuses, cross-type aliases, and deterministic tie-break specification.
+- `calculator/library_search.py` is the Python reference implementation and consumes that canonical specification.
+- `app_modules/calculator_component_payload.py` prepares and fingerprints the compact read-only Local Library payload and sends the exact ranking specification to the component.
+- `calculator_grid_component/frontend/js/calculator_grid_library.js` is the production browser execution authority for candidate indexing, generic scoring, deterministic ordering, and applying a selected library row; it does not maintain separate ranking constants.
+- `calculator_grid_component/frontend/js/calculator_grid_suggestions.js` owns the in-grid suggestion lifecycle, debounce, focus retention, and selection handoff.
+- `docs/LOCAL_LIBRARY_RANKING.md` documents normalization, match classes, routing, Norway in a Nutshell cross-type compatibility, and duplicate-preserving tie-breaking.
+- The retired Python `calculator/fetch_lines.py` and `calculator/grid_autocomplete.py` APIs are not supported compatibility surfaces; they belonged to the replaced Streamlit data-editor workflow and were removed.
+
 ## Excel contract
 
 The bundled `Calculation-template-Mal.xlsx` is the visual and structural source of truth. Export:
 
 1. Builds one immutable export plan from Calculator state and currency rates.
 2. Applies that plan through the fast XLSX-package renderer used by production downloads.
-3. Copies the exact XLSX ZIP package and rewrites only approved cells in `Curr` and `Kalk`.
-4. Leaves all other package parts byte-for-byte unchanged.
-5. Restores canonical formulas while retaining explicit user overrides.
-6. Reuses unchanged package bytes through a bounded, template-aware in-process cache.
-7. Stages one browser-ready base64 workbook payload for direct component download; cloud project persistence is a separate workflow.
+3. Generates validated package cell changes before worksheet XML mutation.
+4. Rewrites only approved cells in `Curr` and `Kalk`, plus explicit workbook recalculation metadata.
+5. Clones the exact XLSX ZIP package while preserving part order and metadata.
+6. Leaves all other package parts byte-for-byte unchanged.
+7. Restores canonical formulas while retaining explicit user overrides.
+8. Reuses unchanged package bytes through a bounded, template-aware in-process cache.
+9. Stages one browser-ready base64 workbook payload for direct component download; cloud project persistence is a separate workflow.
 
 Import preserves editable data, compatible A1 formulas, overrides, VAT values, and currency rates. Export → import → recalculate must preserve totals.
 
@@ -48,3 +90,5 @@ Import preserves editable data, compatible A1 formulas, overrides, VAT values, a
 6. Manual formula/rate overrides are explicit, persisted, and exported.
 7. Project switching cannot silently discard unsaved calculator or currency-rate changes.
 8. Browser and Python calculations match on reference, randomized, and A1 dependency vectors.
+9. Margin shortcuts produce the selected GP percentage from actual net NOK cost, including supplier commission and overrides.
+10. Project save/reload and Excel export/import preserve financial inputs, formulas, precision, and calculated results.

@@ -21,6 +21,7 @@ from calculator.formula_map import (
     TOTAL_FORMULAS,
     expected_row_formulas,
 )
+from calculator.financial_rules import canonical_export_value
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 
 CellValueKind = Literal["blank", "boolean", "formula", "number", "text"]
@@ -157,7 +158,7 @@ def _currency_cells(
         if offset < len(items):
             code, rate = items[offset]
             cells.append(ExportCell(f"B{row_number}", str(code).upper(), "text"))
-            cells.append(ExportCell(f"C{row_number}", rate, "number"))
+            cells.append(ExportCell(f"C{row_number}", canonical_export_value("supplier_x_rate", rate), "number"))
         else:
             cells.append(ExportCell(f"B{row_number}", None, "blank"))
             cells.append(ExportCell(f"C{row_number}", None, "blank"))
@@ -260,7 +261,7 @@ def _data_row_cells(
             override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(field_name, "")
             override_value = getattr(row, override_field, None) if override_field else None
             if override_value is not None:
-                value = override_value
+                value = canonical_export_value(field_name, override_value)
         cells.append(_planned_cell(f"{column}{row_number}", value, _numeric_or_formula_kind(value)))
     return tuple(cells)
 
@@ -271,7 +272,7 @@ def _row_cell_value(row: CalculatorRow, field_name: str) -> object:
         return None
     if field_name in CURRENCY_FIELDS:
         return str(value or "EUR").upper()
-    return value
+    return canonical_export_value(field_name, value)
 
 
 def _row_value_kind(field_name: str, value: object) -> CellValueKind:

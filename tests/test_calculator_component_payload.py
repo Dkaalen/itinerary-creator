@@ -8,7 +8,9 @@ from app_modules.calculator_component_payload import (
 )
 from calculator.library_workbook import load_local_library_workbook
 from calculator.calculator_state import CalculatorState
+from calculator.financial_rules import FINANCIAL_RULES_VERSION, financial_rules_payload
 from calculator.library_model import LocalLibraryRow
+from calculator.library_ranking import LOCAL_LIBRARY_RANKING_SPEC, LOCAL_LIBRARY_RANKING_VERSION
 from calculator.library_store import LocalLibraryReadResult
 from calculator.row_model import CalculatorRow
 
@@ -68,8 +70,11 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
     assert payload["library_status"] == "Local Excel Library (1 fetchable lines)."
     assert payload["library_source"] == "local_excel"
     assert payload["library_read_only"] is True
-    assert payload["library_payload_version"] == "compact-v1"
-    assert payload["library_fingerprint"] == "compact-v1:fixture-1"
+    assert payload["library_payload_version"] == "compact-v2"
+    assert payload["library_fingerprint"] == f"compact-v2:{LOCAL_LIBRARY_RANKING_VERSION}:fixture-1"
+    assert payload["library_ranking_spec"] == LOCAL_LIBRARY_RANKING_SPEC
+    assert payload["financial_rules"] == financial_rules_payload()
+    assert payload["financial_rules"]["version"] == FINANCIAL_RULES_VERSION
     assert library_row["country"] == "NO"
     assert library_row["row_data"]["type"] == "Hotel"
     assert library_row["row_data"]["supplier"] == "Supplier"
@@ -125,9 +130,10 @@ def test_calculator_component_payload_exposes_bundled_workbook_rows_compactly() 
     payload = build_calculator_grid_payload(CalculatorState(), library_read)
     fields = payload["library_row_fields"]
     travel_index = fields.index("travel_element")
+    expected_fetchable_count = sum(1 for row in library.rows if row.is_available_for_fetch)
 
-    assert len(payload["library_rows"]) == 5946
-    assert payload["library_status"] == "Local Excel Library (5946 fetchable lines)."
+    assert len(payload["library_rows"]) == expected_fetchable_count
+    assert payload["library_status"] == f"Local Excel Library ({expected_fetchable_count} fetchable lines)."
     assert any(
         "Check in to your accommodation" in str(row["v"].get(str(travel_index), ""))
         for row in payload["library_rows"]

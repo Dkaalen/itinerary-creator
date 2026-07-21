@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Mapping, Sequence
 
 from itinerary_generation.common import get_row_type
+from shared.text import clean_space
 from text_polish import polish_title
 
 
 def _clean(value: object) -> str:
-    return " ".join(str(value or "").split()).strip()
+    return clean_space(value)
 
 
 def _activity_title(rows: Sequence[Mapping[str, object]]) -> str:

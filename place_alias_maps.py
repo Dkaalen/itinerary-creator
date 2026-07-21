@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from place_alias_data import PLACES
-from place_alias_text import _key
+from place_alias_text import normalize_place_key
 
 
 def _build_alias_maps():
@@ -21,7 +21,7 @@ def _build_alias_maps():
         for alias in aliases:
             if not alias:
                 continue
-            key = _key(alias)
+            key = normalize_place_key(alias)
             record = (country, canonical, kind)
             if key and key not in alias_to_canonical:
                 alias_to_canonical[key] = canonical
@@ -42,10 +42,10 @@ def _build_alias_patterns():
     for alias, canonical in ALIAS_RECORDS:
         if alias == canonical:
             continue
-        alias_key = _key(alias)
+        alias_key = normalize_place_key(alias)
         if alias_key in common_word_aliases:
             continue
-        canonical_key = _key(canonical)
+        canonical_key = normalize_place_key(canonical)
         suffix_key = canonical_key[len(alias_key):].strip() if canonical_key.startswith(alias_key) else ""
         escaped = re.escape(alias)
         pattern = re.compile(rf"(?<![\wÀ-ÿ]){escaped}(?![\wÀ-ÿ])", flags=re.IGNORECASE)

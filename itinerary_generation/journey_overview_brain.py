@@ -16,6 +16,7 @@ from itinerary_generation.common import get_day_number, get_primary_city, get_ro
 from itinerary_generation.journey_overview_evidence import chapter_destination, chapter_experience
 from itinerary_generation.journey_overview_variation import distinct_chapter_experience
 from itinerary_generation.summaries_text import _has
+from shared.text import clean_space
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,7 @@ def format_day_range(days: Iterable[object]) -> str:
 
 
 def _clean(value: object) -> str:
-    return " ".join(str(value or "").split()).strip()
+    return clean_space(value)
 
 
 def _activity_rows(rows: Sequence[Mapping[str, object]]) -> list[Mapping[str, object]]:

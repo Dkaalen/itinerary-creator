@@ -7,7 +7,7 @@ from functools import lru_cache
 
 from place_alias_data import SERVICE_PHRASES
 from place_alias_maps import ALIAS_PATTERNS, ALIAS_TO_CANONICAL, ALIAS_TO_PLACES, CANONICAL_PLACES, CANONICAL_TO_COUNTRY, CANONICAL_TO_KIND
-from place_alias_text import _key
+from place_alias_text import normalize_place_key
 
 
 @lru_cache(maxsize=4096)
@@ -16,13 +16,13 @@ def canonicalize_place_name(value: str, country_hint: str = "") -> str:
     if not text:
         return ""
 
-    records = ALIAS_TO_PLACES.get(_key(text), ())
-    hint = _key(country_hint)
+    records = ALIAS_TO_PLACES.get(normalize_place_key(text), ())
+    hint = normalize_place_key(country_hint)
     if hint:
         for country, canonical, _kind in records:
-            if _key(country) == hint:
+            if normalize_place_key(country) == hint:
                 return canonical
-    canonical = ALIAS_TO_CANONICAL.get(_key(text))
+    canonical = ALIAS_TO_CANONICAL.get(normalize_place_key(text))
     return canonical or text
 
 
@@ -33,7 +33,7 @@ def is_known_place(value: str) -> bool:
 def countries_for_place(value: str) -> tuple[str, ...]:
     """Return every country supported by a canonical or alias value."""
 
-    countries = {country for country, _canonical, _kind in ALIAS_TO_PLACES.get(_key(value), ()) if country}
+    countries = {country for country, _canonical, _kind in ALIAS_TO_PLACES.get(normalize_place_key(value), ()) if country}
     return tuple(sorted(countries))
 
 
@@ -42,8 +42,8 @@ def country_for_place(value: str, country_hint: str = "") -> str:
 
     countries = countries_for_place(value)
     if country_hint:
-        hint = _key(country_hint)
-        return next((country for country in countries if _key(country) == hint), "")
+        hint = normalize_place_key(country_hint)
+        return next((country for country in countries if normalize_place_key(country) == hint), "")
     if len(countries) == 1:
         return countries[0]
     return ""
@@ -52,10 +52,10 @@ def country_for_place(value: str, country_hint: str = "") -> str:
 def kind_for_place(value: str, country_hint: str = "") -> str:
     """Return the place kind for a known alias, optionally country-qualified."""
 
-    records = ALIAS_TO_PLACES.get(_key(value), ())
-    hint = _key(country_hint)
+    records = ALIAS_TO_PLACES.get(normalize_place_key(value), ())
+    hint = normalize_place_key(country_hint)
     if hint:
-        records = tuple(record for record in records if _key(record[0]) == hint)
+        records = tuple(record for record in records if normalize_place_key(record[0]) == hint)
     kinds = {kind for _country, _canonical, kind in records if kind}
     if len(kinds) == 1:
         return next(iter(kinds))
@@ -64,10 +64,10 @@ def kind_for_place(value: str, country_hint: str = "") -> str:
 
 
 def is_likely_service_text(value: str) -> bool:
-    text = _key(value)
+    text = normalize_place_key(value)
     if not text:
         return False
-    if any(phrase in text for phrase in [_key(item) for item in SERVICE_PHRASES]):
+    if any(phrase in text for phrase in [normalize_place_key(item) for item in SERVICE_PHRASES]):
         return True
     if " to " in f" {text} " and any(word in text for word in ["airport", "hotel", "station", "accommodation"]):
         return True
@@ -104,7 +104,7 @@ def _normalize_place_text_cached(text: str) -> str:
                 return match.group(0)
             if suffix_key:
                 following = text[match.end(): match.end() + len(suffix_key) + 8]
-                if _key(following).startswith(suffix_key):
+                if normalize_place_key(following).startswith(suffix_key):
                     return match.group(0)
             return canonical
 

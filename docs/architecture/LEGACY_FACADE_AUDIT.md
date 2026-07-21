@@ -2,12 +2,14 @@
 
 Static report generated from production modules only. Tests and dynamic imports are intentionally excluded, so candidates need human review before deletion.
 
-Production modules scanned: 711
-Facade-like modules: 121
-Modules with no production importers: 87
+Production modules scanned: 816
+Facade-like modules: 202
+Modules with no production importers: 63
 
 ## Facade-like modules
 
+- `app_modules/calculator_open_action.py` — importers: 1
+- `app_modules/calculator_restore.py` — importers: 3
 - `app_modules/export_issue_display.py` — importers: 1
 - `app_modules/export_render_context.py` — importers: 1
 - `app_modules/generation_preview_builder.py` — importers: 1
@@ -18,31 +20,59 @@ Modules with no production importers: 87
 - `app_modules/render_context_cover_data.py` — importers: 3
 - `app_modules/render_context_document.py` — importers: 1
 - `app_modules/render_context_summary_data.py` — importers: 1
+- `app_modules/session_state_keys.py` — importers: 22
 - `app_modules/workflow_actions.py` — importers: 5
-- `calculator/__init__.py` — importers: 0
-- `images/__init__.py` — importers: 0
-- `images/matcher_context.py` — importers: 2
+- `calculator/__init__.py` — importers: 42
+- `generator.py` — importers: 0
+- `image_matcher.py` — importers: 2
+- `images/__init__.py` — importers: 45
+- `images/matcher_context.py` — importers: 3
 - `images/remote_distribution.py` — importers: 5
-- `images/scanner.py` — importers: 11
+- `images/scanner.py` — importers: 13
+- `itinerary_domain/activity_product_rules/__init__.py` — importers: 1
+- `itinerary_domain/activity_training_catalogue.py` — importers: 1
+- `itinerary_domain/group_tour_domain.py` — importers: 1
+- `itinerary_domain/group_tour_orphan_days.py` — importers: 1
+- `itinerary_domain/nutshell_constants.py` — importers: 4
+- `itinerary_domain/nutshell_domain.py` — importers: 4
+- `itinerary_domain/nutshell_model.py` — importers: 3
+- `itinerary_domain/product_rules.py` — importers: 1
+- `itinerary_domain/transport_norway.py` — importers: 4
 - `itinerary_generation/accommodation_inclusions.py` — importers: 2
+- `itinerary_generation/activity_cache.py` — importers: 0
+- `itinerary_generation/activity_mode_contract.py` — importers: 1
+- `itinerary_generation/activity_product_core.py` — importers: 0
 - `itinerary_generation/activity_product_rules/__init__.py` — importers: 0
+- `itinerary_generation/activity_product_rules/iceland.py` — importers: 0
+- `itinerary_generation/activity_product_rules/nordic.py` — importers: 0
+- `itinerary_generation/activity_product_rules/norway.py` — importers: 0
+- `itinerary_generation/activity_product_rules/scandinavia.py` — importers: 0
+- `itinerary_generation/activity_product_text.py` — importers: 0
+- `itinerary_generation/activity_products.py` — importers: 1
 - `itinerary_generation/activity_title_northern_lights.py` — importers: 1
-- `itinerary_generation/activity_titles.py` — importers: 3
-- `itinerary_generation/activity_training_catalogue.py` — importers: 3
+- `itinerary_generation/activity_titles.py` — importers: 2
+- `itinerary_generation/activity_training_catalogue.py` — importers: 2
+- `itinerary_generation/activity_training_loader.py` — importers: 0
+- `itinerary_generation/activity_training_matcher.py` — importers: 0
+- `itinerary_generation/activity_training_model.py` — importers: 0
+- `itinerary_generation/activity_training_text.py` — importers: 0
+- `itinerary_generation/activity_training_validation.py` — importers: 0
 - `itinerary_generation/canonical_builder.py` — importers: 2
 - `itinerary_generation/client_output_quality_gate.py` — importers: 1
-- `itinerary_generation/common.py` — importers: 83
-- `itinerary_generation/content_engine.py` — importers: 17
-- `itinerary_generation/copy/__init__.py` — importers: 0
+- `itinerary_generation/common.py` — importers: 82
+- `itinerary_generation/content_engine.py` — importers: 16
+- `itinerary_generation/content_text.py` — importers: 5
+- `itinerary_generation/copy/__init__.py` — importers: 7
 - `itinerary_generation/cover_theme.py` — importers: 4
-- `itinerary_generation/data/nordic_destination_registry_data/__init__.py` — importers: 0
+- `itinerary_generation/data/nordic_destination_registry_data/__init__.py` — importers: 1
 - `itinerary_generation/day_accommodation_state.py` — importers: 1
 - `itinerary_generation/day_copy_audit.py` — importers: 0
 - `itinerary_generation/day_copy_variation.py` — importers: 1
-- `itinerary_generation/day_intent.py` — importers: 8
+- `itinerary_generation/day_intent.py` — importers: 11
 - `itinerary_generation/day_intro_classification.py` — importers: 1
 - `itinerary_generation/day_intro_engine.py` — importers: 2
 - `itinerary_generation/day_intro_planner.py` — importers: 1
+- `itinerary_generation/day_intro_route.py` — importers: 2
 - `itinerary_generation/day_render_blocks.py` — importers: 5
 - `itinerary_generation/day_render_manual_html.py` — importers: 2
 - `itinerary_generation/day_render_transport_blocks.py` — importers: 2
@@ -62,38 +92,76 @@ Modules with no production importers: 87
 - `itinerary_generation/editable_draft_model.py` — importers: 3
 - `itinerary_generation/editor_page_contract.py` — importers: 13
 - `itinerary_generation/exclusion_sections.py` — importers: 2
-- `itinerary_generation/group_tour_domain.py` — importers: 4
+- `itinerary_generation/fjordtours_activity_catalogue.py` — importers: 0
+- `itinerary_generation/group_tour_accommodation_policy.py` — importers: 0
+- `itinerary_generation/group_tour_builder.py` — importers: 0
+- `itinerary_generation/group_tour_commercial_items.py` — importers: 0
+- `itinerary_generation/group_tour_constants.py` — importers: 0
+- `itinerary_generation/group_tour_day_parser.py` — importers: 0
+- `itinerary_generation/group_tour_detection.py` — importers: 2
+- `itinerary_generation/group_tour_domain.py` — importers: 3
+- `itinerary_generation/group_tour_master_rows.py` — importers: 0
+- `itinerary_generation/group_tour_models.py` — importers: 0
+- `itinerary_generation/group_tour_optional_extras.py` — importers: 1
+- `itinerary_generation/group_tour_orphan_days.py` — importers: 0
+- `itinerary_generation/group_tour_parsing.py` — importers: 0
 - `itinerary_generation/group_tour_rendering.py` — importers: 9
-- `itinerary_generation/group_tours.py` — importers: 3
-- `itinerary_generation/inclusion_transport.py` — importers: 0
+- `itinerary_generation/group_tour_row_helpers.py` — importers: 0
+- `itinerary_generation/group_tour_serialization.py` — importers: 0
+- `itinerary_generation/group_tour_supplier_titles.py` — importers: 2
+- `itinerary_generation/group_tour_text.py` — importers: 0
+- `itinerary_generation/group_tours.py` — importers: 2
+- `itinerary_generation/inclusion_transport.py` — importers: 1
 - `itinerary_generation/inclusions.py` — importers: 10
 - `itinerary_generation/input_review.py` — importers: 4
 - `itinerary_generation/itinerary_health_checks.py` — importers: 4
-- `itinerary_generation/nutshell_constants.py` — importers: 4
-- `itinerary_generation/nutshell_domain.py` — importers: 12
-- `itinerary_generation/nutshell_model.py` — importers: 3
+- `itinerary_generation/nutshell_cleaning.py` — importers: 0
+- `itinerary_generation/nutshell_constants.py` — importers: 0
+- `itinerary_generation/nutshell_domain.py` — importers: 10
+- `itinerary_generation/nutshell_journey_builder.py` — importers: 0
+- `itinerary_generation/nutshell_labels.py` — importers: 0
+- `itinerary_generation/nutshell_model.py` — importers: 0
+- `itinerary_generation/nutshell_parsing.py` — importers: 1
+- `itinerary_generation/nutshell_route_parser.py` — importers: 0
+- `itinerary_generation/nutshell_route_parsing.py` — importers: 0
+- `itinerary_generation/nutshell_source.py` — importers: 0
+- `itinerary_generation/product_rule_context.py` — importers: 0
+- `itinerary_generation/product_rule_descriptions.py` — importers: 0
+- `itinerary_generation/product_rule_evidence.py` — importers: 0
+- `itinerary_generation/product_rule_matcher.py` — importers: 0
+- `itinerary_generation/product_rule_models.py` — importers: 0
 - `itinerary_generation/product_rules.py` — importers: 6
-- `itinerary_generation/public_api.py` — importers: 0
+- `itinerary_generation/public_api.py` — importers: 1
 - `itinerary_generation/qa_report.py` — importers: 0
 - `itinerary_generation/quality_gate.py` — importers: 5
 - `itinerary_generation/quality_gate_core.py` — importers: 1
+- `itinerary_generation/schedule_occupancy.py` — importers: 2
 - `itinerary_generation/structured_builder.py` — importers: 6
 - `itinerary_generation/structured_builder_core.py` — importers: 1
 - `itinerary_generation/structured_days_builder.py` — importers: 2
 - `itinerary_generation/structured_validation.py` — importers: 1
 - `itinerary_generation/summaries.py` — importers: 5
-- `itinerary_generation/summaries_text.py` — importers: 2
-- `itinerary_generation/titles.py` — importers: 19
-- `itinerary_generation/transport.py` — importers: 11
+- `itinerary_generation/summaries_journey_arc.py` — importers: 1
+- `itinerary_generation/summaries_text.py` — importers: 3
+- `itinerary_generation/tallinn.py` — importers: 2
+- `itinerary_generation/title_cleanup.py` — importers: 4
+- `itinerary_generation/title_routes.py` — importers: 2
+- `itinerary_generation/title_safety.py` — importers: 2
+- `itinerary_generation/title_travel_composition.py` — importers: 1
+- `itinerary_generation/titles.py` — importers: 17
+- `itinerary_generation/transport.py` — importers: 9
 - `itinerary_generation/transport_details.py` — importers: 4
-- `itinerary_generation/transport_domain/__init__.py` — importers: 0
+- `itinerary_generation/transport_domain/__init__.py` — importers: 34
 - `itinerary_generation/transport_domain/render.py` — importers: 1
-- `itinerary_generation/transport_norway.py` — importers: 8
+- `itinerary_generation/transport_norway.py` — importers: 4
 - `itinerary_generation/transport_routes.py` — importers: 0
 - `itinerary_generation/transport_titles.py` — importers: 0
 - `itinerary_generation/travel_sequence_blocks.py` — importers: 2
 - `itinerary_generation/trip_titles.py` — importers: 1
 - `itinerary_generation/validation.py` — importers: 0
+- `itinerary_parser.py` — importers: 2
+- `normalizer.py` — importers: 1
+- `normalizer_modules/__init__.py` — importers: 17
 - `normalizer_modules/core.py` — importers: 0
 - `normalizer_modules/hotel_amenities.py` — importers: 1
 - `normalizer_modules/hotels.py` — importers: 1
@@ -101,121 +169,111 @@ Modules with no production importers: 87
 - `normalizer_modules/transport_rail_fjord.py` — importers: 1
 - `normalizer_modules/transport_title.py` — importers: 1
 - `normalizer_modules/transport_transfer_detection.py` — importers: 1
-- `parser_modules/common.py` — importers: 28
+- `parser_modules/common.py` — importers: 30
 - `parser_modules/effective_type_detection.py` — importers: 1
 - `parser_modules/extract_meeting_point.py` — importers: 1
 - `parser_modules/extract_time.py` — importers: 1
-- `parser_modules/extractors.py` — importers: 1
-- `parser_modules/hotels.py` — importers: 1
+- `parser_modules/extractors.py` — importers: 2
+- `parser_modules/hotels.py` — importers: 2
+- `parser_modules/time_parsing.py` — importers: 6
 - `parser_modules/transport_titles.py` — importers: 0
-- `pdf_exporter_modules/__init__.py` — importers: 0
-- `pdf_exporter_modules/image_flowables.py` — importers: 2
-- `pdf_exporter_modules/pdf_reportlab_config.py` — importers: 1
+- `parser_modules/wrapper_row_types.py` — importers: 1
+- `pdf_exporter.py` — importers: 1
+- `pdf_exporter_modules/__init__.py` — importers: 39
+- `pdf_exporter_modules/image_flowables.py` — importers: 5
+- `pdf_exporter_modules/pdf_reportlab_config.py` — importers: 2
 - `pdf_exporter_modules/pdf_supported_html_renderer.py` — importers: 2
-- `pdf_exporter_modules/public_api.py` — importers: 0
-- `pdf_exporter_modules/render_content.py` — importers: 1
-- `pdf_exporter_modules/render_flowables.py` — importers: 3
+- `pdf_exporter_modules/public_api.py` — importers: 1
+- `pdf_exporter_modules/render_content.py` — importers: 2
+- `pdf_exporter_modules/render_flowables.py` — importers: 8
 - `pdf_exporter_modules/typed_exporter.py` — importers: 0
-- `project_storage/__init__.py` — importers: 0
-- `text_polish_modules/__init__.py` — importers: 0
+- `place_alias_data.py` — importers: 5
+- `place_aliases.py` — importers: 47
+- `project_storage/__init__.py` — importers: 11
+- `shared/client_text_repair.py` — importers: 2
+- `shared/place_label_policy.py` — importers: 3
+- `text_polish.py` — importers: 106
+- `text_polish_modules/__init__.py` — importers: 6
 - `text_polish_modules/text_cleanup_rules.py` — importers: 0
 - `ui/accommodation_display_helpers.py` — importers: 1
 - `ui/activity_description_helpers.py` — importers: 1
 - `ui/activity_inclusions.py` — importers: 2
 - `ui/activity_logistics.py` — importers: 1
+- `ui/day_blocks.py` — importers: 1
+- `ui/day_pages.py` — importers: 1
+- `ui/optional_day_blocks.py` — importers: 1
 - `ui/render_helpers.py` — importers: 18
 - `ui/render_text_helpers.py` — importers: 1
+- `ui/simple_day_blocks.py` — importers: 1
 - `ui/time_display.py` — importers: 1
 - `ui/transport_display_helpers.py` — importers: 1
+- `ui/travel_sequence_blocks.py` — importers: 1
 - `visual_editor_component/editor_result_codec.py` — importers: 3
 - `visual_editor_component/editor_workflow.py` — importers: 1
 
 ## No production importers
 
-- `app_modules/__init__.py`
-- `app_modules/app_version.py`
-- `app_modules/main_view.py`
-- `calculator/__init__.py`
+- `app.py`
 - `calculator/data/__init__.py`
-- `calculator/fetch_lines.py`
-- `calculator/grid_autocomplete.py`
-- `calculator/library_seed_import.py`
-- `images/__init__.py`
-- `images/app_image_bank.py`
+- `calculator/library_search.py`
+- `generator.py`
 - `images/destination_image_library.py`
 - `images/diagnostics.py`
-- `images/seasonal_policy.py`
-- `itinerary_generation/__init__.py`
+- `itinerary_generation/activity_cache.py`
+- `itinerary_generation/activity_product_core.py`
 - `itinerary_generation/activity_product_rules/__init__.py`
 - `itinerary_generation/activity_product_rules/iceland.py`
 - `itinerary_generation/activity_product_rules/nordic.py`
 - `itinerary_generation/activity_product_rules/norway.py`
 - `itinerary_generation/activity_product_rules/scandinavia.py`
+- `itinerary_generation/activity_product_text.py`
+- `itinerary_generation/activity_training_loader.py`
+- `itinerary_generation/activity_training_matcher.py`
+- `itinerary_generation/activity_training_model.py`
+- `itinerary_generation/activity_training_text.py`
+- `itinerary_generation/activity_training_validation.py`
 - `itinerary_generation/content_validator.py`
-- `itinerary_generation/copy/__init__.py`
 - `itinerary_generation/copy/phrase_guardrails.py`
-- `itinerary_generation/data/__init__.py`
-- `itinerary_generation/data/nordic_destination_registry_data/__init__.py`
-- `itinerary_generation/data/nordic_destination_registry_data/common.py`
-- `itinerary_generation/data/nordic_destination_registry_data/denmark.py`
-- `itinerary_generation/data/nordic_destination_registry_data/finland.py`
-- `itinerary_generation/data/nordic_destination_registry_data/iceland.py`
-- `itinerary_generation/data/nordic_destination_registry_data/norway.py`
-- `itinerary_generation/data/nordic_destination_registry_data/sweden.py`
-- `itinerary_generation/data/nordic_destination_registry_data/transport.py`
 - `itinerary_generation/day_brain_report.py`
 - `itinerary_generation/day_copy_audit.py`
+- `itinerary_generation/fjordtours_activity_catalogue.py`
+- `itinerary_generation/group_tour_accommodation_policy.py`
+- `itinerary_generation/group_tour_builder.py`
+- `itinerary_generation/group_tour_commercial_items.py`
+- `itinerary_generation/group_tour_constants.py`
+- `itinerary_generation/group_tour_day_parser.py`
+- `itinerary_generation/group_tour_master_rows.py`
+- `itinerary_generation/group_tour_models.py`
+- `itinerary_generation/group_tour_orphan_days.py`
+- `itinerary_generation/group_tour_parsing.py`
+- `itinerary_generation/group_tour_row_helpers.py`
+- `itinerary_generation/group_tour_serialization.py`
+- `itinerary_generation/group_tour_text.py`
 - `itinerary_generation/inclusion_sections.py`
-- `itinerary_generation/inclusion_transport.py`
-- `itinerary_generation/public_api.py`
+- `itinerary_generation/nutshell_cleaning.py`
+- `itinerary_generation/nutshell_constants.py`
+- `itinerary_generation/nutshell_journey_builder.py`
+- `itinerary_generation/nutshell_labels.py`
+- `itinerary_generation/nutshell_model.py`
+- `itinerary_generation/nutshell_route_parser.py`
+- `itinerary_generation/nutshell_route_parsing.py`
+- `itinerary_generation/nutshell_source.py`
+- `itinerary_generation/product_rule_context.py`
+- `itinerary_generation/product_rule_descriptions.py`
+- `itinerary_generation/product_rule_evidence.py`
+- `itinerary_generation/product_rule_matcher.py`
+- `itinerary_generation/product_rule_models.py`
 - `itinerary_generation/qa_report.py`
 - `itinerary_generation/reference_corpus.py`
 - `itinerary_generation/source_identity.py`
-- `itinerary_generation/transport_domain/__init__.py`
 - `itinerary_generation/transport_domain/model.py`
 - `itinerary_generation/transport_routes.py`
 - `itinerary_generation/transport_titles.py`
 - `itinerary_generation/validation.py`
-- `normalizer_modules/__init__.py`
 - `normalizer_modules/core.py`
-- `parser_modules/__init__.py`
-- `parser_modules/parser_main.py`
 - `parser_modules/transport_titles.py`
-- `pdf_exporter_modules/__init__.py`
-- `pdf_exporter_modules/background_flowables.py`
-- `pdf_exporter_modules/day_images.py`
-- `pdf_exporter_modules/decorative_flowables.py`
 - `pdf_exporter_modules/exporter.py`
-- `pdf_exporter_modules/image_paths.py`
-- `pdf_exporter_modules/pdf_style_tokens.py`
-- `pdf_exporter_modules/public_api.py`
-- `pdf_exporter_modules/render_content_blocks.py`
-- `pdf_exporter_modules/render_controlled_content.py`
-- `pdf_exporter_modules/render_cover.py`
-- `pdf_exporter_modules/render_glance.py`
-- `pdf_exporter_modules/render_inclusion_content.py`
-- `pdf_exporter_modules/render_pages.py`
-- `pdf_exporter_modules/render_tables.py`
-- `pdf_exporter_modules/same_page_image_flowable.py`
 - `pdf_exporter_modules/typed_exporter.py`
-- `project_storage/__init__.py`
-- `text_polish_modules/__init__.py`
+- `shared/text_cleanup_cache.py`
 - `text_polish_modules/text_cleanup_rules.py`
-- `ui/__init__.py`
-- `ui/day_overview_blocks.py`
-- `ui/style_app_chrome.py`
-- `ui/style_app_shell.py`
-- `ui/style_debug.py`
-- `ui/style_export.py`
-- `ui/style_forms.py`
-- `ui/style_image_bank.py`
-- `ui/style_input_workspace.py`
-- `ui/style_project_browser.py`
-- `ui/style_responsive.py`
-- `ui/style_tokens.py`
-- `ui/style_workflow.py`
-- `ui/style_workspace_header.py`
-- `ui/styles.py`
-- `ui/transport_row_blocks.py`
-- `visual_editor_component/__init__.py`
 

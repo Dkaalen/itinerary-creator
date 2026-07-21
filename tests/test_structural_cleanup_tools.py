@@ -160,6 +160,42 @@ def test_deletion_candidate_audit_is_handover_only() -> None:
     assert any(item.safety_note.startswith("documented public") for item in report.held_back)
 
 
+def test_facade_audit_resolves_relative_and_package_submodule_imports(tmp_path: Path) -> None:
+    from scripts.audit_legacy_facades import audit_modules
+
+    package = tmp_path / "images"
+    package.mkdir()
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "target.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (package / "relative_consumer.py").write_text("from . import target\n", encoding="utf-8")
+    (tmp_path / "app.py").write_text("from images import target\n", encoding="utf-8")
+
+    audit = {item.module: item for item in audit_modules(tmp_path)}
+
+    assert audit["images.target"].production_importers == ("app", "images.relative_consumer")
+    assert audit["images"].path == "images/__init__.py"
+
+
+def test_deletion_candidate_audit_protects_entrypoint_and_finds_dead_facade(tmp_path: Path) -> None:
+    from scripts.deletion_candidate_audit import build_report
+
+    package = tmp_path / "ui"
+    package.mkdir()
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "owner.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (package / "dead_facade.py").write_text(
+        '"""Compatibility facade."""\nfrom ui.owner import VALUE\n__all__ = ["VALUE"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    report = build_report(tmp_path)
+
+    assert [item.path for item in report.candidates] == ["ui/dead_facade.py"]
+    app_finding = next(item for item in report.held_back if item.path == "app.py")
+    assert app_finding.safety_note == "production application entrypoint"
+
+
 def test_parser_generation_ownership_audit_reports_review_signals(tmp_path: Path) -> None:
     from scripts.parser_generation_ownership_audit import build_report
 

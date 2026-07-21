@@ -103,20 +103,21 @@ function applySalesMargin(margin) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
   const evaluator = new CalculatorGridFormulaEvaluator(calculatorState.rows, calculatorState.currencyRates);
-  let grossInSalesCurrency;
+  let salesPricePerUnit;
   try {
-    grossInSalesCurrency = evaluator.defaultSalesPricePerUnit(CALCULATOR_DATA_START_ROW + rowIndex, row);
+    salesPricePerUnit = evaluator.salesPricePerUnitForMargin(CALCULATOR_DATA_START_ROW + rowIndex, margin);
   } catch (_error) {
-    grossInSalesCurrency = 0;
+    salesPricePerUnit = 0;
   }
-  if (!Number.isFinite(grossInSalesCurrency) || grossInSalesCurrency <= 0) {
-    calculatorState.syncStatus = 'Enter a gross price first';
+  if (!Number.isFinite(salesPricePerUnit) || salesPricePerUnit <= 0) {
+    calculatorState.syncStatus = 'Enter a positive net cost, quantity and sales rate first';
     refreshSyncStatusOnly();
     return;
   }
   recordHistory();
+  clearSalesPriceDerivedOverrides(row);
   row._sales_price_per_unit_touched = true;
-  row.sales_price_per_unit = grossInSalesCurrency / (1 - margin);
+  row.sales_price_per_unit = salesPricePerUnit;
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   markLocalDraft();
   rerender();
@@ -127,11 +128,16 @@ function useGrossAsSalesPrice() {
   const row = calculatorState.rows[activeCell.rowIndex];
   if (!row) return;
   recordHistory();
+  clearSalesPriceDerivedOverrides(row);
   row._sales_price_per_unit_touched = false;
   row.sales_price_per_unit = null;
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   markLocalDraft();
   rerender();
+}
+
+function clearSalesPriceDerivedOverrides(row) {
+  for (const field of activeFinancialRules.sales_price_derived_override_fields || []) row[field] = null;
 }
 
 

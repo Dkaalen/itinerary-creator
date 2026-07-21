@@ -7,18 +7,18 @@ owns chapter destination selection and the final evidence guard.
 
 from __future__ import annotations
 
-import re
 from typing import Mapping, Sequence
 
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_facts import build_day_facts
 from itinerary_generation.nutshell_domain import has_nutshell_journey
 from itinerary_generation.summaries_experience import describe_city_experience
+from shared.text import clean_space
 from text_polish import polish_title
 
 
 def _clean(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return clean_space(value)
 
 
 def chapter_source_text(rows: Sequence[Mapping[str, object]]) -> str:
