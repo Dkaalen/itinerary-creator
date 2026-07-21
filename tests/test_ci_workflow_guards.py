@@ -32,7 +32,7 @@ def test_ci_workflow_exists_and_uses_supported_runtimes() -> None:
 
     assert "actions/checkout@v4" in text
     assert "actions/setup-python@v5" in text
-    assert "python-version: '3.14'" in text
+    assert "python-version: '3.13'" in text
     assert "actions/setup-node@v4" in text
     assert "node-version: '20'" in text
 

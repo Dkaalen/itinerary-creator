@@ -13,6 +13,11 @@ from app_modules.calculator_backup_action import (
     render_calculator_backup_controls,
 )
 from app_modules.calculator_component_payload import build_calculator_grid_payload
+from app_modules.calculator_component_protocol import (
+    acknowledge_calculator_grid_result,
+    authorize_calculator_grid_result,
+    calculator_component_ack_payload,
+)
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
 from app_modules.calculator_currency_controls import render_currency_rate_editor
 from app_modules.calculator_download_action import (
@@ -37,6 +42,7 @@ from app_modules.calculator_state_keys import (
     CALCULATOR_NOTICE_KEY,
     CALCULATOR_ADVANCED_TOGGLE_KEY,
     CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+    CALCULATOR_GENERATION_FEEDBACK_KEY,
     CURRENCY_RATES_STATE_KEY,
 )
 from app_modules.input_workspace import render_studio_brand
@@ -58,6 +64,7 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_topbar()
     _render_calculator_header()
     _render_calculator_notice()
+    _render_generation_feedback()
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
     if CURRENCY_RATES_STATE_KEY not in st.session_state and library_read.currency_rates:
@@ -84,14 +91,39 @@ def render_calculator_page(app_version: str) -> None:
         currency_rates=currency_rates,
         draft_namespace=_calculator_draft_namespace(),
         pending_download=pending_download,
+        component_ack=calculator_component_ack_payload(st.session_state),
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
-    if parsed_result is not None:
-        state = _apply_component_result(parsed_result)
+    accepted_result = _accept_component_result(parsed_result, state)
+    if accepted_result is not None:
+        state = _apply_component_result(accepted_result)
+        acknowledge_calculator_grid_result(
+            st.session_state,
+            accepted_result,
+            status="accepted",
+            server_state=state,
+        )
 
-    _render_backend_action(parsed_result, state, currency_rates)
+    _render_backend_action(accepted_result, state, currency_rates)
     _render_backup_controls(state)
+
+
+
+def _accept_component_result(
+    result: CalculatorGridResult | None,
+    current_state: CalculatorState,
+) -> CalculatorGridResult | None:
+    if result is None:
+        return None
+    decision = authorize_calculator_grid_result(st.session_state, result, current_state)
+    if decision.should_process:
+        return result
+    if decision.duplicate:
+        return None
+    st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": decision.message}
+    st.rerun()
+    return None
 
 
 def _calculator_draft_namespace() -> str:
@@ -138,6 +170,9 @@ def _render_backend_action(
         prepare_staged_calculation_download(st.session_state, state, currency_rates=currency_rates)
         st.rerun()
         return
+    if result.action == "sync":
+        st.rerun()
+        return
     if result.action == "open_excel":
         _open_uploaded_excel(result)
         return
@@ -158,6 +193,12 @@ def _render_calculator_notice() -> None:
     level = str(notice.get("level") or "info")
     renderer = getattr(st, level, st.info)
     renderer(message)
+
+
+def _render_generation_feedback() -> None:
+    report = st.session_state.pop(CALCULATOR_GENERATION_FEEDBACK_KEY, None)
+    if report is not None:
+        render_blocking_issues(report)
 
 
 def _open_uploaded_excel(result: CalculatorGridResult) -> None:
@@ -200,9 +241,10 @@ def _render_generation_result(state: CalculatorState, *, output_brand: str) -> N
     validation_report = (result.payload or {}).get("validation_report") if result.payload else None
     if validation_report is not None:
         block_generation(validation_report)
-        render_blocking_issues(validation_report)
+        st.session_state[CALCULATOR_GENERATION_FEEDBACK_KEY] = validation_report
     elif result.message:
-        st.warning(result.message)
+        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": result.message}
+    st.rerun()
 
 
 def _render_backup_controls(state: CalculatorState) -> None:

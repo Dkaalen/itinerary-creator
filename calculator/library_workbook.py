@@ -24,6 +24,7 @@ class LocalLibraryWorkbook:
     rows: tuple[LocalLibraryRow, ...]
     currency_rates: Mapping[str, float]
     path: Path
+    fingerprint: str
 
 @lru_cache(maxsize=4)
 def _load_cached(path_text: str, modified_ns: int, size: int) -> LocalLibraryWorkbook:
@@ -64,7 +65,8 @@ def _load_cached(path_text: str, modified_ns: int, size: int) -> LocalLibraryWor
             rows.append(row)
     if not rows:
         raise LocalLibraryWorkbookError("Local Library workbook contains no fetchable rows.")
-    return LocalLibraryWorkbook(tuple(rows), rates, path)
+    fingerprint = f"{modified_ns:x}-{size:x}"
+    return LocalLibraryWorkbook(tuple(rows), rates, path, fingerprint)
 
 def load_local_library_workbook(path: str | Path = WORKBOOK_PATH) -> LocalLibraryWorkbook:
     workbook_path = Path(path)

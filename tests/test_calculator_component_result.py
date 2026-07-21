@@ -12,6 +12,7 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
             "show_advanced": True,
             "number_of_pax": 14,
             "client_state_revision": "abc123",
+            "request_id": "request-1",
             "rows": [
                 {
                     "row_id": "1",
@@ -36,6 +37,7 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
     assert result.state.itinerary_name == "Trip"
     assert result.state.number_of_pax == 14
     assert result.client_state_revision == "abc123"
+    assert result.request_id == "request-1"
     assert result.state.rows[0].travel_element == "Oslo hotel"
     assert result.state.rows[0].supplier_commission == 0.15
 

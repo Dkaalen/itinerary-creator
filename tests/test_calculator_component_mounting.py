@@ -100,3 +100,19 @@ def test_streamlit_dependency_includes_session_info_race_fix() -> None:
     requirements = Path("requirements.txt").read_text(encoding="utf-8")
 
     assert "streamlit==1.45.1" in requirements
+
+
+def test_calculator_component_uses_revision_safe_request_ack_protocol() -> None:
+    index_source = read_contract_text(FRONTEND_DIR / "index.html")
+    protocol_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_protocol.js")
+    controller_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_state_controller.js")
+    actions_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_actions.js")
+
+    assert "js/calculator_grid_protocol.js" in index_source
+    assert "beginCalculatorRequest" in protocol_source
+    assert "consumeCalculatorComponentAck" in protocol_source
+    assert "request_id: requestId" in actions_source
+    assert "client_state_revision: activeBackendRevision" in actions_source
+    assert "component_ack" in controller_source
+    assert "canRebaseNewerEdits" in controller_source
+    assert "calculatorState.dirty = false" not in actions_source

@@ -1,11 +1,32 @@
 from __future__ import annotations
 
-from app_modules.calculator_component_payload import build_calculator_grid_payload
+import json
+
+from app_modules.calculator_component_payload import (
+    build_calculator_grid_payload,
+    clear_calculator_library_payload_cache,
+)
 from calculator.library_workbook import load_local_library_workbook
 from calculator.calculator_state import CalculatorState
 from calculator.library_model import LocalLibraryRow
 from calculator.library_store import LocalLibraryReadResult
 from calculator.row_model import CalculatorRow
+
+
+def _expand_compact_row(payload: dict, index: int = 0) -> dict:
+    compact = payload["library_rows"][index]
+    row_data = {
+        payload["library_row_fields"][int(index)]: value
+        for index, value in compact["v"].items()
+    }
+    return {
+        "library_id": compact["i"],
+        "source_sheet": compact["w"],
+        "source_row": compact["x"],
+        "country": compact["c"],
+        "category": compact["g"],
+        "row_data": row_data,
+    }
 
 
 def test_calculator_component_payload_includes_rows_library_and_status() -> None:
@@ -24,15 +45,18 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
                 travel_element="Oslo hotel",
                 gross_price_per_unit=90,
                 units=1,
+                supplier_commission=0.15,
                 supplier_currency="EUR",
                 sales_currency="EUR",
             ),
         ),
         source="local_excel",
         read_only=True,
+        fingerprint="fixture-1",
     )
 
     payload = build_calculator_grid_payload(state, library_read, show_advanced=True)
+    library_row = _expand_compact_row(payload)
 
     assert payload["itinerary_name"] == "Trip"
     assert payload["number_of_pax"] == 12
@@ -44,8 +68,13 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
     assert payload["library_status"] == "Local Excel Library (1 fetchable lines)."
     assert payload["library_source"] == "local_excel"
     assert payload["library_read_only"] is True
-    assert payload["library_rows"][0]["label"].startswith("NO · Hotel · Supplier")
-    assert payload["library_rows"][0]["row_data"]["supplier_commission"] == 0
+    assert payload["library_payload_version"] == "compact-v1"
+    assert payload["library_fingerprint"] == "compact-v1:fixture-1"
+    assert library_row["country"] == "NO"
+    assert library_row["row_data"]["type"] == "Hotel"
+    assert library_row["row_data"]["supplier"] == "Supplier"
+    assert library_row["row_data"]["supplier_commission"] == 15
+    assert library_row["row_data"]["gross_price_per_unit"] == 90
 
 
 def test_calculator_component_payload_revision_changes_when_rows_change() -> None:
@@ -68,18 +97,40 @@ def test_calculator_component_payload_revision_changes_when_rows_change() -> Non
     assert first_payload["state_revision"] != pax_payload["state_revision"]
 
 
+def test_calculator_component_payload_reuses_prepared_library_rows() -> None:
+    clear_calculator_library_payload_cache()
+    library_read = LocalLibraryReadResult(
+        rows=(LocalLibraryRow(library_id="one", travel_element="Hotel"),),
+        source="local_excel",
+        read_only=True,
+        fingerprint="same-workbook",
+    )
 
-def test_calculator_component_payload_exposes_bundled_workbook_rows() -> None:
+    first = build_calculator_grid_payload(CalculatorState(), library_read)
+    second = build_calculator_grid_payload(CalculatorState(), library_read)
+
+    assert first["library_rows"] is second["library_rows"]
+
+
+def test_calculator_component_payload_exposes_bundled_workbook_rows_compactly() -> None:
     library = load_local_library_workbook()
     library_read = LocalLibraryReadResult(
         rows=library.rows,
         source="local_excel",
         read_only=True,
         currency_rates=dict(library.currency_rates),
+        fingerprint=library.fingerprint,
     )
 
     payload = build_calculator_grid_payload(CalculatorState(), library_read)
+    fields = payload["library_row_fields"]
+    travel_index = fields.index("travel_element")
 
     assert len(payload["library_rows"]) == 5946
     assert payload["library_status"] == "Local Excel Library (5946 fetchable lines)."
-    assert any("Check in to your accommodation" in row["travel_element"] for row in payload["library_rows"])
+    assert any(
+        "Check in to your accommodation" in str(row["v"].get(str(travel_index), ""))
+        for row in payload["library_rows"]
+    )
+    serialized_size = len(json.dumps(payload["library_rows"], ensure_ascii=False).encode("utf-8"))
+    assert serialized_size < 2_000_000

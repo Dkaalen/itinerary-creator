@@ -11,6 +11,7 @@ class LocalLibraryReadResult:
     read_only: bool
     message: str = ""
     currency_rates: dict[str, float] | None = None
+    fingerprint: str = ""
 
 @dataclass(frozen=True)
 class LocalLibraryWriteResult:
@@ -25,8 +26,15 @@ class LocalLibraryStore:
         try:
             library = load_local_library_workbook()
         except LocalLibraryWorkbookError as exc:
-            return LocalLibraryReadResult((), "local_excel", True, str(exc), {})
-        return LocalLibraryReadResult(library.rows, "local_excel", True, "", dict(library.currency_rates))
+            return LocalLibraryReadResult((), "local_excel", True, str(exc), {}, "")
+        return LocalLibraryReadResult(
+            library.rows,
+            "local_excel",
+            True,
+            "",
+            dict(library.currency_rates),
+            library.fingerprint,
+        )
 
     def list_fetchable_rows(self) -> tuple[LocalLibraryRow, ...]:
         return tuple(row for row in self.list_rows().rows if row.is_available_for_fetch)

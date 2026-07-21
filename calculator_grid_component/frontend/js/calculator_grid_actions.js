@@ -186,9 +186,11 @@ function submitExcelUpload(filename, contentBase64) {
   flushLocalDraftSave();
   flushRecoverySnapshot('before Excel import');
   saveCalculatorDraft(calculatorState, activeBackendRevision);
-  hasLocalDraft = false;
+  const requestId = beginCalculatorRequest('open_excel');
+  if (!requestId) return;
   const sent = Streamlit.setComponentValue(JSON.stringify({
     action: 'open_excel',
+    request_id: requestId,
     rows: normalizeRowsForPython(calculatorState.rows),
     number_of_pax: positiveIntegerOrNull(calculatorState.numberOfPax),
     show_advanced: calculatorState.showAdvanced,
@@ -197,7 +199,7 @@ function submitExcelUpload(filename, contentBase64) {
     upload_content_base64: String(contentBase64 || '')
   }));
   if (!sent) {
-    hasLocalDraft = true;
+    cancelCalculatorRequest(requestId);
     calculatorState.syncStatus = 'Calculator session is reconnecting';
     refreshSyncStatusOnly();
   }
@@ -254,21 +256,21 @@ function submitAction(action) {
     return;
   }
   saveCalculatorDraft(calculatorState, activeBackendRevision);
-  hasLocalDraft = false;
+  const requestId = beginCalculatorRequest(action);
+  if (!requestId) return;
   const rows = normalizeRowsForPython(calculatorState.rows);
-  calculatorState.dirty = false;
   calculatorState.syncStatus = action === 'sync' ? 'Syncing…' : 'Preparing latest grid…';
   refreshSyncStatusOnly();
   const sent = Streamlit.setComponentValue(JSON.stringify({
     action,
+    request_id: requestId,
     rows,
     number_of_pax: positiveIntegerOrNull(calculatorState.numberOfPax),
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision
   }));
   if (!sent) {
-    hasLocalDraft = true;
-    calculatorState.dirty = true;
+    cancelCalculatorRequest(requestId);
     calculatorState.syncStatus = 'Calculator session is reconnecting';
     refreshSyncStatusOnly();
   }

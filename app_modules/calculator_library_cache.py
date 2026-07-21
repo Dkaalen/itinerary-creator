@@ -29,8 +29,12 @@ def read_cached_local_library(
     if not force_refresh and isinstance(cached, LocalLibraryReadResult) and _cache_is_fresh(cached_at, ttl_seconds):
         return cached
 
-    if force_refresh and reader is None:
-        clear_local_library_workbook_cache()
+    if force_refresh:
+        from app_modules.calculator_component_payload import clear_calculator_library_payload_cache
+
+        clear_calculator_library_payload_cache()
+        if reader is None:
+            clear_local_library_workbook_cache()
     result = (reader or LocalLibraryStore().list_rows)()
     session_state[CALCULATOR_LIBRARY_CACHE_KEY] = result
     session_state[CALCULATOR_LIBRARY_CACHE_TIME_KEY] = monotonic()
@@ -38,10 +42,13 @@ def read_cached_local_library(
 
 
 def clear_cached_local_library(session_state: MutableMapping[str, Any]) -> None:
-    """Forget cached Local Library rows."""
+    """Forget cached Local Library rows and its browser-ready payload."""
 
     session_state.pop(CALCULATOR_LIBRARY_CACHE_KEY, None)
     session_state.pop(CALCULATOR_LIBRARY_CACHE_TIME_KEY, None)
+    from app_modules.calculator_component_payload import clear_calculator_library_payload_cache
+
+    clear_calculator_library_payload_cache()
 
 
 def _cache_is_fresh(cached_at: float, ttl_seconds: float) -> bool:

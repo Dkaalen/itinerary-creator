@@ -1055,3 +1055,149 @@ def test_open_project_requires_confirmation_before_replacing_current_work() -> N
     finally:
         browser.close()
         manager.stop()
+
+
+def test_backend_ack_clears_dirty_state_only_after_matching_request_is_accepted() -> None:
+    initial = _payload(
+        [{"row_id": "1", "type": "", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="ack-initial",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        cell = page.locator('td[data-row-index="0"][data-key="type"]')
+        cell.click()
+        page.keyboard.type("Arrival")
+        page.get_by_role("button", name="Download Excel").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+        assert submitted["request_id"]
+        assert page.evaluate("calculatorState.dirty") is True
+        assert page.evaluate("pendingCalculatorRequest.requestId") == submitted["request_id"]
+
+        accepted = _payload(submitted["rows"], revision="ack-server")
+        accepted["draft_storage_key"] = initial["draft_storage_key"]
+        accepted["component_ack"] = {
+            "request_id": submitted["request_id"],
+            "action": "download",
+            "status": "accepted",
+            "message": "",
+            "server_state_revision": "ack-server",
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            accepted,
+        )
+        page.wait_for_function("pendingCalculatorRequest === null")
+
+        assert page.evaluate("calculatorState.dirty") is False
+        assert page.evaluate("activeBackendRevision") == "ack-server"
+        assert page.locator("#calculator-sync-status").text_content() == "Saved"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_rejected_stale_request_loads_new_backend_state_and_keeps_old_draft_recoverable() -> None:
+    initial = _payload(
+        [{"row_id": "1", "type": "Arrival", "travel_element": "Old backend", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="stale-initial",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.evaluate("calculatorState.rows[0].travel_element = 'Unsaved browser edit'; markLocalDraft(); rerender();")
+        page.get_by_role("button", name="Download Excel").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+
+        rejected = _payload(
+            [{"row_id": "1", "type": "Arrival", "travel_element": "New backend", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+            revision="stale-server",
+        )
+        rejected["draft_storage_key"] = initial["draft_storage_key"]
+        rejected["component_ack"] = {
+            "request_id": submitted["request_id"],
+            "action": "download",
+            "status": "rejected_stale",
+            "message": "The older action was not applied.",
+            "server_state_revision": "stale-server",
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            rejected,
+        )
+        page.wait_for_function("pendingCalculatorRequest === null")
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "New backend"
+        assert "not applied" in page.locator("#calculator-sync-status").text_content()
+        stored = page.evaluate("key => JSON.parse(window.localStorage.getItem(key))", initial["draft_storage_key"])
+        assert stored["rows"][0]["travel_element"] == "Unsaved browser edit"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_edits_made_after_submit_are_rebased_on_the_accepted_backend_revision() -> None:
+    initial = _payload(
+        [{"row_id": "1", "type": "Arrival", "travel_element": "Submitted value", "supplier_currency": "NOK", "sales_currency": "NOK"}],
+        revision="rebase-initial",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.get_by_role("button", name="Download Excel").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+        submitted = page.evaluate("window.__calculatorComponentValues[0]")
+
+        page.evaluate("calculatorState.rows[0].travel_element = 'Edited after submit'; markLocalDraft(); rerender();")
+        accepted = _payload(submitted["rows"], revision="rebase-server")
+        accepted["draft_storage_key"] = initial["draft_storage_key"]
+        accepted["component_ack"] = {
+            "request_id": submitted["request_id"],
+            "action": "download",
+            "status": "accepted",
+            "message": "",
+            "server_state_revision": "rebase-server",
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            accepted,
+        )
+        page.wait_for_function("pendingCalculatorRequest === null")
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Edited after submit"
+        assert page.evaluate("calculatorState.dirty") is True
+        assert page.evaluate("activeBackendRevision") == "rebase-server"
+        assert page.locator("#calculator-sync-status").text_content() == "Unsaved changes"
+    finally:
+        browser.close()
+        manager.stop()

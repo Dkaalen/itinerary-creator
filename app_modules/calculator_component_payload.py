@@ -6,16 +6,48 @@ import hashlib
 import json
 import re
 from dataclasses import asdict
+from threading import RLock
 from typing import Any, Mapping
 
 from app_modules.calculator_grid_data import rows_to_table_data
-from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
+from app_modules.calculator_grid_values import decimal_to_percent
 from calculator.calculator_state import CalculatorState
+from calculator.currency_rates import normalize_currency_rates
 from calculator.library_model import LocalLibraryRow
 from calculator.library_read_summary import summarize_local_library_read
-from calculator.library_search import library_result_label, library_result_preview
 from calculator.library_store import LocalLibraryReadResult
-from calculator.library_normalize import library_row_to_calculator_row
+
+_LIBRARY_PAYLOAD_VERSION = "compact-v1"
+_LIBRARY_ROW_FIELDS: tuple[str, ...] = (
+    "day",
+    "type",
+    "from_date",
+    "to_date",
+    "from_time",
+    "to_time",
+    "supplier",
+    "travel_element",
+    "manual_booking",
+    "status",
+    "comments",
+    "non_refundable",
+    "refundable",
+    "url",
+    "gross_price_per_unit",
+    "units",
+    "supplier_commission",
+    "supplier_currency",
+    "sales_price_per_unit",
+    "sales_currency",
+    "vat25",
+    "vat15",
+    "vat12",
+    "vat0_domestic",
+    "vat0_international",
+)
+_LIBRARY_PAYLOAD_CACHE: dict[str, tuple[dict[str, Any], ...]] = {}
+_LIBRARY_PAYLOAD_CACHE_LOCK = RLock()
+_LIBRARY_PAYLOAD_CACHE_LIMIT = 6
 
 
 def build_calculator_grid_payload(
@@ -26,15 +58,17 @@ def build_calculator_grid_payload(
     currency_rates: Mapping[str, float] | None = None,
     draft_namespace: str = "",
     pending_download: Mapping[str, Any] | None = None,
+    component_ack: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the JSON-serializable component payload for the calculator grid."""
 
     active_rates = normalize_currency_rates(currency_rates)
+    library_fingerprint = _library_fingerprint(library_read)
     return {
         "itinerary_name": state.itinerary_name,
         "number_of_pax": state.number_of_pax,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
-        "state_revision": _calculator_state_revision(state),
+        "state_revision": calculator_state_revision(state),
         "draft_storage_key": _draft_storage_key(draft_namespace),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
@@ -42,14 +76,16 @@ def build_calculator_grid_payload(
         "library_source": library_read.source,
         "library_read_only": library_read.read_only,
         "library_message": library_read.message,
-        "library_rows": [_library_row_payload(row, active_rates) for row in _autocomplete_rows(library_read)],
+        "library_payload_version": _LIBRARY_PAYLOAD_VERSION,
+        "library_fingerprint": library_fingerprint,
+        "library_row_fields": _LIBRARY_ROW_FIELDS,
+        "library_rows": _cached_library_rows(library_read, library_fingerprint),
         "pending_download": dict(pending_download or {}),
+        "component_ack": dict(component_ack or {}),
     }
 
 
-def _calculator_state_revision(
-    state: CalculatorState,
-) -> str:
+def calculator_state_revision(state: CalculatorState) -> str:
     """Return a stable editable-state revision for browser draft protection.
 
     Currency-rate and presentation changes must not invalidate an unsynced
@@ -65,41 +101,85 @@ def _calculator_state_revision(
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
-def _library_row_payload(row: LocalLibraryRow, currency_rates: Mapping[str, float]) -> dict[str, Any]:
-    calculator_row = library_row_to_calculator_row(row, row_id="")
-    table_row = rows_to_table_data((calculator_row,), show_advanced=True, currency_rates=currency_rates)[0]
-    return {
-        "library_id": row.library_id,
-        "label": library_result_label(row),
-        "preview": _compact_preview(row),
-        "row_data": table_row,
-        "travel_element": row.travel_element,
-        "supplier": row.supplier,
-        "country": row.country,
-        "category": row.category,
-        "source_sheet": row.source_sheet,
-        "source_row": row.source_row,
-        "type": row.type,
-        "comments": row.comments,
-        "search_text": row.search_text,
-        "url": row.url,
+def clear_calculator_library_payload_cache() -> None:
+    """Forget prepared browser library payloads."""
+
+    with _LIBRARY_PAYLOAD_CACHE_LOCK:
+        _LIBRARY_PAYLOAD_CACHE.clear()
+
+
+def _cached_library_rows(
+    read_result: LocalLibraryReadResult,
+    fingerprint: str,
+) -> tuple[dict[str, Any], ...]:
+    with _LIBRARY_PAYLOAD_CACHE_LOCK:
+        cached = _LIBRARY_PAYLOAD_CACHE.get(fingerprint)
+        if cached is not None:
+            return cached
+
+    prepared = tuple(_compact_library_row_payload(row) for row in _autocomplete_rows(read_result))
+    with _LIBRARY_PAYLOAD_CACHE_LOCK:
+        if len(_LIBRARY_PAYLOAD_CACHE) >= _LIBRARY_PAYLOAD_CACHE_LIMIT:
+            oldest_key = next(iter(_LIBRARY_PAYLOAD_CACHE))
+            _LIBRARY_PAYLOAD_CACHE.pop(oldest_key, None)
+        _LIBRARY_PAYLOAD_CACHE[fingerprint] = prepared
+    return prepared
+
+
+def _compact_library_row_payload(row: LocalLibraryRow) -> dict[str, Any]:
+    values = {
+        str(index): value
+        for index, field_name in enumerate(_LIBRARY_ROW_FIELDS)
+        if _library_payload_value_is_meaningful(
+            value := _library_field_value(row, field_name)
+        )
     }
+    return {
+        "i": row.library_id,
+        "w": row.source_sheet,
+        "x": row.source_row,
+        "c": row.country,
+        "g": row.category,
+        "v": values,
+    }
+
+
+def _library_field_value(row: LocalLibraryRow, field_name: str) -> Any:
+    value = getattr(row, field_name)
+    if field_name == "supplier_commission":
+        return decimal_to_percent(value)
+    return value
+
+
+def _library_payload_value_is_meaningful(value: Any) -> bool:
+    if value is None or value is False:
+        return False
+    if isinstance(value, (int, float)):
+        return float(value) != 0.0
+    return bool(str(value).strip())
+
+
+def _library_fingerprint(read_result: LocalLibraryReadResult) -> str:
+    explicit = str(read_result.fingerprint or "").strip()
+    if explicit:
+        return f"{_LIBRARY_PAYLOAD_VERSION}:{explicit}"
+    identity = json.dumps(
+        [asdict(row) for row in _autocomplete_rows(read_result)],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
+    return f"{_LIBRARY_PAYLOAD_VERSION}:inline:{digest}"
 
 
 def _library_read_status(read_result: LocalLibraryReadResult) -> str:
     return summarize_local_library_read(read_result).component_text
 
 
-def _compact_preview(row: LocalLibraryRow) -> str:
-    return library_result_preview(row).replace("\n", " • ")[:450]
-
-
 
 def _autocomplete_rows(read_result: LocalLibraryReadResult) -> tuple[LocalLibraryRow, ...]:
-    """Return rows available to the browser autocomplete.
-
-    The bundled Excel workbook is already normalized and validated.
-    """
+    """Return rows available to the browser autocomplete."""
 
     return tuple(row for row in read_result.rows if row.is_available_for_fetch)
 
@@ -109,3 +189,10 @@ def _draft_storage_key(namespace: str) -> str:
 
     safe = re.sub(r"[^A-Za-z0-9_.:-]+", "_", str(namespace or "global")).strip("_")
     return f"itineraryCalculatorBrowserDraft.v3.{safe or 'global'}"
+
+
+__all__ = [
+    "build_calculator_grid_payload",
+    "calculator_state_revision",
+    "clear_calculator_library_payload_cache",
+]

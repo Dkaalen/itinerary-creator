@@ -93,7 +93,7 @@ Use the fast and focused scripts to isolate failures quickly.
 
 ## Runtime policy
 
-The app, CI, and local version files target Python 3.14. Keep `runtime.txt`,
+The app, CI, and local version files target Python 3.13. Keep `runtime.txt`,
 `.python-version`, and `.github/workflows/tests.yml` aligned when changing the
 hosted runtime.
 

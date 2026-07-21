@@ -11,6 +11,15 @@ const RECOVERY_SNAPSHOT_DELAY_MS = 2500;
 function initializeState(payload) {
   const incomingDraftStorageKey = setCalculatorDraftStorageKey(payload.draft_storage_key);
   const incomingRevision = String(payload.state_revision || '');
+  const ackOutcome = consumeCalculatorComponentAck(payload.component_ack, incomingRevision);
+  if (ackOutcome.matched && ackOutcome.canRebaseNewerEdits && calculatorState) {
+    mergeBackendPayloadWithoutRows(payload, incomingRevision);
+    hasLocalDraft = true;
+    calculatorState.dirty = true;
+    calculatorState.syncStatus = 'Unsaved changes';
+    saveCalculatorDraft(calculatorState, activeBackendRevision);
+    return;
+  }
   if (shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey)) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
     saveCalculatorDraft(calculatorState, activeBackendRevision);
@@ -18,13 +27,19 @@ function initializeState(payload) {
   }
 
   const incomingRows = cloneRows(payload.rows || []).slice(0, MAX_CALCULATOR_ROWS);
+  const libraryBundle = prepareLibraryBundle(
+    payload.library_rows || [],
+    payload.library_row_fields || [],
+    payload.library_fingerprint || ''
+  );
   const storedDraft = loadCalculatorDraft();
   const useStoredDraft = shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision);
   const rows = calculateRows(useStoredDraft ? cloneRows(storedDraft.rows) : incomingRows, payload.currency_rates || DEFAULT_RATES);
   calculatorState = {
     rows: rows.length ? rows : addRows([], 25),
     numberOfPax: useStoredDraft ? storedDraft.numberOfPax ?? null : payload.number_of_pax ?? null,
-    libraryRows: payload.library_rows || [],
+    libraryRows: libraryBundle.rows,
+    libraryIndex: libraryBundle.index,
     currencyRates: payload.currency_rates || DEFAULT_RATES,
     libraryStatus: payload.library_status || '',
     pendingDownload: payload.pending_download || null,
@@ -52,6 +67,9 @@ function initializeState(payload) {
   validateCalculatorState(calculatorState);
   calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft ? 'draft restored' : 'loaded');
   if (useStoredDraft) saveCalculatorDraft(calculatorState, activeBackendRevision);
+  if (ackOutcome.matched && !ackOutcome.accepted) {
+    calculatorState.syncStatus = ackOutcome.message || 'Older Calculator action was not applied';
+  }
 }
 
 function shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey) {
@@ -66,7 +84,13 @@ function shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey) {
 }
 
 function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
-  calculatorState.libraryRows = payload.library_rows || calculatorState.libraryRows || [];
+  const libraryBundle = prepareLibraryBundle(
+    payload.library_rows || [],
+    payload.library_row_fields || [],
+    payload.library_fingerprint || ''
+  );
+  calculatorState.libraryRows = libraryBundle.rows;
+  calculatorState.libraryIndex = libraryBundle.index;
   calculatorState.currencyRates = payload.currency_rates || calculatorState.currencyRates || DEFAULT_RATES;
   calculatorState.libraryStatus = payload.library_status || calculatorState.libraryStatus || '';
   // A same-revision backend render means the browser still owns newer, unsynced
@@ -80,6 +104,7 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
 }
 
 function markLocalDraft(captureVersion = true, runValidation = true) {
+  noteCalculatorLocalEdit();
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.pendingDownload = null;

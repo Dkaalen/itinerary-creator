@@ -28,7 +28,13 @@ function updateSuggestions(rowIndex, query) {
   calculatorState.activeSuggestion = {
     rowIndex,
     query: text,
-    results: findLibrarySuggestions(calculatorState.libraryRows, text, 8, calculatorState.rows[rowIndex] || {})
+    results: findLibrarySuggestions(
+      calculatorState.libraryRows,
+      text,
+      8,
+      calculatorState.rows[rowIndex] || {},
+      calculatorState.libraryIndex
+    )
   };
 }
 
