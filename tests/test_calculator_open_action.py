@@ -69,3 +69,24 @@ def test_open_notice_reports_import_warnings_without_rejecting_valid_rows() -> N
     assert notice.level == "warning"
     assert "Row 8 had an unsupported note" in notice.message
     assert "Row 9 used a cached value" in notice.message
+
+
+def test_opening_json_backup_preserves_existing_currency_rates() -> None:
+    imported_state = CalculatorState(
+        itinerary_name="Backup",
+        rows=(CalculatorRow(row_id="1", travel_element="Backup hotel"),),
+    )
+    session_state = {
+        CURRENCY_RATES_STATE_KEY: {"NOK": 1.0, "EUR": 11.8},
+        "calculator_currency_rate_EUR": 11.8,
+    }
+
+    apply_calculator_upload_import(
+        session_state,
+        CalculatorUploadImport(state=imported_state, currency_rates=None, source="json"),
+        filename="Backup.json",
+    )
+
+    assert session_state[CALCULATOR_STATE_KEY] == imported_state
+    assert session_state[CURRENCY_RATES_STATE_KEY] == {"NOK": 1.0, "EUR": 11.8}
+    assert session_state["calculator_currency_rate_EUR"] == 11.8

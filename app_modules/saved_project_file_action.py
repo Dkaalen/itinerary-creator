@@ -15,6 +15,12 @@ from app_modules.saved_project_serialization import saved_project_to_dict, saved
 from app_modules.saved_project_storage_decision import assert_project_file_mode_payload
 from app_modules.saved_project_update import update_saved_project_current_snapshot
 from app_modules.saved_project_validation import SavedProjectError
+from app_modules.session_state_keys import (
+    ACTIVE_SAVED_PROJECT_KEY,
+    ITINERARY_NAME_KEY,
+    OUTPUT_EDITS_KEY,
+    PARSED_ROWS_KEY,
+)
 
 PROJECT_FILE_MIME = "application/json"
 PROJECT_FILE_SUFFIX = ".itinerary.json"
@@ -41,7 +47,7 @@ def prepare_saved_project_file_download(
     if project is None:
         project = build_saved_project_from_state(
             state,
-            itinerary_name=str(itinerary_name if itinerary_name is not None else state.get("itinerary_name") or ""),
+            itinerary_name=str(itinerary_name if itinerary_name is not None else state.get(ITINERARY_NAME_KEY) or ""),
             project_id=active_project_id_from_state(state) or None,
             clock=clock,
         )
@@ -50,9 +56,9 @@ def prepare_saved_project_file_download(
 
     payload = saved_project_to_dict(project)
     assert_project_file_mode_payload(payload)
-    state["active_saved_project"] = payload
+    state[ACTIVE_SAVED_PROJECT_KEY] = payload
     set_active_project_id(state, project.metadata.project_id)
-    state["itinerary_name"] = project.metadata.itinerary_name
+    state[ITINERARY_NAME_KEY] = project.metadata.itinerary_name
 
     return SavedProjectFileDownload(
         file_name=project_file_name(project),
@@ -71,7 +77,7 @@ def project_file_name(project: SavedItineraryProject) -> str:
 
 
 def _require_generated_project(state: Mapping[str, Any]) -> None:
-    if not state.get("parsed_rows") or not isinstance(state.get("output_edits"), Mapping) or not state.get("output_edits"):
+    if not state.get(PARSED_ROWS_KEY) or not isinstance(state.get(OUTPUT_EDITS_KEY), Mapping) or not state.get(OUTPUT_EDITS_KEY):
         raise SavedProjectError("Generate an itinerary before saving a project file.")
 
 

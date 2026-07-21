@@ -20,6 +20,10 @@ from project_storage.project_browser import (
     list_cloud_calculation_files,
 )
 from project_storage.workflow_hooks import CALCULATION_XLSX_MIME
+from app_modules.session_state_keys import (
+    PROJECT_STORAGE_BROWSER_SUCCESS_KEY,
+    PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY,
+)
 
 
 def render_calculation_files(project_id: str) -> None:
@@ -125,10 +129,10 @@ def _render_calculation_file_delete_confirmation(
                     st.session_state.pop(prepared_key, None)
                     clear_file_delete_confirmation(st.session_state)
                     if not result.storage_files_deleted:
-                        st.session_state["project_storage_delete_cleanup_warning"] = (
+                        st.session_state[PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY] = (
                             "File record was deleted, but the stored file could not be removed automatically."
                         )
-                    st.session_state["project_storage_browser_success"] = f"Deleted {filename}."
+                    st.session_state[PROJECT_STORAGE_BROWSER_SUCCESS_KEY] = f"Deleted {filename}."
                     st.rerun()
                     return
                 st.warning("Cloud storage is unavailable. File was not deleted.")

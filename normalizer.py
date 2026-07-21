@@ -1,3 +1,3 @@
 """Compatibility wrapper for split normalizer modules."""
 
-from normalizer_modules import *  # noqa: F401,F403
+from normalizer_modules import __all__, __dir__, __getattr__

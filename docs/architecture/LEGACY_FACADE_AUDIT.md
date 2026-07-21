@@ -135,7 +135,6 @@ Modules with no production importers: 87
 - `app_modules/__init__.py`
 - `app_modules/app_version.py`
 - `app_modules/main_view.py`
-- `app_modules/saved_project_baseline_restore.py`
 - `calculator/__init__.py`
 - `calculator/data/__init__.py`
 - `calculator/fetch_lines.py`

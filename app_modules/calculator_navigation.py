@@ -16,10 +16,18 @@ from app_modules.calculator_state_keys import (
     CALCULATOR_STATE_KEY,
 )
 
-APP_PAGE_KEY = "active_app_page"
-WORKFLOW_PAGE = "workflow"
-CALCULATOR_PAGE = "calculator"
-LOCAL_LIBRARY_PAGE = "local_library"
+from app_modules.session_state_keys import (
+    ACTIVE_APP_PAGE_KEY as APP_PAGE_KEY,
+    CALCULATOR_PAGE,
+    LOCAL_LIBRARY_PAGE,
+    WORKFLOW_PAGE,
+)
+from app_modules.session_transitions import (
+    return_to_calculator,
+    route_to_calculator,
+    route_to_local_library,
+    route_to_workflow,
+)
 
 
 def _streamlit_api():
@@ -68,7 +76,7 @@ def open_calculator_page(state: MutableMapping[str, Any]) -> None:
 
     from app_modules.calculator_session_state import calculator_state_from_session
 
-    state[APP_PAGE_KEY] = CALCULATOR_PAGE
+    route_to_calculator(state)
     calculator_draft_namespace(state)
     calculator_state_from_session(state)
 
@@ -79,16 +87,26 @@ def local_library_page_is_active(state: MutableMapping[str, Any]) -> bool:
     return state.get(APP_PAGE_KEY, WORKFLOW_PAGE) == LOCAL_LIBRARY_PAGE
 
 
+def return_to_calculator_page(state: MutableMapping[str, Any]) -> None:
+    """Return to an existing Calculator workspace without creating a new route contract."""
+
+    from app_modules.calculator_session_state import calculator_state_from_session
+
+    return_to_calculator(state)
+    calculator_draft_namespace(state)
+    calculator_state_from_session(state)
+
+
 def open_local_library_page(state: MutableMapping[str, Any]) -> None:
     """Route the app to Local Library management."""
 
-    state[APP_PAGE_KEY] = LOCAL_LIBRARY_PAGE
+    route_to_local_library(state)
 
 
 def close_calculator_page(state: MutableMapping[str, Any]) -> None:
     """Route the app back to the normal itinerary workflow."""
 
-    state[APP_PAGE_KEY] = WORKFLOW_PAGE
+    route_to_workflow(state)
 
 def calculator_return_is_available(state: MutableMapping[str, Any]) -> bool:
     """Return whether the current itinerary was generated from Calculator state."""
@@ -108,7 +126,7 @@ def render_return_to_calculator_button() -> None:
         help="Return to the same calculation rows without regenerating the itinerary.",
         key="return_to_calculator_from_itinerary",
     ):
-        open_calculator_page(ui.session_state)
+        return_to_calculator_page(ui.session_state)
         ui.rerun()
 
 

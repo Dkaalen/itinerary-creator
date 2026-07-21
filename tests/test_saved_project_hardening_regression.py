@@ -9,10 +9,6 @@ from types import SimpleNamespace
 import pytest
 
 from app_modules.export_identity import export_signature_for_state
-from app_modules.saved_project_baseline_restore import (
-    SavedProjectBaselineRestoreError,
-    restore_baseline_snapshot_as_current,
-)
 from app_modules.saved_project_builder import build_saved_project_from_state
 from app_modules.saved_project_file_action import prepare_saved_project_file_download
 from app_modules.saved_project_load_action import load_saved_project
@@ -209,24 +205,6 @@ def test_reopen_then_create_pdf_uses_reopened_state(monkeypatch, tmp_path) -> No
     assert captured["crop_focus"]["Day 1"] == "bottom"
     assert captured["output_edits"]["day_images"]["Day 2"]["removed"] is True
     assert Path(captured["html_path"]).exists()
-
-
-def test_baseline_restore_requires_explicit_confirmation_and_preserves_original_current_by_default() -> None:
-    project = _saved_project_with_edits()
-    original_current = project.current_snapshot
-
-    with pytest.raises(SavedProjectBaselineRestoreError, match="explicit confirmation"):
-        restore_baseline_snapshot_as_current(project)
-
-    assert project.current_snapshot is original_current
-    restored = restore_baseline_snapshot_as_current(project, confirm_replace_current=True, clock=_export_clock)
-
-    assert restored.metadata.updated_at == "2026-06-03T10:11:12Z"
-    assert restored.generated_baseline_snapshot == project.generated_baseline_snapshot
-    assert restored.current_snapshot.output_edits == project.generated_baseline_snapshot.output_edits
-    assert restored.current_snapshot.snapshot_id != project.generated_baseline_snapshot.snapshot_id
-    assert restored.export_state.pdf_status == "Needs refresh"
-    assert project.current_snapshot.output_edits["rows"]["row-1"]["title"] == "Edited Oslo fjord title"
 
 
 def test_saved_project_hardening_has_no_duplicate_renderer_or_session_dump_sources() -> None:

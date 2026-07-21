@@ -82,11 +82,12 @@ def update_calculator_itinerary_name(state: MutableMapping[str, Any], itinerary_
 
 
 def apply_calculator_grid_result(state: MutableMapping[str, Any], result: CalculatorGridResult) -> CalculatorState:
-    """Apply browser-grid state and UI toggles returned from the component."""
+    """Apply browser-grid state, including recovered drafts, through one restore path."""
+
+    from app_modules.calculator_restore import restore_calculator_workspace
 
     state[CALCULATOR_ADVANCED_TOGGLE_KEY] = result.show_advanced
-    store_calculator_state(state, result.state)
-    return result.state
+    return restore_calculator_workspace(state, result.state)
 
 
 def clear_ready_calculation_download(state: MutableMapping[str, Any]) -> None:

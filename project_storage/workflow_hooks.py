@@ -25,12 +25,23 @@ from project_storage.file_writer import (
 )
 from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path
 from project_storage.runtime import get_project_storage_repository
+from app_modules.session_state_keys import (
+    ACTIVE_SAVED_PROJECT_KEY,
+    ITINERARY_NAME_INPUT_KEY,
+    ITINERARY_NAME_KEY,
+    OUTPUT_EDITS_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_FILE_PATH_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_SNAPSHOT_KEY,
+    PROJECT_STORAGE_LAST_PDF_PATH_KEY,
+    PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY,
+    REQUESTED_OUTPUT_BRAND_KEY,
+)
 
 
 def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
     """Persist the active generated itinerary snapshot when storage is configured."""
 
-    project = state.get("active_saved_project")
+    project = state.get(ACTIVE_SAVED_PROJECT_KEY)
     if not isinstance(project, dict):
         return False
     itinerary_id = ensure_storage_itinerary(state, name=str(project.get("metadata", {}).get("itinerary_name") or ""))
@@ -59,7 +70,7 @@ def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
             content=content,
             content_type=PROJECT_JSON_MIME,
         )
-        state["project_storage_last_saved_snapshot_path"] = storage_path
+        state[PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY] = storage_path
         clear_storage_error(state)
         return True
     except Exception as exc:
@@ -110,10 +121,10 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
             content=content,
             content_type=PROJECT_JSON_MIME,
         )
-        state["active_saved_project"] = normalized_project
-        state["itinerary_name"] = itinerary_name
+        state[ACTIVE_SAVED_PROJECT_KEY] = normalized_project
+        state[ITINERARY_NAME_KEY] = itinerary_name
         set_active_project_id(state, itinerary_id)
-        state["project_storage_last_saved_snapshot_path"] = storage_path
+        state[PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY] = storage_path
         clear_storage_error(state)
         return True
     except Exception as exc:
@@ -156,8 +167,8 @@ def save_calculation_workbook(
             content=content,
             content_type=CALCULATION_XLSX_MIME,
         )
-        state["project_storage_last_calculator_file_path"] = storage_path
-        state["project_storage_last_calculator_snapshot"] = {
+        state[PROJECT_STORAGE_LAST_CALCULATOR_FILE_PATH_KEY] = storage_path
+        state[PROJECT_STORAGE_LAST_CALCULATOR_SNAPSHOT_KEY] = {
             **calculator_state_to_dict(calculator_state),
             "currency_rates": dict(currency_rates or {}),
         }
@@ -184,7 +195,7 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
     itinerary_id = ensure_storage_itinerary(state, name=_state_itinerary_name(state))
     if not itinerary_id:
         return False
-    output_brand = str((state.get("output_edits") or {}).get("output_brand") or state.get("requested_output_brand") or "agent")
+    output_brand = str((state.get(OUTPUT_EDITS_KEY) or {}).get("output_brand") or state.get(REQUESTED_OUTPUT_BRAND_KEY) or "agent")
 
     try:
         repository.upsert_itinerary(itinerary_id, name=_state_itinerary_name(state), status="draft")
@@ -198,7 +209,7 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
             content=content,
             content_type=PDF_MIME,
         )
-        state["project_storage_last_pdf_path"] = storage_path
+        state[PROJECT_STORAGE_LAST_PDF_PATH_KEY] = storage_path
         clear_storage_error(state)
         return True
     except Exception as exc:
@@ -217,10 +228,10 @@ def ensure_storage_itinerary(state: MutableMapping[str, Any], *, name: str = "")
     """Return the current itinerary id, creating one in session state when needed."""
 
     itinerary_id = ensure_active_project_id(state)
-    if name and not state.get("itinerary_name"):
-        state["itinerary_name"] = name
+    if name and not state.get(ITINERARY_NAME_KEY):
+        state[ITINERARY_NAME_KEY] = name
     return itinerary_id
 
 
 def _state_itinerary_name(state: MutableMapping[str, Any], fallback: str = "") -> str:
-    return " ".join(str(state.get("itinerary_name") or state.get("itinerary_name_input") or fallback or "Untitled itinerary").split())
+    return " ".join(str(state.get(ITINERARY_NAME_KEY) or state.get(ITINERARY_NAME_INPUT_KEY) or fallback or "Untitled itinerary").split())

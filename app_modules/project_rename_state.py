@@ -9,6 +9,11 @@ from typing import Any
 from app_modules.calculator_session_state import store_calculator_state
 from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY
 from calculator.calculator_state import CalculatorState
+from app_modules.session_state_keys import (
+    ACTIVE_SAVED_PROJECT_KEY,
+    ITINERARY_NAME_INPUT_KEY,
+    ITINERARY_NAME_KEY,
+)
 
 
 def apply_active_project_rename(state: MutableMapping[str, Any], result: Mapping[str, Any]) -> None:
@@ -19,11 +24,11 @@ def apply_active_project_rename(state: MutableMapping[str, Any], result: Mapping
     if not name or not isinstance(payload, Mapping):
         raise ValueError("A renamed project result requires a name and payload.")
 
-    state["itinerary_name"] = name
+    state[ITINERARY_NAME_KEY] = name
     # The project browser is rendered before this widget on the input page, so
     # synchronising it here is safe and avoids the old name returning on rerun.
-    state["itinerary_name_input"] = name
-    state["active_saved_project"] = deepcopy(dict(payload))
+    state[ITINERARY_NAME_INPUT_KEY] = name
+    state[ACTIVE_SAVED_PROJECT_KEY] = deepcopy(dict(payload))
 
     calculator_state = state.get(CALCULATOR_STATE_KEY)
     if isinstance(calculator_state, CalculatorState):

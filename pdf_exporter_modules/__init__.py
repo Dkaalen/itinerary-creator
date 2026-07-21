@@ -1,36 +1,211 @@
-from .exporter import export_html_to_pdf
-from .export_profiles import pdf_export_profile_options, pdf_filename, resolve_pdf_export_profile
-from .typed_exporter import export_render_document_to_pdf, render_document_requires_html_fallback
-from .html_utils import clean_text, has_class, para_text
-from .day_images import add_day_image_if_possible
-from .image_constants import (
-    PDF_CROP_FOCUS_FACTORS,
-    PDF_CROP_VERTICAL_FOCUS,
-    PDF_IMAGE_BOTTOM_Y,
-    PDF_IMAGE_GAP,
-    PDF_IMAGE_HALF_OFFSET,
-    PDF_MIN_IMAGE_HEIGHT,
-)
-from .image_layout import calculate_day_image_layout, make_cover_cropped_image, normalize_crop_focus
-from .image_paths import resolve_image_path
-from .same_page_image_flowable import SamePageDayImage
-from .render_content import _activity_time_range_text, render_content_blocks, render_day_section_pdf, render_general_page
-from .render_cover import render_cover_page
-from .render_glance import render_glance_page
-from .story import add_bullets, add_paragraph, make_table, story_height
-from .styles import (
-    BODY,
-    CARD,
-    DEFAULT_PDF_COLORS,
-    INK,
-    LINE,
-    MUTED,
-    PAGE_BACKGROUND,
-    apply_pdf_palette,
-    extract_pdf_palette,
-    hex_to_color,
-    make_styles,
-    page_background,
+"""Lazy public surface for the split PDF exporter implementation.
+
+Importing the package itself must remain inexpensive.  Compatibility exports
+are resolved from their owning submodules only when callers request them.
+"""
+
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
+
+__all__ = (
+    "pdf_style_tokens",
+    "pdf_branding",
+    "pdf_style_base",
+    "pdf_style_cover",
+    "pdf_style_day",
+    "pdf_style_final_pages",
+    "pdf_style_summary",
+    "pdf_style_tables",
+    "styles",
+    "html_utils",
+    "story",
+    "day_page_guard",
+    "pdf_reportlab_config",
+    "image_constants",
+    "image_layout",
+    "background_flowables",
+    "same_page_image_flowable",
+    "image_flowables",
+    "decorative_flowables",
+    "render_tables",
+    "render_flowables",
+    "cover_page",
+    "image_paths",
+    "render_text",
+    "render_cover",
+    "render_controlled_content",
+    "render_inclusion_content",
+    "render_content_blocks",
+    "day_images",
+    "render_pages",
+    "render_content",
+    "render_glance",
+    "exporter",
+    "export_html_to_pdf",
+    "export_profiles",
+    "pdf_export_profile_options",
+    "pdf_filename",
+    "resolve_pdf_export_profile",
+    "pdf_cover_renderer",
+    "pdf_image_renderer",
+    "pdf_supported_html_renderer",
+    "pdf_day_renderer",
+    "pdf_final_section_renderer",
+    "pdf_html_support",
+    "pdf_html_fallback",
+    "pdf_image_prewarm",
+    "typed_exporter",
+    "export_render_document_to_pdf",
+    "render_document_requires_html_fallback",
+    "clean_text",
+    "has_class",
+    "para_text",
+    "add_day_image_if_possible",
+    "PDF_CROP_FOCUS_FACTORS",
+    "PDF_CROP_VERTICAL_FOCUS",
+    "PDF_IMAGE_BOTTOM_Y",
+    "PDF_IMAGE_GAP",
+    "PDF_IMAGE_HALF_OFFSET",
+    "PDF_MIN_IMAGE_HEIGHT",
+    "calculate_day_image_layout",
+    "make_cover_cropped_image",
+    "normalize_crop_focus",
+    "resolve_image_path",
+    "SamePageDayImage",
+    "render_day_section_pdf",
+    "render_general_page",
+    "render_cover_page",
+    "render_glance_page",
+    "add_bullets",
+    "add_paragraph",
+    "make_table",
+    "story_height",
+    "BODY",
+    "CARD",
+    "DEFAULT_PDF_COLORS",
+    "INK",
+    "LINE",
+    "MUTED",
+    "PAGE_BACKGROUND",
+    "apply_pdf_palette",
+    "extract_pdf_palette",
+    "hex_to_color",
+    "make_styles",
+    "page_background",
 )
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+_MODULE_EXPORTS = frozenset(
+    {
+        "pdf_style_tokens",
+        "pdf_branding",
+        "pdf_style_base",
+        "pdf_style_cover",
+        "pdf_style_day",
+        "pdf_style_final_pages",
+        "pdf_style_summary",
+        "pdf_style_tables",
+        "styles",
+        "html_utils",
+        "story",
+        "day_page_guard",
+        "pdf_reportlab_config",
+        "image_constants",
+        "image_layout",
+        "background_flowables",
+        "same_page_image_flowable",
+        "image_flowables",
+        "decorative_flowables",
+        "render_tables",
+        "render_flowables",
+        "cover_page",
+        "image_paths",
+        "render_text",
+        "render_cover",
+        "render_controlled_content",
+        "render_inclusion_content",
+        "render_content_blocks",
+        "day_images",
+        "render_pages",
+        "render_content",
+        "render_glance",
+        "exporter",
+        "export_profiles",
+        "pdf_cover_renderer",
+        "pdf_image_renderer",
+        "pdf_supported_html_renderer",
+        "pdf_day_renderer",
+        "pdf_final_section_renderer",
+        "pdf_html_support",
+        "pdf_html_fallback",
+        "pdf_image_prewarm",
+        "typed_exporter",
+    }
+)
+
+_SYMBOL_EXPORTS: dict[str, tuple[str, str]] = {
+    "export_html_to_pdf": ("exporter", "export_html_to_pdf"),
+    "pdf_export_profile_options": ("export_profiles", "pdf_export_profile_options"),
+    "pdf_filename": ("export_profiles", "pdf_filename"),
+    "resolve_pdf_export_profile": ("export_profiles", "resolve_pdf_export_profile"),
+    "export_render_document_to_pdf": ("typed_exporter", "export_render_document_to_pdf"),
+    "render_document_requires_html_fallback": ("typed_exporter", "render_document_requires_html_fallback"),
+    "clean_text": ("html_utils", "clean_text"),
+    "has_class": ("html_utils", "has_class"),
+    "para_text": ("html_utils", "para_text"),
+    "add_day_image_if_possible": ("day_images", "add_day_image_if_possible"),
+    "PDF_CROP_FOCUS_FACTORS": ("image_constants", "PDF_CROP_FOCUS_FACTORS"),
+    "PDF_CROP_VERTICAL_FOCUS": ("image_constants", "PDF_CROP_VERTICAL_FOCUS"),
+    "PDF_IMAGE_BOTTOM_Y": ("image_constants", "PDF_IMAGE_BOTTOM_Y"),
+    "PDF_IMAGE_GAP": ("image_constants", "PDF_IMAGE_GAP"),
+    "PDF_IMAGE_HALF_OFFSET": ("image_constants", "PDF_IMAGE_HALF_OFFSET"),
+    "PDF_MIN_IMAGE_HEIGHT": ("image_constants", "PDF_MIN_IMAGE_HEIGHT"),
+    "calculate_day_image_layout": ("image_layout", "calculate_day_image_layout"),
+    "make_cover_cropped_image": ("image_layout", "make_cover_cropped_image"),
+    "normalize_crop_focus": ("image_layout", "normalize_crop_focus"),
+    "resolve_image_path": ("image_paths", "resolve_image_path"),
+    "SamePageDayImage": ("same_page_image_flowable", "SamePageDayImage"),
+    "_activity_time_range_text": ("render_content", "_activity_time_range_text"),
+    "render_content_blocks": ("render_content", "render_content_blocks"),
+    "render_day_section_pdf": ("render_content", "render_day_section_pdf"),
+    "render_general_page": ("render_content", "render_general_page"),
+    "render_cover_page": ("render_cover", "render_cover_page"),
+    "render_glance_page": ("render_glance", "render_glance_page"),
+    "add_bullets": ("story", "add_bullets"),
+    "add_paragraph": ("story", "add_paragraph"),
+    "make_table": ("story", "make_table"),
+    "story_height": ("story", "story_height"),
+    "BODY": ("styles", "BODY"),
+    "CARD": ("styles", "CARD"),
+    "DEFAULT_PDF_COLORS": ("styles", "DEFAULT_PDF_COLORS"),
+    "INK": ("styles", "INK"),
+    "LINE": ("styles", "LINE"),
+    "MUTED": ("styles", "MUTED"),
+    "PAGE_BACKGROUND": ("styles", "PAGE_BACKGROUND"),
+    "apply_pdf_palette": ("styles", "apply_pdf_palette"),
+    "extract_pdf_palette": ("styles", "extract_pdf_palette"),
+    "hex_to_color": ("styles", "hex_to_color"),
+    "make_styles": ("styles", "make_styles"),
+    "page_background": ("styles", "page_background"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _MODULE_EXPORTS:
+        value = import_module(f".{name}", __name__)
+    else:
+        target = _SYMBOL_EXPORTS.get(name)
+        if target is None:
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+        module_name, attribute_name = target
+        module = import_module(f".{module_name}", __name__)
+        value = getattr(module, attribute_name)
+
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__) | {"_activity_time_range_text"})

@@ -6,11 +6,18 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from typing import Any
 
+from app_modules.session_state_keys import (
+    ACTIVE_PROJECT_STORAGE_ID_KEY,
+    ACTIVE_SAVED_PROJECT_ID_KEY,
+    ACTIVE_SAVED_PROJECT_KEY,
+    ITINERARY_NAME_KEY,
+)
+
 _PROJECT_SAVE_BASELINE_KEYS = (
-    "active_saved_project",
-    "active_project_storage_id",
-    "active_saved_project_id",
-    "itinerary_name",
+    ACTIVE_SAVED_PROJECT_KEY,
+    ACTIVE_PROJECT_STORAGE_ID_KEY,
+    ACTIVE_SAVED_PROJECT_ID_KEY,
+    ITINERARY_NAME_KEY,
 )
 _MISSING = object()
 

@@ -1,10 +1,7 @@
 """Compatibility wrapper for the split PDF exporter modules.
 
 The implementation lives in :mod:`pdf_exporter_modules.public_api`; this file
-keeps legacy imports from ``pdf_exporter.py`` working.
+keeps legacy imports from ``pdf_exporter.py`` working without eager rendering imports.
 """
 
-from pdf_exporter_modules import public_api as _public_api
-
-__all__ = _public_api.__all__
-globals().update({name: getattr(_public_api, name) for name in __all__})
+from pdf_exporter_modules.public_api import __all__, __dir__, __getattr__

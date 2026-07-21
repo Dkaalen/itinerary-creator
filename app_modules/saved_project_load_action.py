@@ -1,34 +1,27 @@
-"""Reopen saved itinerary projects through the normal workflow state."""
+"""Validate and transactionally reopen saved itinerary projects."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-from app_modules.itinerary_html import build_itinerary_html_from_context
-from app_modules.project_identity import project_payload_with_id, set_active_project_id
-from app_modules.itinerary_name_state import ITINERARY_NAME_INPUT_KEY
-from app_modules.itinerary_render_context import build_itinerary_render_context
-from app_modules.render_context_cache import store_render_context
-from app_modules.saved_project_calculator_state import apply_calculator_snapshot_to_state
+from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE, normalize_presentation_language
+from app_modules.project_identity import project_payload_with_id
 from app_modules.saved_project_cleaning import clean_output_edits, clean_parsed_rows
 from app_modules.saved_project_image_state import apply_image_state_to_output_edits
 from app_modules.saved_project_model import SavedItineraryProject
-from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE, normalize_presentation_language
-from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET, normalize_tone_preset
-from app_modules.saved_project_serialization import saved_project_from_dict, saved_project_to_dict
+from app_modules.saved_project_restore import restore_saved_project_to_state
+from app_modules.saved_project_serialization import saved_project_from_dict
+from app_modules.session_state_keys import APP_STAGE_KEY
+from app_modules.session_transitions import (
+    capture_project_switch_baseline,
+    restore_project_switch_baseline,
+)
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
-from app_modules.workflow_transients import clear_project_boundary_transients
-from app_modules.project_file_download_cache import clear_project_file_download_cache
-from itinerary_generation.common import group_rows_by_day
-from itinerary_generation.input_review import build_structured_input_review
+from app_modules.workflow_state import normalise_stage
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET, normalize_tone_preset
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
-from ui.export_files import save_html_file
-from ui.output_edits import apply_output_edits
-from ui.picture_workflow import pictures_are_added
-from ui.render_cache import make_render_signature
 
 
 def load_saved_project(
@@ -48,56 +41,48 @@ def load_saved_project(
         clean_output_edits(snapshot.output_edits),
         saved_project.image_state,
     )
-    output_brand = str(saved_project.output_brand or saved_project.mode or output_edits.get("output_brand") or "agent")
-    output_edits["output_brand"] = output_brand
-    output_edits["detail_level"] = str(snapshot.detail_level or output_edits.get("detail_level") or "Rich descriptive")
-    output_edits["day_page_layout"] = str(snapshot.day_page_layout or output_edits.get("day_page_layout") or DEFAULT_DAY_PAGE_LAYOUT)
-    output_edits["presentation_language"] = normalize_presentation_language(output_edits.get("presentation_language") or DEFAULT_PRESENTATION_LANGUAGE)
-    output_edits["tone_preset"] = normalize_tone_preset(output_edits.get("tone_preset") or DEFAULT_TONE_PRESET)
+    _normalize_restored_output_edits(saved_project, snapshot, output_edits)
 
     validation_report = validate_for_generation(parsed_rows)
     if validation_report.is_blocked:
-        state["itinerary_validation_report"] = validation_report
         return WorkflowActionResult(
             ok=False,
-            stage=set_workflow_stage(state, "input"),
+            stage=normalise_stage(state.get(APP_STAGE_KEY, "input")),
             message="Saved project load blocked by validation issues.",
             payload={"validation_report": validation_report},
         )
 
-    _clear_reopen_transients(state)
-    state["parsed_rows"] = parsed_rows
-    state["output_edits"] = output_edits
-    state["detail_level"] = output_edits["detail_level"]
-    state["day_page_layout"] = output_edits["day_page_layout"]
-    state["presentation_language"] = output_edits["presentation_language"]
-    state["tone_preset"] = output_edits["tone_preset"]
-    state["last_generated_raw_text"] = saved_project.source.source_input
-    state["raw_text_input"] = saved_project.source.source_input
-    state["parser_diagnostics"] = []
-    state["structured_input_review"] = build_structured_input_review(parsed_rows, parser_diagnostics=[])
-    state["itinerary_validation_report"] = validation_report
-    state["active_saved_project"] = saved_project_to_dict(saved_project)
-    set_active_project_id(state, saved_project.metadata.project_id)
-    state["itinerary_name"] = saved_project.metadata.itinerary_name
-    state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
-    apply_calculator_snapshot_to_state(state, _calculator_snapshot_payload(saved_project.calculator_snapshot))
-    clear_pdf_artifacts(state, status="Not created")
-    clear_project_file_download_cache(state)
+    baseline = capture_project_switch_baseline(state)
+    try:
+        return restore_saved_project_to_state(
+            state,
+            saved_project=saved_project,
+            parsed_rows=parsed_rows,
+            output_edits=output_edits,
+            validation_report=validation_report,
+        )
+    except Exception:
+        restore_project_switch_baseline(state, baseline)
+        raise
 
-    render_signature = _rebuild_preview_state(state, parsed_rows, output_edits)
-    stage = set_workflow_stage(state, "pictures" if pictures_are_added(output_edits) else "edit")
 
-    return WorkflowActionResult(
-        ok=True,
-        stage=stage,
-        message="Saved project reopened.",
-        payload={
-            "validation_report": validation_report,
-            "project_id": saved_project.metadata.project_id,
-            "preview_signature": render_signature,
-        },
+def _normalize_restored_output_edits(
+    saved_project: SavedItineraryProject,
+    snapshot: object,
+    output_edits: dict[str, Any],
+) -> None:
+    output_brand = str(saved_project.output_brand or saved_project.mode or output_edits.get("output_brand") or "agent")
+    output_edits["output_brand"] = output_brand
+    output_edits["detail_level"] = str(
+        getattr(snapshot, "detail_level", "") or output_edits.get("detail_level") or "Rich descriptive"
     )
+    output_edits["day_page_layout"] = str(
+        getattr(snapshot, "day_page_layout", "") or output_edits.get("day_page_layout") or DEFAULT_DAY_PAGE_LAYOUT
+    )
+    output_edits["presentation_language"] = normalize_presentation_language(
+        output_edits.get("presentation_language") or DEFAULT_PRESENTATION_LANGUAGE
+    )
+    output_edits["tone_preset"] = normalize_tone_preset(output_edits.get("tone_preset") or DEFAULT_TONE_PRESET)
 
 
 def _coerce_saved_project(project: SavedItineraryProject | Mapping[str, Any]) -> SavedItineraryProject:
@@ -108,27 +93,4 @@ def _coerce_saved_project(project: SavedItineraryProject | Mapping[str, Any]) ->
     raise TypeError("Saved project must be a SavedItineraryProject or payload mapping.")
 
 
-def _clear_reopen_transients(state: MutableMapping[str, Any]) -> None:
-    clear_project_boundary_transients(state)
-
-
-def _rebuild_preview_state(
-    state: MutableMapping[str, Any],
-    parsed_rows: list[dict[str, Any]],
-    output_edits: dict[str, Any],
-) -> str:
-    edited_rows = apply_output_edits(parsed_rows, output_edits)
-    edited_grouped_days = group_rows_by_day(edited_rows)
-    render_context = build_itinerary_render_context(edited_rows, edited_grouped_days, output_edits)
-    render_signature = make_render_signature(parsed_rows, output_edits)
-    state["itinerary_html"] = build_itinerary_html_from_context(render_context)
-    state["preview_signature"] = render_signature
-    store_render_context(state, signature=render_signature, context=render_context)
-    state["html_path"] = save_html_file(state["itinerary_html"])
-    return render_signature
-
-
-def _calculator_snapshot_payload(snapshot: object) -> dict:
-    if isinstance(snapshot, dict):
-        return snapshot
-    return dict(getattr(snapshot, "__dict__", {}) or {})
+__all__ = ["load_saved_project"]

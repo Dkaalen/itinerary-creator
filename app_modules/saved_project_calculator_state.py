@@ -6,8 +6,8 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
-from app_modules.calculator_session_state import store_calculator_state
 from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY
+from app_modules.calculator_restore import restore_calculator_workspace
 from calculator.calculator_state import CalculatorState, create_calculator_state
 from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_from_dict, calculator_state_to_dict
@@ -51,13 +51,23 @@ def calculator_state_from_snapshot(payload: Mapping[str, Any] | None) -> Calcula
     return calculator_state_from_dict(snapshot)
 
 
-def apply_calculator_snapshot_to_state(state: MutableMapping[str, Any], payload: Mapping[str, Any] | None) -> None:
-    """Restore saved calculator state into Streamlit session-like state."""
+def restore_calculator_snapshot_to_state(state: MutableMapping[str, Any], payload: Mapping[str, Any] | None) -> CalculatorState:
+    """Restore one durable Calculator snapshot through the canonical authority."""
 
     snapshot = normalize_calculator_snapshot(payload)
     calculator_state = calculator_state_from_snapshot(snapshot)
-    store_calculator_state(state, calculator_state, sync_name_input=True)
-    state[CURRENCY_RATES_STATE_KEY] = normalize_currency_rates(snapshot.get("currency_rates"))
+    return restore_calculator_workspace(
+        state,
+        calculator_state,
+        currency_rates=normalize_currency_rates(snapshot.get("currency_rates")),
+        sync_name_input=True,
+    )
+
+
+def apply_calculator_snapshot_to_state(state: MutableMapping[str, Any], payload: Mapping[str, Any] | None) -> None:
+    """Compatibility wrapper for the canonical Calculator restore path."""
+
+    restore_calculator_snapshot_to_state(state, payload)
 
 
 def calculator_snapshot_has_rows(payload: Mapping[str, Any] | None) -> bool:

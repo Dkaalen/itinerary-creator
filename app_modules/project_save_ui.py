@@ -11,12 +11,22 @@ from app_modules.saved_project_validation import SavedProjectError
 from project_storage.errors import storage_user_message
 from project_storage.runtime import project_storage_is_configured
 from project_storage.workflow_hooks import save_project_payload_snapshot
+from app_modules.session_state_keys import (
+    ACTIVE_SAVED_PROJECT_ID_KEY,
+    ITINERARY_NAME_KEY,
+    OUTPUT_EDITS_KEY,
+    PARSED_ROWS_KEY,
+    PREVIEW_SIGNATURE_KEY,
+    PROJECT_STORAGE_LAST_ERROR_DETAIL_KEY,
+    PROJECT_STORAGE_LAST_ERROR_KEY,
+)
+from app_modules.session_transitions import record_failed_save
 
 
 def render_save_project_file_action(*, key_suffix: str = "current") -> None:
     """Render the user-facing saved-project action."""
 
-    if not st.session_state.get("parsed_rows") or not st.session_state.get("output_edits"):
+    if not st.session_state.get(PARSED_ROWS_KEY) or not st.session_state.get(OUTPUT_EDITS_KEY):
         return
     if project_storage_is_configured():
         _render_cloud_save_project_action(key_suffix=key_suffix)
@@ -36,16 +46,23 @@ def _render_cloud_save_project_action(*, key_suffix: str) -> None:
         if save_project_payload_snapshot(st.session_state, project_file.payload, source_type="manual_save"):
             st.success("Project saved to Supabase.")
             return
-        restore_project_save_baseline(st.session_state, baseline)
-        st.warning(str(st.session_state.get("project_storage_last_error") or storage_user_message("save")))
+        message = str(st.session_state.get(PROJECT_STORAGE_LAST_ERROR_KEY) or storage_user_message("save"))
+        detail = str(st.session_state.get(PROJECT_STORAGE_LAST_ERROR_DETAIL_KEY) or "")
+        record_failed_save(
+            st.session_state,
+            baseline=baseline,
+            user_message=message,
+            technical_detail=detail,
+        )
+        st.warning(message)
 
 
 def _render_backup_project_download(*, key_suffix: str) -> None:
     try:
         signature = ":".join([
-            str(st.session_state.get("preview_signature") or ""),
-            str(st.session_state.get("active_saved_project_id") or ""),
-            str(st.session_state.get("itinerary_name") or ""),
+            str(st.session_state.get(PREVIEW_SIGNATURE_KEY) or ""),
+            str(st.session_state.get(ACTIVE_SAVED_PROJECT_ID_KEY) or ""),
+            str(st.session_state.get(ITINERARY_NAME_KEY) or ""),
         ])
         project_file = cached_project_file_payload(
             st.session_state,

@@ -8,15 +8,24 @@ from typing import Any
 from app_modules.project_identity import clear_active_project_id
 from app_modules.project_file_download_cache import clear_project_file_download_cache
 from app_modules.workflow_transients import clear_project_boundary_transients
+from app_modules.session_state_keys import (
+    ACTIVE_SAVED_PROJECT_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_FILE_PATH_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_SNAPSHOT_KEY,
+    PROJECT_STORAGE_LAST_ERROR_DETAIL_KEY,
+    PROJECT_STORAGE_LAST_ERROR_KEY,
+    PROJECT_STORAGE_LAST_PDF_PATH_KEY,
+    PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY,
+)
 
 PROJECT_STORAGE_SESSION_KEYS: tuple[str, ...] = (
-    "active_saved_project",
-    "project_storage_last_saved_snapshot_path",
-    "project_storage_last_calculator_file_path",
-    "project_storage_last_calculator_snapshot",
-    "project_storage_last_pdf_path",
-    "project_storage_last_error",
-    "project_storage_last_error_detail",
+    ACTIVE_SAVED_PROJECT_KEY,
+    PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_FILE_PATH_KEY,
+    PROJECT_STORAGE_LAST_CALCULATOR_SNAPSHOT_KEY,
+    PROJECT_STORAGE_LAST_PDF_PATH_KEY,
+    PROJECT_STORAGE_LAST_ERROR_KEY,
+    PROJECT_STORAGE_LAST_ERROR_DETAIL_KEY,
 )
 
 _CLOUD_CALCULATOR_PAYLOAD_PREFIX = "cloud_calculator_file_payload_"
@@ -33,7 +42,7 @@ def clear_cloud_project_download_payloads(state: MutableMapping[str, Any]) -> No
 def clear_project_save_marker(state: MutableMapping[str, Any]) -> None:
     """Mark the current in-memory project as no longer cloud-saved."""
 
-    state.pop("project_storage_last_saved_snapshot_path", None)
+    state.pop(PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY, None)
 
 
 def clear_active_cloud_project_session(state: MutableMapping[str, Any]) -> None:

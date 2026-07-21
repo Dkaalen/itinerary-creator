@@ -9,6 +9,7 @@ from app_modules.image_gateway import connect_image_bank_for_picture_stage
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.performance_telemetry import measure_timing
 from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state, mark_pdf_dirty, set_workflow_stage
+from app_modules.session_state_keys import APP_STAGE_KEY, OUTPUT_EDITS_KEY
 from images.day_image_selection import normalize_day_image_matches
 from images.image_workflow_review import build_image_workflow_review
 from ui.picture_workflow import set_pictures_added
@@ -26,7 +27,7 @@ def retry_image_bank_connection(
     gateway = _connect_gateway(state, status_func, connect_func)
     return WorkflowActionResult(
         ok=bool(gateway.get("ready")),
-        stage=str(state.get("app_stage", "edit") or "edit"),
+        stage=str(state.get(APP_STAGE_KEY, "edit") or "edit"),
         message="Image bank connected." if gateway.get("ready") else gateway.get("message", "Image bank missing."),
         payload={"gateway": gateway},
     )
@@ -69,10 +70,10 @@ def enter_picture_stage(
 
 
 def _prepare_image_output_edits(state: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    output_edits = state.get("output_edits")
+    output_edits = state.get(OUTPUT_EDITS_KEY)
     if not isinstance(output_edits, MutableMapping):
         output_edits = {}
-        state["output_edits"] = output_edits
+        state[OUTPUT_EDITS_KEY] = output_edits
     for derived_key in _DERIVED_IMAGE_REVIEW_KEYS:
         output_edits.pop(derived_key, None)
     output_edits["allow_default_final_images"] = False

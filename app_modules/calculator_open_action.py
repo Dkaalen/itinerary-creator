@@ -7,12 +7,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from app_modules.calculator_backup_action import CalculatorUploadImport
-from app_modules.calculator_session_state import store_calculator_state
-from app_modules.calculator_state_keys import (
-    CALCULATOR_RETURN_AVAILABLE_KEY,
-    CURRENCY_RATES_STATE_KEY,
-)
-from app_modules.project_session_cleanup import clear_active_cloud_project_session
+from app_modules.calculator_restore import restore_calculator_workspace
+from app_modules.session_transitions import begin_local_calculator_import
 
 
 @dataclass(frozen=True)
@@ -36,16 +32,22 @@ def apply_calculator_upload_import(
     project that happened to be open before the import.
     """
 
-    clear_active_cloud_project_session(session_state)
-    session_state.pop(CALCULATOR_RETURN_AVAILABLE_KEY, None)
+    begin_local_calculator_import(session_state)
 
-    if imported.currency_rates:
+    if imported.currency_rates is None:
+        restore_calculator_workspace(
+            session_state,
+            imported.state,
+            sync_name_input=True,
+        )
+    else:
         rates = {str(code).upper(): float(value) for code, value in imported.currency_rates.items()}
-        session_state[CURRENCY_RATES_STATE_KEY] = rates
-        for code, value in rates.items():
-            session_state[f"calculator_currency_rate_{code}"] = value
-
-    store_calculator_state(session_state, imported.state, sync_name_input=True)
+        restore_calculator_workspace(
+            session_state,
+            imported.state,
+            currency_rates=rates,
+            sync_name_input=True,
+        )
     return _open_notice(imported, filename=filename)
 
 

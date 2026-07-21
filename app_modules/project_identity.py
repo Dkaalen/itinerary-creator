@@ -7,8 +7,11 @@ from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from typing import Any
 
-ACTIVE_PROJECT_STORAGE_ID_KEY = "active_project_storage_id"
-ACTIVE_SAVED_PROJECT_ID_KEY = "active_saved_project_id"
+from app_modules.session_state_keys import (
+    ACTIVE_PROJECT_STORAGE_ID_KEY,
+    ACTIVE_SAVED_PROJECT_ID_KEY,
+    ACTIVE_SAVED_PROJECT_KEY,
+)
 PROJECT_ID_STATE_KEYS = (ACTIVE_PROJECT_STORAGE_ID_KEY, ACTIVE_SAVED_PROJECT_ID_KEY)
 
 
@@ -25,7 +28,7 @@ def active_project_id_from_state(state: Mapping[str, Any]) -> str:
         project_id = normalize_project_id(state.get(key))
         if project_id:
             return project_id
-    return project_id_from_payload(state.get("active_saved_project"))
+    return project_id_from_payload(state.get(ACTIVE_SAVED_PROJECT_KEY))
 
 
 def project_id_from_payload(payload: object) -> str:
@@ -82,7 +85,7 @@ def project_payload_with_id(payload: Mapping[str, Any], project_id: object) -> d
 
 
 def _sync_active_payload_project_id(state: MutableMapping[str, Any], project_id: str) -> None:
-    payload = state.get("active_saved_project")
+    payload = state.get(ACTIVE_SAVED_PROJECT_KEY)
     if not isinstance(payload, Mapping):
         return
-    state["active_saved_project"] = project_payload_with_id(payload, project_id)
+    state[ACTIVE_SAVED_PROJECT_KEY] = project_payload_with_id(payload, project_id)

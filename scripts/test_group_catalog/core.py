@@ -110,6 +110,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_structured_html_source_identity.py",
     "tests/test_transport_model_architecture.py",
     "tests/test_wrapper_exports.py",
+    "tests/test_lightweight_package_initializers.py",
     "tests/test_destination_registry_regression.py",
     "tests/test_norway_destination_expansion_regression.py",
     "tests/test_sweden_destination_expansion_regression.py",

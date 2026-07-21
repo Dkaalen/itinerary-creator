@@ -54,3 +54,58 @@ def test_workbook_renderers_consume_one_canonical_export_plan() -> None:
     assert "_ROW_VALUE_COLUMNS = {" not in openpyxl_source
     assert "_ROW_VALUE_COLUMNS = {" not in package_source
     assert "from calculator.workbook_export_plan import" in import_source
+
+
+def test_cross_workflow_state_keys_have_one_literal_authority() -> None:
+    key_source = (ROOT / "app_modules" / "session_state_keys.py").read_text(encoding="utf-8")
+    assert 'ACTIVE_APP_PAGE_KEY = "active_app_page"' in key_source
+    assert 'APP_STAGE_KEY = "app_stage"' in key_source
+    assert 'ACTIVE_SAVED_PROJECT_KEY = "active_saved_project"' in key_source
+
+    guarded_roots = (ROOT / "app_modules", ROOT / "project_storage")
+    protected_literals = (
+        "active_app_page",
+        "app_stage",
+        "active_saved_project",
+        "active_saved_project_id",
+        "active_project_storage_id",
+        "project_storage_last_saved_snapshot_path",
+        "project_storage_last_error",
+        "project_storage_last_error_detail",
+        "project_storage_browser_success",
+        "project_storage_delete_cleanup_warning",
+    )
+    offenders = []
+    for guarded_root in guarded_roots:
+        for path in guarded_root.glob("*.py"):
+            if path.name == "session_state_keys.py":
+                continue
+            source = path.read_text(encoding="utf-8")
+            for literal in protected_literals:
+                if f'"{literal}"' in source or f"'{literal}'" in source:
+                    offenders.append(f"{path.relative_to(ROOT)}:{literal}")
+    assert offenders == []
+
+
+def test_cross_workflow_transitions_are_named_and_ui_independent() -> None:
+    source = (ROOT / "app_modules" / "session_transitions.py").read_text(encoding="utf-8")
+    for function_name in (
+        "begin_local_calculator_import",
+        "complete_calculator_generation",
+        "fail_calculator_generation",
+        "complete_saved_project_open",
+        "return_to_calculator",
+        "prepare_project_switch",
+        "complete_project_duplicate",
+        "complete_project_delete",
+        "record_failed_save",
+    ):
+        assert f"def {function_name}(" in source
+    assert "import streamlit" not in source
+
+
+def test_session_state_ownership_document_names_transition_authorities() -> None:
+    text = (ROOT / "docs" / "SESSION_STATE_OWNERSHIP.md").read_text(encoding="utf-8")
+    assert "session_state_keys.py" in text
+    assert "session_transitions.py" in text
+    assert "Saved-project opening is transactional" in text

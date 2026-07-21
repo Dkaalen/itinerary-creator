@@ -5,15 +5,24 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from app_modules.calculator_navigation import close_calculator_page
 from app_modules.calculator_state_keys import (
-    CALCULATOR_RETURN_AVAILABLE_KEY,
     CURRENCY_RATES_STATE_KEY,
 )
 from app_modules.generation_action import generate_itinerary
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import normalise_stage, set_workflow_stage
+from app_modules.workflow_state import normalise_stage
+from app_modules.session_state_keys import (
+    APP_STAGE_KEY,
+    ITINERARY_NAME_INPUT_KEY,
+    ITINERARY_NAME_KEY,
+    PRESENTATION_LANGUAGE_KEY,
+    REQUESTED_OUTPUT_BRAND_KEY,
+    REQUESTED_PRESENTATION_LANGUAGE_KEY,
+    REQUESTED_TONE_PRESET_KEY,
+    TONE_PRESET_KEY,
+)
+from app_modules.session_transitions import complete_calculator_generation, fail_calculator_generation
 from calculator.calculator_state import CalculatorState
 from calculator.to_itinerary_input import calculator_state_to_raw_input
 from calculator.validation import CalculatorValidationScope, validate_calculator_state
@@ -28,7 +37,7 @@ def generate_itinerary_from_calculator(
 ) -> WorkflowActionResult:
     """Convert calculator rows and run the existing itinerary generator."""
 
-    previous_stage = normalise_stage(state.get("app_stage", "input"))
+    previous_stage = normalise_stage(state.get(APP_STAGE_KEY, "input"))
     validation_issues = validate_calculator_state(
         calculator_state,
         state.get(CURRENCY_RATES_STATE_KEY),
@@ -46,11 +55,10 @@ def generate_itinerary_from_calculator(
     _seed_generation_request(state, calculator_state, output_brand)
     result = generate_itinerary(state, raw_text)
     if result.ok:
-        state[CALCULATOR_RETURN_AVAILABLE_KEY] = True
-        close_calculator_page(state)
+        complete_calculator_generation(state)
         return result
 
-    restored_stage = set_workflow_stage(state, previous_stage)
+    restored_stage = fail_calculator_generation(state, previous_stage)
     return WorkflowActionResult(
         ok=False,
         stage=restored_stage,
@@ -65,8 +73,8 @@ def _seed_generation_request(
     output_brand: str,
 ) -> None:
     itinerary_name = " ".join(str(calculator_state.itinerary_name or "").split())
-    state["itinerary_name"] = itinerary_name
-    state["itinerary_name_input"] = itinerary_name
-    state["requested_output_brand"] = output_brand
-    state["requested_presentation_language"] = state.get("presentation_language", DEFAULT_PRESENTATION_LANGUAGE)
-    state["requested_tone_preset"] = state.get("tone_preset", DEFAULT_TONE_PRESET)
+    state[ITINERARY_NAME_KEY] = itinerary_name
+    state[ITINERARY_NAME_INPUT_KEY] = itinerary_name
+    state[REQUESTED_OUTPUT_BRAND_KEY] = output_brand
+    state[REQUESTED_PRESENTATION_LANGUAGE_KEY] = state.get(PRESENTATION_LANGUAGE_KEY, DEFAULT_PRESENTATION_LANGUAGE)
+    state[REQUESTED_TONE_PRESET_KEY] = state.get(TONE_PRESET_KEY, DEFAULT_TONE_PRESET)

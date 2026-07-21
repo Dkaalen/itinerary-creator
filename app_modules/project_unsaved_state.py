@@ -9,17 +9,18 @@ from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY, CURRENCY_RAT
 from calculator.calculator_state import CalculatorState
 from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_to_dict
+from app_modules.session_state_keys import ACTIVE_SAVED_PROJECT_KEY, ITINERARY_NAME_INPUT_KEY, ITINERARY_NAME_KEY
 
 
 def active_project_has_unsaved_changes(state: Mapping[str, Any]) -> bool:
     """Return whether the current calculator/name differs from the saved snapshot."""
 
-    project = state.get("active_saved_project")
+    project = state.get(ACTIVE_SAVED_PROJECT_KEY)
     if not isinstance(project, Mapping):
         return False
     metadata = project.get("metadata") if isinstance(project.get("metadata"), Mapping) else {}
     saved_name = _clean_name(metadata.get("itinerary_name"))
-    current_name = _clean_name(state.get("itinerary_name") or state.get("itinerary_name_input"))
+    current_name = _clean_name(state.get(ITINERARY_NAME_KEY) or state.get(ITINERARY_NAME_INPUT_KEY))
     if current_name and current_name != saved_name:
         return True
 

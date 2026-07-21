@@ -21,8 +21,7 @@ from app_modules.project_browser_state import (
     remember_rename_candidate,
     rename_candidate_id,
 )
-from app_modules.project_delete_cleanup import clear_deleted_project_from_session
-from app_modules.project_identity import active_project_id_from_state, set_active_project_id
+from app_modules.project_identity import active_project_id_from_state
 from app_modules.project_io import load_project_json
 from app_modules.saved_project_load_action import load_saved_project
 from app_modules.saved_project_validation import SavedProjectError
@@ -36,9 +35,17 @@ from project_storage.project_browser import (
 )
 from project_storage.runtime import project_storage_is_configured
 from project_storage.project_management import duplicate_cloud_project, rename_cloud_project
-
-
-OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
+from app_modules.session_state_keys import (
+    OPEN_PROJECT_BROWSER_VISIBLE_KEY,
+    OPEN_PROJECT_SEARCH_KEY,
+    PROJECT_STORAGE_BROWSER_SUCCESS_KEY,
+    PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY,
+)
+from app_modules.session_transitions import (
+    complete_project_delete,
+    complete_project_duplicate,
+    prepare_project_switch,
+)
 
 
 def _render_open_project_workspace() -> None:
@@ -78,17 +85,17 @@ def render_open_project_file_action() -> None:
 def _render_cloud_project_browser() -> None:
     """Render cloud projects from Supabase."""
 
-    cleanup_warning = st.session_state.pop("project_storage_delete_cleanup_warning", "")
+    cleanup_warning = st.session_state.pop(PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY, "")
     if cleanup_warning:
         st.warning(str(cleanup_warning))
-    success_message = st.session_state.pop("project_storage_browser_success", "")
+    success_message = st.session_state.pop(PROJECT_STORAGE_BROWSER_SUCCESS_KEY, "")
     if success_message:
         st.success(str(success_message))
 
     search = st.text_input(
         "Search projects",
-        value=str(st.session_state.get("open_project_search") or ""),
-        key="open_project_search",
+        value=str(st.session_state.get(OPEN_PROJECT_SEARCH_KEY) or ""),
+        key=OPEN_PROJECT_SEARCH_KEY,
         placeholder="Search by itinerary name…",
     )
     try:
@@ -195,7 +202,7 @@ def _render_rename_form(project_id: str, name: str) -> None:
     if active_project_id_from_state(st.session_state) == project_id:
         apply_active_project_rename(st.session_state, result)
     clear_rename_candidate(st.session_state)
-    st.session_state["project_storage_browser_success"] = f"Renamed project to {result['name']}."
+    st.session_state[PROJECT_STORAGE_BROWSER_SUCCESS_KEY] = f"Renamed project to {result['name']}."
     st.rerun()
 
 
@@ -211,7 +218,7 @@ def _duplicate_cloud_project(project_id: str, name: str) -> None:
     if not result:
         st.warning("Cloud storage is unavailable. Project was not duplicated.")
         return
-    st.session_state["project_storage_browser_success"] = f"Created {result['name']}."
+    complete_project_duplicate(st.session_state, name=result["name"])
     st.rerun()
 
 
@@ -236,13 +243,12 @@ def _render_delete_confirmation(project_id: str, name: str) -> None:
             try:
                 result = delete_cloud_itinerary_result(project_id)
                 if result and result.ok:
-                    clear_deleted_project_from_session(st.session_state, project_id)
-                    clear_delete_confirmation(st.session_state)
-                    if not result.storage_files_deleted:
-                        st.session_state["project_storage_delete_cleanup_warning"] = (
-                            "Project record was deleted, but one or more stored files could not be removed automatically."
-                        )
-                    st.session_state["project_storage_browser_success"] = f"Deleted {name}."
+                    complete_project_delete(
+                        st.session_state,
+                        project_id=project_id,
+                        name=name,
+                        storage_files_deleted=result.storage_files_deleted,
+                    )
                     st.rerun()
                     return
                 st.warning("Cloud storage is unavailable. Project was not deleted.")
@@ -269,12 +275,7 @@ def _open_cloud_project(project_id: str) -> None:
         st.error(storage_user_message("open"))
         return
     if result.ok:
-        set_active_project_id(st.session_state, project_id)
-        clear_delete_confirmation(st.session_state)
-        clear_file_delete_confirmation(st.session_state)
-        clear_open_candidate(st.session_state)
-        clear_rename_candidate(st.session_state)
-        st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
+        prepare_project_switch(st.session_state)
         st.success(result.message or "Cloud project opened.")
         st.rerun()
     else:

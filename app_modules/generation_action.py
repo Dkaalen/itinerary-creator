@@ -19,6 +19,17 @@ from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
 from project_storage.workflow_hooks import save_generated_project_snapshot
+from app_modules.session_state_keys import (
+    HTML_PATH_KEY,
+    ITINERARY_HTML_KEY,
+    ITINERARY_VALIDATION_REPORT_KEY,
+    LAST_GENERATED_RAW_TEXT_KEY,
+    OUTPUT_EDITS_KEY,
+    PARSED_ROWS_KEY,
+    PARSER_DIAGNOSTICS_KEY,
+    PREVIEW_SIGNATURE_KEY,
+    STRUCTURED_INPUT_REVIEW_KEY,
+)
 
 
 def _parse_and_review(state: MutableMapping[str, Any], raw_text: str) -> tuple[list[dict], Any]:
@@ -27,12 +38,12 @@ def _parse_and_review(state: MutableMapping[str, Any], raw_text: str) -> tuple[l
     # Single parser/generator pipeline guard: parse_and_normalize_itinerary(raw_text)
     parsed_rows = parse_and_normalize_itinerary(raw_text, state=state)
     validation_report = validate_for_generation(parsed_rows)
-    state["parser_diagnostics"] = diagnostics.get_warnings()
-    state["structured_input_review"] = build_structured_input_review(
+    state[PARSER_DIAGNOSTICS_KEY] = diagnostics.get_warnings()
+    state[STRUCTURED_INPUT_REVIEW_KEY] = build_structured_input_review(
         parsed_rows,
-        parser_diagnostics=state["parser_diagnostics"],
+        parser_diagnostics=state[PARSER_DIAGNOSTICS_KEY],
     )
-    state["itinerary_validation_report"] = validation_report
+    state[ITINERARY_VALIDATION_REPORT_KEY] = validation_report
     return parsed_rows, validation_report
 
 
@@ -45,9 +56,9 @@ def _store_generated_preview(
     """Build and persist the first editable itinerary preview."""
 
     artifact = build_generation_preview_artifact(state, parsed_rows=parsed_rows, output_edits=output_edits)
-    state["itinerary_html"] = artifact.html
-    state["preview_signature"] = artifact.signature
-    state["html_path"] = artifact.html_path
+    state[ITINERARY_HTML_KEY] = artifact.html
+    state[PREVIEW_SIGNATURE_KEY] = artifact.signature
+    state[HTML_PATH_KEY] = artifact.html_path
     state["generation_overflow_warnings"] = artifact.overflow_warnings
     return artifact.overflow_warnings
 
@@ -73,9 +84,9 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     settings = consume_generation_settings(state)
     output_edits = build_initial_output_edits(parsed_rows, grouped_days, settings)
 
-    state["parsed_rows"] = parsed_rows
-    state["output_edits"] = output_edits
-    state["last_generated_raw_text"] = raw_text
+    state[PARSED_ROWS_KEY] = parsed_rows
+    state[OUTPUT_EDITS_KEY] = output_edits
+    state[LAST_GENERATED_RAW_TEXT_KEY] = raw_text
     clear_pdf_artifacts(state, status="Not created")
     clear_project_file_download_cache(state)
 
