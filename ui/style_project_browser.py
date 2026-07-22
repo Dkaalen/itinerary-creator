@@ -1,4 +1,4 @@
-"""Open-project cloud browser, download rows, and modal contrast styles."""
+"""Compact project-manager, file-row, and backup-uploader styles."""
 
 PROJECT_COPY_CSS = r""".open-project-copy {
     display: grid;
@@ -17,44 +17,9 @@ PROJECT_COPY_CSS = r""".open-project-copy {
     font-size: .92rem;
     line-height: 1.45;
 }
-
 """
 
-PROJECT_BROWSER_CSS = r""".cloud-project-list {
-    display: grid;
-    gap: .65rem;
-    margin: .65rem 0 1rem;
-}
-
-.cloud-project-card {
-    border: 1px solid rgba(224, 216, 202, .78);
-    border-radius: 14px;
-    background: rgba(255, 253, 248, .72);
-    padding: .75rem .85rem;
-}
-
-.cloud-project-card.active {
-    border-color: rgba(102, 126, 96, .58);
-    background: rgba(243, 247, 239, .88);
-    box-shadow: inset 4px 0 0 rgba(76, 112, 79, .72);
-}
-
-.cloud-project-card strong {
-    display: block;
-    color: var(--ink) !important;
-    font-size: .95rem;
-}
-
-.cloud-project-card span {
-    display: block;
-    color: var(--muted) !important;
-    font-size: .78rem;
-    margin-top: .16rem;
-}
-
-
-/* Open Project browser: inline workspace avoids Streamlit dialog fragments. */
-.open-project-workspace {
+PROJECT_BROWSER_CSS = r""".open-project-workspace {
     margin: .95rem 0 1rem;
     padding: 1rem 1.1rem;
     border: 1px solid rgba(224, 216, 202, .72);
@@ -75,26 +40,88 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
 .open-project-workspace .open-project-copy span,
 .open-project-workspace p,
 .open-project-workspace label,
-.open-project-workspace [data-testid="stWidgetLabel"] p,
-.open-project-workspace [data-testid="stMarkdownContainer"] p,
 .open-project-workspace [data-testid="stCaptionContainer"],
 .open-project-workspace [data-testid="stCaptionContainer"] * {
     color: #d9d4c9 !important;
 }
 
+.cloud-project-row,
+.cloud-project-detail-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .65rem;
+    border: 1px solid rgba(224, 216, 202, .86);
+    border-radius: 12px;
+    background: #fffdf8;
+    padding: .62rem .72rem;
+    margin: .28rem 0 .36rem;
+}
+
+.cloud-project-row.selected,
+.cloud-project-detail-card {
+    border-color: rgba(102, 126, 96, .58);
+    box-shadow: inset 3px 0 0 rgba(76, 112, 79, .72);
+}
+
+.cloud-project-row.active,
+.cloud-project-detail-card.active {
+    background: #f3f7ef;
+}
+
+.cloud-project-row div,
+.cloud-project-detail-card {
+    min-width: 0;
+}
+
+.cloud-project-row strong,
+.cloud-project-detail-card strong {
+    display: block;
+    overflow: hidden;
+    color: #1f2630 !important;
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cloud-project-row span,
+.cloud-project-detail-card span,
+.cloud-project-detail-card small {
+    display: block;
+    color: #66645f !important;
+    font-size: .74rem;
+    margin-top: .1rem;
+}
+
+.cloud-project-row small {
+    color: #4c704f !important;
+    font-size: .7rem;
+    font-weight: 760;
+    white-space: nowrap;
+}
+
+.cloud-project-detail-card {
+    display: grid;
+    gap: .15rem;
+    padding: .85rem .9rem;
+    margin-bottom: .65rem;
+}
+
 .cloud-file-row {
     display: grid;
     gap: .12rem;
-    padding: .55rem 0 .35rem;
+    padding: .48rem 0 .28rem;
 }
 
 .cloud-file-row strong {
-    font-size: .88rem;
+    color: #1f2630 !important;
+    font-size: .86rem;
     font-weight: 760;
 }
 
 .cloud-file-row span {
-    font-size: .76rem;
+    color: #66645f !important;
+    font-size: .74rem;
 }
 
 .cloud-project-delete-warning {
@@ -102,32 +129,32 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
     gap: .22rem;
     margin: .6rem 0 .55rem;
     padding: .72rem .85rem;
-    border: 1px solid rgba(239, 120, 120, .34);
+    border: 1px solid rgba(178, 76, 67, .35);
     border-radius: 12px;
-    background: rgba(149, 77, 70, .18);
+    background: rgba(178, 76, 67, .10);
 }
 
 .cloud-project-delete-warning strong {
-    color: #fffdf8 !important;
+    color: #792f29 !important;
 }
 
 .cloud-project-delete-warning span {
-    color: #e7d7d3 !important;
-    font-size: .84rem;
+    color: #704944 !important;
+    font-size: .82rem;
 }
 
-/* The dark Open Project header is rendered with st.html, so target the active
-   Streamlit block container rather than assuming later widgets are children. */
-.block-container:has(.open-project-workspace) div[data-testid="stTextInput"],
 .block-container:has(.open-project-workspace) div[data-testid="stFileUploader"],
-.block-container:has(.open-project-workspace) [data-testid="stExpander"],
-.block-container:has(.open-project-workspace) [data-testid="stAlert"],
-.block-container:has(.open-project-workspace) [data-testid="stCaptionContainer"] {
+.block-container:has(.open-project-workspace) [data-testid="stAlert"] {
     margin-left: clamp(1.15rem, 2.4vw, 2rem) !important;
     margin-right: clamp(1.15rem, 2.4vw, 2rem) !important;
 }
 
+.st-key-cloud_project_manager {
+    background: rgba(255, 253, 248, .96) !important;
+}
+
 .block-container:has(.open-project-workspace) div[data-testid="stTextInput"] input,
+.block-container:has(.open-project-workspace) div[data-testid="stSelectbox"] > div > div,
 .block-container:has(.open-project-workspace) div[data-testid="stTextArea"] textarea {
     background: #fffdf8 !important;
     color: #1f2630 !important;
@@ -142,39 +169,13 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
 
 .block-container:has(.open-project-workspace) [data-testid="stWidgetLabel"] p,
 .block-container:has(.open-project-workspace) label {
-    color: #fffdf8 !important;
-}
-
-.block-container:has(.open-project-workspace) .cloud-project-list {
-    gap: .85rem;
-    margin: .9rem clamp(1.15rem, 2.4vw, 2rem) 1.1rem;
-}
-
-.block-container:has(.open-project-workspace) .cloud-project-card {
-    background: #fffdf8 !important;
-    border-color: rgba(224, 216, 202, .90) !important;
-    padding: .95rem 1.05rem !important;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .10) !important;
-}
-
-.block-container:has(.open-project-workspace) .cloud-project-card strong,
-.block-container:has(.open-project-workspace) .cloud-file-row strong {
     color: #1f2630 !important;
 }
 
-.block-container:has(.open-project-workspace) .cloud-project-card span,
-.block-container:has(.open-project-workspace) .cloud-file-row span {
-    color: #5f625f !important;
-}
-
-.block-container:has(.open-project-workspace) [data-testid="stExpander"] {
-    background: rgba(255, 253, 248, .10) !important;
-    border-color: rgba(255, 253, 248, .22) !important;
-}
-
-.block-container:has(.open-project-workspace) [data-testid="stExpander"] summary,
-.block-container:has(.open-project-workspace) [data-testid="stExpander"] summary * {
-    color: #fffdf8 !important;
+.block-container:has(.open-project-workspace) [data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(255, 253, 248, .96) !important;
+    border-color: rgba(224, 216, 202, .9) !important;
+    border-radius: 16px !important;
 }
 
 .block-container:has(.open-project-workspace) [data-testid="stFileUploaderDropzone"] {
@@ -191,25 +192,12 @@ PROJECT_BROWSER_CSS = r""".cloud-project-list {
     margin: 1rem clamp(1.5rem, 3vw, 2.65rem) 0;
 }
 
-@media (max-width: 620px) {
-    .input-page-heading,
-    .workspace-page-heading,
-    .source-line,
-    .block-container:has(.input-page-heading) div[data-testid="stTextInput"],
-    .block-container:has(.input-page-heading) div[data-testid="stTextArea"],
-    .block-container:has(.input-page-heading) [data-testid="stWidgetLabel"],
-    .block-container:has(.input-page-heading) div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]),
-    .block-container:has(.input-page-heading) div[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]),
-    .supplier-preview-panel {
-        margin-left: 1.15rem !important;
-        margin-right: 1.15rem !important;
+@media (max-width: 760px) {
+    .cloud-project-row,
+    .cloud-project-detail-card {
+        padding: .58rem .64rem;
     }
 }
 """
 
-CSS = "\n".join(
-    (
-    PROJECT_COPY_CSS,
-    PROJECT_BROWSER_CSS,
-    )
-)
+CSS = "\n".join((PROJECT_COPY_CSS, PROJECT_BROWSER_CSS))

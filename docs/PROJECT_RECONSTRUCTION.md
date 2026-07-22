@@ -39,3 +39,9 @@ Browser recovery remains local to the Calculator component until the recovered r
 ## Baseline restoration
 
 The disconnected future-only `saved_project_baseline_restore.py` helper was removed. There is no runtime action that can silently replace `current_snapshot` with `generated_baseline_snapshot`. A future visible baseline-restore feature must be designed as an explicit confirmed workflow and use the same canonical saved-project restore path.
+
+## Cloud project manager boundary
+
+The Open project manager reads a bounded Supabase page through `list_cloud_itinerary_page()`. Search, sort, limit, and offset are applied by the repository, with a one-row lookahead used only to enable Next navigation. The UI renders at most twelve project rows inside a fixed-height scroll surface.
+
+Project rows contain metadata, the primary Open action, and one compact action menu. Rename and delete forms are owned by the single selected-project detail panel. Calculator file records are queried only for that selected project, so listing projects does not create an N+1 file-query pattern. Open, rename, duplicate, delete, reconstruction, session cleanup, and rollback continue to use their existing transactional authorities.

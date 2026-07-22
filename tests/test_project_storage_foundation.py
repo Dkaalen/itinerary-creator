@@ -180,18 +180,21 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
     assert fake.storage_deletes == [("itinerary-files", ["itineraries/itinerary-id/calculator/test.xlsx"])]
 
 
-def test_project_browser_supports_search_delete_and_calculator_file_downloads() -> None:
+def test_project_browser_supports_paging_search_delete_and_lazy_file_downloads() -> None:
     source = read_contract_text("project_storage/project_browser.py")
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
+    detail_source = read_contract_text("app_modules/project_browser_detail_ui.py")
     calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
 
     assert "search: str = """ in source
+    assert "list_cloud_itinerary_page" in source
+    assert "offset=clean_page * clean_size" in source
     assert "list_cloud_calculation_files" in source
     assert "download_cloud_project_file" in source
     assert "delete_cloud_itinerary_result" in source
     assert "Search projects" in ui_source
-    assert "Delete permanently" in ui_source
-    assert "render_calculation_files" in ui_source
+    assert "Delete permanently" in detail_source
+    assert "render_calculation_files(project_id)" in detail_source
     assert "Calculator files" in calculator_file_source
 
 

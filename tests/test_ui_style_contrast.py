@@ -77,7 +77,8 @@ def test_open_project_calculator_and_local_library_surfaces_keep_readable_contra
     css = _rendered_css(monkeypatch)
 
     assert '.block-container:has(.open-project-workspace) div[data-testid="stTextInput"] input' in css
-    assert '.block-container:has(.open-project-workspace) .cloud-project-card strong' in css
+    assert '.cloud-project-row strong' in css
+    assert '.cloud-project-detail-card strong' in css
     assert 'color: #1f2630 !important;' in css
     assert 'color: #fffdf8 !important;' in css
     assert '.block-container:has(.calculator-heading) [data-testid="stExpander"]' in css

@@ -50,5 +50,6 @@ PROJECT_STORAGE_BROWSER_SUCCESS_KEY = "project_storage_browser_success"
 PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY = "project_storage_delete_cleanup_warning"
 OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
 OPEN_PROJECT_SEARCH_KEY = "open_project_search"
+OPEN_PROJECT_SORT_KEY = "open_project_sort"
 
 __all__ = [name for name in globals() if name.isupper()]

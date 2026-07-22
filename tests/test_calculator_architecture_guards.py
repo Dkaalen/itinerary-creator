@@ -240,6 +240,7 @@ def test_calculator_browser_workflows_are_bounded_and_share_one_harness() -> Non
         ROOT / "tests" / "test_calculator_browser_download_and_import.py",
         ROOT / "tests" / "test_calculator_browser_component_lifecycle_and_messaging.py",
         ROOT / "tests" / "test_calculator_browser_drafts_and_recovery.py",
+        ROOT / "tests" / "test_calculator_browser_recovery_storage_resilience.py",
     )
     retired_paths = (
         ROOT / "tests" / "test_calculator_browser_interactions.py",
@@ -263,8 +264,8 @@ def test_calculator_browser_workflows_are_bounded_and_share_one_harness() -> Non
         assert "calculator_browser_harness" in source
         collected_names.extend(test_names)
 
-    assert len(collected_names) == 43
-    assert len(set(collected_names)) == 43
+    assert len(collected_names) == 49
+    assert len(set(collected_names)) == 49
 
     harness_source = (ROOT / "tests" / "support" / "calculator_browser_harness.py").read_text(encoding="utf-8")
     assert "def calculator_frontend_html(" in harness_source

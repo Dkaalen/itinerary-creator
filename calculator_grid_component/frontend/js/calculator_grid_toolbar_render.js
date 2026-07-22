@@ -7,6 +7,10 @@ function buildToolbarHtml(state) {
   const excelReady = Boolean(state.pendingDownload?.content_base64);
   const excelClass = excelReady ? 'calc-btn primary ready' : 'calc-btn primary';
   const excelTitle = excelReady ? 'Excel ready — click to download' : 'Create and download the current calculation workbook';
+  const recoveryStatus = state.recoveryStatus || calculatorStorageStatusPayload();
+  const recoveryStatusHtml = recoveryStatus.state === 'available'
+    ? ''
+    : `<button id="calculator-recovery-status" class="calculator-recovery-status" data-state="${escapeHtml(recoveryStatus.state)}" data-action="local-recovery-details" title="Open local recovery details">${escapeHtml(recoveryStatus.summary)}</button>`;
   return `
     <div class="calculator-toolbar">
       <div class="calculator-toolbar-main-row">
@@ -52,7 +56,7 @@ function buildToolbarHtml(state) {
       <span>${escapeHtml(libraryText)}</span>
       ${excelReady ? '<span id="calculator-excel-ready-status" class="excel-ready-status">Excel ready</span>' : ''}
       <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
-      ${state.recoveryWarning ? `<span id="calculator-recovery-warning" class="calculator-recovery-warning">${escapeHtml(state.recoveryWarning)}</span>` : ''}
+      ${recoveryStatusHtml}
     </div>`;
 }
 
@@ -95,6 +99,7 @@ function buildFindReplaceHtml(state) {
 function buildVersionHistoryHtml(state) {
   if (!state.showVersionHistory) return '';
   const snapshots = state.recoverySnapshots || [];
+  const recoveryStatus = state.recoveryStatus || calculatorStorageStatusPayload();
   const storageText = formatCalculatorStorageBytes(state.recoveryStorageBytes || calculatorRecoveryStorageUsage().totalBytes);
   const items = snapshots.length
     ? snapshots.map((snapshot) => `
@@ -106,9 +111,17 @@ function buildVersionHistoryHtml(state) {
   return `
     <div class="calculator-version-panel" role="dialog" aria-label="Calculator version history">
       <div class="calculator-version-heading"><strong>Local recovery versions</strong><span>Newest first · ${escapeHtml(storageText)} stored in this browser</span></div>
+      <div class="calculator-local-recovery-info" data-state="${escapeHtml(recoveryStatus.state)}">
+        <strong>${escapeHtml(recoveryStatus.summary)}</strong>
+        <span>${escapeHtml(recoveryStatus.detail)}</span>
+        <span>Supabase project saving is separate and is not affected by this browser recovery status.</span>
+      </div>
       <div class="calculator-version-list">${items}</div>
       <div class="calculator-version-actions">
-        <button class="calc-btn danger" data-action="clear-versions" ${snapshots.length ? '' : 'disabled'}>Clear versions</button>
+        <div>
+          <button class="calc-btn danger" data-action="clear-local-recovery">Clear local recovery data</button>
+          <button class="calc-btn" data-action="clear-versions" ${snapshots.length ? '' : 'disabled'}>Clear versions only</button>
+        </div>
         <button class="calc-btn" data-action="close-versions">Close</button>
       </div>
     </div>`;

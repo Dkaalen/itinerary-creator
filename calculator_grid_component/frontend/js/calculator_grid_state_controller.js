@@ -57,6 +57,7 @@ function initializeState(payload) {
     showFindReplace: false,
     showVersionHistory: false,
     recoverySnapshots: loadCalculatorRecoverySnapshots(),
+    recoveryStatus: calculatorStorageStatusPayload(),
     recoveryWarning: calculatorStorageWarningMessage(),
     recoveryStorageBytes: calculatorRecoveryStorageUsage().totalBytes,
     findQuery: '',
@@ -113,6 +114,7 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
 
 function markLocalDraft(captureVersion = true, runValidation = true) {
   noteCalculatorLocalEdit();
+  calculatorLocalRecoveryPaused = false;
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.pendingDownload = null;

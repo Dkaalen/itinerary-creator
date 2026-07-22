@@ -38,8 +38,9 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert ".studio-brand-link" in style_workspace_header.CSS
     assert ".supplier-preview-panel" in style_input_workspace.SUPPLIER_PREVIEW_CSS
     assert ".calculator-heading" in style_calculator.CALCULATOR_PAGE_CSS
-    assert ".cloud-project-card" in style_project_browser.PROJECT_BROWSER_CSS
-    assert ".block-container:has(.open-project-workspace) .cloud-project-card" in style_project_browser.PROJECT_BROWSER_CSS
+    assert ".cloud-project-row" in style_project_browser.PROJECT_BROWSER_CSS
+    assert ".cloud-project-detail-card" in style_project_browser.PROJECT_BROWSER_CSS
+    assert "stVerticalBlockBorderWrapper" in style_project_browser.PROJECT_BROWSER_CSS
 
 
 def test_composed_app_shell_preserves_all_split_sections_in_order() -> None:

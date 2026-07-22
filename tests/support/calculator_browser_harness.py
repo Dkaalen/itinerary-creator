@@ -33,6 +33,8 @@ def calculator_frontend_html() -> str:
         const localStore = new Map();
         const sessionStore = new Map();
         const storageApi = (store) => ({
+          get length() { return store.size; },
+          key: (index) => [...store.keys()][Number(index)] ?? null,
           getItem: (key) => store.has(String(key)) ? store.get(String(key)) : null,
           setItem: (key, value) => store.set(String(key), String(value)),
           removeItem: (key) => store.delete(String(key)),

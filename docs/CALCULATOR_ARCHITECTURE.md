@@ -25,7 +25,7 @@ The grid has two explicit modes:
 - **Selection mode:** arrows move between cells; the first click on fetched or pre-filled data focuses the grid.
 - **Edit mode:** click the active cell, double-click, press `F2`/`Enter`, or type; arrows move the caret.
 
-Browser edits are written to a project-scoped local draft and synchronized to Streamlit after a short debounce. A capped local recovery history stores meaningful committed versions. Save, export, generate, library navigation, and workspace navigation flush the latest state first.
+Browser edits are written to a project-scoped local draft and synchronized to Streamlit after a short debounce. A capped local recovery history stores meaningful committed versions. The current draft has quota priority, inactive-project recovery histories are pruned before the active history, and only expired recognized Calculator namespaces are removed automatically. Local recovery failures remain non-blocking and are shown as a quiet status with details that distinguish browser recovery from Supabase project saving. The version panel can clear either recovery versions alone or all local recovery data for the active project; a full clear remains in effect until the next local edit. Save, export, generate, library navigation, and workspace navigation flush the latest state first.
 
 A1 formulas support relative and absolute references, dependency recalculation, copy/fill translation, and circular-reference errors. Python and JavaScript are independently parity-tested.
 
@@ -41,6 +41,7 @@ Calculator browser coverage is split by responsibility so every file runs indepe
 - download and import
 - component lifecycle and messaging
 - drafts and recovery
+- recovery storage resilience and quota handling
 
 `tests/support/calculator_browser_harness.py` owns the shared production-asset loading, payload, Chromium launch, and recovery-quota fixtures. Browser test files must not duplicate that setup or depend on another browser test module.
 

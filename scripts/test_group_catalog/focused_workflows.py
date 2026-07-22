@@ -43,8 +43,14 @@ CALCULATOR_BROWSER_WORKFLOW_TESTS = (
     'tests/test_calculator_browser_drafts_and_recovery.py::test_recovery_storage_uses_compact_hashes_and_row_deltas',
     'tests/test_calculator_browser_drafts_and_recovery.py::test_large_projects_adapt_retention_and_preserve_long_values',
     'tests/test_calculator_browser_drafts_and_recovery.py::test_quota_prunes_old_versions_before_current_draft',
-    'tests/test_calculator_browser_drafts_and_recovery.py::test_unavailable_storage_shows_one_clear_warning',
+    'tests/test_calculator_browser_drafts_and_recovery.py::test_unavailable_storage_shows_one_quiet_status',
     'tests/test_calculator_browser_drafts_and_recovery.py::test_legacy_recovery_arrays_remain_readable',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_unavailable_storage_status_is_deduplicated_across_autosaves',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_blocked_storage_does_not_interrupt_calculator_editing',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_clear_local_recovery_data_removes_current_draft_and_versions_only',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_obsolete_calculator_namespaces_are_cleaned_without_touching_recent_or_unrelated_data',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_quota_prunes_inactive_project_versions_before_active_versions',
+    'tests/test_calculator_browser_recovery_storage_resilience.py::test_quota_keeps_newest_active_versions_when_space_allows',
     'tests/test_calculator_component_protocol.py::test_protocol_accepts_matching_revision_and_acknowledges_applied_state',
     'tests/test_calculator_component_protocol.py::test_protocol_rejects_stale_rows_before_backend_state_is_mutated',
     'tests/test_calculator_component_protocol.py::test_protocol_treats_replayed_request_as_duplicate_without_new_action',
@@ -93,6 +99,7 @@ ROLLBACK_WORKFLOW_TESTS = (
 CLOUD_LIFECYCLE_WORKFLOW_TESTS = (
     "tests/test_project_cloud_lifecycle_hardening.py",
     "tests/test_project_browser_and_downloads_regression.py",
+    "tests/test_project_browser_compact_manager.py",
 )
 
 RECONSTRUCTION_WORKFLOW_TESTS = (

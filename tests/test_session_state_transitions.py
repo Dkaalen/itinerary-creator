@@ -84,6 +84,7 @@ def test_duplicate_and_delete_transitions_own_browser_messages_and_active_cleanu
         ACTIVE_SAVED_PROJECT_KEY: {"metadata": {"project_id": "project-1"}},
         ACTIVE_PROJECT_STORAGE_ID_KEY: "project-1",
         ACTIVE_SAVED_PROJECT_ID_KEY: "project-1",
+        "open_project_selected_project_id": "project-1",
     }
 
     complete_project_duplicate(state, name="Project copy")
@@ -98,6 +99,7 @@ def test_duplicate_and_delete_transitions_own_browser_messages_and_active_cleanu
 
     assert active_project_id_from_state(state) == ""
     assert ACTIVE_SAVED_PROJECT_KEY not in state
+    assert "open_project_selected_project_id" not in state
     assert state[PROJECT_STORAGE_BROWSER_SUCCESS_KEY] == "Deleted Project one."
     assert "stored files" in state[PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY]
 

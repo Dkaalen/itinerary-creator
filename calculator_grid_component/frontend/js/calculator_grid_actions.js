@@ -1,5 +1,11 @@
 // UI event binding; commands live in dedicated action owners.
 
+function openCalculatorRecoveryDetails() {
+  if (!calculatorState) return;
+  calculatorState.showVersionHistory = true;
+  rerender();
+}
+
 function bindEvents() {
   document.querySelectorAll('[data-action="add"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -26,8 +32,14 @@ function bindEvents() {
   document.querySelector('[data-action="fill-right"]')?.addEventListener('click', () => fillSelection('right'));
   document.querySelector('[data-action="find-replace"]')?.addEventListener('click', () => toggleFindReplace());
   document.querySelector('[data-action="version-history"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = !calculatorState.showVersionHistory; rerender(); });
+  document.querySelector('[data-action="local-recovery-details"]')?.addEventListener('click', openCalculatorRecoveryDetails);
   document.querySelector('[data-action="close-versions"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = false; rerender(); });
-  document.querySelector('[data-action="clear-versions"]')?.addEventListener('click', () => { clearCalculatorRecoverySnapshots(); calculatorState.showVersionHistory = false; rerender(); });
+  document.querySelector('[data-action="clear-versions"]')?.addEventListener('click', () => { clearCalculatorRecoverySnapshots(); rerender(); });
+  document.querySelector('[data-action="clear-local-recovery"]')?.addEventListener('click', () => {
+    if (!window.confirm('Clear the local Calculator draft and recovery versions stored in this browser for this project?')) return;
+    clearCalculatorLocalRecoveryData();
+    rerender();
+  });
   document.querySelectorAll('[data-version-id]').forEach((button) => button.addEventListener('click', () => restoreCalculatorRecoverySnapshot(button.dataset.versionId)));
   document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
   document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));

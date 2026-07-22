@@ -4,19 +4,46 @@ from __future__ import annotations
 
 from typing import Any
 
+from app_modules.project_browser_paging import PROJECT_PAGE_SIZE, ProjectPage, build_project_page
 from project_storage.delete_result import ProjectDeleteResult
 from project_storage.runtime import get_project_storage_repository
 
 CALCULATOR_FILE_TYPE = "calculator_xlsx"
 
 
-def list_cloud_itineraries(*, limit: int = 30, search: str = "") -> tuple[dict[str, Any], ...]:
-    """Return saved itinerary records, newest first."""
+def list_cloud_itineraries(
+    *,
+    limit: int = 30,
+    search: str = "",
+    offset: int = 0,
+    sort: str = "recent",
+) -> tuple[dict[str, Any], ...]:
+    """Return a bounded set of saved itinerary records."""
 
     repository = get_project_storage_repository()
     if repository is None:
         return ()
-    return tuple(repository.list_itineraries(limit=limit, search=search))
+    return tuple(repository.list_itineraries(limit=limit, search=search, offset=offset, sort=sort))
+
+
+def list_cloud_itinerary_page(
+    *,
+    page_index: int = 0,
+    page_size: int = PROJECT_PAGE_SIZE,
+    search: str = "",
+    sort: str = "recent",
+) -> ProjectPage:
+    """Return one page plus a one-row lookahead for Next navigation."""
+
+    clean_page = max(0, int(page_index))
+    clean_size = max(1, min(int(page_size), 50))
+    rows = list_cloud_itineraries(
+        limit=clean_size + 1,
+        offset=clean_page * clean_size,
+        search=search,
+        sort=sort,
+    )
+    return build_project_page(rows, page_index=clean_page, page_size=clean_size)
 
 
 def list_cloud_calculation_files(itinerary_id: str, *, limit: int = 12) -> tuple[dict[str, Any], ...]:

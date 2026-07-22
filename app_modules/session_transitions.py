@@ -207,11 +207,12 @@ def complete_project_delete(
 ) -> None:
     """Apply session cleanup and browser messages after a successful deletion."""
 
-    from app_modules.project_browser_state import clear_delete_confirmation
+    from app_modules.project_browser_state import clear_delete_confirmation, clear_selected_project_if_matches
     from app_modules.project_delete_cleanup import clear_deleted_project_from_session
 
     clear_deleted_project_from_session(state, str(project_id or ""))
     clear_delete_confirmation(state)
+    clear_selected_project_if_matches(state, project_id)
     if not storage_files_deleted:
         state[PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY] = (
             "Project record was deleted, but one or more stored files could not be removed automatically."

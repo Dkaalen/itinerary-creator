@@ -1,9 +1,11 @@
 let calculatorDraftStorageKey = 'itineraryCalculatorBrowserDraft.v3.global';
+const CALCULATOR_DRAFT_STORAGE_PREFIX = 'itineraryCalculatorBrowserDraft.v3.';
 const CALCULATOR_DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 const CALCULATOR_RECOVERY_SCHEMA_VERSION = 4;
 const CALCULATOR_RECOVERY_MAX_SNAPSHOTS = 20;
 const CALCULATOR_RECOVERY_STORAGE_BUDGET_BYTES = 4 * 1024 * 1024;
 const calculatorStorageWarnings = {draft: '', recovery: ''};
+let calculatorLocalRecoveryPaused = false;
 
 function setCalculatorDraftStorageKey(key) {
   const value = String(key || '').trim();
@@ -11,8 +13,10 @@ function setCalculatorDraftStorageKey(key) {
   if (nextKey !== calculatorDraftStorageKey) {
     calculatorStorageWarnings.draft = '';
     calculatorStorageWarnings.recovery = '';
+    calculatorLocalRecoveryPaused = false;
   }
   calculatorDraftStorageKey = nextKey;
+  cleanupObsoleteCalculatorRecoveryNamespaces();
   return calculatorDraftStorageKey;
 }
 
@@ -20,23 +24,137 @@ function getCalculatorDraftStorageKey() {
   return calculatorDraftStorageKey;
 }
 
-function calculatorRecoveryStorageKey() {
-  return `${calculatorDraftStorageKey}.versions`;
+function calculatorRecoveryStorageKey(baseKey = calculatorDraftStorageKey) {
+  return `${baseKey}.versions`;
+}
+
+function calculatorStorageStatusPayload() {
+  const unavailable = Boolean(calculatorStorageWarnings.draft);
+  const reduced = !unavailable && Boolean(calculatorStorageWarnings.recovery);
+  if (unavailable) {
+    return {
+      state: 'unavailable',
+      summary: 'Local recovery unavailable',
+      detail: calculatorStorageWarnings.draft,
+    };
+  }
+  if (reduced) {
+    return {
+      state: 'reduced',
+      summary: 'Local recovery reduced',
+      detail: calculatorStorageWarnings.recovery,
+    };
+  }
+  return {
+    state: 'available',
+    summary: 'Local recovery ready',
+    detail: 'The current Calculator draft and recent recovery versions can be stored in this browser.',
+  };
 }
 
 function calculatorStorageWarningMessage() {
-  return calculatorStorageWarnings.draft || calculatorStorageWarnings.recovery || '';
+  const status = calculatorStorageStatusPayload();
+  return status.state === 'available' ? '' : status.summary;
 }
 
 function setCalculatorStorageWarning(kind, message) {
   if (!(kind in calculatorStorageWarnings)) return;
-  const previous = calculatorStorageWarningMessage();
+  const previous = JSON.stringify(calculatorStorageStatusPayload());
   calculatorStorageWarnings[kind] = String(message || '');
-  const current = calculatorStorageWarningMessage();
-  if (calculatorState) calculatorState.recoveryWarning = current;
-  if (previous !== current && typeof refreshRecoveryWarningOnly === 'function') {
-    refreshRecoveryWarningOnly();
+  const currentStatus = calculatorStorageStatusPayload();
+  const current = JSON.stringify(currentStatus);
+  if (calculatorState) {
+    calculatorState.recoveryStatus = currentStatus;
+    calculatorState.recoveryWarning = currentStatus.state === 'available' ? '' : currentStatus.summary;
   }
+  if (previous !== current && typeof refreshRecoveryStatusOnly === 'function') {
+    refreshRecoveryStatusOnly();
+  }
+}
+
+function calculatorRecognizedDraftBaseKey(key) {
+  const value = String(key || '');
+  if (!value.startsWith(CALCULATOR_DRAFT_STORAGE_PREFIX)) return '';
+  return value.endsWith('.versions') ? value.slice(0, -'.versions'.length) : value;
+}
+
+function calculatorStoredNamespaceKeys() {
+  const namespaces = new Set();
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const baseKey = calculatorRecognizedDraftBaseKey(window.localStorage.key(index));
+      if (baseKey) namespaces.add(baseKey);
+    }
+  } catch (_error) {
+    setCalculatorStorageWarning('draft', 'This browser cannot access local recovery storage right now. Calculator editing continues normally.');
+  }
+  return [...namespaces];
+}
+
+function calculatorStoredDraftSavedAt(raw) {
+  try {
+    const parsed = JSON.parse(String(raw || ''));
+    return Number(parsed?.savedAt || 0);
+  } catch (_error) {
+    return 0;
+  }
+}
+
+function calculatorStoredRecoverySavedAt(raw) {
+  try {
+    const parsed = JSON.parse(String(raw || ''));
+    const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
+    if (!Array.isArray(entries)) return 0;
+    return entries.reduce((latest, entry) => Math.max(latest, Number(entry?.savedAt || 0)), 0);
+  } catch (_error) {
+    return 0;
+  }
+}
+
+function calculatorNamespaceLastSavedAt(baseKey) {
+  try {
+    return Math.max(
+      calculatorStoredDraftSavedAt(window.localStorage.getItem(baseKey)),
+      calculatorStoredRecoverySavedAt(window.localStorage.getItem(calculatorRecoveryStorageKey(baseKey)))
+    );
+  } catch (_error) {
+    return 0;
+  }
+}
+
+function cleanupObsoleteCalculatorRecoveryNamespaces(now = Date.now()) {
+  const cutoff = Number(now || Date.now()) - CALCULATOR_DRAFT_MAX_AGE_MS;
+  for (const baseKey of calculatorStoredNamespaceKeys()) {
+    if (baseKey === calculatorDraftStorageKey) continue;
+    const lastSavedAt = calculatorNamespaceLastSavedAt(baseKey);
+    if (!lastSavedAt || lastSavedAt >= cutoff) continue;
+    try {
+      window.localStorage.removeItem(baseKey);
+      window.localStorage.removeItem(calculatorRecoveryStorageKey(baseKey));
+    } catch (_error) {
+      setCalculatorStorageWarning('draft', 'This browser cannot change local recovery storage right now. Calculator editing continues normally.');
+      return;
+    }
+  }
+}
+
+function pruneOtherCalculatorRecoveryNamespacesForQuota() {
+  const candidates = calculatorStoredNamespaceKeys()
+    .filter((baseKey) => baseKey !== calculatorDraftStorageKey)
+    .map((baseKey) => ({baseKey, savedAt: calculatorNamespaceLastSavedAt(baseKey)}))
+    .sort((left, right) => left.savedAt - right.savedAt);
+  let removed = 0;
+  for (const candidate of candidates) {
+    try {
+      const recoveryKey = calculatorRecoveryStorageKey(candidate.baseKey);
+      if (window.localStorage.getItem(recoveryKey) === null) continue;
+      window.localStorage.removeItem(recoveryKey);
+      removed += 1;
+    } catch (_error) {
+      break;
+    }
+  }
+  return removed;
 }
 
 function calculatorUtf8Bytes(value) {
@@ -103,7 +221,7 @@ function loadCalculatorDraft() {
     }
     return draft;
   } catch (_error) {
-    setCalculatorStorageWarning('draft', 'Browser draft recovery is unavailable because stored data could not be read.');
+    setCalculatorStorageWarning('draft', 'This browser could not read the local recovery copy. Calculator editing continues normally.');
     return null;
   }
 }
@@ -123,8 +241,36 @@ function calculatorDraftPayload(state, backendRevision) {
   };
 }
 
+function saveCalculatorDraftAfterPruningActiveRecovery(serialized) {
+  let snapshots = loadCalculatorRecoverySnapshots();
+  while (snapshots.length) {
+    snapshots = snapshots.slice(0, -1);
+    try {
+      if (snapshots.length) {
+        window.localStorage.setItem(calculatorRecoveryStorageKey(), encodeCalculatorRecoverySnapshots(snapshots));
+      } else {
+        window.localStorage.removeItem(calculatorRecoveryStorageKey());
+      }
+      if (calculatorState) calculatorState.recoverySnapshots = snapshots;
+      if (typeof refreshVersionHistoryCount === 'function') refreshVersionHistoryCount();
+      window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+      return true;
+    } catch (error) {
+      if (!calculatorStorageErrorIsQuota(error)) return false;
+    }
+  }
+  clearCalculatorRecoveryStorageOnly();
+  try {
+    window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function saveCalculatorDraft(state, backendRevision) {
   if (!state || !Array.isArray(state.rows)) return false;
+  if (calculatorLocalRecoveryPaused) return true;
   const serialized = JSON.stringify(calculatorDraftPayload(state, backendRevision));
   pruneCalculatorRecoveryForDraft(serialized);
   try {
@@ -134,18 +280,26 @@ function saveCalculatorDraft(state, backendRevision) {
     return true;
   } catch (error) {
     if (calculatorStorageErrorIsQuota(error)) {
-      clearCalculatorRecoveryStorageOnly();
-      try {
-        window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+      const otherRecoveryNamespacesRemoved = pruneOtherCalculatorRecoveryNamespacesForQuota();
+      if (otherRecoveryNamespacesRemoved) {
+        try {
+          window.localStorage.setItem(calculatorDraftStorageKey, serialized);
+          setCalculatorStorageWarning('draft', '');
+          setCalculatorStorageWarning('recovery', 'Older local recovery versions from inactive projects were removed to protect the current Calculator draft.');
+          updateCalculatorRecoveryStorageUsage();
+          return true;
+        } catch (_otherNamespaceRetryError) {
+          // Continue by pruning the active project's older recovery versions.
+        }
+      }
+      if (saveCalculatorDraftAfterPruningActiveRecovery(serialized)) {
         setCalculatorStorageWarning('draft', '');
-        setCalculatorStorageWarning('recovery', 'Older browser recovery versions were removed to protect the current Calculator draft.');
+        setCalculatorStorageWarning('recovery', 'Older local recovery versions were removed to protect the current Calculator draft.');
         updateCalculatorRecoveryStorageUsage();
         return true;
-      } catch (_retryError) {
-        // Fall through to the visible warning below.
       }
     }
-    setCalculatorStorageWarning('draft', 'Browser storage is full or unavailable. The current Calculator draft could not be protected locally.');
+    setCalculatorStorageWarning('draft', 'This browser cannot store a local recovery copy right now. Calculator editing continues normally.');
     updateCalculatorRecoveryStorageUsage();
     return false;
   }
@@ -156,7 +310,7 @@ function clearCalculatorDraft() {
     window.localStorage.removeItem(calculatorDraftStorageKey);
     setCalculatorStorageWarning('draft', '');
   } catch (_error) {
-    setCalculatorStorageWarning('draft', 'Browser draft recovery is unavailable because browser storage could not be changed.');
+    setCalculatorStorageWarning('draft', 'This browser cannot change local recovery storage right now. Calculator editing continues normally.');
   }
   updateCalculatorRecoveryStorageUsage();
 }
@@ -339,7 +493,7 @@ function loadCalculatorRecoverySnapshots() {
       .filter((snapshot) => snapshot && Array.isArray(snapshot.rows) && Number(snapshot.savedAt || 0) >= cutoff)
       .slice(0, CALCULATOR_RECOVERY_MAX_SNAPSHOTS);
   } catch (_error) {
-    setCalculatorStorageWarning('recovery', 'Browser recovery versions could not be read and will be rebuilt from the current draft.');
+    setCalculatorStorageWarning('recovery', 'Recent local recovery versions could not be read and will be rebuilt from the current draft.');
     return [];
   }
 }
@@ -363,7 +517,7 @@ function writeCalculatorRecoverySnapshots(snapshots, draftRaw = null) {
     try {
       window.localStorage.setItem(calculatorRecoveryStorageKey(), candidate.serialized);
       setCalculatorStorageWarning('recovery', candidate.snapshots.length < snapshots.length
-        ? 'Older browser recovery versions were pruned to stay within browser storage limits.'
+        ? 'Older local recovery versions were removed to stay within browser storage limits.'
         : '');
       updateCalculatorRecoveryStorageUsage();
       return candidate.snapshots;
@@ -373,7 +527,7 @@ function writeCalculatorRecoverySnapshots(snapshots, draftRaw = null) {
     }
   }
   clearCalculatorRecoveryStorageOnly();
-  setCalculatorStorageWarning('recovery', 'Older browser recovery versions could not be maintained. The current Calculator draft remains the priority.');
+  setCalculatorStorageWarning('recovery', 'Older local recovery versions could not be kept. The current Calculator draft remains the priority.');
   updateCalculatorRecoveryStorageUsage();
   return [];
 }
@@ -390,12 +544,12 @@ function pruneCalculatorRecoveryForDraft(draftRaw) {
   if (candidate.snapshots.length === snapshots.length) return;
   const retained = writeCalculatorRecoverySnapshots(candidate.snapshots, draftRaw);
   if (retained.length < snapshots.length) {
-    setCalculatorStorageWarning('recovery', 'Older browser recovery versions were pruned to protect the current Calculator draft.');
+    setCalculatorStorageWarning('recovery', 'Older local recovery versions were removed to protect the current Calculator draft.');
   }
 }
 
 function saveCalculatorRecoverySnapshot(state, backendRevision, reason = 'edit') {
-  if (!state || !Array.isArray(state.rows)) return [];
+  if (!state || !Array.isArray(state.rows) || calculatorLocalRecoveryPaused) return [];
   const snapshots = loadCalculatorRecoverySnapshots();
   const snapshot = calculatorRecoverySnapshot(state, backendRevision, reason);
   if (snapshots[0]?.hash === snapshot.hash) return snapshots;
@@ -427,6 +581,17 @@ function restoreCalculatorRecoverySnapshot(snapshotId) {
   return true;
 }
 
+function cancelCalculatorPendingRecoveryWrites({includeDraft = false} = {}) {
+  if (includeDraft && typeof localDraftSaveTimer !== 'undefined') {
+    window.clearTimeout(localDraftSaveTimer);
+    localDraftSaveTimer = null;
+  }
+  if (typeof recoverySnapshotTimer !== 'undefined') {
+    window.clearTimeout(recoverySnapshotTimer);
+    recoverySnapshotTimer = null;
+  }
+}
+
 function clearCalculatorRecoveryStorageOnly() {
   try {
     window.localStorage.removeItem(calculatorRecoveryStorageKey());
@@ -438,10 +603,34 @@ function clearCalculatorRecoveryStorageOnly() {
 }
 
 function clearCalculatorRecoverySnapshots() {
+  cancelCalculatorPendingRecoveryWrites();
   clearCalculatorRecoveryStorageOnly();
   setCalculatorStorageWarning('recovery', '');
   if (calculatorState) calculatorState.recoverySnapshots = [];
   updateCalculatorRecoveryStorageUsage();
+}
+
+
+function clearCalculatorLocalRecoveryData() {
+  cancelCalculatorPendingRecoveryWrites({includeDraft: true});
+  try {
+    window.localStorage.removeItem(calculatorDraftStorageKey);
+    window.localStorage.removeItem(calculatorRecoveryStorageKey());
+    calculatorStorageWarnings.draft = '';
+    calculatorStorageWarnings.recovery = '';
+    calculatorLocalRecoveryPaused = true;
+    if (calculatorState) {
+      calculatorState.recoverySnapshots = [];
+      calculatorState.recoveryStatus = calculatorStorageStatusPayload();
+      calculatorState.recoveryWarning = '';
+    }
+    updateCalculatorRecoveryStorageUsage();
+    return true;
+  } catch (_error) {
+    setCalculatorStorageWarning('draft', 'This browser cannot change local recovery storage right now. Calculator editing continues normally.');
+    updateCalculatorRecoveryStorageUsage();
+    return false;
+  }
 }
 
 function updateCalculatorRecoveryStorageUsage() {

@@ -209,12 +209,16 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         assert page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey())") is None
         assert page.evaluate("calculatorState.recoverySnapshots.length") == 0
         assert page.get_by_role("button", name="Versions (0)").count() == 1
-        assert "removed to protect" in page.locator("#calculator-recovery-warning").text_content()
+        status = page.locator("#calculator-recovery-status")
+        assert status.text_content() == "Local recovery reduced"
+        status.click()
+        assert "current Calculator draft" in page.locator(".calculator-local-recovery-info").text_content()
+        assert page.locator("#calculator-recovery-warning").count() == 0
     finally:
         browser.close()
         manager.stop()
 
-def test_unavailable_storage_shows_one_clear_warning() -> None:
+def test_unavailable_storage_shows_one_quiet_status() -> None:
     manager, browser, page, _payload_data = _recovery_page(revision="quota-warning")
     try:
         _install_storage_quota(page, 2_000)
@@ -226,12 +230,20 @@ def test_unavailable_storage_shows_one_clear_warning() -> None:
         )
 
         assert saved is False
-        warning = page.locator("#calculator-recovery-warning")
-        assert warning.count() == 1
-        assert "could not be protected locally" in warning.text_content()
+        status = page.locator("#calculator-recovery-status")
+        assert status.count() == 1
+        assert status.text_content() == "Local recovery unavailable"
+        assert "danger" not in (status.get_attribute("class") or "")
+        status.click()
+        details = page.locator(".calculator-local-recovery-info").text_content()
+        assert "Calculator editing continues normally" in details
+        assert "Supabase project saving is separate" in details
+        assert page.locator("#calculator-recovery-warning").count() == 0
     finally:
         browser.close()
         manager.stop()
+
+
 
 def test_legacy_recovery_arrays_remain_readable() -> None:
     manager, browser, page, _payload_data = _recovery_page(revision="legacy-recovery")

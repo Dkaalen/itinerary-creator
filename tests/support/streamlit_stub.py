@@ -132,7 +132,7 @@ def install_streamlit_stub(*, force: bool = False):
         if not hasattr(streamlit, name):
             setattr(streamlit, name, _noop)
 
-    for name in ("container", "expander", "form"):
+    for name in ("container", "expander", "form", "popover"):
         if not hasattr(streamlit, name):
             setattr(streamlit, name, _context)
     if not hasattr(streamlit, "columns"):

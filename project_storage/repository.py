@@ -36,11 +36,19 @@ class ProjectStorageRepository:
         )
         return rows[0] if rows else {}
 
-    def list_itineraries(self, *, limit: int = 30, search: str = "") -> list[dict[str, Any]]:
+    def list_itineraries(
+        self,
+        *,
+        limit: int = 30,
+        search: str = "",
+        offset: int = 0,
+        sort: str = "recent",
+    ) -> list[dict[str, Any]]:
         params = {
             "select": "id,name,status,created_at,updated_at",
-            "order": "updated_at.desc",
+            "order": _project_order(sort),
             "limit": str(max(1, min(int(limit), 100))),
+            "offset": str(max(0, int(offset))),
         }
         query = " ".join(str(search or "").split())
         if query:
@@ -216,6 +224,13 @@ class ProjectStorageRepository:
             record_deleted=True,
             storage_files_deleted=True,
         )
+
+
+def _project_order(value: object) -> str:
+    return {
+        "oldest": "updated_at.asc",
+        "name": "name.asc",
+    }.get(str(value or "").strip().casefold(), "updated_at.desc")
 
 
 def _utc_now_iso() -> str:

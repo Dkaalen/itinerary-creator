@@ -1,22 +1,31 @@
 // Dedicated Calculator rendering owner.
 
-function refreshRecoveryWarningOnly() {
+function refreshRecoveryStatusOnly() {
   const statusRow = document.querySelector('.calculator-status-row');
   if (!statusRow || !calculatorState) return;
-  let warning = document.getElementById('calculator-recovery-warning');
-  const message = calculatorState.recoveryWarning || '';
-  if (!message) {
-    if (warning) warning.remove();
+  let status = document.getElementById('calculator-recovery-status');
+  const recoveryStatus = calculatorState.recoveryStatus || calculatorStorageStatusPayload();
+  if (recoveryStatus.state === 'available') {
+    if (status) status.remove();
     return;
   }
-  if (!warning) {
-    warning = document.createElement('span');
-    warning.id = 'calculator-recovery-warning';
-    warning.className = 'calculator-recovery-warning';
-    statusRow.appendChild(warning);
+  if (!status) {
+    status = document.createElement('button');
+    status.id = 'calculator-recovery-status';
+    status.className = 'calculator-recovery-status';
+    status.dataset.action = 'local-recovery-details';
+    status.title = 'Open local recovery details';
+    status.addEventListener('click', openCalculatorRecoveryDetails);
+    statusRow.appendChild(status);
   }
-  warning.textContent = message;
+  status.dataset.state = recoveryStatus.state;
+  status.textContent = recoveryStatus.summary;
 }
+
+function refreshRecoveryWarningOnly() {
+  refreshRecoveryStatusOnly();
+}
+
 
 function refreshVersionHistoryCount() {
   const button = document.querySelector('[data-action="version-history"]');
