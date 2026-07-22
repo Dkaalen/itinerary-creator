@@ -13,6 +13,17 @@ from scripts.test_group_catalog import (
     ACTIVITY_TESTS,
     ARCHITECTURE_TESTS,
     CHUNKED_GROUP_STAGE_SIZES,
+    CALCULATOR_BROWSER_WORKFLOW_TESTS,
+    FORMULA_WORKFLOW_TESTS,
+    VALIDATION_WORKFLOW_TESTS,
+    WORKBOOK_WORKFLOW_TESTS,
+    REALISTIC_CALCULATOR_WORKFLOW_TESTS,
+    PROJECT_MANAGEMENT_WORKFLOW_TESTS,
+    ROLLBACK_WORKFLOW_TESTS,
+    CLOUD_LIFECYCLE_WORKFLOW_TESTS,
+    RECONSTRUCTION_WORKFLOW_TESTS,
+    GENERATION_WORKFLOW_TESTS,
+    EDITOR_PICTURES_WORKFLOW_TESTS,
     CI_MATRIX_GROUPS,
     CRITICAL_TESTS,
     DAY_BRAIN_TESTS,
@@ -194,7 +205,7 @@ def build_slow_stages(
 def focused_group_names() -> tuple[str, ...]:
     """Return non-tiered convenience lanes for targeted patch validation."""
 
-    return ("critical", "parser", "activity", "architecture", "calculator", "editor", "images", "storage", "ui", "workflow")
+    return tuple(name for name in GROUP_ORDER if name not in {"fast", "quality", "pdf", "slow"})
 
 
 def group_descriptions() -> dict[str, str]:

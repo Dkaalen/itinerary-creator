@@ -126,16 +126,6 @@ function roundFormulaResult(field, value) {
   return roundMoney(value);
 }
 
-function currencyCode(value) {
-  const text = String(value || '').trim().toUpperCase();
-  return text || DEFAULT_CURRENCY;
-}
-
-function currencyRate(value, rates) {
-  const code = currencyCode(value);
-  return roundRate(numberValue((rates || DEFAULT_RATES)[code]));
-}
-
 function salesPriceWasTouched(row) {
   if (typeof row?._sales_price_per_unit_touched === 'boolean') return row._sales_price_per_unit_touched;
   const raw = row?.sales_price_per_unit;
@@ -369,38 +359,8 @@ function calculateDashboard(state) {
   };
 }
 
-function calculateCurrencyExposure(rows) {
-  const supplier = {};
-  const sales = {};
-  for (const row of rows || []) {
-    const supplierCurrency = String(row.supplier_currency || DEFAULT_CURRENCY).toUpperCase();
-    const salesCurrency = String(row.sales_currency || DEFAULT_CURRENCY).toUpperCase();
-    supplier[supplierCurrency] = roundMoney((supplier[supplierCurrency] || 0) + numberValue(row.net_price));
-    sales[salesCurrency] = roundMoney((sales[salesCurrency] || 0) + numberValue(row.price));
-  }
-  return {
-    supplier: Object.entries(supplier).filter(([, value]) => value !== 0).sort(([left], [right]) => left.localeCompare(right)),
-    sales: Object.entries(sales).filter(([, value]) => value !== 0).sort(([left], [right]) => left.localeCompare(right))
-  };
-}
-
 function positiveIntegerOrNull(value) {
   if (value === null || value === undefined || String(value).trim() === '') return null;
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
-}
-
-function formatNumber(value, digits = 2) {
-  if (value === null || value === undefined || value === '') return '';
-  if (typeof value === 'string' && value.startsWith('#')) return value;
-  const number = numberValue(value);
-  if (!Number.isFinite(number)) return '';
-  return number.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits});
-}
-
-function formatFormula(value, kind) {
-  if (value === null || value === undefined || value === '') return '';
-  if (typeof value === 'string' && value.startsWith('#')) return value;
-  if (kind === 'formulaPercent') return `${(numberValue(value) * 100).toFixed(1)}%`;
-  return formatNumber(value, 2);
 }

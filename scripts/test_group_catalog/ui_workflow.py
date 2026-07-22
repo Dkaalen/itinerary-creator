@@ -140,6 +140,17 @@ DAY_BRAIN_TESTS = (
 )
 
 CALCULATOR_TESTS = (
+    "tests/test_calculator_action_validation.py",
+    "tests/test_calculator_cell_formulas.py",
+    "tests/test_calculator_component_protocol.py",
+    "tests/test_calculator_frontend_parity.py",
+    "tests/test_calculator_open_action.py",
+    "tests/test_calculator_real_workflows.py",
+    "tests/test_calculator_validation.py",
+    "tests/test_calculator_workbook_export_plan.py",
+    "tests/test_calculator_workbook_import.py",
+    "tests/test_calculator_workflow_invariant.py",
+    "tests/test_local_library_workbook_diagnostics.py",
     "tests/test_calculator_architecture_guards.py",
     "tests/test_calculator_backup_action.py",
     "tests/test_calculator_calculations.py",
@@ -180,6 +191,10 @@ CALCULATOR_TESTS = (
 )
 
 STORAGE_TESTS = (
+    "tests/test_project_management.py",
+    "tests/test_project_save_rollback.py",
+    "tests/test_reconstruction_authorities.py",
+    "tests/test_session_state_transitions.py",
     "tests/test_project_identity_state.py",
     "tests/test_project_storage_file_writer.py",
     "tests/test_project_storage_foundation.py",

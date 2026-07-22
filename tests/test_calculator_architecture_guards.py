@@ -195,7 +195,7 @@ def test_financial_rule_ownership_is_versioned_and_cross_boundary() -> None:
     payload_source = (ROOT / "app_modules" / "calculator_component_payload.py").read_text(encoding="utf-8")
     math_source = (FRONTEND / "calculator_grid_math.js").read_text(encoding="utf-8")
     state_source = (FRONTEND / "calculator_grid_state_controller.js").read_text(encoding="utf-8")
-    action_source = (FRONTEND / "calculator_grid_actions.js").read_text(encoding="utf-8")
+    action_source = (FRONTEND / "calculator_grid_sales_actions.js").read_text(encoding="utf-8")
 
     assert 'FINANCIAL_RULES_VERSION = "financial-v1"' in rules_source
     assert '"margin_basis": "net_price_nok"' in rules_source

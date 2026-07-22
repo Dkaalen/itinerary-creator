@@ -137,6 +137,17 @@ def test_focused_groups_exist_for_common_patch_areas() -> None:
         "storage",
         "ui",
         "workflow",
+        "calculator-browser",
+        "formulas",
+        "validation",
+        "workbook",
+        "calculator-realistic",
+        "project-management",
+        "rollback",
+        "cloud-lifecycle",
+        "reconstruction",
+        "generation",
+        "editor-pictures",
     )
     for name in focused_group_names():
         assert GROUPS[name]

@@ -98,6 +98,6 @@ def test_visual_editor_frontend_has_booknordics_theme_and_safe_streamlit_bridge(
     assert "editorShellOpenHtml(brand)" in render_js
     assert "--brand-logo" in shell_js
     assert "data-editor-brand-fonts" in shell_js
-    assert "let streamlitRenderReceived = false" in bridge_js
-    assert "if (!streamlitRenderReceived) return" in bridge_js
+    assert "let streamlitBridgeRenderReceived = false" in bridge_js
+    assert "if (!streamlitBridgeRenderReceived) return" in bridge_js
     assert "delete full.brand" in serialization_js

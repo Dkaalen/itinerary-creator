@@ -8,10 +8,11 @@ from dataclasses import dataclass, field
 from parser_modules.common import extract_route_points
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text
-from itinerary_generation.transport_domain.route_cleaning import (
+from itinerary_generation.transport_domain.route_hubs import (
     _ROUTE_PREFIX_ORIGINS,
     clean_route_place as _clean_route_place,
 )
+from itinerary_generation.transport_domain.route_intermediate_stops import get_route_via_points
 from itinerary_generation.transport_domain.route_points import get_route_points_for_transport
 from itinerary_generation.transport_model import get_transport_source_text
 
@@ -42,50 +43,6 @@ def _transport_source_text(row):
 
     return get_transport_source_text(row)
 
-
-def _scheduled_via_points_from_source(source_text: str, origin: str = "", destination: str = "") -> list[str]:
-    """Return intermediate arrival places from timetable prose."""
-
-    source = str(source_text or "")
-    arrivals = re.findall(
-        r"\barrival\s+in\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)\s*:",
-        source,
-        flags=re.IGNORECASE,
-    )
-    points: list[str] = []
-    for raw in arrivals[:-1]:
-        candidate = _clean_route_place(raw)
-        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
-            points.append(candidate)
-    return points[:2]
-
-
-def get_route_via_points(row, origin="", destination=""):
-    text = polish_client_text(_transport_source_text(row))
-    points = _scheduled_via_points_from_source(text, origin, destination)
-    if points:
-        return points
-
-    for via_match in re.finditer(r"\bvia\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\||,|$)", text, flags=re.IGNORECASE):
-        candidate = _clean_route_place(via_match.group(1))
-        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
-            points.append(candidate)
-
-    # Multi-leg phrasing such as Copenhagen to Malmö to Stockholm.
-    route_match = re.search(r"\b(?:train|scenic train transfer|flight|coach|bus|ferry|cruise)(?:\s+transfer)?\s*[:|]?\s*(.+?\s+to\s+.+?)(?:\s+-\s+(?:departure|arrival|time|includes|included|excludes)\b|$)", text, flags=re.IGNORECASE)
-    if route_match:
-        route_text = route_match.group(1)
-        pieces = [_clean_route_place(piece) for piece in re.split(r"\s+to\s+", route_text, flags=re.IGNORECASE)]
-        pieces = [piece for piece in pieces if piece]
-        if len(pieces) > 2:
-            for piece in pieces[1:-1]:
-                if piece.lower() not in {origin.lower(), destination.lower()} and piece not in points:
-                    points.append(piece)
-
-    if not points and re.search(r"\bmalm[øo]\b", text, flags=re.IGNORECASE) and destination.lower() != "malmö":
-        points.append("Malmö")
-
-    return points[:2]
 
 
 def _transport_mode_for_row(row: dict) -> str:

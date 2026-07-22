@@ -23,6 +23,7 @@ def test_frontend_and_python_formula_engines_match_reference_vectors() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )
@@ -129,6 +130,7 @@ def test_frontend_and_python_total_rounding_match_excel_sum_semantics() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )
@@ -162,7 +164,8 @@ def test_frontend_contains_excel_style_state_safety_features() -> None:
     controller = (_FRONTEND / "calculator_grid_state_controller.js").read_text(encoding="utf-8")
     selection = (_FRONTEND / "calculator_grid_selection.js").read_text(encoding="utf-8")
     history = (_FRONTEND / "calculator_grid_history.js").read_text(encoding="utf-8")
-    render = (_FRONTEND / "calculator_grid_render.js").read_text(encoding="utf-8")
+    toolbar_render = (_FRONTEND / "calculator_grid_toolbar_render.js").read_text(encoding="utf-8")
+    status_render = (_FRONTEND / "calculator_grid_status_render.js").read_text(encoding="utf-8")
 
     assert "scheduleLocalDraftSave" in controller
     assert "scheduleRecoverySnapshot" in controller
@@ -171,8 +174,8 @@ def test_frontend_contains_excel_style_state_safety_features() -> None:
     assert "fillSelection" in selection
     assert "undoCalculatorChange" in history
     assert "redoCalculatorChange" in history
-    assert 'data-action="formula-bar"' in render
-    assert 'data-action="set-pax"' in render
+    assert 'data-action="formula-bar"' in toolbar_render
+    assert 'data-action="set-pax"' in status_render
 
 
 def test_frontend_validation_surfaces_invalid_cells_and_rates() -> None:
@@ -185,6 +188,7 @@ def test_frontend_validation_surfaces_invalid_cells_and_rates() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
             "calculator_grid_validation.js",
         )
@@ -219,6 +223,7 @@ def test_frontend_validation_scopes_match_calculator_actions() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
             "calculator_grid_validation.js",
         )
@@ -264,6 +269,7 @@ def test_frontend_and_python_expression_inputs_match() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )
@@ -303,14 +309,17 @@ def test_frontend_and_python_expression_inputs_match() -> None:
 
 
 def test_frontend_distinguishes_grid_navigation_from_cell_text_editing() -> None:
+    caret = (_FRONTEND / "calculator_grid_caret.js").read_text(encoding="utf-8")
+    keyboard = (_FRONTEND / "calculator_grid_keyboard.js").read_text(encoding="utf-8")
     editing = (_FRONTEND / "calculator_grid_cell_editing.js").read_text(encoding="utf-8")
     suggestions = (_FRONTEND / "calculator_grid_suggestions.js").read_text(encoding="utf-8")
 
-    assert "let activeCellEditing = false" in editing
-    assert "if (activeCellEditing)" in editing
-    assert "event.key === 'F2' || event.key === 'Enter'" in editing
-    assert "isPrintableCellKey" in editing
-    assert "placeCaretAtEnd" in editing
+    assert "let activeCellEditing = false" in caret
+    assert "if (activeCellEditing)" in keyboard
+    assert "event.key === 'F2' || event.key === 'Enter'" in keyboard
+    assert "isPrintableCellKey" in keyboard
+    assert "placeCaretAtEnd" in caret
+    assert "setCellEditingMode" in editing
     assert "activeCellEditing = false" in suggestions
     assert "setSingleCellSelection(active.rowIndex, 'travel_element')" in suggestions
 
@@ -319,7 +328,7 @@ def test_navigation_movement_leaves_enter_for_edit_mode() -> None:
     if shutil.which("node") is None:
         pytest.skip("Node is unavailable.")
 
-    source = (_FRONTEND / "calculator_grid_cell_editing.js").read_text(encoding="utf-8")
+    source = (_FRONTEND / "calculator_grid_keyboard.js").read_text(encoding="utf-8")
     script = source + """
 console.log(JSON.stringify({
   left: navigationMovement({key: 'ArrowLeft', shiftKey: false}),
@@ -350,8 +359,10 @@ console.log(JSON.stringify({
 
 def test_frontend_exposes_advanced_excel_interactions() -> None:
     advanced = (_FRONTEND / "calculator_grid_advanced_actions.js").read_text(encoding="utf-8")
-    render = (_FRONTEND / "calculator_grid_render.js").read_text(encoding="utf-8")
+    toolbar_render = (_FRONTEND / "calculator_grid_toolbar_render.js").read_text(encoding="utf-8")
+    grid_render = (_FRONTEND / "calculator_grid_grid_render.js").read_text(encoding="utf-8")
     actions = (_FRONTEND / "calculator_grid_actions.js").read_text(encoding="utf-8")
+    submission_actions = (_FRONTEND / "calculator_grid_submission_actions.js").read_text(encoding="utf-8")
     draft = (_FRONTEND / "calculator_grid_draft_storage.js").read_text(encoding="utf-8")
 
     for contract in (
@@ -364,11 +375,11 @@ def test_frontend_exposes_advanced_excel_interactions() -> None:
         "replaceAllCalculatorMatches",
     ):
         assert contract in advanced
-    assert 'data-action="insert-above"' in render
-    assert 'data-action="find-replace"' in render
-    assert 'class="column-resize-handle"' in render
+    assert 'data-action="insert-above"' in toolbar_render
+    assert 'data-action="find-replace"' in toolbar_render
+    assert 'class="column-resize-handle"' in grid_render
     assert "bindAdvancedCalculatorEvents" in actions
-    assert "beforeunload" in actions
+    assert "beforeunload" in submission_actions
     assert "columnWidths" in draft
 
 
@@ -382,6 +393,7 @@ def test_frontend_dashboard_reports_currency_exposure_without_changing_totals() 
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )
@@ -414,6 +426,7 @@ def test_frontend_a1_references_match_python_dependency_engine() -> None:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )
@@ -475,6 +488,7 @@ def test_frontend_formula_engine_handles_full_93_row_dependency_chain_quickly() 
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )

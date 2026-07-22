@@ -54,6 +54,26 @@ one clear command for the subsystem it changed. The calculator, storage, and
 workflow lanes exist so hosted-app regressions do not depend on a raw full-suite
 pytest run finishing before timeout.
 
+### Bounded workflow lanes
+
+Critical workflows also have small resumable lanes:
+
+```powershell
+python .\scripts\run_test_group.py calculator-browser
+python .\scripts\run_test_group.py formulas
+python .\scripts\run_test_group.py validation
+python .\scripts\run_test_group.py workbook
+python .\scripts\run_test_group.py calculator-realistic
+python .\scripts\run_test_group.py project-management
+python .\scripts\run_test_group.py rollback
+python .\scripts\run_test_group.py cloud-lifecycle
+python .\scripts\run_test_group.py reconstruction
+python .\scripts\run_test_group.py generation
+python .\scripts\run_test_group.py editor-pictures
+```
+
+Use `--plan` to inspect stages and `--stage-range N-N` to rerun a specific stage. Calculator browser workflows are one node per stage; the other focused workflow stages contain no more than two modules.
+
 ## Medium quality tests
 
 Run when you want broader confidence but do not need the full real-fixture suite:
@@ -99,7 +119,7 @@ hosted runtime.
 
 ## Marker policy
 
-Markers are assigned centrally in `tests/conftest.py` by test module name:
+Markers are declared in `pytest.ini` and assigned centrally in `tests/conftest.py` from the named group catalogue:
 
 - `slow` for large real-fixture or PDF-heavy tests.
 - `pdf` for tests that render or inspect PDF output.

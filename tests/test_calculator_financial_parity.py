@@ -71,6 +71,7 @@ def _frontend_source() -> str:
             "calculator_grid_columns.js",
             "calculator_grid_formula_input.js",
             "calculator_grid_math.js",
+            "calculator_grid_currency.js",
             "calculator_grid_state.js",
         )
     )

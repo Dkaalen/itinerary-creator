@@ -20,6 +20,14 @@ from .ui_workflow import (
     WORKFLOW_TESTS,
 )
 
+from .focused_workflows import (
+    CALCULATOR_BROWSER_WORKFLOW_TESTS, FORMULA_WORKFLOW_TESTS, VALIDATION_WORKFLOW_TESTS,
+    WORKBOOK_WORKFLOW_TESTS, REALISTIC_CALCULATOR_WORKFLOW_TESTS,
+    PROJECT_MANAGEMENT_WORKFLOW_TESTS, ROLLBACK_WORKFLOW_TESTS,
+    CLOUD_LIFECYCLE_WORKFLOW_TESTS, RECONSTRUCTION_WORKFLOW_TESTS,
+    GENERATION_WORKFLOW_TESTS, EDITOR_PICTURES_WORKFLOW_TESTS,
+)
+
 GROUPS = {
     "critical": CRITICAL_TESTS,
     "fast": FAST_TESTS,
@@ -35,6 +43,17 @@ GROUPS = {
     "quality": QUALITY_TESTS,
     "pdf": PDF_TESTS,
     "slow": SLOW_TESTS,
+    "calculator-browser": CALCULATOR_BROWSER_WORKFLOW_TESTS,
+    "formulas": FORMULA_WORKFLOW_TESTS,
+    "validation": VALIDATION_WORKFLOW_TESTS,
+    "workbook": WORKBOOK_WORKFLOW_TESTS,
+    "calculator-realistic": REALISTIC_CALCULATOR_WORKFLOW_TESTS,
+    "project-management": PROJECT_MANAGEMENT_WORKFLOW_TESTS,
+    "rollback": ROLLBACK_WORKFLOW_TESTS,
+    "cloud-lifecycle": CLOUD_LIFECYCLE_WORKFLOW_TESTS,
+    "reconstruction": RECONSTRUCTION_WORKFLOW_TESTS,
+    "generation": GENERATION_WORKFLOW_TESTS,
+    "editor-pictures": EDITOR_PICTURES_WORKFLOW_TESTS,
 }
 
 GROUP_ORDER = tuple(GROUPS)
@@ -86,6 +105,17 @@ GROUP_DESCRIPTIONS = {
     "quality": "medium itinerary quality and content/rendering regressions",
     "pdf": "PDF export and preview/PDF parity checks",
     "slow": "isolated large-fixture and PDF-heavy stability checks",
+    "calculator-browser": "one explicit stage per Calculator Chromium workflow and protocol contract",
+    "formulas": "formula evaluation, financial parity, dependency chains, and currency behavior",
+    "validation": "action-scoped validation and Local Library workbook diagnostics",
+    "workbook": "Calculator Excel import, export, template, and package preservation",
+    "calculator-realistic": "realistic Calculator use and workflow invariants",
+    "project-management": "project identity, switching, duplication, rename, and current-version saves",
+    "rollback": "transactional project save and reconstruction rollback",
+    "cloud-lifecycle": "cloud open, save, download, delete, and browser lifecycle",
+    "reconstruction": "saved-project reconstruction authority and supported rebuild paths",
+    "generation": "Calculator handoff and hosted itinerary generation transitions",
+    "editor-pictures": "editor draft, picture selection, image safety, and autosave integration",
     "health": "instant local health check: compile/import plus the critical smoke lane",
     "release": "strong timeout-safe release candidate check without the isolated slow harness",
 }

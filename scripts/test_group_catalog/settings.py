@@ -13,7 +13,7 @@ REMAINING_STAGE_SIZE = 8
 
 TIERED_STAGE_SIZE = 4
 
-PDF_STAGE_SIZE = 3
+PDF_STAGE_SIZE = 2
 
 CHUNKED_GROUP_STAGE_SIZES = {
     "critical": 3,
@@ -31,4 +31,15 @@ CHUNKED_GROUP_STAGE_SIZES = {
     # real-fixture and render-heavy checks in small timeout-safe stages.
     "quality": 2,
     "pdf": PDF_STAGE_SIZE,
+    "calculator-browser": 1,
+    "formulas": 2,
+    "validation": 2,
+    "workbook": 2,
+    "calculator-realistic": 2,
+    "project-management": 2,
+    "rollback": 1,
+    "cloud-lifecycle": 2,
+    "reconstruction": 2,
+    "generation": 2,
+    "editor-pictures": 2,
 }

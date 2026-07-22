@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from typing import Iterable, Mapping, Sequence
 
@@ -18,11 +17,7 @@ def _rows_text(rows: Iterable[Mapping[str, object]] | None) -> str:
     return " ".join(parts).lower()
 
 
-def stable_variant_index(*parts: object, count: int) -> int:
-    if count <= 1: return 0
-    digest = hashlib.sha1("|".join(str(part or "") for part in parts).encode("utf-8")).hexdigest()
-    return int(digest[:8], 16) % count
-
+from itinerary_generation.destination_copy_variants import stable_variant_index
 
 def select_arrival_sentence(city: object, rows: Iterable[Mapping[str, object]] | None = None) -> str:
     profile = destination_profile_for(city)

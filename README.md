@@ -28,6 +28,15 @@ python -m compileall -q .
 
 See `docs/testing-workflow.md` for the full tiered workflow.
 
+Focused workflow lanes can be listed or run directly:
+
+```powershell
+python .\scripts\run_test_group.py calculator-browser --plan
+python .\scripts\run_test_group.py validation
+python .\scripts\run_test_group.py project-management
+python .\scripts\run_test_group.py editor-pictures
+```
+
 ## Build a clean handoff ZIP
 
 For ChatGPT handoff or lightweight backups, do not manually compress the whole working tree. Build the standard source-only package instead:
@@ -58,6 +67,20 @@ The app should not render raw supplier/admin text directly into client-facing PD
 ## Local Excel Library
 
 Calculator autocomplete reads only from `data/Calculation-template-Inputs-fixed-outline-restored.xlsx`. Update or replace that workbook at the same path and redeploy through GitHub/Streamlit. No Google Sheets or Supabase connection is used for Local Library fetching.
+
+The stable `calculator.library_workbook` loader orchestrates separate schema, formula/cache, row-validation, diagnostic, and immutable-model owners. Workbook fingerprint caching and worksheet/source-row identity remain part of the public loading contract.
+
+## Calculator frontend
+
+The browser Calculator keeps one deterministic script-loading order. Editing, calculations, rendering, and actions have separate implementation owners while the existing browser state, recovery, and backend-message contracts remain stable.
+
+## Destination content and Journey Arc summaries
+
+Destination lookup, arrival, leisure, travel-day, seasonal-profile, and fallback rules have separate owners behind the existing public facades. Journey Arc experience wording is assembled through separate source extraction, prioritization, duplicate control, phrasing, and composition modules.
+
+## Transport route facts
+
+Route parsing, row-level endpoint inference, validation, intermediate stops, terminal normalization, caching, and final route-fact composition have separate owners. Multi-leg routes keep intermediate stops separate from the final destination.
 
 ## Calculator backup
 

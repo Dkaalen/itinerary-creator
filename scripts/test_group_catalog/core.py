@@ -91,6 +91,7 @@ ACTIVITY_TESTS = (
 )
 
 ARCHITECTURE_TESTS = (
+    "tests/test_patch21_27_ownership_architecture.py",
     "tests/test_architecture_consolidation.py",
     "tests/test_foundation_cleanup_regression.py",
     "tests/test_cleanup_final_regression.py",
