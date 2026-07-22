@@ -45,3 +45,35 @@ def test_selecting_prefilled_library_cell_does_not_open_suggestions_or_steal_arr
     finally:
         browser.close()
         manager.stop()
+
+def test_arrow_and_tab_navigation_follow_grid_geometry() -> None:
+    rows = [
+        {"row_id": "1", "travel_element": "First row", "supplier_currency": "NOK", "sales_currency": "NOK"},
+        {"row_id": "2", "travel_element": "Second row", "supplier_currency": "NOK", "sales_currency": "NOK"},
+    ]
+    manager, browser, page = _browser_page(_payload(rows, revision="grid-navigation-geometry"))
+    try:
+        page.locator('td[data-row-index="0"][data-key="travel_element"]').click()
+
+        page.keyboard.press("ArrowRight")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["0", "url"]
+
+        page.keyboard.press("ArrowDown")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["1", "url"]
+
+        page.keyboard.press("ArrowLeft")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["1", "travel_element"]
+
+        page.keyboard.press("ArrowUp")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["0", "travel_element"]
+
+        page.keyboard.press("Tab")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["0", "url"]
+
+        page.keyboard.press("Shift+Tab")
+        assert page.evaluate("[document.activeElement.dataset.rowIndex, document.activeElement.dataset.key]") == ["0", "travel_element"]
+        assert page.evaluate("activeCellEditing") is False
+    finally:
+        browser.close()
+        manager.stop()
+

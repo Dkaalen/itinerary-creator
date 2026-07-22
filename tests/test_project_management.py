@@ -204,3 +204,29 @@ def test_unsaved_change_detection_normalizes_equivalent_rate_representations() -
     }
 
     assert active_project_has_unsaved_changes(session) is False
+
+
+def test_unsaved_change_detection_protects_detached_calculator_rows() -> None:
+    calculator_state = add_row(
+        create_calculator_state("Local workbook"),
+        CalculatorRow(row_id="1", travel_element="Oslo hotel", gross_price_per_unit=120, units=1),
+    )
+    session = {
+        "calculator_state": calculator_state,
+        "calculator_currency_rates": {"NOK": 1, "EUR": 11.5},
+    }
+
+    assert active_project_has_unsaved_changes(session) is True
+
+
+def test_unsaved_change_detection_ignores_empty_calculator_starter_rows() -> None:
+    calculator_state = add_row(
+        create_calculator_state(""),
+        CalculatorRow(row_id="1"),
+    )
+    session = {
+        "calculator_state": calculator_state,
+        "calculator_currency_rates": {"NOK": 1, "EUR": 11.5},
+    }
+
+    assert active_project_has_unsaved_changes(session) is False

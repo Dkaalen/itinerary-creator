@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from app_modules.calculator_state_keys import CALCULATOR_RETURN_AVAILABLE_KEY
+from app_modules.calculator_state_keys import (
+    CALCULATOR_DRAFT_NAMESPACE_KEY,
+    CALCULATOR_PENDING_IMPORT_KEY,
+    CALCULATOR_RETURN_AVAILABLE_KEY,
+)
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.project_save_rollback import capture_project_save_baseline
 from app_modules.session_state_keys import (
@@ -25,6 +29,7 @@ from app_modules.session_transitions import (
     complete_saved_project_open,
     fail_calculator_generation,
     record_failed_save,
+    prepare_project_switch,
 )
 
 
@@ -35,6 +40,7 @@ def test_local_calculator_import_detaches_cloud_identity_and_keeps_calculator_ac
         ACTIVE_PROJECT_STORAGE_ID_KEY: "old",
         ACTIVE_SAVED_PROJECT_ID_KEY: "old",
         CALCULATOR_RETURN_AVAILABLE_KEY: True,
+        CALCULATOR_DRAFT_NAMESPACE_KEY: "project:old",
     }
 
     begin_local_calculator_import(state)
@@ -43,6 +49,7 @@ def test_local_calculator_import_detaches_cloud_identity_and_keeps_calculator_ac
     assert active_project_id_from_state(state) == ""
     assert ACTIVE_SAVED_PROJECT_KEY not in state
     assert CALCULATOR_RETURN_AVAILABLE_KEY not in state
+    assert CALCULATOR_DRAFT_NAMESPACE_KEY not in state
 
 
 def test_calculator_generation_transitions_preserve_expected_route_and_stage() -> None:
@@ -85,6 +92,7 @@ def test_duplicate_and_delete_transitions_own_browser_messages_and_active_cleanu
         ACTIVE_PROJECT_STORAGE_ID_KEY: "project-1",
         ACTIVE_SAVED_PROJECT_ID_KEY: "project-1",
         "open_project_selected_project_id": "project-1",
+        CALCULATOR_DRAFT_NAMESPACE_KEY: "project:project-1",
     }
 
     complete_project_duplicate(state, name="Project copy")
@@ -100,8 +108,17 @@ def test_duplicate_and_delete_transitions_own_browser_messages_and_active_cleanu
     assert active_project_id_from_state(state) == ""
     assert ACTIVE_SAVED_PROJECT_KEY not in state
     assert "open_project_selected_project_id" not in state
+    assert CALCULATOR_DRAFT_NAMESPACE_KEY not in state
     assert state[PROJECT_STORAGE_BROWSER_SUCCESS_KEY] == "Deleted Project one."
     assert "stored files" in state[PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY]
+
+
+def test_project_switch_clears_pending_local_calculator_import() -> None:
+    state = {CALCULATOR_PENDING_IMPORT_KEY: object()}
+
+    prepare_project_switch(state)
+
+    assert CALCULATOR_PENDING_IMPORT_KEY not in state
 
 
 def test_failed_save_transition_restores_identity_before_recording_error() -> None:
@@ -201,3 +218,13 @@ def test_saved_project_open_rolls_back_all_tracked_state_when_rebuild_fails(monk
     assert state["pdf_bytes"] == b"original-pdf"
     assert state["calculator_ready_xlsx_download"] == {"filename": "original.xlsx"}
     assert state["calculator_itinerary_name_sync_required"] is False
+
+
+def test_prepare_project_switch_clears_pending_project_backup_import() -> None:
+    from app_modules.session_transitions import prepare_project_switch
+
+    state = {"pending_project_backup_import": object()}
+
+    prepare_project_switch(state)
+
+    assert "pending_project_backup_import" not in state

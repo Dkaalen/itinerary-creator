@@ -30,7 +30,12 @@ from app_modules.calculator_library_controls import (
     render_local_library_status,
 )
 from app_modules.calculator_navigation import calculator_draft_namespace, close_calculator_page, open_local_library_page
-from app_modules.calculator_open_action import apply_calculator_upload_import
+from app_modules.calculator_open_action import (
+    cancel_pending_calculator_import,
+    confirm_pending_calculator_import,
+    pending_calculator_import,
+    request_calculator_upload_import,
+)
 from app_modules.calculator_session_state import (
     apply_calculator_grid_result,
     calculator_state_from_session,
@@ -63,6 +68,8 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_topbar()
     _render_calculator_header()
     _render_calculator_notice()
+    if _render_pending_import_confirmation():
+        return
     _render_generation_feedback()
     refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
@@ -301,7 +308,15 @@ def _open_uploaded_excel(result: CalculatorGridResult) -> None:
         st.rerun()
         return
 
-    notice = apply_calculator_upload_import(st.session_state, imported, filename=filename)
+    notice = request_calculator_upload_import(
+        st.session_state,
+        imported,
+        filename=filename,
+        current_state=result.state,
+    )
+    if notice is None:
+        st.rerun()
+        return
     st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
     st.rerun()
 
@@ -330,9 +345,48 @@ def _render_backup_controls(state: CalculatorState) -> None:
     imported = render_calculator_backup_controls(state)
     if imported is None:
         return
-    notice = apply_calculator_upload_import(st.session_state, imported)
+    notice = request_calculator_upload_import(
+        st.session_state,
+        imported,
+        current_state=state,
+    )
+    if notice is None:
+        st.rerun()
+        return
     st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
     st.rerun()
+
+
+def _render_pending_import_confirmation() -> bool:
+    pending = pending_calculator_import(st.session_state)
+    if pending is None:
+        return False
+
+    label = pending.filename
+    if not label:
+        label = "calculation Excel" if pending.imported.source == "xlsx" else "Calculator backup"
+    st.warning(f"Unsaved changes in the current workspace will be replaced when opening {label}.")
+    keep_col, open_col = st.columns(2)
+    with keep_col:
+        if st.button("Keep current workspace", key="cancel_calculator_import", use_container_width=True):
+            cancel_pending_calculator_import(st.session_state)
+            st.session_state[CALCULATOR_NOTICE_KEY] = {
+                "level": "info",
+                "message": "Calculator file open cancelled.",
+            }
+            st.rerun()
+            return True
+    with open_col:
+        if st.button("Open file anyway", key="confirm_calculator_import", use_container_width=True):
+            notice = confirm_pending_calculator_import(st.session_state)
+            if notice is not None:
+                st.session_state[CALCULATOR_NOTICE_KEY] = {
+                    "level": notice.level,
+                    "message": notice.message,
+                }
+            st.rerun()
+            return True
+    return True
 
 
 def _render_calculator_page_css() -> None:

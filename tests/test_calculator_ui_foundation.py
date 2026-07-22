@@ -290,18 +290,22 @@ def test_calculator_component_column_model_uses_template_labels_and_percent_comm
 def test_calculator_component_supports_keyboard_navigation_and_totals_panel() -> None:
     import re
 
-    editing_source = _calculator_js_source("calculator_grid_cell_editing.js")
-    render_source = Path("calculator_grid_component/frontend/js/calculator_grid_render.js").read_text(encoding="utf-8")
-    handled_keys = set(re.findall(r"event\.key === '([^']+)'", editing_source))
-    css_classes = set(re.findall(r"class=\"([^\"]+)\"", render_source))
+    keyboard_source = _calculator_js_source("calculator_grid_keyboard.js")
+    render_source = _calculator_js_source("calculator_grid_render.js")
+    status_source = _calculator_js_source("calculator_grid_status_render.js")
+    handled_keys = set(re.findall(r"event\.key === '([^']+)'", keyboard_source))
+    dashboard_classes = set(re.findall(r"class=\"([^\"]+)\"", status_source))
 
-    assert "ArrowRight" in handled_keys
-    assert "calculator-dashboard" in css_classes
-    assert "calculator-grid-hint" not in css_classes
-    assert "Total cost NOK" in render_source
-    assert "Profit / GP NOK" in render_source
-    assert "Cost per pax" in render_source
-    assert "Sales per pax" in render_source
+    assert {"ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Tab"} <= handled_keys
+    assert "function handleCellKeydown(" in keyboard_source
+    assert "function navigationMovement(" in keyboard_source
+    assert 'id="calculator-dashboard-container"' in render_source
+    assert "calculator-dashboard" in dashboard_classes
+    assert "calculator-grid-hint" not in status_source
+    assert "Total cost NOK" in status_source
+    assert "Profit / GP NOK" in status_source
+    assert "Cost per pax" in status_source
+    assert "Sales per pax" in status_source
 
 
 def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:

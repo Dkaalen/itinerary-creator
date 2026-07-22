@@ -17,6 +17,7 @@
 - `calculator/workbook_import.py` reads compatible calculation workbooks without rebuilding them.
 - `calculator/state_serialization.py` owns JSON backup/schema migration.
 - `app_modules/saved_project_calculator_state.py` is the cloud-project persistence boundary.
+- `calculator_grid_component/frontend/js/calculator_grid_keyboard.js` owns grid key handling and cell-to-cell navigation; `calculator_grid_cell_editing.js` owns edit commits and input behavior, not navigation.
 
 ## Browser workflow
 
@@ -25,7 +26,7 @@ The grid has two explicit modes:
 - **Selection mode:** arrows move between cells; the first click on fetched or pre-filled data focuses the grid.
 - **Edit mode:** click the active cell, double-click, press `F2`/`Enter`, or type; arrows move the caret.
 
-Browser edits are written to a project-scoped local draft and synchronized to Streamlit after a short debounce. A capped local recovery history stores meaningful committed versions. The current draft has quota priority, inactive-project recovery histories are pruned before the active history, and only expired recognized Calculator namespaces are removed automatically. Local recovery failures remain non-blocking and are shown as a quiet status with details that distinguish browser recovery from Supabase project saving. The version panel can clear either recovery versions alone or all local recovery data for the active project; a full clear remains in effect until the next local edit. Save, export, generate, library navigation, and workspace navigation flush the latest state first.
+Browser edits are written to a project-scoped local draft and synchronized to Streamlit after a short debounce. Opening a saved project selects its durable project namespace, while deleting the active cloud project or importing a local workbook detaches that namespace so the next unsaved workspace receives a fresh session key. Reopening an Excel workbook or Calculator backup is confirmation-gated whenever the latest browser/backend Calculator state differs from the saved snapshot or contains meaningful detached rows; clean workspaces still reopen directly. A capped local recovery history stores meaningful committed versions. The current draft has quota priority, inactive-project recovery histories are pruned before the active history, and only expired recognized Calculator namespaces are removed automatically. Local recovery failures remain non-blocking and are shown as a quiet status with details that distinguish browser recovery from Supabase project saving. The version panel can clear either recovery versions alone or all local recovery data for the active project; a full clear remains in effect until the next local edit. Save, export, generate, library navigation, and workspace navigation flush the latest state first.
 
 A1 formulas support relative and absolute references, dependency recalculation, copy/fill translation, and circular-reference errors. Python and JavaScript are independently parity-tested.
 
@@ -89,7 +90,7 @@ Import preserves editable data, compatible A1 formulas, overrides, VAT values, a
 4. Passenger count is dashboard-only and never changes row formulas.
 5. Invalid expressions, missing rates, `NaN`, infinity, and circular references block save-sensitive actions.
 6. Manual formula/rate overrides are explicit, persisted, and exported.
-7. Project switching cannot silently discard unsaved calculator or currency-rate changes.
+7. Project switching and local file reopening cannot silently discard unsaved calculator or currency-rate changes.
 8. Browser and Python calculations match on reference, randomized, and A1 dependency vectors.
 9. Margin shortcuts produce the selected GP percentage from actual net NOK cost, including supplier commission and overrides.
 10. Project save/reload and Excel export/import preserve financial inputs, formulas, precision, and calculated results.

@@ -103,4 +103,7 @@ def test_all_test_modules_are_grouped_with_browser_workflows_explicit() -> None:
     assert report["full_only_test_module_count"] == 0
     assert report["stale_group_entry_count"] == 0
     assert report["duplicate_group_entry_count"] == 0
-    assert len(GROUPS["calculator-browser"]) == 48
+    browser_workflows = GROUPS["calculator-browser"]
+    assert browser_workflows
+    assert all("::test_" in node for node in browser_workflows)
+    assert len(browser_workflows) == len(set(browser_workflows))

@@ -37,6 +37,7 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
     from app_modules.calculator_state_keys import (
         CALCULATOR_DRAFT_NAMESPACE_KEY,
         CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY,
+        CALCULATOR_PENDING_IMPORT_KEY,
         CALCULATOR_READY_DOWNLOAD_KEY,
         CALCULATOR_RETURN_AVAILABLE_KEY,
         CALCULATOR_STATE_KEY,
@@ -57,6 +58,7 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
         OUTPUT_EDITS_KEY,
         PARSED_ROWS_KEY,
         PARSER_DIAGNOSTICS_KEY,
+        PENDING_PROJECT_BACKUP_IMPORT_KEY,
         PRESENTATION_LANGUAGE_KEY,
         PREVIEW_SIGNATURE_KEY,
         RAW_TEXT_INPUT_KEY,
@@ -74,6 +76,7 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
         CURRENCY_RATES_STATE_KEY,
         CALCULATOR_DRAFT_NAMESPACE_KEY,
         CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY,
+        CALCULATOR_PENDING_IMPORT_KEY,
         CALCULATOR_READY_DOWNLOAD_KEY,
         CALCULATOR_RETURN_AVAILABLE_KEY,
         PARSED_ROWS_KEY,
@@ -93,6 +96,7 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
         DETAIL_LEVEL_KEY,
         DAY_PAGE_LAYOUT_KEY,
         OPEN_PROJECT_BROWSER_VISIBLE_KEY,
+        PENDING_PROJECT_BACKUP_IMPORT_KEY,
         *PDF_ARTIFACT_KEYS,
         *PROJECT_BOUNDARY_TRANSIENT_KEYS,
     }
@@ -260,6 +264,11 @@ def prepare_project_switch(state: MutableMapping[str, Any]) -> None:
     clear_file_delete_confirmation(state)
     clear_open_candidate(state)
     clear_rename_candidate(state)
+    from app_modules.calculator_state_keys import CALCULATOR_PENDING_IMPORT_KEY
+    from app_modules.session_state_keys import PENDING_PROJECT_BACKUP_IMPORT_KEY
+
+    state.pop(CALCULATOR_PENDING_IMPORT_KEY, None)
+    state.pop(PENDING_PROJECT_BACKUP_IMPORT_KEY, None)
 
 
 __all__ = [

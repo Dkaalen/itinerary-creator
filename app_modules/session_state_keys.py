@@ -51,5 +51,6 @@ PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY = "project_storage_delete_cleanup_war
 OPEN_PROJECT_BROWSER_VISIBLE_KEY = "open_project_browser_visible"
 OPEN_PROJECT_SEARCH_KEY = "open_project_search"
 OPEN_PROJECT_SORT_KEY = "open_project_sort"
+PENDING_PROJECT_BACKUP_IMPORT_KEY = "pending_project_backup_import"
 
 __all__ = [name for name in globals() if name.isupper()]

@@ -16,15 +16,18 @@ from project_storage.project_management import duplicate_cloud_project
 
 
 def request_open_cloud_project(project_id: str) -> None:
-    """Open immediately unless the active project has unsaved changes."""
+    """Select the requested project and open it unless confirmation is required."""
 
+    clean_project_id = str(project_id or "").strip()
+    if not clean_project_id:
+        return
+    remember_selected_project(st.session_state, clean_project_id)
     active_id = active_project_id_from_state(st.session_state)
-    if active_id and active_id != project_id and active_project_has_unsaved_changes(st.session_state):
-        remember_selected_project(st.session_state, project_id)
-        remember_open_candidate(st.session_state, project_id)
+    if active_id != clean_project_id and active_project_has_unsaved_changes(st.session_state):
+        remember_open_candidate(st.session_state, clean_project_id)
         st.rerun()
         return
-    open_cloud_project(project_id)
+    open_cloud_project(clean_project_id)
 
 
 def open_cloud_project(project_id: str) -> None:

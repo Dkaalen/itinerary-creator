@@ -14,7 +14,12 @@ from app_modules.project_browser_state import (
     sync_project_query,
 )
 from app_modules.project_identity import active_project_id_from_state
-from app_modules.project_io import load_project_json
+from app_modules.project_io import (
+    cancel_pending_project_json_import,
+    confirm_pending_project_json_import,
+    pending_project_json_import,
+    request_project_json_import,
+)
 from app_modules.session_state_keys import (
     OPEN_PROJECT_BROWSER_VISIBLE_KEY,
     OPEN_PROJECT_SEARCH_KEY,
@@ -49,8 +54,11 @@ def _render_open_project_workspace() -> None:
     close_col, _ = st.columns([0.22, 0.78])
     with close_col:
         if st.button("Close", key="close_open_project_browser", use_container_width=True):
+            cancel_pending_project_json_import()
             st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
             st.rerun()
+    if _render_pending_backup_confirmation():
+        return
     if project_storage_is_configured():
         _render_cloud_project_browser()
     else:
@@ -140,5 +148,27 @@ def _render_backup_project_uploader() -> None:
     if uploaded_project is None:
         return
     if st.button("Open uploaded backup", use_container_width=True):
-        if load_project_json(uploaded_project, require_saved_project=True):
+        opened = request_project_json_import(uploaded_project, require_saved_project=True)
+        if opened is not False:
             st.rerun()
+
+
+def _render_pending_backup_confirmation() -> bool:
+    pending = pending_project_json_import()
+    if pending is None:
+        return False
+
+    label = pending.filename or "itinerary backup"
+    st.warning(f"Unsaved changes in the current workspace will be replaced when opening {label}.")
+    keep_col, open_col = st.columns(2)
+    with keep_col:
+        if st.button("Keep current workspace", key="cancel_project_backup_import", use_container_width=True):
+            cancel_pending_project_json_import()
+            st.rerun()
+            return True
+    with open_col:
+        if st.button("Open backup anyway", key="confirm_project_backup_import", use_container_width=True):
+            if confirm_pending_project_json_import():
+                st.rerun()
+            return True
+    return True

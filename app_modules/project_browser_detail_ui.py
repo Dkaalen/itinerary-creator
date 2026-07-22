@@ -69,7 +69,7 @@ def render_selected_project_panel(project: dict[str, Any] | None) -> None:
 def _render_open_confirmation(project_id: str, name: str) -> None:
     if open_candidate_id(st.session_state) != project_id:
         return
-    st.warning(f"Unsaved changes in the active project will be left behind when opening {name}.")
+    st.warning(f"Unsaved changes in the current workspace will be left behind when opening {name}.")
     cancel_col, confirm_col = st.columns(2)
     with cancel_col:
         if st.button("Keep current project", key=f"cancel_open_cloud_project_{project_id}", use_container_width=True):

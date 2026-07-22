@@ -223,3 +223,52 @@ def test_quota_keeps_newest_active_versions_when_space_allows() -> None:
     finally:
         browser.close()
         manager.stop()
+
+
+
+def test_project_namespace_switch_keeps_recovery_isolated_and_restorable() -> None:
+    manager, browser, page, project_a = _recovery_page(revision="project-a")
+    try:
+        page.evaluate(
+            """() => {
+              calculatorState.rows[0].travel_element = 'Unsaved Project A';
+              markLocalDraft(false);
+              flushLocalDraftSave();
+            }"""
+        )
+        project_b = {
+            **project_a,
+            "rows": [
+                {
+                    "row_id": "1",
+                    "travel_element": "Saved Project B",
+                    "supplier_currency": "NOK",
+                    "sales_currency": "EUR",
+                }
+            ],
+            "state_revision": "project-b",
+            "draft_storage_key": "itineraryCalculatorBrowserDraft.v3.project:project-b",
+        }
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            project_b,
+        )
+        page.wait_for_selector('td[data-row-index="0"][data-key="travel_element"]')
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Saved Project B"
+        assert page.evaluate(
+            "key => JSON.parse(window.localStorage.getItem(key)).rows[0].travel_element",
+            project_a["draft_storage_key"],
+        ) == "Unsaved Project A"
+
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            project_a,
+        )
+        page.wait_for_function("calculatorState.rows[0].travel_element === 'Unsaved Project A'")
+
+        assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Unsaved Project A"
+        assert page.evaluate("getCalculatorDraftStorageKey()") == project_a["draft_storage_key"]
+    finally:
+        browser.close()
+        manager.stop()

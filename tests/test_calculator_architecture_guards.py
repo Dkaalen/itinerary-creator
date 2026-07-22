@@ -1,6 +1,8 @@
 import ast
 from pathlib import Path
 
+from scripts.test_groups import GROUPS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "calculator_grid_component" / "frontend" / "js"
@@ -39,6 +41,18 @@ def test_calculator_architecture_document_names_state_boundaries() -> None:
     assert "authoritative financial engine" in text
     assert "Selection mode" in text
     assert "Save → reload → recalculate" in text
+
+
+def test_local_calculator_file_reopen_uses_confirmation_boundary() -> None:
+    page_source = (ROOT / "app_modules" / "calculator_page.py").read_text(encoding="utf-8")
+    action_source = (ROOT / "app_modules" / "calculator_open_action.py").read_text(encoding="utf-8")
+
+    assert "request_calculator_upload_import(" in page_source
+    assert "current_state=result.state" in page_source
+    assert "current_state=state" in page_source
+    assert "Open file anyway" in page_source
+    assert "active_project_has_unsaved_changes" in action_source
+    assert "CALCULATOR_PENDING_IMPORT_KEY" in action_source
 
 
 def test_workbook_renderers_consume_one_canonical_export_plan() -> None:
@@ -251,6 +265,7 @@ def test_calculator_browser_workflows_are_bounded_and_share_one_harness() -> Non
     assert all(not path.exists() for path in retired_paths)
 
     collected_names: list[str] = []
+    collected_nodes: list[str] = []
     for path in browser_test_paths:
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(path))
@@ -263,9 +278,11 @@ def test_calculator_browser_workflows_are_bounded_and_share_one_harness() -> Non
         assert "sync_playwright" not in source
         assert "calculator_browser_harness" in source
         collected_names.extend(test_names)
+        relative_path = path.relative_to(ROOT).as_posix()
+        collected_nodes.extend(f"{relative_path}::{name}" for name in test_names)
 
-    assert len(collected_names) == 49
-    assert len(set(collected_names)) == 49
+    assert len(collected_names) == len(set(collected_names))
+    assert set(collected_nodes).issubset(set(GROUPS["calculator-browser"]))
 
     harness_source = (ROOT / "tests" / "support" / "calculator_browser_harness.py").read_text(encoding="utf-8")
     assert "def calculator_frontend_html(" in harness_source

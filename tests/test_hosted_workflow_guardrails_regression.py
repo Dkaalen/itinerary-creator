@@ -84,6 +84,22 @@ def test_calculator_draft_namespace_switches_to_saved_project_id() -> None:
     assert state[CALCULATOR_DRAFT_NAMESPACE_KEY] == "project:project-123"
 
 
+def test_detached_cloud_workspace_gets_a_new_unsaved_draft_namespace() -> None:
+    from app_modules.project_session_cleanup import clear_active_cloud_project_session
+
+    state = {
+        "active_saved_project_id": "project-123",
+        "active_project_storage_id": "project-123",
+        CALCULATOR_DRAFT_NAMESPACE_KEY: "project:project-123",
+    }
+
+    clear_active_cloud_project_session(state)
+    replacement = calculator_draft_namespace(state)
+
+    assert replacement.startswith("session:")
+    assert replacement != "project:project-123"
+
+
 def test_calculator_frontend_resets_browser_draft_when_namespace_changes() -> None:
     source = _calculator_js_bundle_source()
 

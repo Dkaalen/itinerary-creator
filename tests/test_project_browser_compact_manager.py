@@ -145,3 +145,70 @@ def test_manager_renders_one_bounded_page_and_one_selected_detail(monkeypatch) -
     assert list_calls == [page]
     assert detail_calls == [page.projects[0]]
     assert st.session_state["open_project_selected_project_id"] == "project-1"
+
+
+def test_open_request_selects_target_before_direct_open(monkeypatch) -> None:
+    import streamlit as st
+    from app_modules import project_browser_actions
+    from tests.support.streamlit_stub import SessionState
+
+    st.session_state = SessionState()
+    opened: list[str] = []
+    monkeypatch.setattr(project_browser_actions, "open_cloud_project", opened.append)
+
+    project_browser_actions.request_open_cloud_project("project-2")
+
+    assert st.session_state["open_project_selected_project_id"] == "project-2"
+    assert opened == ["project-2"]
+
+
+def test_open_request_requires_confirmation_for_unsaved_local_calculator(monkeypatch) -> None:
+    import streamlit as st
+    from app_modules import project_browser_actions
+    from calculator.calculator_state import add_row, create_calculator_state
+    from calculator.row_model import CalculatorRow
+    from tests.support.streamlit_stub import SessionState
+
+    st.session_state = SessionState(
+        {
+            "calculator_state": add_row(
+                create_calculator_state("Local workbook"),
+                CalculatorRow(row_id="1", travel_element="Unsaved hotel", gross_price_per_unit=100, units=1),
+            )
+        }
+    )
+    opened: list[str] = []
+    reruns: list[bool] = []
+    monkeypatch.setattr(project_browser_actions, "open_cloud_project", opened.append)
+    monkeypatch.setattr(st, "rerun", lambda: reruns.append(True))
+
+    project_browser_actions.request_open_cloud_project("project-2")
+
+    assert st.session_state["open_project_selected_project_id"] == "project-2"
+    assert st.session_state["open_project_unsaved_open_candidate_id"] == "project-2"
+    assert opened == []
+    assert reruns == [True]
+
+
+def test_open_request_ignores_empty_local_calculator_starter_rows(monkeypatch) -> None:
+    import streamlit as st
+    from app_modules import project_browser_actions
+    from calculator.calculator_state import add_row, create_calculator_state
+    from calculator.row_model import CalculatorRow
+    from tests.support.streamlit_stub import SessionState
+
+    st.session_state = SessionState(
+        {
+            "calculator_state": add_row(
+                create_calculator_state(""),
+                CalculatorRow(row_id="1"),
+            )
+        }
+    )
+    opened: list[str] = []
+    monkeypatch.setattr(project_browser_actions, "open_cloud_project", opened.append)
+
+    project_browser_actions.request_open_cloud_project("project-2")
+
+    assert opened == ["project-2"]
+    assert "open_project_unsaved_open_candidate_id" not in st.session_state
