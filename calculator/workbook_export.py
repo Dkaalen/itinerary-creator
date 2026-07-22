@@ -9,7 +9,7 @@ from typing import Mapping
 from openpyxl.workbook.workbook import Workbook
 
 from calculator.calculator_state import CalculatorState
-from calculator.columns import CURRENCY_SHEET_NAME, KALK_SHEET_NAME
+from calculator.columns import CURRENCY_SHEET_NAME, DATA_END_ROW, DATA_START_ROW, KALK_SHEET_NAME
 from calculator.currency_rates import normalize_currency_rates
 from calculator.filename_sanitizer import calculation_workbook_filename
 from calculator.validation import ensure_valid_calculator_state
@@ -94,6 +94,9 @@ def _apply_export_plan(workbook: Workbook, plan: WorkbookExportPlan) -> None:
         currency_sheet[cell.reference] = cell.value
     for cell in plan.calculator_cells:
         calculator_sheet[cell.reference] = cell.value
+
+    for row_number in range(DATA_START_ROW, DATA_END_ROW + 1):
+        calculator_sheet.row_dimensions[row_number].hidden = row_number > plan.visible_data_end_row
 
     properties = dict(plan.calculation_properties)
     workbook.calculation.calcMode = str(properties["calcMode"])

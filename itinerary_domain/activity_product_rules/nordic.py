@@ -9,6 +9,7 @@ from text_polish import polish_title
 
 from itinerary_domain.activity_product_core import ActivityProductFingerprint, match_product
 from itinerary_domain.activity_product_text import canonicalize_activity_text
+from itinerary_domain.product_rule_evidence import has_explicit_munch_museum_evidence
 
 
 def _northern_lights_title(source_lower: str, source_title: str) -> str:
@@ -151,7 +152,13 @@ def _match_tallinn_activity(source_lower: str, source_title: str) -> ActivityPro
     return None
 
 
-def _match_oslo_activity(source_lower: str, source_title: str) -> ActivityProductFingerprint | None:
+def _match_oslo_activity(
+    source_lower: str,
+    source_title: str,
+    *,
+    row: dict[str, Any] | None = None,
+    source: str = "",
+) -> ActivityProductFingerprint | None:
     if "oslo" in source_lower and ("fjord cruise" in source_lower or "fjord sightseeing cruise" in source_lower or "oslo fjord" in source_lower or "oslofjord" in source_lower) and any(marker in source_lower for marker in ("electric", "silent", "sightseeing", "islands", "ship", "boat")):
         tags = []
         if "bygd" in source_lower:
@@ -165,7 +172,7 @@ def _match_oslo_activity(source_lower: str, source_title: str) -> ActivityProduc
         title = source_title if source_title and "fjord" in source_title.lower() and "cruise" in source_title.lower() else ("Oslofjord Sightseeing Cruise" if "sightseeing" in source_lower else "Oslofjord Cruise with Silent Electric Ship")
         return match_product("oslofjord_cruise", "fjord_cruise", title, source_title=source_title, variant_tags=tuple(tags))
 
-    if "oslo" in source_lower and ("munch museum" in source_lower or re.search(r"\bmunch\b", source_lower)) and any(marker in source_lower for marker in ("ticket", "tickets", "entrance", "entry", "admission", "museum")):
+    if "oslo" in source_lower and has_explicit_munch_museum_evidence(row, source_title, source):
         return match_product("munch_museum_ticket", "admission", "Munch Museum Visit", source_title=source_title)
     return None
 
@@ -275,14 +282,18 @@ def match_nordic_activity(
 ) -> ActivityProductFingerprint | None:
     """Match Lapland, Tromsø, Tallinn, Oslo and other Nordic activity families."""
 
-    del row, source  # Matching currently uses normalized source text/title only.
     for matcher in (
         _match_tallinn_activity,
-        _match_oslo_activity,
         _match_lapland_activity,
         _match_arctic_norway_activity,
     ):
         match = matcher(source_lower, source_title)
         if match is not None:
             return match
+    return _match_oslo_activity(
+        source_lower,
+        source_title,
+        row=row,
+        source=source,
+    )
     return None

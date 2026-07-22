@@ -14,6 +14,7 @@ from itinerary_generation.activity_product_titles import activity_product_metada
 from itinerary_generation.product_rules import find_product_match
 from itinerary_generation.supplier_cleanup_brain import clean_supplier_title
 from text_polish import polish_title
+from shared.url_metadata import strip_urls
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ class ActivityIdentity:
 
 
 def _clean_title(value: object) -> str:
-    return clean_supplier_title(polish_title(str(value or "").strip())).strip(" -:|.,")
+    return clean_supplier_title(polish_title(strip_urls(value).strip())).strip(" -:|.,")
 
 
 def _source_title(row: Mapping[str, object]) -> str:

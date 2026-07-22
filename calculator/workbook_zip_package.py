@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from collections.abc import Collection
 from typing import Mapping
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
@@ -10,12 +11,17 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 def clone_xlsx_package(
     source: ZipFile,
     replacements: Mapping[str, bytes],
+    *,
+    deleted_parts: Collection[str] = (),
 ) -> bytes:
     """Return a metadata-preserving package clone with selected replacements."""
 
     buffer = BytesIO()
+    deleted = set(deleted_parts)
     with ZipFile(buffer, "w") as target:
         for info in source.infolist():
+            if info.filename in deleted:
+                continue
             data = replacements.get(info.filename)
             if data is None:
                 data = source.read(info.filename)

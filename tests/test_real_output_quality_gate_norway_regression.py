@@ -34,8 +34,8 @@ def test_norway_pdf_regression_uses_client_ready_summary_intro_and_leisure_copy(
     assert review.journey_title == "How Your Trip Unfolds"
     assert "arc" not in review.journey_title.lower()
     assert len(journey_experiences) == len(set(journey_experiences))
-    assert "Scenic rail journey to Flåm" in journey_experiences
-    assert "Fjord cruise and rail to Bergen" in journey_experiences
+    assert "Norway in a Nutshell to Flåm" in journey_experiences
+    assert "Norway in a Nutshell to Bergen" in journey_experiences
 
     day1 = day_by_id["Day 1"]
     assert "transfer and stay details" not in day1.intro.lower()

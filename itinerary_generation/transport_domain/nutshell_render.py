@@ -204,8 +204,6 @@ def build_featured_nutshell_block(
     if not leg_lines:
         leg_lines = [_timed_leg_label(leg) for leg in journey.legs if leg.departure_time or leg.arrival_time]
         leg_lines = [line for line in leg_lines if line]
-    if not leg_lines and route_text:
-        leg_lines = [route_text]
 
     profile = route_profile_for_places(
         journey.origin or (route_points[0] if route_points else ""),

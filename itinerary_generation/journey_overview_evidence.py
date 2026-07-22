@@ -12,6 +12,7 @@ from typing import Mapping, Sequence
 from itinerary_generation.common import get_row_type
 from itinerary_generation.day_facts import build_day_facts
 from itinerary_generation.nutshell_domain import has_nutshell_journey
+from itinerary_generation.nutshell_signature import canonical_nutshell_title
 from itinerary_generation.summaries_experience import describe_city_experience
 from shared.text import clean_space
 from text_polish import polish_title
@@ -101,7 +102,7 @@ def _source_backed_fallback(rows: Sequence[Mapping[str, object]], chapter: str) 
     if "Departure" in row_types and (not chapter or chapter.casefold() in departure_cities):
         return f"Departure from {chapter}" if chapter else "Departure arrangements"
     if has_nutshell_journey([dict(row) for row in rows]) or "norway in a nutshell" in source:
-        return "Norway in a Nutshell and scenic rail"
+        return canonical_nutshell_title(rows)
     activity_titles = [
         polish_title(_clean(row.get("display_title") or row.get("title") or row.get("original_title")))
         for row in rows
@@ -146,14 +147,9 @@ def chapter_experience(rows: Sequence[Mapping[str, object]], chapter: str) -> st
     if "tallinn" in source_l and "old town" in source_l:
         return "Tallinn Old Town day trip"
     if has_nutshell and has_food:
-        return "Norway in a Nutshell and Oslo food tour" if chapter.casefold() == "oslo" else "Norway in a Nutshell and local food tour"
+        return f"{canonical_nutshell_title(rows)} and local food tour"
     if has_nutshell:
-        chapter_l = chapter.casefold()
-        if chapter_l == "flåm" and any(marker in source_l for marker in ("myrdal", "flåm railway", "flam railway")):
-            return "Scenic rail journey to Flåm"
-        if chapter_l == "bergen" and any(marker in source_l for marker in ("nærøyfjord", "naeroyfjord", "gudvangen", "fjord cruise")):
-            return "Fjord cruise and rail to Bergen"
-        return "Norway in a Nutshell and scenic rail"
+        return canonical_nutshell_title(rows)
 
     phrase = describe_city_experience([dict(row) for row in rows])
     if phrase and _phrase_is_supported(phrase, source):

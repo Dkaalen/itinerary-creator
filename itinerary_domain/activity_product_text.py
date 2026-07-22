@@ -8,6 +8,7 @@ from typing import Any
 
 from place_aliases import canonicalize_place_name
 from text_polish import polish_title
+from shared.url_metadata import strip_urls
 
 _OPTIONAL_PREFIX_RE = re.compile(
     r"^\s*(?:(?:optinal|optional)\s*(?:add\s*[- ]?on|addon)?(?:\s+activity)?(?:\s+on\s+request)?|"
@@ -112,7 +113,7 @@ def activity_product_context(row: dict[str, Any] | None = None, *values: object)
         elif includes:
             pieces.append(str(includes))
     pieces.extend(str(value) for value in values if value)
-    return canonicalize_activity_text(" ".join(pieces))
+    return canonicalize_activity_text(strip_urls(" ".join(pieces)))
 
 
 def strip_optional_prefix(value: str) -> str:
@@ -171,7 +172,7 @@ def extract_source_product_title(row: dict[str, Any] | None = None, *values: obj
     candidates.extend(str(value) for value in values if value)
 
     for candidate in candidates:
-        normalized = canonicalize_activity_text(candidate)
+        normalized = canonicalize_activity_text(strip_urls(candidate))
         normalized, removed_decimal_time = re.subn(
             r"\(\s*\d{1,2}\.\s*\d{2}\s*[-–—]\s*\d{1,2}\.\s*\d{2}\s*\)",
             "",

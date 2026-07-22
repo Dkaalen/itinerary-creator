@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from itinerary_generation.common import get_primary_city, get_row_type
 from itinerary_generation.nutshell_domain import has_nutshell_journey
+from itinerary_generation.nutshell_signature import canonical_nutshell_title
 from itinerary_generation.summaries_text import _has
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ class ExperienceSignals:
     has_hotel_only: bool
     travel_only_with_hotel: bool
     has_nutshell: bool
+    nutshell_title: str
     has_self_drive: bool
     has_lagoon: bool
     has_silfra: bool
@@ -117,6 +119,7 @@ def _build_signals(rows):
             and any(get_row_type(row) == "Hotel" for row in rows)
         ),
         has_nutshell=(not primary_rows and has_nutshell_journey(rows)) or _has(text, "norway in a nutshell"),
+        nutshell_title=canonical_nutshell_title(rows),
         has_self_drive=_has(text, "self-drive", "self drive", "rental vehicle", "rental suv", "rental car"),
         has_lagoon=_has(text, "blue lagoon", "sky lagoon", "wellness", "7-step", "ritual") or bool(re.search(r"\bspa\b", text)),
         has_silfra=_has(text, "silfra", "snork"),

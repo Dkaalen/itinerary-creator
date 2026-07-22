@@ -26,7 +26,7 @@ def service_intents_for_rows(rows:list[dict])->set[str]:
 def service_destination_variants(intents:set[str],text:str)->set[str]:
     variants=set();normalized=normalize_keyword(text)
     if "scenic_rail_fjord" in intents or "norway in a nutshell" in normalized:
-        for place in ("Bergen","Voss","Gudvangen","Flåm","Flam","Myrdal","Oslo","Nærøyfjord","Naeroyfjord"):variants.update(city_variants(place))
+        for place in ("Norway in a Nutshell","Bergen","Voss","Gudvangen","Flåm","Flam","Myrdal","Oslo","Nærøyfjord","Naeroyfjord"):variants.update(city_variants(place))
     if "fjord_cruise" in intents and ("lysefjord" in normalized or "preikestolen" in normalized):
         for place in ("Stavanger","Lysefjord","Preikestolen"):variants.update(city_variants(place))
     for intent, places in {

@@ -41,7 +41,7 @@ def _add_route_and_city_candidates(candidates, signals):
     if _has(text, "guided walking tour of bergen", "bergen past & present") and signals.has_cable:
         candidates.append("Historic Bergen and Fløibanen views")
     if signals.has_nutshell and signals.has_food:
-        candidates.append("Norway in a Nutshell and Oslo food tour")
+        candidates.append(f"{signals.nutshell_title} and Oslo food tour")
     if _has(text, "spend time at leisure onboard the cruise") and signals.row_types == {"Cruise"}:
         candidates.append("Coastal cruise at leisure")
     if _has(text, "cruise to bergen") and _has(text, "kirkenes"):
@@ -51,15 +51,7 @@ def _add_route_and_city_candidates(candidates, signals):
     if signals.has_tallinn:
         candidates.append("Tallinn Old Town day trip")
     if signals.has_nutshell:
-        city = signals.chapter_city.casefold()
-        if city in {"flåm", "flam"}:
-            candidates.append("Scenic rail journey to Flåm")
-        elif city == "bergen" and _has(text, "fjord cruise", "gudvangen", "voss"):
-            candidates.append("Fjord cruise and rail to Bergen")
-        elif city == "bergen":
-            candidates.append("Scenic rail and Bergen arrival")
-        else:
-            candidates.append("Norway in a Nutshell and scenic rail")
+        candidates.append(signals.nutshell_title)
     elif _has(text, "nærøyfjord", "naeroyfjord") and _has(text, "stegastein", "borgund"):
         candidates.append("Nærøyfjord, Stave Church and Stegastein")
     elif _has(text, "foot", "walking tour") and _has(text, "boat", "city cruise") and signals.chapter_city.lower() == "bergen":

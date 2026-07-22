@@ -32,7 +32,6 @@ QUOTE_CELL = "Z103"
 QUOTE_FORMULA = f"=Z{TOTALS_ROW}"
 
 ROW_VALUE_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("B", "row_id"),
     ("C", "day"),
     ("D", "type"),
     ("E", "from_date"),
@@ -101,6 +100,7 @@ class WorkbookExportPlan:
     currency_cells: tuple[ExportCell, ...]
     calculator_cells: tuple[ExportCell, ...]
     calculation_properties: tuple[tuple[str, object], ...]
+    visible_data_end_row: int
     fingerprint: str
 
     def currency_cell_map(self) -> dict[str, ExportCell]:
@@ -138,11 +138,13 @@ def build_workbook_export_plan(
     currency_cells = _currency_cells(rates, rows)
     calculator_cells = _calculator_cells(rows, rates)
     properties = CALCULATION_PROPERTIES
-    fingerprint = _plan_fingerprint(currency_cells, calculator_cells, properties)
+    visible_data_end_row = _visible_data_end_row(len(rows))
+    fingerprint = _plan_fingerprint(currency_cells, calculator_cells, properties, visible_data_end_row)
     return WorkbookExportPlan(
         currency_cells=currency_cells,
         calculator_cells=calculator_cells,
         calculation_properties=properties,
+        visible_data_end_row=visible_data_end_row,
         fingerprint=fingerprint,
     )
 
@@ -223,9 +225,15 @@ def _calculator_cells(
 ) -> tuple[ExportCell, ...]:
     evaluator = CalculatorCellFormulaEvaluator(rows, rates)
     cells: list[ExportCell] = []
+    commercial_line_number = 0
     for row_offset, row_number in enumerate(range(DATA_START_ROW, DATA_END_ROW + 1)):
         row = rows[row_offset] if row_offset < len(rows) else None
-        cells.extend(_data_row_cells(row_number, row, evaluator))
+        if row is not None and _row_has_supplier_cost(evaluator, row_number):
+            commercial_line_number += 1
+            line_number: int | None = commercial_line_number
+        else:
+            line_number = None
+        cells.extend(_data_row_cells(row_number, row, evaluator, line_number))
 
     for reference, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, QUOTE_CELL: QUOTE_FORMULA}.items():
         cells.append(ExportCell(reference, formula, "formula"))
@@ -238,8 +246,11 @@ def _data_row_cells(
     row_number: int,
     row: CalculatorRow | None,
     evaluator: CalculatorCellFormulaEvaluator,
+    commercial_line_number: int | None,
 ) -> tuple[ExportCell, ...]:
-    cells: list[ExportCell] = []
+    cells: list[ExportCell] = [
+        _planned_cell(f"B{row_number}", commercial_line_number, "number" if commercial_line_number is not None else "blank")
+    ]
     for column, field_name in ROW_VALUE_COLUMNS:
         value = None if row is None else _row_cell_value(row, field_name)
         cells.append(_planned_cell(f"{column}{row_number}", value, _row_value_kind(field_name, value)))
@@ -264,6 +275,20 @@ def _data_row_cells(
                 value = canonical_export_value(field_name, override_value)
         cells.append(_planned_cell(f"{column}{row_number}", value, _numeric_or_formula_kind(value)))
     return tuple(cells)
+
+
+
+def _row_has_supplier_cost(evaluator: CalculatorCellFormulaEvaluator, row_number: int) -> bool:
+    """Return whether a row carries a positive supplier cost in NOK."""
+
+    return evaluator.evaluate_cell(f"X{row_number}") > 0
+
+
+def _visible_data_end_row(row_count: int) -> int:
+    """Keep ten editable blank rows visible after the final populated row."""
+
+    last_used_row = DATA_START_ROW + row_count - 1 if row_count else DATA_START_ROW - 1
+    return min(DATA_END_ROW, last_used_row + 10)
 
 
 def _row_cell_value(row: CalculatorRow, field_name: str) -> object:
@@ -317,6 +342,7 @@ def _plan_fingerprint(
     currency_cells: tuple[ExportCell, ...],
     calculator_cells: tuple[ExportCell, ...],
     properties: tuple[tuple[str, object], ...],
+    visible_data_end_row: int,
 ) -> str:
     digest = hashlib.sha256()
     for cell in (*currency_cells, *calculator_cells):
@@ -326,6 +352,8 @@ def _plan_fingerprint(
         digest.update(b"\0")
         digest.update(repr(cell.value).encode("utf-8"))
         digest.update(b"\0")
+    digest.update(f"visible_data_end_row={visible_data_end_row}".encode("ascii"))
+    digest.update(b"\0")
     for name, value in properties:
         digest.update(name.encode("ascii"))
         digest.update(b"=")

@@ -98,7 +98,7 @@ def test_journey_arc_keeps_real_scenic_route_when_that_is_the_meaningful_context
 
     arc = create_journey_arc(group_rows_by_day(rows))
 
-    assert arc[0]["experience"] == "Norway in a Nutshell and scenic rail"
+    assert arc[0]["experience"] == "Norway in a Nutshell to Oslo"
 
 
 def test_client_quality_gate_uses_meaning_based_journey_arc_check():

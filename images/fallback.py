@@ -78,6 +78,9 @@ def _semantic_bridge_bonus(candidate_themes: set[str], day_themes: set[str], day
     if has("arrival", "departure", "airport", "hotel", "private") and cand("city", "waterfront"):
         bonus += 14
         reasons.append("fallback context match: city arrival/departure")
+    if has("nutshell", "norway in a nutshell", "scenic rail fjord", "scenic_rail_fjord") and cand("train") and cand("fjord", "mountain", "waterfront"):
+        bonus += 48
+        reasons.append("fallback context match: Norway in a Nutshell rail and fjord")
     if has("fjord", "fjords", "landscape", "photo", "view", "cable", "fjellheisen") and cand("fjord", "mountain", "waterfront"):
         bonus += 20
         reasons.append("fallback context match: fjord/viewpoint")

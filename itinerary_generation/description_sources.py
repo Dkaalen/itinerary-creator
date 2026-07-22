@@ -5,12 +5,13 @@ from __future__ import annotations
 import re
 
 from text_polish import polish_client_text, polish_title
+from shared.url_metadata import strip_urls
 
 from itinerary_generation.description_patterns import STOP_SOURCE_SECTION_RE, TYPO_FIXES
 
 
 def _clean_inline(value: object) -> str:
-    text = str(value or "").replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
+    text = strip_urls(value).replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
     for pattern, replacement in TYPO_FIXES:
         text = re.sub(pattern, replacement, text, flags=re.I)
     text = re.sub(r"\b2\.\s*5\s*hr\b", "2.5-hour", text, flags=re.I)

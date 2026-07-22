@@ -88,6 +88,13 @@ def is_protected_specialty_image_allowed(candidate: ImageCandidate, day_context:
     candidate_tokens = set(candidate.tokens)
     day_tokens = set(day_context.get("tokens", set()))
     day_text = str(day_context.get("text", "") or "")
+    service_intents = set(day_context.get("service_intents", set()) or set())
+    day_is_nutshell = "scenic_rail_fjord" in service_intents or "norway in a nutshell" in day_text
+    candidate_is_nutshell = normalize_keyword(candidate.city) == "norway in a nutshell"
+    if candidate_is_nutshell and not day_is_nutshell:
+        return False, "protected Norway in a Nutshell image requires signature-product context"
+    if day_is_nutshell and ("oslofjord" in candidate_tokens or "oslo fjord" in normalize_keyword(candidate.filename)):
+        return False, "Oslofjord image blocked for Norway in a Nutshell journey"
 
     icebreaker_tokens = {"icebreaker", "icebreakercruise", "polaricebreaker"}
     if candidate_tokens & icebreaker_tokens:
@@ -151,6 +158,9 @@ def score_image_for_day(candidate: ImageCandidate, day_context: dict) -> tuple[i
 
     score += DESTINATION_FOLDER_MATCH_SCORE
     reasons.append("city folder match")
+    if normalize_keyword(candidate.city) == "norway in a nutshell":
+        score += 50
+        reasons.append("signature Norway in a Nutshell collection")
 
     if candidate_country and candidate_country in day_country_variants:
         score += COUNTRY_REGION_MATCH_SCORE

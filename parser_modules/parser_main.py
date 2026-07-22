@@ -1,9 +1,7 @@
 """Top-level itinerary parser orchestration."""
 
 import re
-
 import diagnostics
-
 from parser_modules.commercial_status import infer_optional_row_type
 from parser_modules.common import (
     KNOWN_TYPES,
@@ -23,6 +21,7 @@ from parser_modules.raw_row_context import extract_city_and_description
 from parser_modules.row_builder import build_base_row
 from parser_modules.row_enrichment import enrich_parsed_row
 from parser_modules.wrapper_row_types import resolve_source_wrapper_type
+from parser_modules.source_url_metadata import attach_source_url_metadata, parse_source_url_metadata
 from parser_modules.parser_line import day_from_parts, has_content, line_parts
 from parser_modules.parser_state import ParserState
 from parser_modules.rows import (
@@ -53,7 +52,6 @@ def _extract_date_context(parts, *, type_index, description_index, item_type):
     end_date = date_values[1] if len(date_values) >= 2 else ""
     return start_date, end_date, night_count_hint
 
-
 def _normalize_row_type(item_type, description):
     is_optional = False
 
@@ -70,7 +68,6 @@ def _normalize_row_type(item_type, description):
         is_optional = True
 
     return item_type, is_optional
-
 
 def _warn_or_skip_unknown_type(item_type, raw_line):
     if item_type.lower() in KNOWN_TYPES:
@@ -193,7 +190,12 @@ def _parse_line_row(
     )
     separate_city, description = extract_city_and_description(parts, description_index, item_type, description)
 
-    row_id = make_row_id(current_day, item_type, start_date, end_date, description)
+    # Preserve historical URL-bearing row identity; use URL-free text afterwards.
+    identity_description = description
+    source_text = parse_source_url_metadata(raw_line, description)
+    description = source_text.description
+
+    row_id = make_row_id(current_day, item_type, start_date, end_date, identity_description)
     if is_optional:
         row_id = f"opt_{row_id}"
         diagnostics.warn(
@@ -203,7 +205,7 @@ def _parse_line_row(
         )
 
     row = build_base_row(
-        raw_line=raw_line,
+        raw_line=source_text.raw_line,
         line_number=line_number,
         row_id=row_id,
         is_optional=is_optional,
@@ -214,6 +216,7 @@ def _parse_line_row(
         end_date=end_date,
         description=description,
     )
+    row = attach_source_url_metadata(row, source_text.urls)
     row = enrich_parsed_row(
         row,
         description=description,

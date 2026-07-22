@@ -12,7 +12,6 @@ _EMPTY_TYPES = {"", "total", "subtotal", "sub total"}
 _DAY_RE = re.compile(r"^day\s+\d+", re.IGNORECASE)
 _PLACEHOLDER_RE = re.compile(r"\[[^\]]+\]")
 _METADATA_TOKENS = {"general inputs", "url"}
-_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 
 
 def calculator_state_to_raw_input(state: CalculatorState) -> str:
@@ -70,9 +69,6 @@ def _build_description(row: CalculatorRow) -> str:
     comments = _clean_client_text(row.comments)
     if comments:
         details.append(comments)
-    url = _clean(row.url)
-    if _URL_RE.match(url):
-        details.append(f"URL: {url}")
     if not details:
         return title
     return f"{title} - " + " - ".join(details)

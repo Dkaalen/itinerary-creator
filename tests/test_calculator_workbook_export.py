@@ -75,7 +75,7 @@ def test_build_workbook_fills_rows_and_preserves_core_formulas() -> None:
     workbook = build_calculation_workbook(state)
     sheet = workbook["Kalk"]
 
-    assert sheet["B7"].value == "1"
+    assert sheet["B7"].value == 1
     assert sheet["C7"].value == "Day 1"
     assert sheet["D7"].value == "Hotel"
     assert sheet["E7"].value == "01/10/2026"
@@ -97,7 +97,7 @@ def test_build_workbook_fills_rows_and_preserves_core_formulas() -> None:
     assert sheet["AF7"].value == 10
     assert sheet["AG7"].value == 1
 
-    assert sheet["B8"].value == "2"
+    assert sheet["B8"].value == 2
     assert sheet["J8"].value == "Northern lights tour"
     assert sheet["Y8"].value == "=IFERROR(Q8*W8/AB8,0)"
 
@@ -301,16 +301,18 @@ def test_download_export_preserves_reference_package_outside_approved_cells() ->
     export = export_calculation_workbook(state)
     template_path = Path(__file__).parents[1] / "calculator" / "templates" / "Calculation-template-Mal.xlsx"
     with ZipFile(template_path) as reference, ZipFile(BytesIO(export.content)) as generated:
-        assert generated.namelist() == reference.namelist()
+        assert generated.namelist() == [name for name in reference.namelist() if name != "xl/calcChain.xml"]
         changed_parts = {
-            name for name in reference.namelist() if reference.read(name) != generated.read(name)
+            name for name in generated.namelist() if reference.read(name) != generated.read(name)
         }
         assert changed_parts == {
+            "[Content_Types].xml",
+            "xl/_rels/workbook.xml.rels",
             "xl/worksheets/sheet1.xml",
             "xl/worksheets/sheet2.xml",
             "xl/workbook.xml",
         }
-        for name in reference.namelist():
+        for name in generated.namelist():
             if name not in changed_parts:
                 assert generated.read(name) == reference.read(name)
 
@@ -343,6 +345,7 @@ def _scrub_currency_cells(xml: str) -> str:
 
 
 def _scrub_calculator_cells(xml: str) -> str:
+    xml = re.sub(r'(<row\b[^>]*\br="(?:[7-9]|[1-9]\d)"[^>]*)\s+hidden="1"', r'\1', xml)
     columns = [
         "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
         "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD",

@@ -15,6 +15,7 @@ from zipfile import ZipFile
 from calculator.template_structure import default_template_path
 from calculator.workbook_export_plan import WorkbookExportPlan
 from calculator.workbook_package_cell_changes import generate_cell_changes
+from calculator.workbook_package_integrity import remove_calc_chain_content_type, remove_calc_chain_relationship
 from calculator.workbook_recalculation_xml import patch_workbook_calculation_properties
 from calculator.workbook_worksheet_xml import patch_worksheet_xml
 from calculator.workbook_zip_package import clone_xlsx_package
@@ -22,7 +23,11 @@ from calculator.workbook_zip_package import clone_xlsx_package
 _CURR_SHEET_PART = "xl/worksheets/sheet1.xml"
 _KALK_SHEET_PART = "xl/worksheets/sheet2.xml"
 _WORKBOOK_PART = "xl/workbook.xml"
-_CHANGED_PARTS = (_CURR_SHEET_PART, _KALK_SHEET_PART, _WORKBOOK_PART)
+_WORKBOOK_RELS_PART = "xl/_rels/workbook.xml.rels"
+_CONTENT_TYPES_PART = "[Content_Types].xml"
+_CALC_CHAIN_PART = "xl/calcChain.xml"
+_CHANGED_PARTS = (_CURR_SHEET_PART, _KALK_SHEET_PART, _WORKBOOK_PART, _WORKBOOK_RELS_PART, _CONTENT_TYPES_PART)
+_DELETED_PARTS = (_CALC_CHAIN_PART,)
 _EXPORT_CACHE_LIMIT = 2
 _EXPORT_CACHE: OrderedDict[tuple[str, str, int, int], "PackageExportResult"] = OrderedDict()
 
@@ -33,6 +38,7 @@ class PackageExportResult:
 
     content: bytes
     changed_parts: tuple[str, ...]
+    deleted_parts: tuple[str, ...] = ()
 
 
 def export_reference_workbook_package(
@@ -62,15 +68,22 @@ def export_reference_workbook_package(
             _KALK_SHEET_PART: patch_worksheet_xml(
                 source.read(_KALK_SHEET_PART).decode("utf-8"),
                 calculator_changes,
+                hidden_rows=set(range(plan.visible_data_end_row + 1, 100)),
             ).encode("utf-8"),
             _WORKBOOK_PART: patch_workbook_calculation_properties(
                 source.read(_WORKBOOK_PART).decode("utf-8"),
                 dict(plan.calculation_properties),
             ).encode("utf-8"),
+            _WORKBOOK_RELS_PART: remove_calc_chain_relationship(
+                source.read(_WORKBOOK_RELS_PART).decode("utf-8")
+            ).encode("utf-8"),
+            _CONTENT_TYPES_PART: remove_calc_chain_content_type(
+                source.read(_CONTENT_TYPES_PART).decode("utf-8")
+            ).encode("utf-8"),
         }
-        content = clone_xlsx_package(source, replacements)
+        content = clone_xlsx_package(source, replacements, deleted_parts=_DELETED_PARTS)
 
-    result = PackageExportResult(content=content, changed_parts=_CHANGED_PARTS)
+    result = PackageExportResult(content=content, changed_parts=_CHANGED_PARTS, deleted_parts=_DELETED_PARTS)
     _EXPORT_CACHE[cache_key] = result
     _EXPORT_CACHE.move_to_end(cache_key)
     while len(_EXPORT_CACHE) > _EXPORT_CACHE_LIMIT:

@@ -19,10 +19,13 @@ def patch_worksheet_xml(
     changes: Mapping[str, PackageCellChange],
     *,
     dimension_ref: str | None = None,
+    hidden_rows: set[int] | None = None,
 ) -> str:
     """Apply all requested cells in one worksheet pass."""
 
     patched = _patch_cells(xml, changes)
+    if hidden_rows is not None:
+        patched = _patch_hidden_rows(patched, hidden_rows)
     if dimension_ref is not None:
         patched = re.sub(
             r'<dimension\s+ref="[^"]+"\s*/>',
@@ -31,6 +34,26 @@ def patch_worksheet_xml(
             count=1,
         )
     return patched
+
+
+
+def _patch_hidden_rows(xml: str, hidden_rows: set[int]) -> str:
+    """Set row visibility deterministically for Calculator data rows."""
+
+    def replace(match: re.Match[str]) -> str:
+        row_number = int(match.group("row"))
+        open_tag = match.group("open")
+        if DATA_ROW_MIN <= row_number <= DATA_ROW_MAX:
+            open_tag = re.sub(r'\s+hidden="[^"]*"', "", open_tag)
+            if row_number in hidden_rows:
+                open_tag = open_tag[:-1] + ' hidden="1">'
+        return open_tag + match.group("body") + match.group("close")
+
+    return _ROW_RE.sub(replace, xml)
+
+
+DATA_ROW_MIN = 7
+DATA_ROW_MAX = 99
 
 
 def _patch_cells(xml: str, changes: Mapping[str, PackageCellChange]) -> str:

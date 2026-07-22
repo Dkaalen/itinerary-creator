@@ -12,12 +12,7 @@ def _logistics_only_phrase(rows, signals):
     if _has(text, "northern light village", "panorama suite"):
         return "Northern Lights village stay"
     if signals.has_nutshell:
-        city = signals.chapter_city.casefold()
-        if city in {"flåm", "flam"}:
-            return "Scenic rail journey to Flåm"
-        if city == "bergen" and _has(text, "fjord cruise", "gudvangen", "voss"):
-            return "Fjord cruise and rail to Bergen"
-        return "Norway in a Nutshell and scenic rail"
+        return signals.nutshell_title
     if _has(text, "spend time at leisure onboard the cruise") and signals.row_types == {"Cruise"}:
         return "Coastal cruise at leisure"
     if _has(text, "cruise to bergen") and _has(text, "kirkenes"):

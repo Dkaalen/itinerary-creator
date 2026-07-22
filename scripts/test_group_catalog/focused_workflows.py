@@ -66,6 +66,7 @@ VALIDATION_WORKFLOW_TESTS = (
 )
 
 WORKBOOK_WORKFLOW_TESTS = (
+    "tests/test_calculator_excel_export_integrity.py",
     "tests/test_calculator_workbook_export_plan.py",
     "tests/test_calculator_workbook_import.py",
     "tests/test_calculator_open_action.py",
@@ -101,6 +102,8 @@ RECONSTRUCTION_WORKFLOW_TESTS = (
 )
 
 GENERATION_WORKFLOW_TESTS = (
+    "tests/test_activity_url_identity_boundary.py",
+    "tests/test_nutshell_signature_product_contract.py",
     "tests/test_calculator_generation_action.py",
     "tests/test_hosted_workflow_guardrails_regression.py",
     "tests/test_generation_settings_and_preview_split.py",

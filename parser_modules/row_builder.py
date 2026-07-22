@@ -46,4 +46,6 @@ def build_base_row(
         "room_category": "",
         "meal_plan": "",
         "star_rating": "",
+        "source_url": "",
+        "source_urls": [],
     }
