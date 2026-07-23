@@ -9,6 +9,7 @@ from typing import Iterable
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
 from itinerary_generation.row_sequence import ordered_cities
+from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 
 IMPORTANT_ROW_TYPES = {
@@ -235,7 +236,16 @@ def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:
     """Run the structural itinerary safety gate."""
     rows = _as_rows(parsed_rows)
     snapshot = build_quality_snapshot(rows)
-    issues = tuple(_validate_snapshot(snapshot) + _source_fidelity_issues(rows))
+    continuity_issues = [
+        ItineraryValidationIssue(
+            finding.severity,
+            finding.code,
+            finding.message,
+            context=finding.context,
+        )
+        for finding in evaluate_itinerary_continuity(rows)
+    ]
+    issues = tuple(_validate_snapshot(snapshot) + _source_fidelity_issues(rows) + continuity_issues)
     return ItineraryQualityGateReport(snapshot=snapshot, issues=issues)
 
 

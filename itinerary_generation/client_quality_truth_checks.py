@@ -12,6 +12,7 @@ import re
 from typing import Any, Iterable, Mapping
 
 from itinerary_generation.generation_quality_gate import BLOCKING, ItineraryValidationIssue
+from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
 from itinerary_generation.schedule_occupancy import analyze_time_intervals
 from itinerary_generation.schedule_time_ranges import ParsedTimeRange, parse_time_range
 from shared.text import clean_space
@@ -260,6 +261,16 @@ def client_truth_issues(
 
     if _INTERNAL_COPY_RE.search(full_body):
         issues.append(ItineraryValidationIssue(BLOCKING, "internal_copy_leak", "Internal/developer wording leaked into client-facing output."))
+
+    for finding in evaluate_itinerary_continuity(source_rows):
+        issues.append(
+            ItineraryValidationIssue(
+                finding.severity,
+                finding.code,
+                finding.message,
+                context=finding.context,
+            )
+        )
 
     seen_cities: set[str] = set()
     for day in days:

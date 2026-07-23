@@ -16,6 +16,7 @@ from itinerary_generation.day_intro_context import (
 from itinerary_generation.day_intro_destination_context import _arrival_stay_intro, _destination_identity
 from itinerary_generation.day_intro_repetition import _return_visit_intro
 from itinerary_generation.transport_domain.route_summary import transport_endpoints_from_row
+from itinerary_generation.transport_domain.client_wording import build_day_client_transport_wording
 from itinerary_generation.day_route_text import create_travel_route_label
 from itinerary_generation.route_intelligence import route_intro_for_day
 
@@ -174,6 +175,9 @@ def select_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
         route_label = create_travel_route_label([dict(row) for row in facts.rows])
         if route_label:
             return f"Travel from {route_label}, with the overnight journey and onboard arrangements listed below."
+        wording = build_day_client_transport_wording([dict(row) for row in facts.rows])
+        if wording is not None and wording.travel_phrase:
+            return f"{wording.travel_phrase}, with the journey and onboard arrangements listed below."
         travel = _travel_phrase(facts).replace("Travel", "Travel overnight", 1)
         return f"{travel}, with the journey and onboard arrangements listed below."
 
@@ -193,14 +197,16 @@ def select_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
         if scheduled_intro:
             return scheduled_intro
         activity_text = _activity_intro(facts)
-        if facts.has_arrival:
+        if facts.day_state.destination_arrival:
             place = city or "the destination"
             activities = _activity_rows(facts)
             if activities:
                 title = get_client_activity_phrase(dict(activities[0]))
-                return f"Welcome to {place}. After arrival, the day includes {title}, with the details listed below."
+                if facts.day_state.welcome_allowed:
+                    return f"Welcome to {place}. After arrival, the day includes {title}, with the details listed below."
+                return f"Arrive in {place} today before {title}, with the confirmed travel and activity details listed below."
             return f"Arrive in {place} today before the included experience listed below."
-        if facts.has_accommodation and city and not facts.return_visit:
+        if facts.has_accommodation and city and facts.day_state.welcome_allowed:
             return f"Welcome to {city}. After arrival, settle into the logistics first, then continue into the included experience later today."
         return activity_text
 
@@ -227,8 +233,10 @@ def select_day_intro_text(facts: DayFacts, intent: DayIntent | None = None) -> s
         return f"This day in {place} leaves some time flexible around the listed arrangements."
 
     if city:
-        if facts.has_accommodation and not facts.return_visit:
+        if facts.has_accommodation and facts.day_state.welcome_allowed:
             identity = _destination_identity(city)
             return f"Welcome to {city}. The day stays relaxed around your stay, with time to get a feel for {identity}."
+        if facts.has_accommodation:
+            return f"Continue your stay in {city}, with today’s accommodation arrangements kept clear and easy to follow."
         return f"This is part of your stay in {city}, with today’s plans kept clear and easy to follow."
     return "The day’s arrangements are listed below."

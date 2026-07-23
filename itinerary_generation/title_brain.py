@@ -75,6 +75,13 @@ def _travel_title_decision(rows: Sequence[Mapping[str, object]], facts: DayFacts
 
 def _arrival_activity_title_decision(city: str, activity_trace: CopyDecisionTrace, facts: DayFacts, schedule: DayScheduleProfile) -> CopyDecisionTrace:
     activity_title = activity_trace.text
+    if not facts.day_state.destination_arrival:
+        return finalize_decision(
+            kind="day_title",
+            selected=activity_trace.selected,
+            candidates=activity_trace.candidates,
+            context={"intent": "activity_plus_travel", "arrival_state": "not_a_destination_arrival"},
+        )
     if not activity_title:
         return title_trace(
             f"Arrival in {city}" if city else "Arrival",
@@ -189,7 +196,21 @@ def _transport_or_fallback_title(
     if intent == DayIntent.FULL_LEISURE_DAY:
         return title_trace(f"A day at leisure in {city}" if city else "A day at leisure", source="leisure_intent_title", priority=72, reason="Full-leisure-day intent owns this title.", context=context)
     if has_hotel(row_list) and city:
-        return title_trace(f"Welcome to {city}", source="stay_title_fallback", priority=60, reason="Hotel stay without a stronger day pattern falls back to destination welcome.", risk_flags=("fallback_title",), context=context)
+        if facts.day_state.welcome_allowed:
+            return title_trace(
+                f"Welcome to {city}",
+                source="arrival_state_title",
+                priority=78,
+                reason="Itinerary day state confirms the start of a first destination stay.",
+                context=context,
+            )
+        return title_trace(
+            f"Stay in {city}",
+            source="stay_continuation_title",
+            priority=68,
+            reason="Itinerary day state confirms an existing destination chapter, so hotel presence cannot create a new welcome.",
+            context=context,
+        )
     return title_trace(f"Day in {city}" if city else "Day at leisure", source="last_resort_title_fallback", priority=10, reason="No stronger day-title source was available.", risk_flags=("fallback_title",), context=context)
 
 

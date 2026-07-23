@@ -99,10 +99,10 @@ def _transport_endpoints(row: Mapping[str, Any], row_type: str) -> tuple[str, st
         return "", ""
     origin, destination = transport_endpoints_from_row(dict(row))
     origin_city, destination_city = canonical_event_city(origin), canonical_event_city(destination)
-    if (not origin_city or not destination_city) and row_type != "Transfer":
+    if not origin_city and not destination_city and row_type != "Transfer":
         fallback_origin, fallback_destination = _fallback_transport_endpoints(source_text_for_event(row))
-        origin_city = origin_city or fallback_origin
-        destination_city = destination_city or fallback_destination
+        origin_city = fallback_origin
+        destination_city = fallback_destination
     return origin_city, destination_city
 
 

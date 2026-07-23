@@ -14,6 +14,7 @@ from itinerary_generation.day_accommodation_state import AccommodationState, bui
 from itinerary_generation.day_city_facts import arrival_departure_city, canonical_city, row_text
 from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
 from itinerary_generation.day_schedule_facts import DayScheduleProfile, build_schedule_facts
+from itinerary_generation.day_state import DayState, build_day_state
 from itinerary_generation.day_timeline_events import TimelineEvent, normalize_day_events
 from itinerary_generation.day_fact_signals import scan_day_row_signals, transit_cities_for
 from itinerary_generation.day_travel_facts import TRAVEL_ROW_TYPES
@@ -70,6 +71,7 @@ class DayFacts:
     accommodation_state: AccommodationState = field(default_factory=AccommodationState)
     travel_load: TravelLoadProfile = field(default_factory=TravelLoadProfile)
     schedule_profile: DayScheduleProfile = field(default_factory=DayScheduleProfile)
+    day_state: DayState = field(default_factory=DayState)
     visit_number: int = 1
     previous_visit_days: tuple[str, ...] = ()
 
@@ -225,22 +227,34 @@ def build_day_facts(
         accommodation_state=accommodation_state,
     )
     visit_facts = build_visit_facts(visit_context)
-    confirmed_check_in = _confirmed_check_in(
-        signals.has_accommodation,
-        pattern_flags.same_city_accommodation_change,
-        signals.has_arrival,
-        city_context.overnight_city,
-        all_text,
-        accommodation_state,
-    )
-    confirmed_check_out = _confirmed_check_out(signals.has_accommodation, signals.has_departure, all_text, accommodation_state)
-
     source_flags = set(signals.source_flags)
     source_flags.update(accommodation_state.flags)
     source_flags.update(travel_load.flags)
     source_flags.update(schedule_profile.flags)
     if travel_load.level != "none":
         source_flags.add(f"travel_load:{travel_load.level}")
+
+    day_state = build_day_state(
+        visit_context=visit_context,
+        has_arrival=signals.has_arrival,
+        has_departure=signals.has_departure,
+        has_accommodation=signals.has_accommodation,
+        has_route_transport=signals.has_route_transport,
+        arrival_city=city_context.arrival_city,
+        onward_destination=city_context.onward_destination,
+        overnight_city=city_context.overnight_city,
+        source_flags=source_flags,
+        same_city_change_signal=pattern_flags.same_city_accommodation_change,
+    )
+    confirmed_check_in = _confirmed_check_in(
+        signals.has_accommodation,
+        day_state.same_city_accommodation_change,
+        day_state.explicit_arrival,
+        city_context.overnight_city,
+        all_text,
+        accommodation_state,
+    )
+    confirmed_check_out = _confirmed_check_out(signals.has_accommodation, signals.has_departure, all_text, accommodation_state)
 
     return DayFacts(
         rows=main_rows,
@@ -274,8 +288,8 @@ def build_day_facts(
         has_overnight_transport=signals.has_overnight_transport,
         confirmed_check_in=confirmed_check_in,
         confirmed_check_out=confirmed_check_out,
-        same_city_accommodation_change=pattern_flags.same_city_accommodation_change,
-        return_visit=visit_facts.return_visit,
+        same_city_accommodation_change=day_state.same_city_accommodation_change,
+        return_visit=day_state.return_visit,
         travel_heavy=pattern_flags.travel_heavy,
         full_leisure_day=pattern_flags.full_leisure_day,
         partial_leisure_day=pattern_flags.partial_leisure_day,
@@ -285,6 +299,7 @@ def build_day_facts(
         accommodation_state=accommodation_state,
         travel_load=travel_load,
         schedule_profile=schedule_profile,
+        day_state=day_state,
         visit_number=visit_facts.visit_number,
         previous_visit_days=visit_facts.previous_visit_days,
     )

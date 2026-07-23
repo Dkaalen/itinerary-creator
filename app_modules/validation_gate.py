@@ -41,7 +41,7 @@ def render_blocking_issues(report: ItineraryQualityGateReport) -> None:
     if report.is_blocked:
         st.warning(
             "The itinerary was not generated because the parsed structure appears unsafe. "
-            "Check optional/add-on rows and try again."
+            "Review the reported schedule, route-continuity, or optional-row issues and try again."
         )
 
 

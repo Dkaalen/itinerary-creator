@@ -43,9 +43,9 @@ def test_coach_transfer_day_title_and_line_strip_time_and_ticket_noise():
     row = _rows_by_day()['Day 5'][0]
 
     assert create_day_title(_rows_by_day()['Day 5']) == 'Coach Transfer to Kakslauttanen'
-    assert get_transfer_travel_title(row) == 'Coach Transfer to Kakslauttanen'
+    assert get_transfer_travel_title(row) == 'Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen'
     line = get_travel_arrangement_line(row)
-    assert line == 'Coach Transfer to Kakslauttanen — 11:45 AM - 3:02 PM'
+    assert line == 'Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen — 11:45 AM - 3:02 PM'
     assert 'Tickets Included' not in line
 
 

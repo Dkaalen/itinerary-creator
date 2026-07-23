@@ -208,6 +208,20 @@ def _add_nutshell_point(points: list[str], value: str) -> None:
         points.append(place)
 
 
+
+def _clean_narrative_route_place(value: str) -> str:
+    """Remove leg-mode labels before a Nutshell place becomes route truth."""
+
+    raw = str(value or "").strip(" -:|,")
+    text = re.sub(
+        r"^(?:train\s+transfer|train|rail|railway|flåm\s+railway|flam\s+railway|"
+        r"fjord\s+cruise|cruise|coach\s+transfer|coach|bus\s+transfer|bus)\s+",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    ).strip(" -:|,")
+    return text
+
 def _route_points_from_timetable_legs(source: str, points: list[str]) -> list[str]:
     for leg in extract_norway_nutshell_route_legs(source):
         _add_nutshell_point(points, leg.get("origin", ""))
@@ -224,9 +238,8 @@ def _route_points_from_supplier_includes(source: str, points: list[str]) -> list
         )
         if not route_match:
             continue
-        origin = route_match.group("origin")
-        destination = route_match.group("destination")
-        origin = re.sub(r"^(?:train\s+transfer|train|rail|railway|flåm\s+railway|flam\s+railway|fjord\s+cruise|cruise|coach\s+transfer|coach|bus\s+transfer|bus)\s+", "", origin, flags=re.IGNORECASE).strip(" -:|,")
+        origin = _clean_narrative_route_place(route_match.group("origin"))
+        destination = _clean_narrative_route_place(route_match.group("destination"))
         _add_nutshell_point(points, origin)
         _add_nutshell_point(points, destination)
     return points
@@ -257,8 +270,8 @@ def _route_points_from_narrative_route(source: str, points: list[str]) -> list[s
         route_text,
         flags=re.IGNORECASE,
     ):
-        _add_nutshell_point(points, origin_match)
-        _add_nutshell_point(points, dest_match)
+        _add_nutshell_point(points, _clean_narrative_route_place(origin_match))
+        _add_nutshell_point(points, _clean_narrative_route_place(dest_match))
     return points
 
 

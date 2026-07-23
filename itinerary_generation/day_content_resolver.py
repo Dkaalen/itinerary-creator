@@ -106,18 +106,6 @@ def generated_day_values(
     else:
         title_decision = plan_day_title_decision(rows, visit_context=visit_context)
         generated_title = title_decision.text
-    if getattr(visit_context, "is_return_visit", False) and city and generated_title.lower().startswith((f"welcome to {city}".lower(), f"arrival in {city}".lower())):
-        generated_title = f"Return to {city}"
-        from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision
-        selected = decision_candidate(
-            generated_title,
-            source="return_visit_title_override",
-            priority=99,
-            reason="Visit context prevents first-arrival wording on a return stay.",
-        )
-        assert selected is not None
-        title_decision = finalize_decision(kind="day_title", selected=selected, candidates=title_decision.candidates)
-
     intent = classify_day_intent(facts)
     if group_intro:
         from itinerary_generation.copy_decision_contract import decision_candidate, finalize_decision

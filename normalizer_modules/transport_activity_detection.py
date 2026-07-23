@@ -50,6 +50,19 @@ def is_rail_or_fjord_route_activity(row: dict) -> bool:
     """Return True when an Activity row is actually route transport."""
 
     text = text_blob(row).lower()
+    source_title = str(row.get("original_title") or row.get("title") or "").lower()
+    source_city = str(row.get("city") or "").strip().lower()
+    round_trip_markers = ("round-trip", "round trip")
+    returns_to_source_city = bool(
+        source_city
+        and re.search(
+            rf"\b(?:return|returns|returning)\s+to\s+{re.escape(source_city)}\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+    )
+    if any(marker in source_title for marker in round_trip_markers) or returns_to_source_city:
+        return False
     product = fingerprint_activity(row)
     if product and product.canonical_family in {"bergen_guided_flam_day_tour"}:
         return False

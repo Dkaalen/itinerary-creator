@@ -65,7 +65,7 @@ def test_day_brain_debug_report_contains_all_middle_brain_layers():
     assert report["day_count"] >= 9
     assert report["issue_count"] == 0
     first_day = report["days"][0]
-    assert {"facts", "timeline_events", "accommodation_state", "travel_load", "visit_context", "qa"}.issubset(first_day)
+    assert {"facts", "timeline_events", "accommodation_state", "travel_load", "day_state", "visit_context", "qa"}.issubset(first_day)
     assert first_day["timeline_events"]
     assert first_day["intent"] in {"arrival_stay", "arrival_onward_travel"}
 

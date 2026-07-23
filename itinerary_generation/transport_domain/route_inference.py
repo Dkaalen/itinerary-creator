@@ -147,10 +147,39 @@ def _route_from_self_drive_row(row) -> tuple[str, str]:
             return origin, destination
     return "", ""
 
+
+
+def _branded_service_route_from_source(value: str) -> tuple[str, str]:
+    """Extract ``service name + origin to destination`` route headlines.
+
+    Named services such as ``Santa Claus Express Helsinki to Rovaniemi``
+    contain a product label before the real origin. Generic route parsing can
+    mistake the full label for a place, so the service noun is the boundary.
+    """
+
+    place = r"[A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?"
+    match = re.search(
+        rf"\b(?:[A-Za-zÀ-ÿøØåÅäÄöÖ'-]+\s+){{0,4}}"
+        rf"(?:express|line|railway|train|flight|cruise|ferry|coach|bus)\s+"
+        rf"(?P<origin>{place})\s+to\s+(?P<destination>{place})"
+        rf"(?:\s+-\s+|\s+\|\s+|,|$)",
+        str(value or ""),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return "", ""
+    origin = _clean_route_place(match.group("origin"))
+    destination = _clean_route_place(match.group("destination"))
+    if origin and destination and origin.casefold() != destination.casefold():
+        return origin, destination
+    return "", ""
+
 def _route_from_structured_transport_sources(row, source_text: str) -> tuple[str, str]:
     for origin, destination in (
         _explicit_product_route_from_row_city(row),
         _scheduled_route_points_from_source(source_text),
+        _branded_service_route_from_source(str(row.get("original_title", "") or "")),
+        _branded_service_route_from_source(str(row.get("title", "") or "")),
         _expanded_transfer_route_from_title(str(row.get("title", "") or "")),
     ):
         if destination:
@@ -256,6 +285,34 @@ def _route_from_unstructured_fallbacks(row) -> tuple[str, str]:
     return "", _clean_route_place(row.get("city", ""))
 
 
+def _validated_route_candidate(row, origin: str, destination: str) -> tuple[str, str]:
+    """Validate every extractor candidate before it becomes route truth.
+
+    Individual extractors are intentionally permissive recall mechanisms. This
+    boundary prevents service labels such as ``on the Bergen Line`` or
+    ``transfer on the Northern Lights Express`` from becoming places. When a
+    destination is sound but the proposed origin is not, the workbook row city
+    is the strongest available replacement.
+    """
+
+    clean_destination = _clean_route_place(destination)
+    if not clean_destination or not _canonical_route_field_is_place(clean_destination):
+        return "", ""
+
+    clean_origin = _clean_route_place(origin)
+    if clean_origin and not _canonical_route_field_is_place(clean_origin):
+        clean_origin = ""
+    if not clean_origin:
+        row_type = str(row.get("effective_type") or row.get("type") or "")
+        if row_type != "Transfer":
+            city_origin = _row_city_origin(row)
+            if city_origin and _canonical_route_field_is_place(city_origin):
+                clean_origin = city_origin
+    if clean_origin and clean_origin.casefold() == clean_destination.casefold():
+        clean_origin = ""
+    return clean_origin, clean_destination
+
+
 def _get_route_points_for_transport_uncached(row):
     source_text = _transport_source_text(row)
     for resolver in (
@@ -267,7 +324,7 @@ def _get_route_points_for_transport_uncached(row):
         lambda: _route_from_title_with_source_origin(row),
         lambda: _route_from_unstructured_fallbacks(row),
     ):
-        origin, destination = resolver()
+        origin, destination = _validated_route_candidate(row, *resolver())
         if destination:
             return origin, destination
     return "", ""

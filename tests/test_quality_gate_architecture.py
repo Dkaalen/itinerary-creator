@@ -75,6 +75,17 @@ def test_quality_gate_warns_for_large_optional_share_without_blocking_when_main_
         {"day": "Day 3", "type": "Activity", "effective_type": "Activity", "city": "Bergen", "is_optional": True, "commercial_status": "optional"},
         {"day": "Day 4", "type": "Activity", "effective_type": "Activity", "city": "Bergen", "is_optional": True, "commercial_status": "optional"},
         {"day": "Day 5", "type": "Activity", "effective_type": "Activity", "city": "Tromsø", "is_optional": True, "commercial_status": "optional"},
+        {
+            "day": "Day 6",
+            "type": "Flight",
+            "effective_type": "Flight",
+            "city": "Oslo",
+            "origin": "Oslo",
+            "destination": "Tromsø",
+            "title": "Self-arranged flight from Oslo to Tromsø",
+            "details": "Oslo to Tromsø",
+            "commercial_status": "self_arranged",
+        },
         {"day": "Day 6", "type": "Activity", "effective_type": "Activity", "city": "Tromsø", "is_optional": True, "commercial_status": "optional"},
         {"day": "Day 6", "type": "Departure", "effective_type": "Departure", "city": "Tromsø"},
     ]

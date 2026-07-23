@@ -12,7 +12,7 @@ from typing import Mapping, Sequence
 
 from itinerary_generation.common_constants import TRANSPORT_TYPES
 from itinerary_generation.row_filters import get_row_type
-from itinerary_generation.transport_domain.route_cleaning import canonical_route_city
+from itinerary_generation.transport_domain.route_cleaning import canonical_route_city, clean_route_place
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title
@@ -25,11 +25,50 @@ _SERVICE_ENDPOINT_RE = re.compile(
     r"^(?:private|shared|self[- ]?arranged)?\s*(?:airport\s+)?(?:transfer|transport|journey|travel)$",
     re.IGNORECASE,
 )
+_SERVICE_PLACE_FRAGMENT_RE = re.compile(
+    r"\b(?:overnight\s+)?(?:cruise|flight|train|railway|coach|bus|ferry)(?:\s+transfer)?\b",
+    re.IGNORECASE,
+)
+_TRANSPORT_HUB_RE = re.compile(
+    r"\b(?:airport|station|terminal|bus\s+stop|ferry\s+port|cruise\s+port|harbou?r|port|pier|dock)\b",
+    re.IGNORECASE,
+)
+_SOURCE_CITY_PREFIX_RE = re.compile(r"^\s*([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{1,45})\s*:")
 
 
 def _place_endpoint(value: object) -> str:
-    endpoint = str(value or "").strip(" -:|.,")
-    return "" if _SERVICE_ENDPOINT_RE.fullmatch(endpoint) else endpoint
+    endpoint = clean_route_place(str(value or ""))
+    if not endpoint or _SERVICE_ENDPOINT_RE.fullmatch(endpoint):
+        return ""
+    if _SERVICE_PLACE_FRAGMENT_RE.search(endpoint) and not _TRANSPORT_HUB_RE.search(endpoint):
+        return ""
+    return canonical_route_city(endpoint)
+
+
+def _source_city_prefix(row: Mapping[str, object]) -> str:
+    for key in ("details", "original_title", "raw", "raw_text"):
+        match = _SOURCE_CITY_PREFIX_RE.search(str(row.get(key, "") or ""))
+        if not match:
+            continue
+        city = _place_endpoint(match.group(1))
+        if city:
+            return city
+    return ""
+
+
+def _nutshell_contract_endpoints(row: Mapping[str, object]) -> tuple[str, str]:
+    product = row.get("activity_product")
+    if not isinstance(product, Mapping):
+        return "", ""
+    contract = product.get("domain_contract")
+    if not isinstance(contract, Mapping) or contract.get("kind") != "norway_in_a_nutshell_journey":
+        return "", ""
+    destination = _place_endpoint(contract.get("destination"))
+    origin = _place_endpoint(contract.get("origin"))
+    city = _place_endpoint(row.get("city"))
+    if not origin and city and (not destination or city.casefold() != destination.casefold()):
+        origin = city
+    return origin, destination
 
 
 def transport_endpoints_from_row(row: Mapping[str, object]) -> tuple[str, str]:
@@ -41,8 +80,17 @@ def transport_endpoints_from_row(row: Mapping[str, object]) -> tuple[str, str]:
     removed once at this domain boundary.
     """
 
+    contract_origin, contract_destination = _nutshell_contract_endpoints(row)
+    if contract_destination:
+        return contract_origin, contract_destination
+
     origin, destination = get_route_points_for_transport(dict(row))
-    return _place_endpoint(origin), _place_endpoint(destination)
+    clean_origin, clean_destination = _place_endpoint(origin), _place_endpoint(destination)
+    if not clean_origin and clean_destination:
+        source_city = _source_city_prefix(row)
+        if source_city and source_city.casefold() != clean_destination.casefold():
+            clean_origin = source_city
+    return clean_origin, clean_destination
 
 
 def transport_destination_from_row(row: Mapping[str, object]) -> str:

@@ -23,6 +23,7 @@ from itinerary_generation.structured_items_builder import (
     _source_ref,
     _source_text,
 )
+from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
 from itinerary_generation.structured_model import ItineraryDocument, ModelWarning
 from itinerary_generation.structured_row_helpers import _ACTIVITY_STRUCTURE_MARKERS, _has_structured_activity_supplier_text
 from itinerary_generation.structured_travel_sequences import (
@@ -60,6 +61,15 @@ def build_itinerary_document(parsed_rows: list[dict], grouped_days: dict[str, li
     item_warnings: list[ModelWarning] = []
     for item in items:
         item_warnings.extend(item.warnings)
+    item_warnings.extend(
+        ModelWarning(
+            code=finding.code,
+            message=finding.message,
+            severity=finding.severity,
+            source_row_ids=finding.source_row_ids,
+        )
+        for finding in evaluate_itinerary_continuity(rows)
+    )
 
     document = ItineraryDocument(
         source_rows=source_rows,

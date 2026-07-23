@@ -122,6 +122,25 @@ def normalize_row(row: dict) -> dict:
     full = text_blob(row)
 
     if str(row.get("type") or "") == "Activity":
+        # Explicit Activity is authoritative unless the source row passes one
+        # of the narrow transport-package contracts.  Parser heuristics may
+        # propose Cruise/Transport after seeing words such as ferry or coach
+        # inside an excursion description; the normalizer must not preserve
+        # that false override.
+        is_accommodation_transfer = bool(
+            row_type == "Transfer"
+            and re.search(
+                r"\btransfer\s+to\s+(?:glass\s+)?(?:igloo|hotel|accommodation|resort|cabin|lodge)\b|\btransfer\s+to\s+[^.]{0,40}stay\b",
+                full,
+                flags=re.IGNORECASE,
+            )
+        )
+        if row_type != "Activity" and not (
+            _is_rail_or_fjord_route_activity(row)
+            or _is_route_transfer_activity(row)
+            or is_accommodation_transfer
+        ):
+            row["effective_type"] = row_type = "Activity"
         product = fingerprint_activity(row)
         if product and product.product_type == "ferry_excursion":
             row["effective_type"] = row_type = "Activity"

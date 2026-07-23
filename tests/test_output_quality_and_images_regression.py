@@ -41,7 +41,7 @@ def test_real_fixture_journey_arc_uses_destination_welcome_not_travel_filler():
         assert marker.lower() not in arc_text.lower()
 
 
-def test_real_fixture_day_intros_use_experience_or_welcome_copy():
+def test_real_fixture_day_intros_use_experience_arrival_or_welcome_copy():
     rows = _fixture_rows()
     context = build_itinerary_render_context(rows, group_rows_by_day(rows), {})
     days = {day.day: day for day in context.render_document.days}
@@ -52,11 +52,13 @@ def test_real_fixture_day_intros_use_experience_or_welcome_copy():
     assert "onward" not in days["Day 2"].intro.lower()
 
     assert days["Day 6"].title == "Northern Lights Chase"
-    assert days["Day 6"].intro.startswith("Welcome to Tromsø.")
+    assert days["Day 6"].intro.startswith("Arrive in Tromsø today before")
+    assert not days["Day 6"].intro.startswith("Welcome to Tromsø.")
     assert "Travel continues" not in days["Day 6"].intro
 
-    assert days["Day 8"].title == "Welcome to Bergen"
-    assert days["Day 8"].intro.startswith("Welcome to Bergen.")
+    assert days["Day 8"].title == "Flight to Bergen"
+    assert days["Day 8"].intro.startswith("Travel from Tromsø to Bergen by flight")
+    assert not days["Day 8"].intro.startswith("Welcome to Bergen.")
     assert "Flight connection" not in days["Day 8"].intro
 
     report = evaluate_client_output_quality(context.render_document)

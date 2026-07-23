@@ -5,6 +5,7 @@ import re
 
 from text_polish import polish_client_text
 from itinerary_generation.transport_domain.route_hubs import clean_route_place as _clean_route_place
+from itinerary_generation.transport_domain.route_validation import _canonical_route_field_is_place
 from itinerary_generation.transport_model import get_transport_source_text
 
 
@@ -23,7 +24,7 @@ def _scheduled_via_points_from_source(source_text: str, origin: str = "", destin
     points: list[str] = []
     for raw in arrivals[:-1]:
         candidate = _clean_route_place(raw)
-        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
+        if candidate and _canonical_route_field_is_place(candidate) and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
             points.append(candidate)
     return points[:2]
 
@@ -36,7 +37,16 @@ def get_route_via_points(row, origin="", destination=""):
 
     for via_match in re.finditer(r"\bvia\s+([A-Za-zÀ-ÿøØåÅäÄöÖ\s]+?)(?:\s+-\s+|\s+\||,|$)", text, flags=re.IGNORECASE):
         candidate = _clean_route_place(via_match.group(1))
-        if candidate and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
+        if candidate and _canonical_route_field_is_place(candidate) and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
+            points.append(candidate)
+
+    for connection_match in re.finditer(
+        r"\b(?:with\s+)?connection\s+in\s+([A-Za-zÀ-ÿøØåÅäÄöÖ .'-]+?)(?:\s+to\s+|\s+-\s+|\s+\||,|$)",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        candidate = _clean_route_place(connection_match.group(1))
+        if candidate and _canonical_route_field_is_place(candidate) and candidate.lower() not in {origin.lower(), destination.lower()} and candidate not in points:
             points.append(candidate)
 
     # Multi-leg phrasing such as Copenhagen to Malmö to Stockholm.
@@ -47,7 +57,7 @@ def get_route_via_points(row, origin="", destination=""):
         pieces = [piece for piece in pieces if piece]
         if len(pieces) > 2:
             for piece in pieces[1:-1]:
-                if piece.lower() not in {origin.lower(), destination.lower()} and piece not in points:
+                if _canonical_route_field_is_place(piece) and piece.lower() not in {origin.lower(), destination.lower()} and piece not in points:
                     points.append(piece)
 
     if not points and re.search(r"\bmalm[øo]\b", text, flags=re.IGNORECASE) and destination.lower() != "malmö":

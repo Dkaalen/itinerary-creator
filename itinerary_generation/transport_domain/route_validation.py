@@ -11,9 +11,13 @@ def _canonical_route_field_is_place(value: str) -> bool:
         return False
     lower = text.casefold()
     if re.match(
-        r"^(?:drive|travel|continue|explore|visit|return|head|follow|enjoy|pick[- ]?up|drop[- ]?off)\b",
+        r"^(?:drive|travel|continue|explore|visit|return|head|follow|enjoy|pick[- ]?up|drop[- ]?off|on\s+the|transfer\s+on)\b",
         lower,
     ):
+        return False
+    if lower in {"to", "from", "at", "on"}:
+        return False
+    if re.search(r"\b(?:next\s+day|same\s+day|arrival|departure|duration|travel\s+time)\b", lower):
         return False
     service_markers = (
         "self transfer",
@@ -23,5 +27,13 @@ def _canonical_route_field_is_place(value: str) -> bool:
         "activity upgrade",
         "transfer package",
     )
-    return not any(marker in lower for marker in service_markers)
+    if any(marker in lower for marker in service_markers):
+        return False
+    # Product and mode labels are not geographic endpoints. Transport hubs
+    # remain valid because their terminal noun proves they are places.
+    if re.search(r"\b(?:cruise|flight|train|rail(?:way)?|line|express|coach|bus|ferry|transfer)\b", lower) and not re.search(
+        r"\b(?:airport|station|terminal|port|harbou?r|stop)\b", lower
+    ):
+        return False
+    return True
 

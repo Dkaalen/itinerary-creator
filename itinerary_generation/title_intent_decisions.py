@@ -136,6 +136,15 @@ def arrival_or_return_title(
             context=context,
         )
 
+    if intent == DayIntent.RETURN_VISIT:
+        return title_trace(
+            f"Return to {city}" if city else "Return Visit",
+            source="return_visit_title",
+            priority=80,
+            reason="Itinerary day state marks this as a genuine return chapter.",
+            context=context,
+        )
+
     if (
         facts.has_route_transport
         and not activities
@@ -146,14 +155,6 @@ def arrival_or_return_title(
             kind="day_title",
             selected=primary_transport_candidate,
             candidates=(primary_transport_candidate,),
-            context=context,
-        )
-    if intent == DayIntent.RETURN_VISIT:
-        return title_trace(
-            f"Return to {city}" if city else "Return Visit",
-            source="return_visit_title",
-            priority=80,
-            reason="Visit context marks this as a return stay.",
             context=context,
         )
     return None

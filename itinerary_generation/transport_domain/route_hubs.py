@@ -100,6 +100,7 @@ def clean_route_place(value):
     raw = re.sub(r"\b(?:cost|price)\s+not\s+in(?:cl|lc)uded\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\bnot\s+included\b", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*,?\s*tickets?\s+to\s+be\s+(?:bought|purchased).*$", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\s*,?\s*tickets?\b.*$", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*,?\s*to\s+be\s+paid\s+locally.*$", "", raw, flags=re.IGNORECASE)
     raw = re.split(
         r"\s+-\s+(?:\d+\s*x\s*)?(?:private\s+)?(?:sleeper|sleeping)\s+(?:compartment|cabin|berth)|\s+-\s+breakfast\s+included|\s+-\s+train\s+ticket\s+included|\s+onboard\s+",
@@ -112,6 +113,9 @@ def clean_route_place(value):
     # become a client-facing place name.
     raw = re.sub(r"\s+\bt\b$", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     raw = re.split(r"\s+-\s+|\s+\|\s+|\s+via\s+|\s+at\s+\d{1,2}:\d{2}|\s+\d{1,2}:\d{2}", raw, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:|.,")
+    # Parsers can retain a dangling schedule preposition after stripping the
+    # actual time (for example ``Bergen at``). It is not part of the place.
+    raw = re.sub(r"\s+\b(?:at|on)\b$", "", raw, flags=re.IGNORECASE).strip(" -:|.,")
     if re.search(r"\s+to\s+", raw, flags=re.IGNORECASE):
         raw = re.split(r"\s+to\s+", raw, flags=re.IGNORECASE)[-1].strip(" -:|.,")
     raw = re.sub(r"\bKakslaut+?enen\s+Arctic\s+Resort\b", "Kakslauttanen", raw, flags=re.IGNORECASE)

@@ -22,6 +22,7 @@ class DayDestinationMemory:
     visit_number: int = 1
     previous_days: tuple[str, ...] = ()
     overnight_city: str = ""
+    previous_overnight_city: str = ""
     transit_cities: tuple[str, ...] = ()
     first_visit: bool = True
     return_visit: bool = False
@@ -60,6 +61,7 @@ def build_destination_visit_memory(grouped_days: Mapping[str, Sequence[dict]] | 
 
     visit_starts: dict[str, list[str]] = defaultdict(list)
     active_city = ""
+    active_overnight_city = ""
     active_visit_number = 1
     memories: dict[str, DayDestinationMemory] = {}
 
@@ -100,7 +102,14 @@ def build_destination_visit_memory(grouped_days: Mapping[str, Sequence[dict]] | 
             and canonical
             and any(canonical_memory_city(origin) not in {"", canonical} for origin in route_origins)
         )
-        explicit_new_chapter = bool(completed_visit and (has_arrival or arrives_from_elsewhere))
+        same_active_city = bool(active_city and canonical == active_city)
+        explicit_new_chapter = bool(
+            completed_visit
+            and (
+                arrives_from_elsewhere
+                or (has_arrival and not same_active_city)
+            )
+        )
         chapter_start = bool(
             completed_visit
             and (
@@ -119,6 +128,11 @@ def build_destination_visit_memory(grouped_days: Mapping[str, Sequence[dict]] | 
         else:
             previous = tuple(visit_starts[canonical]) if canonical else ()
 
+        previous_overnight_city = (
+            active_overnight_city
+            if active_overnight_city and canonical_memory_city(active_overnight_city) == canonical
+            else ""
+        )
         visit_number = active_visit_number if canonical and canonical == active_city else (len(previous) + 1 if canonical else 1)
         return_visit = bool(completed_visit and chapter_start and previous)
         transit_only = bool(context_city and not completed_visit)
@@ -153,6 +167,7 @@ def build_destination_visit_memory(grouped_days: Mapping[str, Sequence[dict]] | 
             visit_number=visit_number,
             previous_days=previous,
             overnight_city=overnight_city,
+            previous_overnight_city=previous_overnight_city,
             transit_cities=tuple(transit_cities),
             first_visit=not return_visit,
             return_visit=return_visit,
@@ -161,8 +176,11 @@ def build_destination_visit_memory(grouped_days: Mapping[str, Sequence[dict]] | 
             chapter_start=chapter_start,
             flags=frozenset(flags),
         )
+        if overnight_city:
+            active_overnight_city = overnight_city
         if leaves_active_city:
             active_city = ""
+            active_overnight_city = ""
     return memories
 
 

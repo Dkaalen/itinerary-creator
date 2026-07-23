@@ -23,6 +23,7 @@ class DayVisitContext:
     visit_number: int = 1
     previous_days: tuple[str, ...] = ()
     overnight_city: str = ""
+    previous_overnight_city: str = ""
     transit_cities: tuple[str, ...] = ()
     transit_only: bool = False
     completed_visit: bool = False
@@ -63,6 +64,7 @@ def build_day_visit_contexts(grouped_days: Mapping[str, Sequence[dict]] | Iterab
             visit_number=memory.visit_number,
             previous_days=memory.previous_days,
             overnight_city=memory.overnight_city,
+            previous_overnight_city=memory.previous_overnight_city,
             transit_cities=memory.transit_cities,
             transit_only=memory.transit_only,
             completed_visit=memory.completed_visit,

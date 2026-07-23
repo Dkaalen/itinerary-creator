@@ -8,6 +8,7 @@ from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.render_text_helpers import clean_space
 from itinerary_generation.time_display import display_time
 from itinerary_generation.transport_detection import is_route_transfer
+from itinerary_generation.transport_domain.client_wording import build_client_transport_wording
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title, get_transport_route_phrase
 from itinerary_generation.transport_model import get_transport_source_text, is_transport_like_row
 from itinerary_generation.transport_render_blocks import is_cruise_leisure_row
@@ -58,24 +59,16 @@ def _destination_focused_coach_line(row, phrase):
 
 def get_travel_sequence_line(row):
     row_type = get_row_type(row)
-    if row_type == "Drive": return drive_route_line(row)
-    if row_type == "Transfer" and is_self_arranged(row):
-        return f"{_clean_self_arranged_title(get_transfer_travel_title(row) or row.get('title', 'Self-arranged travel'))} (self-arranged, not included)"
-    if row_type in TRANSPORT_TYPES and is_self_arranged(row):
-        title = _clean_self_arranged_title(get_transport_route_phrase(row) or row.get("title", "Self-arranged travel"))
-        if row_type == "Flight" and title.lower().startswith("flight"):
-            match = re.search(r"\bflight\s+from\s+.+?\s+to\s+(.+)$", title, flags=re.IGNORECASE)
-            if match and polish_title(match.group(1).strip(" -:|.,")): title = f"Flight to {polish_title(match.group(1).strip(' -:|.,'))}"
-            return f"Self-arranged {title[0].lower() + title[1:]} (not included)"
-        return f"{title} (self-arranged, not included)"
+    if row_type == "Drive":
+        return drive_route_line(row)
+
+    wording = build_client_transport_wording(dict(row))
+    if (row_type == "Transfer" or row_type in TRANSPORT_TYPES) and is_self_arranged(row):
+        return wording.commercial_title
     if row_type == "Transfer" and is_route_transfer(row):
-        text = get_transport_source_text(row).lower()
-        phrase = get_transport_route_phrase(row) or get_transfer_travel_title(row) or polish_title(row.get("title", ""))
-        return _destination_focused_coach_line(row, phrase) if any(marker in text for marker in ("train", "ferry", "cruise", "flight", "coach", "bus")) else get_transfer_travel_title(row) or polish_title(row.get("title", ""))
-    if row_type == "Transfer": return clean_client_title(row.get("title", ""), row) or polish_title(row.get("title", ""))
+        return wording.arrangement_title
+    if row_type == "Transfer":
+        return clean_client_title(row.get("title", ""), row) or polish_title(row.get("title", ""))
     if row_type in TRANSPORT_TYPES:
-        journey = resolve_nutshell_journey(row)
-        if journey is not None: return journey.client_title
-        phrase = get_transport_route_phrase(row)
-        return _destination_focused_coach_line(row, phrase) if phrase else polish_title(row.get("title", ""))
+        return wording.arrangement_title
     return polish_title(row.get("title", ""))

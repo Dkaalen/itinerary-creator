@@ -120,6 +120,7 @@ def build_day_brain_day_report(
         "accommodation_state": _dataclass_payload(facts.accommodation_state),
         "travel_load": _dataclass_payload(facts.travel_load),
         "schedule_profile": _dataclass_payload(facts.schedule_profile),
+        "day_state": _dataclass_payload(facts.day_state),
         "visit_context": _dataclass_payload(visit_context) if visit_context else {},
     }
 

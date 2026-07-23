@@ -20,7 +20,7 @@ def test_self_arranged_flight_typo_stays_out_of_included_flights():
     }
 
     assert is_self_arranged(row)
-    assert get_travel_sequence_line(row) == "Self-arranged flight to Tromsø (not included)"
+    assert get_travel_sequence_line(row) == "Self-arranged flight from Bergen to Tromsø (not included)"
 
     sections = create_categorized_inclusions([row], group_rows_by_day([row]))
     assert all(section["title"] != "Flights" for section in sections)

@@ -16,6 +16,7 @@ from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.nutshell_domain import resolve_nutshell_journey
 from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
+from itinerary_generation.transport_domain.client_wording import build_day_client_transport_wording
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_safety import base_destination_from_terminal, normalize_transport_place
@@ -305,27 +306,7 @@ def route_intro_for_day(day_rows: Sequence[Mapping[str, object]], detail_level: 
     if profile:
         return profile.intro
 
-    origin, destination = get_route_points_for_transport(row)
-    if not destination and is_route_transfer(row):
-        # Route transfer rows often keep the endpoint inside the generated transfer title.
-        from parser_modules.common import extract_route_points
-
-        origin, destination = extract_route_points(get_transfer_travel_title(row))
-    origin = _display_place(origin or row.get("city", ""))
-    destination = _display_place(base_destination_from_terminal(destination) or destination)
-    mode = normalize_route_mode(get_row_type(row), get_transport_source_text(row))
-    mode_label = {
-        "train": "by rail",
-        "coach": "by coach",
-        "ferry": "by ferry",
-        "cruise": "by cruise",
-        "flight": "by flight",
-        "self_drive": "by self-drive route",
-    }.get(mode, "with the planned travel arrangements")
-    if origin and destination and origin.lower() != destination.lower():
-        if mode == "coach":
-            return f"Travel from {origin} towards {destination} today {mode_label}, with arrival arrangements and the main journey details grouped below."
-        return f"Travel from {origin} to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."
-    if destination:
-        return f"Continue to {destination} {mode_label}, with arrival arrangements and the main journey details grouped below."
-    return ""
+    wording = build_day_client_transport_wording(day_rows)
+    if wording is None or not wording.travel_phrase:
+        return ""
+    return f"{wording.travel_phrase}, with arrival arrangements and the main journey details grouped below."

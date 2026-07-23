@@ -54,8 +54,14 @@ def find_day_copy_issues(
         if _contains(text, phrase):
             issues.append(DayCopyIssue("forbidden_phrase", f"Forbidden generated phrase: {phrase!r}", phrase))
 
-    if facts.return_visit and re.search(r"\bWelcome to\b", intro_text, flags=re.IGNORECASE):
-        issues.append(DayCopyIssue("return_visit_welcome", "Return visits must not be written as first arrivals.", intro_text))
+    if re.search(r"\bWelcome to\b", intro_text, flags=re.IGNORECASE) and not facts.day_state.welcome_allowed:
+        code = "return_visit_welcome" if facts.day_state.return_visit else "non_arrival_welcome"
+        message = (
+            "Return visits must not be written as first arrivals."
+            if facts.day_state.return_visit
+            else "Destination welcome wording requires a confirmed arrival-stay state."
+        )
+        issues.append(DayCopyIssue(code, message, intro_text))
 
     if facts.return_visit and re.search(r"\bfirst impressions\b", intro_text, flags=re.IGNORECASE):
         issues.append(DayCopyIssue("return_visit_first_impressions", "Return visits must not mention first impressions.", intro_text))

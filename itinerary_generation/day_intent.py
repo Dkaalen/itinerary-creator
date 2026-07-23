@@ -26,21 +26,18 @@ class DayIntent(StrEnum):
 def classify_day_intent(facts: DayFacts) -> DayIntent:
     """Classify one day using facts only."""
 
+    state = facts.day_state
     if (facts.has_departure or "departure_airport_transfer" in facts.source_flags) and not facts.has_activity and not facts.has_accommodation:
         return DayIntent.DEPARTURE_DAY
-    if facts.same_city_accommodation_change:
+    if state.same_city_accommodation_change:
         return DayIntent.SAME_CITY_ACCOMMODATION_CHANGE
-    if facts.return_visit and not facts.has_activity and (facts.has_arrival or facts.has_route_transport or facts.has_accommodation):
+    if state.return_visit and not facts.has_activity and (state.explicit_arrival or facts.has_route_transport or facts.has_accommodation):
         return DayIntent.RETURN_VISIT
-    if facts.has_arrival and facts.onward_destination and facts.arrival_city and facts.arrival_city.casefold() != facts.onward_destination.casefold():
+    if state.arrival_onward:
         return DayIntent.ARRIVAL_ONWARD_TRAVEL
-    if facts.has_arrival and facts.has_activity and (facts.overnight_city or facts.main_city):
+    if state.arrival_stay and facts.has_activity:
         return DayIntent.ACTIVITY_PLUS_TRAVEL
-    if facts.has_arrival and (facts.overnight_city or facts.main_city):
-        return DayIntent.ARRIVAL_STAY
-    if "arrival_airport_transfer" in facts.source_flags and facts.has_accommodation:
-        if facts.has_activity:
-            return DayIntent.ACTIVITY_PLUS_TRAVEL
+    if state.arrival_stay:
         return DayIntent.ARRIVAL_STAY
     if (
         facts.has_route_transport
