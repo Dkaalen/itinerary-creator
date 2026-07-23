@@ -32,6 +32,8 @@ class OutputTextScore:
     error_count: int
     warning_count: int
     issues: tuple[OutputTextIssue, ...] = ()
+    advisor_rating: str = "Ready"
+    advisor_reasons: tuple[str, ...] = ()
 
     @property
     def issue_count(self) -> int:
@@ -48,6 +50,8 @@ class OutputTextScore:
             "warning_count": self.warning_count,
             "issue_count": self.issue_count,
             "ok": self.ok,
+            "advisor_rating": self.advisor_rating,
+            "advisor_reasons": list(self.advisor_reasons),
             "issues": [asdict(issue) for issue in self.issues],
         }
 

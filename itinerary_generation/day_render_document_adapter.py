@@ -127,6 +127,7 @@ def build_render_day_from_document(
             "intro_decision_source": str(intro_selected.get("source") or ""),
             "intro_decision_reason": str(intro_selected.get("reason") or ""),
         })
+    labels["intro_manual_override"] = str(bool(resolved_day_content.intro_ownership.manual_override)).lower()
     title_rejected = resolved_day_content.title_decision.get("rejected", []) if isinstance(resolved_day_content.title_decision, dict) else []
     if title_rejected:
         labels["title_decision_rejected_sources"] = ",".join(

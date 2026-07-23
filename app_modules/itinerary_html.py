@@ -36,12 +36,11 @@ def _raise_for_blocking_client_output(context) -> None:
     """
 
     report = evaluate_client_output_quality(context.render_document, source_rows=context.parsed_rows)
-    if not report.is_blocked:
+    assessment = report.advisor_assessment
+    if assessment.is_ready:
         return
-    details = "; ".join(
-        f"{issue.code}: {issue.message}" for issue in report.blocking_issues
-    )
-    warning = f"Client output safety check warning: {details}"
+    details = "; ".join(assessment.reasons)
+    warning = f"Advisor review — {assessment.rating}: {details}"
     warnings = getattr(context.render_document, "warnings", None)
     if isinstance(warnings, list) and warning not in warnings:
         warnings.append(warning)

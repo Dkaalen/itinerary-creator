@@ -9,12 +9,16 @@ around an optional item, e.g. ``Optional Vök Baths entrance (55€/person)`` be
 from __future__ import annotations
 
 import re
-from dataclasses import fields, is_dataclass
 from typing import Any
 
 from text_polish import strip_price_fragments
 from itinerary_generation.clipboard_sanitizer import strip_clipboard_fragment_markers
 from shared.url_metadata import strip_urls
+from itinerary_generation.client_copy_sanitation import (
+    is_unresolved_customer_value,
+    sanitize_customer_copy_text,
+    sanitize_customer_html,
+)
 
 _CURRENCY_RE = re.compile(
     r"(?:€|\$|£|\b(?:NOK|SEK|DKK|ISK|USD|EUR|GBP)\b|\bkr\b)",
@@ -131,7 +135,7 @@ def sanitize_client_text(value: object) -> str:
     text = text.strip(" -:|,;")
     if terminal and text and not re.search(r"[.!?]$", text):
         text += terminal.group(0).strip()
-    return text
+    return sanitize_customer_copy_text(text)
 
 
 def sanitize_client_list(values: Any) -> list[str]:
@@ -196,28 +200,104 @@ def normalize_important_note_paragraphs(values: Any) -> list[str]:
 
 
 def sanitize_render_document_client_output(render_document: Any) -> Any:
-    """Sanitize all client-facing strings in a RenderDocument-like object in place."""
+    """Sanitize only fields that are part of the client render contract."""
 
-    def visit(value: Any):
-        if isinstance(value, str):
-            return sanitize_client_text(value)
-        if isinstance(value, list):
-            for index, item in enumerate(value):
-                value[index] = visit(item)
-            return value
-        if isinstance(value, dict):
-            for key, item in list(value.items()):
-                value[key] = visit(item)
-            return value
-        if is_dataclass(value):
-            for field in fields(value):
-                # Do not mutate opaque metadata dictionaries aggressively unless
-                # they are part of the render model traversal above.
-                try:
-                    setattr(value, field.name, visit(getattr(value, field.name)))
-                except (AttributeError, TypeError):
-                    pass
-            return value
+    from itinerary_generation.render_model import (
+        RenderBlock, RenderCover, RenderDay, RenderDocument, RenderFinalPage,
+        RenderFinalSection, RenderMetaLine, RenderSection, RenderSummary,
+    )
+
+    def text(value: object) -> str:
+        return sanitize_client_text(value)
+
+    def items(values: Any) -> list[str]:
+        return sanitize_client_list(values)
+
+    def meta(values: Any) -> list[RenderMetaLine]:
+        result: list[RenderMetaLine] = []
+        seen: set[tuple[str, str]] = set()
+        for line in values or []:
+            if not isinstance(line, RenderMetaLine):
+                continue
+            label = text(line.label)
+            value = text(line.value)
+            if not label or is_unresolved_customer_value(value):
+                continue
+            key = (label.casefold(), value.casefold())
+            if key not in seen:
+                result.append(RenderMetaLine(label, value))
+                seen.add(key)
+        return result
+
+    def section(value: RenderSection) -> RenderSection:
+        value.title = text(value.title)
+        value.items = items(value.items)
         return value
 
-    return visit(render_document)
+    def block(value: RenderBlock) -> RenderBlock:
+        value.section_title = text(value.section_title)
+        value.title = text(value.title)
+        value.meta = meta(value.meta)
+        value.includes = items(value.includes)
+        value.description = text(value.description)
+        value.content_html = sanitize_customer_html(value.content_html, text_sanitizer=text)
+        value.notable_sights = items(value.notable_sights)
+        value.lines = items(value.lines)
+        value.extra_sections = [section(item) for item in value.extra_sections or []]
+        # row_id, source_row_ids, warnings, css_class and labels are technical.
+        return value
+
+    def day(value: RenderDay) -> RenderDay:
+        value.city = text(value.city)
+        value.title = text(value.title)
+        value.intro = text(value.intro)
+        value.date = text(value.date)
+        value.blocks = [block(item) for item in value.blocks or []]
+        return value
+
+    def final_page(value: RenderFinalPage) -> RenderFinalPage:
+        value.sections = [section(item) for item in value.sections or []]
+        value.items = items(value.items)
+        value.paragraphs = items(value.paragraphs)
+        value.content_html = sanitize_customer_html(value.content_html, text_sanitizer=text)
+        return value
+
+    def final_section(value: RenderFinalSection) -> RenderFinalSection:
+        value.title = text(value.title)
+        value.pages = [final_page(item) for item in value.pages or []]
+        value.sections = [section(item) for item in value.sections or []]
+        value.items = items(value.items)
+        value.paragraphs = items(value.paragraphs)
+        value.content_html = sanitize_customer_html(value.content_html, text_sanitizer=text)
+        return value
+
+    if not isinstance(render_document, RenderDocument):
+        return render_document
+    render_document.title = text(render_document.title)
+    render_document.subtitle = text(render_document.subtitle)
+    render_document.route = text(render_document.route)
+    render_document.days = [day(item) for item in render_document.days or []]
+    if isinstance(render_document.cover, RenderCover):
+        cover = render_document.cover
+        cover.kicker = text(cover.kicker)
+        cover.route_label = text(cover.route_label)
+        cover.title = text(cover.title)
+        cover.subtitle = text(cover.subtitle)
+        cover.dates = text(cover.dates)
+        cover.route = text(cover.route)
+    if isinstance(render_document.summary, RenderSummary):
+        summary = render_document.summary
+        summary.trip_glance_title = text(summary.trip_glance_title)
+        summary.trip_glance = meta(summary.trip_glance)
+        summary.journey_arc_title = text(summary.journey_arc_title)
+        summary.journey_arc_columns = {
+            str(key): text(value) for key, value in (summary.journey_arc_columns or {}).items()
+        }
+        summary.journey_arc = [
+            {str(key): text(value) for key, value in row.items() if text(value)}
+            for row in summary.journey_arc or []
+            if isinstance(row, dict)
+        ]
+    render_document.final_sections = [final_section(item) for item in render_document.final_sections or []]
+    return render_document
+

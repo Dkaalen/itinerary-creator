@@ -68,7 +68,16 @@ def score_rendered_output(
     error_count = sum(1 for issue in issues if issue.severity == "error")
     warning_count = sum(1 for issue in issues if issue.severity == "warning")
     score = max(0, 100 - (error_count * 20) - (warning_count * 5))
-    return OutputTextScore(score=score, error_count=error_count, warning_count=warning_count, issues=tuple(issues))
+    advisor_report = evaluate_client_output_quality(getattr(context, "render_document", None), source_rows=rows)
+    advisor = advisor_report.advisor_assessment
+    return OutputTextScore(
+        score=score,
+        error_count=error_count,
+        warning_count=warning_count,
+        issues=tuple(issues),
+        advisor_rating=advisor.rating,
+        advisor_reasons=advisor.reasons,
+    )
 
 
 

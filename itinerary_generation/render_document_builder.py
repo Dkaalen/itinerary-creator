@@ -14,6 +14,7 @@ from typing import Mapping
 
 from itinerary_generation.common import get_row_type, group_rows_by_day, is_optional_row
 from itinerary_generation.copy.visit_context import build_day_visit_contexts
+from itinerary_generation.copy_sequence import apply_copy_sequence_plan
 from itinerary_generation.render_model import RenderDocument
 from itinerary_generation.structured_builder import build_itinerary_document
 from itinerary_generation.structured_model import ItineraryDocument
@@ -129,7 +130,7 @@ def build_render_document_from_document(
     render_grouped_days = grouped_days_with_day_optional_rows(grouped_days, parsed_rows)
     visit_contexts = build_day_visit_contexts(grouped_days or {})
     warnings = [warning.message for warning in document.warnings]
-    return RenderDocument(
+    render_document = RenderDocument(
         title=create_trip_title(parsed_rows, grouped_days),
         subtitle=create_trip_subtitle(parsed_rows, grouped_days),
         route=create_destinations_line(parsed_rows),
@@ -146,6 +147,7 @@ def build_render_document_from_document(
         ],
         warnings=warnings,
     )
+    return apply_copy_sequence_plan(render_document)
 
 
 def build_render_document(

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from itinerary_generation.generation_quality_gate import BLOCKING, WARNING, ItineraryValidationIssue
+from itinerary_generation.advisor_quality import AdvisorQualityAssessment, assess_advisor_readiness
 
 
 @dataclass(frozen=True)
@@ -16,3 +17,11 @@ class ClientOutputQualityGateReport:
 
     @property
     def is_blocked(self) -> bool: return bool(self.blocking_issues)
+
+    @property
+    def advisor_assessment(self) -> AdvisorQualityAssessment:
+        return assess_advisor_readiness(self.issues)
+
+    @property
+    def advisor_rating(self) -> str:
+        return self.advisor_assessment.rating
