@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
+
 from pathlib import Path
 
 from app_modules.itinerary_html import build_itinerary_html
@@ -9,7 +17,6 @@ from app_modules.itinerary_render_context import build_itinerary_render_context
 from generator import group_rows_by_day
 from itinerary_generation.date_resolver import get_day_date_text
 from itinerary_generation.exclusion_sections import create_specific_exclusion_sections
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.render_document_builder import build_render_document
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 from itinerary_parser import parse_itinerary
@@ -44,8 +51,8 @@ def _day_text(render_document, day: str) -> str:
 
 
 def _inclusion_text(rows, grouped) -> str:
-    sections = create_categorized_inclusions(rows, grouped)
-    return "\n".join(section["title"] + "\n" + "\n".join(section.get("items", [])) for section in sections)
+    sections = build_inclusion_sections(rows, grouped)
+    return "\n".join(section.title + "\n" + "\n".join(inclusion_item_texts(section)) for section in sections)
 
 
 def test_tallinn_row_stays_a_self_guided_round_trip_activity() -> None:
@@ -175,7 +182,7 @@ def test_final_inclusions_and_day_blocks_share_source_facts() -> None:
 
 def test_inclusion_pagination_keeps_short_transport_categories_together() -> None:
     rows, grouped = _state()
-    pages = paginate_categorized_inclusions(create_categorized_inclusions(rows, grouped))
+    pages = paginate_categorized_inclusions(build_inclusion_sections(rows, grouped))
 
     assert len(pages) == 2
     assert [section["title"] for section in pages[-1]] == ["Rail journeys", "Other arranged transport"]

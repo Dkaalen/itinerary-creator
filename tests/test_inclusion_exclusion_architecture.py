@@ -1,7 +1,30 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from itinerary_generation.exclusion_sections import create_whats_not_included as create_exclusions
 from itinerary_generation.inclusion_flat import create_whats_included
 from itinerary_generation.inclusions import create_whats_not_included as create_exclusions_facade
 from itinerary_generation.common import group_rows_by_day
+
+
+def test_structured_inclusion_builder_is_the_only_categorized_owner():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    assert not (root / "itinerary_generation" / "inclusion_sections.py").exists()
+
+    final_sections_source = (
+        root / "itinerary_generation" / "structured_final_sections.py"
+    ).read_text(encoding="utf-8")
+    assert (
+        "from itinerary_generation.structured_inclusions import "
+        "build_structured_inclusion_sections"
+    ) in final_sections_source
+    assert "return build_structured_inclusion_sections(parsed_rows, grouped_days)" in final_sections_source
 
 
 def test_inclusion_facade_preserves_exclusion_api():
@@ -172,7 +195,6 @@ def test_rental_safety_deposit_is_specific_cost_not_raw_rental_pickup():
 
 
 def test_self_transfer_typo_is_excluded_not_included_transport():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.exclusion_sections import create_structured_whats_not_included
 
     rows = [
@@ -199,10 +221,10 @@ def test_self_transfer_typo_is_excluded_not_included_transport():
         },
     ]
 
-    included_sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    included_sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     included_text = "\n".join(
-        [section["title"] for section in included_sections]
-        + [item for section in included_sections for item in section.get("items", [])]
+        [section.title for section in included_sections]
+        + [item for section in included_sections for item in inclusion_item_texts(section)]
     )
     assert "Other arranged transport" not in included_text
     assert "Self trnasfer" not in included_text

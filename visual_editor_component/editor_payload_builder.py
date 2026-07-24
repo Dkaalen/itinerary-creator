@@ -5,28 +5,29 @@ cover, summary, days, final pages, images, source rows, and warnings logic small
 """
 
 from app_modules.display_settings import get_color_preset
+from app_modules.itinerary_render_artifact import build_itinerary_render_artifact
 from app_modules.output_brand import editor_brand_payload, output_brand_id
 from app_modules.output_brand_cover import apply_output_brand_cover_palette
 from itinerary_generation.cover_theme import get_cover_theme
 from itinerary_generation.editable_draft import normalise_editable_draft
 from itinerary_generation.editor_page_contract import build_editor_document_pages
 from ui.picture_workflow import pictures_are_added
-from visual_editor_component.editor_payload_days import build_payload_days
 from visual_editor_component.editor_payload_final_pages import (
     _build_generated_exclusions_html,
     _build_generated_inclusion_page_htmls,
     _build_generated_inclusion_sections,
     _build_generated_inclusions_html,
-    build_final_pages_payload,
+)
+from visual_editor_component.editor_render_document_adapter import (
+    build_cover_payload_from_render_document,
+    build_day_payloads_from_render_document,
+    build_final_pages_payload_from_render_document,
+    build_generated_values_from_render_context,
+    build_summary_payload_from_render_document,
 )
 from visual_editor_component.editor_payload_images import (
     _editor_cover_image_payload,
     build_editor_image_payload_bundle,
-)
-from visual_editor_component.editor_payload_sections import (
-    build_cover_payload,
-    build_generated_values,
-    build_summary_payload,
 )
 from visual_editor_component.editor_payload_sources import (
     _generated_value_for_page_html,
@@ -78,80 +79,67 @@ def _append_payload_warnings(payload, model_warnings, image_warnings):
     return payload
 
 
-def build_visual_editor_payload(parsed_rows, grouped_days, output_edits):
-    """Build the editable A4-page payload used by the visual editor component."""
+def build_visual_editor_payload(parsed_rows, grouped_days, output_edits, *, render_context=None):
+    """Build the editor payload by adapting the canonical RenderDocument."""
+
     output_edits = output_edits or {}
+    if render_context is None:
+        render_context = build_itinerary_render_artifact(parsed_rows or [], output_edits).render_context
+
+    authoritative_rows = list(render_context.parsed_rows or [])
+    authoritative_grouped_days = render_context.grouped_days or {}
+    render_document = getattr(render_context, "editor_render_document", None) or render_context.render_document
     pictures_added = pictures_are_added(output_edits)
     image_payload_bundle = build_editor_image_payload_bundle(
-        parsed_rows,
-        grouped_days,
+        authoritative_rows,
+        authoritative_grouped_days,
         output_edits,
         pictures_added=pictures_added,
     )
-    image_matches = image_payload_bundle["image_matches"]
-    image_warnings = image_payload_bundle["image_warnings"]
-    image_warnings_by_day = image_payload_bundle["image_warnings_by_day"]
     stored_editor_draft = _stored_editor_draft(output_edits)
-    payload_days, generated_days_values = build_payload_days(
-        grouped_days,
-        output_edits,
+    payload_days, generated_days_values = build_day_payloads_from_render_document(
+        render_document,
         stored_editor_draft,
-        pictures_added=pictures_added,
-        image_matches=image_matches,
-        image_warnings_by_day=image_warnings_by_day,
-        day_image_payloads=image_payload_bundle["day_images"],
+        day_images=image_payload_bundle["day_images"],
     )
+    final_pages = build_final_pages_payload_from_render_document(render_document)
+    model_warnings = _compact_model_warnings(render_context.structured_document, authoritative_rows)
 
-    final_pages_bundle = build_final_pages_payload(parsed_rows, grouped_days, output_edits, stored_editor_draft)
-    model_warnings = _compact_model_warnings(final_pages_bundle["structured_document"], parsed_rows)
-
-    cover_theme = get_cover_theme(parsed_rows, output_edits, include_image_data=False)
-    cover_theme = apply_output_brand_cover_palette(cover_theme, output_brand_id(output_edits))
     cover_image = image_payload_bundle["cover_image"]
     summary_image = image_payload_bundle["summary_image"]
-    cover_theme["background_path"] = cover_image.get("path", "")
-    cover_theme["background_data_uri"] = cover_image.get("data_uri", "")
-    cover_theme["background_crop_focus"] = cover_image.get("crop_focus", "top")
-    typed_cover = stored_editor_draft.get("cover", {}) if isinstance(stored_editor_draft.get("cover"), dict) else {}
-    typed_summary = stored_editor_draft.get("summary", {}) if isinstance(stored_editor_draft.get("summary"), dict) else {}
-
     payload = {
         "draft_id": output_edits.get("draft_id", ""),
         "brand": editor_brand_payload(output_edits, get_color_preset(output_edits)),
         "meta": {
             "draft_schema_version": 3,
-            "source_signature": _source_signature(parsed_rows, grouped_days),
+            "source_signature": _source_signature(authoritative_rows, authoritative_grouped_days),
             "day_count": len(payload_days),
+            "content_authority": "render_document",
         },
-        "cover": build_cover_payload(
-            parsed_rows,
-            grouped_days,
-            output_edits,
-            typed_cover,
-            cover_theme,
-            cover_image,
-            summary_image,
+        "cover": build_cover_payload_from_render_document(
+            render_document,
+            cover_theme=render_context.cover_theme,
+            cover_image=cover_image,
+            summary_image=summary_image,
         ),
-        "summary": build_summary_payload(parsed_rows, grouped_days, output_edits, typed_summary),
+        "summary": build_summary_payload_from_render_document(render_document),
         "days": payload_days,
-        "final_pages": final_pages_bundle["final_pages"],
+        "final_pages": final_pages,
         "issue_flags": output_edits.get("visual_editor_issue_flags", []),
         "workflow": {"pictures_added": pictures_added},
         "model_warnings": model_warnings,
         "autosave_status": persistent_draft_status(),
     }
-    payload["source_rows"] = _source_rows_payload(parsed_rows)
-    payload["generated_values"] = build_generated_values(
-        parsed_rows,
-        grouped_days,
+    payload["source_rows"] = _source_rows_payload(authoritative_rows)
+    payload["generated_values"] = build_generated_values_from_render_context(
+        render_context,
         generated_days_values,
-        final_pages_bundle["generated_values"],
     )
     payload["document_pages"] = build_editor_document_pages(
         payload=payload,
-        grouped_days=grouped_days,
+        grouped_days=authoritative_grouped_days,
         existing_pages=stored_editor_draft.get("document_pages"),
     )
     payload["editor_draft"] = normalise_editable_draft(payload)
-    _append_payload_warnings(payload, model_warnings, image_warnings)
+    _append_payload_warnings(payload, model_warnings, image_payload_bundle["image_warnings"])
     return payload

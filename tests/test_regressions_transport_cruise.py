@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 from pathlib import Path
 
@@ -33,7 +40,6 @@ from layout_policy import (
 )
 
 def test_transport_cruise_inclusion_quality_gate():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.inclusions import create_whats_not_included
     from itinerary_generation.titles import create_day_title
     from itinerary_generation.day_text import create_day_intro
@@ -77,8 +83,8 @@ def test_transport_cruise_inclusion_quality_gate():
     assert_contains(day13_html, "Cruise arrival to Bergen", "Cruise arrival should render as an arrival, not another generic cruise to Bergen.")
     assert_contains(day13_html, "2:45 PM", "Cruise arrival times should be preserved when supplied.")
 
-    sections = create_categorized_inclusions(cruise_rows, cruise_grouped)
-    inclusion_text = "\n".join(item for section in sections for item in section.get("items", []))
+    sections = build_inclusion_sections(cruise_rows, cruise_grouped)
+    inclusion_text = "\n".join(item for section in sections for item in inclusion_item_texts(section))
     assert_not_contains(inclusion_text, "Spend time at leisure onboard the cruise", "Cruise leisure days should not be commercial inclusions.")
     assert_not_contains(inclusion_text, "Self transfer", "Self transfers must never appear in the inclusions list.")
     pages_html = render_categorized_inclusions_pages("What’s included", sections)
@@ -87,8 +93,8 @@ def test_transport_cruise_inclusion_quality_gate():
 
     alta_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "finland_norway_autumn_alta.txt").read_text(encoding="utf-8")))
     alta_grouped = group_rows_by_day(alta_rows)
-    alta_sections = create_categorized_inclusions(alta_rows, alta_grouped)
-    alta_inclusion_text = "\n".join(item for section in alta_sections for item in section.get("items", []))
+    alta_sections = build_inclusion_sections(alta_rows, alta_grouped)
+    alta_inclusion_text = "\n".join(item for section in alta_sections for item in inclusion_item_texts(section))
     assert_not_contains(alta_inclusion_text, "Self transfer", "Self transfers should remain day logistics only, not included services.")
     assert_contains("\n".join(create_whats_not_included(alta_rows)), "Optional add-ons", "Optional add-ons should remain commercially clear in exclusions.")
 

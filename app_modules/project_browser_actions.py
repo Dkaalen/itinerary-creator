@@ -11,8 +11,7 @@ from app_modules.saved_project_load_action import load_saved_project
 from app_modules.saved_project_validation import SavedProjectError
 from app_modules.session_transitions import complete_project_duplicate, prepare_project_switch
 from project_storage.errors import storage_user_message
-from project_storage.project_browser import load_latest_cloud_project_payload
-from project_storage.project_management import duplicate_cloud_project
+from app_modules.project_storage_service import duplicate_cloud_project, load_latest_cloud_project_payload
 
 
 def request_open_cloud_project(project_id: str) -> None:

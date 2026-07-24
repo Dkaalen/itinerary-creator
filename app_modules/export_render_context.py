@@ -1,7 +1,7 @@
 """PDF render-context preparation for export workflow.
 
 The pure helpers accept a session-like mapping so PDF export can be tested and
-reasoned about without importing Streamlit.  Small wrappers remain for the live
+reasoned about without importing Streamlit. Small wrappers remain for the live
 app surface.
 """
 
@@ -12,30 +12,28 @@ from typing import Any
 
 import streamlit as st
 
-from app_modules.itinerary_render_context import build_itinerary_render_context
-from app_modules.render_context_cache import get_cached_render_context, store_render_context
+from app_modules.itinerary_render_artifact import build_and_persist_itinerary_render_artifact
+from app_modules.render_context_cache import get_cached_render_context
 from images.app_image_selection import read_day_image_crop_focus
-from itinerary_generation.common import group_rows_by_day
-from ui.output_edits import apply_output_edits
 
 
 def pdf_render_context_for_state(state: MutableMapping[str, Any], signature: str):
-    """Return the cached or freshly-built render context for ``state``."""
+    """Return the cached or canonically rebuilt render context for ``state``."""
 
     pdf_render_context = get_cached_render_context(state, signature=signature)
     if pdf_render_context is not None:
         return pdf_render_context
 
     output_edits = state.get("output_edits", {}) if isinstance(state.get("output_edits"), Mapping) else {}
-    edited_rows_for_pdf = apply_output_edits(state.get("parsed_rows", []) or [], output_edits)
-    grouped_days_for_pdf = group_rows_by_day(edited_rows_for_pdf)
-    pdf_render_context = build_itinerary_render_context(
-        edited_rows_for_pdf,
-        grouped_days_for_pdf,
-        output_edits,
+    artifact = build_and_persist_itinerary_render_artifact(
+        state,
+        parsed_rows=state.get("parsed_rows", []) or [],
+        output_edits=dict(output_edits),
+        save_html=False,
+        update_preview_state=False,
+        cache_signature=signature,
     )
-    store_render_context(state, signature=signature, context=pdf_render_context)
-    return pdf_render_context
+    return artifact.render_context
 
 
 def pdf_render_context_for_signature(signature: str):

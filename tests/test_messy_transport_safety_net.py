@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import re
 from pathlib import Path
 
@@ -7,7 +14,6 @@ from normalizer import normalize_itinerary_rows
 from itinerary_generation.content_validator import validate_html
 from itinerary_generation.day_intro_engine import create_day_intro
 from itinerary_generation.exclusion_sections import create_whats_not_included
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.titles import create_day_title
 from itinerary_generation.transport_safety import scan_client_output
 from ui.render_helpers import clean_space
@@ -34,8 +40,8 @@ def _plain(html: str) -> str:
 
 def _section_items(sections, title):
     for section in sections:
-        if section["title"] == title:
-            return section["items"]
+        if section.title == title:
+            return inclusion_item_texts(section)
     return []
 
 
@@ -73,8 +79,8 @@ def test_self_transfer_supplier_wording_is_split_cleaned_and_excluded():
         assert raw not in text
     assert not scan_client_output(text)
 
-    inclusions = create_categorized_inclusions(rows, grouped)
-    included_text = "\n".join(item for section in inclusions for item in section["items"])
+    inclusions = build_inclusion_sections(rows, grouped)
+    included_text = "\n".join(item for section in inclusions for item in inclusion_item_texts(section))
     assert "Self-arranged transfer from Levin Iglut" not in included_text
 
     exclusions = "\n".join(create_whats_not_included(rows))
@@ -98,7 +104,7 @@ def test_departure_transfer_preserves_explicit_kittila_airport():
     assert "Private transfer from your hotel to Kittilä Airport" in text
     assert "Private Hotel to" not in text
 
-    private_items = "\n".join(_section_items(create_categorized_inclusions(rows, grouped), "Private transfers"))
+    private_items = "\n".join(_section_items(build_inclusion_sections(rows, grouped), "Private transfers"))
     assert "Private transfer from your hotel to Kittilä Airport." in private_items
     assert "Private Hotel to Kittilä Airport" not in private_items
 

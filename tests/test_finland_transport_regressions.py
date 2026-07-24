@@ -1,15 +1,21 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from itinerary_generation.common import group_rows_by_day
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.transport_routes import get_route_points_for_transport
 from itinerary_generation.transport_titles import get_transport_route_phrase, get_primary_transport_title
 from ui.travel_sequence_blocks import get_travel_arrangement_line
 
 
 def _sections_text(rows):
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
-    return "\n".join(item for section in sections for item in section.get("items", []))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
+    return "\n".join(item for section in sections for item in inclusion_item_texts(section))
 
 
 def test_finland_overnight_trains_keep_direction_and_cabins_in_days_and_inclusions():

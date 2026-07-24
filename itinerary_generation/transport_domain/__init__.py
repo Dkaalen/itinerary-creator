@@ -1,10 +1,10 @@
 """Canonical transport domain package.
 
-Submodules hold route extraction, transport facts, transport titles, travel-arrangement rendering,
-parser title normalization, inclusion text and transport-specific exclusions.
-Legacy modules re-export from these submodules while callers migrate.
+Import the route-facts contract from this package when a caller needs
+production transport truth.  Prose and rendering remain in their dedicated
+submodules.
 """
 
-from itinerary_generation.transport_domain.facts import TransportFacts, build_transport_facts
+from itinerary_generation.transport_domain.routes import TransportRouteFacts, get_transport_route_facts
 
-__all__ = ["TransportFacts", "build_transport_facts"]
+__all__ = ["TransportRouteFacts", "get_transport_route_facts"]

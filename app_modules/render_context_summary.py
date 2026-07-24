@@ -9,10 +9,10 @@ from itinerary_generation.editor_page_contract import page_is_hidden as contract
 from itinerary_generation.render_model import RenderMetaLine, RenderSummary
 
 
-def build_render_summary(context: Any) -> RenderSummary | None:
+def build_render_summary(context: Any, *, include_hidden: bool = False) -> RenderSummary | None:
     """Build the typed PDF/preview summary contract from a render context."""
 
-    if contract_page_is_hidden(context.hidden_page_ids, "summary"):
+    if not include_hidden and contract_page_is_hidden(context.hidden_page_ids, "summary"):
         return None
     return RenderSummary(
         trip_glance_title=context.trip_glance_title,

@@ -153,5 +153,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_workspace_debloat_regression.py",    "tests/test_legacy_cleanup_regression.py",
     "tests/test_pytest_marker_discipline.py",
     "tests/test_render_context_cache.py",
+    "tests/test_itinerary_render_artifact_authority.py",
+    "tests/test_visual_editor_render_document_authority.py",
 
 )

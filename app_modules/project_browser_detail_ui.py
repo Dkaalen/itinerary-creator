@@ -23,8 +23,7 @@ from app_modules.project_rename_state import apply_active_project_rename
 from app_modules.session_state_keys import PROJECT_STORAGE_BROWSER_SUCCESS_KEY
 from app_modules.session_transitions import complete_project_delete
 from project_storage.errors import storage_user_message
-from project_storage.project_browser import delete_cloud_itinerary_result
-from project_storage.project_management import rename_cloud_project
+from app_modules.project_storage_service import delete_cloud_itinerary_result, rename_cloud_project
 
 
 def render_selected_project_panel(project: dict[str, Any] | None) -> None:

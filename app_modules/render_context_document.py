@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from itinerary_generation.editor_page_contract import hidden_page_ids, page_order_from_draft, stable_page_id
@@ -29,24 +30,29 @@ def build_render_context_documents(
         for day, rows in (render_grouped_days or {}).items()
         if stable_page_id("day", day) not in page_hidden_ids
     }
-    render_document = render_document_builder(
+    editor_render_document = render_document_builder(
         structured_document,
         parsed_rows,
         grouped_days,
         output_edits=output_edits,
     )
+    render_document = deepcopy(editor_render_document)
     render_document.days = [
         day
         for day in (render_document.days or [])
         if stable_page_id("day", getattr(day, "day", "")) not in page_hidden_ids
     ]
+    requested_page_order = page_order_from_draft(editor_draft)
     render_document.hidden_page_ids = sorted(page_hidden_ids)
-    render_document.page_order = page_order_from_draft(editor_draft)
+    render_document.page_order = requested_page_order
+    editor_render_document.hidden_page_ids = sorted(page_hidden_ids)
+    editor_render_document.page_order = requested_page_order
     return {
         "hidden_page_ids": page_hidden_ids,
         "structured_document": structured_document,
         "render_grouped_days": render_grouped_days,
         "render_document": render_document,
+        "editor_render_document": editor_render_document,
     }
 
 

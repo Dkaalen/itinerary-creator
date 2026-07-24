@@ -14,12 +14,12 @@ from app_modules.project_browser_state import (
     remember_file_delete_candidate,
 )
 from project_storage.errors import storage_user_message
-from project_storage.project_browser import (
+from app_modules.project_storage_service import (
     delete_cloud_project_file_result,
     download_cloud_project_file,
     list_cloud_calculation_files,
 )
-from project_storage.workflow_hooks import CALCULATION_XLSX_MIME
+from project_storage.file_writer import CALCULATION_XLSX_MIME
 from app_modules.session_state_keys import (
     PROJECT_STORAGE_BROWSER_SUCCESS_KEY,
     PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY,

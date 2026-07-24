@@ -1,7 +1,13 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from generator import group_rows_by_day
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.inclusions import create_whats_included
 from ui.travel_sequence_blocks import get_travel_arrangement_line
 
@@ -12,8 +18,8 @@ def _rows(input_text: str):
 
 def _section_items(sections, title):
     for section in sections:
-        if section["title"] == title:
-            return section["items"]
+        if section.title == title:
+            return inclusion_item_texts(section)
     return []
 
 
@@ -23,7 +29,7 @@ def test_daytime_train_preserves_seat_quantity_without_raw_supplier_title():
         "Train: Oslo to Bergen - 08:25 - 15:00 - 2 x standard class seats - tickets included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     rail_items = "\n".join(_section_items(sections, "Rail journeys"))
 
     assert "Scenic Train Transfer from Oslo to Bergen" in rail_items
@@ -38,7 +44,7 @@ def test_ferry_transfer_keeps_route_and_car_ticket_without_duplicate_generic_tic
         "Ferry: Brensholmen to Botnhamn - 11:00 - 11:45 - Car ticket included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     ferry_items = "\n".join(_section_items(sections, "Ferries & cruises"))
     day_line = get_travel_arrangement_line(rows[0])
 
@@ -67,7 +73,7 @@ def test_night_train_keyword_preserves_overnight_label_and_cabin_quantity():
         "Night train: Stockholm to Abisko - 18:10 - 10:55 - 2 x private sleeper cabin for two people - train ticket included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     rail_items = "\n".join(_section_items(sections, "Rail journeys"))
     day_line = get_travel_arrangement_line(rows[0])
 
@@ -109,7 +115,7 @@ def test_cruise_cabin_and_meal_in_title_are_kept_as_details():
         "Overnight cruise from Copenhagen to Oslo onboard DFDS Crown - Cabin (Seaview) - Dinner included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     cruise_items = "\n".join(_section_items(sections, "Ferries & cruises"))
     day_line = get_travel_arrangement_line(rows[0])
 

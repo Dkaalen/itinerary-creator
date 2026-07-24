@@ -29,7 +29,7 @@ def test_export_stage_does_not_request_blocking_pdf_editor_commit():
 def test_generation_buttons_share_one_pipeline_and_only_set_brand():
     source = read_contract_text("app_modules/input_step.py")
     generation_source = read_contract_text("app_modules/generation_action.py")
-    preview_source = read_contract_text("app_modules/generation_preview_builder.py")
+    artifact_source = read_contract_text("app_modules/itinerary_render_artifact.py")
     settings_source = read_contract_text("app_modules/generation_settings.py")
 
     assert "Generate agent itinerary" in source
@@ -40,9 +40,9 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
 
     assert "parse_and_normalize_itinerary(raw_text)" in generation_source
     assert generation_source.count("parse_and_normalize_itinerary(raw_text)") == 1
-    assert generation_source.count("build_generation_preview_artifact(") == 1
-    assert preview_source.count("build_itinerary_render_context(") == 1
-    assert preview_source.count("build_itinerary_html_from_context(") == 1
+    assert generation_source.count("build_and_persist_itinerary_render_artifact(") == 1
+    assert artifact_source.count("build_itinerary_render_context(") == 1
+    assert artifact_source.count("build_itinerary_html_from_context(") == 1
     assert 'output_edits["output_brand"] = settings.output_brand' in settings_source
 
 

@@ -1,10 +1,9 @@
-"""Source-aware inclusion builder for the structured itinerary document.
+"""Authoritative source-aware inclusion builder.
 
-The legacy inclusion builder returns display strings.  That was useful for the
-old preview/PDF pages, but it loses the source-row identity that the new model
-needs.  This module keeps each inclusion item tied to the row that produced it,
-so a later title/detail cleanup cannot accidentally merge two different
-activities or make one product overwrite another.
+Each inclusion remains tied to the source row that produced it, so later title
+or detail cleanup cannot merge distinct products or make one product overwrite
+another. Preview, PDF, editor, and quality consumers receive these typed
+sections through the structured itinerary document.
 """
 
 from __future__ import annotations

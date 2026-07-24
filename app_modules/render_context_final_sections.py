@@ -67,25 +67,26 @@ def _final_section_title(context: Any, section_id: str, fallback: str) -> str:
     return _safe_label((context.final_section_titles or {}).get(section_id), fallback)
 
 
-def build_final_sections_for_pdf(context: Any) -> list[RenderFinalSection]:
+def build_final_sections_for_pdf(context: Any, *, include_hidden: bool = False) -> list[RenderFinalSection]:
     """Build final pages for the shared RenderDocument contract."""
 
     sections: list[RenderFinalSection] = []
+    section_hidden = (lambda section_id: False) if include_hidden else (lambda section_id: _final_section_is_hidden(context, section_id))
 
-    if not _final_section_is_hidden(context, "whats_included") and context.typed_inclusions_owned:
+    if not section_hidden("whats_included") and context.typed_inclusions_owned:
         if context.typed_inclusion_pages:
             sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.typed_inclusion_pages), css_class="categorized-inclusions-page"))
     elif (
-        not _final_section_is_hidden(context, "whats_included")
+        not section_hidden("whats_included")
         and context.output_edits.get("whats_included_pages_html")
         and not getattr(context, "saved_inclusion_pages_refreshable", False)
     ):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_pages_html")), css_class="categorized-inclusions-page"))
-    elif not _final_section_is_hidden(context, "whats_included") and context.output_edits.get("whats_included_html"):
+    elif not section_hidden("whats_included") and context.output_edits.get("whats_included_html"):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))
-    elif not _final_section_is_hidden(context, "whats_included") and context.manual_whats_included:
+    elif not section_hidden("whats_included") and context.manual_whats_included:
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_split_list_final_pages(context.whats_included)))
-    elif not _final_section_is_hidden(context, "whats_included"):
+    elif not section_hidden("whats_included"):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_paginated_structured_final_pages(context.categorized_inclusions), css_class="categorized-inclusions-page"))
 
     if context.optional_addons:
@@ -116,22 +117,22 @@ def build_final_sections_for_pdf(context: Any) -> list[RenderFinalSection]:
         if optional_pages:
             sections.append(RenderFinalSection("optional_experiences", _final_section_title(context, "optional_experiences", "Optional Experiences"), pages=optional_pages, css_class="optional-addons-page"))
 
-    if not _final_section_is_hidden(context, "whats_not_included") and context.typed_exclusions_owned:
+    if not section_hidden("whats_not_included") and context.typed_exclusions_owned:
         if context.typed_exclusion_html:
             sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.typed_exclusion_html), css_class="categorized-exclusions-page"))
     elif (
-        not _final_section_is_hidden(context, "whats_not_included")
+        not section_hidden("whats_not_included")
         and context.output_edits.get("whats_not_included_html")
         and not getattr(context, "saved_exclusion_html_refreshable", False)
     ):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
-    elif not _final_section_is_hidden(context, "whats_not_included") and context.output_edits.get("whats_not_included_text"):
+    elif not section_hidden("whats_not_included") and context.output_edits.get("whats_not_included_text"):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_split_list_final_pages(context.whats_not_included)))
-    elif not _final_section_is_hidden(context, "whats_not_included"):
+    elif not section_hidden("whats_not_included"):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_paginated_structured_final_pages(context.structured_whats_not_included), css_class="categorized-exclusions-page"))
 
     notes_pages = _paragraph_final_pages(context.important_travel_notes)
-    if notes_pages and not _final_section_is_hidden(context, "important_travel_notes"):
+    if notes_pages and not section_hidden("important_travel_notes"):
         sections.append(RenderFinalSection("important_travel_notes", _final_section_title(context, "important_travel_notes", "Important travel notes"), pages=notes_pages, css_class="important-notes-page"))
 
     for page in context.manual_pages:

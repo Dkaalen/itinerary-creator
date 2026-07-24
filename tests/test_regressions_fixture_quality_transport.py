@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 from pathlib import Path
 
@@ -18,7 +25,6 @@ from normalizer import normalize_itinerary_rows
 
 def test_optional_arc_transfer_quality_gate():
     from generator import create_day_title, create_journey_arc
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.inclusions import create_whats_not_included
     from itinerary_generation.titles import create_client_activity_title
     from ui.day_blocks import build_day_blocks
@@ -60,7 +66,7 @@ def test_optional_arc_transfer_quality_gate():
     assert_not_contains(day9_titles, "Optional Addon", "Optional add-ons must not appear as normal included day activities.")
     assert_not_contains(day9_titles, "Whale Watching", "Optional whale watching must not become the main day title.")
 
-    inclusions = "\n".join(item for sec in create_categorized_inclusions(rows, grouped) for item in sec.get("items", []))
+    inclusions = "\n".join(item for sec in build_inclusion_sections(rows, grouped) for item in inclusion_item_texts(sec))
     assert_not_contains(inclusions, "Whale Watching & Arctic Wildlife Safari", "Optional add-ons must not appear in normal inclusions.")
     assert_not_contains(inclusions, "Whale Watching From Downtown", "Generic whale title should not leak for the optional Alta RIB safari.")
     assert_contains(inclusions, "Northern Lights Tour by Minibus with Photo Assistance", "The included Alta northern lights activity should remain included with its source-specific title.")
@@ -91,7 +97,6 @@ def test_optional_arc_transfer_quality_gate():
 
 def test_clear_transport_wording_system():
     from ui.day_blocks import build_day_blocks
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
     raw = """
 	Day 1	Activity		05/06/2026								Bergen	Train : Oslo to Bergen | 14:25 - 21:33 |
@@ -109,15 +114,14 @@ def test_clear_transport_wording_system():
     assert_contains(html, "Flight from Stockholm to Kirkenes, via Oslo", "Flights should preserve via-city wording.")
     assert_contains(html, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise rows should use clear cruise wording with ship name when present.")
 
-    sections = create_categorized_inclusions(rows, grouped)
-    inclusion_text = "\n".join(item for section in sections for item in section.get("items", []))
+    sections = build_inclusion_sections(rows, grouped)
+    inclusion_text = "\n".join(item for section in sections for item in inclusion_item_texts(section))
     assert_contains(inclusion_text, "Scenic Train Transfer from Oslo to Bergen", "Rail inclusions should use the same clear wording as day pages.")
     assert_contains(inclusion_text, "Flight from Stockholm to Kirkenes, via Oslo", "Flight inclusions should use clear route wording.")
     assert_contains(inclusion_text, "Coastal Cruise from Kirkenes to Bergen onboard MC Havila Castor", "Cruise inclusions should use clear route wording.")
 
 
 def test_real_uploaded_inputs_quality_gate():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.titles import create_client_activity_title, create_trip_title
     from itinerary_generation.summaries import create_journey_arc
     from ui.day_blocks import build_day_blocks
@@ -149,8 +153,8 @@ def test_real_uploaded_inputs_quality_gate():
     assert_contains(addon_text, "Norwegian Cod Tasting", "Optional add-on description should remain visible.")
     for forbidden in ["56 EUR", "EUR/Person", "Price is per passenger", "Cost:", "Price:"]:
         assert_not_contains(addon_text, forbidden, "Optional add-on pages must never expose prices.")
-    family_sections = create_categorized_inclusions(family_rows, family_grouped)
-    family_inclusions = "\n".join(item for section in family_sections for item in section.get("items", []))
+    family_sections = build_inclusion_sections(family_rows, family_grouped)
+    family_inclusions = "\n".join(item for section in family_sections for item in inclusion_item_texts(section))
     assert_not_contains(family_inclusions, "Norwegian Cod Tasting", "Optional add-ons should not appear in included services.")
 
     scandi_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "scandinavia_cruise_premium_working.txt").read_text(encoding="utf-8")))
@@ -171,8 +175,8 @@ def test_real_uploaded_inputs_quality_gate():
     assert "Day 9" in iceland_grouped, "Iceland fixture should parse all pasted group-tour days."
     blue_lagoon_row = next(row for row in iceland_rows if "Blue Lagoon" in row.get("title", "") or "Blue Lagoon" in row.get("original_title", ""))
     assert_equal(create_client_activity_title(blue_lagoon_row), "Blue Lagoon & Volcano Eruption Site Tour", "Combo Blue Lagoon products should keep the full experience title instead of becoming a generic admission.")
-    iceland_sections = create_categorized_inclusions(iceland_rows, iceland_grouped)
-    iceland_output_text = "\n".join(item for section in iceland_sections for item in section.get("items", []))
+    iceland_sections = build_inclusion_sections(iceland_rows, iceland_grouped)
+    iceland_output_text = "\n".join(item for section in iceland_sections for item in inclusion_item_texts(section))
     assert_not_contains(iceland_output_text, "Single traveler supplement fee €500", "Group-tour commercial supplements must not leak into client-facing inclusions.")
 
     # Synthetic stress case for the inclusion pagination rule: if a category is

@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 import types
 
@@ -17,7 +24,6 @@ sys.modules["streamlit.components.v1"] = components_v1_stub
 from generator import group_rows_by_day
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.exclusion_sections import create_whats_not_included
 from itinerary_generation.transport_norway import extract_norway_nutshell_route_points, format_norway_nutshell_route
 from ui.travel_sequence_blocks import build_travel_arrangements_block
@@ -30,8 +36,8 @@ def _rows(raw: str):
 
 def _section_items(sections, title):
     for section in sections:
-        if section["title"] == title:
-            return section["items"]
+        if section.title == title:
+            return inclusion_item_texts(section)
     return []
 
 
@@ -66,7 +72,7 @@ Day 1	Transfer	02/01/2027						Oslo	"Norway in a NUtshell | Bergen to Oslo |08:3
     assert "Route highlights:" not in html
     assert "22:30 to Oslo" not in html
 
-    sections = create_categorized_inclusions(rows, grouped)
+    sections = build_inclusion_sections(rows, grouped)
     scenic_items = "\n".join(_section_items(sections, "Scenic rail & fjord journeys"))
     assert "Norway in a Nutshell from Bergen to Oslo" in scenic_items
     assert "Route highlights: Bergen, Voss, Gudvangen, Flåm, Myrdal and Oslo" in scenic_items
@@ -87,7 +93,7 @@ Day 1	Transfer	25/12/2026						Helsinki	Overnight Train : Overnight Train Transf
     assert "Arrival: 10:58 AM in Rovaniemi" in block_html
     assert "Cabin: 1 x downstairs cabin for two people" in block_html
 
-    sections = create_categorized_inclusions(rows, grouped)
+    sections = build_inclusion_sections(rows, grouped)
     rail_items = "\n".join(_section_items(sections, "Rail journeys"))
     assert "Santa Claus Express to Rovaniemi" in rail_items
     assert "11:04 PM - 10:58 AM" in rail_items
@@ -115,7 +121,7 @@ Meeting Point : Vetrlidsallmenningen 23A, 5014"
 """
     rows = _rows(raw)
     grouped = group_rows_by_day(rows)
-    sections = create_categorized_inclusions(rows, grouped)
+    sections = build_inclusion_sections(rows, grouped)
     activities = "\n".join(_section_items(sections, "Activities & experiences"))
     exclusions = create_whats_not_included(rows)
     exclusions_text = "\n".join(exclusions)

@@ -5,7 +5,7 @@ from typing import Any
 
 import diagnostics
 
-from app_modules.generation_preview_builder import build_generation_preview_artifact
+from app_modules.itinerary_render_artifact import build_and_persist_itinerary_render_artifact
 from app_modules.generation_settings import build_initial_output_edits, consume_generation_settings
 from app_modules.parse_workflow import get_duplicate_count, parse_and_normalize_itinerary
 from app_modules.performance_telemetry import measure_timing, reset_performance_telemetry
@@ -18,16 +18,13 @@ from app_modules.workflow_transients import clear_project_boundary_transients
 from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
-from project_storage.workflow_hooks import save_generated_project_snapshot
+from app_modules.project_storage_workflow import save_generated_project_snapshot
 from app_modules.session_state_keys import (
-    HTML_PATH_KEY,
-    ITINERARY_HTML_KEY,
     ITINERARY_VALIDATION_REPORT_KEY,
     LAST_GENERATED_RAW_TEXT_KEY,
     OUTPUT_EDITS_KEY,
     PARSED_ROWS_KEY,
     PARSER_DIAGNOSTICS_KEY,
-    PREVIEW_SIGNATURE_KEY,
     STRUCTURED_INPUT_REVIEW_KEY,
 )
 
@@ -55,10 +52,13 @@ def _store_generated_preview(
 ) -> list[str]:
     """Build and persist the first editable itinerary preview."""
 
-    artifact = build_generation_preview_artifact(state, parsed_rows=parsed_rows, output_edits=output_edits)
-    state[ITINERARY_HTML_KEY] = artifact.html
-    state[PREVIEW_SIGNATURE_KEY] = artifact.signature
-    state[HTML_PATH_KEY] = artifact.html_path
+    artifact = build_and_persist_itinerary_render_artifact(
+        state,
+        parsed_rows=parsed_rows,
+        output_edits=output_edits,
+        save_html=True,
+        telemetry_state=state,
+    )
     state["generation_overflow_warnings"] = artifact.overflow_warnings
     return artifact.overflow_warnings
 

@@ -10,7 +10,7 @@ from app_modules.project_identity import active_project_id_from_state
 from app_modules.workflow_state import ensure_workflow_defaults
 from app_modules.export_identity import export_signature_for_state
 from project_storage.delete_result import ProjectDeleteResult
-from project_storage.project_browser import (
+from app_modules.project_storage_service import (
     delete_cloud_itinerary_result,
     download_cloud_project_file,
     list_cloud_calculation_files,
@@ -37,7 +37,7 @@ def _state_ready_for_images() -> dict[str, object]:
 
 
 def test_cloud_browser_contract_fails_safe_without_configured_repository(monkeypatch) -> None:
-    monkeypatch.setattr("project_storage.project_browser.get_project_storage_repository", lambda: None)
+    monkeypatch.setattr("app_modules.project_storage_service.get_project_storage_repository", lambda: None)
 
     assert list_cloud_itineraries(search="Oslo") == ()
     assert list_cloud_calculation_files("missing") == ()

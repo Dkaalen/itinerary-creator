@@ -1,4 +1,4 @@
-"""Streamlit runtime adapter for project storage."""
+"""Streamlit runtime adapter for the project-storage repository."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ _REPOSITORY_STATE_KEY = "project_storage_repository"
 
 
 def get_project_storage_repository() -> ProjectStorageRepository | None:
-    """Return a configured repository, or None when secrets are missing."""
+    """Return the session repository, or ``None`` when storage is unconfigured."""
 
     cached = st.session_state.get(_REPOSITORY_STATE_KEY)
     if isinstance(cached, ProjectStorageRepository):

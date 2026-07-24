@@ -12,6 +12,7 @@ from app_modules.render_context_final_data import build_final_context_data
 from app_modules.render_context_final_sections import build_final_sections_for_pdf
 from app_modules.render_context_summary import build_render_summary
 from app_modules.render_context_summary_data import build_summary_context_data
+from app_modules.render_final_sections_html import render_final_page_inner_html
 from app_modules.presentation_language import presentation_labels, presentation_language_from_output_edits
 from itinerary_generation.client_sanitizer import sanitize_render_document_client_output
 from itinerary_generation.editor_page_contract import (
@@ -24,6 +25,7 @@ from itinerary_generation.render_document_builder import build_render_document_f
 from itinerary_generation.render_model import RenderDocument
 from itinerary_generation.render_page_order import render_page_order_with_editor_request, sorted_render_days
 from itinerary_generation.structured_builder import build_itinerary_document
+from itinerary_generation.structured_html_audit import validate_source_aware_html_coverage
 
 
 @dataclass(slots=True)
@@ -35,6 +37,7 @@ class ItineraryRenderContext:
     structured_document: Any
     render_grouped_days: dict[str, list[dict]]
     render_document: RenderDocument
+    editor_render_document: RenderDocument
     output_brand: str
     brand_logo_data_uri: str
     preset_name: str
@@ -101,23 +104,86 @@ def _manual_pages_from_draft(editor_draft: dict[str, Any], hidden_ids: set[str])
     return contract_manual_pages_from_draft(editor_draft, hidden_ids)
 
 
-def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
-    context.render_document.presentation_language = context.presentation_language
-    context.render_document.labels = dict(context.presentation_labels)
-    for render_day in context.render_document.days or []:
+def _attach_document_contract(
+    context: ItineraryRenderContext,
+    render_document: RenderDocument,
+    *,
+    include_hidden: bool,
+) -> None:
+    render_document.presentation_language = context.presentation_language
+    render_document.labels = dict(context.presentation_labels)
+    for render_day in render_document.days or []:
         render_day.day_label_prefix = context.presentation_labels.get("day", "DAY")
         render_day.labels = {**dict(context.presentation_labels), **dict(render_day.labels or {})}
         for block in render_day.blocks or []:
             block.labels = {**dict(context.presentation_labels), **dict(block.labels or {})}
-    context.render_document.cover = build_render_cover(context)
-    context.render_document.summary = build_render_summary(context)
-    context.render_document.final_sections = build_final_sections_for_pdf(context)
-    context.render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
-    context.render_document.days = sorted_render_days(context.render_document.days)
-    context.render_document.page_order = render_page_order_with_editor_request(
-        context.render_document,
-        getattr(context.render_document, "page_order", []) or [],
+        for block in render_day.generated_blocks or []:
+            block.labels = {**dict(context.presentation_labels), **dict(block.labels or {})}
+    render_document.cover = build_render_cover(context, include_hidden=include_hidden)
+    render_document.summary = build_render_summary(context, include_hidden=include_hidden)
+    render_document.final_sections = build_final_sections_for_pdf(context, include_hidden=include_hidden)
+    render_document.hidden_page_ids = sorted(context.hidden_page_ids or set())
+    render_document.days = sorted_render_days(render_document.days)
+    render_document.page_order = render_page_order_with_editor_request(
+        render_document,
+        getattr(render_document, "page_order", []) or [],
     )
+
+
+def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
+    _attach_document_contract(context, context.render_document, include_hidden=False)
+    _attach_document_contract(context, context.editor_render_document, include_hidden=True)
+
+
+def _final_section_html_fragments(render_document: RenderDocument, section_id: str) -> list[str]:
+    section = next(
+        (item for item in render_document.final_sections or [] if str(item.section_id) == str(section_id)),
+        None,
+    )
+    if section is None:
+        return []
+    pages = list(section.pages or [])
+    if not pages and (section.content_html or section.sections or section.items or section.paragraphs):
+        from itinerary_generation.render_model import RenderFinalPage
+
+        pages = [
+            RenderFinalPage(
+                content_html=section.content_html,
+                sections=list(section.sections or []),
+                items=list(section.items or []),
+                paragraphs=list(section.paragraphs or []),
+            )
+        ]
+    return [render_final_page_inner_html(section, page) for page in pages]
+
+
+def _attach_final_page_source_warnings(context: ItineraryRenderContext) -> None:
+    warnings = (
+        *validate_source_aware_html_coverage(
+            html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_included"),
+            sections=context.structured_document.inclusions,
+            page_name="What's included",
+            warning_code="edited_inclusions_missing_source_identity",
+        ),
+        *validate_source_aware_html_coverage(
+            html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_not_included"),
+            sections=context.structured_document.exclusions,
+            page_name="What's not included",
+            warning_code="edited_exclusions_missing_source_identity",
+        ),
+    )
+    if not warnings:
+        return
+    existing = tuple(context.structured_document.warnings or ())
+    keys = {(item.code, item.message, tuple(item.source_row_ids)) for item in existing}
+    additions = tuple(
+        item for item in warnings
+        if (item.code, item.message, tuple(item.source_row_ids)) not in keys
+    )
+    context.structured_document.warnings = tuple((*existing, *additions))
+    messages = [item.message for item in additions]
+    context.render_document.warnings = list(dict.fromkeys([*context.render_document.warnings, *messages]))
+    context.editor_render_document.warnings = list(dict.fromkeys([*context.editor_render_document.warnings, *messages]))
 
 
 def _build_render_document_from_structured_document(structured_document, parsed_rows, grouped_days, output_edits):
@@ -165,6 +231,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         structured_document=document_data["structured_document"],
         render_grouped_days=document_data["render_grouped_days"],
         render_document=document_data["render_document"],
+        editor_render_document=document_data["editor_render_document"],
         manual_pages=contract_manual_pages_from_draft(editor_draft, document_data["hidden_page_ids"]),
         hidden_page_ids=document_data["hidden_page_ids"],
         presentation_language=language_code,
@@ -174,12 +241,16 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         **final_data,
     )
     _attach_pdf_contract(context)
+    _attach_final_page_source_warnings(context)
     sanitize_render_document_client_output(context.render_document)
+    sanitize_render_document_client_output(context.editor_render_document)
     return context
 
 
 __all__ = [
     "ItineraryRenderContext",
+    "_attach_document_contract",
+    "_attach_final_page_source_warnings",
     "_attach_pdf_contract",
     "_final_section_is_hidden",
     "_manual_pages_from_draft",

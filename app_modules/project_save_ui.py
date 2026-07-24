@@ -9,8 +9,8 @@ from app_modules.project_save_rollback import capture_project_save_baseline, res
 from app_modules.saved_project_file_action import PROJECT_FILE_MIME, prepare_saved_project_file_download
 from app_modules.saved_project_validation import SavedProjectError
 from project_storage.errors import storage_user_message
-from project_storage.runtime import project_storage_is_configured
-from project_storage.workflow_hooks import save_project_payload_snapshot
+from app_modules.project_storage_runtime import project_storage_is_configured
+from app_modules.project_storage_workflow import save_project_payload_snapshot
 from app_modules.session_state_keys import (
     ACTIVE_SAVED_PROJECT_ID_KEY,
     ITINERARY_NAME_KEY,

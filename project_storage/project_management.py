@@ -19,28 +19,6 @@ class ProjectRepository(Protocol):
     def create_version(self, **kwargs: Any) -> dict[str, Any]: ...
 
 
-def rename_cloud_project(project_id: str, new_name: str) -> dict[str, Any] | None:
-    """Rename a cloud project and append a matching saved-project version."""
-
-    from project_storage.runtime import get_project_storage_repository
-
-    repository = get_project_storage_repository()
-    if repository is None:
-        return None
-    return rename_project(repository, project_id=project_id, new_name=new_name)
-
-
-def duplicate_cloud_project(project_id: str, new_name: str = "") -> dict[str, Any] | None:
-    """Duplicate the latest cloud project snapshot under a new project id."""
-
-    from project_storage.runtime import get_project_storage_repository
-
-    repository = get_project_storage_repository()
-    if repository is None:
-        return None
-    return duplicate_project(repository, project_id=project_id, new_name=new_name)
-
-
 def rename_project(
     repository: ProjectRepository,
     *,

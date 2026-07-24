@@ -103,6 +103,16 @@ class RenderDay:
     warnings: list[str] = field(default_factory=list)
     day_label_prefix: str = "DAY"
     labels: dict[str, str] = field(default_factory=dict)
+    generated_city: str = ""
+    generated_title: str = ""
+    generated_intro: str = ""
+    generated_date: str = ""
+    intro_generator_version: str = ""
+    intro_source_signature: str = ""
+    intro_manual_override: bool = False
+    generated_blocks: list[RenderBlock] = field(default_factory=list)
+    blocks_generator_version: str = ""
+    blocks_manual_override: bool = False
 
 
 @dataclass(slots=True)

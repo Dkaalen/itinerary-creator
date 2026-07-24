@@ -1,6 +1,12 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from app_modules.itinerary_html import _balanced_cover_destinations_html
 from generator import group_rows_by_day
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.row_filters import is_self_arranged
 from itinerary_generation.titles import create_destinations_line, create_client_activity_title
 from itinerary_parser import parse_itinerary
@@ -22,8 +28,8 @@ def test_self_arranged_flight_typo_stays_out_of_included_flights():
     assert is_self_arranged(row)
     assert get_travel_sequence_line(row) == "Self-arranged flight from Bergen to Tromsø (not included)"
 
-    sections = create_categorized_inclusions([row], group_rows_by_day([row]))
-    assert all(section["title"] != "Flights" for section in sections)
+    sections = build_inclusion_sections([row], group_rows_by_day([row]))
+    assert all(section.title != "Flights" for section in sections)
 
 
 def test_sightseeing_northern_lights_cruise_remains_activity():
@@ -58,7 +64,6 @@ def test_long_cover_route_forces_final_pair_to_own_line():
     assert '<span class="cover-destination-pair">Bergen&nbsp;·&nbsp;Oslo</span>' in html
 
 from ui.travel_sequence_blocks import get_travel_arrangement_line
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
 
 def _rows_from_text(input_text: str):
@@ -67,8 +72,8 @@ def _rows_from_text(input_text: str):
 
 def _items_for_section(sections, title):
     for section in sections:
-        if section["title"] == title:
-            return "\n".join(section["items"])
+        if section.title == title:
+            return "\n".join(inclusion_item_texts(section))
     return ""
 
 
@@ -78,7 +83,7 @@ def test_dash_separated_coach_route_keeps_origin_and_destination():
         "Coach: Bergen - Voss - 09:00 - Tickets Included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     coach_items = _items_for_section(sections, "Coach transfers")
 
     assert "Coach Transfer from Bergen to Voss" in coach_items
@@ -91,7 +96,7 @@ def test_dash_separated_ferry_route_keeps_route_and_car_ticket():
         "Ferry transfer Moskenes - Bodø - 15:00 - Car ticket included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     ferry_items = _items_for_section(sections, "Ferries & cruises")
     day_line = get_travel_arrangement_line(rows[0])
 
@@ -118,7 +123,7 @@ def test_cruise_quantity_cabin_detail_is_preserved_without_parentheses():
         "Overnight coastal cruise from Bergen to Trondheim - 2 x Outside Cabin - Breakfast included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     cruise_items = _items_for_section(sections, "Ferries & cruises")
     day_line = get_travel_arrangement_line(rows[0])
 
@@ -133,7 +138,7 @@ def test_checked_bag_included_is_kept_as_flight_detail():
         "Flight: Oslo to Tromso - 08:00 - 10:00 - 1 checked bag included"
     )
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     flight_items = _items_for_section(sections, "Flights")
 
     assert "Flight from Oslo to Tromsø" in flight_items
@@ -147,7 +152,7 @@ def test_standard_premier_train_seats_survive_day_and_inclusions():
     )
 
     day_line = get_travel_arrangement_line(rows[0])
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     rail_items = _items_for_section(sections, "Rail journeys")
 
     assert "Scenic Train Transfer from London to Paris" in rail_items
@@ -174,7 +179,7 @@ def test_sleeper_compartment_detail_is_preserved_for_night_train():
     )
 
     day_line = get_travel_arrangement_line(rows[0])
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
     rail_items = _items_for_section(sections, "Rail journeys")
 
     assert "Overnight Train Transfer from Stockholm to Narvik" in rail_items

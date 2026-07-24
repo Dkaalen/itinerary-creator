@@ -36,7 +36,7 @@ CRITICAL_ACTION_MODULES = (
     "app_modules.saved_project_builder",
     "app_modules.saved_project_update",
     "project_storage.project_browser",
-    "project_storage.workflow_hooks",
+    "app_modules.project_storage_workflow",
     "calculator.workbook_export",
     "parser_modules.parser_main",
     "pdf_exporter_modules.exporter",

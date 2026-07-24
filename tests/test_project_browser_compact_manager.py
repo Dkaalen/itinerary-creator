@@ -9,7 +9,7 @@ from app_modules.project_browser_state import (
     set_browser_page_index,
     sync_project_query,
 )
-from project_storage.project_browser import list_cloud_itinerary_page
+from app_modules.project_storage_service import list_cloud_itinerary_page
 from project_storage.repository import _project_order
 
 
@@ -33,7 +33,7 @@ def test_cloud_page_uses_server_offset_sort_and_bounded_limit(monkeypatch) -> No
             calls.append(kwargs)
             return [{"id": f"project-{index}"} for index in range(13)]
 
-    monkeypatch.setattr("project_storage.project_browser.get_project_storage_repository", lambda: Repository())
+    monkeypatch.setattr("app_modules.project_storage_service.get_project_storage_repository", lambda: Repository())
 
     page = list_cloud_itinerary_page(page_index=3, page_size=12, search="Norway", sort="name")
 

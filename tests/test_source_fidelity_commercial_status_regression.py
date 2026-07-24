@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
+
 from pathlib import Path
 from tests.support.static_contracts import read_contract_text
 
@@ -9,7 +17,6 @@ from itinerary_generation.canonical_accommodation import canonical_accommodation
 from itinerary_generation.canonical_activity import canonical_activity_block
 from itinerary_generation.day_titles import create_day_title
 from itinerary_generation.exclusion_sections import create_whats_not_included
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.transport_domain.render import get_travel_sequence_line
 from text_polish import polish_title
 
@@ -56,7 +63,7 @@ def test_bv_hotel_names_and_star_ratings_are_source_owned():
     assert aurora.get("star_rating") == "3"
     assert canonical_accommodation_block(aurora).title.startswith("3-star Home Hotel Aurora")
 
-    inclusions = "\n".join(item for section in create_categorized_inclusions(rows) for item in section.get("items", []))
+    inclusions = "\n".join(item for section in build_inclusion_sections(rows) for item in inclusion_item_texts(section))
     assert "4-star Comfort Hotel Grand Central" in inclusions
     assert "4-star Canyon Hotell" in inclusions
     assert "3-star Home Hotel Aurora" in inclusions
@@ -71,7 +78,7 @@ def test_bv_bought_on_site_coach_transfer_is_excluded_with_route():
     assert create_day_title([row for row in rows if row.get("day") == "Day 4"]) == "Coach Transfer to Tromsø"
     assert get_travel_sequence_line(coach) == "Coach Transfer from Alta to Tromsø (self-arranged, not included)"
 
-    inclusions = "\n".join(item for section in create_categorized_inclusions(rows) for item in section.get("items", []))
+    inclusions = "\n".join(item for section in build_inclusion_sections(rows) for item in inclusion_item_texts(section))
     assert "Coach Transfer from Alta to Tromsø" not in inclusions
 
     exclusions = "\n".join(create_whats_not_included(rows))
@@ -87,7 +94,7 @@ def test_bv_final_inclusions_reuse_activity_titles():
     assert create_day_title([aurora]) == "Northern Lights Safari to Aurora Basecamp"
     assert polish_title("Northern Lights Safari to Aurora Basecamp") == "Northern Lights Safari to Aurora Basecamp"
 
-    inclusions = "\n".join(item for section in create_categorized_inclusions(rows) for item in section.get("items", []))
+    inclusions = "\n".join(item for section in build_inclusion_sections(rows) for item in inclusion_item_texts(section))
     assert "Northern Lights Safari to Aurora Basecamp" in inclusions
     assert "Northern Lights Safari to Northern Lights Basecamp" not in inclusions
 

@@ -1,4 +1,4 @@
-"""Storage hooks for generated projects, calculator files, and PDF exports."""
+"""Application workflow hooks for project storage and export persistence."""
 
 from __future__ import annotations
 
@@ -7,24 +7,15 @@ from collections.abc import MutableMapping
 from typing import Any
 
 import diagnostics
+
 from app_modules.project_identity import (
     active_project_id_from_state,
     ensure_active_project_id,
     project_payload_with_id,
     set_active_project_id,
 )
-from calculator.calculator_state import CalculatorState
-from calculator.state_serialization import calculator_state_to_dict
-from project_storage.errors import clear_storage_error, record_storage_error
-from project_storage.file_writer import (
-    CALCULATION_XLSX_MIME,
-    PDF_MIME,
-    PROJECT_JSON_MIME,
-    save_unversioned_file,
-    save_versioned_file,
-)
-from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path
-from project_storage.runtime import get_project_storage_repository
+from app_modules.project_storage_error_state import clear_storage_error, record_storage_error
+from app_modules.project_storage_runtime import get_project_storage_repository
 from app_modules.session_state_keys import (
     ACTIVE_SAVED_PROJECT_KEY,
     ITINERARY_NAME_INPUT_KEY,
@@ -36,6 +27,16 @@ from app_modules.session_state_keys import (
     PROJECT_STORAGE_LAST_SAVED_SNAPSHOT_PATH_KEY,
     REQUESTED_OUTPUT_BRAND_KEY,
 )
+from calculator.calculator_state import CalculatorState
+from calculator.state_serialization import calculator_state_to_dict
+from project_storage.file_writer import (
+    CALCULATION_XLSX_MIME,
+    PDF_MIME,
+    PROJECT_JSON_MIME,
+    save_unversioned_file,
+    save_versioned_file,
+)
+from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path
 
 
 def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
@@ -78,7 +79,7 @@ def save_generated_project_snapshot(state: MutableMapping[str, Any]) -> bool:
             "project_storage_save",
             "Generated project snapshot could not be saved to cloud storage.",
             exc,
-            source="project_storage.workflow_hooks",
+            source="app_modules.project_storage_workflow",
         )
         record_storage_error(state, exc, action="save")
         return False
@@ -132,7 +133,7 @@ def save_project_payload_snapshot(state: MutableMapping[str, Any], project: dict
             "project_storage_save",
             "Project payload snapshot could not be saved to cloud storage.",
             exc,
-            source="project_storage.workflow_hooks",
+            source="app_modules.project_storage_workflow",
         )
         record_storage_error(state, exc, action="save")
         return False
@@ -180,7 +181,7 @@ def save_calculation_workbook(
             "Calculator workbook could not be saved to cloud storage.",
             exc,
             filename,
-            source="project_storage.workflow_hooks",
+            source="app_modules.project_storage_workflow",
         )
         record_storage_error(state, exc, action="save")
         return False
@@ -218,7 +219,7 @@ def save_pdf_export(state: MutableMapping[str, Any], *, content: bytes, filename
             "PDF export could not be saved to cloud storage.",
             exc,
             filename,
-            source="project_storage.workflow_hooks",
+            source="app_modules.project_storage_workflow",
         )
         record_storage_error(state, exc, action="save")
         return False

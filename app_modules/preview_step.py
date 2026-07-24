@@ -13,9 +13,8 @@ from app_modules.generation_messages import render_generation_messages
 from app_modules.calculator_navigation import render_return_to_calculator_button
 from app_modules.project_io import rebuild_current_preview
 from app_modules.workflow_config import STAGE_COPY
-from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_html_file
-from ui.output_edits import apply_output_edits, mark_output_dirty
+from ui.output_edits import mark_output_dirty
 from ui.render_cache import make_render_signature
 from visual_editor_component.editor_workflow import render_visual_editor
 
@@ -24,12 +23,9 @@ def _render_document_editor(*, pictures_active: bool) -> None:
     if not (st.session_state.get("parsed_rows") and st.session_state.get("output_edits")):
         return
 
-    edited_rows = apply_output_edits(st.session_state.parsed_rows, st.session_state.output_edits)
-    edited_grouped_days = group_rows_by_day(edited_rows)
-
     editor_applied = render_visual_editor(
-        edited_rows,
-        edited_grouped_days,
+        st.session_state.parsed_rows,
+        {},
         st.session_state.output_edits,
         rebuild_preview=rebuild_current_preview,
         mark_dirty=mark_output_dirty,

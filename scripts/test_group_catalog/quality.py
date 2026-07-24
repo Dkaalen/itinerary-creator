@@ -53,6 +53,7 @@ QUALITY_TESTS = (
     "tests/test_destination_qc_and_pagination_regression.py",
     "tests/test_client_output_quality_regression.py",
     "tests/test_transport_domain_regression.py",
+    "tests/test_transport_route_facts_authority.py",
     "tests/test_client_transport_wording_contract.py",
     "tests/test_transport_preview_quality_regression.py",
     "tests/test_transport_render_split.py",

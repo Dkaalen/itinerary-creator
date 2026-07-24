@@ -36,13 +36,13 @@ CLI behavior should stay the same.
 
 ### Transport facts
 
-Fact-only transport extraction now has a canonical model:
+Route extraction has one canonical production and QA model:
 
-* `itinerary_generation/transport_domain/facts.py`
+* `itinerary_generation/transport_domain/routes.py`
 
-Use `build_transport_facts(row)` when a caller needs transport truth. Do not
-re-parse route/place truth in rendering or QA unless the canonical model cannot
-answer the question yet.
+Use `get_transport_route_facts(row)` when a caller needs route endpoints, via
+points, mode or endpoint-contract diagnostics. Rendering and QA must not keep a
+second route parser or reinterpret route/place truth independently.
 
 ## Audit tools
 

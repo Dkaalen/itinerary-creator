@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 import types
 from pathlib import Path
@@ -52,7 +59,6 @@ sys.modules["streamlit.components.v1"] = components_v1_stub
 from app_modules.itinerary_html import build_itinerary_html
 from generator import group_rows_by_day
 from itinerary_generation.content_validator import compact_html
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.transport import get_transport_route_phrase
 from itinerary_generation.transport_times import get_transport_time_text, get_overnight_train_schedule
 from itinerary_parser import parse_itinerary
@@ -81,8 +87,8 @@ Day 1	Activity	01.01.2026		Norway in a NUtshell | Oslo to Bergen | 08:35 --- 20:
     assert lines[0] == "Norway in a Nutshell from Oslo to Bergen — 8:35 AM - 8:38 PM"
     assert "Included journey: Bergen Railway, Flåm Railway, Fjord cruise, Scenic bus journey, Luggage porter service" in lines
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
-    flat = "\n".join("\n".join(section["items"]) for section in sections)
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
+    flat = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections)
     assert "Norway in a Nutshell from Oslo to Bergen" in flat
     assert "8:35 AM - 8:38 PM" in flat
     assert "Luggage porter service" in flat

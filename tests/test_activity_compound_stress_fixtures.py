@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import json
 from pathlib import Path
 
@@ -5,7 +12,6 @@ from app_modules.itinerary_html import build_itinerary_html
 from generator import group_rows_by_day
 from itinerary_generation.content_validator import compact_html
 from itinerary_generation.day_titles import create_day_title
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.row_filters import get_row_type
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
@@ -72,8 +78,8 @@ Day 1	Activity	01.01.2027		Bergen | Private Fjord Cruise | 10:00 - 14:00 | Inclu
     assert "Time: 10:00 AM - 2:00 PM" in plain
     assert "Guide Boat Snacks" in plain
 
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
-    flat = "\n".join("\n".join(section["items"]) for section in sections)
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
+    flat = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections)
     assert "Private Fjord Cruise - 1st of January" in flat
     assert "guide, boat, snacks" in flat
 
@@ -92,7 +98,7 @@ Day 1	Activity	01.01.2027		Activity: Copenhagen: Spend time at leisure
     assert "A day at leisure in Copenhagen" in plain
     assert "Featured experience Activity: Copenhagen: Spend time at leisure" not in plain
     assert "Activities & experiences" not in "\n".join(
-        section["title"] for section in create_categorized_inclusions(rows, group_rows_by_day(rows))
+        section.title for section in build_inclusion_sections(rows, group_rows_by_day(rows))
     )
 
 

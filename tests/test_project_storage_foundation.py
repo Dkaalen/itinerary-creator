@@ -7,7 +7,7 @@ from calculator.calculator_state import CalculatorState
 from project_storage.config import supabase_config_from_mapping
 from project_storage.paths import calculator_workbook_path, itinerary_snapshot_path, pdf_export_path, safe_segment
 from project_storage.repository import ProjectStorageRepository
-from project_storage.workflow_hooks import ensure_storage_itinerary, save_calculation_workbook, save_project_payload_snapshot
+from app_modules.project_storage_workflow import ensure_storage_itinerary, save_calculation_workbook, save_project_payload_snapshot
 
 
 class FakeClient:
@@ -129,7 +129,7 @@ def test_workflow_hook_reuses_existing_itinerary_id(monkeypatch) -> None:
         SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
         client=fake,
     )
-    monkeypatch.setattr("project_storage.workflow_hooks.get_project_storage_repository", lambda: repository)
+    monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
     app_state = {"active_project_storage_id": "11111111-2222-3333-4444-555555555555"}
     calculator_state = CalculatorState(itinerary_name="Norway Winter", rows=())
 
@@ -181,17 +181,19 @@ def test_repository_lists_downloads_and_deletes_project_files() -> None:
 
 
 def test_project_browser_supports_paging_search_delete_and_lazy_file_downloads() -> None:
-    source = read_contract_text("project_storage/project_browser.py")
+    storage_source = read_contract_text("project_storage/project_browser.py")
+    service_source = read_contract_text("app_modules/project_storage_service.py")
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
     detail_source = read_contract_text("app_modules/project_browser_detail_ui.py")
     calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
 
-    assert "search: str = """ in source
-    assert "list_cloud_itinerary_page" in source
-    assert "offset=clean_page * clean_size" in source
-    assert "list_cloud_calculation_files" in source
-    assert "download_cloud_project_file" in source
-    assert "delete_cloud_itinerary_result" in source
+    assert "search: str = """ in storage_source
+    assert "get_project_storage_repository" not in storage_source
+    assert "list_cloud_itinerary_page" in service_source
+    assert "offset=clean_page * clean_size" in service_source
+    assert "list_cloud_calculation_files" in service_source
+    assert "download_cloud_project_file" in service_source
+    assert "delete_cloud_itinerary_result" in service_source
     assert "Search projects" in ui_source
     assert "Delete permanently" in detail_source
     assert "render_calculation_files(project_id)" in detail_source
@@ -233,7 +235,7 @@ def test_snapshot_save_does_not_create_version_when_upload_fails(monkeypatch) ->
         SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
         client=fake,
     )
-    monkeypatch.setattr("project_storage.workflow_hooks.get_project_storage_repository", lambda: repository)
+    monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
     app_state = {"active_project_storage_id": "11111111-2222-3333-4444-555555555555"}
 
     ok = save_project_payload_snapshot(
@@ -256,7 +258,7 @@ def test_snapshot_save_removes_uploaded_file_and_version_when_file_record_fails(
         SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
         client=fake,
     )
-    monkeypatch.setattr("project_storage.workflow_hooks.get_project_storage_repository", lambda: repository)
+    monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
     app_state = {"active_project_storage_id": "11111111-2222-3333-4444-555555555555"}
 
     ok = save_project_payload_snapshot(

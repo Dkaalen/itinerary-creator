@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import base64
 import sys
 import tempfile
@@ -46,13 +53,12 @@ def test_self_drive_rows_are_routes_not_included_today():
 
 
 def test_self_drive_inclusions_preserve_room_quantities_and_rental_section():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
     rows, grouped = _rows_and_grouped()
-    sections = create_categorized_inclusions(rows, grouped)
-    all_text = "\n".join("\n".join(section.get("items", [])) for section in sections)
-    accommodation_text = "\n".join("\n".join(section.get("items", [])) for section in sections if section.get("title") == "Accommodation")
-    rental_text = "\n".join("\n".join(section.get("items", [])) for section in sections if section.get("title") == "Rental vehicle")
+    sections = build_inclusion_sections(rows, grouped)
+    all_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections)
+    accommodation_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections if section.title == "Accommodation")
+    rental_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections if section.title == "Rental vehicle")
 
     assert_contains(accommodation_text, "2 x Standard Room", "Accommodation inclusions should preserve room quantities.")
     assert_contains(accommodation_text, "1 x Standard Room, 1 x Single Room", "Mixed room quantities should be preserved.")

@@ -36,7 +36,7 @@ class RecordingProjectRepository:
 
 
 def test_manual_cloud_save_normalizes_payload_project_id_to_active_storage_id(monkeypatch) -> None:
-    from project_storage import workflow_hooks
+    from app_modules import project_storage_workflow as workflow_hooks
 
     repository = RecordingProjectRepository()
     monkeypatch.setattr(workflow_hooks, "get_project_storage_repository", lambda: repository)

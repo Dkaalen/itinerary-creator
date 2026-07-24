@@ -155,6 +155,7 @@ def test_restore_modules_keep_loading_and_state_application_separate() -> None:
     assert "build_itinerary_html_from_context" not in load_source
     assert "save_html_file" not in load_source
     assert "restore_saved_project_to_state" in load_source
-    assert "build_itinerary_html_from_context" in restore_source
+    assert "build_itinerary_html_from_context" not in restore_source
+    assert "build_and_persist_itinerary_render_artifact" in restore_source
     assert "restore_calculator_snapshot_to_state" in restore_source
     assert "store_calculator_state" in calculator_restore_source

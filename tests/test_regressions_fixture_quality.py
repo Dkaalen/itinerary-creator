@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 from pathlib import Path
 
@@ -34,7 +41,6 @@ from layout_policy import (
 )
 
 def test_content_cleanup_for_helsinki_lapland_sample():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
     raw = """
 	Day 1	Hotel	2	14/11/2026	16/11/2026					Helsinki 	3 Star ,Hotel Arthur , 2xNight , 2x Standard Room 1xStandard Triple Room, Incl Brekafast 
@@ -81,17 +87,16 @@ Professional driver & guide (English)
         "Departure-only days should not invent an airport transfer.",
     )
 
-    sections = create_categorized_inclusions(rows, grouped)
-    section_titles = [section["title"] for section in sections]
+    sections = build_inclusion_sections(rows, grouped)
+    section_titles = [section.title for section in sections]
     assert_contains("\n".join(section_titles), "Accommodation", "Categorized inclusions should include accommodation.")
     assert_contains("\n".join(section_titles), "Activities & experiences", "Categorized inclusions should include activities.")
-    accommodation_text = "\n".join(section["items"][0] for section in sections if section["title"] == "Accommodation")
+    accommodation_text = "\n".join(inclusion_item_texts(section)[0] for section in sections if section.title == "Accommodation")
     assert_contains(accommodation_text, "2 x Standard Room, 1 x Standard Triple Room", "Accommodation inclusions should include room quantities and categories.")
     assert_not_contains(accommodation_text, "—", "Accommodation inclusions should avoid em-dash-heavy formatting.")
 
 
 def test_bad_input_contextual_travel_and_activity_cleanup():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from ui.final_pages import clean_activity_inclusion_items, prioritize_inline_inclusions
 
     raw = """
@@ -140,10 +145,10 @@ Traditional Finnish lunch buffet
     assert_contains(day7_intro, "Kakslauttanen", "Travel-day intro should identify the actual onward destination, not the origin city.")
     assert_not_contains(day7_intro, "towards Rovaniemi", "Travel-day intro should not point back to the origin city.")
 
-    sections = create_categorized_inclusions(rows, grouped)
-    section_titles = [section.get("title") for section in sections]
+    sections = build_inclusion_sections(rows, grouped)
+    section_titles = [section.title for section in sections]
     assert_not_contains("\n".join(section_titles), "Guides & local support", "Guide-support summaries should not repeat or misstate self-guided activity details.")
-    all_inclusions = "\n".join(item for section in sections for item in section.get("items", []))
+    all_inclusions = "\n".join(item for section in sections for item in inclusion_item_texts(section))
     assert_contains(all_inclusions, "Arctic City Hotel, Rovaniemi", "Accommodation section should include hotel entries.")
     assert_contains(all_inclusions, "Small Glass Igloo, West or East Village", "Room category cleanup should polish glass igloo village wording.")
     assert_contains(all_inclusions, "Panoramic Coach Transfer from Rovaniemi Bus Station to Kakslauttanen", "Coach transfer section should include the arranged coach transfer with clear route wording.")

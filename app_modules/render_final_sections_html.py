@@ -37,7 +37,7 @@ def _page_has_content(page: RenderFinalPage) -> bool:
     )
 
 
-def _page_inner_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
+def render_final_page_inner_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
     content_html = clean_visual_editor_html(getattr(page, "content_html", "") or "")
     if content_html:
         return content_html
@@ -61,10 +61,16 @@ def _page_inner_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
     return html_text
 
 
+def _page_inner_html(section: RenderFinalSection, page: RenderFinalPage) -> str:
+    """Compatibility alias for older imports."""
+
+    return render_final_page_inner_html(section, page)
+
+
 def render_final_section_page_html(section: RenderFinalSection, page: RenderFinalPage, *, continued: bool = False) -> str:
     if not _page_has_content(page):
         return ""
-    inner_html = _page_inner_html(section, page)
+    inner_html = render_final_page_inner_html(section, page)
     if not inner_html:
         return ""
     title = section.title

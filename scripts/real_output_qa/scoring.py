@@ -6,7 +6,7 @@ import re
 from typing import Any, Sequence
 
 from generator import group_rows_by_day
-from itinerary_generation.transport_domain.facts import build_transport_facts
+from itinerary_generation.transport_domain.routes import get_transport_route_facts
 from itinerary_generation.day_leisure_facts import is_blank_activity_or_leisure
 from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.copy.phrase_guardrails import contains_banned_generated_phrase
@@ -341,10 +341,10 @@ def _score_transport_semantics(issues: list[OutputTextIssue], rows: Sequence[dic
         for row in day_rows:
             row_type = _clean_text(row.get("effective_type") or row.get("type") or row.get("source_type"))
             row_title = _clean_text(row.get("title") or row.get("original_title") or row.get("details"))
-            transport_facts = build_transport_facts(row)
+            transport_facts = get_transport_route_facts(row)
             if (
                 ACTIVITY_TYPE_RE.search(row_type)
-                and (transport_facts.mode or TRANSPORT_PRODUCT_RE.search(row_title))
+                and (transport_facts.has_transport_mode or TRANSPORT_PRODUCT_RE.search(row_title))
                 and not ACTIVITY_TRANSPORT_EXPERIENCE_RE.search(row_title)
             ):
                 rendered = day_texts.get(day_id, "")

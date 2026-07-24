@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from generator import group_rows_by_day
@@ -92,7 +99,6 @@ def test_flights_self_arranged_stress_fixture_bank_is_available_for_future_patch
 def test_self_arranged_flight_titles_are_clean_and_excluded_from_inclusions():
     from app_modules.itinerary_html import build_itinerary_html
     from itinerary_generation.content_validator import compact_html
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
 
     raw = '''
 Day 1	Transfer	01.01.2027		Oslo: Flight Oslo to Tromsø self arrange cost not included
@@ -102,8 +108,8 @@ Day 3	Flight	03.01.2027		Tromsø: Flight to Bergen - Time: 11:15 am - 1:20 pm - 
     rows = _rows(raw)
     grouped = group_rows_by_day(rows)
     plain = compact_html(build_itinerary_html(rows, grouped, {}))
-    inclusions = create_categorized_inclusions(rows, grouped)
-    inclusion_text = "\n".join("\n".join(section["items"]) for section in inclusions)
+    inclusions = build_inclusion_sections(rows, grouped)
+    inclusion_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in inclusions)
     not_included = "\n".join(create_whats_not_included(rows))
 
     assert "Self-arranged flight from Oslo to Tromsø (not included)" in plain

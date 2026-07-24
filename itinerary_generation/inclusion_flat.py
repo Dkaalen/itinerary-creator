@@ -1,8 +1,8 @@
 """Legacy flat "what's included" list helpers.
 
-The premium final itinerary now renders categorized inclusions via
-``itinerary_generation.inclusion_sections``. These helpers are kept focused on
-building the older flat inclusion list used by compatibility paths and tests.
+The premium final itinerary renders categorized inclusions through
+``itinerary_generation.structured_inclusions``. These helpers remain focused on
+the older flat inclusion list still used by explicit compatibility consumers.
 """
 
 from text_polish import polish_inclusion_item, polish_title

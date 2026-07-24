@@ -200,6 +200,7 @@ STORAGE_TESTS = (
     "tests/test_project_identity_state.py",
     "tests/test_project_storage_file_writer.py",
     "tests/test_project_storage_foundation.py",
+    "tests/test_project_storage_boundary.py",
     "tests/test_project_file_mvp_regression.py",
     "tests/test_current_edited_version_save_regression.py",
     "tests/test_saved_project_hardening_regression.py",

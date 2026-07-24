@@ -8,10 +8,10 @@ from itinerary_generation.editor_page_contract import page_is_hidden as contract
 from itinerary_generation.render_model import RenderCover
 
 
-def build_render_cover(context: Any) -> RenderCover | None:
+def build_render_cover(context: Any, *, include_hidden: bool = False) -> RenderCover | None:
     """Build the typed PDF/preview cover contract from a render context."""
 
-    if contract_page_is_hidden(context.hidden_page_ids, "cover"):
+    if not include_hidden and contract_page_is_hidden(context.hidden_page_ids, "cover"):
         return None
     return RenderCover(
         kicker=context.cover_kicker,

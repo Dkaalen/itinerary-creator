@@ -1,7 +1,13 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from generator import group_rows_by_day
 from itinerary_generation.content_validator import compact_html
 from itinerary_generation.day_text import create_day_intro
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.row_filters import get_row_type
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
@@ -54,9 +60,9 @@ def test_arrival_day_intro_does_not_claim_free_time_when_activity_is_booked():
 
 def test_icebreaker_inclusions_are_activity_inclusions_not_ferry_transport():
     rows, grouped = _normalized_day_4()
-    sections = create_categorized_inclusions(rows, {"Day 4": grouped})
+    sections = build_inclusion_sections(rows, {"Day 4": grouped})
     section_text = "\n".join(
-        section["title"] + "\n" + "\n".join(section.get("items", []))
+        section.title + "\n" + "\n".join(inclusion_item_texts(section))
         for section in sections
     )
 

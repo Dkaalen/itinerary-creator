@@ -1,6 +1,12 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 from generator import create_journey_arc, group_rows_by_day
 from itinerary_generation.content_validator import compact_html
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from itinerary_generation.transport_norway import extract_norway_nutshell_route_legs, extract_norway_nutshell_route_points
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
@@ -136,8 +142,8 @@ def test_journey_arc_does_not_emit_ellipsis_for_tromso_summary():
 
 def test_final_inclusions_keep_correct_bergen_and_clean_nutshell_route():
     rows, grouped = _rows_and_grouped()
-    sections = create_categorized_inclusions(rows, grouped)
-    text = "\n".join(section["title"] + "\n" + "\n".join(section.get("items", [])) for section in sections)
+    sections = build_inclusion_sections(rows, grouped)
+    text = "\n".join(section.title + "\n" + "\n".join(inclusion_item_texts(section)) for section in sections)
 
     assert "Guided Walking Tour of Bergen Past & Present - 1st of January" in text
     assert "Bergen Food & Culture Walk" not in text

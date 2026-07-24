@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 from pathlib import Path
 
@@ -33,7 +40,6 @@ from layout_policy import (
 )
 
 def test_content_quality_hardening_rules():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_generation.inclusions import create_whats_not_included
     from ui.day_blocks import build_day_blocks, build_day_overview_block
     from generator import create_day_title
@@ -50,11 +56,11 @@ def test_content_quality_hardening_rules():
     assert_not_contains(rental_html, "Pick-up Rental vehicle from Office", "Rental block should not repeat raw pickup supplier text.")
     assert_not_contains(rental_html, "Vehicle category examples", "Rental day page should not list every example vehicle.")
 
-    sections = create_categorized_inclusions(iceland_rows, iceland_grouped)
-    section_titles = [section.get("title") for section in sections]
+    sections = build_inclusion_sections(iceland_rows, iceland_grouped)
+    section_titles = [section.title for section in sections]
     assert_not_contains("\n".join(section_titles), "Meals included", "Hotel breakfasts should not be repeated in a separate meals section.")
-    rental_section = next(section for section in sections if section.get("title") == "Rental vehicle")
-    rental_text = "\n".join(rental_section.get("items", []))
+    rental_section = next(section for section in sections if section.title == "Rental vehicle")
+    rental_text = "\n".join(inclusion_item_texts(rental_section))
     assert_contains(rental_text, "Rental SUV", "Self-drive inclusions should include a rental vehicle section.")
 
     scandi_rows = normalize_itinerary_rows(parse_itinerary((fixtures / "norway_sweden_denmark_summer.txt").read_text(encoding="utf-8")))
@@ -107,7 +113,6 @@ def test_multiline_transport_inclusions_render_as_bullets():
 
 
 def test_rental_car_rows_render_as_rental_vehicle_inclusions_not_accommodation():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_parser import parse_itinerary
     from normalizer import normalize_itinerary_rows
     from generator import group_rows_by_day
@@ -115,12 +120,12 @@ def test_rental_car_rows_render_as_rental_vehicle_inclusions_not_accommodation()
     source = """Day 1\tCar\t09.06.2026\t\t\t\t\t\t\t\tOslo\tPick up your rental car at the aiport car rental office - Suzuki S-Cross AWD (automatic) or similar - Includes: Airport service charge, Collision damage waiver, Fuel information, Unlimited mileage, Vehicle licence fee / road fund licence, Theft protection, Vat, Other taxes and service charges, Supplementary liability insurance, Cancellation fee\nDay 1\tHotel\t09.06.2026\t10.06.2026\t\t\t\t\t\t\tVoss\tScandic Voss - 1 night - Standard Room - Breakfast included\nDay 2\tHotel\t10.06.2026\t\t\t\t\t\t\t\tOslo\tDeliver your rental car at the airport car rental office\n"""
     rows = normalize_itinerary_rows(parse_itinerary(source))
     grouped = group_rows_by_day(rows)
-    sections = create_categorized_inclusions(rows, grouped)
-    all_text = "\n".join("\n".join(section.get("items", [])) for section in sections)
-    titles = {section.get("title") for section in sections}
-    rental_section = next(section for section in sections if section.get("title") == "Rental vehicle")
-    rental_text = "\n".join(rental_section.get("items", []))
-    accommodation_text = "\n".join("\n".join(section.get("items", [])) for section in sections if section.get("title") == "Accommodation")
+    sections = build_inclusion_sections(rows, grouped)
+    all_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections)
+    titles = {section.title for section in sections}
+    rental_section = next(section for section in sections if section.title == "Rental vehicle")
+    rental_text = "\n".join(inclusion_item_texts(rental_section))
+    accommodation_text = "\n".join("\n".join(inclusion_item_texts(section)) for section in sections if section.title == "Accommodation")
 
     assert_contains("\n".join(titles), "Rental vehicle", "Rental car rows should create a Rental vehicle section.")
     assert_contains(rental_text, "Suzuki S-Cross AWD", "Rental vehicle section should include the example vehicle.")
@@ -130,15 +135,14 @@ def test_rental_car_rows_render_as_rental_vehicle_inclusions_not_accommodation()
 
 
 def test_hotel_dinner_does_not_create_separate_meals_section():
-    from itinerary_generation.inclusion_sections import create_categorized_inclusions
     from itinerary_parser import parse_itinerary
     from normalizer import normalize_itinerary_rows
     from generator import group_rows_by_day
 
     source = """Day 1\tHotel\t31/10/2026\t01/11/2026\t\t\t\t\t\t\tKakslauttanen\t4Star, Kakslauttanen Arctic Resort, 1xNight, 1xSmall Glass Igloo, Incl Breakfast + Dinner\n"""
     rows = normalize_itinerary_rows(parse_itinerary(source))
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
-    titles = [section.get("title") for section in sections]
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
+    titles = [section.title for section in sections]
     assert_not_contains("\n".join(titles), "Meals included", "Hotel dinner belongs in Accommodation details, not a separate Meals section.")
-    accommodation = next(section for section in sections if section.get("title") == "Accommodation")
-    assert_contains("\n".join(accommodation.get("items", [])), "Breakfast and dinner included", "Accommodation should still preserve the hotel meal plan.")
+    accommodation = next(section for section in sections if section.title == "Accommodation")
+    assert_contains("\n".join(inclusion_item_texts(accommodation)), "Breakfast and dinner included", "Accommodation should still preserve the hotel meal plan.")

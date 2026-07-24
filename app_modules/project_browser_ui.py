@@ -28,8 +28,8 @@ from app_modules.session_state_keys import (
     PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY,
 )
 from project_storage.errors import storage_user_message
-from project_storage.project_browser import list_cloud_itinerary_page
-from project_storage.runtime import project_storage_is_configured
+from app_modules.project_storage_service import list_cloud_itinerary_page
+from app_modules.project_storage_runtime import project_storage_is_configured
 
 _SORT_OPTIONS = {
     "Recently saved": "recent",

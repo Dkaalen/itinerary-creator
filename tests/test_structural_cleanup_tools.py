@@ -6,7 +6,7 @@ from scripts.module_ownership_audit import run_audit
 from scripts.test_group_hygiene import build_report
 from shared import text_cleanup_rules
 from text_polish_modules import text_cleanup as polish_cleanup
-from itinerary_generation.transport_domain.facts import build_transport_facts
+from itinerary_generation.transport_domain.routes import get_transport_route_facts
 
 
 def test_text_cleanup_rules_are_shared_across_parser_and_polish() -> None:
@@ -46,7 +46,7 @@ def test_destination_registry_export_is_valid() -> None:
 
 
 def test_transport_facts_extracts_route_without_copy_decisions() -> None:
-    facts = build_transport_facts(
+    facts = get_transport_route_facts(
         {
             "effective_type": "Train",
             "title": "Train: Oslo to Bergen",

@@ -1,3 +1,10 @@
+from tests.support.inclusion_contract import (
+    build_inclusion_sections,
+    inclusion_item_text,
+    inclusion_item_texts,
+    inclusion_section_text,
+    inclusion_text,
+)
 import sys
 import types
 
@@ -17,7 +24,6 @@ sys.modules.setdefault("streamlit.components.v1", v1_module)
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from generator import group_rows_by_day
-from itinerary_generation.inclusion_sections import create_categorized_inclusions
 from ui.inclusion_pages import render_categorized_inclusions_pages, render_inclusion_page_inner_htmls
 from app_modules.itinerary_html import build_itinerary_html
 from visual_editor_component.editor_workflow import apply_visual_editor_result
@@ -32,11 +38,11 @@ def test_activity_inclusions_show_activity_date_and_detail_line_without_bullets(
 	Day 2	Activity		02/10/2026						Copenhagen	Copenhagen: Secret Food Tours - Time: 11:30 am - 2:30 pm - Includes: Two types of local Smørrebrød, Danish meatballs, Flæskesteg - roasted pork with crispy crackling
 """
     rows = _rows(raw)
-    sections = create_categorized_inclusions(rows, group_rows_by_day(rows))
-    activity_section = next(section for section in sections if section["title"] == "Activities & experiences")
-    assert activity_section["items"] == [
-        "Copenhagen Food Tour - 2nd of October\nTwo types of local Smørrebrød, Danish meatballs, Flæskesteg - roasted pork with crispy crackling"
-    ]
+    sections = build_inclusion_sections(rows, group_rows_by_day(rows))
+    activity_section = next(section for section in sections if section.title == "Activities & experiences")
+    assert inclusion_item_texts(activity_section) == (
+        "Copenhagen Food Tour - 2nd of October\nTwo types of local Smørrebrød, Danish meatballs, Flæskesteg - roasted pork with crispy crackling",
+    )
 
     html = render_categorized_inclusions_pages("What’s included", sections)
     assert "Copenhagen Food Tour - 2nd of October" in html
