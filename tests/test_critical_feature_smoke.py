@@ -14,7 +14,8 @@ from app_modules.calculator_navigation import (
     open_local_library_page,
 )
 from app_modules.workflow_config import CALCULATOR_COPY, FLOW_STAGES, STAGE_COPY, STAGE_LABELS
-from app_modules.workflow_state import ensure_workflow_defaults, session_stage_from_state
+from app_modules.workflow_navigation import session_stage_from_state
+from app_modules.workflow_state import ensure_workflow_defaults
 
 
 CRITICAL_RENDER_MODULES = (

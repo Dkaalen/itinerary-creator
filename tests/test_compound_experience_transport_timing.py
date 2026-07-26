@@ -8,32 +8,15 @@ from tests.support.inclusion_contract import (
 import sys
 import types
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 from tests.support.static_contracts import read_contract_text
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _visual_editor_frontend_source() -> str:
-    frontend = ROOT / "visual_editor_component" / "frontend"
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
-    for relative in (
-        "styles/editor.css",
-        "js/state.js",
-        "js/images.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
+
 sys.path.insert(0, str(ROOT))
 
 streamlit_stub = sys.modules.get("streamlit") or types.ModuleType("streamlit")

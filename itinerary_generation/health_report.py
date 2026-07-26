@@ -11,15 +11,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable
 
+from itinerary_generation.advisor_quality import MAJOR_EDIT, READY, UNUSABLE
+from itinerary_generation.client_quality_report import ClientOutputQualityGateReport
 from itinerary_generation.common_constants import TRANSPORT_TYPES
-from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.quality_gate import (
-    IMPORTANT_ROW_TYPES,
     ItineraryQualityGateReport,
     build_quality_snapshot,
     evaluate_itinerary_quality,
 )
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.quality_row_selection import as_quality_rows, select_important_rows
 from itinerary_generation.row_sequence import ordered_cities
 from itinerary_generation.itinerary_health_checks import (
     ItineraryHealthIssue,
@@ -45,6 +46,7 @@ class ItineraryHealthReport:
     route: tuple[str, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
     issues: tuple[ItineraryHealthIssue, ...] = field(default_factory=tuple)
+    advisor_rating: str = ""
 
     @property
     def route_text(self) -> str:
@@ -57,7 +59,7 @@ class ItineraryHealthReport:
     @property
     def status(self) -> str:
         issue_summary = summarize_itinerary_health_issues(self.issues)
-        if issue_summary.critical:
+        if issue_summary.critical or self.advisor_rating in {MAJOR_EDIT, UNUSABLE}:
             return "Needs review"
         if any("blocked" in warning.lower() or "input reaches" in warning.lower() for warning in self.warnings):
             return "Needs review"
@@ -74,26 +76,6 @@ class ItineraryHealthReport:
         return summarize_itinerary_health_issues(self.issues).review
 
 
-def _as_rows(rows: Iterable[dict] | None) -> list[dict]:
-    return [row for row in rows or [] if isinstance(row, dict)]
-
-
-def _is_important_row(row: dict) -> bool:
-    row_type = get_row_type(row)
-    raw_type = row.get("type", "")
-    return row_type in IMPORTANT_ROW_TYPES or raw_type in IMPORTANT_ROW_TYPES
-
-
-def _important_rows(rows: Iterable[dict]) -> list[dict]:
-    return [row for row in rows if _is_important_row(row)]
-
-
-def _max_day(rows: Iterable[dict]) -> int:
-    day_numbers = [get_day_number(row.get("day", "")) for row in rows]
-    return max(day_numbers) if day_numbers else 0
-
-
-
 def _validation_warnings(report: ItineraryQualityGateReport) -> list[str]:
     warnings: list[str] = []
     for issue in report.blocking_issues:
@@ -107,11 +89,12 @@ def build_itinerary_health_report(
     parsed_rows: Iterable[dict] | None,
     validation_report: ItineraryQualityGateReport | None = None,
     parser_diagnostics: Iterable[dict] | None = None,
+    client_quality_report: ClientOutputQualityGateReport | None = None,
 ) -> ItineraryHealthReport:
     """Build a deterministic diagnostic report from parsed itinerary rows."""
 
-    rows = _as_rows(parsed_rows)
-    important_rows = _important_rows(rows)
+    rows = as_quality_rows(parsed_rows)
+    important_rows = select_important_rows(rows)
     validation_report = validation_report or evaluate_itinerary_quality(rows)
     snapshot = build_quality_snapshot(rows)
 
@@ -151,6 +134,14 @@ def build_itinerary_health_report(
 
     issues = build_itinerary_health_issues(rows, parser_diagnostics=parser_diagnostics)
 
+    advisor_rating = ""
+    if client_quality_report is not None:
+        assessment = client_quality_report.advisor_assessment
+        advisor_rating = assessment.rating
+        if assessment.rating != READY:
+            details = "; ".join(assessment.reasons)
+            warnings.append(f"Advisor quality — {assessment.rating}: {details}")
+
     return ItineraryHealthReport(
         input_days=snapshot.input_max_day,
         generated_days=snapshot.main_max_day,
@@ -164,6 +155,7 @@ def build_itinerary_health_report(
         route=ordered_cities(commercial_main_rows) or snapshot.main_cities or snapshot.input_cities,
         warnings=tuple(dict.fromkeys(warnings)),
         issues=issues,
+        advisor_rating=advisor_rating,
     )
 
 
@@ -186,6 +178,8 @@ def format_itinerary_health_report(report: ItineraryHealthReport) -> str:
         f"Warnings: {report.warnings_text}",
         f"Health checks: {report.critical_issue_count} critical / {report.review_issue_count} review",
     ]
+    if report.advisor_rating:
+        lines.append(f"Advisor quality: {report.advisor_rating}")
     for issue in report.issues[:12]:
         prefix = f"{issue.day}: " if issue.day else ""
         lines.append(f"- [{issue.severity}] {prefix}{issue.message}")

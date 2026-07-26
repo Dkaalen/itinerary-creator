@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import types
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 from tests.support.static_contracts import read_contract_text
 
 st_module = types.ModuleType("streamlit")
@@ -32,29 +33,7 @@ from tests.frontend_asset_helpers import read_resolved_frontend_css
 
 
 def _visual_editor_frontend_source() -> str:
-    frontend = ROOT / "visual_editor_component" / "frontend"
-    parts = [
-        read_contract_text(frontend / "index.html"),
-        read_resolved_frontend_css(),
-    ]
-    for relative in (
-        "js/state.js",
-        "js/images.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-        "js/editor_text_tools.js",
-        "js/editor_document_model.js",
-        "js/editor_inspector.js",
-        "js/editor_page_actions.js",
-        "js/editor_warnings.js",
-        "js/commands.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
-
+    return frontend_source()
 
 def _rows(raw: str) -> list[dict]:
     return normalize_itinerary_rows(parse_itinerary(raw))

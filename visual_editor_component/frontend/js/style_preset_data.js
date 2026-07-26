@@ -1,6 +1,6 @@
 // Controlled visual-editor style preset registry.
 // Keep this file aligned with visual_editor_component/style_presets.json.
-window.CONTROLLED_EDITOR_STYLE_REGISTRY = {
+const CONTROLLED_EDITOR_STYLE_REGISTRY = {
   "schema_version": 1,
   "text_styles": [
     {
@@ -266,3 +266,7 @@ window.CONTROLLED_EDITOR_STYLE_REGISTRY = {
     }
   ]
 };
+
+ItineraryVisualEditor.define('stylePresets', {
+  registry: CONTROLLED_EDITOR_STYLE_REGISTRY,
+});

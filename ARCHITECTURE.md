@@ -20,14 +20,41 @@ Raw supplier rows flow through parser and normalizer modules, then into itinerar
 
 ## Calculator frontend ownership
 
-`calculator_grid_component/frontend/index.html` owns one deterministic script-loading order. Existing browser APIs remain global and stable, but implementation ownership is split by responsibility:
+`calculator_grid_component/frontend/index.html` owns one deterministic script-loading order. `window.ItineraryCalculator` is the explicit registry and public boundary for split frontend domains; implementation ownership is divided by responsibility:
 
 - `calculator_grid_caret.js`, `calculator_grid_keyboard.js`, `calculator_grid_cell_commits.js`, and `calculator_grid_formula_sync.js` own editing, navigation, commits, caret placement, and formula-bar synchronization.
 - `calculator_grid_math.js`, `calculator_grid_currency.js`, `calculator_grid_formatting.js`, and `calculator_grid_formula_input.js` own formulas, financial calculations, currency conversion, and display formatting.
 - `calculator_grid_toolbar_render.js`, `calculator_grid_grid_render.js`, `calculator_grid_status_render.js`, `calculator_grid_suggestion_render.js`, and `calculator_grid_render.js` own the separate rendering surfaces and shell composition.
 - `calculator_grid_excel_actions.js`, `calculator_grid_sales_actions.js`, `calculator_grid_submission_actions.js`, `calculator_grid_shortcuts.js`, and `calculator_grid_actions.js` own commands and event binding without creating a second browser-state authority.
 
-`calculator_grid_state.js`, `calculator_grid_state_controller.js`, `calculator_grid_protocol.js`, and `calculator_grid_draft_storage.js` remain the state, backend-protocol, and browser-recovery authorities.
+`calculator_grid_state.js`, `calculator_grid_state_controller.js`, and `calculator_grid_protocol.js` remain the grid-state and backend-protocol authorities. Browser recovery is owned by `calculator_grid_storage_core.js`, `calculator_grid_draft_repository.js`, and `calculator_grid_recovery_repository.js`, exposed through `ItineraryCalculator.storage`. Local Library retention, indexing, search, and projection are separate namespaced modules exposed through `ItineraryCalculator.library`.
+
+## Application workflow ownership
+
+Cross-workflow session decisions are split by responsibility rather than collected in one transition module:
+
+- `workflow_navigation.py` owns application routes, workflow-stage normalization, and visible-stage resolution.
+- `calculator_lifecycle.py` owns local Calculator import and Calculator-to-generator transitions.
+- `project_session_transitions.py` owns transactional project open, switch, duplicate, delete, and save-failure state.
+- `render_lifecycle.py` owns PDF and export-artifact invalidation.
+- `image_projection_state.py` projects committed itinerary rows for image matching without mutating workflow state.
+- `workflow_state.py` owns only defaults, clean reset, and plain snapshots.
+
+`calculator_page.py` composes the page and component protocol. Backend validation policy lives in `calculator_action_policy.py`, while accepted navigation, import, download, generation, and backup actions are executed by `calculator_page_actions.py`. Repository operations remain below the application boundary and are not imported by these neutral transition owners.
+
+## Visual editor frontend ownership
+
+`visual_editor_component/frontend/index.html` is a thin shell. `editor_bootstrap.js` owns the complete script manifest and starts the editor only after every responsibility group has loaded. `window.ItineraryVisualEditor` is the single explicit public namespace and rejects duplicate module registration.
+
+- `state.js` exposes read-only state snapshots.
+- `serialization.js` owns payload collection and save-envelope construction.
+- `editor_local_draft.js` owns browser-local recovery persistence.
+- `editor_page_actions.js` owns generated and manual page operations.
+- `render.js` owns rendering from the canonical prepared `RenderDocument` payload.
+- `editing.js` owns editor lifecycle, manual save, and autosave scheduling.
+- `streamlit_bridge.js` owns messaging to and from Python and initializes only when called by the bootstrap owner.
+
+The retired `editor_assets.js` document-write loader, `commands.js` global re-export facade, and empty `editor_readiness.js` compatibility marker must not return. Editor modules may coordinate through their established internal runtime, but external consumers use only the registered namespace APIs.
 
 ## Day-intro writer ownership
 
@@ -120,3 +147,16 @@ Before deleting a compatibility module, confirm whether it is used by production
 ## Legacy deletion rule
 
 Compatibility facades are kept only when they are real public import paths. Verified unreferenced debug, UI, or rendering wrappers should be deleted rather than preserved as noise.
+
+## Quality ownership
+
+`itinerary_generation/quality_row_selection.py` is the sole authority for normalizing quality rows and deciding which source rows are important to itinerary quality. Structural quality gates and operational health reporting consume that selector; they must not recreate `_as_rows`, `_is_important_row`, or `_important_rows` helpers.
+
+Prepared client-output quality is evaluated once when `ItineraryRenderContext` is built, after final client sanitation. The immutable `ClientOutputQualityGateReport` stores both the deduplicated findings and its precomputed advisor assessment. Preview warnings, PDF readiness, real-output QA, and the health report reuse that same prepared report. PDF image findings are appended through `add_image_quality_issues` without rerunning document, source-fidelity, repetition, transport, or sanitation rules.
+
+Responsibility boundaries remain distinct:
+
+- `quality_row_selection.py` owns row selection.
+- Structural and client-output check modules own rule evaluation.
+- `advisor_quality.py` owns Ready / Minor edit / Major edit / Unusable calculation.
+- Health and UI modules own report formatting only.

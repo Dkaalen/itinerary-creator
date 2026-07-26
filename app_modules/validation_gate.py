@@ -8,7 +8,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised in lightweight test 
     st = None
 
 from itinerary_generation.quality_gate import ItineraryQualityGateReport, evaluate_itinerary_quality
-from app_modules.workflow_state import clear_pdf_artifacts
+from app_modules.render_lifecycle import clear_pdf_artifacts
 
 
 BLOCKED_STATUS = "Blocked by validation"

@@ -14,9 +14,10 @@ def test_local_library_page_is_routed_from_main_view() -> None:
 
 def test_calculator_page_exposes_manage_local_library_button() -> None:
     calculator_page = read_contract_text("app_modules/calculator_page.py")
+    calculator_actions = read_contract_text("app_modules/calculator_page_actions.py")
 
     assert "Manage Local Library" in calculator_page
-    assert "open_local_library_page" in calculator_page
+    assert "open_local_library_page" in calculator_actions
 
 
 def test_local_library_page_is_read_only_and_explains_workbook_maintenance() -> None:

@@ -22,7 +22,6 @@ def test_nutshell_truth_is_owned_by_neutral_domain_and_generation_files_are_faca
     generation_facades = [
         read_contract_text("itinerary_generation/nutshell_domain.py"),
         read_contract_text("itinerary_generation/nutshell_parsing.py"),
-        read_contract_text("itinerary_generation/nutshell_labels.py"),
         read_contract_text("itinerary_generation/transport_norway.py"),
     ]
 
@@ -33,3 +32,4 @@ def test_nutshell_truth_is_owned_by_neutral_domain_and_generation_files_are_faca
     assert "from itinerary_domain.nutshell_labels import _norway_nutshell_route_label" in transport
     assert "from itinerary_domain.nutshell_parsing import" in transport
     assert all('_import_module("itinerary_domain.' in facade for facade in generation_facades)
+    assert not (Path(__file__).resolve().parents[1] / "itinerary_generation" / "nutshell_labels.py").exists()

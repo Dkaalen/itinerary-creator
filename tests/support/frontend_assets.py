@@ -8,7 +8,7 @@ FRONTEND_ROOT = Path("visual_editor_component/frontend")
 
 
 def frontend_script_names() -> tuple[str, ...]:
-    """Return JavaScript files in the same effective order as the editor page."""
+    """Return JavaScript files in the editor bootstrap order."""
 
     index_html = (FRONTEND_ROOT / "index.html").read_text(encoding="utf-8")
     direct_scripts = [
@@ -16,19 +16,17 @@ def frontend_script_names() -> tuple[str, ...]:
         for line in index_html.splitlines()
         if 'src="js/' in line
     ]
-    asset_loader = (FRONTEND_ROOT / "js/editor_assets.js").read_text(encoding="utf-8")
-    split_scripts = [
-        line.split('"', 2)[1]
-        for line in asset_loader.splitlines()
-        if line.strip().startswith('"') and line.strip().endswith('",')
+    bootstrap = (FRONTEND_ROOT / "js/editor_bootstrap.js").read_text(encoding="utf-8")
+    bootstrapped_scripts = [
+        line.split("'js/", 1)[1].split("'", 1)[0]
+        for line in bootstrap.splitlines()
+        if "'js/" in line and line.strip().endswith("',")
     ]
 
     names: list[str] = []
-    for name in direct_scripts:
-        expanded = (name, *split_scripts) if name == "editor_assets.js" else (name,)
-        for script_name in expanded:
-            if script_name not in names:
-                names.append(script_name)
+    for script_name in (*direct_scripts, *bootstrapped_scripts):
+        if script_name not in names:
+            names.append(script_name)
     return tuple(names)
 
 

@@ -16,7 +16,7 @@ from app_modules.saved_project_constants import SAVED_PROJECT_KIND
 from app_modules.saved_project_serialization import saved_project_from_dict
 from app_modules.saved_project_validation import SavedProjectError
 from app_modules.session_state_keys import PENDING_PROJECT_BACKUP_IMPORT_KEY
-from app_modules.session_transitions import prepare_project_switch
+from app_modules.project_session_transitions import prepare_project_switch
 from app_modules.validation_gate import (
     block_generation,
     render_blocking_issues,

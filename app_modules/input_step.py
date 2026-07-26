@@ -17,12 +17,12 @@ from app_modules.input_preview_table import render_supplier_rows_preview
 from app_modules.project_file_ui import render_open_project_file_action
 from app_modules.project_io import load_project_json
 from app_modules.workflow_config import STAGE_COPY
-from app_modules.workflow_state import set_workflow_stage
+from app_modules.workflow_navigation import transition_workflow_stage
 from ui.picture_workflow import pictures_are_added
 
 
 def _set_stage(stage: str) -> None:
-    set_workflow_stage(st.session_state, stage)
+    transition_workflow_stage(st.session_state, stage)
 
 
 def render_input_page(app_version: str) -> None:

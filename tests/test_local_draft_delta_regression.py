@@ -81,6 +81,7 @@ const context = {
   JSON,
 };
 context.cssEscapeValue = value => String(value);
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/editor_local_draft.js', 'utf8'), context);
@@ -162,6 +163,7 @@ const context = {
   JSON,
 };
 context.cssEscapeValue = value => String(value);
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 [
   'visual_editor_component/frontend/js/editor_html_utils.js',

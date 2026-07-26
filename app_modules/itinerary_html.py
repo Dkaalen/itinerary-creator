@@ -1,7 +1,6 @@
 import json
 
 from app_modules.itinerary_render_context import build_itinerary_render_context
-from itinerary_generation.quality_gate import evaluate_client_output_quality
 from app_modules.itinerary_html_sections import (
     balanced_cover_subtitle_html,
     render_cover_page,
@@ -35,7 +34,9 @@ def _raise_for_blocking_client_output(context) -> None:
     for compatibility with older imports/tests.
     """
 
-    report = evaluate_client_output_quality(context.render_document, source_rows=context.parsed_rows)
+    report = context.client_quality_report
+    if report is None:
+        raise RuntimeError("Prepared render context is missing its client quality report.")
     assessment = report.advisor_assessment
     if assessment.is_ready:
         return

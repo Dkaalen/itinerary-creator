@@ -1,59 +1,72 @@
-"""Canonical restoration authority for Calculator workspace state."""
+"""Mutation-free preparation of Calculator workspace restoration requests."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-from app_modules.calculator_session_state import store_calculator_state
-from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
+from app_modules.calculator_state_commit import (
+    CalculatorStateCommitRequest,
+    commit_calculator_state,
+)
 from calculator.calculator_state import CalculatorState
 
-_CURRENCY_RATE_WIDGET_PREFIX = "calculator_currency_rate_"
 _PRESERVE_CURRENCY_RATES = object()
+
+
+def calculator_workspace_commit_request(
+    calculator_state: CalculatorState,
+    *,
+    source: str = "workspace_restore",
+    currency_rates: Mapping[str, float] | object = _PRESERVE_CURRENCY_RATES,
+    sync_name_input: bool = False,
+    clear_ready_download: bool = True,
+    expected_revision: str = "",
+    project_identity: str = "",
+    show_advanced: bool | None = None,
+) -> CalculatorStateCommitRequest:
+    """Build a neutral commit request without mutating application state."""
+
+    replace_rates = currency_rates is not _PRESERVE_CURRENCY_RATES
+    return CalculatorStateCommitRequest(
+        state=calculator_state,
+        source=source,
+        currency_rates=dict(currency_rates) if isinstance(currency_rates, Mapping) else {},
+        replace_currency_rates=replace_rates,
+        expected_revision=expected_revision,
+        project_identity=project_identity,
+        show_advanced=show_advanced,
+        sync_name_input=sync_name_input,
+        clear_ready_download=clear_ready_download,
+    )
 
 
 def restore_calculator_workspace(
     state: MutableMapping[str, Any],
     calculator_state: CalculatorState,
     *,
+    source: str = "workspace_restore",
     currency_rates: Mapping[str, float] | object = _PRESERVE_CURRENCY_RATES,
     sync_name_input: bool = False,
     clear_ready_download: bool = True,
+    expected_revision: str = "",
+    project_identity: str = "",
+    show_advanced: bool | None = None,
 ) -> CalculatorState:
-    """Replace the active Calculator workspace through one state authority.
+    """Compatibility application wrapper around the neutral commit boundary."""
 
-    Saved projects, local workbook/backup imports, and browser recovery actions
-    all converge here. Currency rates are replaced only when explicitly
-    supplied; browser recovery therefore preserves the currently active rates.
-    """
-
-    if currency_rates is not _PRESERVE_CURRENCY_RATES:
-        _replace_currency_rates(state, currency_rates)
-    store_calculator_state(
-        state,
+    request = calculator_workspace_commit_request(
         calculator_state,
-        clear_ready_download=clear_ready_download,
+        source=source,
+        currency_rates=currency_rates,
         sync_name_input=sync_name_input,
+        clear_ready_download=clear_ready_download,
+        expected_revision=expected_revision,
+        project_identity=project_identity,
+        show_advanced=show_advanced,
     )
-    return calculator_state
+    result = commit_calculator_state(state, request)
+    return result.server_state or calculator_state
 
 
-def _replace_currency_rates(state: MutableMapping[str, Any], rates: object) -> None:
-    normalized: dict[str, float] = {}
-    if isinstance(rates, Mapping):
-        for code, value in rates.items():
-            clean_code = str(code or "").strip().upper()
-            if not clean_code:
-                continue
-            normalized[clean_code] = float(value)
-
-    for key in tuple(state.keys()):
-        if str(key).startswith(_CURRENCY_RATE_WIDGET_PREFIX):
-            state.pop(key, None)
-    state[CURRENCY_RATES_STATE_KEY] = normalized
-    for code, value in normalized.items():
-        state[f"{_CURRENCY_RATE_WIDGET_PREFIX}{code}"] = value
-
-
-__all__ = ["restore_calculator_workspace"]
+__all__ = ["calculator_workspace_commit_request", "restore_calculator_workspace"]

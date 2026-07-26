@@ -5,7 +5,7 @@ from html import escape
 import streamlit as st
 
 from app_modules.workflow_config import STAGE_LABELS
-from app_modules.workflow_state import set_workflow_stage
+from app_modules.workflow_navigation import transition_workflow_stage
 from app_modules.session_state_keys import (
     ITINERARY_NAME_KEY,
     OUTPUT_EDITS_KEY,
@@ -67,7 +67,7 @@ def _render_stage_actions(stage: str) -> None:
     with left:
         if st.button("Start over", use_container_width=True):
             reset_project_state(clear_raw_text=True)
-            set_workflow_stage(st.session_state, "input")
+            transition_workflow_stage(st.session_state, "input")
             st.rerun()
     with middle:
         if stage != "input":

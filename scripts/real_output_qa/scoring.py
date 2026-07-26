@@ -59,7 +59,8 @@ def score_rendered_output(
     score_destination_truth(issues, segments, getattr(context, "destinations_line", ""))
     score_summary_quality(issues, context)
     score_journey_overview_logic(issues, context)
-    _score_client_truth_contracts(issues, context, rows)
+    client_quality_report = _client_quality_report(context, rows)
+    _score_client_truth_contracts(issues, client_quality_report)
     _score_day_copy_logic(issues, rows, days)
     _score_transport_semantics(issues, rows, days)
     score_repetition(issues, days)
@@ -68,8 +69,7 @@ def score_rendered_output(
     error_count = sum(1 for issue in issues if issue.severity == "error")
     warning_count = sum(1 for issue in issues if issue.severity == "warning")
     score = max(0, 100 - (error_count * 20) - (warning_count * 5))
-    advisor_report = evaluate_client_output_quality(getattr(context, "render_document", None), source_rows=rows)
-    advisor = advisor_report.advisor_assessment
+    advisor = client_quality_report.advisor_assessment
     return OutputTextScore(
         score=score,
         error_count=error_count,
@@ -95,11 +95,27 @@ _TRUTH_GATE_CODES = {
     "duplicate_rendered_block",
 }
 
-def _score_client_truth_contracts(issues: list[OutputTextIssue], context: Any, rows: Sequence[dict[str, Any]]) -> None:
-    document = getattr(context, "render_document", None)
-    if document is None:
-        return
-    report = evaluate_client_output_quality(document, source_rows=rows)
+def _client_quality_report(context: Any, rows: Sequence[dict[str, Any]]):
+    report = getattr(context, "client_quality_report", None)
+    if report is not None:
+        return report
+    return evaluate_client_output_quality(getattr(context, "render_document", None), source_rows=rows)
+
+
+def _score_client_truth_contracts(
+    issues: list[OutputTextIssue],
+    report_or_context: Any,
+    rows: Sequence[dict[str, Any]] | None = None,
+) -> None:
+    """Project canonical client-quality findings into the QA score.
+
+    Production passes the prepared report directly. The context form remains
+    supported for focused QA tests and older diagnostic callers.
+    """
+
+    report = report_or_context
+    if not hasattr(report_or_context, "issues"):
+        report = _client_quality_report(report_or_context, rows or ())
     for issue in report.issues:
         if issue.code not in _TRUTH_GATE_CODES:
             continue

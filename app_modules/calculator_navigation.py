@@ -22,8 +22,7 @@ from app_modules.session_state_keys import (
     LOCAL_LIBRARY_PAGE,
     WORKFLOW_PAGE,
 )
-from app_modules.session_transitions import (
-    return_to_calculator,
+from app_modules.workflow_navigation import (
     route_to_calculator,
     route_to_local_library,
     route_to_workflow,
@@ -92,7 +91,7 @@ def return_to_calculator_page(state: MutableMapping[str, Any]) -> None:
 
     from app_modules.calculator_session_state import calculator_state_from_session
 
-    return_to_calculator(state)
+    route_to_calculator(state)
     calculator_draft_namespace(state)
     calculator_state_from_session(state)
 

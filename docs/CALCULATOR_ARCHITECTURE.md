@@ -19,6 +19,33 @@
 - `app_modules/saved_project_calculator_state.py` is the cloud-project persistence boundary.
 - `calculator_grid_component/frontend/js/calculator_grid_keyboard.js` owns grid key handling and cell-to-cell navigation; `calculator_grid_cell_editing.js` owns edit commits and input behavior, not navigation.
 
+## Frontend module boundary
+
+`calculator_grid_component/frontend/index.html` is the single Calculator frontend initialization owner. It loads `calculator_grid_namespace.js` first and then registers domain modules in an explicit dependency order. The implementation intentionally remains framework-free and does not require a bundler.
+
+`window.ItineraryCalculator` is the only public Calculator namespace introduced by the split. Its registry rejects duplicate module names, fails immediately when a required dependency is unavailable, freezes registered exports, and publishes only the supported browser APIs:
+
+- `ItineraryCalculator.library` prepares the retained library bundle, performs browser-owned search, and applies selected workbook rows.
+- `ItineraryCalculator.storage` persists the current draft, manages project-scoped recovery history, reports storage health, and restores selected snapshots.
+
+The Local Library implementation is divided by responsibility:
+
+- `calculator_grid_library_normalization.js`: versioned normalization and ranking-contract preparation.
+- `calculator_grid_library_transport.js`: browser retention, fingerprint acknowledgement, and cache-miss recovery.
+- `calculator_grid_library_index.js`: compact-row expansion and index construction.
+- `calculator_grid_library_search.js`: worksheet routing, candidate scoring, and deterministic ordering.
+- `calculator_grid_library_selection.js`: projection of one selected workbook row into one Calculator row.
+- `calculator_grid_library_api.js`: the deliberately small supported public API.
+
+Browser recovery is divided by responsibility:
+
+- `calculator_grid_storage_core.js`: project-scoped keys, storage health, quota accounting, and recognized-namespace cleanup.
+- `calculator_grid_draft_repository.js`: current-draft persistence and restoration eligibility.
+- `calculator_grid_recovery_repository.js`: snapshot encoding, delta history, retention, pruning, and restoration orchestration.
+- `calculator_grid_storage_api.js`: the deliberately small supported public API.
+
+The retired multi-domain owners `calculator_grid_library.js` and `calculator_grid_draft_storage.js` are not compatibility surfaces. Production callers use the namespace APIs rather than depending on private functions or accidental script globals. Existing unsplit Calculator files retain their established behavior; Patch 8 does not convert the whole frontend to a new framework or module system.
+
 ## Browser workflow
 
 The grid has two explicit modes:
@@ -61,7 +88,7 @@ Calculator browser coverage is split by responsibility so every file runs indepe
 - `calculator/library_ranking.py` owns the versioned normalization, field and match weights, worksheet routing, context bonuses, cross-type aliases, and deterministic tie-break specification.
 - `calculator/library_search.py` is the Python reference implementation and consumes that canonical specification.
 - `app_modules/calculator_component_payload.py` prepares and fingerprints the compact read-only Local Library payload and sends the exact ranking specification to the component.
-- `calculator_grid_component/frontend/js/calculator_grid_library.js` is the production browser execution authority for candidate indexing, generic scoring, deterministic ordering, and applying a selected library row; it does not maintain separate ranking constants.
+- The namespaced Local Library modules under `calculator_grid_component/frontend/js/calculator_grid_library_*.js` are the production browser execution authority: normalization, retention, indexing, scoring, deterministic ordering, and selection projection have separate owners and share the canonical ranking payload.
 - `calculator_grid_component/frontend/js/calculator_grid_suggestions.js` owns the in-grid suggestion lifecycle, debounce, focus retention, and selection handoff.
 - `docs/LOCAL_LIBRARY_RANKING.md` documents normalization, match classes, routing, Norway in a Nutshell cross-type compatibility, and duplicate-preserving tie-breaking.
 - The retired Python `calculator/fetch_lines.py` and `calculator/grid_autocomplete.py` APIs are not supported compatibility surfaces; they belonged to the replaced Streamlit data-editor workflow and were removed.

@@ -20,7 +20,7 @@ class _StructuredDocument:
 
 
 def test_uses_specific_page_action_labels_and_source_rows():
-    readiness_js = _read("visual_editor_component/frontend/js/editor_readiness.js")
+    readiness_js = _read("visual_editor_component/frontend/js/editor_debug_readiness.js")
 
     assert "function warningActionLabel" in readiness_js
     assert "Open day page" in readiness_js

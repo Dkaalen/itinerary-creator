@@ -8,23 +8,14 @@ from typing import Iterable
 
 from itinerary_generation.day_grouping_utils import get_day_number
 from itinerary_generation.row_filters import get_commercial_status, get_row_type, is_optional_row
+from itinerary_generation.quality_row_selection import (
+    IMPORTANT_ROW_TYPES,
+    as_quality_rows,
+    select_important_rows,
+)
 from itinerary_generation.row_sequence import ordered_cities
 from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
-
-IMPORTANT_ROW_TYPES = {
-    "Hotel",
-    "Activity",
-    "Transfer",
-    "Train",
-    "Flight",
-    "Cruise",
-    "Ferry",
-    "Transport",
-    "Arrival",
-    "Departure",
-    "Day Overview",
-}
 
 BLOCKING = "error"
 WARNING = "warning"
@@ -84,30 +75,16 @@ class ItineraryQualityGateReport:
         return bool(self.blocking_issues)
 
 
-def _as_rows(rows: Iterable[dict] | None) -> list[dict]:
-    return [row for row in rows or [] if isinstance(row, dict)]
-
-
 def _max_day(rows: Iterable[dict]) -> int:
     values = [get_day_number(row.get("day", "")) for row in rows]
     return max(values) if values else 0
 
 
-def _is_important_row(row: dict) -> bool:
-    row_type = get_row_type(row)
-    raw_type = row.get("type", "")
-    return row_type in IMPORTANT_ROW_TYPES or raw_type in IMPORTANT_ROW_TYPES
-
-
-def _important_rows(rows: Iterable[dict]) -> list[dict]:
-    return [row for row in rows if _is_important_row(row)]
-
-
 
 def build_quality_snapshot(parsed_rows) -> ItineraryQualitySnapshot:
     """Return stable row/day/status metrics for the parsed itinerary."""
-    rows = _as_rows(parsed_rows)
-    important_rows = _important_rows(rows)
+    rows = as_quality_rows(parsed_rows)
+    important_rows = select_important_rows(rows)
     main_rows = [row for row in important_rows if not is_optional_row(row)]
     optional_rows = [row for row in important_rows if is_optional_row(row)]
     self_arranged_rows = [row for row in important_rows if get_commercial_status(row) == "self_arranged"]
@@ -234,7 +211,7 @@ def _source_fidelity_issues(rows: Iterable[dict]) -> list[ItineraryValidationIss
 
 def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:
     """Run the structural itinerary safety gate."""
-    rows = _as_rows(parsed_rows)
+    rows = as_quality_rows(parsed_rows)
     snapshot = build_quality_snapshot(rows)
     continuity_issues = [
         ItineraryValidationIssue(
@@ -264,10 +241,7 @@ __all__ = [
     "ItineraryValidationIssue",
     "ItineraryQualitySnapshot",
     "ItineraryQualityGateReport",
-    "_as_rows",
     "_max_day",
-    "_is_important_row",
-    "_important_rows",
     "build_quality_snapshot",
     "_validate_snapshot",
     "_source_fidelity_issues",

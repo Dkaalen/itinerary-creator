@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 from app_modules.calculator_grid_data import rows_to_table_data
 from app_modules.calculator_grid_values import decimal_to_percent
+from app_modules.calculator_library_transport import calculator_library_rows_are_acknowledged
 from calculator.calculator_state import CalculatorState
 from calculator.currency_rates import normalize_currency_rates
 from calculator.financial_rules import financial_rules_payload
@@ -21,6 +22,7 @@ from calculator.library_ranking import (
 )
 from calculator.library_read_summary import summarize_local_library_read
 from calculator.library_store import LocalLibraryReadResult
+from calculator.state_revision import calculator_state_revision
 
 _LIBRARY_PAYLOAD_VERSION = "compact-v2"
 _LIBRARY_ROW_FIELDS: tuple[str, ...] = (
@@ -62,19 +64,30 @@ def build_calculator_grid_payload(
     show_advanced: bool = False,
     currency_rates: Mapping[str, float] | None = None,
     draft_namespace: str = "",
+    project_identity: str = "",
     pending_download: Mapping[str, Any] | None = None,
     component_ack: Mapping[str, Any] | None = None,
+    browser_library_ack: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the JSON-serializable component payload for the calculator grid."""
 
     active_rates = normalize_currency_rates(currency_rates)
     library_fingerprint = _library_fingerprint(library_read)
+    library_rows = _cached_library_rows(library_read, library_fingerprint)
+    library_row_count = len(library_rows)
+    rows_acknowledged = calculator_library_rows_are_acknowledged(
+        browser_library_ack,
+        fingerprint=library_fingerprint,
+        payload_version=_LIBRARY_PAYLOAD_VERSION,
+        row_count=library_row_count,
+    )
     return {
         "itinerary_name": state.itinerary_name,
         "number_of_pax": state.number_of_pax,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
         "state_revision": calculator_state_revision(state),
         "draft_storage_key": _draft_storage_key(draft_namespace),
+        "project_identity": str(project_identity or draft_namespace or ""),
         "show_advanced": show_advanced,
         "currency_rates": active_rates,
         "financial_rules": financial_rules_payload(),
@@ -86,26 +99,12 @@ def build_calculator_grid_payload(
         "library_fingerprint": library_fingerprint,
         "library_row_fields": _LIBRARY_ROW_FIELDS,
         "library_ranking_spec": local_library_ranking_spec_payload(),
-        "library_rows": _cached_library_rows(library_read, library_fingerprint),
+        "library_row_count": library_row_count,
+        "library_rows": () if rows_acknowledged else library_rows,
         "pending_download": dict(pending_download or {}),
         "component_ack": dict(component_ack or {}),
     }
 
-
-def calculator_state_revision(state: CalculatorState) -> str:
-    """Return a stable editable-state revision for browser draft protection.
-
-    Currency-rate and presentation changes must not invalidate an unsynced
-    browser draft. Only canonical calculator inputs and passenger count define
-    whether the backend owns a genuinely newer calculator state.
-    """
-
-    payload = {
-        "rows": [asdict(row) for row in state.rows],
-        "number_of_pax": state.number_of_pax,
-    }
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
 def clear_calculator_library_payload_cache() -> None:

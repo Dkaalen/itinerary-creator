@@ -39,10 +39,11 @@ def test_payload_carries_source_rows_and_generated_value_snapshot():
 
 
 
-def test_compare_restore_split_modules_are_loaded_by_editor_assets():
+def test_compare_restore_split_modules_are_loaded_by_editor_bootstrap():
     script_names = _frontend_script_names()
 
-    assert "editor_assets.js" in script_names
+    assert "editor_namespace.js" in script_names
+    assert "editor_bootstrap.js" in script_names
     assert "editor_text_history.js" in script_names
     assert "editor_inspector_selection.js" in script_names
     assert script_names.index("editor_text_history.js") < script_names.index("editor_inspector_fields.js")

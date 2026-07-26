@@ -50,8 +50,10 @@ def clear_cached_local_library(session_state: MutableMapping[str, Any]) -> None:
     session_state.pop(CALCULATOR_LIBRARY_CACHE_KEY, None)
     session_state.pop(CALCULATOR_LIBRARY_CACHE_TIME_KEY, None)
     from app_modules.calculator_component_payload import clear_calculator_library_payload_cache
+    from app_modules.calculator_library_transport import clear_calculator_library_browser_ack
 
     clear_calculator_library_payload_cache()
+    clear_calculator_library_browser_ack(session_state)
 
 
 def _cache_is_fresh(cached_at: float, ttl_seconds: float) -> bool:

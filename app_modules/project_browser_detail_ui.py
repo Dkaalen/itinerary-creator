@@ -21,7 +21,7 @@ from app_modules.project_browser_state import (
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.project_rename_state import apply_active_project_rename
 from app_modules.session_state_keys import PROJECT_STORAGE_BROWSER_SUCCESS_KEY
-from app_modules.session_transitions import complete_project_delete
+from app_modules.project_session_transitions import complete_project_delete
 from project_storage.errors import storage_user_message
 from app_modules.project_storage_service import delete_cloud_itinerary_result, rename_cloud_project
 

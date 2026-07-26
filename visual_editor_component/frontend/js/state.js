@@ -50,3 +50,24 @@ const WARNING_PATTERNS = [
   /\bPrivate Hotel to\b/i, /\bPrivate Airport to\b/i, /\bPrivate Station to\b/i,
   /\bself Transfer\b/, /\blevi Bus Station\b/, /\brovaniemi Bus Station\b/
 ];
+
+
+function editorStateSnapshot() {
+  const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
+  return Object.freeze({
+    initialPayload: clone(initialPayload),
+    model: clone(model),
+    touchedKeys: Object.freeze(Array.from(touchedKeys)),
+    activeSelection: Object.freeze({
+      pageId: activePageId,
+      blockId: activeBlockId,
+      fieldKey: activeFieldKey,
+      editKey: activeEditKey,
+    }),
+    saveState: Object.freeze({...saveState}),
+  });
+}
+
+ItineraryVisualEditor.define('state', {
+  snapshot: editorStateSnapshot,
+});

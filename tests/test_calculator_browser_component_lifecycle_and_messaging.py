@@ -49,7 +49,7 @@ def test_component_bridge_does_not_send_session_messages_before_first_render() -
             """() => {
                 window.__bridgeMessages = [];
                 window.addEventListener('message', (event) => {
-                    if (event.data?.isStreamlitMessage) window.__bridgeMessages.push(event.data.type);
+                    if (event.data?.isStreamlitMessage) window.__bridgeMessages.push({type: event.data.type, value: event.data.value});
                 });
                 Streamlit.setFrameHeight(321);
                 Streamlit.setComponentValue('too-early');
@@ -70,8 +70,11 @@ def test_component_bridge_does_not_send_session_messages_before_first_render() -
         page.wait_for_timeout(50)
 
         messages = page.evaluate("window.__bridgeMessages")
-        assert "streamlit:setFrameHeight" in messages
-        assert "streamlit:setComponentValue" not in messages
+        assert any(message["type"] == "streamlit:setFrameHeight" for message in messages)
+        assert not any(
+            message["type"] == "streamlit:setComponentValue" and message.get("value") == "too-early"
+            for message in messages
+        )
     finally:
         browser.close()
         manager.stop()

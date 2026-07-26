@@ -20,7 +20,7 @@ from app_modules.session_state_keys import (
     PROJECT_STORAGE_LAST_ERROR_DETAIL_KEY,
     PROJECT_STORAGE_LAST_ERROR_KEY,
 )
-from app_modules.session_transitions import record_failed_save
+from app_modules.project_session_transitions import record_failed_save
 
 
 def render_save_project_file_action(*, key_suffix: str = "current") -> None:

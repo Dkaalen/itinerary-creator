@@ -74,14 +74,14 @@ def test_calculator_component_persists_browser_draft_across_page_changes() -> No
     source = _calculator_js_bundle_source()
     index_source = read_contract_text(FRONTEND_DIR / "index.html")
 
-    assert "js/calculator_grid_draft_storage.js" in index_source
+    assert "js/calculator_grid_storage_api.js" in index_source
     assert "itineraryCalculatorBrowserDraft.v3." in source
-    assert "setCalculatorDraftStorageKey(payload.draft_storage_key)" in source
-    assert "saveCalculatorDraft(calculatorState, activeBackendRevision);" in source
+    assert "window.ItineraryCalculator.storage.setDraftStorageKey(payload.draft_storage_key)" in source
+    assert "window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);" in source
     assert "activeDraftStorageKey" in source
     assert "incomingDraftStorageKey === activeDraftStorageKey" in source
-    assert "loadCalculatorDraft()" in source
-    assert "shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision)" in source
+    assert "window.ItineraryCalculator.storage.loadDraft()" in source
+    assert "window.ItineraryCalculator.storage.shouldRestoreDraft(storedDraft, incomingRows, incomingRevision)" in source
 
 
 def test_component_bridge_queues_session_messages_until_first_render() -> None:
@@ -106,13 +106,16 @@ def test_calculator_component_uses_revision_safe_request_ack_protocol() -> None:
     index_source = read_contract_text(FRONTEND_DIR / "index.html")
     protocol_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_protocol.js")
     controller_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_state_controller.js")
-    actions_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_actions.js")
+    submission_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_submission_actions.js")
+    excel_source = read_contract_text(FRONTEND_DIR / "js/calculator_grid_excel_actions.js")
 
     assert "js/calculator_grid_protocol.js" in index_source
     assert "beginCalculatorRequest" in protocol_source
     assert "consumeCalculatorComponentAck" in protocol_source
-    assert "request_id: requestId" in actions_source
-    assert "client_state_revision: activeBackendRevision" in actions_source
+    assert "request_id: requestId" in submission_source
+    assert "client_state_revision: activeBackendRevision" in submission_source
+    assert "project_identity: activeProjectIdentity" in submission_source
+    assert "request_id: requestId" in excel_source
     assert "component_ack" in controller_source
     assert "canRebaseNewerEdits" in controller_source
-    assert "calculatorState.dirty = false" not in actions_source
+    assert "calculatorState.dirty = false" not in submission_source

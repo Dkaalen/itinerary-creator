@@ -148,6 +148,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_structural_cleanup_tools.py",
     "tests/test_arch_cleanup_facades.py",
     "tests/test_code_cleanup_hygiene_regression.py",
+    "tests/test_compatibility_deletion_boundary.py",
     "tests/test_generation_architecture_cleanup.py",
     "tests/test_parser_architecture_cleanup.py",
     "tests/test_workspace_debloat_regression.py",    "tests/test_legacy_cleanup_regression.py",
@@ -155,5 +156,8 @@ ARCHITECTURE_TESTS = (
     "tests/test_render_context_cache.py",
     "tests/test_itinerary_render_artifact_authority.py",
     "tests/test_visual_editor_render_document_authority.py",
+    "tests/test_calculator_state_commit_boundary.py",
+    "tests/test_calculator_frontend_namespace.py",
+    "tests/test_calculator_library_transport.py",
 
 )

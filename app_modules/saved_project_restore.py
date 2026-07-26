@@ -25,9 +25,10 @@ from app_modules.session_state_keys import (
     STRUCTURED_INPUT_REVIEW_KEY,
     TONE_PRESET_KEY,
 )
-from app_modules.session_transitions import complete_saved_project_open
+from app_modules.project_session_transitions import complete_saved_project_open
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.render_lifecycle import clear_pdf_artifacts
+from app_modules.workflow_navigation import transition_workflow_stage
 from app_modules.workflow_transients import clear_project_boundary_transients
 from itinerary_generation.input_review import build_structured_input_review
 from ui.picture_workflow import pictures_are_added
@@ -62,7 +63,7 @@ def restore_saved_project_to_state(
     clear_project_file_download_cache(state)
 
     render_signature = rebuild_restored_preview(state, parsed_rows, output_edits)
-    stage = set_workflow_stage(state, "pictures" if pictures_are_added(output_edits) else "edit")
+    stage = transition_workflow_stage(state, "pictures" if pictures_are_added(output_edits) else "edit")
     complete_saved_project_open(
         state,
         project_payload=saved_project_to_dict(saved_project),

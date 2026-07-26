@@ -195,3 +195,16 @@ function flagSelectedIssue() {
     note.classList.add('show');
   }
 }
+
+
+ItineraryVisualEditor.define('pages', {
+  hide: hideDocumentPage,
+  restore: restoreDocumentPage,
+  addManual: addManualPage,
+  addManualAfter: addManualPageAfter,
+  duplicateManual: duplicateManualPage,
+  move: moveDocumentPage,
+  moveToIndex: moveDocumentPageToIndex,
+  moveToEdge: moveDocumentPageToEdge,
+  mergeInclusionUp: mergeInclusionPageUp,
+});

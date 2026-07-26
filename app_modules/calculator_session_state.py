@@ -6,6 +6,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from app_modules.calculator_component_result import CalculatorGridResult
+from app_modules.calculator_state_commit import CalculatorStateCommitRequest, commit_calculator_state
 from app_modules.calculator_state_keys import (
     CALCULATOR_ADVANCED_TOGGLE_KEY,
     CALCULATOR_BACKUP_UPLOAD_KEY,
@@ -57,12 +58,15 @@ def store_calculator_state(
     the widget instead.
     """
 
-    previous = state.get(CALCULATOR_STATE_KEY)
-    state[CALCULATOR_STATE_KEY] = calculator_state
-    if sync_name_input:
-        state[CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY] = True
-    if clear_ready_download and previous != calculator_state:
-        clear_ready_calculation_download(state)
+    commit_calculator_state(
+        state,
+        CalculatorStateCommitRequest(
+            state=calculator_state,
+            source="session_store",
+            sync_name_input=sync_name_input,
+            clear_ready_download=clear_ready_download,
+        ),
+    )
 
 
 def sync_calculator_itinerary_name_input(state: MutableMapping[str, Any]) -> None:
@@ -83,12 +87,19 @@ def update_calculator_itinerary_name(state: MutableMapping[str, Any], itinerary_
 
 
 def apply_calculator_grid_result(state: MutableMapping[str, Any], result: CalculatorGridResult) -> CalculatorState:
-    """Apply browser-grid state, including recovered drafts, through one restore path."""
+    """Commit browser-grid state without importing browser recovery implementation."""
 
-    from app_modules.calculator_restore import restore_calculator_workspace
-
-    state[CALCULATOR_ADVANCED_TOGGLE_KEY] = result.show_advanced
-    return restore_calculator_workspace(state, result.state)
+    commit = commit_calculator_state(
+        state,
+        CalculatorStateCommitRequest(
+            state=result.state,
+            source="browser_grid",
+            expected_revision=result.client_state_revision,
+            project_identity=result.project_identity,
+            show_advanced=result.show_advanced,
+        ),
+    )
+    return commit.server_state or calculator_state_from_session(state)
 
 
 def clear_ready_calculation_download(state: MutableMapping[str, Any]) -> None:

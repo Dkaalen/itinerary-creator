@@ -8,7 +8,7 @@ The same specification is:
 
 1. consumed by `calculator/library_search.py` for the Python reference search;
 2. added to the Calculator payload by `app_modules/calculator_component_payload.py`;
-3. consumed by `calculator_grid_component/frontend/js/calculator_grid_library.js` for production browser autocomplete.
+3. consumed by the namespaced `calculator_grid_library_normalization.js`, `calculator_grid_library_index.js`, and `calculator_grid_library_search.js` modules for production browser autocomplete.
 
 JavaScript owns browser execution and indexing, but it does not maintain separate field weights, match weights, worksheet routes, aliases, or tie-break rules.
 

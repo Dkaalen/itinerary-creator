@@ -14,6 +14,8 @@ from app_modules.render_context_summary import build_render_summary
 from app_modules.render_context_summary_data import build_summary_context_data
 from app_modules.render_final_sections_html import render_final_page_inner_html
 from app_modules.presentation_language import presentation_labels, presentation_language_from_output_edits
+from itinerary_generation.client_output_quality_gate import evaluate_prepared_client_output_quality
+from itinerary_generation.client_quality_report import ClientOutputQualityGateReport
 from itinerary_generation.client_sanitizer import sanitize_render_document_client_output
 from itinerary_generation.editor_page_contract import (
     final_section_is_hidden as contract_final_section_is_hidden,
@@ -82,6 +84,7 @@ class ItineraryRenderContext:
     hidden_page_ids: set[str]
     presentation_language: str
     presentation_labels: dict[str, str]
+    client_quality_report: ClientOutputQualityGateReport | None = None
 
 
 def _page_is_hidden(context: ItineraryRenderContext, page_id: str) -> bool:
@@ -244,6 +247,10 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     _attach_final_page_source_warnings(context)
     sanitize_render_document_client_output(context.render_document)
     sanitize_render_document_client_output(context.editor_render_document)
+    context.client_quality_report = evaluate_prepared_client_output_quality(
+        context.render_document,
+        source_rows=context.parsed_rows,
+    )
     return context
 
 

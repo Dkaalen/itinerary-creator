@@ -23,6 +23,7 @@ class CalculatorGridResult:
     upload_filename: str = ""
     upload_content_base64: str = ""
     client_has_validation_errors: bool = False
+    project_identity: str = ""
 
 
 _VALID_ACTIONS = {
@@ -61,6 +62,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         upload_filename=str(data.get("upload_filename") or ""),
         upload_content_base64=str(data.get("upload_content_base64") or ""),
         client_has_validation_errors=bool(data.get("client_has_validation_errors")),
+        project_identity=str(data.get("project_identity") or ""),
     )
 
 

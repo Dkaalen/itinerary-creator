@@ -269,3 +269,13 @@ function buildServerAutosaveEnvelope() {
   if (!payload.editor_draft) payload.editor_draft = buildEditableDraftFromPayload(payload);
   return JSON.stringify({autosave: true, delta: true, payload});
 }
+
+
+ItineraryVisualEditor.define('payload', {
+  collect,
+  collectTouched,
+  buildSaveEnvelope,
+  buildServerAutosaveEnvelope,
+  buildEditableDraftFromPayload,
+  compactFullPayloadForCommit,
+});

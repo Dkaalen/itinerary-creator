@@ -2,6 +2,7 @@ import json
 import sys
 import types
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 
 streamlit_stub = types.SimpleNamespace(
     warning=lambda *args, **kwargs: None,
@@ -22,26 +23,7 @@ from visual_editor_component.editor_workflow import apply_visual_editor_result, 
 
 
 def _visual_editor_frontend_source():
-    frontend = Path("visual_editor_component/frontend")
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
-    for relative in (
-        "styles/editor.css",
-        "js/state.js",
-        "js/images.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
 
 
 def test_editor_payload_exposes_typed_draft_contract():

@@ -209,6 +209,6 @@ Day 2\tActivity\tReykjavik: South Coast Tour - Time: 9:00 am - 7:00 pm
 
 
 def test_runtime_integration_does_not_import_reference_corpus() -> None:
-    parsing_source = read_contract_text(REPO_ROOT / "itinerary_generation" / "group_tour_parsing.py")
+    parsing_source = read_contract_text(REPO_ROOT / "itinerary_domain" / "group_tour_parsing.py")
 
     assert "reference_corpus" not in parsing_source

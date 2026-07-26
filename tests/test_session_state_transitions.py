@@ -21,15 +21,17 @@ from app_modules.session_state_keys import (
     PROJECT_STORAGE_LAST_ERROR_KEY,
     WORKFLOW_PAGE,
 )
-from app_modules.session_transitions import (
+from app_modules.calculator_lifecycle import (
     begin_local_calculator_import,
     complete_calculator_generation,
+    fail_calculator_generation,
+)
+from app_modules.project_session_transitions import (
     complete_project_delete,
     complete_project_duplicate,
     complete_saved_project_open,
-    fail_calculator_generation,
-    record_failed_save,
     prepare_project_switch,
+    record_failed_save,
 )
 
 
@@ -221,8 +223,6 @@ def test_saved_project_open_rolls_back_all_tracked_state_when_rebuild_fails(monk
 
 
 def test_prepare_project_switch_clears_pending_project_backup_import() -> None:
-    from app_modules.session_transitions import prepare_project_switch
-
     state = {"pending_project_backup_import": object()}
 
     prepare_project_switch(state)

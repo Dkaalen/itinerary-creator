@@ -38,6 +38,7 @@ def _manual_template_snapshot() -> dict:
           scrollToPage: () => {},
           markTouched: (key) => context.touched.push(key),
         };
+        context.ItineraryVisualEditor = {define: () => {}};
         vm.createContext(context);
         [
           'visual_editor_component/frontend/js/editor_html_utils.js',

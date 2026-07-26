@@ -34,13 +34,13 @@ function bindEvents() {
   document.querySelector('[data-action="version-history"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = !calculatorState.showVersionHistory; rerender(); });
   document.querySelector('[data-action="local-recovery-details"]')?.addEventListener('click', openCalculatorRecoveryDetails);
   document.querySelector('[data-action="close-versions"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = false; rerender(); });
-  document.querySelector('[data-action="clear-versions"]')?.addEventListener('click', () => { clearCalculatorRecoverySnapshots(); rerender(); });
+  document.querySelector('[data-action="clear-versions"]')?.addEventListener('click', () => { window.ItineraryCalculator.storage.clearRecoverySnapshots(); rerender(); });
   document.querySelector('[data-action="clear-local-recovery"]')?.addEventListener('click', () => {
     if (!window.confirm('Clear the local Calculator draft and recovery versions stored in this browser for this project?')) return;
-    clearCalculatorLocalRecoveryData();
+    window.ItineraryCalculator.storage.clearLocalRecoveryData();
     rerender();
   });
-  document.querySelectorAll('[data-version-id]').forEach((button) => button.addEventListener('click', () => restoreCalculatorRecoverySnapshot(button.dataset.versionId)));
+  document.querySelectorAll('[data-version-id]').forEach((button) => button.addEventListener('click', () => window.ItineraryCalculator.storage.restoreRecoverySnapshot(button.dataset.versionId)));
   document.querySelector('[data-action="close"]')?.addEventListener('click', () => submitAction('close'));
   document.querySelector('[data-action="open-library"]')?.addEventListener('click', () => submitAction('open_library'));
   document.querySelector('[data-action="open-excel"]')?.addEventListener('click', () => {

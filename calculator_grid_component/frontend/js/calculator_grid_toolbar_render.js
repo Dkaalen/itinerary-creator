@@ -7,7 +7,7 @@ function buildToolbarHtml(state) {
   const excelReady = Boolean(state.pendingDownload?.content_base64);
   const excelClass = excelReady ? 'calc-btn primary ready' : 'calc-btn primary';
   const excelTitle = excelReady ? 'Excel ready — click to download' : 'Create and download the current calculation workbook';
-  const recoveryStatus = state.recoveryStatus || calculatorStorageStatusPayload();
+  const recoveryStatus = state.recoveryStatus || window.ItineraryCalculator.storage.statusPayload();
   const recoveryStatusHtml = recoveryStatus.state === 'available'
     ? ''
     : `<button id="calculator-recovery-status" class="calculator-recovery-status" data-state="${escapeHtml(recoveryStatus.state)}" data-action="local-recovery-details" title="Open local recovery details">${escapeHtml(recoveryStatus.summary)}</button>`;
@@ -99,8 +99,8 @@ function buildFindReplaceHtml(state) {
 function buildVersionHistoryHtml(state) {
   if (!state.showVersionHistory) return '';
   const snapshots = state.recoverySnapshots || [];
-  const recoveryStatus = state.recoveryStatus || calculatorStorageStatusPayload();
-  const storageText = formatCalculatorStorageBytes(state.recoveryStorageBytes || calculatorRecoveryStorageUsage().totalBytes);
+  const recoveryStatus = state.recoveryStatus || window.ItineraryCalculator.storage.statusPayload();
+  const storageText = window.ItineraryCalculator.storage.formatBytes(state.recoveryStorageBytes || window.ItineraryCalculator.storage.storageUsage().totalBytes);
   const items = snapshots.length
     ? snapshots.map((snapshot) => `
       <button class="calculator-version-item" data-version-id="${escapeHtml(snapshot.id)}">

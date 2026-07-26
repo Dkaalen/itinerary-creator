@@ -4,7 +4,7 @@ function refreshRecoveryStatusOnly() {
   const statusRow = document.querySelector('.calculator-status-row');
   if (!statusRow || !calculatorState) return;
   let status = document.getElementById('calculator-recovery-status');
-  const recoveryStatus = calculatorState.recoveryStatus || calculatorStorageStatusPayload();
+  const recoveryStatus = calculatorState.recoveryStatus || window.ItineraryCalculator.storage.statusPayload();
   if (recoveryStatus.state === 'available') {
     if (status) status.remove();
     return;

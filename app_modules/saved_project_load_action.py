@@ -13,13 +13,13 @@ from app_modules.saved_project_model import SavedItineraryProject
 from app_modules.saved_project_restore import restore_saved_project_to_state
 from app_modules.saved_project_serialization import saved_project_from_dict
 from app_modules.session_state_keys import APP_STAGE_KEY
-from app_modules.session_transitions import (
+from app_modules.project_session_transitions import (
     capture_project_switch_baseline,
     restore_project_switch_baseline,
 )
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import normalise_stage
+from app_modules.workflow_navigation import normalize_workflow_stage
 from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET, normalize_tone_preset
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 
@@ -47,7 +47,7 @@ def load_saved_project(
     if validation_report.is_blocked:
         return WorkflowActionResult(
             ok=False,
-            stage=normalise_stage(state.get(APP_STAGE_KEY, "input")),
+            stage=normalize_workflow_stage(state.get(APP_STAGE_KEY, "input")),
             message="Saved project load blocked by validation issues.",
             payload={"validation_report": validation_report},
         )

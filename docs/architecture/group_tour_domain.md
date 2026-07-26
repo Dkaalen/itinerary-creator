@@ -100,7 +100,7 @@ Planned next steps:
 Patch IH3 connects supplier-shaped rows to the contract through:
 
 ```text
-itinerary_generation/group_tour_parsing.py
+itinerary_domain/group_tour_parsing.py
 ```
 
 The integration boundary now:

@@ -105,5 +105,5 @@ def test_calculator_frontend_resets_browser_draft_when_namespace_changes() -> No
 
     assert "activeDraftStorageKey" in source
     assert "incomingDraftStorageKey === activeDraftStorageKey" in source
-    assert "getCalculatorDraftStorageKey" in source
-    assert "return calculatorDraftStorageKey;" in source
+    assert "window.ItineraryCalculator.storage.getDraftStorageKey" in source
+    assert "return draftStorageKey;" in source

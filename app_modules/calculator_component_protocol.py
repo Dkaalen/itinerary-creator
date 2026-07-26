@@ -6,7 +6,7 @@ from collections.abc import MutableMapping
 from dataclasses import dataclass
 from typing import Any
 
-from app_modules.calculator_component_payload import calculator_state_revision
+from calculator.state_revision import calculator_state_revision
 from app_modules.calculator_component_result import CalculatorGridResult
 from app_modules.calculator_state_keys import (
     CALCULATOR_COMPONENT_ACK_KEY,

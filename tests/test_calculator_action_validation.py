@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from app_modules.calculator_component_result import CalculatorGridResult
-from app_modules.calculator_page import (
-    _component_action_validation_issues,
-    _component_result_updates_session_state,
+from app_modules.calculator_action_policy import (
+    calculator_action_updates_session_state,
+    calculator_action_validation_issues,
 )
 from app_modules.saved_project_builder import build_saved_project_from_state
 from app_modules.saved_project_serialization import saved_project_to_dict
@@ -119,12 +119,12 @@ def test_invalid_browser_drafts_remain_browser_authority_for_navigation_and_gene
             state=state,
             client_has_validation_errors=True,
         )
-        assert _component_result_updates_session_state(result) is False
+        assert calculator_action_updates_session_state(result) is False
 
-    assert _component_result_updates_session_state(
+    assert calculator_action_updates_session_state(
         CalculatorGridResult(action="download", state=state, client_has_validation_errors=True)
     ) is True
-    assert _component_result_updates_session_state(
+    assert calculator_action_updates_session_state(
         CalculatorGridResult(action="open_excel", state=state)
     ) is False
 
@@ -142,11 +142,11 @@ def test_backend_revalidates_action_scope_without_trusting_client_flags() -> Non
         client_has_validation_errors=False,
     )
 
-    download_issues = _component_action_validation_issues(download)
+    download_issues = calculator_action_validation_issues(download)
     assert download_issues
     assert download_issues[0].row_id == "7"
-    assert _component_action_validation_issues(navigation) == ()
-    assert _component_result_updates_session_state(navigation) is False
+    assert calculator_action_validation_issues(navigation) == ()
+    assert calculator_action_updates_session_state(navigation) is False
 
 
 def test_persistence_accepts_numeric_whole_pax_but_rejects_fractional_pax() -> None:

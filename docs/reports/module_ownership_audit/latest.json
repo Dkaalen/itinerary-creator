@@ -1,6 +1,19 @@
 {
-  "overworked_files": [],
-  "long_functions": [],
+  "overworked_files": [
+    {
+      "file": "tests/test_calculator_frontend_parity.py",
+      "line_count": 511,
+      "concern": "large_module"
+    }
+  ],
+  "long_functions": [
+    {
+      "file": "itinerary_generation/destination_visit_memory.py",
+      "name": "build_destination_visit_memory",
+      "line_count": 136,
+      "start_line": 49
+    }
+  ],
   "facade_like_modules": [
     {
       "file": "itinerary_parser.py",
@@ -20,7 +33,7 @@
   ],
   "duplicate_rule_hotspots": [
     {
-      "file": "parser_modules/place_parsing.py",
+      "file": "itinerary_generation/client_quality_truth_checks.py",
       "line_count": 313,
       "concern": "inline_regex_or_replacement_rules"
     },
@@ -30,13 +43,18 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/client_quality_truth_checks.py",
-      "line_count": 301,
+      "file": "itinerary_generation/client_sanitizer.py",
+      "line_count": 303,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
       "file": "itinerary_domain/group_tour_day_parser.py",
       "line_count": 295,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "tests/test_structural_cleanup_tools.py",
+      "line_count": 290,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -46,7 +64,7 @@
     },
     {
       "file": "itinerary_generation/transport_safety.py",
-      "line_count": 269,
+      "line_count": 270,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -60,8 +78,13 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "tests/test_structural_cleanup_tools.py",
-      "line_count": 254,
+      "file": "itinerary_generation/transport_domain/route_summary.py",
+      "line_count": 248,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/route_parsing.py",
+      "line_count": 243,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -80,11 +103,6 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/client_sanitizer.py",
-      "line_count": 222,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "itinerary_generation/day_title_planner.py",
       "line_count": 208,
       "concern": "inline_regex_or_replacement_rules"
@@ -95,8 +113,8 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/transport_domain/route_cleaning.py",
-      "line_count": 180,
+      "file": "itinerary_generation/transport_domain/route_hubs.py",
+      "line_count": 184,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -105,7 +123,7 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/transport_domain/facts.py",
+      "file": "itinerary_generation/client_copy_sanitation.py",
       "line_count": 150,
       "concern": "inline_regex_or_replacement_rules"
     },
@@ -141,12 +159,17 @@
     },
     {
       "file": "itinerary_generation/supplier_cleanup_brain.py",
-      "line_count": 109,
+      "line_count": 111,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
       "file": "itinerary_generation/description_sources.py",
-      "line_count": 107,
+      "line_count": 108,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
+      "file": "parser_modules/place_values.py",
+      "line_count": 108,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -167,11 +190,6 @@
     {
       "file": "tests/test_cleanup_final_regression.py",
       "line_count": 89,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/transport_domain/render_sequences.py",
-      "line_count": 81,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -208,11 +226,13 @@
       "tests/test_activity_cruise_classification.py",
       "tests/test_activity_product_fingerprints_quality_gate.py",
       "tests/test_activity_training_catalogue_regression.py",
+      "tests/test_activity_url_identity_boundary.py",
       "tests/test_architecture_consolidation.py",
       "tests/test_broad_logic_stress_regressions.py",
       "tests/test_calculator_to_itinerary_input.py",
       "tests/test_client_output_quality_regression.py",
       "tests/test_client_sanitizer_default_images_regression.py",
+      "tests/test_client_transport_wording_contract.py",
       "tests/test_compound_experience_transport_timing.py",
       "tests/test_content_classification_priority.py",
       "tests/test_copy_decision_contracts.py",
@@ -230,6 +250,7 @@
       "tests/test_group_tour_rendering_regression.py",
       "tests/test_iceland_group_tour_parsing_regression.py",
       "tests/test_inclusions_preview_accommodation_transport_followups.py",
+      "tests/test_itinerary_continuity_contract.py",
       "tests/test_leisure_arrival_metadata_cleanup.py",
       "tests/test_messy_transport_safety_net.py",
       "tests/test_nordic_quality_sample.py",
@@ -270,8 +291,7 @@
       "tests/tools/quality_report.py"
     ],
     "parser_modules/common.py": [
-      "itinerary_generation/route_intelligence.py",
-      "itinerary_generation/transport_domain/route_points.py",
+      "itinerary_generation/transport_domain/route_inference.py",
       "itinerary_generation/transport_domain/route_summary.py",
       "itinerary_generation/transport_domain/routes.py",
       "itinerary_parser.py",

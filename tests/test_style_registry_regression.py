@@ -20,7 +20,7 @@ from visual_editor_component.style_presets import (
 def _frontend_registry():
     js = read_contract_text("visual_editor_component/frontend/js/style_preset_data.js")
     match = re.search(
-        r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});",
+        r"const\s+CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});",
         js,
         flags=re.DOTALL,
     )
@@ -51,7 +51,7 @@ def test_controlled_classes_have_single_registry_source():
 
 def test_frontend_uses_registry_for_toolbar_and_sanitizer():
     index_html = read_contract_text("visual_editor_component/frontend/index.html")
-    asset_loader = read_contract_text("visual_editor_component/frontend/js/editor_assets.js")
+    bootstrap = read_contract_text("visual_editor_component/frontend/js/editor_bootstrap.js")
     inspector_js = (
         read_contract_text("visual_editor_component/frontend/js/editor_inspector.js")
         + "\n"
@@ -61,10 +61,11 @@ def test_frontend_uses_registry_for_toolbar_and_sanitizer():
     paste_sanitizer_js = read_contract_text("visual_editor_component/frontend/js/editor_paste_sanitizer.js")
     insert_blocks_js = read_contract_text("visual_editor_component/frontend/js/editor_insert_blocks.js")
 
-    assert '<script src="js/editor_assets.js"></script>' in index_html
-    assert "style_preset_data.js" in asset_loader
-    assert "style_preset_lookup.js" in asset_loader
-    assert "editor_block_templates.js" in asset_loader
+    assert '<script src="js/editor_namespace.js" defer></script>' in index_html
+    assert '<script src="js/editor_bootstrap.js" defer></script>' in index_html
+    assert "style_preset_data.js" in bootstrap
+    assert "style_preset_lookup.js" in bootstrap
+    assert "editor_block_templates.js" in bootstrap
     assert "controlledPresetOptionsHtml('font_families'" in inspector_js
     assert "controlledPresetOptionsHtml('font_sizes'" in inspector_js
     assert "controlledPresetOptionsHtml('text_styles'" in inspector_js

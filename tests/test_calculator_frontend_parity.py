@@ -363,7 +363,7 @@ def test_frontend_exposes_advanced_excel_interactions() -> None:
     grid_render = (_FRONTEND / "calculator_grid_grid_render.js").read_text(encoding="utf-8")
     actions = (_FRONTEND / "calculator_grid_actions.js").read_text(encoding="utf-8")
     submission_actions = (_FRONTEND / "calculator_grid_submission_actions.js").read_text(encoding="utf-8")
-    draft = (_FRONTEND / "calculator_grid_draft_storage.js").read_text(encoding="utf-8")
+    draft = (_FRONTEND / "calculator_grid_draft_repository.js").read_text(encoding="utf-8")
 
     for contract in (
         "insertRowsAtSelection",

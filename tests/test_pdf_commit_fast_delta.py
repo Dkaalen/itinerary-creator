@@ -39,6 +39,7 @@ const context = {
 };
 context.cssEscapeValue = value => String(value);
 context.editableValue = el => el.value;
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 context.model = {
@@ -91,6 +92,7 @@ const context = {
 };
 context.cssEscapeValue = value => String(value);
 context.editableValue = el => el.value;
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 context.model = {
@@ -134,6 +136,7 @@ const context = {
 };
 context.cssEscapeValue = value => String(value);
 context.editableValue = el => el.value || '';
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 context.model = {
@@ -173,6 +176,7 @@ const context = {
 };
 context.cssEscapeValue = value => String(value);
 context.editableValue = el => el.value || '';
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 context.activeCommitSourceSignature = 'server-current-sig';
@@ -219,6 +223,7 @@ const context = {
 };
 context.cssEscapeValue = value => String(value);
 context.editableValue = el => el.value;
+context.ItineraryVisualEditor = {define: () => {}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('visual_editor_component/frontend/js/serialization.js', 'utf8'), context);
 context.model = {

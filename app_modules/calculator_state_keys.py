@@ -16,6 +16,7 @@ CALCULATOR_COMPONENT_ACK_KEY = "calculator_component_ack"
 CALCULATOR_PROCESSED_REQUEST_IDS_KEY = "calculator_processed_request_ids"
 CALCULATOR_GENERATION_FEEDBACK_KEY = "calculator_generation_feedback"
 CALCULATOR_PENDING_IMPORT_KEY = "calculator_pending_import"
+CALCULATOR_LIBRARY_BROWSER_ACK_KEY = "calculator_library_browser_ack"
 
 # Retired Streamlit-data-editor/autocomplete keys.  They are cleared at hard
 # project boundaries so old browser/session state cannot affect the custom grid.

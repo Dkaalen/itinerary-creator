@@ -6,7 +6,7 @@ import streamlit as st
 
 from app_modules.export_issue_display import show_issue_list
 from itinerary_generation.output_contract import validate_output_layout_contract
-from itinerary_generation.quality_gate import evaluate_client_output_quality
+from itinerary_generation.client_output_quality_gate import add_image_quality_issues
 
 
 def preview_contract_blocks_pdf(html: str, expected_day_count: int, *, clear_pdf_artifact) -> bool:
@@ -24,11 +24,13 @@ def preview_contract_blocks_pdf(html: str, expected_day_count: int, *, clear_pdf
 def client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_bank_status: dict, *, clear_pdf_artifact) -> bool:
     """Render client-safety blockers and return whether export must stop."""
 
-    client_safety_report = evaluate_client_output_quality(
-        pdf_render_context.render_document,
+    prepared_report = pdf_render_context.client_quality_report
+    if prepared_report is None:
+        raise RuntimeError("Prepared PDF render context is missing its client quality report.")
+    client_safety_report = add_image_quality_issues(
+        prepared_report,
         day_images=image_matches,
         image_bank_status=image_bank_status,
-        source_rows=pdf_render_context.parsed_rows,
     )
     if not client_safety_report.is_blocked:
         return False

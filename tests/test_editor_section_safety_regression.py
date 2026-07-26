@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 from tests.support.static_contracts import read_contract_text
 
 from itinerary_generation.day_intro_engine import create_day_intro
@@ -6,37 +7,7 @@ from itinerary_generation.day_titles import create_day_title
 
 
 def _editor_html() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
-    for relative in (
-        "styles/editor.css",
-        "js/state.js",
-        "js/style_preset_data.js",
-        "js/images.js",
-        "js/editor_debug_shell.js",
-        "js/render.js",
-        "js/editor_render_final_pages.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-        "js/editor_text_tools.js",
-        "js/editor_paste_sanitizer.js",
-        "js/editor_html_utils.js",
-        "js/editor_document_model.js",
-        "js/editor_pages_model.js",
-        "js/editor_inspector_selection.js",
-        "js/editor_inspector_fields.js",
-        "js/editor_inspector_text_panel.js",
-        "js/editor_inspector_layout_panel.js",
-        "js/editor_inspector.js",
-        "js/editor_page_actions.js",
-        "js/editor_page_event_handlers.js",
-        "js/editor_warnings.js",
-        "js/commands.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
 
 
 def test_editor_page_actions_collect_before_redraw_and_do_not_delete_nonempty_pages():

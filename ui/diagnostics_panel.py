@@ -40,10 +40,14 @@ def render_itinerary_health_report_panel(parsed_rows=None, validation_report=Non
     if not rows:
         return
 
+    from app_modules.render_context_cache import RENDER_CONTEXT_STATE_KEY
+
+    render_context = st.session_state.get(RENDER_CONTEXT_STATE_KEY)
     report = build_itinerary_health_report(
         rows,
         validation_report=validation_report or st.session_state.get("itinerary_validation_report"),
         parser_diagnostics=st.session_state.get("parser_diagnostics", []),
+        client_quality_report=getattr(render_context, "client_quality_report", None),
     )
 
     with st.expander("Itinerary Health Report", expanded=False):

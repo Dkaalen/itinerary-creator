@@ -11,7 +11,7 @@ from app_modules.calculator_state_keys import (
 from app_modules.generation_action import generate_itinerary
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import normalise_stage
+from app_modules.workflow_navigation import normalize_workflow_stage
 from app_modules.session_state_keys import (
     APP_STAGE_KEY,
     ITINERARY_NAME_INPUT_KEY,
@@ -22,7 +22,7 @@ from app_modules.session_state_keys import (
     REQUESTED_TONE_PRESET_KEY,
     TONE_PRESET_KEY,
 )
-from app_modules.session_transitions import complete_calculator_generation, fail_calculator_generation
+from app_modules.calculator_lifecycle import complete_calculator_generation, fail_calculator_generation
 from calculator.calculator_state import CalculatorState
 from calculator.to_itinerary_input import calculator_state_to_raw_input
 from calculator.validation import CalculatorValidationScope, validate_calculator_state
@@ -37,7 +37,7 @@ def generate_itinerary_from_calculator(
 ) -> WorkflowActionResult:
     """Convert calculator rows and run the existing itinerary generator."""
 
-    previous_stage = normalise_stage(state.get(APP_STAGE_KEY, "input"))
+    previous_stage = normalize_workflow_stage(state.get(APP_STAGE_KEY, "input"))
     validation_issues = validate_calculator_state(
         calculator_state,
         state.get(CURRENCY_RATES_STATE_KEY),

@@ -50,7 +50,7 @@ function consumeCalculatorComponentAck(rawAck, incomingRevision) {
   );
 
   if (accepted && !hasNewerEdits) {
-    clearCalculatorDraft();
+    window.ItineraryCalculator.storage.clearDraft();
     hasLocalDraft = false;
   }
 

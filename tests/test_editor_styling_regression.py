@@ -14,7 +14,7 @@ def test_sidebar_exposes_controlled_presets_not_freeform_styles():
         + open("visual_editor_component/frontend/js/editor_inspector_text_panel.js", encoding="utf-8").read()
     )
     style_presets_js = open("visual_editor_component/frontend/js/style_preset_data.js", encoding="utf-8").read()
-    commands_js = open("visual_editor_component/frontend/js/commands.js", encoding="utf-8").read()
+    formatting_js = open("visual_editor_component/frontend/js/editor_text_formatting.js", encoding="utf-8").read()
 
     assert "Font" in inspector_js
     assert "Size" in inspector_js
@@ -24,8 +24,8 @@ def test_sidebar_exposes_controlled_presets_not_freeform_styles():
     assert "Georgia" in style_presets_js
     assert "12 pt" in style_presets_js
     assert 'input type="color"' not in inspector_js
-    assert "style.fontSize" not in commands_js
-    assert "style.color" not in commands_js
+    assert "style.fontSize" not in formatting_js
+    assert "style.color" not in formatting_js
 
 
 def test_sanitizer_preserves_controlled_classes_but_removes_inline_styles():

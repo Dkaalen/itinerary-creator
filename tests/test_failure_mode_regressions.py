@@ -149,7 +149,7 @@ def test_export_stage_refreshes_project_snapshot_and_requests_auto_pdf(monkeypat
 
 
 def test_real_content_dirtying_clears_cloud_saved_marker() -> None:
-    from app_modules.workflow_state import mark_pdf_dirty
+    from app_modules.render_lifecycle import mark_pdf_dirty
 
     state = {
         "pdf_bytes": b"old",

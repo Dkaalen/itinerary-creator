@@ -16,7 +16,7 @@ READY_IMAGE_BANK = {"full_bank_found": True, "missing_full_bank": False, "destin
 
 def _frontend_style_registry() -> dict:
     js = Path("visual_editor_component/frontend/js/style_preset_data.js").read_text(encoding="utf-8")
-    match = re.search(r"window\.CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});", js, flags=re.DOTALL)
+    match = re.search(r"const\s+CONTROLLED_EDITOR_STYLE_REGISTRY\s*=\s*(\{.*?\});", js, flags=re.DOTALL)
     assert match, "frontend style registry assignment was not found"
     return json.loads(match.group(1))
 

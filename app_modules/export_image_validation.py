@@ -18,7 +18,7 @@ from app_modules.image_gateway import (
     image_bank_is_ready_for_client_pictures,
     image_bank_should_attempt_destination_connection,
 )
-from app_modules.workflow_state import image_grouped_days_from_state
+from app_modules.image_projection_state import image_grouped_days_from_state
 from images.app_image_selection import (
     connect_remote_image_bank_if_missing,
     destination_requests_from_rows,

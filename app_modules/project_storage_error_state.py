@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from app_modules.session_transitions import clear_failed_save, record_failed_save
+from app_modules.project_session_transitions import clear_failed_save, record_failed_save
 from project_storage.errors import storage_error_detail, storage_user_message
 
 

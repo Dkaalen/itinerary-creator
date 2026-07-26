@@ -28,7 +28,7 @@ function updateSuggestions(rowIndex, query) {
   calculatorState.activeSuggestion = {
     rowIndex,
     query: text,
-    results: findLibrarySuggestions(
+    results: window.ItineraryCalculator.library.findSuggestions(
       calculatorState.libraryRows,
       text,
       8,
@@ -44,7 +44,7 @@ function applySuggestion(index) {
   if (!active || !active.results[index]) return;
   recordHistory();
   const row = calculatorState.rows[active.rowIndex];
-  calculatorState.rows[active.rowIndex] = applyLibrarySuggestion(row, active.results[index].item);
+  calculatorState.rows[active.rowIndex] = window.ItineraryCalculator.library.applySuggestion(row, active.results[index].item);
   autofillDatesFromArrival(calculatorState.rows);
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   calculatorState.activeSuggestion = null;

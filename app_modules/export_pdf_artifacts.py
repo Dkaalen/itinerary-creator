@@ -9,7 +9,7 @@ from app_modules.pdf_artifact_state import (
     mirror_current_pdf_artifact,
     store_pdf_artifact,
 )
-from app_modules.workflow_state import clear_pdf_artifacts
+from app_modules.render_lifecycle import clear_pdf_artifacts
 
 
 def current_pdf_bytes() -> bytes | None:

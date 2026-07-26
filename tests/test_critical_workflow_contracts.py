@@ -10,7 +10,8 @@ from app_modules.project_identity import active_project_id_from_state
 from app_modules.saved_project_builder import build_saved_project_from_state
 from app_modules.saved_project_current_state import refresh_active_saved_project_current_snapshot
 from app_modules.saved_project_serialization import saved_project_to_dict
-from app_modules.workflow_state import ensure_workflow_defaults, mark_pdf_dirty
+from app_modules.render_lifecycle import mark_pdf_dirty
+from app_modules.workflow_state import ensure_workflow_defaults
 from calculator.calculator_state import CalculatorState
 from calculator.formula_map import expected_row_formulas
 from calculator.row_model import CalculatorRow

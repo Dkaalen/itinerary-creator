@@ -105,7 +105,7 @@ def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
                 supplier_currency: 'NOK',
                 sales_currency: 'NOK'
               }));
-              saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'expanded');
+              window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, 'expanded');
               calculatorState.rows[0].travel_element = 'Updated service';
               markLocalDraft(false);
               flushRecoverySnapshot('edited');
@@ -124,17 +124,22 @@ def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
         assert "rows" not in stored["entries"][1]
         assert stored["entries"][1]["rowChanges"]
 
-        snapshots = page.evaluate("loadCalculatorRecoverySnapshots()")
+        snapshots = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
         assert snapshots[0]["rows"][0]["travel_element"] == "Updated service"
         assert snapshots[1]["rows"][0]["travel_element"] == "Original service 0"
         legacy_size = page.evaluate(
             """snapshots => JSON.stringify(snapshots.map((snapshot) => ({
               ...snapshot,
-              signature: JSON.stringify(calculatorRecoveryComparable(snapshot))
+              signature: JSON.stringify({
+                rows: snapshot.rows,
+                numberOfPax: snapshot.numberOfPax ?? null,
+                showAdvanced: Boolean(snapshot.showAdvanced),
+                columnWidths: {...(snapshot.columnWidths || {})}
+              })
             }))).length""",
             snapshots,
         )
-        compact_size = page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey()).length")
+        compact_size = page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey()).length")
         assert compact_size < legacy_size
 
         page.get_by_role("button", name=re.compile(r"Versions \(\d+\)")).click()
@@ -164,19 +169,19 @@ def test_large_projects_adapt_retention_and_preserve_long_values() -> None:
               calculatorState.rows = rows;
               for (let index = 0; index < 7; index += 1) {
                 calculatorState.rows[0].comments = `${rows[0].comments}-${index}`;
-                saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, `large-${index}`);
+                window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, `large-${index}`);
               }
-              calculatorState.recoverySnapshots = loadCalculatorRecoverySnapshots();
+              calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.loadRecoverySnapshots();
             }""",
             rows,
         )
 
-        snapshots = page.evaluate("loadCalculatorRecoverySnapshots()")
+        snapshots = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
         assert 1 <= len(snapshots) <= 4
         assert snapshots[0]["rows"][92]["gross_price_per_unit"] == "=100/10*0.8"
         assert snapshots[0]["rows"][92]["url"].endswith("92")
         assert snapshots[0]["rows"][92]["comments"].startswith("Long comment 92")
-        assert page.evaluate("calculatorRecoveryStorageUsage().totalBytes") > 500_000
+        assert page.evaluate("window.ItineraryCalculator.storage.storageUsage().totalBytes") > 500_000
     finally:
         browser.close()
         manager.stop()
@@ -187,7 +192,7 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         page.evaluate(
             """() => {
               calculatorState.rows[0].travel_element = 'Version two';
-              saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, 'second');
+              window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, 'second');
             }"""
         )
         _install_storage_quota(page, 17_500)
@@ -195,7 +200,7 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         saved = page.evaluate(
             """comment => {
               calculatorState.rows[0].comments = comment;
-              return saveCalculatorDraft(calculatorState, activeBackendRevision);
+              return window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
             }""",
             long_comment,
         )
@@ -206,7 +211,7 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
             payload["draft_storage_key"],
         )
         assert draft["rows"][0]["comments"] == long_comment
-        assert page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey())") is None
+        assert page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey())") is None
         assert page.evaluate("calculatorState.recoverySnapshots.length") == 0
         assert page.get_by_role("button", name="Versions (0)").count() == 1
         status = page.locator("#calculator-recovery-status")
@@ -225,7 +230,7 @@ def test_unavailable_storage_shows_one_quiet_status() -> None:
         saved = page.evaluate(
             """() => {
               calculatorState.rows[0].comments = 'q'.repeat(12000);
-              return saveCalculatorDraft(calculatorState, activeBackendRevision);
+              return window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
             }"""
         )
 
@@ -248,14 +253,14 @@ def test_unavailable_storage_shows_one_quiet_status() -> None:
 def test_legacy_recovery_arrays_remain_readable() -> None:
     manager, browser, page, _payload_data = _recovery_page(revision="legacy-recovery")
     try:
-        snapshots = page.evaluate("loadCalculatorRecoverySnapshots()")
+        snapshots = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
         legacy = [{key: value for key, value in snapshots[0].items() if key != "hash"}]
         page.evaluate(
-            "legacy => window.localStorage.setItem(calculatorRecoveryStorageKey(), JSON.stringify(legacy))",
+            "legacy => window.localStorage.setItem(window.ItineraryCalculator.storage.recoveryStorageKey(), JSON.stringify(legacy))",
             legacy,
         )
 
-        restored = page.evaluate("loadCalculatorRecoverySnapshots()")
+        restored = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
         assert restored[0]["rows"][0]["travel_element"] == "Original service"
         assert len(restored[0]["hash"]) == 16
     finally:

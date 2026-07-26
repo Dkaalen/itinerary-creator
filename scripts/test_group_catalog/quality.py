@@ -17,6 +17,7 @@ QUALITY_TESTS = (
     "tests/test_inclusions_preview_accommodation_transport_followups.py",
     "tests/test_inclusion_exclusion_architecture.py",
     "tests/test_quality_gate_architecture.py",
+    "tests/test_quality_ownership_boundary.py",
     "tests/test_client_copy_sanitation_contract.py",
     "tests/test_copy_sequence_authority.py",
     "tests/test_advisor_quality_gate_contract.py",

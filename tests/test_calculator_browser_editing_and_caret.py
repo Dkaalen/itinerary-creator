@@ -88,14 +88,15 @@ def test_large_grid_text_typing_avoids_full_recalculation_and_per_key_draft_writ
                 window.__calculateRowsCalls = 0;
                 window.__draftSaveCalls = 0;
                 const originalCalculateRows = calculateRows;
-                const originalSaveCalculatorDraft = saveCalculatorDraft;
+                const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
+                const activeDraftKey = window.ItineraryCalculator.storage.getDraftStorageKey();
                 calculateRows = (...args) => {
                     window.__calculateRowsCalls += 1;
                     return originalCalculateRows(...args);
                 };
-                saveCalculatorDraft = (...args) => {
-                    window.__draftSaveCalls += 1;
-                    return originalSaveCalculatorDraft(...args);
+                window.localStorage.setItem = (key, value) => {
+                    if (String(key) === activeDraftKey) window.__draftSaveCalls += 1;
+                    return originalSetItem(String(key), String(value));
                 };
             }"""
         )

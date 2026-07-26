@@ -9,14 +9,10 @@ from app_modules.editor_commit import (
     VISUAL_EDITOR_LAST_APPLIED_COMMIT_KEY,
 )
 from app_modules.workflow_actions import enter_export_stage, enter_picture_stage, retry_image_bank_connection
-from app_modules.workflow_state import (
-    clear_pdf_artifacts,
-    ensure_workflow_defaults,
-    image_grouped_days_from_state,
-    reset_workflow_state,
-    session_stage_from_state,
-    set_workflow_stage,
-)
+from app_modules.image_projection_state import image_grouped_days_from_state
+from app_modules.render_lifecycle import clear_pdf_artifacts
+from app_modules.workflow_navigation import session_stage_from_state, transition_workflow_stage
+from app_modules.workflow_state import ensure_workflow_defaults, reset_workflow_state
 
 
 READY_BANK = {"full_bank_found": True, "missing_full_bank": False, "destination_image_count": 4}
@@ -37,13 +33,13 @@ def test_workflow_state_normalizes_stage_and_blocks_picture_stage_without_pictur
     assert session_stage_from_state(state) == "input"
 
     state["parsed_rows"] = [{"day": "Day 1", "city": "Oslo"}]
-    set_workflow_stage(state, "export")
+    transition_workflow_stage(state, "export")
     assert session_stage_from_state(state) == "edit"
 
     state["output_edits"] = {"pictures_added": True}
     assert session_stage_from_state(state) == "export"
 
-    assert set_workflow_stage(state, "unknown") == "input"
+    assert transition_workflow_stage(state, "unknown") == "input"
 
 
 def test_clear_pdf_artifacts_clears_all_durable_pdf_state():
@@ -293,4 +289,4 @@ def test_project_io_delegates_project_loading_to_workflow_actions():
     assert "from app_modules.workflow_actions import load_project" in source
     assert "result = load_project(st.session_state" in source
     assert "def load_project(" in action_source
-    assert "set_workflow_stage(state, \"pictures\" if pictures_are_added" in action_source
+    assert "transition_workflow_stage(state, \"pictures\" if pictures_are_added" in action_source

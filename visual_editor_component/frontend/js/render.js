@@ -137,3 +137,9 @@ function draw() {
   restoreEditorScrollState();
   requestAnimationFrame(() => { highlightWarnings(); adjustDayImages(); updateEditorStats(); syncEditorFrameHeight(); restoreEditorScrollState(); });
 }
+
+
+ItineraryVisualEditor.define('renderer', {
+  render,
+  draw,
+});

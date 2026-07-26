@@ -9,7 +9,8 @@ from app_modules.itinerary_render_artifact import build_and_persist_itinerary_re
 from app_modules.parse_workflow import parse_and_normalize_itinerary
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.render_lifecycle import clear_pdf_artifacts
+from app_modules.workflow_navigation import transition_workflow_stage
 from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
@@ -38,7 +39,7 @@ def load_project(
     if validation_report.is_blocked:
         return WorkflowActionResult(
             ok=False,
-            stage=set_workflow_stage(state, "input"),
+            stage=transition_workflow_stage(state, "input"),
             message="Project load blocked by validation issues.",
             payload={"validation_report": validation_report},
         )
@@ -72,7 +73,7 @@ def load_project(
         save_html=True,
     )
     state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
-    stage = set_workflow_stage(state, "pictures" if pictures_are_added(loaded_edits) else "edit")
+    stage = transition_workflow_stage(state, "pictures" if pictures_are_added(loaded_edits) else "edit")
 
     return WorkflowActionResult(
         ok=True,

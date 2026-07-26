@@ -6,7 +6,7 @@ This is a handover list only. Do not delete all entries in one patch.
 Each candidate needs an import-search proof, targeted tests, and a separate deletion commit.
 
 Immediate candidates: 0
-Held back for compatibility/safety: 216
+Held back for compatibility/safety: 192
 
 ## Immediate candidates
 
@@ -19,29 +19,32 @@ Held back for compatibility/safety: 216
 | File | Reason | Importers | Safety note |
 |---|---|---:|---|
 | `app.py` | module with zero production importers | 0 | production application entrypoint |
-| `app_modules/calculator_open_action.py` | facade-like module with production importers | 3 | still has static importers |
-| `app_modules/calculator_restore.py` | facade-like module with production importers | 3 | still has static importers |
+| `app_modules/calculator_action_policy.py` | facade-like module with production importers | 2 | still has static importers |
+| `app_modules/calculator_restore.py` | facade-like module with production importers | 2 | still has static importers |
 | `app_modules/export_issue_display.py` | facade-like module with production importers | 1 | still has static importers |
-| `app_modules/export_render_context.py` | facade-like module with production importers | 3 | still has static importers |
-| `app_modules/generation_preview_builder.py` | facade-like module with production importers | 1 | still has static importers |
-| `app_modules/pdf_export_blockers.py` | facade-like module with production importers | 1 | still has static importers |
+| `app_modules/export_render_context.py` | facade-like module with production importers | 4 | still has static importers |
+| `app_modules/image_projection_state.py` | facade-like module with production importers | 5 | still has static importers |
+| `app_modules/pdf_export_blockers.py` | facade-like module with production importers | 2 | still has static importers |
 | `app_modules/pdf_export_preview_file.py` | facade-like module with production importers | 1 | still has static importers |
-| `app_modules/project_file_download_cache.py` | facade-like module with production importers | 5 | still has static importers |
+| `app_modules/project_file_download_cache.py` | facade-like module with production importers | 6 | still has static importers |
 | `app_modules/project_file_ui.py` | facade-like module with production importers | 3 | still has static importers |
 | `app_modules/render_context_cover_data.py` | facade-like module with production importers | 4 | still has static importers |
 | `app_modules/render_context_document.py` | facade-like module with production importers | 1 | still has static importers |
 | `app_modules/render_context_summary_data.py` | facade-like module with production importers | 1 | still has static importers |
-| `app_modules/session_state_keys.py` | facade-like module with production importers | 23 | still has static importers |
+| `app_modules/render_lifecycle.py` | facade-like module with production importers | 10 | still has static importers |
+| `app_modules/session_state_keys.py` | facade-like module with production importers | 28 | still has static importers |
 | `app_modules/workflow_actions.py` | facade-like module with production importers | 8 | still has static importers |
-| `calculator/__init__.py` | facade-like module with production importers | 81 | package initializer; never delete from static import evidence alone |
+| `calculator/__init__.py` | facade-like module with production importers | 107 | package initializer; never delete from static import evidence alone |
 | `calculator/data/__init__.py` | module with zero production importers | 0 | package initializer; never delete from static import evidence alone |
-| `calculator/library_search.py` | module with zero production importers | 1 | still has static importers |
+| `calculator/library_search.py` | module with zero production importers | 3 | still has static importers |
+| `calculator/state_revision.py` | facade-like module with production importers | 4 | still has static importers |
+| `calculator/workbook_package_integrity.py` | facade-like module with production importers | 1 | still has static importers |
 | `generator.py` | facade-like module with zero production importers | 62 | documented public compatibility surface |
 | `image_matcher.py` | facade-like module with production importers | 6 | documented public compatibility surface |
-| `images/__init__.py` | facade-like module with production importers | 80 | package initializer; never delete from static import evidence alone |
+| `images/__init__.py` | facade-like module with production importers | 81 | package initializer; never delete from static import evidence alone |
 | `images/destination_image_library.py` | module with zero production importers | 1 | still has static importers |
 | `images/diagnostics.py` | module with zero production importers | 1 | still has static importers |
-| `images/matcher_context.py` | facade-like module with production importers | 14 | still has static importers |
+| `images/matcher_context.py` | facade-like module with production importers | 15 | still has static importers |
 | `images/remote_distribution.py` | facade-like module with production importers | 8 | still has static importers |
 | `images/scanner.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_domain/activity_product_rules/__init__.py` | facade-like module with production importers | 1 | package initializer; never delete from static import evidence alone |
@@ -50,35 +53,23 @@ Held back for compatibility/safety: 216
 | `itinerary_domain/group_tour_orphan_days.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_domain/nutshell_constants.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_domain/nutshell_domain.py` | facade-like module with production importers | 4 | still has static importers |
-| `itinerary_domain/nutshell_model.py` | facade-like module with production importers | 3 | still has static importers |
+| `itinerary_domain/nutshell_model.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_domain/product_rules.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_domain/transport_norway.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/accommodation_inclusions.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/activity_cache.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/activity_mode_contract.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/activity_product_core.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_rules/__init__.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_rules/iceland.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_rules/nordic.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_rules/norway.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_rules/scandinavia.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_product_text.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/activity_products.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/activity_title_northern_lights.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/activity_titles.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/activity_training_catalogue.py` | facade-like module with production importers | 4 | still has static importers |
-| `itinerary_generation/activity_training_loader.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_training_matcher.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_training_model.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_training_text.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/activity_training_validation.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
+| `itinerary_generation/advisor_quality.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/canonical_builder.py` | facade-like module with production importers | 5 | still has static importers |
-| `itinerary_generation/client_output_quality_gate.py` | facade-like module with production importers | 1 | still has static importers |
+| `itinerary_generation/client_quality_report.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/common.py` | facade-like module with production importers | 109 | still has static importers |
 | `itinerary_generation/content_engine.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_generation/content_text.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/content_validator.py` | module with zero production importers | 17 | still has static importers |
-| `itinerary_generation/copy/__init__.py` | facade-like module with production importers | 15 | package initializer; never delete from static import evidence alone |
+| `itinerary_generation/copy/__init__.py` | facade-like module with production importers | 16 | package initializer; never delete from static import evidence alone |
 | `itinerary_generation/copy/phrase_guardrails.py` | module with zero production importers | 1 | still has static importers |
 | `itinerary_generation/cover_theme.py` | facade-like module with production importers | 7 | still has static importers |
 | `itinerary_generation/data/nordic_destination_registry_data/__init__.py` | facade-like module with production importers | 1 | package initializer; never delete from static import evidence alone |
@@ -86,103 +77,83 @@ Held back for compatibility/safety: 216
 | `itinerary_generation/day_brain_report.py` | module with zero production importers | 3 | still has static importers |
 | `itinerary_generation/day_copy_audit.py` | facade-like module with zero production importers | 3 | still has static importers |
 | `itinerary_generation/day_copy_variation.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/day_intent.py` | facade-like module with production importers | 17 | still has static importers |
+| `itinerary_generation/day_intent.py` | facade-like module with production importers | 20 | still has static importers |
 | `itinerary_generation/day_intro_classification.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/day_intro_engine.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/day_intro_planner.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_intro_route.py` | facade-like module with production importers | 2 | still has static importers |
+| `itinerary_generation/day_intro_writer.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/day_render_blocks.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/day_render_manual_html.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_render_transport_blocks.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_schedule_facts.py` | facade-like module with production importers | 1 | still has static importers |
+| `itinerary_generation/day_state.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/day_text.py` | facade-like module with production importers | 14 | still has static importers |
 | `itinerary_generation/day_titles.py` | facade-like module with production importers | 6 | still has static importers |
 | `itinerary_generation/day_travel_facts.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_travel_load.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/day_visit_facts.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/destination_copy.py` | facade-like module with production importers | 7 | still has static importers |
+| `itinerary_generation/destination_content.py` | facade-like module with production importers | 3 | still has static importers |
+| `itinerary_generation/destination_copy.py` | facade-like module with production importers | 8 | still has static importers |
 | `itinerary_generation/destination_profile_model.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/destination_profiles.py` | facade-like module with production importers | 3 | still has static importers |
-| `itinerary_generation/destination_registry.py` | facade-like module with production importers | 20 | still has static importers |
-| `itinerary_generation/editable_draft.py` | facade-like module with production importers | 18 | still has static importers |
+| `itinerary_generation/destination_registry.py` | facade-like module with production importers | 24 | still has static importers |
+| `itinerary_generation/editable_draft.py` | facade-like module with production importers | 20 | still has static importers |
 | `itinerary_generation/editable_draft_core.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/editable_draft_legacy_bridge.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/editable_draft_model.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/editor_page_contract.py` | facade-like module with production importers | 18 | still has static importers |
 | `itinerary_generation/exclusion_sections.py` | facade-like module with production importers | 12 | still has static importers |
 | `itinerary_generation/fjordtours_activity_catalogue.py` | facade-like module with zero production importers | 1 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_accommodation_policy.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_builder.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_commercial_items.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_constants.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_day_parser.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/group_tour_detection.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/group_tour_domain.py` | facade-like module with production importers | 6 | still has static importers |
-| `itinerary_generation/group_tour_master_rows.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_models.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/group_tour_optional_extras.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/group_tour_orphan_days.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_parsing.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/group_tour_rendering.py` | facade-like module with production importers | 10 | still has static importers |
-| `itinerary_generation/group_tour_row_helpers.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/group_tour_serialization.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/group_tour_supplier_titles.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/group_tour_text.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
 | `itinerary_generation/group_tours.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/inclusion_sections.py` | module with zero production importers | 21 | still has static importers |
-| `itinerary_generation/inclusion_transport.py` | facade-like module with production importers | 2 | still has static importers |
-| `itinerary_generation/inclusions.py` | facade-like module with production importers | 16 | still has static importers |
+| `itinerary_generation/inclusion_transport.py` | facade-like module with zero production importers | 1 | still has static importers |
+| `itinerary_generation/inclusions.py` | facade-like module with production importers | 17 | still has static importers |
 | `itinerary_generation/input_review.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/itinerary_health_checks.py` | facade-like module with production importers | 7 | still has static importers |
-| `itinerary_generation/nutshell_cleaning.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_constants.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_domain.py` | facade-like module with production importers | 13 | still has static importers |
-| `itinerary_generation/nutshell_journey_builder.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_labels.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_model.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
+| `itinerary_generation/nutshell_domain.py` | facade-like module with production importers | 15 | still has static importers |
 | `itinerary_generation/nutshell_parsing.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/nutshell_route_parser.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_route_parsing.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/nutshell_source.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/product_rule_context.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/product_rule_descriptions.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/product_rule_evidence.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/product_rule_matcher.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
-| `itinerary_generation/product_rule_models.py` | facade-like module with zero production importers | 0 | deliberate compatibility facade for the neutral itinerary domain |
+| `itinerary_generation/nutshell_signature.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/product_rules.py` | facade-like module with production importers | 9 | still has static importers |
 | `itinerary_generation/public_api.py` | facade-like module with production importers | 1 | documented public compatibility surface |
 | `itinerary_generation/qa_report.py` | facade-like module with zero production importers | 3 | still has static importers |
-| `itinerary_generation/quality_gate.py` | facade-like module with production importers | 21 | still has static importers |
+| `itinerary_generation/quality_gate.py` | facade-like module with production importers | 20 | still has static importers |
 | `itinerary_generation/quality_gate_core.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/reference_corpus.py` | module with zero production importers | 4 | still has static importers |
 | `itinerary_generation/schedule_occupancy.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/source_identity.py` | module with zero production importers | 1 | still has static importers |
-| `itinerary_generation/structured_builder.py` | facade-like module with production importers | 19 | still has static importers |
+| `itinerary_generation/structured_builder.py` | facade-like module with production importers | 20 | still has static importers |
 | `itinerary_generation/structured_builder_core.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/structured_days_builder.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/structured_validation.py` | facade-like module with production importers | 3 | still has static importers |
-| `itinerary_generation/summaries.py` | facade-like module with production importers | 13 | still has static importers |
+| `itinerary_generation/summaries.py` | facade-like module with production importers | 14 | still has static importers |
+| `itinerary_generation/summaries_experience.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/summaries_journey_arc.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/summaries_text.py` | facade-like module with production importers | 3 | still has static importers |
+| `itinerary_generation/summaries_text.py` | facade-like module with production importers | 5 | still has static importers |
 | `itinerary_generation/tallinn.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/title_cleanup.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/title_routes.py` | facade-like module with production importers | 4 | still has static importers |
 | `itinerary_generation/title_safety.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/title_travel_composition.py` | facade-like module with production importers | 1 | still has static importers |
-| `itinerary_generation/titles.py` | facade-like module with production importers | 32 | still has static importers |
+| `itinerary_generation/titles.py` | facade-like module with production importers | 34 | still has static importers |
 | `itinerary_generation/transport.py` | facade-like module with production importers | 16 | still has static importers |
 | `itinerary_generation/transport_details.py` | facade-like module with production importers | 4 | still has static importers |
-| `itinerary_generation/transport_domain/__init__.py` | facade-like module with production importers | 49 | package initializer; never delete from static import evidence alone |
+| `itinerary_generation/transport_domain/__init__.py` | facade-like module with production importers | 57 | package initializer; never delete from static import evidence alone |
 | `itinerary_generation/transport_domain/model.py` | module with zero production importers | 1 | still has static importers |
 | `itinerary_generation/transport_domain/render.py` | facade-like module with production importers | 7 | still has static importers |
+| `itinerary_generation/transport_domain/route_cleaning.py` | facade-like module with production importers | 2 | still has static importers |
 | `itinerary_generation/transport_norway.py` | facade-like module with production importers | 10 | still has static importers |
 | `itinerary_generation/transport_routes.py` | facade-like module with zero production importers | 3 | still has static importers |
 | `itinerary_generation/transport_titles.py` | facade-like module with zero production importers | 3 | still has static importers |
 | `itinerary_generation/travel_sequence_blocks.py` | facade-like module with production importers | 3 | still has static importers |
 | `itinerary_generation/trip_titles.py` | facade-like module with production importers | 1 | still has static importers |
 | `itinerary_generation/validation.py` | facade-like module with zero production importers | 1 | still has static importers |
-| `itinerary_parser.py` | facade-like module with production importers | 76 | documented public compatibility surface |
-| `normalizer.py` | facade-like module with production importers | 67 | documented public compatibility surface |
+| `itinerary_parser.py` | facade-like module with production importers | 79 | documented public compatibility surface |
+| `normalizer.py` | facade-like module with production importers | 68 | documented public compatibility surface |
 | `normalizer_modules/__init__.py` | facade-like module with production importers | 23 | package initializer; never delete from static import evidence alone |
 | `normalizer_modules/core.py` | facade-like module with zero production importers | 5 | still has static importers |
 | `normalizer_modules/hotel_amenities.py` | facade-like module with production importers | 1 | still has static importers |
@@ -191,12 +162,14 @@ Held back for compatibility/safety: 216
 | `normalizer_modules/transport_rail_fjord.py` | facade-like module with production importers | 1 | still has static importers |
 | `normalizer_modules/transport_title.py` | facade-like module with production importers | 1 | still has static importers |
 | `normalizer_modules/transport_transfer_detection.py` | facade-like module with production importers | 1 | still has static importers |
-| `parser_modules/common.py` | facade-like module with production importers | 30 | still has static importers |
+| `parser_modules/common.py` | facade-like module with production importers | 29 | still has static importers |
 | `parser_modules/effective_type_detection.py` | facade-like module with production importers | 3 | still has static importers |
 | `parser_modules/extract_meeting_point.py` | facade-like module with production importers | 1 | still has static importers |
 | `parser_modules/extract_time.py` | facade-like module with production importers | 1 | still has static importers |
 | `parser_modules/extractors.py` | facade-like module with production importers | 5 | still has static importers |
 | `parser_modules/hotels.py` | facade-like module with production importers | 2 | still has static importers |
+| `parser_modules/place_parsing.py` | facade-like module with production importers | 6 | still has static importers |
+| `parser_modules/source_url_metadata.py` | facade-like module with production importers | 1 | still has static importers |
 | `parser_modules/time_parsing.py` | facade-like module with production importers | 6 | still has static importers |
 | `parser_modules/transport_titles.py` | facade-like module with zero production importers | 2 | still has static importers |
 | `parser_modules/wrapper_row_types.py` | facade-like module with production importers | 1 | still has static importers |
@@ -210,13 +183,14 @@ Held back for compatibility/safety: 216
 | `pdf_exporter_modules/render_content.py` | facade-like module with production importers | 5 | still has static importers |
 | `pdf_exporter_modules/render_flowables.py` | facade-like module with production importers | 8 | still has static importers |
 | `pdf_exporter_modules/typed_exporter.py` | facade-like module with zero production importers | 8 | still has static importers |
-| `place_alias_data.py` | facade-like module with production importers | 6 | still has static importers |
-| `place_aliases.py` | facade-like module with production importers | 49 | still has static importers |
-| `project_storage/__init__.py` | facade-like module with production importers | 17 | package initializer; never delete from static import evidence alone |
+| `place_alias_data.py` | facade-like module with production importers | 7 | still has static importers |
+| `place_aliases.py` | facade-like module with production importers | 48 | still has static importers |
+| `project_storage/__init__.py` | facade-like module with production importers | 20 | package initializer; never delete from static import evidence alone |
 | `shared/client_text_repair.py` | facade-like module with production importers | 3 | still has static importers |
 | `shared/place_label_policy.py` | facade-like module with production importers | 3 | still has static importers |
 | `shared/text_cleanup_cache.py` | module with zero production importers | 2 | still has static importers |
-| `text_polish.py` | facade-like module with production importers | 121 | documented public compatibility surface |
+| `shared/url_metadata.py` | facade-like module with production importers | 7 | still has static importers |
+| `text_polish.py` | facade-like module with production importers | 124 | documented public compatibility surface |
 | `text_polish_modules/__init__.py` | facade-like module with production importers | 10 | package initializer; never delete from static import evidence alone |
 | `text_polish_modules/text_cleanup_rules.py` | facade-like module with zero production importers | 1 | still has static importers |
 | `ui/accommodation_display_helpers.py` | facade-like module with production importers | 1 | still has static importers |
@@ -226,11 +200,13 @@ Held back for compatibility/safety: 216
 | `ui/day_blocks.py` | facade-like module with production importers | 21 | still has static importers |
 | `ui/day_pages.py` | facade-like module with production importers | 10 | still has static importers |
 | `ui/optional_day_blocks.py` | facade-like module with production importers | 1 | still has static importers |
-| `ui/render_helpers.py` | facade-like module with production importers | 22 | still has static importers |
+| `ui/render_helpers.py` | facade-like module with production importers | 23 | still has static importers |
 | `ui/render_text_helpers.py` | facade-like module with production importers | 1 | still has static importers |
 | `ui/simple_day_blocks.py` | facade-like module with production importers | 2 | still has static importers |
 | `ui/time_display.py` | facade-like module with production importers | 1 | still has static importers |
 | `ui/transport_display_helpers.py` | facade-like module with production importers | 1 | still has static importers |
 | `ui/travel_sequence_blocks.py` | facade-like module with production importers | 9 | still has static importers |
+| `visual_editor_component/editor_payload_days.py` | module with zero production importers | 2 | still has static importers |
+| `visual_editor_component/editor_payload_sections.py` | module with zero production importers | 1 | still has static importers |
 | `visual_editor_component/editor_result_codec.py` | facade-like module with production importers | 3 | still has static importers |
 | `visual_editor_component/editor_workflow.py` | facade-like module with production importers | 21 | still has static importers |

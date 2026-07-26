@@ -10,7 +10,7 @@ from app_modules.calculator_backup_action import CalculatorUploadImport
 from app_modules.calculator_restore import restore_calculator_workspace
 from app_modules.calculator_state_keys import CALCULATOR_PENDING_IMPORT_KEY
 from app_modules.project_unsaved_state import active_project_has_unsaved_changes
-from app_modules.session_transitions import begin_local_calculator_import
+from app_modules.calculator_lifecycle import begin_local_calculator_import
 from calculator.calculator_state import CalculatorState
 
 

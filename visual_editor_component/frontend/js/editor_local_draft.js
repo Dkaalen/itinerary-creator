@@ -299,3 +299,10 @@ function clearLocalDraft() {
   lastLocalDraftStoragePayload = '';
   try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
 }
+
+
+ItineraryVisualEditor.define('drafts', {
+  persist: persistLocalDraft,
+  restore: restoreLocalDraftIfAvailable,
+  clear: clearLocalDraft,
+});

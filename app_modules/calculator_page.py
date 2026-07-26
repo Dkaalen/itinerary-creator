@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
-
 import streamlit as st
 
 from app_modules.app_header import _render_app_header
-from app_modules.calculator_backup_action import (
-    read_calculator_upload_bytes,
-    render_calculator_backup_controls,
+from app_modules.calculator_action_policy import (
+    calculator_action_updates_session_state,
+    calculator_action_validation_issues,
+)
+from app_modules.calculator_page_actions import (
+    dispatch_calculator_backend_action,
+    render_calculator_backup_action,
+    render_pending_calculator_import_confirmation,
 )
 from app_modules.calculator_component_payload import build_calculator_grid_payload
 from app_modules.calculator_component_protocol import (
@@ -20,22 +22,17 @@ from app_modules.calculator_component_protocol import (
 )
 from app_modules.calculator_component_result import CalculatorGridResult, parse_calculator_grid_result
 from app_modules.calculator_currency_controls import render_currency_rate_editor
-from app_modules.calculator_download_action import (
-    prepare_staged_calculation_download,
-    ready_calculation_download_payload,
-)
+from app_modules.calculator_download_action import ready_calculation_download_payload
 from app_modules.calculator_library_cache import read_cached_local_library
+from app_modules.calculator_library_transport import (
+    apply_calculator_library_transport_result,
+    calculator_library_browser_ack,
+)
 from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
     render_local_library_status,
 )
-from app_modules.calculator_navigation import calculator_draft_namespace, close_calculator_page, open_local_library_page
-from app_modules.calculator_open_action import (
-    cancel_pending_calculator_import,
-    confirm_pending_calculator_import,
-    pending_calculator_import,
-    request_calculator_upload_import,
-)
+from app_modules.calculator_navigation import calculator_draft_namespace
 from app_modules.calculator_session_state import (
     apply_calculator_grid_result,
     calculator_state_from_session,
@@ -52,7 +49,6 @@ from app_modules.calculator_state_keys import (
 from app_modules.input_workspace import render_studio_brand
 from ui.style_calculator import CALCULATOR_PAGE_CSS
 from calculator.calculator_state import CalculatorState
-from calculator.validation import CalculatorValidationScope, validate_calculator_state
 from calculator_grid_component import render_calculator_grid
 
 _COMPONENT_KEY = "calculator_browser_grid"
@@ -68,7 +64,7 @@ def render_calculator_page(app_version: str) -> None:
     _render_calculator_topbar()
     _render_calculator_header()
     _render_calculator_notice()
-    if _render_pending_import_confirmation():
+    if render_pending_calculator_import_confirmation():
         return
     _render_generation_feedback()
     refresh_library = render_local_library_refresh_control()
@@ -90,20 +86,29 @@ def render_calculator_page(app_version: str) -> None:
         state,
         currency_rates=currency_rates,
     )
+    draft_namespace = _calculator_draft_namespace()
     payload = build_calculator_grid_payload(
         state,
         library_read,
         show_advanced=bool(st.session_state.get(CALCULATOR_ADVANCED_TOGGLE_KEY, False)),
         currency_rates=currency_rates,
-        draft_namespace=_calculator_draft_namespace(),
+        draft_namespace=draft_namespace,
+        project_identity=draft_namespace,
         pending_download=pending_download,
         component_ack=calculator_component_ack_payload(st.session_state),
+        browser_library_ack=calculator_library_browser_ack(st.session_state),
     )
     raw_result = render_calculator_grid(payload, key=_COMPONENT_KEY)
+    library_transport_update = apply_calculator_library_transport_result(st.session_state, raw_result, payload)
+    if library_transport_update is not None:
+        if library_transport_update.changed:
+            st.rerun()
+            return
+        raw_result = None
     parsed_result = parse_calculator_grid_result(raw_result, itinerary_name)
     accepted_result = _accept_component_result(parsed_result, state)
     if accepted_result is not None:
-        action_issues = _component_action_validation_issues(accepted_result, currency_rates)
+        action_issues = calculator_action_validation_issues(accepted_result, currency_rates)
         if action_issues:
             acknowledge_calculator_grid_result(
                 st.session_state,
@@ -120,7 +125,7 @@ def render_calculator_page(app_version: str) -> None:
             return
 
         result_state = accepted_result.state
-        state_was_applied = _component_result_updates_session_state(accepted_result, currency_rates)
+        state_was_applied = calculator_action_updates_session_state(accepted_result, currency_rates)
         if state_was_applied:
             state = _apply_component_result(accepted_result)
         acknowledge_calculator_grid_result(
@@ -137,8 +142,8 @@ def render_calculator_page(app_version: str) -> None:
     else:
         result_state = state
 
-    _render_backend_action(accepted_result, result_state, currency_rates)
-    _render_backup_controls(state)
+    dispatch_calculator_backend_action(accepted_result, result_state, currency_rates)
+    render_calculator_backup_action(state)
 
 
 
@@ -166,42 +171,6 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
     return apply_calculator_grid_result(st.session_state, result)
 
 
-def _component_action_validation_issues(
-    result: CalculatorGridResult,
-    currency_rates: dict[str, float] | None = None,
-):
-    """Validate one browser action again at the backend trust boundary."""
-
-    scope = {
-        "download": CalculatorValidationScope.EXPORT,
-        "generate_agent": CalculatorValidationScope.GENERATION,
-        "generate_customer": CalculatorValidationScope.GENERATION,
-        "sync": CalculatorValidationScope.PERSISTENCE,
-    }.get(result.action, CalculatorValidationScope.DRAFT_SAFE)
-    return validate_calculator_state(result.state, currency_rates, scope=scope)
-
-
-def _component_result_updates_session_state(
-    result: CalculatorGridResult,
-    currency_rates: dict[str, float] | None = None,
-) -> bool:
-    """Return whether browser rows are safe to make the backend authority now."""
-
-    if result.action == "open_excel":
-        return False
-    if result.action in {"close", "open_library", "generate_agent", "generate_customer"}:
-        backend_has_display_errors = bool(
-            validate_calculator_state(
-                result.state,
-                currency_rates,
-                scope=CalculatorValidationScope.EXPORT,
-            )
-        )
-        if result.client_has_validation_errors or backend_has_display_errors:
-            return False
-    return True
-
-
 def _render_calculator_topbar() -> None:
     """Render branding only; navigation lives inside the synchronized grid."""
 
@@ -217,38 +186,6 @@ def _render_calculator_header() -> None:
         </section>
         """
     )
-
-
-def _render_backend_action(
-    result: CalculatorGridResult | None,
-    state: CalculatorState,
-    currency_rates: dict[str, float],
-) -> None:
-    if result is None:
-        return
-    if result.action == "close":
-        close_calculator_page(st.session_state)
-        st.rerun()
-        return
-    if result.action == "open_library":
-        open_local_library_page(st.session_state)
-        st.rerun()
-        return
-    if result.action == "download":
-        prepare_staged_calculation_download(st.session_state, state, currency_rates=currency_rates)
-        st.rerun()
-        return
-    if result.action == "sync":
-        st.rerun()
-        return
-    if result.action == "open_excel":
-        _open_uploaded_excel(result)
-        return
-    if result.action == "generate_agent":
-        _render_generation_result(state, output_brand="agent")
-        return
-    if result.action == "generate_customer":
-        _render_generation_result(state, output_brand="booknordics_customer")
 
 
 def _render_calculator_notice() -> None:
@@ -269,124 +206,6 @@ def _render_generation_feedback() -> None:
         from app_modules.validation_gate import render_blocking_issues
 
         render_blocking_issues(report)
-
-
-def _open_uploaded_excel(result: CalculatorGridResult) -> None:
-    filename = str(result.upload_filename or "calculation.xlsx").strip()
-    encoded = str(result.upload_content_base64 or "").strip()
-    if not encoded:
-        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "No Excel file was received."}
-        st.rerun()
-        return
-    try:
-        content = base64.b64decode(encoded, validate=True)
-    except (ValueError, binascii.Error):
-        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "The selected Excel file could not be read."}
-        st.rerun()
-        return
-    if len(content) > 12 * 1024 * 1024:
-        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": "The selected Excel file is larger than the 12 MB Calculator limit."}
-        st.rerun()
-        return
-    try:
-        imported = read_calculator_upload_bytes(content, filename=filename)
-    except (ValueError, TypeError) as exc:
-        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": f"Could not open Excel: {exc}"}
-        st.rerun()
-        return
-
-    import_issues = validate_calculator_state(
-        imported.state,
-        imported.currency_rates,
-        scope=CalculatorValidationScope.IMPORT,
-    )
-    if import_issues:
-        st.session_state[CALCULATOR_NOTICE_KEY] = {
-            "level": "warning",
-            "message": import_issues[0].message,
-        }
-        st.rerun()
-        return
-
-    notice = request_calculator_upload_import(
-        st.session_state,
-        imported,
-        filename=filename,
-        current_state=result.state,
-    )
-    if notice is None:
-        st.rerun()
-        return
-    st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
-    st.rerun()
-
-
-def _render_generation_result(state: CalculatorState, *, output_brand: str) -> None:
-    from app_modules.calculator_generation_action import generate_itinerary_from_calculator
-    from app_modules.validation_gate import block_generation
-
-    with st.spinner("Building your itinerary…"):
-        result = generate_itinerary_from_calculator(st.session_state, state, output_brand=output_brand)
-
-    if result.ok:
-        st.rerun()
-        return
-
-    validation_report = (result.payload or {}).get("validation_report") if result.payload else None
-    if validation_report is not None:
-        block_generation(validation_report)
-        st.session_state[CALCULATOR_GENERATION_FEEDBACK_KEY] = validation_report
-    elif result.message:
-        st.session_state[CALCULATOR_NOTICE_KEY] = {"level": "warning", "message": result.message}
-    st.rerun()
-
-
-def _render_backup_controls(state: CalculatorState) -> None:
-    imported = render_calculator_backup_controls(state)
-    if imported is None:
-        return
-    notice = request_calculator_upload_import(
-        st.session_state,
-        imported,
-        current_state=state,
-    )
-    if notice is None:
-        st.rerun()
-        return
-    st.session_state[CALCULATOR_NOTICE_KEY] = {"level": notice.level, "message": notice.message}
-    st.rerun()
-
-
-def _render_pending_import_confirmation() -> bool:
-    pending = pending_calculator_import(st.session_state)
-    if pending is None:
-        return False
-
-    label = pending.filename
-    if not label:
-        label = "calculation Excel" if pending.imported.source == "xlsx" else "Calculator backup"
-    st.warning(f"Unsaved changes in the current workspace will be replaced when opening {label}.")
-    keep_col, open_col = st.columns(2)
-    with keep_col:
-        if st.button("Keep current workspace", key="cancel_calculator_import", use_container_width=True):
-            cancel_pending_calculator_import(st.session_state)
-            st.session_state[CALCULATOR_NOTICE_KEY] = {
-                "level": "info",
-                "message": "Calculator file open cancelled.",
-            }
-            st.rerun()
-            return True
-    with open_col:
-        if st.button("Open file anyway", key="confirm_calculator_import", use_container_width=True):
-            notice = confirm_pending_calculator_import(st.session_state)
-            if notice is not None:
-                st.session_state[CALCULATOR_NOTICE_KEY] = {
-                    "level": notice.level,
-                    "message": notice.message,
-                }
-            st.rerun()
-            return True
-    return True
 
 
 def _render_calculator_page_css() -> None:

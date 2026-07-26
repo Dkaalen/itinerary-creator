@@ -25,9 +25,9 @@ def test_unavailable_storage_status_is_deduplicated_across_autosaves() -> None:
                 originalRefresh();
               };
               calculatorState.rows[0].comments = 'q'.repeat(12000);
-              const firstSaved = saveCalculatorDraft(calculatorState, activeBackendRevision);
+              const firstSaved = window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
               const afterFirst = window.__recoveryStatusRefreshCount;
-              const secondSaved = saveCalculatorDraft(calculatorState, activeBackendRevision);
+              const secondSaved = window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
               return {firstSaved, secondSaved, afterFirst, afterSecond: window.__recoveryStatusRefreshCount};
             }"""
         )
@@ -81,13 +81,13 @@ def test_clear_local_recovery_data_removes_current_draft_and_versions_only() -> 
             }"""
         )
         assert page.evaluate("key => window.localStorage.getItem(key) !== null", payload["draft_storage_key"])
-        assert page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey()) !== null")
+        assert page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey()) !== null")
 
         page.get_by_role("button", name=re.compile(r"Versions \(\d+\)")).click()
         page.get_by_role("button", name="Clear local recovery data").click()
 
         assert page.evaluate("key => window.localStorage.getItem(key)", payload["draft_storage_key"]) is None
-        assert page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey())") is None
+        assert page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey())") is None
         assert page.evaluate("window.localStorage.getItem('unrelated.application.key')") == "keep"
         assert page.evaluate("calculatorState.rows[0].travel_element") == "Unsaved current value"
         assert page.evaluate("calculatorState.dirty") is True
@@ -100,7 +100,7 @@ def test_clear_local_recovery_data_removes_current_draft_and_versions_only() -> 
         assert page.evaluate("key => window.localStorage.getItem(key)", payload["draft_storage_key"]) is None
         page.wait_for_timeout(2800)
         assert page.evaluate("key => window.localStorage.getItem(key)", payload["draft_storage_key"]) is None
-        assert page.evaluate("window.localStorage.getItem(calculatorRecoveryStorageKey())") is None
+        assert page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey())") is None
 
         page.evaluate("calculatorState.rows[0].comments = 'new edit'; markLocalDraft(false); flushLocalDraftSave();")
         assert page.evaluate("key => window.localStorage.getItem(key) !== null", payload["draft_storage_key"])
@@ -116,13 +116,13 @@ def test_obsolete_calculator_namespaces_are_cleaned_without_touching_recent_or_u
             """() => {
               const oldBase = 'itineraryCalculatorBrowserDraft.v3.project:old';
               const recentBase = 'itineraryCalculatorBrowserDraft.v3.project:recent';
-              const oldSavedAt = Date.now() - CALCULATOR_DRAFT_MAX_AGE_MS - 1000;
+              const oldSavedAt = Date.now() - window.ItineraryCalculator.require('storage.core').draftMaxAgeMs - 1000;
               window.localStorage.setItem(oldBase, JSON.stringify({savedAt: oldSavedAt, rows: [{}]}));
               window.localStorage.setItem(`${oldBase}.versions`, JSON.stringify([{id: 'old', savedAt: oldSavedAt, rows: [{}]}]));
               window.localStorage.setItem(recentBase, JSON.stringify({savedAt: Date.now(), rows: [{}]}));
               window.localStorage.setItem(`${recentBase}.versions`, JSON.stringify([{id: 'recent', savedAt: Date.now(), rows: [{}]}]));
               window.localStorage.setItem('unrelated.application.key', 'keep');
-              cleanupObsoleteCalculatorRecoveryNamespaces();
+              window.ItineraryCalculator.require('storage.core').cleanupObsoleteNamespaces();
               return {
                 oldDraft: window.localStorage.getItem(oldBase),
                 oldVersions: window.localStorage.getItem(`${oldBase}.versions`),
@@ -153,17 +153,17 @@ def test_quota_prunes_inactive_project_versions_before_active_versions() -> None
               window.localStorage.setItem(`${inactiveBase}.versions`, JSON.stringify([{id: 'inactive', savedAt: Date.now() - 1000, rows: [{}]}]));
               const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
               window.localStorage.setItem = (key, value) => {
-                if (String(key) === getCalculatorDraftStorageKey() && window.localStorage.getItem(`${inactiveBase}.versions`) !== null) {
+                if (String(key) === window.ItineraryCalculator.storage.getDraftStorageKey() && window.localStorage.getItem(`${inactiveBase}.versions`) !== null) {
                   throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
                 }
                 originalSetItem(String(key), String(value));
               };
               calculatorState.rows[0].comments = 'active draft';
-              const saved = saveCalculatorDraft(calculatorState, activeBackendRevision);
+              const saved = window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
               return {
                 saved,
-                activeDraft: window.localStorage.getItem(getCalculatorDraftStorageKey()),
-                activeVersions: window.localStorage.getItem(calculatorRecoveryStorageKey()),
+                activeDraft: window.localStorage.getItem(window.ItineraryCalculator.storage.getDraftStorageKey()),
+                activeVersions: window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey()),
                 inactiveDraft: window.localStorage.getItem(inactiveBase),
                 inactiveVersions: window.localStorage.getItem(`${inactiveBase}.versions`),
                 status: calculatorState.recoveryStatus,
@@ -190,22 +190,22 @@ def test_quota_keeps_newest_active_versions_when_space_allows() -> None:
             """() => {
               for (let index = 1; index <= 3; index += 1) {
                 calculatorState.rows[0].travel_element = `Version ${index}`;
-                saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, `version-${index}`);
+                window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, `version-${index}`);
               }
-              const before = loadCalculatorRecoverySnapshots();
+              const before = window.ItineraryCalculator.storage.loadRecoverySnapshots();
               const newestId = before[0].id;
               const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
               window.localStorage.setItem = (key, value) => {
-                if (String(key) === getCalculatorDraftStorageKey()) {
-                  const stored = window.localStorage.getItem(calculatorRecoveryStorageKey());
-                  const count = stored ? decodeCalculatorRecoveryPayload(JSON.parse(stored)).length : 0;
+                if (String(key) === window.ItineraryCalculator.storage.getDraftStorageKey()) {
+                  const stored = window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey());
+                  const count = stored ? window.ItineraryCalculator.require('storage.recovery').decodePayload(JSON.parse(stored)).length : 0;
                   if (count > 1) throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
                 }
                 originalSetItem(String(key), String(value));
               };
               calculatorState.rows[0].comments = 'current draft';
-              const saved = saveCalculatorDraft(calculatorState, activeBackendRevision);
-              const after = loadCalculatorRecoverySnapshots();
+              const saved = window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
+              const after = window.ItineraryCalculator.storage.loadRecoverySnapshots();
               return {
                 saved,
                 beforeCount: before.length,
@@ -268,7 +268,7 @@ def test_project_namespace_switch_keeps_recovery_isolated_and_restorable() -> No
         page.wait_for_function("calculatorState.rows[0].travel_element === 'Unsaved Project A'")
 
         assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Unsaved Project A"
-        assert page.evaluate("getCalculatorDraftStorageKey()") == project_a["draft_storage_key"]
+        assert page.evaluate("window.ItineraryCalculator.storage.getDraftStorageKey()") == project_a["draft_storage_key"]
     finally:
         browser.close()
         manager.stop()

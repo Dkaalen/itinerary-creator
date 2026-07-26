@@ -17,42 +17,11 @@ sys.modules.setdefault("streamlit.components.v1", streamlit_stub.components.v1)
 
 import visual_editor_component.editor_workflow as editor_workflow
 from visual_editor_component.editor_workflow import apply_visual_editor_result
+from tests.support.frontend_assets import frontend_source
 
 
 def _visual_editor_frontend_source():
-    frontend = Path("visual_editor_component/frontend")
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
-    for relative in (
-        "styles/editor.css",
-        "styles/editor_pages.css",
-        "styles/editor_base.css",
-        "styles/editor_shell.css",
-        "styles/editor_debug.css",
-        "js/state.js",
-        "js/editor_save_state.js",
-        "js/editor_local_draft.js",
-        "js/images.js",
-        "js/editor_debug_shell.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-            "js/editor_text_tools.js",
-            "js/editor_document_model.js",
-            "js/editor_inspector_selection.js",
-            "js/editor_inspector_fields.js",
-            "js/editor_inspector_text_panel.js",
-            "js/editor_inspector_layout_panel.js",
-            "js/editor_inspector.js",
-            "js/editor_page_actions.js",
-            "js/editor_warnings.js",
-            "js/commands.js",
-            "js/editor_page_event_handlers.js",
-            "js/editor_image_event_handlers.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
 
 
 def test_visual_editor_v2_contract_is_inline_not_separate_form():

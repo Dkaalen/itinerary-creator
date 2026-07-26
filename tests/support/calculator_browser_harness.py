@@ -132,7 +132,7 @@ def install_storage_quota(page: Any, limit_bytes: int) -> None:
         """limitBytes => {
           const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
           const originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
-          const knownKeys = () => [getCalculatorDraftStorageKey(), calculatorRecoveryStorageKey()];
+          const knownKeys = () => [window.ItineraryCalculator.storage.getDraftStorageKey(), window.ItineraryCalculator.storage.recoveryStorageKey()];
           window.localStorage.setItem = (key, value) => {
             const candidateKey = String(key);
             const candidateValue = String(value);

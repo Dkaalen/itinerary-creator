@@ -55,40 +55,29 @@ def _all_assets_contain(expected: dict[str, list[str]]) -> list[str]:
 def test_visual_editor_index_is_thin_asset_shell():
     shell = _asset_shell()
     index_lines = (FRONTEND / "index.html").read_text(encoding="utf-8").splitlines()
-    required_scripts = {
-        "js/state.js",
-        "js/editor_assets.js",
-        "js/images.js",
-        "js/editor_image_tools.js",
-        "js/editor_readiness.js",
-        "js/editor_debug_shell.js",
-        "js/render.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-        "js/editor_text_tools.js",
-        "js/editor_document_model.js",
-        "js/editor_inspector_selection.js",
-        "js/editor_inspector_fields.js",
-        "js/editor_inspector_text_panel.js",
-        "js/editor_inspector_layout_panel.js",
-        "js/editor_inspector.js",
-        "js/editor_page_actions.js",
-        "js/editor_warnings.js",
-        "js/commands.js",
-        "js/editor_page_event_handlers.js",
-        "js/editor_image_event_handlers.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    }
 
     assert shell.stylesheets == ["styles/editor.css"]
-    assert set(shell.scripts) == required_scripts
-    assert shell.scripts.index("js/state.js") < shell.scripts.index("js/render.js")
-    assert shell.scripts.index("js/commands.js") < shell.scripts.index("js/editing.js")
-    assert shell.scripts.index("js/editing.js") < shell.scripts.index("js/streamlit_bridge.js")
+    assert shell.scripts == ["js/editor_namespace.js", "js/editor_bootstrap.js"]
     assert shell.inline_style_count == 0
     assert not _asset_contains("index.html", "function render(")
-    assert len(index_lines) <= 36
+    assert len(index_lines) <= 20
+
+
+def test_visual_editor_bootstrap_owns_explicit_initialization_order():
+    bootstrap = _asset_text("js/editor_bootstrap.js")
+
+    assert "EDITOR_SCRIPT_GROUPS" in bootstrap
+    assert "state_and_payload" in bootstrap
+    assert "document_and_page_model" in bootstrap
+    assert "rendering" in bootstrap
+    assert "editing_and_page_operations" in bootstrap
+    assert "messaging" in bootstrap
+    assert bootstrap.index("'js/state.js'") < bootstrap.index("'js/render.js'")
+    assert bootstrap.index("'js/render.js'") < bootstrap.index("'js/editing.js'")
+    assert bootstrap.index("'js/editing.js'") < bootstrap.index("'js/streamlit_bridge.js'")
+    assert "editor.require('autosave').initialize()" in bootstrap
+    assert "editor.require('bridge').initialize()" in bootstrap
+    assert "document.write" not in bootstrap
 
 
 def test_visual_editor_frontend_assets_are_split_by_responsibility():
@@ -133,7 +122,8 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "js/editor_inspector.js": ["function renderRightInspector", "function attachInspectorHandlers"],
         "js/editor_page_actions.js": ["function mergeInclusionPageUp", "function addManualPage"],
         "js/editor_warnings.js": ["function highlightWarnings", "function updateEditorStats"],
-        "js/commands.js": ["window.visualEditorCommands", "Public command facade"],
+        "js/editor_namespace.js": ["ItineraryVisualEditor", "function define(name, api)"],
+        "js/editor_bootstrap.js": ["EDITOR_SCRIPT_GROUPS", "initializeEditor"],
         "js/editor_page_event_handlers.js": ["function attachPageEventHandlers", "data-outline-page-id"],
         "js/editor_image_event_handlers.js": ["function attachImageEventHandlers", "data-img-action"],
         "js/editing.js": ["function saveChanges", "function attachHandlers"],

@@ -1,6 +1,6 @@
 /** Style preset lookup helpers. */
 function controlledPresetGroup(groupName) {
-  const registry = window.CONTROLLED_EDITOR_STYLE_REGISTRY || {};
+  const registry = CONTROLLED_EDITOR_STYLE_REGISTRY || {};
   const group = registry[groupName];
   return Array.isArray(group) ? group : [];
 }
@@ -14,7 +14,7 @@ function controlledPresetClassNames(groupName) {
 }
 
 function controlledEditorAllowedClasses() {
-  const registry = window.CONTROLLED_EDITOR_STYLE_REGISTRY || {};
+  const registry = CONTROLLED_EDITOR_STYLE_REGISTRY || {};
   const extra = Array.isArray(registry.extra_allowed_classes) ? registry.extra_allowed_classes : [];
   return [
     ...controlledPresetClassNames('text_styles'),

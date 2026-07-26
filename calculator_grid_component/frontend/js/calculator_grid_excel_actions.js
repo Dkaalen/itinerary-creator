@@ -4,7 +4,7 @@ function calculatorHasReplaceableWork() {
   if (!calculatorState) return false;
   if (calculatorState.dirty || positiveIntegerOrNull(calculatorState.numberOfPax)) return true;
   return (calculatorState.rows || []).some((row) => {
-    if (rowHasUserContent(row)) return true;
+    if (window.ItineraryCalculator.storage.rowHasUserContent(row)) return true;
     return [...FORMULA_OVERRIDE_KEYS].some((key) => {
       const value = row?.[key];
       return value !== null && value !== undefined && String(value).trim() !== '';
@@ -50,7 +50,7 @@ function submitExcelUpload(filename, contentBase64) {
   commitCellEdit();
   flushLocalDraftSave();
   flushRecoverySnapshot('before Excel import');
-  saveCalculatorDraft(calculatorState, activeBackendRevision);
+  window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   const requestId = beginCalculatorRequest('open_excel');
   if (!requestId) return;
   const sent = Streamlit.setComponentValue(JSON.stringify({
@@ -60,6 +60,7 @@ function submitExcelUpload(filename, contentBase64) {
     number_of_pax: calculatorState.numberOfPax ?? null,
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision,
+    project_identity: activeProjectIdentity,
     upload_filename: String(filename || 'calculation.xlsx'),
     upload_content_base64: String(contentBase64 || '')
   }));

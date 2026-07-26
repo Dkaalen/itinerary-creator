@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from tests.support.frontend_assets import frontend_source
 import sys
 import types
 
@@ -26,29 +27,7 @@ from ui.day_page_sections import render_day_section
 
 
 def _visual_editor_frontend_source() -> str:
-    frontend = Path("visual_editor_component/frontend")
-    parts = [(frontend / "index.html").read_text(encoding="utf-8")]
-    for relative in (
-        "styles/editor.css",
-        "js/state.js",
-        "js/images.js",
-        "js/render.js",
-        "js/editor_render_final_pages.js",
-        "js/serialization.js",
-        "js/editor_dirty_state.js",
-        "js/editor_text_tools.js",
-        "js/editor_paste_sanitizer.js",
-        "js/editor_document_model.js",
-        "js/editor_inspector.js",
-        "js/editor_page_actions.js",
-        "js/editor_page_event_handlers.js",
-        "js/editor_warnings.js",
-        "js/commands.js",
-        "js/editing.js",
-        "js/streamlit_bridge.js",
-    ):
-        parts.append((frontend / relative).read_text(encoding="utf-8"))
-    return "\n".join(parts)
+    return frontend_source()
 
 
 def test_pdf_export_commit_persists_full_visible_editor_model():

@@ -37,13 +37,13 @@ def test_removes_legacy_breadcrumb_markers_from_production_sources():
 
 def test_removes_empty_style_preset_shim_without_breaking_asset_loading():
     index_html = read_contract_text("visual_editor_component/frontend/index.html")
-    asset_loader = read_contract_text("visual_editor_component/frontend/js/editor_assets.js")
+    bootstrap = read_contract_text("visual_editor_component/frontend/js/editor_bootstrap.js")
 
     assert not (ROOT / "visual_editor_component/frontend/js/style_presets.js").exists()
     assert 'src="js/style_presets.js"' not in index_html
-    assert "style_preset_data.js" in asset_loader
-    assert "style_preset_lookup.js" in asset_loader
-    assert "editor_block_templates.js" in asset_loader
+    assert "style_preset_data.js" in bootstrap
+    assert "style_preset_lookup.js" in bootstrap
+    assert "editor_block_templates.js" in bootstrap
 
 
 def test_removes_empty_legacy_preview_hook():

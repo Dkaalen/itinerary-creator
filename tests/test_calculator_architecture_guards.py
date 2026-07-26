@@ -45,12 +45,14 @@ def test_calculator_architecture_document_names_state_boundaries() -> None:
 
 def test_local_calculator_file_reopen_uses_confirmation_boundary() -> None:
     page_source = (ROOT / "app_modules" / "calculator_page.py").read_text(encoding="utf-8")
+    page_actions_source = (ROOT / "app_modules" / "calculator_page_actions.py").read_text(encoding="utf-8")
     action_source = (ROOT / "app_modules" / "calculator_open_action.py").read_text(encoding="utf-8")
 
-    assert "request_calculator_upload_import(" in page_source
-    assert "current_state=result.state" in page_source
-    assert "current_state=state" in page_source
-    assert "Open file anyway" in page_source
+    assert "render_pending_calculator_import_confirmation" in page_source
+    assert "request_calculator_upload_import(" in page_actions_source
+    assert "current_state=result.state" in page_actions_source
+    assert "current_state=state" in page_actions_source
+    assert "Open file anyway" in page_actions_source
     assert "active_project_has_unsaved_changes" in action_source
     assert "CALCULATOR_PENDING_IMPORT_KEY" in action_source
 
@@ -130,27 +132,49 @@ def test_cross_workflow_state_keys_have_one_literal_authority() -> None:
     assert offenders == []
 
 
-def test_cross_workflow_transitions_are_named_and_ui_independent() -> None:
-    source = (ROOT / "app_modules" / "session_transitions.py").read_text(encoding="utf-8")
-    for function_name in (
-        "begin_local_calculator_import",
-        "complete_calculator_generation",
-        "fail_calculator_generation",
-        "complete_saved_project_open",
-        "return_to_calculator",
-        "prepare_project_switch",
-        "complete_project_duplicate",
-        "complete_project_delete",
-        "record_failed_save",
-    ):
-        assert f"def {function_name}(" in source
-    assert "import streamlit" not in source
+def test_cross_workflow_transitions_have_direct_ui_independent_owners() -> None:
+    owners = {
+        "workflow_navigation.py": (
+            "normalize_workflow_stage",
+            "route_to_calculator",
+            "route_to_local_library",
+            "route_to_workflow",
+            "session_stage_from_state",
+            "transition_workflow_stage",
+        ),
+        "calculator_lifecycle.py": (
+            "begin_local_calculator_import",
+            "complete_calculator_generation",
+            "fail_calculator_generation",
+        ),
+        "project_session_transitions.py": (
+            "capture_project_switch_baseline",
+            "complete_saved_project_open",
+            "prepare_project_switch",
+            "complete_project_duplicate",
+            "complete_project_delete",
+            "record_failed_save",
+            "restore_project_switch_baseline",
+        ),
+        "render_lifecycle.py": ("clear_pdf_artifacts", "mark_pdf_dirty"),
+        "image_projection_state.py": ("image_grouped_days_from_state",),
+    }
+    for filename, function_names in owners.items():
+        source = (ROOT / "app_modules" / filename).read_text(encoding="utf-8")
+        for function_name in function_names:
+            assert f"def {function_name}(" in source
+        assert "import streamlit" not in source
+    assert not (ROOT / "app_modules" / "session_transitions.py").exists()
 
 
 def test_session_state_ownership_document_names_transition_authorities() -> None:
     text = (ROOT / "docs" / "SESSION_STATE_OWNERSHIP.md").read_text(encoding="utf-8")
     assert "session_state_keys.py" in text
-    assert "session_transitions.py" in text
+    assert "workflow_navigation.py" in text
+    assert "calculator_lifecycle.py" in text
+    assert "project_session_transitions.py" in text
+    assert "render_lifecycle.py" in text
+    assert "image_projection_state.py" in text
     assert "Saved-project opening is transactional" in text
 
 
@@ -158,22 +182,24 @@ def test_browser_grid_is_the_only_production_autocomplete_authority() -> None:
     index_source = (ROOT / "calculator_grid_component" / "frontend" / "index.html").read_text(encoding="utf-8")
     payload_source = (ROOT / "app_modules" / "calculator_component_payload.py").read_text(encoding="utf-8")
     page_source = (ROOT / "app_modules" / "calculator_page.py").read_text(encoding="utf-8")
-    library_source = (FRONTEND / "calculator_grid_library.js").read_text(encoding="utf-8")
+    library_source = (FRONTEND / "calculator_grid_library_api.js").read_text(encoding="utf-8")
+    search_source = (FRONTEND / "calculator_grid_library_search.js").read_text(encoding="utf-8")
+    selection_source = (FRONTEND / "calculator_grid_library_selection.js").read_text(encoding="utf-8")
     suggestion_source = (FRONTEND / "calculator_grid_suggestions.js").read_text(encoding="utf-8")
 
-    library_script = '<script src="js/calculator_grid_library.js"></script>'
+    library_script = '<script src="js/calculator_grid_library_api.js"></script>'
     suggestion_script = '<script src="js/calculator_grid_suggestions.js"></script>'
     assert library_script in index_source
     assert suggestion_script in index_source
     assert index_source.index(library_script) < index_source.index(suggestion_script)
-    assert '"library_rows": _cached_library_rows' in payload_source
+    assert '"library_rows": () if rows_acknowledged else library_rows' in payload_source
     assert '"library_ranking_spec": local_library_ranking_spec_payload()' in payload_source
     assert "render_calculator_grid" in page_source
-    assert "function findLibrarySuggestions(" in library_source
-    assert "rankingSpec.search_fields" in library_source
+    assert "function findLibrarySuggestions(" in search_source
+    assert "rankingSpec.search_fields" in (FRONTEND / "calculator_grid_library_normalization.js").read_text(encoding="utf-8")
     assert "const fieldWeights =" not in library_source
     assert "sheet_exact: 1400" not in library_source
-    assert "function applyLibrarySuggestion(" in library_source
+    assert "function applyLibrarySuggestion(" in selection_source
     assert "function scheduleSuggestions(" in suggestion_source
     assert "function applySuggestion(" in suggestion_source
 

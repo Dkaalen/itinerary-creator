@@ -8,16 +8,20 @@ from itinerary_generation.activity_products import fingerprint_activity
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_activity_products_is_a_small_public_facade() -> None:
+def test_activity_products_uses_neutral_domain_owners() -> None:
     facade = ROOT / "itinerary_generation" / "activity_products.py"
     assert len(facade.read_text(encoding="utf-8").splitlines()) < 140
 
-    assert (ROOT / "itinerary_generation" / "activity_product_core.py").exists()
-    assert (ROOT / "itinerary_generation" / "activity_product_text.py").exists()
-    assert (ROOT / "itinerary_generation" / "activity_product_rules" / "norway.py").exists()
-    assert (ROOT / "itinerary_generation" / "activity_product_rules" / "nordic.py").exists()
-    assert (ROOT / "itinerary_generation" / "activity_product_rules" / "iceland.py").exists()
-    assert (ROOT / "itinerary_generation" / "activity_product_rules" / "scandinavia.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_core.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_text.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_rules" / "norway.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_rules" / "nordic.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_rules" / "iceland.py").exists()
+    assert (ROOT / "itinerary_domain" / "activity_product_rules" / "scandinavia.py").exists()
+
+    assert not (ROOT / "itinerary_generation" / "activity_product_core.py").exists()
+    assert not (ROOT / "itinerary_generation" / "activity_product_text.py").exists()
+    assert not (ROOT / "itinerary_generation" / "activity_product_rules").exists()
 
 
 def test_split_activity_product_matchers_preserve_public_api() -> None:

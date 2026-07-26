@@ -2,6 +2,7 @@ let calculatorState = null;
 let activeCell = null;
 let activeBackendRevision = null;
 let activeDraftStorageKey = null;
+let activeProjectIdentity = null;
 let hasLocalDraft = false;
 let localDraftSaveTimer = null;
 let recoverySnapshotTimer = null;
@@ -10,7 +11,8 @@ const RECOVERY_SNAPSHOT_DELAY_MS = 2500;
 
 function initializeState(payload) {
   setActiveFinancialRules(payload.financial_rules || DEFAULT_FINANCIAL_RULES);
-  const incomingDraftStorageKey = setCalculatorDraftStorageKey(payload.draft_storage_key);
+  const incomingDraftStorageKey = window.ItineraryCalculator.storage.setDraftStorageKey(payload.draft_storage_key);
+  const incomingProjectIdentity = String(payload.project_identity || "");
   const incomingRevision = String(payload.state_revision || '');
   const ackOutcome = consumeCalculatorComponentAck(payload.component_ack, incomingRevision);
   if (ackOutcome.matched && ackOutcome.canRebaseNewerEdits && calculatorState) {
@@ -18,24 +20,19 @@ function initializeState(payload) {
     hasLocalDraft = true;
     calculatorState.dirty = true;
     calculatorState.syncStatus = 'Unsaved changes';
-    saveCalculatorDraft(calculatorState, activeBackendRevision);
+    window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
     return;
   }
   if (shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey)) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
-    saveCalculatorDraft(calculatorState, activeBackendRevision);
+    window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
     return;
   }
 
   const incomingRows = cloneRows(payload.rows || []).slice(0, MAX_CALCULATOR_ROWS);
-  const libraryBundle = prepareLibraryBundle(
-    payload.library_rows || [],
-    payload.library_row_fields || [],
-    payload.library_fingerprint || '',
-    payload.library_ranking_spec || {}
-  );
-  const storedDraft = loadCalculatorDraft();
-  const useStoredDraft = shouldRestoreCalculatorDraft(storedDraft, incomingRows, incomingRevision);
+  const libraryBundle = window.ItineraryCalculator.library.prepareBundle(payload);
+  const storedDraft = window.ItineraryCalculator.storage.loadDraft();
+  const useStoredDraft = window.ItineraryCalculator.storage.shouldRestoreDraft(storedDraft, incomingRows, incomingRevision);
   const rows = calculateRows(useStoredDraft ? cloneRows(storedDraft.rows) : incomingRows, payload.currency_rates || DEFAULT_RATES);
   calculatorState = {
     rows: rows.length ? rows : addRows([], 25),
@@ -56,10 +53,10 @@ function initializeState(payload) {
     columnWidths: useStoredDraft ? {...(storedDraft.columnWidths || {})} : {},
     showFindReplace: false,
     showVersionHistory: false,
-    recoverySnapshots: loadCalculatorRecoverySnapshots(),
-    recoveryStatus: calculatorStorageStatusPayload(),
-    recoveryWarning: calculatorStorageWarningMessage(),
-    recoveryStorageBytes: calculatorRecoveryStorageUsage().totalBytes,
+    recoverySnapshots: window.ItineraryCalculator.storage.loadRecoverySnapshots(),
+    recoveryStatus: window.ItineraryCalculator.storage.statusPayload(),
+    recoveryWarning: window.ItineraryCalculator.storage.warningMessage(),
+    recoveryStorageBytes: window.ItineraryCalculator.storage.storageUsage().totalBytes,
     findQuery: '',
     replaceQuery: '',
     findMatchCursor: -1,
@@ -69,10 +66,11 @@ function initializeState(payload) {
   activeCell = useStoredDraft && storedDraft.activeCell ? {...storedDraft.activeCell} : null;
   activeBackendRevision = incomingRevision;
   activeDraftStorageKey = incomingDraftStorageKey;
+  activeProjectIdentity = incomingProjectIdentity;
   hasLocalDraft = Boolean(useStoredDraft);
   validateCalculatorState(calculatorState);
-  calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft ? 'draft restored' : 'loaded');
-  if (useStoredDraft) saveCalculatorDraft(calculatorState, activeBackendRevision);
+  calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft ? 'draft restored' : 'loaded');
+  if (useStoredDraft) window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   if (ackOutcome.matched && !ackOutcome.accepted) {
     calculatorState.syncStatus = ackOutcome.message || 'Older Calculator action was not applied';
   }
@@ -91,12 +89,10 @@ function shouldKeepBrowserDraft(incomingRevision, incomingDraftStorageKey) {
 
 function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   setActiveFinancialRules(payload.financial_rules || activeFinancialRules || DEFAULT_FINANCIAL_RULES);
-  const libraryBundle = prepareLibraryBundle(
-    payload.library_rows || [],
-    payload.library_row_fields || [],
-    payload.library_fingerprint || '',
-    payload.library_ranking_spec || calculatorState.libraryRankingSpec || {}
-  );
+  const libraryBundle = window.ItineraryCalculator.library.prepareBundle({
+    ...payload,
+    library_ranking_spec: payload.library_ranking_spec || calculatorState.libraryRankingSpec || {},
+  });
   calculatorState.libraryRows = libraryBundle.rows;
   calculatorState.libraryIndex = libraryBundle.index;
   calculatorState.libraryRankingSpec = payload.library_ranking_spec || calculatorState.libraryRankingSpec || {};
@@ -107,14 +103,15 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   calculatorState.pendingDownload = null;
   calculatorState.numberOfPax = calculatorState.numberOfPax ?? payload.number_of_pax ?? null;
   activeBackendRevision = incomingRevision;
-  activeDraftStorageKey = getCalculatorDraftStorageKey();
+  activeDraftStorageKey = window.ItineraryCalculator.storage.getDraftStorageKey();
+  activeProjectIdentity = String(payload.project_identity || activeProjectIdentity || "");
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   validateCalculatorState(calculatorState);
 }
 
 function markLocalDraft(captureVersion = true, runValidation = true) {
   noteCalculatorLocalEdit();
-  calculatorLocalRecoveryPaused = false;
+  window.ItineraryCalculator.storage.resumeLocalRecovery();
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.pendingDownload = null;
@@ -130,21 +127,21 @@ function scheduleLocalDraftSave(delay = LOCAL_DRAFT_SAVE_DELAY_MS) {
   window.clearTimeout(localDraftSaveTimer);
   localDraftSaveTimer = window.setTimeout(() => {
     localDraftSaveTimer = null;
-    saveCalculatorDraft(calculatorState, activeBackendRevision);
+    window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   }, delay);
 }
 
 function flushLocalDraftSave() {
   window.clearTimeout(localDraftSaveTimer);
   localDraftSaveTimer = null;
-  saveCalculatorDraft(calculatorState, activeBackendRevision);
+  window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
 }
 
 function scheduleRecoverySnapshot(reason = 'edit', delay = RECOVERY_SNAPSHOT_DELAY_MS) {
   window.clearTimeout(recoverySnapshotTimer);
   recoverySnapshotTimer = window.setTimeout(() => {
     recoverySnapshotTimer = null;
-    calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, reason);
+    calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, reason);
     refreshVersionHistoryCount();
   }, delay);
 }
@@ -152,6 +149,6 @@ function scheduleRecoverySnapshot(reason = 'edit', delay = RECOVERY_SNAPSHOT_DEL
 function flushRecoverySnapshot(reason = 'edit') {
   window.clearTimeout(recoverySnapshotTimer);
   recoverySnapshotTimer = null;
-  calculatorState.recoverySnapshots = saveCalculatorRecoverySnapshot(calculatorState, activeBackendRevision, reason);
+  calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, reason);
   refreshVersionHistoryCount();
 }

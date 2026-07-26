@@ -26,7 +26,8 @@ from app_modules.export_job_state import (
 )
 from app_modules.export_state import ExportReadiness, export_readiness_from_state
 from app_modules.export_readiness_ui import export_readiness_panel_html
-from app_modules.workflow_state import image_grouped_days_from_state, session_state_snapshot
+from app_modules.image_projection_state import image_grouped_days_from_state
+from app_modules.workflow_state import session_state_snapshot
 from images.app_image_selection import destination_requests_from_rows, image_bank_status
 from app_modules.image_bank_status_cache import get_cached_image_bank_status
 

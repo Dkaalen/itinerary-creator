@@ -12,7 +12,7 @@ function submitAction(action) {
     refreshValidationAndStatus(false);
     return;
   }
-  saveCalculatorDraft(calculatorState, activeBackendRevision);
+  window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   const requestId = beginCalculatorRequest(action);
   if (!requestId) return;
   const rows = normalizeRowsForPython(calculatorState.rows);
@@ -25,6 +25,7 @@ function submitAction(action) {
     number_of_pax: calculatorState.numberOfPax ?? null,
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision,
+    project_identity: activeProjectIdentity,
     client_has_validation_errors: clientHasValidationErrors
   }));
   if (!sent) {

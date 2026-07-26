@@ -154,9 +154,24 @@ function attachHandlers() {
 
   attachImageEventHandlers();
 }
-window.addEventListener('beforeunload', () => {
+let editorLifecycleInitialized = false;
+
+function persistPendingEditorDraftBeforeUnload() {
   if (touchedKeys.size) {
     collect();
     persistLocalDraft({fullSnapshot: true});
   }
+}
+
+function initializeEditorLifecycle() {
+  if (editorLifecycleInitialized) return;
+  editorLifecycleInitialized = true;
+  window.addEventListener('beforeunload', persistPendingEditorDraftBeforeUnload);
+}
+
+ItineraryVisualEditor.define('autosave', {
+  initialize: initializeEditorLifecycle,
+  saveChanges,
+  sendNow: sendServerAutosaveNow,
+  schedule: scheduleServerAutosave,
 });

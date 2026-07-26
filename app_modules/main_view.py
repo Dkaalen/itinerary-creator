@@ -3,7 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app_modules.calculator_navigation import calculator_page_is_active, local_library_page_is_active
-from app_modules.workflow_state import session_stage_from_state
+from app_modules.workflow_navigation import session_stage_from_state
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 
 

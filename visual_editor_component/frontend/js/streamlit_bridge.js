@@ -42,8 +42,6 @@ function disposeStreamlitBridge() {
   pendingStreamlitFrameHeight = null;
 }
 
-window.addEventListener('pagehide', disposeStreamlitBridge, {once: true});
-window.addEventListener('beforeunload', disposeStreamlitBridge, {once: true});
 
 function syncEditorFrameHeight() {
   if (!streamlitBridgeRenderReceived) return;
@@ -67,13 +65,32 @@ function safeRender(payload, commitNonce = null) {
     showEditorError(err);
   }
 }
-window.addEventListener('message', (event) => {
+let streamlitBridgeInitialized = false;
+
+function handleStreamlitRenderMessage(event) {
   if (event.data && event.data.type === 'streamlit:render') {
     markStreamlitRenderReceived();
     const args = event.data.args || {};
     safeRender(args.payload, args.commit_nonce);
   }
-});
-Streamlit.setComponentReady();
+}
 
-window.addEventListener('resize', () => requestAnimationFrame(syncEditorFrameHeight));
+function handleEditorResize() {
+  requestAnimationFrame(syncEditorFrameHeight);
+}
+
+function initializeStreamlitBridge() {
+  if (streamlitBridgeInitialized) return;
+  streamlitBridgeInitialized = true;
+  window.addEventListener('message', handleStreamlitRenderMessage);
+  window.addEventListener('resize', handleEditorResize);
+  window.addEventListener('pagehide', disposeStreamlitBridge, {once: true});
+  window.addEventListener('beforeunload', disposeStreamlitBridge, {once: true});
+  Streamlit.setComponentReady();
+}
+
+ItineraryVisualEditor.define('bridge', {
+  initialize: initializeStreamlitBridge,
+  setFrameHeight: syncEditorFrameHeight,
+  setComponentValue: Streamlit.setComponentValue,
+});

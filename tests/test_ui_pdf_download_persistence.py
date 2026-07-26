@@ -30,12 +30,12 @@ def test_pdf_download_button_is_sticky_when_ready():
 def test_dirty_state_clears_durable_pdf_artifact():
     output_edits = read_contract_text("ui/output_edits.py")
     preview_rebuild = read_contract_text("app_modules/preview_rebuild.py")
-    workflow_state = read_contract_text("app_modules/workflow_state.py")
+    render_lifecycle = read_contract_text("app_modules/render_lifecycle.py")
 
     assert "st.session_state.export_pdf_bytes = None" in output_edits
     assert "st.session_state.export_pdf_signature = None" in output_edits
-    assert "from app_modules.pdf_artifact_state import clear_pdf_artifact_state" in workflow_state
-    assert "clear_pdf_artifact_state(state, status=status)" in workflow_state
+    assert "from app_modules.pdf_artifact_state import clear_pdf_artifact_state" in render_lifecycle
+    assert "clear_pdf_artifact_state(state, status=status)" in render_lifecycle
     assert "mark_pdf_dirty_state(state" in preview_rebuild
 
 

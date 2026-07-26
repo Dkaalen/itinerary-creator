@@ -13,7 +13,8 @@ from app_modules.project_file_download_cache import clear_project_file_download_
 from app_modules.saved_project_generation import create_generated_baseline_project_if_named
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
-from app_modules.workflow_state import clear_pdf_artifacts, set_workflow_stage
+from app_modules.render_lifecycle import clear_pdf_artifacts
+from app_modules.workflow_navigation import transition_workflow_stage
 from app_modules.workflow_transients import clear_project_boundary_transients
 from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
@@ -74,7 +75,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
     if validation_report.is_blocked:
         return WorkflowActionResult(
             ok=False,
-            stage=set_workflow_stage(state, "input"),
+            stage=transition_workflow_stage(state, "input"),
             message="Generation blocked by validation issues.",
             payload={"validation_report": validation_report},
         )
@@ -96,7 +97,7 @@ def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> Workfl
         state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
     if create_generated_baseline_project_if_named(state):
         save_generated_project_snapshot(state)
-    stage = set_workflow_stage(state, "edit")
+    stage = transition_workflow_stage(state, "edit")
 
     return WorkflowActionResult(
         ok=True,

@@ -50,6 +50,7 @@ def _page_action_snapshot() -> dict:
           draw: () => {},
           markTouched: (key) => context.touched.push(key),
         };
+        context.ItineraryVisualEditor = {define: () => {}};
         vm.createContext(context);
         [
           'visual_editor_component/frontend/js/editor_html_utils.js',

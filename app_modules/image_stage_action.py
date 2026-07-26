@@ -8,7 +8,9 @@ from app_modules.saved_project_current_state import refresh_active_saved_project
 from app_modules.image_gateway import connect_image_bank_for_picture_stage
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.performance_telemetry import measure_timing
-from app_modules.workflow_state import clear_pdf_artifacts, image_grouped_days_from_state, mark_pdf_dirty, set_workflow_stage
+from app_modules.image_projection_state import image_grouped_days_from_state
+from app_modules.render_lifecycle import clear_pdf_artifacts, mark_pdf_dirty
+from app_modules.workflow_navigation import transition_workflow_stage
 from app_modules.session_state_keys import APP_STAGE_KEY, OUTPUT_EDITS_KEY
 from images.day_image_selection import normalize_day_image_matches
 from images.image_workflow_review import build_image_workflow_review
@@ -64,7 +66,7 @@ def enter_picture_stage(
     mark_pdf_dirty(state, status="Needs refresh")
     rebuild_preview_func(mark_pdf_dirty=True, force=True, save_html=True)
     refresh_active_saved_project_current_snapshot(state)
-    stage = set_workflow_stage(state, "pictures")
+    stage = transition_workflow_stage(state, "pictures")
     message = "Pictures added." if not unmatched_days else f"Pictures added. {len(unmatched_days)} day(s) still need image review."
     return WorkflowActionResult(ok=True, stage=stage, message=message, payload={"matches": matches, "unmatched_days": unmatched_days})
 
@@ -93,7 +95,7 @@ def _connect_gateway(
 
 
 def _blocked_for_unapplied_editor_changes(state: MutableMapping[str, Any]) -> WorkflowActionResult:
-    stage = set_workflow_stage(state, "edit")
+    stage = transition_workflow_stage(state, "edit")
     return WorkflowActionResult(
         ok=False,
         stage=stage,
@@ -110,7 +112,7 @@ def _image_bank_missing_result(
     set_pictures_added(output_edits, False)
     state["image_review_warning_count"] = 0
     clear_pdf_artifacts(state, status="Image bank missing")
-    stage = set_workflow_stage(state, "edit")
+    stage = transition_workflow_stage(state, "edit")
     return WorkflowActionResult(
         ok=False,
         stage=stage,
@@ -155,7 +157,7 @@ def _no_matched_images_result(
     state["image_workflow_review"] = image_review.as_dict()
     state["image_review_warning_count"] = max(1, len(unmatched_days))
     clear_pdf_artifacts(state, status="No destination pictures matched")
-    stage = set_workflow_stage(state, "edit")
+    stage = transition_workflow_stage(state, "edit")
     return WorkflowActionResult(
         ok=False,
         stage=stage,

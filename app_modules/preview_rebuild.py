@@ -6,7 +6,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from app_modules.itinerary_render_artifact import build_and_persist_itinerary_render_artifact
-from app_modules.workflow_state import mark_pdf_dirty as mark_pdf_dirty_state
+from app_modules.render_lifecycle import mark_pdf_dirty as mark_pdf_dirty_state
 from ui.export_files import save_html_file
 from ui.render_cache import make_render_signature
 
