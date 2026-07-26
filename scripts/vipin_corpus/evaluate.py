@@ -24,7 +24,7 @@ def evaluate_excel_corpus(
     progress: bool = False,
     chunk_size: int = 5,
 ) -> dict[str, Any]:
-    """Parse and generate editable titles for every extracted corpus row."""
+    """Parse, normalize, and inspect editable titles for extracted corpus rows."""
 
     item_list = list(items)
     bad_outputs: list[BadOutput] = []

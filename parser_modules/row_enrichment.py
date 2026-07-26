@@ -4,7 +4,6 @@ from parser_modules.commercial_status import REASON_OPTIONAL_TEXT_PREFIX, mark_o
 from parser_modules.row_enrichment_steps import (
     apply_city_and_quality,
     apply_common_detail_fields,
-    apply_effective_type_and_routes,
     apply_hotel_fields,
     finalize_row_quality_and_status,
     prepare_main_text,
@@ -39,5 +38,4 @@ def enrich_parsed_row(
         end_date=end_date,
         night_count_hint=night_count_hint,
     )
-    apply_effective_type_and_routes(row)
     return finalize_row_quality_and_status(row, item_type=item_type)

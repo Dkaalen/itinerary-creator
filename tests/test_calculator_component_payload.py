@@ -23,6 +23,7 @@ def _expand_compact_row(payload: dict, index: int = 0) -> dict:
     }
     return {
         "library_id": compact["i"],
+        "source_workbook": compact.get("b", ""),
         "source_sheet": compact["w"],
         "source_row": compact["x"],
         "country": compact["c"],
@@ -70,8 +71,8 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
     assert payload["library_status"] == "Local Excel Library (1 fetchable lines)."
     assert payload["library_source"] == "local_excel"
     assert payload["library_read_only"] is True
-    assert payload["library_payload_version"] == "compact-v2"
-    assert payload["library_fingerprint"] == f"compact-v2:{LOCAL_LIBRARY_RANKING_VERSION}:fixture-1"
+    assert payload["library_payload_version"] == "compact-v3"
+    assert payload["library_fingerprint"] == f"compact-v3:{LOCAL_LIBRARY_RANKING_VERSION}:fixture-1"
     assert payload["library_ranking_spec"] == LOCAL_LIBRARY_RANKING_SPEC
     assert payload["financial_rules"] == financial_rules_payload()
     assert payload["financial_rules"]["version"] == FINANCIAL_RULES_VERSION

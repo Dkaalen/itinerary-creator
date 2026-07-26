@@ -4,13 +4,30 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.detail_extractors import _looks_like_cruise_experience_text
-from parser_modules.effective_type_rules import (
+from itinerary_domain.row_type_rules import (
     has_numbered_bus_or_coach,
+    looks_like_cruise_experience_text,
     looks_like_local_transfer,
     looks_like_long_distance_coach_or_bus,
     looks_like_pure_transport_activity,
 )
+
+
+_SOURCE_OWNED_TYPES = frozenset(
+    {
+        "Activity Upgrade",
+        "Extra Hotel Night",
+        "Group Tour",
+        "Single Supplement Fee",
+        "Transfer Package",
+    }
+)
+
+
+def preserve_source_owned_type(normalized_item_type: str) -> str | None:
+    """Keep explicit commercial/package types outside generic classification."""
+
+    return normalized_item_type if normalized_item_type in _SOURCE_OWNED_TYPES else None
 
 
 def preserve_explicit_overview(normalized_item_type: str) -> str | None:
@@ -40,7 +57,7 @@ def activity_logistics_override(normalized_item_type: str, combined: str) -> str
         return "Activity"
     if "tallinn" in combined and any(marker in combined for marker in ("excursion", "guided tour", "self guided", "old town")):
         return "Activity"
-    if _looks_like_cruise_experience_text(combined):
+    if looks_like_cruise_experience_text(combined):
         return "Activity"
     if looks_like_pure_transport_activity(combined):
         return "Transport"
@@ -133,6 +150,7 @@ __all__ = [
     "direct_mode_override",
     "fallback_transport_override",
     "preserve_explicit_overview",
+    "preserve_source_owned_type",
     "product_name_override",
     "route_mode_override",
     "transfer_logistics_override",

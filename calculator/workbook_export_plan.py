@@ -93,6 +93,19 @@ class ExportCell:
     kind: CellValueKind
 
 
+
+
+@dataclass(frozen=True)
+class ExportSourceProvenance:
+    """Internal Local Library lineage attached to one exported Calculator row."""
+
+    calculator_row_id: str
+    library_id: str
+    source_workbook: str
+    source_sheet: str
+    source_row: int
+    source_url: str = ""
+
 @dataclass(frozen=True)
 class WorkbookExportPlan:
     """Complete renderer-independent workbook mutation plan."""
@@ -100,6 +113,7 @@ class WorkbookExportPlan:
     currency_cells: tuple[ExportCell, ...]
     calculator_cells: tuple[ExportCell, ...]
     calculation_properties: tuple[tuple[str, object], ...]
+    source_provenance: tuple[ExportSourceProvenance, ...]
     visible_data_end_row: int
     fingerprint: str
 
@@ -138,15 +152,37 @@ def build_workbook_export_plan(
     currency_cells = _currency_cells(rates, rows)
     calculator_cells = _calculator_cells(rows, rates)
     properties = CALCULATION_PROPERTIES
+    source_provenance = _source_provenance(rows)
     visible_data_end_row = _visible_data_end_row(len(rows))
-    fingerprint = _plan_fingerprint(currency_cells, calculator_cells, properties, visible_data_end_row)
+    fingerprint = _plan_fingerprint(
+        currency_cells, calculator_cells, properties, source_provenance, visible_data_end_row
+    )
     return WorkbookExportPlan(
         currency_cells=currency_cells,
         calculator_cells=calculator_cells,
         calculation_properties=properties,
+        source_provenance=source_provenance,
         visible_data_end_row=visible_data_end_row,
         fingerprint=fingerprint,
     )
+
+
+def _source_provenance(rows: tuple[CalculatorRow, ...]) -> tuple[ExportSourceProvenance, ...]:
+    result: list[ExportSourceProvenance] = []
+    for row in rows:
+        if not (row.library_id and row.source_sheet and row.source_row is not None):
+            continue
+        result.append(
+            ExportSourceProvenance(
+                calculator_row_id=str(row.row_id or ""),
+                library_id=str(row.library_id),
+                source_workbook=str(row.source_workbook or ""),
+                source_sheet=str(row.source_sheet),
+                source_row=int(row.source_row),
+                source_url=str(row.url or ""),
+            )
+        )
+    return tuple(result)
 
 
 def _currency_cells(
@@ -342,6 +378,7 @@ def _plan_fingerprint(
     currency_cells: tuple[ExportCell, ...],
     calculator_cells: tuple[ExportCell, ...],
     properties: tuple[tuple[str, object], ...],
+    source_provenance: tuple[ExportSourceProvenance, ...],
     visible_data_end_row: int,
 ) -> str:
     digest = hashlib.sha256()
@@ -351,6 +388,9 @@ def _plan_fingerprint(
         digest.update(cell.kind.encode("ascii"))
         digest.update(b"\0")
         digest.update(repr(cell.value).encode("utf-8"))
+        digest.update(b"\0")
+    for item in source_provenance:
+        digest.update(repr(item).encode("utf-8"))
         digest.update(b"\0")
     digest.update(f"visible_data_end_row={visible_data_end_row}".encode("ascii"))
     digest.update(b"\0")

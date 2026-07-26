@@ -5,11 +5,14 @@ from tests.support.static_contracts import read_contract_text
 
 REQUIRED_TOP_LEVEL_FACADES = {
     "generator": "itinerary_generation",
-    "itinerary_parser": "parser_modules",
-    "normalizer": "normalizer_modules",
     "text_polish": "text_polish_modules",
     "image_matcher": "images",
     "pdf_exporter": "pdf_exporter_modules",
+}
+
+SUPPORTED_TOP_LEVEL_APIS = {
+    "itinerary_parser": "parser_modules",
+    "normalizer": "normalizer_modules",
 }
 
 REQUIRED_UI_FACADES = {
@@ -37,6 +40,14 @@ def test_required_top_level_facades_remain_importable_and_documented():
         assert importlib.import_module(owner_package)
 
 
+def test_supported_top_level_apis_are_importable_and_documented_as_supported():
+    for public_api, owner_package in SUPPORTED_TOP_LEVEL_APIS.items():
+        module = importlib.import_module(public_api)
+        assert module.__doc__
+        assert "Supported public API" in module.__doc__
+        assert importlib.import_module(owner_package)
+
+
 def test_required_ui_facades_remain_importable_and_documented():
     for facade, owner_module in REQUIRED_UI_FACADES.items():
         module = importlib.import_module(facade)
@@ -56,7 +67,7 @@ def test_required_generation_facades_remain_importable_and_documented():
 def test_facade_audit_notes_are_kept_with_architecture_docs():
     notes = read_contract_text("docs/compatibility-facades.md")
 
-    for facade in REQUIRED_TOP_LEVEL_FACADES:
+    for facade in (*REQUIRED_TOP_LEVEL_FACADES, *SUPPORTED_TOP_LEVEL_APIS):
         assert f"`{facade}.py`" in notes
 
     assert "Do not delete them just because they look thin" in notes

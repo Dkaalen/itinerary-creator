@@ -66,7 +66,7 @@ def test_calculator_state_backup_round_trip_preserves_dashboard_pax() -> None:
     restored = calculator_state_from_json(calculator_state_to_json(state))
 
     assert restored.number_of_pax == 17
-    assert json.loads(calculator_state_to_json(state))["schema_version"] == 2
+    assert json.loads(calculator_state_to_json(state))["schema_version"] == 3
 
 
 def test_v1_calculator_backup_migrates_without_pax() -> None:

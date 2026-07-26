@@ -146,7 +146,7 @@ def test_saved_project_round_trip_preserves_current_calculator_snapshot() -> Non
     restored = saved_project_from_dict(json.loads(payload_json))
     snapshot = restored.calculator_snapshot
 
-    assert snapshot.schema_version == 2
+    assert snapshot.schema_version == 3
     assert snapshot.number_of_pax == 21
     assert snapshot.rows[0]["travel_element"] == "Oslo hotel"
     assert snapshot.currency_rates["EUR"] == 12.5

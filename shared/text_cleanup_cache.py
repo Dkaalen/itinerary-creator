@@ -7,7 +7,7 @@ operational diagnostics.
 
 from __future__ import annotations
 
-from parser_modules.text_cleanup import _fix_common_text_cached
+from shared.source_text_cleanup import _fix_common_text_cached
 from place_alias_queries import _normalize_place_text_cached
 from text_polish_modules.text_cleanup import _polish_text_fragment
 

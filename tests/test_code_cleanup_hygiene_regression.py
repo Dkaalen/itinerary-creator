@@ -216,13 +216,11 @@ def test_first_party_code_no_longer_imports_transport_compatibility_facades():
         "itinerary_generation.transport_routes",
         "itinerary_generation.transport_titles",
         "itinerary_generation.inclusion_transport",
-        "parser_modules.transport_titles",
     }
     allowed_files = {
         Path("itinerary_generation/transport_routes.py"),
         Path("itinerary_generation/transport_titles.py"),
         Path("itinerary_generation/inclusion_transport.py"),
-        Path("parser_modules/transport_titles.py"),
         Path("tests/test_transport_domain_regression.py"),
         Path("tests/test_code_cleanup_hygiene_regression.py"),
         Path("tests/test_finland_transport_regressions.py"),

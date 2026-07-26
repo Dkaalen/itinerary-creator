@@ -1,15 +1,11 @@
-"""Compatibility exports for parser detail helpers.
+"""Internal parser detail-helper namespace.
 
-The implementation lives in smaller modules grouped by responsibility. Keep
-these imports so existing callers can continue importing from parser_modules.details.
+Raw parsing composes focused extraction helpers here.  Semantic classification
+and client-facing source-row standardization belong to downstream domain and
+normalizer owners.
 """
 
-from parser_modules.row_text_standardization import (  # noqa: F401
-    _fix_common_text_for_context,
-    standardize_row_text,
-)
 from parser_modules.detail_extractors import (  # noqa: F401
-    _looks_like_cruise_experience_text,
     extract_between_markers,
     extract_detail,
 )
@@ -22,4 +18,3 @@ from parser_modules.title_cleanup import (  # noqa: F401
     clean_title,
 )
 from parser_modules.list_parsing import split_comma_list  # noqa: F401
-from parser_modules.effective_type_detection import detect_effective_type  # noqa: F401

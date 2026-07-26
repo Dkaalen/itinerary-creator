@@ -10,7 +10,7 @@ import re
 
 from parser_modules.common import clean_space
 from parser_modules.details import extract_detail
-from parser_modules.time_parsing import (
+from shared.source_time import (
     find_clock_range,
     find_parallel_clock_ranges,
     find_single_clock_time,

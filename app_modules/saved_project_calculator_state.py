@@ -78,7 +78,7 @@ def calculator_snapshot_has_rows(payload: Mapping[str, Any] | None) -> bool:
 
 
 def _row_has_user_content(row: Mapping[str, Any]) -> bool:
-    ignored = {"row_id", "supplier_currency", "sales_currency"}
+    ignored = {"row_id", "library_id", "source_workbook", "source_sheet", "source_row", "supplier_currency", "sales_currency"}
     for key, value in row.items():
         if key in ignored or str(key).endswith("_override"):
             continue

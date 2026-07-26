@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-import parser_modules.text_cleanup as parser_cleanup
+import shared.source_text_cleanup as parser_cleanup
 import place_alias_queries
 import text_polish_modules.text_cleanup as polish_cleanup
 from shared.text_cleanup_cache import clear_text_cleanup_caches, text_cleanup_cache_snapshot

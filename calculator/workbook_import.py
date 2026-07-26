@@ -264,7 +264,7 @@ def _normalized_row_id(value: object, fallback: int) -> str:
 
 
 def _row_has_imported_content(row: CalculatorRow) -> bool:
-    ignored = {"row_id", "supplier_currency", "sales_currency"}
+    ignored = {"row_id", "library_id", "source_workbook", "source_sheet", "source_row", "supplier_currency", "sales_currency"}
     for field_name, value in row.__dict__.items():
         if field_name in ignored or field_name.endswith("_override"):
             continue

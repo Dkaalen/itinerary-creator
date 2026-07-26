@@ -6,7 +6,7 @@ The text cleanup hot path precompiles static replacement expressions and caches
 only deterministic string-to-string functions:
 
 - `text_polish_modules.text_cleanup._polish_text_fragment`
-- `parser_modules.text_cleanup._fix_common_text_cached`
+- `shared.source_text_cleanup._fix_common_text_cached`
 - `place_alias_queries._normalize_place_text_cached`
 
 Public wrappers remain permissive for non-string legacy inputs. Diagnostic

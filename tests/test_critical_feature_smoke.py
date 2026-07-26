@@ -104,27 +104,26 @@ def test_main_view_dispatches_to_every_critical_surface(monkeypatch) -> None:
     calls: list[str] = []
 
     monkeypatch.setattr(main_view, "render_debug_tools", lambda: calls.append("debug"))
-    monkeypatch.setattr(main_view, "render_calculator_page", lambda version: calls.append(f"calculator:{version}"))
-    monkeypatch.setattr(main_view, "render_local_library_page", lambda version: calls.append(f"library:{version}"))
-    monkeypatch.setattr(main_view, "render_input_page", lambda version: calls.append(f"input:{version}"))
-    monkeypatch.setattr(main_view, "render_edit_page", lambda version: calls.append(f"edit:{version}"))
-    monkeypatch.setattr(main_view, "render_picture_page", lambda version: calls.append(f"pictures:{version}"))
-    monkeypatch.setattr(main_view, "render_export_page", lambda version: calls.append(f"export:{version}"))
+
+    def load_renderer(route):
+        calls.append(f"load:{route.route_id}")
+        return lambda version: calls.append(f"render:{route.route_id}:{version}")
+
+    monkeypatch.setattr(main_view, "_load_route_renderer", load_renderer)
 
     cases = (
-        ({"active_app_page": CALCULATOR_PAGE}, "calculator:v"),
-        ({"active_app_page": LOCAL_LIBRARY_PAGE}, "library:v"),
-        ({"app_stage": "input", "parsed_rows": []}, "input:v"),
-        ({"app_stage": "edit", "parsed_rows": [{"day": "Day 1"}], "output_edits": {}}, "edit:v"),
-        ({"app_stage": "pictures", "parsed_rows": [{"day": "Day 1"}], "output_edits": {"pictures_added": True}}, "pictures:v"),
-        ({"app_stage": "export", "parsed_rows": [{"day": "Day 1"}], "output_edits": {"pictures_added": True}}, "export:v"),
+        ({"active_app_page": CALCULATOR_PAGE}, "calculator"),
+        ({"active_app_page": LOCAL_LIBRARY_PAGE}, "local_library"),
+        ({"app_stage": "input", "parsed_rows": []}, "workflow:input"),
+        ({"app_stage": "edit", "parsed_rows": [{"day": "Day 1"}], "output_edits": {}}, "workflow:edit"),
+        ({"app_stage": "pictures", "parsed_rows": [{"day": "Day 1"}], "output_edits": {"pictures_added": True}}, "workflow:pictures"),
+        ({"app_stage": "export", "parsed_rows": [{"day": "Day 1"}], "output_edits": {"pictures_added": True}}, "workflow:export"),
     )
 
-    for state_patch, expected in cases:
+    for state_patch, route_id in cases:
         calls.clear()
         main_view.render_app("v", state=dict(state_patch))
-        assert expected in calls
-        assert "debug" in calls
+        assert calls == [f"load:{route_id}", f"render:{route_id}:v", "debug"]
 
 
 def test_frontend_assets_required_by_critical_components_exist() -> None:

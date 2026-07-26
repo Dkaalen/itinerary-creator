@@ -7,6 +7,10 @@ function cloneRows(rows) {
 function createBlankRow(rowId) {
   const row = {
     row_id: String(rowId),
+    library_id: '',
+    source_workbook: '',
+    source_sheet: '',
+    source_row: null,
     day: '',
     type: '',
     from_date: '',

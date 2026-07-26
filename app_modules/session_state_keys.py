@@ -1,19 +1,23 @@
 """Canonical cross-module Streamlit session-state keys and route values.
 
-This module is intentionally dependency-free. Domain-specific modules may
-re-export their owned keys for compatibility, but cross-workflow code should
-import them from here instead of repeating raw strings.
+This module depends only on the dependency-free route registry. Domain-specific
+modules may re-export their owned keys for compatibility, but cross-workflow
+code should import them from here instead of repeating raw strings.
 """
 
 from __future__ import annotations
 
+from app_modules.route_registry import (
+    CALCULATOR_PAGE,
+    LOCAL_LIBRARY_PAGE,
+    SUPPORTED_WORKFLOW_STAGES as _SUPPORTED_WORKFLOW_STAGES,
+    WORKFLOW_PAGE,
+)
+
 # Application routing and workflow stages.
 ACTIVE_APP_PAGE_KEY = "active_app_page"
 APP_STAGE_KEY = "app_stage"
-WORKFLOW_PAGE = "workflow"
-CALCULATOR_PAGE = "calculator"
-LOCAL_LIBRARY_PAGE = "local_library"
-WORKFLOW_STAGES = ("input", "edit", "pictures", "export")
+WORKFLOW_STAGES = _SUPPORTED_WORKFLOW_STAGES
 
 # Core itinerary state shared by generation, editor, pictures, and export.
 PARSED_ROWS_KEY = "parsed_rows"

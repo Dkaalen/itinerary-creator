@@ -1,11 +1,12 @@
-"""Generic text-to-route parsing helpers."""
+"""Neutral source-text route parsing for downstream domain enrichment."""
 from __future__ import annotations
 
 import re
 from collections.abc import Callable
 
-from .place_values import is_valid_city_value, normalize_place_name
-from .text_cleanup import clean_space, fix_common_text
+from itinerary_domain.source_place_values import is_valid_city_value, normalize_place_name
+from shared.source_text_cleanup import fix_common_text
+from shared.text import clean_space
 
 _INVALID_ROUTE_ORIGINS = {
     "",
@@ -241,3 +242,6 @@ def extract_route_points(text):
     )
     return next((route for route in route_attempts if route != ("", "")), ("", ""))
 
+
+
+__all__ = ["extract_route_points"]

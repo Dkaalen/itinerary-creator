@@ -10,8 +10,8 @@ from typing import Any, Mapping
 from calculator.calculator_state import CalculatorState, add_row, create_calculator_state
 from calculator.row_model import CalculatorRow
 
-CALCULATOR_BACKUP_SCHEMA_VERSION = 2
-SUPPORTED_CALCULATOR_BACKUP_SCHEMA_VERSIONS = frozenset({1, 2})
+CALCULATOR_BACKUP_SCHEMA_VERSION = 3
+SUPPORTED_CALCULATOR_BACKUP_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 _ROW_FIELD_NAMES = {field.name for field in fields(CalculatorRow)}
 
 
@@ -83,7 +83,22 @@ def migrate_calculator_state_payload(payload: Mapping[str, Any]) -> dict[str, An
     migrated = dict(payload)
     if version == 1:
         migrated["number_of_pax"] = None
-        migrated["schema_version"] = 2
+        version = 2
+    if version == 2:
+        rows = migrated.get("rows")
+        if isinstance(rows, list):
+            migrated["rows"] = [
+                {
+                    **dict(row),
+                    "library_id": str(row.get("library_id") or ""),
+                    "source_workbook": str(row.get("source_workbook") or ""),
+                    "source_sheet": str(row.get("source_sheet") or ""),
+                    "source_row": row.get("source_row"),
+                }
+                if isinstance(row, Mapping) else row
+                for row in rows
+            ]
+    migrated["schema_version"] = 3
     return migrated
 
 

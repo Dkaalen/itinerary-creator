@@ -4,7 +4,7 @@ import re
 from place_aliases import is_known_place
 
 from parser_modules.common import *  # noqa: F401,F403
-from parser_modules.time_parsing import normalize_duration_text, normalize_time_text
+from shared.source_time import normalize_duration_text, normalize_time_text
 
 def split_comma_list(text, *, protect_compound_phrases=False):
     if not text:

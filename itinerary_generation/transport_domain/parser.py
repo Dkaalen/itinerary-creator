@@ -2,8 +2,9 @@
 
 import re
 
-from parser_modules.place_parsing import city_airport, extract_route_points, normalize_place_name
-from parser_modules.text_cleanup import fix_common_text
+from itinerary_domain.source_place_values import city_airport, normalize_place_name
+from itinerary_domain.source_route_parsing import extract_route_points
+from shared.source_text_cleanup import fix_common_text
 from itinerary_generation.transport_norway import _norway_nutshell_route_label, explicit_norway_nutshell_title
 from itinerary_generation.transport_safety import (
     base_destination_from_terminal,

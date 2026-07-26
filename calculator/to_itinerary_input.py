@@ -23,8 +23,20 @@ def calculator_state_to_raw_input(state: CalculatorState) -> str:
 def calculator_rows_to_raw_input(rows: Iterable[CalculatorRow]) -> str:
     """Return tab-separated itinerary input for calculator rows."""
 
-    lines = [_row_to_raw_line(row, index) for index, row in enumerate(rows, start=1) if row_is_generatable(row)]
-    return "\n".join(line for line in lines if line)
+    return "\n".join(line for _, line in calculator_rows_to_raw_lines(rows))
+
+
+def calculator_rows_to_raw_lines(rows: Iterable[CalculatorRow]) -> tuple[tuple[CalculatorRow, str], ...]:
+    """Return generatable rows paired with their exact parser input line."""
+
+    result: list[tuple[CalculatorRow, str]] = []
+    for index, row in enumerate(rows, start=1):
+        if not row_is_generatable(row):
+            continue
+        line = _row_to_raw_line(row, index)
+        if line:
+            result.append((row, line))
+    return tuple(result)
 
 
 def row_is_generatable(row: CalculatorRow) -> bool:

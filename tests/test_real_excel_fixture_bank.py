@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from parser_modules.place_parsing import is_valid_city_value
+from itinerary_domain.source_place_values import is_valid_city_value
 from scripts.random_quality_check_itineraries import build_random_quality_report
 from scripts.real_excel_fixture_bank import (
     DEFAULT_MANIFEST,

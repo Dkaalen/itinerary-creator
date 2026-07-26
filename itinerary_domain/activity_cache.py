@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 _ACTIVITY_ROW_KEYS: tuple[str, ...] = (
+    "_normalization_source_title",
     "raw",
     "original_title",
     "display_title",

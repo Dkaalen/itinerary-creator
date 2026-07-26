@@ -3,6 +3,7 @@ from images.image_workflow_review import build_image_workflow_review
 from itinerary_generation.input_review import build_structured_input_review, format_structured_input_review
 from itinerary_generation.itinerary_health_checks import build_itinerary_health_issues
 from itinerary_parser import parse_itinerary
+from normalizer import normalize_itinerary_rows
 from pdf_exporter_modules.export_profiles import pdf_filename, resolve_pdf_export_profile
 
 
@@ -21,10 +22,15 @@ def test_stab_qc_flags_duplicates_heavy_days_and_route_backtrack():
     assert "route_backtrack" in codes
 
 
-def test_parser_extracts_route_points_and_confidence_flags():
+def test_parser_and_normalizer_separate_route_facts_and_confidence_flags():
     raw = "Day 1\tTransfer\tTrain Oslo to Bergen - Departure 08:00\nDay 2\tHotel\tBergen: Check in for a 2 night stay - Hotel Norge - Deluxe Room - Breakfast"
 
-    rows = parse_itinerary(raw)
+    parsed = parse_itinerary(raw)
+    assert parsed[0]["effective_type"] == "Transfer"
+    assert "route_origin" not in parsed[0]
+    assert "route_destination" not in parsed[0]
+
+    rows = normalize_itinerary_rows(parsed)
     transfer = rows[0]
     hotel = rows[1]
 

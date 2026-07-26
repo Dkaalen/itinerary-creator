@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.common import extract_route_points
+from itinerary_domain.source_route_parsing import extract_route_points
 from itinerary_generation.transport_domain.route_hubs import (
     _explicit_transport_route_from_source,
     clean_route_place as _clean_route_place,

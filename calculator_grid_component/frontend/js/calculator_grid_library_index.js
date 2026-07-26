@@ -93,6 +93,7 @@
     }
     return prepareExpandedLibraryItem({
       library_id: item.i,
+      source_workbook: item.b,
       source_sheet: item.w,
       source_row: item.x,
       country: item.c,

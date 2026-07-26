@@ -17,6 +17,7 @@ from calculator.workbook_export_plan import WorkbookExportPlan
 from calculator.workbook_package_cell_changes import generate_cell_changes
 from calculator.workbook_package_integrity import remove_calc_chain_content_type, remove_calc_chain_relationship
 from calculator.workbook_recalculation_xml import patch_workbook_calculation_properties
+from calculator.workbook_provenance import patch_custom_properties_xml
 from calculator.workbook_worksheet_xml import patch_worksheet_xml
 from calculator.workbook_zip_package import clone_xlsx_package
 
@@ -25,8 +26,9 @@ _KALK_SHEET_PART = "xl/worksheets/sheet2.xml"
 _WORKBOOK_PART = "xl/workbook.xml"
 _WORKBOOK_RELS_PART = "xl/_rels/workbook.xml.rels"
 _CONTENT_TYPES_PART = "[Content_Types].xml"
+_CUSTOM_PROPERTIES_PART = "docProps/custom.xml"
 _CALC_CHAIN_PART = "xl/calcChain.xml"
-_CHANGED_PARTS = (_CURR_SHEET_PART, _KALK_SHEET_PART, _WORKBOOK_PART, _WORKBOOK_RELS_PART, _CONTENT_TYPES_PART)
+_BASE_CHANGED_PARTS = (_CURR_SHEET_PART, _KALK_SHEET_PART, _WORKBOOK_PART, _WORKBOOK_RELS_PART, _CONTENT_TYPES_PART)
 _DELETED_PARTS = (_CALC_CHAIN_PART,)
 _EXPORT_CACHE_LIMIT = 2
 _EXPORT_CACHE: OrderedDict[tuple[str, str, int, int], "PackageExportResult"] = OrderedDict()
@@ -81,9 +83,15 @@ def export_reference_workbook_package(
                 source.read(_CONTENT_TYPES_PART).decode("utf-8")
             ).encode("utf-8"),
         }
+        if plan.source_provenance:
+            replacements[_CUSTOM_PROPERTIES_PART] = patch_custom_properties_xml(
+                source.read(_CUSTOM_PROPERTIES_PART).decode("utf-8"),
+                plan.source_provenance,
+            ).encode("utf-8")
         content = clone_xlsx_package(source, replacements, deleted_parts=_DELETED_PARTS)
 
-    result = PackageExportResult(content=content, changed_parts=_CHANGED_PARTS, deleted_parts=_DELETED_PARTS)
+    changed_parts = _BASE_CHANGED_PARTS + ((_CUSTOM_PROPERTIES_PART,) if plan.source_provenance else ())
+    result = PackageExportResult(content=content, changed_parts=changed_parts, deleted_parts=_DELETED_PARTS)
     _EXPORT_CACHE[cache_key] = result
     _EXPORT_CACHE.move_to_end(cache_key)
     while len(_EXPORT_CACHE) > _EXPORT_CACHE_LIMIT:

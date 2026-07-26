@@ -129,6 +129,21 @@ def normalize_activity_title(row: dict) -> str:
     lower = source.lower()
     city = canonicalize_place_name(row.get("city", ""))
 
+    original_title = str(row.get("original_title") or "").strip()
+    details = str(row.get("details") or "").strip()
+    if (
+        original_title
+        and len(original_title) <= 90
+        and original_title.count(".") < 2
+        and not re.match(r"^Day\s+\d+\s*[:\-–]", original_title, flags=re.IGNORECASE)
+        and "\n" not in details
+        and re.match(r"^Day\s+\d+\s*[:\-–]", details, flags=re.IGNORECASE)
+    ):
+        # The raw parser has already separated a compact supplier/product title
+        # from the day prose.  Do not reconstruct a longer heading from details
+        # during normalization.
+        return polish_title(original_title)
+
     supplier_day_heading = ""
     for heading_source in (row.get("original_title"), row.get("details"), source):
         supplier_day_heading = _extract_supplier_day_heading(heading_source or "")

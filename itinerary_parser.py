@@ -1,15 +1,32 @@
-"""Compatibility wrapper for itinerary parser helpers.
+"""Supported public API for parsing raw itinerary input.
 
-Parser implementation is split across parser_modules/ so this module remains
-the stable public import surface for the app and tests.
+The parser implementation lives in :mod:`parser_modules`.  Only the functions
+listed in ``__all__`` are supported outside that package; lower-level helpers
+remain private implementation details.
 """
 
-from parser_modules.common import *  # noqa: F401,F403
-from parser_modules.details import *  # noqa: F401,F403
-from parser_modules.rows import *  # noqa: F401,F403
-from parser_modules.time_parsing import *  # noqa: F401,F403
-from parser_modules.extractors import *  # noqa: F401,F403
-from parser_modules.hotels import *  # noqa: F401,F403
+from parser_modules.extractors import (
+    extract_duration_from_description,
+    extract_includes_from_description,
+    extract_luggage_included,
+    extract_meeting_point_from_description,
+    extract_time_from_description,
+)
+from parser_modules.hotels import clean_room_category, parse_hotel_details, parse_meal_plan
 from parser_modules.parser_main import parse_itinerary
+from shared.text import clean_space
+from shared.source_time_normalize import normalize_time_text
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+__all__ = (
+    "clean_room_category",
+    "clean_space",
+    "extract_duration_from_description",
+    "extract_includes_from_description",
+    "extract_luggage_included",
+    "extract_meeting_point_from_description",
+    "extract_time_from_description",
+    "normalize_time_text",
+    "parse_hotel_details",
+    "parse_itinerary",
+    "parse_meal_plan",
+)

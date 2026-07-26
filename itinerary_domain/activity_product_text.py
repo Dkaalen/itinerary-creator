@@ -165,6 +165,9 @@ def extract_source_product_title(row: dict[str, Any] | None = None, *values: obj
 
     candidates: list[str] = []
     if row:
+        preserved_source_title = str(row.get("_normalization_source_title") or "").strip()
+        if preserved_source_title:
+            candidates.append(preserved_source_title)
         for key in ("title", "original_title", "details", "raw"):
             value = str(row.get(key, "") or "").strip()
             if value:

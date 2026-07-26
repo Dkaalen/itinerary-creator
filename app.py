@@ -1,17 +1,6 @@
-import streamlit as st
+"""Single supported Streamlit entry point for Itinerary Creator."""
 
-from ui.styles import apply_global_styles
-from app_modules.main_view import render_app
-from app_modules.workflow_state import ensure_workflow_defaults
-from app_modules.app_version import APP_VERSION
+from app_modules.streamlit_entry import run_streamlit_app
 
 
-st.set_page_config(
-    page_title="Itinerary Creator",
-    page_icon="🧭",
-    layout="wide",
-)
-
-apply_global_styles()
-ensure_workflow_defaults(st.session_state)
-render_app(APP_VERSION)
+run_streamlit_app()

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from calculator.library_fingerprint import local_library_workbook_fingerprint
 from calculator.library_normalize import LocalLibraryNumericValueError, normalize_library_mapping
 from calculator.library_workbook_diagnostics import diagnostic as _diagnostic
 from calculator.library_workbook_diagnostics import display_value as _display_value
@@ -43,7 +44,7 @@ WORKBOOK_PATH = (
 
 
 @lru_cache(maxsize=4)
-def _load_cached(path_text: str, modified_ns: int, size: int) -> LocalLibraryWorkbook:
+def _load_cached(path_text: str, fingerprint: str) -> LocalLibraryWorkbook:
     path = Path(path_text)
     workbook = None
     try:
@@ -128,7 +129,6 @@ def _load_cached(path_text: str, modified_ns: int, size: int) -> LocalLibraryWor
                 code="no_fetchable_rows",
                 diagnostics=tuple(diagnostics),
             )
-        fingerprint = f"{modified_ns:x}-{size:x}"
         return LocalLibraryWorkbook(tuple(rows), rates, path, fingerprint, tuple(diagnostics))
     except LocalLibraryWorkbookError:
         raise
@@ -151,8 +151,9 @@ def load_local_library_workbook(path: str | Path = WORKBOOK_PATH) -> LocalLibrar
             category="fatal_workbook",
             code="missing_workbook",
         )
-    stat = workbook_path.stat()
-    return _load_cached(str(workbook_path.resolve()), stat.st_mtime_ns, stat.st_size)
+    resolved = workbook_path.resolve()
+    fingerprint = local_library_workbook_fingerprint(resolved)
+    return _load_cached(str(resolved), fingerprint)
 
 
 def clear_local_library_workbook_cache() -> None:

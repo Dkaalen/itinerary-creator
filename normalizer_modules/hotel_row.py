@@ -30,7 +30,12 @@ def normalize_hotel_row(row: dict) -> dict:
         name = "Accommodation"
     if not room: room = "Standard Double Room"
     bed_type = extract_bed_type_from_source(source)
-    if bed_type and bed_type.lower() not in room.lower(): room = f"{room} - {bed_type}"
+    if bed_type:
+        bed_head = bed_type.split()[0] if bed_type.split() else ""
+        if bed_head:
+            room = re.sub(rf"\s+-\s+{re.escape(bed_head)}\s*$", "", room, flags=re.IGNORECASE)
+        if bed_type.lower() not in room.lower():
+            room = f"{room} - {bed_type}"
     nights = clean_space(row.get("hotel_nights", ""))
     source_nights = clean_space(row.get("source_hotel_nights", ""))
     date_nights = hotel_nights_from_date_range(row.get("start_date", ""), row.get("end_date", ""))

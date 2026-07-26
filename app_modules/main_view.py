@@ -1,50 +1,38 @@
 from __future__ import annotations
 
-import streamlit as st
+from collections.abc import Callable, Mapping, MutableMapping
+from importlib import import_module
+from typing import Any
 
-from app_modules.calculator_navigation import calculator_page_is_active, local_library_page_is_active
+from app_modules.route_registry import RouteSpec, WORKFLOW_PAGE, route_spec_for
+from app_modules.session_state_keys import ACTIVE_APP_PAGE_KEY
 from app_modules.workflow_navigation import session_stage_from_state
 from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 
 
-def _session_stage(state) -> str:
+def _session_stage(state: Mapping[str, Any]) -> str:
     return session_stage_from_state(state)
 
 
-def render_calculator_page(app_version: str) -> None:
-    from app_modules.calculator_page import render_calculator_page as renderer
+def resolve_active_route(state: Mapping[str, Any]) -> RouteSpec:
+    """Resolve the current state to one registered application surface."""
 
-    renderer(app_version)
-
-
-def render_local_library_page(app_version: str) -> None:
-    from app_modules.local_library_page import render_local_library_page as renderer
-
-    renderer(app_version)
+    return route_spec_for(
+        state.get(ACTIVE_APP_PAGE_KEY, WORKFLOW_PAGE),
+        _session_stage(state),
+    )
 
 
-def render_input_page(app_version: str) -> None:
-    from app_modules.input_step import render_input_page as renderer
+def _load_route_renderer(route: RouteSpec) -> Callable[[str], None]:
+    """Import only the selected page module and return its renderer."""
 
-    renderer(app_version)
-
-
-def render_edit_page(app_version: str) -> None:
-    from app_modules.preview_step import render_edit_page as renderer
-
-    renderer(app_version)
-
-
-def render_picture_page(app_version: str) -> None:
-    from app_modules.picture_step import render_picture_page as renderer
-
-    renderer(app_version)
-
-
-def render_export_page(app_version: str) -> None:
-    from app_modules.export_page import render_export_page as renderer
-
-    renderer(app_version)
+    module = import_module(route.module_name)
+    renderer = getattr(module, route.renderer_name)
+    if not callable(renderer):
+        raise TypeError(
+            f"Registered renderer is not callable: {route.module_name}.{route.renderer_name}"
+        )
+    return renderer
 
 
 def render_debug_tools() -> None:
@@ -53,7 +41,7 @@ def render_debug_tools() -> None:
     renderer()
 
 
-def render_app(app_version: str, *, state=None) -> None:
+def render_app(app_version: str, *, state: MutableMapping[str, Any] | None = None) -> None:
     """Route first, then import and render only the active app surface.
 
     Production callers use Streamlit session state. Tests and other adapters may
@@ -61,26 +49,18 @@ def render_app(app_version: str, *, state=None) -> None:
     state left behind by another workflow.
     """
 
-    session = st.session_state if state is None else state
-    session.setdefault("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
-    if calculator_page_is_active(session):
-        render_calculator_page(app_version)
-        render_debug_tools()
-        return
-    if local_library_page_is_active(session):
-        render_local_library_page(app_version)
-        render_debug_tools()
-        return
-    stage = _session_stage(session)
-    if stage == "input":
-        render_input_page(app_version)
-    elif stage == "edit":
-        render_edit_page(app_version)
-    elif stage == "pictures":
-        render_picture_page(app_version)
-    elif stage == "export":
-        render_export_page(app_version)
-    else:
-        render_input_page(app_version)
+    if state is None:
+        import streamlit as st
 
+        session = st.session_state
+    else:
+        session = state
+
+    session.setdefault("day_page_layout", DEFAULT_DAY_PAGE_LAYOUT)
+    route = resolve_active_route(session)
+    renderer = _load_route_renderer(route)
+    renderer(app_version)
     render_debug_tools()
+
+
+__all__ = ["render_app", "resolve_active_route"]

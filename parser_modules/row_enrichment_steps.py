@@ -9,9 +9,9 @@ from place_aliases import canonicalize_place_name
 from shared.commercial_markers import has_self_arranged_marker
 from parser_modules.city_inference import infer_city_from_text
 from parser_modules.commercial_status import infer_commercial_status
-from parser_modules.common import check_for_unknown_typos, clean_space, extract_route_points, fix_common_text, is_valid_city_value, normalize_type
+from parser_modules.common import check_for_unknown_typos, clean_space, fix_common_text, is_valid_city_value, normalize_type
 from parser_modules.date_fields import date_derived_hotel_nights
-from parser_modules.details import clean_title, detect_effective_type, extract_detail, split_comma_list, standardize_row_text
+from parser_modules.details import clean_title, extract_detail, split_comma_list
 from parser_modules.extractors import (
     extract_duration_from_description,
     extract_includes_from_description,
@@ -21,10 +21,9 @@ from parser_modules.extractors import (
 )
 from parser_modules.hotels import parse_hotel_details
 from parser_modules.raw_row_context import fix_common_text_for_row, strip_matching_type_prefix
-from parser_modules.row_quality import annotate_parser_quality
+from itinerary_domain.input_row_quality import annotate_parser_quality
 
 _CITY_REQUIRED_TYPES = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
-_TRANSPORT_EFFECTIVE_TYPES = {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry", "Drive"}
 
 
 def prepare_main_text(row: dict, *, description: str, item_type: str, separate_city: str) -> str:
@@ -121,22 +120,7 @@ def _apply_date_derived_nights(hotel_details: dict, date_derived_nights: str, ma
         hotel_details["hotel_nights"] = date_derived_nights
 
 
-def apply_effective_type_and_routes(row: dict) -> None:
-    row["effective_type"] = detect_effective_type(row["type"], row["title"], row["details"])
-    if row["effective_type"] not in _TRANSPORT_EFFECTIVE_TYPES:
-        return
-    route_source = row.get("details", "") or " ".join(part for part in [row.get("title", ""), row.get("details", "")] if part)
-    route_origin, route_destination = extract_route_points(route_source)
-    if route_destination and not route_origin and row.get("city"):
-        route_origin = row.get("city", "")
-    if route_origin:
-        row["route_origin"] = route_origin
-    if route_destination:
-        row["route_destination"] = route_destination
-
-
 def finalize_row_quality_and_status(row: dict, *, item_type: str) -> dict:
-    row = standardize_row_text(row)
     row = annotate_parser_quality(row)
     status, reason = infer_commercial_status(row.get("is_optional"), item_type, row.get("title", ""), row.get("details", ""))
     row["commercial_status"] = status

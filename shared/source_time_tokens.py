@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.common import clean_space
+from shared.text import clean_space
 
 
 def normalize_ampm(value):

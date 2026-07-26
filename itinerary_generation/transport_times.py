@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.time_finders import find_clock_range
-from parser_modules.time_normalize import normalize_time_text
+from shared.source_time_finders import find_clock_range
+from shared.source_time_normalize import normalize_time_text
 from itinerary_generation.transport_model import get_transport_source_text
 from .inclusion_utils import clean
 from itinerary_generation.supplier_cleanup_brain import clean_supplier_time

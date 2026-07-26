@@ -4,7 +4,13 @@
   'use strict';
 
   function applyLibrarySuggestion(row, suggestion) {
-    const fetched = {...(suggestion.row_data || {})};
+    const fetched = {
+      ...(suggestion.row_data || {}),
+      library_id: String(suggestion.library_id || ''),
+      source_workbook: String(suggestion.source_workbook || ''),
+      source_sheet: String(suggestion.source_sheet || ''),
+      source_row: suggestion.source_row ?? null,
+    };
     const grossPerUnit = numberValue(fetched.gross_price_per_unit);
     const rawSalesPrice = fetched.sales_price_per_unit;
     const parsedSalesPrice = optionalNumberValue(rawSalesPrice);

@@ -239,7 +239,7 @@ def test_store_preserves_error_category_and_row_diagnostics(monkeypatch: pytest.
             diagnostics=(diagnostic,),
         )
 
-    monkeypatch.setattr(library_store_module, "load_local_library_workbook", fail_load)
+    monkeypatch.setattr(library_store_module, "load_local_library_authority", fail_load)
 
     result = LocalLibraryStore().list_rows()
 

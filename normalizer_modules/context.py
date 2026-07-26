@@ -128,6 +128,26 @@ def apply_contextual_travel_corrections(rows: list[dict]) -> list[dict]:
     return updated
 
 
+def _context_fillable_transfer(row: dict) -> bool:
+    """Return True for local/sparse transfers that may inherit one city."""
+
+    if get_row_type(row) != "Transfer":
+        return False
+    if row.get("route_origin") or row.get("route_destination"):
+        return False
+    text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
+    return bool(
+        re.search(
+            r"\b(?:arrival|departure)\b|"
+            r"\bprivate\s+(?:airport\s+to\s+hotel|hotel\s+to\s+airport)\b|"
+            r"\b(?:self[-\s]*(?:arranged\s+)?)?transfer\s+(?:airport\s+to\s+hotel|hotel\s+to\s+airport)\b|"
+            r"\b(?:from\s+)?(?:the\s+)?airport\s+to\s+(?:your\s+)?(?:hotel|accommodation)\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+    )
+
+
 def fill_missing_context_cities(rows: list[dict]) -> list[dict]:
     """Fill safe missing city values from nearby itinerary context.
 
@@ -160,9 +180,17 @@ def fill_missing_context_cities(rows: list[dict]) -> list[dict]:
             continue
         if city.lower() in {"accommodation", "journey"} or is_non_destination_label(city):
             row["city"] = ""
-        if row_type == "Transfer" and not row.get("city") and previous_city:
+        if row_type == "Transfer" and not row.get("city"):
             transfer_text = f'{row.get("title", "")} {row.get("details", "")} {row.get("original_title", "")}'.lower()
-            if re.search(r"\b(?:city\s+cent(?:re|er)|hotel|accommodation)\s+to\s+(?:the\s+)?airport\b|\bto\s+(?:the\s+)?airport\b", transfer_text):
+            same_day_city = city_by_day.get(row.get("day", ""))
+            if _context_fillable_transfer(row):
+                inferred_transfer_city = same_day_city or previous_city
+                if inferred_transfer_city:
+                    row["city"] = inferred_transfer_city
+                    city_by_day.setdefault(row.get("day", ""), inferred_transfer_city)
+                    previous_city = inferred_transfer_city
+                    continue
+            if previous_city and re.search(r"\b(?:city\s+cent(?:re|er)|hotel|accommodation)\s+to\s+(?:the\s+)?airport\b|\bto\s+(?:the\s+)?airport\b", transfer_text):
                 row["city"] = previous_city
                 city_by_day.setdefault(row.get("day", ""), previous_city)
                 continue

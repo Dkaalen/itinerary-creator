@@ -9,7 +9,7 @@ from itinerary_generation.copy.activity_composition import client_activity_intro
 from itinerary_generation.journey_overview_brain import create_journey_overview
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
-from parser_modules.time_normalize import normalize_time_text
+from shared.source_time_normalize import normalize_time_text
 from scripts.real_excel_fixture_bank import ExcelFixtureCandidate
 from scripts.real_output_qa.rendering import render_candidate_review
 

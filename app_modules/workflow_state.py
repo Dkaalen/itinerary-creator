@@ -12,10 +12,11 @@ from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from typing import Any
 
-from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
-from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
+from app_modules.route_registry import INPUT_STAGE
 from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
+from itinerary_generation.tone_presets import DEFAULT_TONE_PRESET
+from layout_policy import DEFAULT_DAY_PAGE_LAYOUT
 from app_modules.session_state_keys import (
     ACTIVE_APP_PAGE_KEY,
     ACTIVE_PROJECT_STORAGE_ID_KEY,
@@ -60,7 +61,7 @@ DEFAULT_WORKFLOW_SESSION_STATE: dict[str, Any] = {
     PRESENTATION_LANGUAGE_KEY: DEFAULT_PRESENTATION_LANGUAGE,
     TONE_PRESET_KEY: DEFAULT_TONE_PRESET,
     ITINERARY_VALIDATION_REPORT_KEY: None,
-    APP_STAGE_KEY: "input",
+    APP_STAGE_KEY: INPUT_STAGE,
     ACTIVE_APP_PAGE_KEY: WORKFLOW_PAGE,
     "calculator_state": None,
 }

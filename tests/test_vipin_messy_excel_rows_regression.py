@@ -1,4 +1,5 @@
 from itinerary_parser import parse_itinerary
+from normalizer import normalize_itinerary_rows
 
 
 def _row(day, row_type, city, details, nights="", start="01/01/2026", end=""):
@@ -65,7 +66,7 @@ def test_vipin_hyphen_train_route_gets_route_points_and_clean_title():
         "Day train, Rovaniemi - Helsinki\nInterCity 24 9:22 - 17:39\nDates not yet released, timing to be confirmed in final voucher",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Train"
     assert row["title"] == "Train to Helsinki"
@@ -83,7 +84,7 @@ def test_vipin_flight_typo_o_between_places_is_treated_as_to():
         "FLight Bergen o Svolvær self-arranged cost not included",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Flight"
     assert row["title"] == "Flight to Svolvær"
@@ -114,7 +115,7 @@ def test_vipin_nutshell_part_marker_does_not_pollute_destination_title():
         start="",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Transport"
     assert row["title"] == "Norway in a Nutshell to Oslo"

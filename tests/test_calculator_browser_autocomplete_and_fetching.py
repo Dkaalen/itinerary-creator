@@ -154,3 +154,56 @@ def test_fetched_nok_product_defaults_sales_price_to_eur_conversion() -> None:
     finally:
         browser.close()
         manager.stop()
+
+
+def test_fetched_product_keeps_workbook_provenance_in_browser_state() -> None:
+    library_row = {
+        "library_id": "activity-row-19",
+        "source_workbook": "library.xlsx",
+        "source_sheet": "Activities",
+        "source_row": 19,
+        "label": "Northern Lights Hunt",
+        "preview": "Activity in Rovaniemi",
+        "travel_element": "Northern Lights Hunt",
+        "supplier": "Supplier",
+        "country": "Finland",
+        "category": "Activity",
+        "type": "Activity",
+        "comments": "",
+        "url": "https://supplier.invalid/19",
+        "row_data": {
+            "type": "Activity",
+            "travel_element": "Northern Lights Hunt",
+            "supplier": "Supplier",
+            "url": "https://supplier.invalid/19",
+            "supplier_currency": "NOK",
+            "sales_currency": "EUR",
+        },
+    }
+    manager, browser, page = _browser_page(
+        _payload(
+            [{"row_id": "1", "travel_element": "", "supplier_currency": "NOK", "sales_currency": "EUR"}],
+            library_rows=[library_row],
+            revision="provenance-selection",
+        )
+    )
+    try:
+        cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
+        cell.click()
+        page.keyboard.type("Northern Lights")
+        page.locator(".suggestion-item").first.click()
+
+        lineage = page.evaluate("""() => {
+          const row = calculatorState.rows[0];
+          return [row.library_id, row.source_workbook, row.source_sheet, row.source_row, row.url];
+        }""")
+        assert lineage == [
+            "activity-row-19",
+            "library.xlsx",
+            "Activities",
+            19,
+            "https://supplier.invalid/19",
+        ]
+    finally:
+        browser.close()
+        manager.stop()

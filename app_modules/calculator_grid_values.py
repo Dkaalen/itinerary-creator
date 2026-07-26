@@ -26,13 +26,23 @@ NUMERIC_FIELDS = {
 BOOLEAN_FIELDS = {"manual_booking", "non_refundable", "refundable"}
 OPTIONAL_NUMERIC_FIELDS = {"sales_price_per_unit"}
 BLANK_NUMERIC_MARKERS = {"", "none", "nan", "null"}
-DEFAULT_ONLY_TEXT_FIELDS = {"row_id", "supplier_currency", "sales_currency"}
+DEFAULT_ONLY_TEXT_FIELDS = {
+    "row_id", "library_id", "source_workbook", "source_sheet", "source_row",
+    "supplier_currency", "sales_currency",
+}
 PERCENT_UI_FIELDS = {"supplier_commission"}
 
 
 def field_value(field_name: str, value: Any) -> Any:
     """Normalize a table-cell value for a dataclass field."""
 
+    if field_name == "source_row":
+        if value in (None, ""):
+            return None
+        try:
+            return int(float(str(value)))
+        except (TypeError, ValueError):
+            return None
     if field_name in BOOLEAN_FIELDS:
         return bool_value(value)
     if field_name in OPTIONAL_NUMERIC_FIELDS:

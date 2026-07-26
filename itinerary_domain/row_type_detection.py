@@ -1,12 +1,13 @@
 """Effective itinerary row-type detection rules."""
 from __future__ import annotations
 
-from parser_modules.common import normalize_type
-from parser_modules.effective_type_priority import (
+from shared.row_type_values import normalize_type
+from itinerary_domain.row_type_priority import (
     activity_logistics_override,
     direct_mode_override,
     fallback_transport_override,
     preserve_explicit_overview,
+    preserve_source_owned_type,
     product_name_override,
     route_mode_override,
     transfer_logistics_override,
@@ -27,6 +28,7 @@ def detect_effective_type(item_type, title, details):
     normalized_item_type = normalize_type(item_type)
 
     override = _first_override(
+        preserve_source_owned_type(normalized_item_type),
         preserve_explicit_overview(normalized_item_type),
         activity_logistics_override(normalized_item_type, combined),
         transfer_logistics_override(normalized_item_type, combined),

@@ -5,11 +5,16 @@ from pathlib import Path
 from tests.support.static_contracts import read_contract_text
 
 
-def test_local_library_page_is_routed_from_main_view() -> None:
-    main_view = read_contract_text("app_modules/main_view.py")
+def test_local_library_page_is_registered_and_routed_from_main_view() -> None:
+    from app_modules.route_registry import DIRECT_PAGE_ROUTE_SPECS, LOCAL_LIBRARY_PAGE
 
-    assert "local_library_page_is_active" in main_view
-    assert "render_local_library_page(app_version)" in main_view
+    main_view = read_contract_text("app_modules/main_view.py")
+    route = DIRECT_PAGE_ROUTE_SPECS[LOCAL_LIBRARY_PAGE]
+
+    assert route.module_name == "app_modules.local_library_page"
+    assert route.renderer_name == "render_local_library_page"
+    assert "route_spec_for" in main_view
+    assert "_load_route_renderer" in main_view
 
 
 def test_calculator_page_exposes_manage_local_library_button() -> None:

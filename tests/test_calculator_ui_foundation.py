@@ -257,6 +257,7 @@ def _calculator_labels() -> set[str]:
 
 
 def test_calculator_keeps_main_workflow_contract_locked() -> None:
+    from app_modules.route_registry import CALCULATOR_PAGE, DIRECT_PAGE_ROUTE_SPECS, LOCAL_LIBRARY_PAGE
     from app_modules.workflow_config import FLOW_STAGES
 
     input_calls = _python_module_calls("app_modules/input_step.py")
@@ -265,7 +266,9 @@ def test_calculator_keeps_main_workflow_contract_locked() -> None:
     assert FLOW_STAGES == ("input", "edit", "pictures", "export")
     assert "open_calculator_page" in input_calls
     assert "open_local_library_page" in input_calls
-    assert "calculator_page_is_active" in main_imports
+    assert "route_spec_for" in main_imports
+    assert DIRECT_PAGE_ROUTE_SPECS[CALCULATOR_PAGE].module_name == "app_modules.calculator_page"
+    assert DIRECT_PAGE_ROUTE_SPECS[LOCAL_LIBRARY_PAGE].module_name == "app_modules.local_library_page"
 
 
 def test_calculator_page_uses_browser_side_grid_not_streamlit_data_editor() -> None:

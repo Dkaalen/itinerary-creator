@@ -114,7 +114,7 @@
   }
 
   function rowHasUserContent(row) {
-    const ignored = new Set(['row_id', 'supplier_currency', 'sales_currency']);
+    const ignored = new Set(['row_id', 'library_id', 'source_workbook', 'source_sheet', 'source_row', 'supplier_currency', 'sales_currency']);
     for (const [key, value] of Object.entries(row || {})) {
       if (ignored.has(key) || key.startsWith('_') || key.endsWith('_override')) continue;
       if (typeof value === 'boolean') {

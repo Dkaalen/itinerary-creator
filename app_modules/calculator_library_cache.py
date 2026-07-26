@@ -7,7 +7,8 @@ from time import monotonic, perf_counter
 from typing import Any, Callable, MutableMapping
 
 from calculator.library_store import LocalLibraryReadResult, LocalLibraryStore
-from calculator.library_workbook import clear_local_library_workbook_cache
+from calculator.library_authority import clear_local_library_authority_cache, local_library_authority_path
+from calculator.library_fingerprint import local_library_workbook_fingerprint
 
 CALCULATOR_LIBRARY_CACHE_KEY = "calculator_library_read_result"
 CALCULATOR_LIBRARY_CACHE_TIME_KEY = "calculator_library_read_time"
@@ -28,14 +29,18 @@ def read_cached_local_library(
     cached = session_state.get(CALCULATOR_LIBRARY_CACHE_KEY)
     cached_at = _float_value(session_state.get(CALCULATOR_LIBRARY_CACHE_TIME_KEY))
     if not force_refresh and isinstance(cached, LocalLibraryReadResult) and _cache_is_fresh(cached_at, ttl_seconds):
-        return cached
+        if reader is not None:
+            return cached
+        path = local_library_authority_path()
+        if path.is_file() and cached.fingerprint == local_library_workbook_fingerprint(path):
+            return replace(cached, cache_status="session_hit", cache_invalidation_reason="unchanged")
 
     if force_refresh:
         from app_modules.calculator_component_payload import clear_calculator_library_payload_cache
 
         clear_calculator_library_payload_cache()
         if reader is None:
-            clear_local_library_workbook_cache()
+            clear_local_library_authority_cache()
     started_at = perf_counter()
     result = (reader or LocalLibraryStore().list_rows)()
     result = replace(result, load_time_seconds=max(0.0, perf_counter() - started_at))
@@ -54,6 +59,7 @@ def clear_cached_local_library(session_state: MutableMapping[str, Any]) -> None:
 
     clear_calculator_library_payload_cache()
     clear_calculator_library_browser_ack(session_state)
+    clear_local_library_authority_cache()
 
 
 def _cache_is_fresh(cached_at: float, ttl_seconds: float) -> bool:

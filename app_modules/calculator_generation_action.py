@@ -8,6 +8,10 @@ from typing import Any
 from app_modules.calculator_state_keys import (
     CURRENCY_RATES_STATE_KEY,
 )
+from app_modules.calculator_generation_rows import (
+    calculator_rows_have_library_provenance,
+    parse_and_normalize_calculator_rows,
+)
 from app_modules.generation_action import generate_itinerary
 from app_modules.presentation_language import DEFAULT_PRESENTATION_LANGUAGE
 from app_modules.workflow_result import WorkflowActionResult
@@ -52,8 +56,17 @@ def generate_itinerary_from_calculator(
         )
 
     raw_text = calculator_state_to_raw_input(calculator_state)
+    prepared_rows = (
+        parse_and_normalize_calculator_rows(calculator_state.rows)
+        if calculator_rows_have_library_provenance(calculator_state.rows)
+        else None
+    )
     _seed_generation_request(state, calculator_state, output_brand)
-    result = generate_itinerary(state, raw_text)
+    result = (
+        generate_itinerary(state, raw_text, prepared_parsed_rows=prepared_rows)
+        if prepared_rows is not None
+        else generate_itinerary(state, raw_text)
+    )
     if result.ok:
         complete_calculator_generation(state)
         return result

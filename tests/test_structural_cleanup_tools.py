@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from parser_modules import text_cleanup as parser_cleanup
+from shared import source_text_cleanup as parser_cleanup
 from scripts.export_destination_registry import build_registry_export, validate_registry_export
 from scripts.module_ownership_audit import run_audit
 from scripts.test_group_hygiene import build_report
@@ -79,7 +79,7 @@ def test_day_facts_builder_uses_split_row_signal_scanner() -> None:
 
 
 def test_effective_type_priority_helpers_preserve_transport_activity_order() -> None:
-    from parser_modules.effective_type_detection import detect_effective_type
+    from itinerary_domain.row_type_detection import detect_effective_type
 
     assert detect_effective_type("Activity", "Arctic Route Coach Transfer", "") == "Transport"
     assert detect_effective_type("Activity", "Tallinn day excursion", "Guided tour of the old town with ferry logistics") == "Activity"
@@ -87,7 +87,7 @@ def test_effective_type_priority_helpers_preserve_transport_activity_order() -> 
 
 
 def test_route_point_parser_split_keeps_known_route_patterns() -> None:
-    from parser_modules.place_parsing import extract_route_points
+    from itinerary_domain.source_route_parsing import extract_route_points
 
     assert extract_route_points("Train: Oslo to Bergen") == ("Oslo", "Bergen")
     assert extract_route_points("Day train, Rovaniemi - Helsinki") == ("Rovaniemi", "Helsinki")

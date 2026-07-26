@@ -106,6 +106,10 @@ def _row_to_table_data(
     )
     data: dict[str, Any] = {
         "_sales_price_per_unit_touched": not sales_price_is_default,
+        "library_id": row.library_id,
+        "source_workbook": row.source_workbook,
+        "source_sheet": row.source_sheet,
+        "source_row": row.source_row,
     }
     for field_name in visible_fields:
         if field_name in FORMULA_FIELD_KEYS:

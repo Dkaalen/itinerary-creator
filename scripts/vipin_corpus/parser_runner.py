@@ -22,9 +22,10 @@ def _worker_parse_chunk(payload: tuple[int, list[ExcelCorpusItem]]) -> list[tupl
     _start, chunk = payload
     import diagnostics
     from itinerary_parser import parse_itinerary
+    from normalizer import normalize_itinerary_rows
 
     diagnostics.reset()
-    rows = parse_itinerary("\n".join(item.as_raw_line() for item in chunk))
+    rows = normalize_itinerary_rows(parse_itinerary("\n".join(item.as_raw_line() for item in chunk)))
     parsed: list[tuple[ExcelCorpusItem, dict[str, Any]]] = []
     represented_line_numbers: set[int] = set()
     for row in rows:
@@ -48,7 +49,7 @@ def _worker_parse_chunk(payload: tuple[int, list[ExcelCorpusItem]]) -> list[tupl
             continue
         if _looks_report_only_source(item) or not _has_usable_source_content(item):
             continue
-        retry_rows = parse_itinerary(item.as_raw_line())
+        retry_rows = normalize_itinerary_rows(parse_itinerary(item.as_raw_line()))
         for retry_row in retry_rows:
             parsed.append((item, retry_row))
 

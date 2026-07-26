@@ -12,17 +12,18 @@
       "name": "build_destination_visit_memory",
       "line_count": 136,
       "start_line": 49
+    },
+    {
+      "file": "normalizer_modules/activities.py",
+      "name": "normalize_activity_title",
+      "line_count": 120,
+      "start_line": 127
     }
   ],
   "facade_like_modules": [
     {
-      "file": "itinerary_parser.py",
-      "line_count": 15,
-      "concern": "facade_like_module"
-    },
-    {
       "file": "parser_modules/common.py",
-      "line_count": 14,
+      "line_count": 12,
       "concern": "facade_like_module"
     },
     {
@@ -39,7 +40,7 @@
     },
     {
       "file": "itinerary_generation/transport_domain/parser.py",
-      "line_count": 305,
+      "line_count": 306,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -80,11 +81,6 @@
     {
       "file": "itinerary_generation/transport_domain/route_summary.py",
       "line_count": 248,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "parser_modules/route_parsing.py",
-      "line_count": 243,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -133,13 +129,8 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "parser_modules/text_cleanup.py",
+      "file": "shared/source_text_cleanup.py",
       "line_count": 144,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "parser_modules/time_normalize.py",
-      "line_count": 136,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -164,11 +155,6 @@
     },
     {
       "file": "itinerary_generation/description_sources.py",
-      "line_count": 108,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "parser_modules/place_values.py",
       "line_count": 108,
       "concern": "inline_regex_or_replacement_rules"
     },
@@ -209,96 +195,10 @@
     }
   ],
   "facade_importers": {
-    "itinerary_parser.py": [
-      "app_modules/parse_workflow.py",
-      "itinerary_generation/time_display.py",
-      "scripts/benchmark_text_cleanup.py",
-      "scripts/debug_day_brain.py",
-      "scripts/real_output_qa/rendering.py",
-      "scripts/review_day_brain_outputs.py",
-      "scripts/review_output_regression.py",
-      "scripts/vipin_corpus/parser_runner.py",
-      "tests/rendered_pdf_quality.py",
-      "tests/test_accommodation_stress_fixtures.py",
-      "tests/test_activity_catalogue_and_qa_regression.py",
-      "tests/test_activity_catalogue_hardening_quality_gate.py",
-      "tests/test_activity_compound_stress_fixtures.py",
-      "tests/test_activity_cruise_classification.py",
-      "tests/test_activity_product_fingerprints_quality_gate.py",
-      "tests/test_activity_training_catalogue_regression.py",
-      "tests/test_activity_url_identity_boundary.py",
-      "tests/test_architecture_consolidation.py",
-      "tests/test_broad_logic_stress_regressions.py",
-      "tests/test_calculator_to_itinerary_input.py",
-      "tests/test_client_output_quality_regression.py",
-      "tests/test_client_sanitizer_default_images_regression.py",
-      "tests/test_client_transport_wording_contract.py",
-      "tests/test_compound_experience_transport_timing.py",
-      "tests/test_content_classification_priority.py",
-      "tests/test_copy_decision_contracts.py",
-      "tests/test_corpus_driven_hotel_parser_regression.py",
-      "tests/test_corpus_driven_parser_fixes_regression.py",
-      "tests/test_cover_background_selection.py",
-      "tests/test_day_brain_proof_hardening.py",
-      "tests/test_day_sub_brains.py",
-      "tests/test_destination_route_journey_intelligence.py",
-      "tests/test_extra_day_wrapper_rows.py",
-      "tests/test_finland_source_fidelity_regression.py",
-      "tests/test_finland_transport_regressions.py",
-      "tests/test_fixture_hardening_quality_gate.py",
-      "tests/test_group_tour_domain_regression.py",
-      "tests/test_group_tour_rendering_regression.py",
-      "tests/test_iceland_group_tour_parsing_regression.py",
-      "tests/test_inclusions_preview_accommodation_transport_followups.py",
-      "tests/test_itinerary_continuity_contract.py",
-      "tests/test_leisure_arrival_metadata_cleanup.py",
-      "tests/test_messy_transport_safety_net.py",
-      "tests/test_nordic_quality_sample.py",
-      "tests/test_norway_coastal_cruise_transfer_regression.py",
-      "tests/test_norway_source_fidelity_quality_gate.py",
-      "tests/test_nutshell_characterization_regression.py",
-      "tests/test_nutshell_consumer_parity_regression.py",
-      "tests/test_nutshell_domain_regression.py",
-      "tests/test_optional_commercial_safety.py",
-      "tests/test_output_layout_contract.py",
-      "tests/test_output_quality_and_images_regression.py",
-      "tests/test_output_quality_engine_regression.py",
-      "tests/test_premium_optional_output.py",
-      "tests/test_premium_output_regression_followup.py",
-      "tests/test_preview_pdf_group_tours_regression.py",
-      "tests/test_preview_pdf_parity.py",
-      "tests/test_qc_input_img_pdf_combined_regression.py",
-      "tests/test_real_fixture_quality_gate.py",
-      "tests/test_real_output_quality_gate_iceland_regression.py",
-      "tests/test_regressions_content_basics.py",
-      "tests/test_regressions_fixture_quality.py",
-      "tests/test_regressions_fixture_quality_transport.py",
-      "tests/test_regressions_layout_preview.py",
-      "tests/test_regressions_parser_normalizer.py",
-      "tests/test_regressions_pdf_inclusions.py",
-      "tests/test_regressions_transport_cruise.py",
-      "tests/test_regressions_travel_text.py",
-      "tests/test_regressions_ui_boundaries.py",
-      "tests/test_render_document_source_of_truth.py",
-      "tests/test_self_drive_pdf_preview_parity.py",
-      "tests/test_self_drive_truth_contract.py",
-      "tests/test_source_fidelity_quality_gate.py",
-      "tests/test_stress_logic_followups.py",
-      "tests/test_tallinn_excursion_wording_quality_gate.py",
-      "tests/test_transport_preview_quality_regression.py",
-      "tests/test_vipin_messy_excel_rows_regression.py",
-      "tests/test_warning_ui_and_icebreaker_fidelity_quality_gate.py",
-      "tests/tools/quality_report.py"
-    ],
     "parser_modules/common.py": [
-      "itinerary_generation/transport_domain/route_inference.py",
-      "itinerary_generation/transport_domain/route_summary.py",
-      "itinerary_generation/transport_domain/routes.py",
-      "itinerary_parser.py",
       "parser_modules/city_inference.py",
       "parser_modules/date_fields.py",
       "parser_modules/detail_extractors.py",
-      "parser_modules/effective_type_detection.py",
       "parser_modules/extract_inclusions.py",
       "parser_modules/extract_meeting_point.py",
       "parser_modules/extract_time.py",
@@ -308,16 +208,10 @@
       "parser_modules/list_parsing.py",
       "parser_modules/parser_line.py",
       "parser_modules/parser_main.py",
-      "parser_modules/parser_state.py",
       "parser_modules/raw_row_context.py",
       "parser_modules/row_builder.py",
       "parser_modules/row_enrichment_steps.py",
-      "parser_modules/row_text_standardization.py",
       "parser_modules/rows.py",
-      "parser_modules/time_duration.py",
-      "parser_modules/time_finders.py",
-      "parser_modules/time_normalize.py",
-      "parser_modules/time_tokens.py",
       "parser_modules/title_cleanup.py",
       "parser_modules/wrapper_row_types.py"
     ],

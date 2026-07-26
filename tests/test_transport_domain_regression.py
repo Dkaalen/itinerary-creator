@@ -5,7 +5,6 @@ from itinerary_generation.transport_routes import get_route_points_for_transport
 from itinerary_generation.transport_routes import get_transport_route_facts
 from itinerary_generation.transport_titles import get_transport_route_phrase as legacy_route_phrase
 from itinerary_generation.travel_sequence_blocks import get_travel_arrangement_line as legacy_travel_line
-from parser_modules.transport_titles import standardize_private_transfer_title
 from itinerary_generation.transport_domain.parser import standardize_private_transfer_title as domain_private_transfer_title
 from itinerary_generation.exclusion_sections import self_arranged_flight_notice
 from itinerary_generation.transport_domain.exclusions import self_arranged_flight_notice as domain_flight_notice
@@ -48,8 +47,7 @@ def test_legacy_transport_route_and_render_facades_delegate_to_domain():
 def test_parser_transport_title_facade_uses_domain_standardization():
     args = ("Private Airport to Hotel", "Private Airport to Hotel", "Helsinki")
 
-    assert standardize_private_transfer_title(*args) == domain_private_transfer_title(*args)
-    assert standardize_private_transfer_title(*args) == "Private transfer from Helsinki Airport to your accommodation"
+    assert domain_private_transfer_title(*args) == "Private transfer from Helsinki Airport to your accommodation"
 
 
 def test_transport_exclusion_notice_uses_domain_flight_logic():

@@ -12,10 +12,9 @@ def test_main_view_is_stage_router_not_workflow_dumping_ground():
     source = _read("main_view.py")
 
     assert "def render_app" in source
-    assert "render_input_page" in source
-    assert "render_edit_page" in source
-    assert "render_picture_page" in source
-    assert "render_export_page" in source
+    assert "resolve_active_route" in source
+    assert "_load_route_renderer" in source
+    assert "route_spec_for" in source
 
     forbidden = [
         "render_structured_input_review_panel",

@@ -66,7 +66,7 @@ def test_mark_optional_row_sets_consistent_fields_and_prefixes_row_id_once():
     assert row["row_id"] == "opt_abc123"
 
 def test_common_text_cleanup_conservatively_fixes_commercial_and_place_typos():
-    from parser_modules.text_cleanup import fix_common_text
+    from shared.source_text_cleanup import fix_common_text
 
     cleaned = fix_common_text(
         "Self Arrnaged pirce not inclueded Excurssion transfere crusie Chocholate "

@@ -1,4 +1,4 @@
-"""Parser row confidence and review flags.
+"""Input-row confidence and review flags.
 
 These helpers annotate parsed supplier rows with lightweight signals used by the
 structured input review.  They do not block generation; they make uncertain
@@ -9,8 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from parser_modules.place_parsing import extract_route_points
-from parser_modules.type_detection import normalize_type
+from shared.row_type_values import normalize_type
 
 _IMPORTANT_CITY_TYPES = {"Hotel", "Activity", "Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
 _ROUTE_TYPES = {"Transfer", "Transport", "Train", "Flight", "Cruise", "Ferry"}
@@ -74,7 +73,10 @@ def _is_local_route_without_points(row: Mapping[str, Any]) -> bool:
         return True
     if "private transfer" in text and any(marker in text for marker in (" to hotel", " to your accommodation", " from the airport", " from airport", " from hotel")):
         return True
-    if "self" in text and "transfer" in text and any(marker in text for marker in ("meeting point", "central station", "hotel to", "airport to")):
+    if "self" in text and "transfer" in text and any(
+        marker in text
+        for marker in ("meeting point", "central station", "hotel to", "airport to", "to hotel", "to your accommodation")
+    ):
         return True
     if ("hotel" in text or "xnight" in text or "x night" in text or "breakfast" in text or "standard room" in text) and not any(marker in text for marker in ("flight", "train", "bus", "coach", "ferry", "cruise")):
         return True
@@ -100,19 +102,26 @@ def _is_sparse_hotel_summary(row: Mapping[str, Any]) -> bool:
     )
 
 
-def _route_points(row: Mapping[str, Any]) -> tuple[str, str]:
-    origin = _text(row, "route_origin", "origin", "from", "from_city")
-    destination = _text(row, "route_destination", "destination", "to", "to_city")
-    if origin and destination:
-        return origin, destination
-    extracted_origin, extracted_destination = extract_route_points(" ".join(
-        _text(row, key) for key in ("title", "details", "description", "original_title") if _text(row, key)
-    ))
-    return origin or extracted_origin, destination or extracted_destination
+def _explicit_route_points(row: Mapping[str, Any]) -> tuple[str, str]:
+    """Return route facts already attached by the domain-enrichment owner."""
+
+    return (
+        _text(row, "route_origin", "origin", "from", "from_city"),
+        _text(row, "route_destination", "destination", "to", "to_city"),
+    )
 
 
-def parser_review_flags(row: Mapping[str, Any]) -> tuple[str, ...]:
-    """Return deterministic review flags for one parsed row."""
+def parser_review_flags(
+    row: Mapping[str, Any],
+    *,
+    include_route_checks: bool = False,
+) -> tuple[str, ...]:
+    """Return deterministic review flags for one input row.
+
+    Raw parsing deliberately skips route completeness checks because route
+    inference belongs to the downstream domain-enrichment stage.  Normalized
+    rows opt into those checks after canonical route facts have been attached.
+    """
 
     row_type = normalize_type(_text(row, "effective_type", "type"))
     flags: list[str] = []
@@ -122,7 +131,11 @@ def parser_review_flags(row: Mapping[str, Any]) -> tuple[str, ...]:
 
     sparse_route_summary = row_type in _ROUTE_TYPES and _is_sparse_route_summary(row)
     local_route_without_points = row_type in _ROUTE_TYPES and _is_local_route_without_points(row)
-    origin, destination = _route_points(row) if row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points else ("", "")
+    origin, destination = (
+        _explicit_route_points(row)
+        if include_route_checks and row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points
+        else ("", "")
+    )
     if row_type in _IMPORTANT_CITY_TYPES and not city and not sparse_route_summary and not local_route_without_points and not (row_type in _ROUTE_TYPES and destination):
         flags.append("missing_city")
     if row_type == "Hotel":
@@ -133,7 +146,7 @@ def parser_review_flags(row: Mapping[str, Any]) -> tuple[str, ...]:
             flags.append("missing_hotel_nights")
         if not sparse_hotel_summary and not _text(row, "room_category", "room"):
             flags.append("missing_room_category")
-    if row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points:
+    if include_route_checks and row_type in _ROUTE_TYPES and not sparse_route_summary and not local_route_without_points:
         if not origin:
             flags.append("missing_route_origin")
         if not destination:
@@ -154,10 +167,9 @@ def parser_review_flags(row: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(unique)
 
 
-def parser_confidence(row: Mapping[str, Any]) -> int:
-    """Return a 0-100 row confidence score based on review flags."""
+def confidence_from_review_flags(flags: tuple[str, ...] | list[str]) -> int:
+    """Return a 0-100 confidence score for an established flag sequence."""
 
-    flags = parser_review_flags(row)
     score = 100
     weights = {
         "missing_hotel_name": 45,
@@ -175,10 +187,26 @@ def parser_confidence(row: Mapping[str, Any]) -> int:
     return max(0, min(100, score))
 
 
-def annotate_parser_quality(row: dict[str, Any]) -> dict[str, Any]:
-    """Attach parser confidence metadata to a mutable row and return it."""
+def parser_confidence(
+    row: Mapping[str, Any],
+    *,
+    include_route_checks: bool = False,
+) -> int:
+    """Return a 0-100 row confidence score based on review flags."""
 
-    flags = parser_review_flags(row)
+    return confidence_from_review_flags(
+        parser_review_flags(row, include_route_checks=include_route_checks)
+    )
+
+
+def annotate_parser_quality(
+    row: dict[str, Any],
+    *,
+    include_route_checks: bool = False,
+) -> dict[str, Any]:
+    """Attach input-review metadata to a mutable row and return it."""
+
+    flags = parser_review_flags(row, include_route_checks=include_route_checks)
     row["parser_review_flags"] = list(flags)
-    row["parser_confidence"] = parser_confidence(row)
+    row["parser_confidence"] = parser_confidence(row, include_route_checks=include_route_checks)
     return row

@@ -24,7 +24,7 @@ from calculator.library_read_summary import summarize_local_library_read
 from calculator.library_store import LocalLibraryReadResult
 from calculator.state_revision import calculator_state_revision
 
-_LIBRARY_PAYLOAD_VERSION = "compact-v2"
+_LIBRARY_PAYLOAD_VERSION = "compact-v3"
 _LIBRARY_ROW_FIELDS: tuple[str, ...] = (
     "day",
     "type",
@@ -93,6 +93,10 @@ def build_calculator_grid_payload(
         "financial_rules": financial_rules_payload(),
         "library_status": _library_read_status(library_read),
         "library_source": library_read.source,
+        "library_authority_id": library_read.authority_id,
+        "library_supported_worksheets": library_read.supported_worksheets,
+        "library_cache_status": library_read.cache_status,
+        "library_cache_invalidation_reason": library_read.cache_invalidation_reason,
         "library_read_only": library_read.read_only,
         "library_message": library_read.message,
         "library_payload_version": _LIBRARY_PAYLOAD_VERSION,
@@ -142,6 +146,7 @@ def _compact_library_row_payload(row: LocalLibraryRow) -> dict[str, Any]:
     }
     return {
         "i": row.library_id,
+        "b": row.source_workbook,
         "w": row.source_sheet,
         "x": row.source_row,
         "c": row.country,

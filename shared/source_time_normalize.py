@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from parser_modules.common import clean_space
-from parser_modules.time_tokens import format_time_token, infer_range_suffixes, parse_time_token
+from shared.text import clean_space
+from shared.source_time_tokens import format_time_token, infer_range_suffixes, parse_time_token
 
 
 def _strip_supplier_warning_time_text(text: str) -> str:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from parser_modules.common import extract_route_points
+from itinerary_domain.source_route_parsing import extract_route_points
 from place_aliases import canonicalize_place_name
 from text_polish import polish_client_text
 from itinerary_generation.transport_domain.route_hubs import (

@@ -5,14 +5,19 @@ from images.replacement_options import list_replacement_image_options_for_rows
 
 
 def test_active_main_view_uses_locked_document_flow_without_old_steps():
-    source = read_contract_text("app_modules/main_view.py")
-    config_source = read_contract_text("app_modules/workflow_config.py")
+    from app_modules.route_registry import SUPPORTED_WORKFLOW_STAGES
+    from app_modules.workflow_config import FLOW_STAGES, STAGE_LABELS
 
-    assert 'FLOW_STAGES = ("input", "edit", "pictures", "export")' in config_source
-    assert '"input": "Paste text"' in config_source
-    assert '"edit": "Edit itinerary"' in config_source
-    assert '"pictures": "Add pictures"' in config_source
-    assert '"export": "Create PDF"' in config_source
+    source = read_contract_text("app_modules/main_view.py")
+
+    assert FLOW_STAGES is SUPPORTED_WORKFLOW_STAGES
+    assert FLOW_STAGES == ("input", "edit", "pictures", "export")
+    assert STAGE_LABELS == {
+        "input": "Paste text",
+        "edit": "Edit itinerary",
+        "pictures": "Add pictures",
+        "export": "Create PDF",
+    }
 
     assert "st.sidebar" not in source
     assert "render_sidebar_controls" not in source

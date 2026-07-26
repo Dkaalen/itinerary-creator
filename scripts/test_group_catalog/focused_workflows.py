@@ -19,6 +19,7 @@ CALCULATOR_BROWSER_WORKFLOW_TESTS = (
     'tests/test_calculator_browser_autocomplete_and_fetching.py::test_travel_element_autocomplete_stays_open_during_a_typing_pause',
     'tests/test_calculator_browser_autocomplete_and_fetching.py::test_fetched_suggestion_returns_focus_to_grid_navigation_mode',
     'tests/test_calculator_browser_autocomplete_and_fetching.py::test_fetched_nok_product_defaults_sales_price_to_eur_conversion',
+    'tests/test_calculator_browser_autocomplete_and_fetching.py::test_fetched_product_keeps_workbook_provenance_in_browser_state',
     'tests/test_calculator_browser_formulas_and_currencies.py::test_cross_row_formula_dependents_refresh_immediately_after_edit',
     'tests/test_calculator_browser_formulas_and_currencies.py::test_sales_price_expression_is_precise_internally_and_shows_two_decimals',
     'tests/test_calculator_browser_formulas_and_currencies.py::test_sales_margin_shortcuts_target_actual_gp_after_commission_and_reset_to_automatic',
@@ -71,6 +72,7 @@ VALIDATION_WORKFLOW_TESTS = (
     "tests/test_calculator_action_validation.py",
     "tests/test_calculator_validation.py",
     "tests/test_local_library_workbook_diagnostics.py",
+    "tests/test_local_library_authority_contract.py",
 )
 
 WORKBOOK_WORKFLOW_TESTS = (
@@ -81,6 +83,8 @@ WORKBOOK_WORKFLOW_TESTS = (
     "tests/test_calculator_workbook_export.py",
     "tests/test_calculator_workbook_package_modules.py",
     "tests/test_calculator_template_structure.py",
+    "tests/test_local_library_authority_contract.py",
+    "tests/test_local_library_provenance_contract.py",
 )
 
 REALISTIC_CALCULATOR_WORKFLOW_TESTS = (

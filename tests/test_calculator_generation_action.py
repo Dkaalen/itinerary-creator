@@ -86,3 +86,47 @@ def test_downstream_generation_failure_restores_existing_workflow_stage(monkeypa
     assert result.stage == "pictures"
     assert session_state["app_stage"] == "pictures"
     assert session_state["active_app_page"] == CALCULATOR_PAGE
+
+
+def test_generate_itinerary_from_sourced_rows_passes_prepared_provenance(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    def fake_generate_itinerary(state, raw_text, *, prepared_parsed_rows=None):
+        calls["raw_text"] = raw_text
+        calls["prepared_rows"] = prepared_parsed_rows
+        state["parsed_rows"] = prepared_parsed_rows or []
+        return WorkflowActionResult(ok=True, stage="edit", message="ok")
+
+    monkeypatch.setattr(
+        "app_modules.calculator_generation_action.generate_itinerary",
+        fake_generate_itinerary,
+    )
+    calculator_state = CalculatorState(
+        itinerary_name="Workbook lineage",
+        rows=(
+            CalculatorRow(
+                row_id="4",
+                day="Day 1",
+                type="Activity",
+                travel_element="Rovaniemi: Northern lights hunt",
+                url="https://supplier.invalid/activity",
+                library_id="activities_row_19",
+                source_workbook="Calculation-template-Inputs-fixed-outline-restored.xlsx",
+                source_sheet="Activities",
+                source_row=19,
+            ),
+        ),
+    )
+
+    result = generate_itinerary_from_calculator(
+        {"active_app_page": CALCULATOR_PAGE}, calculator_state
+    )
+
+    assert result.ok is True
+    prepared = calls["prepared_rows"]
+    assert isinstance(prepared, list)
+    assert prepared[0]["library_id"] == "activities_row_19"
+    assert prepared[0]["source_sheet"] == "Activities"
+    assert prepared[0]["source_row"] == 19
+    assert prepared[0]["source_url"] == "https://supplier.invalid/activity"
+    assert "supplier.invalid" not in str(calls["raw_text"])

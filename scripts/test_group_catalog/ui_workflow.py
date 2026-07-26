@@ -181,6 +181,8 @@ CALCULATOR_TESTS = (
     "tests/test_calculator_grid_values.py",
     "tests/test_calculator_library_cache.py",
     "tests/test_calculator_library_read_summary.py",
+    "tests/test_local_library_authority_contract.py",
+    "tests/test_local_library_provenance_contract.py",
     "tests/test_local_excel_library.py",
     "tests/test_calculator_library_search.py",
     "tests/test_calculator_library_ranking_parity.py",
@@ -223,6 +225,7 @@ STORAGE_TESTS = (
 )
 
 WORKFLOW_TESTS = (
+    "tests/test_streamlit_routing_contract.py",
     "tests/test_lazy_page_imports.py",
     "tests/test_workflow_reliability_regression.py",
     "tests/test_hosted_workflow_guardrails_regression.py",

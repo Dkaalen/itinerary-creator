@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from dataclasses import fields
 from typing import Mapping
 
+from calculator.library_identity import stable_local_library_id
 from calculator.library_model import (
     FORMULA_FIELD_NAMES,
     LINE_RECORD_TYPE,
@@ -88,7 +88,7 @@ def normalize_library_mapping(
     normalized["supplier_currency"] = _currency(normalized["supplier_currency"])
     normalized["sales_currency"] = _currency(normalized["sales_currency"])
     normalized["category"] = normalized["category"] or normalized["type"]
-    normalized["library_id"] = normalized["library_id"] or _stable_library_id(normalized)
+    normalized["library_id"] = normalized["library_id"] or stable_local_library_id(normalized)
     normalized["search_text"] = normalized["search_text"] or build_search_text(normalized)
     return LocalLibraryRow(**normalized)
 
@@ -109,6 +109,10 @@ def library_row_to_calculator_row(row: LocalLibraryRow, row_id: str = "") -> Cal
 
     return CalculatorRow(
         row_id=row_id,
+        library_id=row.library_id,
+        source_workbook=row.source_workbook,
+        source_sheet=row.source_sheet,
+        source_row=row.source_row,
         day=row.day,
         type=row.type,
         from_date=row.from_date,
@@ -186,16 +190,6 @@ def _normalize_value(field_name: str, value: object, *, strict_numeric: bool = F
         return _text(value)
     return value
 
-
-def _stable_library_id(values: Mapping[str, object]) -> str:
-    seed = "|".join(
-        _text(values.get(key))
-        for key in ("source_sheet", "source_row", "country", "category", "type", "travel_element")
-    )
-    digest = hashlib.sha1(seed.encode("utf-8")).hexdigest()[:10]
-    prefix = _text(values.get("country") or values.get("source_sheet") or "lib").lower()
-    prefix = re.sub(r"[^a-z0-9]+", "_", prefix).strip("_") or "lib"
-    return f"{prefix}_{digest}"
 
 
 def _is_empty(raw_row: Mapping[str, object]) -> bool:

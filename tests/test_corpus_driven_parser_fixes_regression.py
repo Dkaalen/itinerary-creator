@@ -1,4 +1,5 @@
 from itinerary_parser import parse_itinerary
+from normalizer import normalize_itinerary_rows
 
 
 def _row(day, row_type, city, details, nights="", start="46158", end=""):
@@ -104,8 +105,10 @@ def test_sparse_departure_uses_same_day_city_context():
         _row("Day 11", "Transfer", "", "Departure", start="46209"),
     ])
 
-    rows = parse_itinerary(raw)
+    parsed = parse_itinerary(raw)
+    assert parsed[1]["city"] == ""
 
+    rows = normalize_itinerary_rows(parsed)
     assert rows[1]["city"] == "Bergen"
     assert "missing_city" not in rows[1]["parser_review_flags"]
 
@@ -116,8 +119,10 @@ def test_sparse_transfer_before_hotel_is_backfilled_from_same_day_city():
         _row("Day 1", "Hotel", "Reykjavik", "3 Star , Klettur Hotel, 1x Standard Double Room, Incl Breakfast", start="46194", end="46195"),
     ])
 
-    rows = parse_itinerary(raw)
+    parsed = parse_itinerary(raw)
+    assert parsed[0]["city"] == ""
 
+    rows = normalize_itinerary_rows(parsed)
     assert rows[0]["city"] == "Reykjavík"
     assert "missing_city" not in rows[0]["parser_review_flags"]
 
@@ -183,7 +188,7 @@ def test_norway_in_a_nutshell_route_points_are_extracted():
         start="46200",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Transport"
     assert row["route_origin"] == "Oslo"
@@ -201,7 +206,7 @@ def test_timed_multileg_transport_route_points_are_extracted():
         start="46200",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["route_origin"] == "Ålesund"
     assert row["route_destination"] == "Trondheim S"
@@ -230,7 +235,7 @@ def test_cost_row_after_transfer_does_not_pollute_transfer_title():
         _row("3000", "per pax", "650.0", "486.8"),
     ])
 
-    rows = parse_itinerary(raw)
+    rows = normalize_itinerary_rows(parse_itinerary(raw))
 
     assert len(rows) == 1
     assert rows[0]["title"] == "Private transfer from your hotel to Tromsø Airport"
@@ -245,7 +250,7 @@ def test_nutshell_schedule_without_dashes_extracts_first_and_last_place():
         start="46200",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Transport"
     assert row["route_origin"] == "Oslo"
@@ -263,7 +268,7 @@ def test_timed_airport_flight_extracts_route_points():
         start="46200",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Flight"
     assert row["route_origin"] == "Copenhagen Airport"
@@ -279,7 +284,7 @@ def test_self_arranged_flight_without_route_points_is_not_review_noise():
         start="46200",
     )
 
-    row = parse_itinerary(raw)[0]
+    row = normalize_itinerary_rows(parse_itinerary(raw))[0]
 
     assert row["effective_type"] == "Flight"
     assert "missing_route_origin" not in row.get("parser_review_flags", [])

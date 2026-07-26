@@ -70,7 +70,7 @@ def test_seeded_output_selection_is_deterministic() -> None:
 
 
 def test_activity_upgrade_typo_fixture_no_longer_errors() -> None:
-    from parser_modules.effective_type_detection import detect_effective_type
+    from itinerary_domain.row_type_detection import detect_effective_type
 
     assert detect_effective_type("Actvity Upgrade", "Optional glacier hike", "Optional add-on") == "Activity Upgrade"
 

@@ -6,7 +6,7 @@ from itinerary_generation.transport_domain.titles import get_transport_route_phr
 from itinerary_parser import parse_itinerary
 from normalizer import normalize_itinerary_rows
 from parser_modules.extractors import extract_includes_from_description, extract_meeting_point_from_description
-from parser_modules.text_cleanup import fix_common_text, repair_supplier_section_boundaries
+from shared.source_text_cleanup import fix_common_text, repair_supplier_section_boundaries
 from ui.day_blocks import build_day_blocks
 
 

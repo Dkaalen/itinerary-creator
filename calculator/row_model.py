@@ -108,6 +108,10 @@ class CalculatorRow:
     sales_price_nok_total_override: float | str | None = None
     gp_nok_override: float | str | None = None
     gp_percent_override: float | str | None = None
+    library_id: str = ""
+    source_workbook: str = ""
+    source_sheet: str = ""
+    source_row: int | None = None
 
     def with_changes(self, **changes: Any) -> "CalculatorRow":
         """Return a copy of this row with selected fields changed."""

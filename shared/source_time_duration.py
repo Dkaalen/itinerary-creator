@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 
 from time_duration import format_duration_display
-from parser_modules.common import clean_space
-from parser_modules.time_normalize import normalize_time_text
+from shared.text import clean_space
+from shared.source_time_normalize import normalize_time_text
 
 
 def normalize_duration_text(value):

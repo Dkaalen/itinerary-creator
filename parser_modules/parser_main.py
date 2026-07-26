@@ -144,8 +144,6 @@ def parse_itinerary(raw_text):
             continue
 
         state.remember_row_id(row_id)
-        state.apply_context(row)
-        state.register_row_context(row, row.get("type", ""))
         rows.append(row)
 
     return rows

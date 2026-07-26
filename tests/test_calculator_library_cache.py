@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app_modules.calculator_library_cache import clear_cached_local_library, read_cached_local_library
+from app_modules.calculator_state_keys import CALCULATOR_LIBRARY_BROWSER_ACK_KEY
 from calculator.library_model import LocalLibraryRow
 from calculator.library_store import LocalLibraryReadResult
 
@@ -24,7 +25,13 @@ def test_cached_local_library_reuses_fresh_result() -> None:
 
 
 def test_cached_local_library_can_be_cleared() -> None:
-    session_state: dict[str, object] = {}
+    session_state: dict[str, object] = {
+        CALCULATOR_LIBRARY_BROWSER_ACK_KEY: {
+            "fingerprint": "old",
+            "payload_version": "compact-v3",
+            "row_count": 1,
+        }
+    }
     result = LocalLibraryReadResult(rows=(), source="test", read_only=False)
 
     read_cached_local_library(session_state, reader=lambda: result)

@@ -85,12 +85,64 @@ def has_numbered_bus_or_coach(combined: str) -> bool:
     return bool(re.search(r"\b(bus|coach)\s*\d+\b", combined))
 
 
+def looks_like_cruise_experience_text(text: str) -> bool:
+    """Return True when cruise wording describes a bookable experience.
+
+    Route-shaped supplier activity wording such as ``fjord cruise to
+    Mostraumen`` remains an Activity unless the text clearly describes an
+    overnight or point-to-point transport service.
+    """
+
+    lower = str(text or "").lower()
+    if not lower or "cruise" not in lower:
+        return False
+
+    if re.search(r"\b(?:overnight|night|coastal|atlantic ocean)\s+cruise\b", lower):
+        return False
+    if re.search(r"\bcruise\s+(?:from\s+)?[a-zà-ÿøåäö .'-]+\s+to\s+[a-zà-ÿøåäö .'-]+\b", lower) and not any(
+        marker in lower
+        for marker in ("round-trip", "round trip", "return", "day trip", "sightseeing", "fjord", "canal", "archipelago")
+    ):
+        return False
+
+    experience_markers = (
+        "fjord cruise",
+        "sightseeing cruise",
+        "cruise day trip",
+        "day cruise",
+        "canal cruise",
+        "archipelago cruise",
+        "wildlife cruise",
+        "northern lights cruise",
+        "icebreaker cruise",
+        "dinner cruise",
+        "private cruise",
+        "boat tour",
+        "catamaran",
+        "rib safari",
+        "sea eagle",
+        "oslofjord",
+        "oslo fjord",
+        "nærøyfjord",
+        "naeroyfjord",
+        "mostraumen",
+        "geirangerfjord",
+        "geiranger fjord",
+        "trollfjord",
+    )
+    if any(marker in lower for marker in experience_markers):
+        return True
+
+    return bool(re.search(r"\b(?:time|duration|meeting point|includes?|description)\s*:", lower))
+
+
 __all__ = [
     "ACTIVITY_EXPERIENCE_MARKERS",
     "LOCAL_TRANSFER_MARKERS",
     "LONG_DISTANCE_COACH_MARKERS",
     "PURE_TRANSPORT_ACTIVITY_MARKERS",
     "has_numbered_bus_or_coach",
+    "looks_like_cruise_experience_text",
     "looks_like_local_transfer",
     "looks_like_long_distance_coach_or_bus",
     "looks_like_pure_transport_activity",

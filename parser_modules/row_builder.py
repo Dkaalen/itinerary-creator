@@ -26,7 +26,7 @@ def build_base_row(
         "day": current_day,
         "type": item_type,
         "source_type": original_item_type,
-        "effective_type": "",
+        "effective_type": item_type,
         "commercial_status": commercial_status,
         "commercial_reason": commercial_reason,
         "start_date": start_date,

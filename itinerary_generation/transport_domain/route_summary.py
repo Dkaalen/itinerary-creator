@@ -17,7 +17,7 @@ from itinerary_generation.transport_detection import is_route_transfer
 from itinerary_generation.transport_domain.routes import get_route_points_for_transport
 from itinerary_generation.transport_domain.titles import get_transfer_travel_title
 from itinerary_generation.transport_safety import base_destination_from_terminal
-from parser_modules.common import extract_route_points
+from itinerary_domain.source_route_parsing import extract_route_points
 from text_polish import polish_title
 
 

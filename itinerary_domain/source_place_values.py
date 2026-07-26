@@ -1,11 +1,12 @@
-"""Parser place-value validation and normalization."""
+"""Neutral source place-value validation and normalization."""
 from __future__ import annotations
 
 import re
 
 from place_aliases import canonicalize_place_name, is_likely_service_text
-from .text_cleanup import clean_space, fix_common_text
-from .type_detection import looks_like_day, looks_like_date, looks_like_known_type
+from shared.source_text_cleanup import fix_common_text
+from shared.text import clean_space
+from shared.row_type_values import looks_like_day, looks_like_date, looks_like_known_type
 
 INVALID_CITY_VALUES = {"eur", "nok", "sek", "dkk", "isk", "usd", "gbp"}
 
@@ -106,3 +107,17 @@ def normalize_place_name(value):
 
     return canonicalize_place_name(place)
 
+
+
+def city_airport(city: object) -> str:
+    city = normalize_place_name(city)
+    return f"{city} Airport" if city else "the airport"
+
+
+__all__ = [
+    "INVALID_CITY_MARKERS",
+    "INVALID_CITY_VALUES",
+    "city_airport",
+    "is_valid_city_value",
+    "normalize_place_name",
+]

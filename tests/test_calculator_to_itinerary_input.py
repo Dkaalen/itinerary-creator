@@ -30,7 +30,7 @@ def test_calculator_rows_convert_to_existing_tab_separated_input_shape() -> None
     assert raw_input == (
         "Day 1\tActivity\t\t01/10/2026\t\t10:30\t12:45\tLocal Guide\t"
         "Helsinki: A Finntastic Walking Tour - Time: 10:30 - 12:45 - "
-        "Meeting point: Senate Square - URL: https://example.com/tour"
+        "Meeting point: Senate Square"
     )
 
 

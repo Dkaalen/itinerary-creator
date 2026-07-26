@@ -3,7 +3,6 @@
 import copy
 import re
 
-from itinerary_domain.activity_products import fingerprint_activity
 from itinerary_domain.nutshell_domain import attach_nutshell_journey, is_nutshell_row
 from itinerary_domain.transport_norway import _is_norway_in_a_nutshell_text
 from normalizer_modules.activities import (
@@ -12,6 +11,7 @@ from normalizer_modules.activities import (
     looks_like_leisure_activity,
     normalize_activity_title,
 )
+from normalizer_modules.domain_enrichment import enrich_normalized_row_domain
 from normalizer_modules.hotels import normalize_hotel_row
 from normalizer_modules.inclusions import split_and_merge_inclusions
 from normalizer_modules.rental import looks_like_rental_vehicle_row, normalize_rental_vehicle_row
@@ -114,65 +114,50 @@ def _normalize_lists(row):
     return row
 
 
+def _finalize_normalized_row(row: dict) -> dict:
+    row = attach_nutshell_journey(row) if is_nutshell_row(row) else row
+    row.pop("_normalization_source_title", None)
+    return row
+
+
 def normalize_row(row: dict) -> dict:
     row = copy.deepcopy(row)
+    existing_product = row.get("activity_product")
+    if isinstance(existing_product, dict) and existing_product.get("source_title"):
+        row["_normalization_source_title"] = str(existing_product["source_title"])
     initial = get_row_type(row)
+    row_type = enrich_normalized_row_domain(row)
     _clean_base_fields(row, initial)
-    row_type = get_row_type(row)
     full = text_blob(row)
-
-    if str(row.get("type") or "") == "Activity":
-        # Explicit Activity is authoritative unless the source row passes one
-        # of the narrow transport-package contracts.  Parser heuristics may
-        # propose Cruise/Transport after seeing words such as ferry or coach
-        # inside an excursion description; the normalizer must not preserve
-        # that false override.
-        is_accommodation_transfer = bool(
-            row_type == "Transfer"
-            and re.search(
-                r"\btransfer\s+to\s+(?:glass\s+)?(?:igloo|hotel|accommodation|resort|cabin|lodge)\b|\btransfer\s+to\s+[^.]{0,40}stay\b",
-                full,
-                flags=re.IGNORECASE,
-            )
-        )
-        if row_type != "Activity" and not (
-            _is_rail_or_fjord_route_activity(row)
-            or _is_route_transfer_activity(row)
-            or is_accommodation_transfer
-        ):
-            row["effective_type"] = row_type = "Activity"
-        product = fingerprint_activity(row)
-        if product and product.product_type == "ferry_excursion":
-            row["effective_type"] = row_type = "Activity"
 
     if looks_like_misclassified_hotel_row(row):
         row["effective_type"] = "Hotel"
         row["type"] = row.get("type") or "Hotel"
-        return normalize_hotel_row(row)
+        return _finalize_normalized_row(normalize_hotel_row(row))
 
     if looks_like_departure_text(full) and not _is_group_tour_overview(row):
         row["effective_type"] = "Departure"
         row["type"] = row.get("type") or "Departure"
         city = canonicalize_place_name(row.get("city", ""))
         row["title"] = f"Departure from {city}" if city else "Departure"
-        return row
+        return _finalize_normalized_row(row)
 
     if looks_like_rental_vehicle_row(row):
         row = normalize_rental_vehicle_row(row)
         if isinstance(row.get("includes"), list):
             row["includes"] = split_and_merge_inclusions(row.get("includes", []))
-        return normalize_time_range_fields(row)
+        return _finalize_normalized_row(normalize_time_range_fields(row))
 
     if row_type == "Hotel":
-        return normalize_hotel_row(row)
+        return _finalize_normalized_row(normalize_hotel_row(row))
 
     if row_type == "Activity":
         row, row_type = _normalize_activity(row, row_type, full)
         if row_type == "Leisure":
-            return row
+            return _finalize_normalized_row(row)
 
     if get_row_type(row) in TRANSPORT_TYPES or row_type == "Transfer":
         row = normalize_transport_title(row)
 
     row = normalize_time_range_fields(_normalize_lists(row))
-    return attach_nutshell_journey(row) if is_nutshell_row(row) else row
+    return _finalize_normalized_row(row)

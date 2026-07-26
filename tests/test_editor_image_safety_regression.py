@@ -20,7 +20,7 @@ from images.matcher_context import build_day_context
 from images.matcher_scoring import score_image_for_day
 from images.metadata import ImageCandidate
 from parser_modules.extractors import extract_meeting_point_from_description
-from parser_modules.transport_titles import standardize_private_transfer_title
+from itinerary_generation.transport_domain.parser import standardize_private_transfer_title
 from ui.travel_sequence_blocks import build_travel_arrangements_block
 from visual_editor_component.editor_workflow import apply_visual_editor_result
 from ui.day_page_sections import render_day_section

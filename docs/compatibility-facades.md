@@ -8,11 +8,21 @@ implementation is split into smaller packages. Do not delete them just because t
 | Facade | Current owner package | Why it stays |
 | --- | --- | --- |
 | `generator.py` | `itinerary_generation` | Older tests, scripts, and app code still import high-level generation helpers from `generator`. |
-| `itinerary_parser.py` | `parser_modules` | Main parsing API used by app workflow and regression tests. |
-| `normalizer.py` | `normalizer_modules` | Main normalization API used by app workflow and regression tests. |
 | `text_polish.py` | `text_polish_modules` | Shared text cleanup import path used broadly across parser, generation, PDF, UI, and tests. |
 | `image_matcher.py` | `images` | Stable image-matching import path used by image UI and tests. |
 | `pdf_exporter.py` | `pdf_exporter_modules.public_api` | Stable PDF export import path used by tests and legacy scripts. |
+
+## Supported top-level APIs
+
+These thin modules are not legacy compatibility facades. They are the official
+application boundaries for their subsystems. Their explicit ``__all__``
+surfaces define the supported imports, while implementation modules remain
+private to their packages.
+
+| Public API | Current owner package | Contract |
+| --- | --- | --- |
+| `itinerary_parser.py` | `parser_modules` | Supported raw-input parsing API. |
+| `normalizer.py` | `normalizer_modules` | Supported itinerary-row normalization API. |
 
 ## Required package-level facades
 

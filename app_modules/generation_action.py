@@ -30,11 +30,20 @@ from app_modules.session_state_keys import (
 )
 
 
-def _parse_and_review(state: MutableMapping[str, Any], raw_text: str) -> tuple[list[dict], Any]:
+def _parse_and_review(
+    state: MutableMapping[str, Any],
+    raw_text: str,
+    *,
+    prepared_parsed_rows: list[dict] | None = None,
+) -> tuple[list[dict], Any]:
     """Parse supplier input and store review diagnostics."""
 
     # Single parser/generator pipeline guard: parse_and_normalize_itinerary(raw_text)
-    parsed_rows = parse_and_normalize_itinerary(raw_text, state=state)
+    parsed_rows = (
+        [dict(row) for row in prepared_parsed_rows]
+        if prepared_parsed_rows is not None
+        else parse_and_normalize_itinerary(raw_text, state=state)
+    )
     validation_report = validate_for_generation(parsed_rows)
     state[PARSER_DIAGNOSTICS_KEY] = diagnostics.get_warnings()
     state[STRUCTURED_INPUT_REVIEW_KEY] = build_structured_input_review(
@@ -64,14 +73,23 @@ def _store_generated_preview(
     return artifact.overflow_warnings
 
 
-def generate_itinerary(state: MutableMapping[str, Any], raw_text: str) -> WorkflowActionResult:
+def generate_itinerary(
+    state: MutableMapping[str, Any],
+    raw_text: str,
+    *,
+    prepared_parsed_rows: list[dict] | None = None,
+) -> WorkflowActionResult:
     """Parse supplier text and build the first editable itinerary preview."""
 
     diagnostics.reset()
     clear_project_boundary_transients(state)
     reset_performance_telemetry(state)
 
-    parsed_rows, validation_report = _parse_and_review(state, raw_text)
+    parsed_rows, validation_report = _parse_and_review(
+        state,
+        raw_text,
+        prepared_parsed_rows=prepared_parsed_rows,
+    )
     if validation_report.is_blocked:
         return WorkflowActionResult(
             ok=False,

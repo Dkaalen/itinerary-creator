@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from calculator.library_identity import local_library_source_identity
+
 LOCAL_LIBRARY_SCHEMA_VERSION = "local_library_v1"
 LOCAL_LIBRARY_SHEET_NAME = "Local Library"
 LINE_RECORD_TYPE = "line"
@@ -150,6 +152,12 @@ class LocalLibraryRow:
     created_at: str = ""
     updated_at: str = ""
     updated_by: str = ""
+
+    @property
+    def source_identity(self) -> str:
+        """Return stable workbook provenance independent of display text."""
+
+        return local_library_source_identity(self.__dict__)
 
     @property
     def is_available_for_fetch(self) -> bool:

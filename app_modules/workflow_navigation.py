@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-from ui.picture_workflow import pictures_are_added
+from app_modules.route_registry import EDIT_STAGE, EXPORT_STAGE, INPUT_STAGE, PICTURES_STAGE
 from app_modules.session_state_keys import (
     ACTIVE_APP_PAGE_KEY,
     APP_STAGE_KEY,
@@ -20,13 +20,14 @@ from app_modules.session_state_keys import (
     WORKFLOW_PAGE,
     WORKFLOW_STAGES,
 )
+from ui.picture_workflow import pictures_are_added
 
 
 def normalize_workflow_stage(stage: object) -> str:
     """Return one supported workflow stage, falling back to input."""
 
-    value = str(stage or "input")
-    return value if value in WORKFLOW_STAGES else "input"
+    value = str(stage or INPUT_STAGE)
+    return value if value in WORKFLOW_STAGES else INPUT_STAGE
 
 
 def route_to_calculator(state: MutableMapping[str, Any]) -> None:
@@ -52,11 +53,11 @@ def transition_workflow_stage(state: MutableMapping[str, Any], stage: object) ->
 def session_stage_from_state(state: Mapping[str, Any]) -> str:
     """Resolve the visible workflow stage from current project state."""
 
-    stage = normalize_workflow_stage(state.get(APP_STAGE_KEY, "input"))
+    stage = normalize_workflow_stage(state.get(APP_STAGE_KEY, INPUT_STAGE))
     if not state.get(PARSED_ROWS_KEY):
-        return "input"
-    if stage in {"pictures", "export"} and not pictures_are_added(state.get(OUTPUT_EDITS_KEY, {}) or {}):
-        return "edit"
+        return INPUT_STAGE
+    if stage in {PICTURES_STAGE, EXPORT_STAGE} and not pictures_are_added(state.get(OUTPUT_EDITS_KEY, {}) or {}):
+        return EDIT_STAGE
     return stage
 
 
