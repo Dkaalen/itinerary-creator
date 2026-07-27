@@ -27,6 +27,9 @@ def test_clear_deleted_project_from_session_only_clears_active_project() -> None
         "active_project_storage_id": "active-1",
         "active_saved_project_id": "active-1",
         "active_saved_project": {"metadata": {"project_id": "active-1"}},
+        "active_project_cloud_persisted": True,
+        "project_storage_last_saved_baseline": {"metadata": {"project_id": "active-1"}},
+        "project_storage_last_saved_version_id": "version-1",
         "project_storage_last_saved_snapshot_path": "snapshots/latest.json",
         "project_storage_last_calculator_file_path": "calculator/latest.xlsx",
         "project_storage_last_pdf_path": "pdf/latest.pdf",
@@ -48,6 +51,9 @@ def test_clear_deleted_project_from_session_only_clears_active_project() -> None
     assert "active_project_storage_id" not in state
     assert "active_saved_project_id" not in state
     assert "active_saved_project" not in state
+    assert "active_project_cloud_persisted" not in state
+    assert "project_storage_last_saved_baseline" not in state
+    assert "project_storage_last_saved_version_id" not in state
     assert "project_storage_last_saved_snapshot_path" not in state
     assert "project_storage_last_calculator_file_path" not in state
     assert "project_storage_last_pdf_path" not in state

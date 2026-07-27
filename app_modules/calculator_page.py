@@ -174,8 +174,12 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 def _render_calculator_topbar() -> None:
     """Render page-level branding and a reliable route back to the workspace."""
 
-    render_studio_brand()
-    render_back_to_main_page_button()
+    with st.container(key="calculator_topbar"):
+        brand_col, back_col = st.columns([0.76, 0.24], gap="small", vertical_alignment="center")
+        with brand_col:
+            render_studio_brand()
+        with back_col:
+            render_back_to_main_page_button(use_container_width=True)
 
 
 def _render_calculator_header() -> None:

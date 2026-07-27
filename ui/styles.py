@@ -6,6 +6,7 @@ import streamlit as st
 
 from ui import (
     style_app_shell,
+    style_component_layout,
     style_debug,
     style_export,
     style_forms,
@@ -19,6 +20,7 @@ STYLE_SECTIONS = (
     style_tokens.CSS,
     style_app_shell.CSS,
     style_forms.CSS,
+    style_component_layout.CSS,
     style_workflow.CSS,
     style_export.CSS,
     style_image_bank.CSS,

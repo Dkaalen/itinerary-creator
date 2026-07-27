@@ -60,12 +60,18 @@ CSS = r"""
 }
 
 @media (max-width: 740px) {
-    .export-readiness-panel {
+    .export-readiness-panel,
+    .pdf-ready-panel {
         align-items: flex-start;
         flex-direction: column;
     }
     .export-readiness-chips {
         justify-content: flex-start;
+    }
+    .pdf-ready-panel .pdf-ready-location {
+        align-self: flex-start;
+        max-width: 100%;
+        overflow-wrap: anywhere;
     }
 }
 
@@ -108,8 +114,8 @@ CSS = r"""
     letter-spacing: .08em;
 }
 
-div[data-testid="stDownloadButton"]:has([data-testid="stBaseButton-primary"]),
-div[data-testid="stDownloadButton"]:has(button[kind="primary"]) {
+div[class*="st-key-pdf_download_station_"] div[data-testid="stDownloadButton"]:has([data-testid="stBaseButton-primary"]),
+div[class*="st-key-pdf_download_station_"] div[data-testid="stDownloadButton"]:has(button[kind="primary"]) {
     position: sticky !important;
     bottom: 1rem !important;
     z-index: 999 !important;

@@ -27,6 +27,8 @@ def test_project_boundary_cleanup_removes_stale_browser_transaction_state() -> N
         "_pdf_export_job": {"state": "saving"},
         "_image_bank_status_cache": {"status": {}},
         "add_pictures_last_error": "stale",
+        "project_save_as_visible": True,
+        "save_as_cloud_project_name_current": "Stale copy name",
         "parsed_rows": [{"day": "Day 1"}],
     }
 
@@ -43,6 +45,8 @@ def test_project_boundary_cleanup_removes_stale_browser_transaction_state() -> N
         "_pdf_export_job",
         "_image_bank_status_cache",
         "add_pictures_last_error",
+        "project_save_as_visible",
+        "save_as_cloud_project_name_current",
     ):
         assert key not in state
 

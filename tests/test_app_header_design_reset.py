@@ -41,7 +41,7 @@ def test_app_header_renders_compact_workspace_shell_for_active_itinerary(monkeyp
     assert "Norway Winter" in calls[0][1]
     assert "2 days" in calls[0][1]
     assert "Add pictures" in calls[0][1]
-    assert "Unsaved changes" in calls[0][1]
+    assert "Not saved" in calls[0][1]
 
 
 def test_input_page_uses_compact_project_upload_and_calculator_entry(monkeypatch):
@@ -87,3 +87,39 @@ def test_input_page_uses_compact_project_upload_and_calculator_entry(monkeypatch
     )
     assert nav_calls[1][0] == "caption"
     assert not any(call[0] == "rerun" for call in nav_calls)
+
+
+def test_app_header_distinguishes_cloud_saved_from_cloud_dirty(monkeypatch):
+    calls = []
+    payload = {
+        "metadata": {"project_id": "project-1", "itinerary_name": "Norway Winter"},
+        "source": {"source_input": ""},
+        "current_snapshot": {
+            "parsed_rows": [{"day": "Day 1", "type": "Hotel", "city": "Oslo"}],
+            "output_edits": {"trip_title": "Norway Winter"},
+            "detail_level": "Rich descriptive",
+            "day_page_layout": "Classic",
+        },
+    }
+    session_state = {
+        "parsed_rows": payload["current_snapshot"]["parsed_rows"],
+        "output_edits": payload["current_snapshot"]["output_edits"],
+        "itinerary_name": "Norway Winter",
+        "detail_level": "Rich descriptive",
+        "day_page_layout": "Classic",
+        "raw_text_input": "",
+        "active_project_cloud_persisted": True,
+        "project_storage_last_saved_baseline": payload,
+    }
+    fake_st = SimpleNamespace(
+        session_state=session_state,
+        html=lambda body: calls.append(body),
+    )
+    monkeypatch.setattr(app_header, "st", fake_st)
+
+    app_header._render_app_header("v-test", stage="edit")
+    assert "Cloud saved" in calls[-1]
+
+    session_state["output_edits"] = {"trip_title": "Edited title"}
+    app_header._render_app_header("v-test", stage="edit")
+    assert "Unsaved changes" in calls[-1]

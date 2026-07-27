@@ -37,13 +37,14 @@ def render_local_library_page(app_version: str) -> None:
 
 
 def _render_local_library_topbar() -> None:
-    brand_col, back_col = st.columns([0.76, 0.24], vertical_alignment="center")
-    with brand_col:
-        render_studio_brand()
-    with back_col:
-        if st.button("Back to itinerary calculator", use_container_width=True):
-            open_calculator_page(st.session_state)
-            st.rerun()
+    with st.container(key="local_library_topbar"):
+        brand_col, back_col = st.columns([0.76, 0.24], gap="small", vertical_alignment="center")
+        with brand_col:
+            render_studio_brand()
+        with back_col:
+            if st.button("Back to itinerary calculator", use_container_width=True):
+                open_calculator_page(st.session_state)
+                st.rerun()
 
 
 def _render_local_library_header() -> None:

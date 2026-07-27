@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Iterable, Protocol
 
 from project_storage.delete_result import ProjectDeleteResult
+from project_storage.project_results import (
+    ProjectBulkMutationResult,
+    ProjectBulkPurgeResult,
+    ProjectFolderOption,
+    ProjectListResult,
+)
 
 CALCULATOR_FILE_TYPE = "calculator_xlsx"
 
@@ -20,6 +26,15 @@ class ProjectBrowserRepository(Protocol):
         offset: int,
         sort: str,
     ) -> list[dict[str, Any]]: ...
+
+    def list_project_page(self, **kwargs: Any) -> ProjectListResult: ...
+
+    def list_project_folders(
+        self,
+        *,
+        owner_slug: str = "",
+        include_trashed: bool = False,
+    ) -> tuple[ProjectFolderOption, ...]: ...
 
     def list_files(
         self,
@@ -37,6 +52,34 @@ class ProjectBrowserRepository(Protocol):
 
     def latest_version(self, itinerary_id: str) -> dict[str, Any] | None: ...
 
+    def move_itineraries_to_trash(
+        self,
+        itinerary_ids: Iterable[object],
+        *,
+        actor_slug: object,
+    ) -> ProjectBulkMutationResult: ...
+
+    def restore_itineraries_from_trash(
+        self,
+        itinerary_ids: Iterable[object],
+        *,
+        actor_slug: object,
+    ) -> ProjectBulkMutationResult: ...
+
+    def bulk_update_project_organization(
+        self,
+        itinerary_ids: Iterable[object],
+        *,
+        owner_slug: object | None = None,
+        folder_name: object | None = None,
+        actor_slug: object = "unassigned",
+    ) -> ProjectBulkMutationResult: ...
+
+    def permanently_delete_itineraries(
+        self,
+        itinerary_ids: Iterable[object],
+    ) -> ProjectBulkPurgeResult: ...
+
 
 def list_itineraries(
     repository: ProjectBrowserRepository,
@@ -49,6 +92,46 @@ def list_itineraries(
     """Return a bounded set of saved itinerary records."""
 
     return tuple(repository.list_itineraries(limit=limit, search=search, offset=offset, sort=sort))
+
+
+def list_project_management_page(
+    repository: ProjectBrowserRepository,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    search: str = "",
+    sort: str = "recent",
+    owner_slug: str = "",
+    folder_name: str = "",
+    include_trashed: bool = False,
+    trash_only: bool = False,
+) -> ProjectListResult:
+    """Return exact-count owner/folder-aware project rows."""
+
+    return repository.list_project_page(
+        limit=limit,
+        offset=offset,
+        search=search,
+        sort=sort,
+        owner_slug=owner_slug,
+        folder_name=folder_name,
+        include_trashed=include_trashed,
+        trash_only=trash_only,
+    )
+
+
+def list_project_folders(
+    repository: ProjectBrowserRepository,
+    *,
+    owner_slug: str = "",
+    include_trashed: bool = False,
+) -> tuple[ProjectFolderOption, ...]:
+    """Return logical folder/reference options for Explorer filters."""
+
+    return repository.list_project_folders(
+        owner_slug=owner_slug,
+        include_trashed=include_trashed,
+    )
 
 
 def list_calculation_files(
@@ -75,9 +158,58 @@ def download_project_file(repository: ProjectBrowserRepository, storage_path: st
 
 
 def delete_itinerary(repository: ProjectBrowserRepository, itinerary_id: str) -> ProjectDeleteResult:
-    """Delete one itinerary record and best-effort cleanup its registered files."""
+    """Permanently delete one itinerary and best-effort cleanup its files."""
 
     return repository.delete_itinerary(str(itinerary_id or "").strip())
+
+
+def move_projects_to_trash(
+    repository: ProjectBrowserRepository,
+    itinerary_ids: Iterable[object],
+    *,
+    actor_slug: object,
+) -> ProjectBulkMutationResult:
+    """Soft-delete several projects while preserving versions and files."""
+
+    return repository.move_itineraries_to_trash(itinerary_ids, actor_slug=actor_slug)
+
+
+def restore_projects_from_trash(
+    repository: ProjectBrowserRepository,
+    itinerary_ids: Iterable[object],
+    *,
+    actor_slug: object,
+) -> ProjectBulkMutationResult:
+    """Restore several projects from Trash."""
+
+    return repository.restore_itineraries_from_trash(itinerary_ids, actor_slug=actor_slug)
+
+
+def update_project_organization(
+    repository: ProjectBrowserRepository,
+    itinerary_ids: Iterable[object],
+    *,
+    owner_slug: object | None = None,
+    folder_name: object | None = None,
+    actor_slug: object,
+) -> ProjectBulkMutationResult:
+    """Bulk update owner and/or folder metadata."""
+
+    return repository.bulk_update_project_organization(
+        itinerary_ids,
+        owner_slug=owner_slug,
+        folder_name=folder_name,
+        actor_slug=actor_slug,
+    )
+
+
+def permanently_delete_projects(
+    repository: ProjectBrowserRepository,
+    itinerary_ids: Iterable[object],
+) -> ProjectBulkPurgeResult:
+    """Permanently purge several projects with per-project outcomes."""
+
+    return repository.permanently_delete_itineraries(itinerary_ids)
 
 
 def delete_project_file(

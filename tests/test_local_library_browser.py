@@ -180,6 +180,7 @@ def test_read_only_browser_renders_one_bounded_page(monkeypatch) -> None:
         dataframe=lambda data, **kwargs: captured["tables"].append(data),
         selectbox=lambda label, options, **kwargs: tuple(options)[0],
         expander=lambda *args, **kwargs: Expander(),
+        container=lambda *args, **kwargs: Expander(),
     )
     monkeypatch.setattr(browser_ui, "st", fake)
     rows = tuple(

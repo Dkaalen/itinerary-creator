@@ -70,6 +70,10 @@ Calculator autocomplete reads only from `data/Calculation-template-Inputs-fixed-
 
 The stable `calculator.library_workbook` loader orchestrates separate schema, formula/cache, row-validation, diagnostic, and immutable-model owners. Workbook fingerprint caching and worksheet/source-row identity remain part of the public loading contract.
 
+## Supabase project storage
+
+Saved itinerary projects use the repository-owned Supabase boundary in `project_storage/`. Database changes are additive migrations under `supabase/migrations/`; apply them through the Supabase SQL Editor before deploying UI code that depends on them. Project owner/folder labels are organizational metadata only and do not provide authentication or authorization. The production Local Library remains the bundled Excel workbook and is not stored in Supabase.
+
 ## Calculator frontend
 
 The browser Calculator keeps one deterministic script-loading order. Editing, calculations, rendering, and actions have separate implementation owners while the existing browser state, recovery, and backend-message contracts remain stable.

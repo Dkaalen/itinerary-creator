@@ -12,6 +12,8 @@ from app_modules.saved_project_cleaning import clean_output_edits
 from app_modules.saved_project_export_state import export_state_from_workflow_state
 from app_modules.saved_project_image_state import image_state_from_output_edits
 from app_modules.saved_project_model import SavedItineraryProject
+from app_modules.itinerary_name_state import clean_itinerary_name
+from app_modules.session_state_keys import ITINERARY_NAME_INPUT_KEY, ITINERARY_NAME_KEY
 
 
 def update_saved_project_current_snapshot(
@@ -25,9 +27,18 @@ def update_saved_project_current_snapshot(
     snapshot = build_saved_project_snapshot_from_state(state, clock=clock)
     output_edits = clean_output_edits(state.get("output_edits", {}))
     output_brand = str(output_edits.get("output_brand") or project.output_brand or project.mode or "agent")
+    itinerary_name = clean_itinerary_name(
+        state.get(ITINERARY_NAME_INPUT_KEY)
+        or state.get(ITINERARY_NAME_KEY)
+        or project.metadata.itinerary_name
+    )
     return replace(
         project,
-        metadata=replace(project.metadata, updated_at=snapshot.created_at),
+        metadata=replace(
+            project.metadata,
+            itinerary_name=itinerary_name,
+            updated_at=snapshot.created_at,
+        ),
         current_snapshot=snapshot,
         image_state=image_state_from_output_edits(output_edits),
         export_state=export_state_from_workflow_state(

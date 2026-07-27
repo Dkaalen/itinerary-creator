@@ -127,6 +127,19 @@ def test_save_after_named_baseline_updates_current_without_overwriting_baseline(
     assert payload["current_snapshot"]["output_edits"]["rows"]["row-1"]["title"] == "Edited cruise title"
 
 
+def test_save_uses_current_name_input_instead_of_stale_canonical_name() -> None:
+    state = _generated_state()
+    state["itinerary_name_input"] = "Original name"
+    create_generated_baseline_project_if_named(state)
+
+    state["itinerary_name"] = "Original name"
+    state["itinerary_name_input"] = "  Norway   Winter Option B  "
+    project_file = prepare_saved_project_file_download(state, clock=_later_clock)
+    payload = json.loads(project_file.data.decode("utf-8"))
+
+    assert payload["metadata"]["itinerary_name"] == "Norway Winter Option B"
+
+
 def test_generate_button_syncs_itinerary_name_before_shared_pipeline(monkeypatch) -> None:
     st.session_state = SessionState({"itinerary_name_input": "  Norway Winter Group  "})
     calls: list[tuple[dict, str]] = []

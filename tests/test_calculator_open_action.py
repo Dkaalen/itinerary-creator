@@ -120,6 +120,10 @@ def test_unsaved_browser_rows_stage_local_import_until_confirmation() -> None:
             "metadata": {"project_id": "cloud-project-1", "itinerary_name": "Cloud project"},
             "calculator_snapshot": calculator_state_to_dict(saved_state),
         },
+        "project_storage_last_saved_baseline": {
+            "metadata": {"project_id": "cloud-project-1", "itinerary_name": "Cloud project"},
+            "calculator_snapshot": calculator_state_to_dict(saved_state),
+        },
         CALCULATOR_STATE_KEY: saved_state,
     }
 
@@ -160,6 +164,10 @@ def test_clean_workspace_opens_local_import_without_confirmation() -> None:
         "active_saved_project_id": "cloud-project-1",
         "active_project_storage_id": "cloud-project-1",
         "active_saved_project": {
+            "metadata": {"project_id": "cloud-project-1", "itinerary_name": "Cloud project"},
+            "calculator_snapshot": calculator_state_to_dict(saved_state),
+        },
+        "project_storage_last_saved_baseline": {
             "metadata": {"project_id": "cloud-project-1", "itinerary_name": "Cloud project"},
             "calculator_snapshot": calculator_state_to_dict(saved_state),
         },

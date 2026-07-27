@@ -24,20 +24,21 @@ def render_currency_rate_editor(session_state: MutableMapping[str, object]) -> d
     rates = currency_rates_from_session(session_state)
     with st.expander("Currency rates", expanded=False):
         st.caption("Base currency is NOK. These rates update the calculator and the Excel export.")
-        columns = st.columns(6)
-        updated: dict[str, float] = {}
-        for index, (code, default_rate) in enumerate(DEFAULT_CURRENCY_RATES.items()):
-            with columns[index % len(columns)]:
-                updated[code] = float(
-                    st.number_input(
-                        code,
-                        value=float(rates.get(code, default_rate)),
-                        min_value=0.000001,
-                        step=_rate_step(default_rate),
-                        format="%.6f",
-                        key=f"calculator_currency_rate_{code}",
+        with st.container(key="calculator_currency_editor"):
+            columns = st.columns(6, gap="small")
+            updated: dict[str, float] = {}
+            for index, (code, default_rate) in enumerate(DEFAULT_CURRENCY_RATES.items()):
+                with columns[index % len(columns)]:
+                    updated[code] = float(
+                        st.number_input(
+                            code,
+                            value=float(rates.get(code, default_rate)),
+                            min_value=0.000001,
+                            step=_rate_step(default_rate),
+                            format="%.6f",
+                            key=f"calculator_currency_rate_{code}",
+                        )
                     )
-                )
         if st.button("Reset currency rates", use_container_width=True):
             session_state[CURRENCY_RATES_STATE_KEY] = dict(DEFAULT_CURRENCY_RATES)
             st.rerun()

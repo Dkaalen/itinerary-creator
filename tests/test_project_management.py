@@ -14,7 +14,12 @@ class FakeRepository:
     def __init__(self, payload: dict[str, Any]) -> None:
         self.payload = payload
         self.upserts: list[tuple[str, str, str]] = []
+        self.creates: list[tuple[str, str, str]] = []
         self.versions: list[dict[str, Any]] = []
+        self.deleted_projects: list[str] = []
+        self.deleted_versions: list[str] = []
+        self.fail_version = False
+        self.fail_upsert = False
 
     def latest_version(self, itinerary_id: str) -> dict[str, Any] | None:
         return {
@@ -24,15 +29,29 @@ class FakeRepository:
         }
 
     def upsert_itinerary(self, itinerary_id: str, *, name: str, status: str = "draft") -> dict[str, Any]:
+        if self.fail_upsert:
+            raise RuntimeError("metadata update failed")
         self.upserts.append((itinerary_id, name, status))
         return {"id": itinerary_id, "name": name}
 
+    def create_itinerary(self, itinerary_id: str, *, name: str, status: str = "draft") -> dict[str, Any]:
+        self.creates.append((itinerary_id, name, status))
+        return {"id": itinerary_id, "name": name}
+
     def next_version_number(self, itinerary_id: str, itinerary_type: str) -> int:
-        return 4
+        return 1 if itinerary_id == "project-2" else 4
 
     def create_version(self, **kwargs: Any) -> dict[str, Any]:
+        if self.fail_version:
+            raise RuntimeError("version insert failed")
         self.versions.append(kwargs)
-        return kwargs
+        return {**kwargs, "id": f"version-{len(self.versions)}"}
+
+    def delete_itinerary(self, itinerary_id: str) -> None:
+        self.deleted_projects.append(itinerary_id)
+
+    def delete_version(self, version_id: str) -> None:
+        self.deleted_versions.append(version_id)
 
 
 def _payload() -> dict[str, Any]:
@@ -86,6 +105,8 @@ def test_duplicate_project_gets_new_identity_and_preserves_calculator() -> None:
     assert result["payload"]["calculator_snapshot"]["rows"] == _payload()["calculator_snapshot"]["rows"]
     assert repository.versions[0]["version_number"] == 1
     assert repository.versions[0]["source_type"] == "project_duplicate"
+    assert repository.creates == [("project-2", "Nordic Journey — Copy", "draft")]
+    assert repository.upserts == []
 
 
 def test_unsaved_change_detection_compares_current_calculator_to_snapshot() -> None:
@@ -96,6 +117,7 @@ def test_unsaved_change_detection_compares_current_calculator_to_snapshot() -> N
     )
     session = {
         "active_saved_project": payload,
+        "project_storage_last_saved_baseline": payload,
         "itinerary_name": "Nordic Journey",
         "calculator_state": saved_state,
         "calculator_currency_rates": {},
@@ -118,6 +140,7 @@ def test_unsaved_change_detection_includes_currency_rates() -> None:
     )
     session = {
         "active_saved_project": payload,
+        "project_storage_last_saved_baseline": payload,
         "itinerary_name": "Nordic Journey",
         "calculator_state": saved_state,
         "calculator_currency_rates": {"NOK": 1, "EUR": 11.6},
@@ -137,6 +160,38 @@ def test_duplicate_project_rejects_source_identity_reuse() -> None:
             project_id="project-1",
             id_factory=lambda: "project-1",
         )
+
+
+def test_duplicate_project_removes_new_parent_when_version_insert_fails() -> None:
+    import pytest
+
+    repository = FakeRepository(_payload())
+    repository.fail_version = True
+
+    with pytest.raises(RuntimeError, match="version insert failed"):
+        duplicate_project(
+            repository,
+            project_id="project-1",
+            id_factory=lambda: "project-2",
+        )
+
+    assert repository.deleted_projects == ["project-2"]
+
+
+def test_rename_project_removes_new_version_when_metadata_update_fails() -> None:
+    import pytest
+
+    repository = FakeRepository(_payload())
+    repository.fail_upsert = True
+
+    with pytest.raises(RuntimeError, match="metadata update failed"):
+        rename_project(
+            repository,
+            project_id="project-1",
+            new_name="Renamed Journey",
+        )
+
+    assert repository.deleted_versions == ["version-1"]
 
 
 def test_duplicate_project_handles_missing_metadata_name() -> None:
@@ -198,6 +253,7 @@ def test_unsaved_change_detection_normalizes_equivalent_rate_representations() -
     )
     session = {
         "active_saved_project": payload,
+        "project_storage_last_saved_baseline": payload,
         "itinerary_name": "Nordic Journey",
         "calculator_state": saved_state,
         "calculator_currency_rates": {"NOK": 1.0, "EUR": 11.5000000000000},

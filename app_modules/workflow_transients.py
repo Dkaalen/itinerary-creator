@@ -13,6 +13,8 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
+from app_modules.session_state_keys import PROJECT_SAVE_AS_NAME_KEY_PREFIX, PROJECT_SAVE_AS_VISIBLE_KEY
+
 PROJECT_BOUNDARY_TRANSIENT_KEYS: tuple[str, ...] = (
     "parser_diagnostics",
     "structured_input_review",
@@ -48,6 +50,7 @@ PROJECT_BOUNDARY_TRANSIENT_KEYS: tuple[str, ...] = (
     "_pdf_export_timings",
     "_performance_telemetry",
     "_project_file_download_cache",
+    PROJECT_SAVE_AS_VISIBLE_KEY,
 )
 
 
@@ -56,3 +59,6 @@ def clear_project_boundary_transients(state: MutableMapping[str, Any]) -> None:
 
     for key in PROJECT_BOUNDARY_TRANSIENT_KEYS:
         state.pop(key, None)
+    for key in tuple(state):
+        if str(key).startswith(PROJECT_SAVE_AS_NAME_KEY_PREFIX):
+            state.pop(key, None)

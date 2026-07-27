@@ -19,7 +19,6 @@ from app_modules.workflow_transients import clear_project_boundary_transients
 from images.image_bank import prefetch_image_bank_for_rows
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.input_review import build_structured_input_review
-from app_modules.project_storage_workflow import save_generated_project_snapshot
 from app_modules.session_state_keys import (
     ITINERARY_VALIDATION_REPORT_KEY,
     LAST_GENERATED_RAW_TEXT_KEY,
@@ -113,8 +112,7 @@ def generate_itinerary(
     state["generation_duplicate_count"] = duplicate_count
     with measure_timing(state, "generate_itinerary", count=len(parsed_rows or [])):
         state["image_bank_prefetch_started"] = prefetch_image_bank_for_rows(parsed_rows)
-    if create_generated_baseline_project_if_named(state):
-        save_generated_project_snapshot(state)
+    create_generated_baseline_project_if_named(state)
     stage = transition_workflow_stage(state, "edit")
 
     return WorkflowActionResult(

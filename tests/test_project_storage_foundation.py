@@ -20,9 +20,15 @@ class FakeClient:
         self.rest_deletes = []
         self.fail_upload: Exception | None = None
         self.fail_register_file: Exception | None = None
+        self.fail_create_version: Exception | None = None
+        self.fail_itinerary_upsert: Exception | None = None
         self.fail_storage_delete: Exception | None = None
 
     def rest_insert(self, table, payload, *, upsert=False):
+        if table == "itineraries" and self.fail_itinerary_upsert is not None:
+            raise self.fail_itinerary_upsert
+        if table == "itinerary_versions" and self.fail_create_version is not None:
+            raise self.fail_create_version
         if table == "itinerary_files" and self.fail_register_file is not None:
             raise self.fail_register_file
         self.rest_inserts.append((table, payload, upsert))
@@ -130,7 +136,10 @@ def test_workflow_hook_reuses_existing_itinerary_id(monkeypatch) -> None:
         client=fake,
     )
     monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
-    app_state = {"active_project_storage_id": "11111111-2222-3333-4444-555555555555"}
+    app_state = {
+        "active_project_storage_id": "11111111-2222-3333-4444-555555555555",
+        "active_project_cloud_persisted": True,
+    }
     calculator_state = CalculatorState(itinerary_name="Norway Winter", rows=())
 
     assert save_calculation_workbook(
@@ -146,6 +155,27 @@ def test_workflow_hook_reuses_existing_itinerary_id(monkeypatch) -> None:
         "itineraries/11111111-2222-3333-4444-555555555555/calculator/"
     )
     assert fake.uploads[0][2] == b"xlsx"
+
+
+def test_unsaved_project_does_not_create_cloud_calculator_file(monkeypatch) -> None:
+    from project_storage.config import SupabaseStorageConfig
+
+    fake = FakeClient()
+    repository = ProjectStorageRepository(
+        SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
+        client=fake,
+    )
+    monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
+    app_state = {"active_project_storage_id": "new-unsaved-id"}
+
+    assert save_calculation_workbook(
+        app_state,
+        CalculatorState(itinerary_name="Unsaved", rows=()),
+        content=b"xlsx",
+        filename="Unsaved.xlsx",
+    ) is False
+    assert fake.rest_inserts == []
+    assert fake.uploads == []
 
 
 def test_saved_project_generation_uses_project_identity_authority() -> None:
@@ -184,24 +214,29 @@ def test_project_browser_supports_paging_search_delete_and_lazy_file_downloads()
     storage_source = read_contract_text("project_storage/project_browser.py")
     service_source = read_contract_text("app_modules/project_storage_service.py")
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
+    controls_source = read_contract_text("app_modules/project_browser_controls.py")
     detail_source = read_contract_text("app_modules/project_browser_detail_ui.py")
     calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
 
     assert "search: str = """ in storage_source
     assert "get_project_storage_repository" not in storage_source
     assert "list_cloud_itinerary_page" in service_source
+    assert "list_cloud_project_explorer_page" in service_source
     assert "offset=clean_page * clean_size" in service_source
     assert "list_cloud_calculation_files" in service_source
     assert "download_cloud_project_file" in service_source
     assert "delete_cloud_itinerary_result" in service_source
-    assert "Search projects" in ui_source
+    assert "Search" in controls_source
+    assert "Manage multiple projects" in controls_source
+    assert "Trash" in controls_source
+    assert "Move to Trash" in detail_source
     assert "Delete permanently" in detail_source
     assert "render_calculation_files(project_id)" in detail_source
     assert "Calculator files" in calculator_file_source
 
 
 
-def test_repository_delete_keeps_record_deletion_when_storage_cleanup_fails() -> None:
+def test_repository_delete_retains_record_when_storage_cleanup_fails() -> None:
     from project_storage.config import SupabaseStorageConfig
 
     fake = FakeClient()
@@ -218,19 +253,19 @@ def test_repository_delete_keeps_record_deletion_when_storage_cleanup_fails() ->
 
     result = repository.delete_itinerary("itinerary-id")
 
-    assert result.ok is True
+    assert result.ok is False
     assert result.complete is False
-    assert result.record_deleted is True
+    assert result.record_deleted is False
     assert result.storage_files_deleted is False
     assert "storage cleanup failed" in result.storage_error
-    assert fake.rest_deletes == [("itineraries", {"id": "eq.itinerary-id"})]
+    assert fake.rest_deletes == []
     assert fake.storage_deletes == []
 
-def test_snapshot_save_does_not_create_version_when_upload_fails(monkeypatch) -> None:
+def test_first_snapshot_save_removes_new_project_row_when_version_insert_fails(monkeypatch) -> None:
     from project_storage.config import SupabaseStorageConfig
 
     fake = FakeClient()
-    fake.fail_upload = RuntimeError("raw service key should not reach the UI")
+    fake.fail_create_version = RuntimeError("raw service key should not reach the UI")
     repository = ProjectStorageRepository(
         SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
         client=fake,
@@ -244,22 +279,26 @@ def test_snapshot_save_does_not_create_version_when_upload_fails(monkeypatch) ->
     )
 
     assert ok is False
-    assert not any(table == "itinerary_versions" for table, _payload, _upsert in fake.rest_inserts)
+    assert fake.uploads == []
+    assert ("itineraries", {"id": "eq.11111111-2222-3333-4444-555555555555"}) in fake.rest_deletes
     assert app_state["project_storage_last_error"] == "Project was not saved to Supabase. Try again before closing this session."
     assert "raw service key" in app_state["project_storage_last_error_detail"]
 
 
-def test_snapshot_save_removes_uploaded_file_and_version_when_file_record_fails(monkeypatch) -> None:
+def test_existing_snapshot_save_removes_new_version_when_metadata_update_fails(monkeypatch) -> None:
     from project_storage.config import SupabaseStorageConfig
 
     fake = FakeClient()
-    fake.fail_register_file = RuntimeError("register failed")
+    fake.fail_itinerary_upsert = RuntimeError("metadata update failed")
     repository = ProjectStorageRepository(
         SupabaseStorageConfig(url="https://abc.supabase.co", secret_key="sb_secret", bucket="itinerary-files"),
         client=fake,
     )
     monkeypatch.setattr("app_modules.project_storage_workflow.get_project_storage_repository", lambda: repository)
-    app_state = {"active_project_storage_id": "11111111-2222-3333-4444-555555555555"}
+    app_state = {
+        "active_project_storage_id": "11111111-2222-3333-4444-555555555555",
+        "active_project_cloud_persisted": True,
+    }
 
     ok = save_project_payload_snapshot(
         app_state,
@@ -267,7 +306,6 @@ def test_snapshot_save_removes_uploaded_file_and_version_when_file_record_fails(
     )
 
     assert ok is False
-    uploaded_path = fake.uploads[0][1]
-    assert fake.storage_deletes == [("itinerary-files", [uploaded_path])]
+    assert fake.uploads == []
     assert ("itinerary_versions", {"id": "eq.itinerary_versions-id"}) in fake.rest_deletes
     assert app_state["project_storage_last_error"] == "Project was not saved to Supabase. Try again before closing this session."

@@ -31,20 +31,22 @@ def render_input_page(app_version: str) -> None:
     _render_app_header(app_version, stage="input")
     _stage_panel(STAGE_COPY["input"]["panel_title"], STAGE_COPY["input"]["panel_text"])
 
-    brand_col, calculator_col, library_col, project_col = st.columns(
-        [0.50, 0.16, 0.16, 0.18],
-        vertical_alignment="center",
-    )
-    with brand_col:
-        render_input_toolbar()
-    if calculator_col.button("Calculator", use_container_width=True, help="Build pricing rows before generating an itinerary."):
-        open_calculator_page(st.session_state)
-        st.rerun()
-    if library_col.button("Local Library", use_container_width=True, help="Manage reusable calculator rows."):
-        open_local_library_page(st.session_state)
-        st.rerun()
-    with project_col:
-        render_open_project_file_action()
+    with st.container(key="input_top_actions"):
+        brand_col, calculator_col, library_col, project_col = st.columns(
+            [0.46, 0.18, 0.18, 0.18],
+            vertical_alignment="center",
+            gap="small",
+        )
+        with brand_col:
+            render_input_toolbar()
+        if calculator_col.button("Calculator", use_container_width=True, help="Build pricing rows before generating an itinerary."):
+            open_calculator_page(st.session_state)
+            st.rerun()
+        if library_col.button("Local Library", use_container_width=True, help="Manage reusable calculator rows."):
+            open_local_library_page(st.session_state)
+            st.rerun()
+        with project_col:
+            render_open_project_file_action()
 
     render_open_project_workspace_if_visible()
     render_input_header()
@@ -59,10 +61,10 @@ def render_input_page(app_version: str) -> None:
     )
     render_supplier_rows_preview(raw_text)
 
-    agent_col, customer_col, spacer_col = st.columns([0.26, 0.30, 0.44])
-    generate_agent = agent_col.button("Generate agent itinerary", type="primary", use_container_width=True)
-    generate_customer = customer_col.button("Generate customer itinerary", use_container_width=True)
-    spacer_col.empty()
+    with st.container(key="input_generation_actions"):
+        agent_col, customer_col = st.columns(2, gap="small")
+        generate_agent = agent_col.button("Generate agent itinerary", type="primary", use_container_width=True)
+        generate_customer = customer_col.button("Generate customer itinerary", use_container_width=True)
     if generate_agent or generate_customer:
         if not raw_text.strip():
             st.warning("Paste the supplier rows first, then generate the itinerary.")

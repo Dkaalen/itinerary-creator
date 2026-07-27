@@ -15,7 +15,7 @@ def clear_pdf_artifacts(state: MutableMapping[str, Any], status: str = "Not crea
 
 
 def mark_pdf_dirty(state: MutableMapping[str, Any], status: str = "Needs refresh") -> None:
-    """Invalidate PDF artifacts and the cloud-saved marker after content changes."""
+    """Invalidate PDF artifacts and retire any legacy path-based save marker."""
 
     clear_pdf_artifacts(state, status=status)
     from app_modules.project_session_cleanup import clear_project_save_marker

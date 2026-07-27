@@ -7,6 +7,7 @@ from ui import (
     style_app_chrome,
     style_app_shell,
     style_calculator,
+    style_component_layout,
     style_input_workspace,
     style_project_browser,
     style_workspace_header,
@@ -18,9 +19,19 @@ STYLE_MODULES = (
     Path("ui/style_app_chrome.py"),
     Path("ui/style_workspace_header.py"),
     Path("ui/style_calculator.py"),
+    Path("ui/style_component_layout.py"),
     Path("ui/style_input_workspace.py"),
     Path("ui/style_project_browser.py"),
 )
+
+
+def test_streamlit_theme_keeps_native_tables_in_the_light_booknordics_shell() -> None:
+    config = Path(".streamlit/config.toml").read_text(encoding="utf-8")
+
+    assert 'base = "light"' in config
+    assert 'primaryColor = "#1F3447"' in config
+    assert 'backgroundColor = "#FBFAF7"' in config
+    assert 'textColor = "#1F2630"' in config
 
 
 def test_app_shell_is_composition_only_not_a_css_god_file() -> None:
@@ -38,6 +49,8 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert ".studio-brand-link" in style_workspace_header.CSS
     assert ".supplier-preview-panel" in style_input_workspace.SUPPLIER_PREVIEW_CSS
     assert ".calculator-heading" in style_calculator.CALCULATOR_PAGE_CSS
+    assert ".st-key-workflow_stage_actions" in style_component_layout.CSS
+    assert "overflow-wrap: anywhere" in style_component_layout.CSS
     assert ".st-key-cloud_project_explorer" in style_project_browser.PROJECT_BROWSER_CSS
     assert "stDataFrame" in style_project_browser.PROJECT_BROWSER_CSS
     assert ".cloud-project-detail-card" in style_project_browser.PROJECT_BROWSER_CSS

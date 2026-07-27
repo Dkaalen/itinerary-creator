@@ -6,10 +6,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from app_modules.calculator_state_keys import CALCULATOR_STATE_KEY, CURRENCY_RATES_STATE_KEY
+from app_modules.project_persistence_state import last_saved_project_baseline
 from app_modules.saved_project_calculator_state import calculator_snapshot_has_rows
 from app_modules.saved_project_cleaning import clean_output_edits, clean_parsed_rows
 from app_modules.session_state_keys import (
-    ACTIVE_SAVED_PROJECT_KEY,
     DAY_PAGE_LAYOUT_KEY,
     DETAIL_LEVEL_KEY,
     ITINERARY_NAME_INPUT_KEY,
@@ -30,7 +30,7 @@ def active_project_has_unsaved_changes(
 ) -> bool:
     """Return whether replacing the current workspace could discard real work."""
 
-    project = state.get(ACTIVE_SAVED_PROJECT_KEY)
+    project = last_saved_project_baseline(state)
     if calculator_state is None:
         calculator_state = state.get(CALCULATOR_STATE_KEY)
     if not isinstance(project, Mapping):

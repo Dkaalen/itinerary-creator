@@ -42,6 +42,31 @@ Cross-workflow session decisions are split by responsibility rather than collect
 
 `calculator_page.py` composes the page and component protocol. Backend validation policy lives in `calculator_action_policy.py`, while accepted navigation, import, download, generation, and backup actions are executed by `calculator_page_actions.py`. Repository operations remain below the application boundary and are not imported by these neutral transition owners.
 
+## Streamlit design ownership
+
+Application styling is composed centrally by `ui/styles.py`; page modules may expose keyed layout containers but must not inject competing CSS. Responsibility is split by surface:
+
+- `ui/style_forms.py` owns shared controls and compact form sizing. Large work areas such as supplier input are re-expanded only by their surface owner.
+- `ui/style_component_layout.py` owns cross-surface text fitting, shrink-safe Streamlit columns, responsive action rows, top bars, metrics and filter grids. It targets explicit `st.container(key=...)` namespaces rather than page-order selectors.
+- `ui/style_input_workspace.py`, `style_calculator.py`, `style_project_browser.py` and `style_export.py` own their respective page surfaces.
+- Custom editor and Calculator iframe styles remain inside their component packages and are not overridden by Streamlit page CSS.
+
+Button wrapping, mobile stacking and long-value overflow are presentation contracts only; they must not move workflow, storage, Calculator or export decisions into the style layer.
+
+## Saved-project storage ownership
+
+The saved-project subsystem keeps transport, persistence, application state and UI responsibilities separate:
+
+- `project_storage/http_client.py` owns the minimal PostgREST and Supabase Storage transport, including counted reads, explicit RPC calls and filtered patch operations.
+- `project_storage/repository.py` owns itinerary metadata, version payloads, registered files, deterministic listing, owner/folder updates, Trash/restore and permanent cleanup. It has no Streamlit dependency.
+- `project_storage/project_metadata.py` owns normalized owner, actor and logical folder/reference values. These labels organize work but do not authenticate users or grant access.
+- `project_storage/project_results.py` owns immutable exact-count, bulk mutation and purge outcomes.
+- `project_storage/version_writer.py` owns consistency-preserving project/version writes and compensating rollback.
+- `app_modules/project_storage_service.py` is the application adapter. Streamlit UI modules must call this service rather than importing the repository directly.
+- `supabase/migrations/` owns additive production schema changes. Streamlit startup must never attempt database DDL.
+
+Project snapshots remain canonical in `itinerary_versions.payload`; Supabase Storage is reserved for actual files such as Calculator workbooks and PDF exports. Soft deletion retains versions and registered files until an explicit permanent purge. The Local Library workbook remains a separate repository-bundled authority.
+
 ## Visual editor frontend ownership
 
 `visual_editor_component/frontend/index.html` is a thin shell. `editor_bootstrap.js` owns the complete script manifest and starts the editor only after every responsibility group has loaded. `window.ItineraryVisualEditor` is the single explicit public namespace and rejects duplicate module registration.

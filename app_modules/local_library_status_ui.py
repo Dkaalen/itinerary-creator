@@ -25,11 +25,12 @@ def render_local_library_source_status(
         st.error(f"{prefix}{summary.headline}")
     st.caption(summary.detail)
 
-    metrics = st.columns(4)
-    metrics[0].metric("Valid records", summary.total_rows)
-    metrics[1].metric("Fetchable records", summary.fetchable_rows)
-    metrics[2].metric("Diagnostics", len(library_read.diagnostics))
-    metrics[3].metric("Load time", f"{library_read.load_time_seconds:.3f} s")
+    with st.container(key="local_library_metrics"):
+        metrics = st.columns(4, gap="small")
+        metrics[0].metric("Valid records", summary.total_rows)
+        metrics[1].metric("Fetchable records", summary.fetchable_rows)
+        metrics[2].metric("Diagnostics", len(library_read.diagnostics))
+        metrics[3].metric("Load time", f"{library_read.load_time_seconds:.3f} s")
     st.caption(f"Workbook fingerprint: `{library_read.fingerprint or 'Unavailable'}`")
     _render_diagnostics(library_read)
 

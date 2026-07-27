@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Protocol
 import uuid
 
+from project_storage.version_writer import save_project_version
+
 
 IdFactory = Callable[[], str]
 Clock = Callable[[], datetime]
@@ -14,9 +16,12 @@ Clock = Callable[[], datetime]
 
 class ProjectRepository(Protocol):
     def latest_version(self, itinerary_id: str) -> dict[str, Any] | None: ...
+    def create_itinerary(self, itinerary_id: str, *, name: str, status: str = "draft") -> dict[str, Any]: ...
     def upsert_itinerary(self, itinerary_id: str, *, name: str, status: str = "draft") -> dict[str, Any]: ...
     def next_version_number(self, itinerary_id: str, itinerary_type: str) -> int: ...
     def create_version(self, **kwargs: Any) -> dict[str, Any]: ...
+    def delete_itinerary(self, itinerary_id: str) -> object: ...
+    def delete_version(self, version_id: str) -> None: ...
 
 
 def rename_project(
@@ -33,16 +38,22 @@ def rename_project(
         raise ValueError("The project has no saved snapshot to rename.")
     payload = _project_payload(latest["payload"], project_id=clean_id, name=clean_name, clock=clock, duplicated=False)
     itinerary_type = _itinerary_type(latest, payload)
-    repository.upsert_itinerary(clean_id, name=clean_name, status=_status(payload))
-    version = repository.next_version_number(clean_id, itinerary_type)
-    repository.create_version(
+    result = save_project_version(
+        repository,
         itinerary_id=clean_id,
-        version_number=version,
+        name=clean_name,
+        status=_status(payload),
         itinerary_type=itinerary_type,
         source_type="project_rename",
         payload=payload,
+        project_already_persisted=True,
     )
-    return {"project_id": clean_id, "name": clean_name, "payload": payload}
+    return {
+        "project_id": clean_id,
+        "name": clean_name,
+        "payload": payload,
+        "version_id": result.version_id,
+    }
 
 
 def duplicate_project(
@@ -66,15 +77,22 @@ def duplicate_project(
         raise ValueError("Duplicate project id must differ from the source project id.")
     payload = _project_payload(latest["payload"], project_id=duplicate_id, name=clean_name, clock=clock, duplicated=True)
     itinerary_type = _itinerary_type(latest, payload)
-    repository.upsert_itinerary(duplicate_id, name=clean_name, status=_status(payload))
-    repository.create_version(
+    result = save_project_version(
+        repository,
         itinerary_id=duplicate_id,
-        version_number=1,
+        name=clean_name,
+        status=_status(payload),
         itinerary_type=itinerary_type,
         source_type="project_duplicate",
         payload=payload,
+        project_already_persisted=False,
     )
-    return {"project_id": duplicate_id, "name": clean_name, "payload": payload}
+    return {
+        "project_id": duplicate_id,
+        "name": clean_name,
+        "payload": payload,
+        "version_id": result.version_id,
+    }
 
 
 def _project_payload(

@@ -127,18 +127,19 @@ def _render_pending_actions() -> None:
 def _render_timeout_actions(transaction) -> None:
     st.warning(transaction_timeout_copy(transaction))
     st.caption("Retry the save, add pictures from the last saved version, or cancel and keep editing.")
-    retry_col, saved_col, cancel_col = st.columns(3)
-    with retry_col:
-        if st.button("Retry save", type="primary", use_container_width=True, key="retry_add_pictures_editor_commit"):
-            retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-            st.rerun()
-    with saved_col:
-        if st.button("Add pictures from last saved version", use_container_width=True, key="fallback_add_pictures_after_timeout"):
-            clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-            with st.spinner("Preparing destination image packs and finding the best matches…"):
-                activate_picture_stage()
-            st.rerun()
-    with cancel_col:
-        if st.button("Cancel", use_container_width=True, key="cancel_add_pictures_editor_commit"):
-            clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
-            st.rerun()
+    with st.container(key="workflow_transaction_actions_add_pictures"):
+        retry_col, saved_col, cancel_col = st.columns([0.22, 0.56, 0.22], gap="small")
+        with retry_col:
+            if st.button("Retry save", type="primary", use_container_width=True, key="retry_add_pictures_editor_commit"):
+                retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
+                st.rerun()
+        with saved_col:
+            if st.button("Add pictures from last saved version", use_container_width=True, key="fallback_add_pictures_after_timeout"):
+                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
+                with st.spinner("Preparing destination image packs and finding the best matches…"):
+                    activate_picture_stage()
+                st.rerun()
+        with cancel_col:
+            if st.button("Cancel", use_container_width=True, key="cancel_add_pictures_editor_commit"):
+                clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.ADD_PICTURES)
+                st.rerun()

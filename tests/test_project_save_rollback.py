@@ -7,6 +7,10 @@ def test_failed_cloud_save_restores_previous_project_baseline() -> None:
         "active_project_storage_id": "old",
         "active_saved_project_id": "old",
         "itinerary_name": "Old name",
+        "itinerary_name_input": "Old name",
+        "active_project_cloud_persisted": True,
+        "project_storage_last_saved_version_id": "version-old",
+        "project_storage_last_saved_baseline": {"metadata": {"project_id": "old"}},
         "calculator_state": "latest calculator remains untouched",
     }
     baseline = capture_project_save_baseline(state)
@@ -16,6 +20,10 @@ def test_failed_cloud_save_restores_previous_project_baseline() -> None:
             "active_project_storage_id": "new",
             "active_saved_project_id": "new",
             "itinerary_name": "New name",
+            "itinerary_name_input": "New name",
+            "active_project_cloud_persisted": False,
+            "project_storage_last_saved_version_id": "version-new",
+            "project_storage_last_saved_baseline": {"metadata": {"project_id": "new"}},
         }
     )
 
@@ -25,6 +33,10 @@ def test_failed_cloud_save_restores_previous_project_baseline() -> None:
     assert state["active_project_storage_id"] == "old"
     assert state["active_saved_project_id"] == "old"
     assert state["itinerary_name"] == "Old name"
+    assert state["itinerary_name_input"] == "Old name"
+    assert state["active_project_cloud_persisted"] is True
+    assert state["project_storage_last_saved_version_id"] == "version-old"
+    assert state["project_storage_last_saved_baseline"]["metadata"]["project_id"] == "old"
     assert state["calculator_state"] == "latest calculator remains untouched"
 
 

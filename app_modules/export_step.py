@@ -81,20 +81,21 @@ def render_export_step(app_version: str) -> None:
         if transaction.timed_out:
             st.warning(transaction_timeout_copy(transaction))
             st.caption("Retry the save, create from the last saved version, or cancel this PDF request.")
-            retry_col, saved_col, cancel_col = st.columns(3)
-            with retry_col:
-                if st.button("Retry save", type="primary", use_container_width=True, key="retry_export_pdf_editor_commit"):
-                    retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF, auto_create_pdf=True)
-                    st.rerun()
-            with saved_col:
-                if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_export_pdf_after_timeout", disabled=not readiness.can_create_pdf):
-                    consume_auto_pdf_create_request(st.session_state)
-                    clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF)
-                    request_pdf_creation()
-            with cancel_col:
-                if st.button("Cancel", use_container_width=True, key="cancel_export_pdf_editor_commit"):
-                    clear_stale_pdf_editor_state()
-                    st.rerun()
+            with st.container(key="workflow_transaction_actions_export_pdf"):
+                retry_col, saved_col, cancel_col = st.columns([0.22, 0.56, 0.22], gap="small")
+                with retry_col:
+                    if st.button("Retry save", type="primary", use_container_width=True, key="retry_export_pdf_editor_commit"):
+                        retry_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF, auto_create_pdf=True)
+                        st.rerun()
+                with saved_col:
+                    if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_export_pdf_after_timeout", disabled=not readiness.can_create_pdf):
+                        consume_auto_pdf_create_request(st.session_state)
+                        clear_workflow_transaction(st.session_state, WorkflowTransactionTarget.CREATE_PDF)
+                        request_pdf_creation()
+                with cancel_col:
+                    if st.button("Cancel", use_container_width=True, key="cancel_export_pdf_editor_commit"):
+                        clear_stale_pdf_editor_state()
+                        st.rerun()
         else:
             st.info(transaction_wait_copy(pdf_transaction_state()))
             st.button("Create PDF", disabled=True, use_container_width=True)

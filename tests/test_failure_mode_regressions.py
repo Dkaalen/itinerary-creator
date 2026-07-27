@@ -46,7 +46,7 @@ def test_cloud_browser_contract_fails_safe_without_configured_repository(monkeyp
     assert delete_cloud_itinerary_result("missing") is None
 
 
-def test_cloud_delete_reports_partial_storage_cleanup_failure() -> None:
+def test_cloud_delete_retains_project_when_storage_cleanup_fails() -> None:
     from project_storage.repository import ProjectStorageRepository
     from project_storage.config import SupabaseStorageConfig
 
@@ -70,9 +70,9 @@ def test_cloud_delete_reports_partial_storage_cleanup_failure() -> None:
     result = repository.delete_itinerary("project-1")
 
     assert isinstance(result, ProjectDeleteResult)
-    assert result.record_deleted is True
+    assert result.record_deleted is False
     assert result.storage_files_deleted is False
-    assert result.ok is True
+    assert result.ok is False
     assert result.complete is False
     assert "storage offline" in result.storage_error
 
@@ -148,12 +148,14 @@ def test_export_stage_refreshes_project_snapshot_and_requests_auto_pdf(monkeypat
     assert active_project_id_from_state(state) == "project-1"
 
 
-def test_real_content_dirtying_clears_cloud_saved_marker() -> None:
+def test_real_content_dirtying_retires_legacy_marker_but_keeps_cloud_revision() -> None:
     from app_modules.render_lifecycle import mark_pdf_dirty
 
     state = {
         "pdf_bytes": b"old",
         "export_pdf_bytes": b"old",
+        "active_project_cloud_persisted": True,
+        "project_storage_last_saved_version_id": "version-7",
         "project_storage_last_saved_snapshot_path": "snapshots/project/latest.json",
     }
 
@@ -162,3 +164,5 @@ def test_real_content_dirtying_clears_cloud_saved_marker() -> None:
     assert state["pdf_status"] == "Needs refresh"
     assert state["pdf_bytes"] is None
     assert "project_storage_last_saved_snapshot_path" not in state
+    assert state["active_project_cloud_persisted"] is True
+    assert state["project_storage_last_saved_version_id"] == "version-7"

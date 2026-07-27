@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app_modules.project_browser_bulk_ui import render_bulk_management_panel
+from app_modules.project_browser_controls import ProjectBrowserQuery, render_project_browser_controls
 from app_modules.project_browser_detail_ui import render_selected_project_panel
-from app_modules.project_browser_list_ui import render_project_table
-from app_modules.project_browser_paging import PROJECT_PAGE_SIZE
+from app_modules.project_browser_list_ui import ProjectTableSelection, render_project_table
+from app_modules.project_browser_paging import PROJECT_PAGE_SIZE, ProjectPage
 from app_modules.project_browser_state import (
     browser_page_index,
+    clear_bulk_action,
     clear_delete_confirmation,
     clear_file_delete_confirmation,
     clear_open_candidate,
     clear_rename_candidate,
     remember_selected_project,
     selected_project_id,
+    set_browser_page_index,
     sync_project_query,
 )
 from app_modules.project_identity import active_project_id_from_state
@@ -24,24 +28,18 @@ from app_modules.project_io import (
     pending_project_json_import,
     request_project_json_import,
 )
+from app_modules.project_storage_runtime import project_storage_is_configured
+from app_modules.project_storage_service import (
+    list_cloud_itinerary_page,
+    list_cloud_project_explorer_page,
+)
 from app_modules.session_state_keys import (
     OPEN_PROJECT_BROWSER_VISIBLE_KEY,
-    OPEN_PROJECT_SEARCH_KEY,
-    OPEN_PROJECT_SORT_KEY,
     PROJECT_STORAGE_BROWSER_SUCCESS_KEY,
+    PROJECT_STORAGE_BROWSER_WARNING_KEY,
     PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY,
 )
 from project_storage.errors import storage_user_message
-from app_modules.project_storage_service import list_cloud_itinerary_page
-from app_modules.project_storage_runtime import project_storage_is_configured
-
-_SORT_OPTIONS = {
-    "Recently modified": "recent",
-    "Oldest modified": "oldest",
-    "Name A–Z": "name",
-    "Newest created": "created_recent",
-    "Oldest created": "created_oldest",
-}
 
 
 def render_open_project_file_action() -> None:
@@ -69,7 +67,7 @@ def _render_open_project_workspace() -> None:
               <span class="project-explorer-folder">▰</span>
               <div>
                 <strong>Project Explorer</strong>
-                <span>Find, open, rename, duplicate, or remove a saved itinerary.</span>
+                <span>Find, organize, open, copy, restore, or remove saved itineraries.</span>
               </div>
             </div>
             """
@@ -77,6 +75,7 @@ def _render_open_project_workspace() -> None:
     with close_col:
         if st.button("Close", key="close_open_project_browser", use_container_width=True):
             cancel_pending_project_json_import()
+            clear_bulk_action(st.session_state)
             st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = False
             st.rerun()
     if _render_pending_backup_confirmation():
@@ -89,54 +88,58 @@ def _render_open_project_workspace() -> None:
 
 
 def _render_cloud_project_browser() -> None:
-    """Render one bounded server page as a selectable file-explorer workspace."""
+    """Render one exact-count server page as a compact file-explorer workspace."""
 
     _render_browser_messages()
     with st.container(border=True, key="cloud_project_explorer"):
-        search_col, sort_col = st.columns([0.68, 0.32], gap="small")
-        with search_col:
-            search = st.text_input(
-                "Search projects",
-                value=str(st.session_state.get(OPEN_PROJECT_SEARCH_KEY) or ""),
-                key=OPEN_PROJECT_SEARCH_KEY,
-                placeholder="Search by itinerary name…",
-            )
-        with sort_col:
-            sort_label = st.selectbox("Sort", tuple(_SORT_OPTIONS), key=OPEN_PROJECT_SORT_KEY)
-        sort_value = _SORT_OPTIONS.get(str(sort_label), "recent")
-        sync_project_query(st.session_state, search=search, sort=sort_value)
+        query = render_project_browser_controls()
+        sync_project_query(
+            st.session_state,
+            search=query.search,
+            sort=query.sort,
+            owner_slug=query.owner_slug,
+            folder_name=query.folder_name,
+            view=query.view,
+            manage_mode=query.manage_mode,
+        )
         page_index = browser_page_index(st.session_state)
-        try:
-            page = list_cloud_itinerary_page(
-                page_index=page_index,
-                page_size=PROJECT_PAGE_SIZE,
-                search=search,
-                sort=sort_value,
-            )
-        except Exception:
-            st.warning(storage_user_message("list"))
+        page, management_ready = _load_project_page(query, page_index=page_index)
+        if page is None:
             return
         if not page.projects:
             if page.has_previous:
-                from app_modules.project_browser_state import set_browser_page_index
-
-                set_browser_page_index(st.session_state, page.page_index - 1)
+                set_browser_page_index(st.session_state, page.last_page_index)
                 st.rerun()
-            st.caption("No matching cloud projects." if search else "No cloud projects saved yet.")
+            _render_empty_state(query)
             return
 
-        selected = _selected_project(page.projects)
         active_id = active_project_id_from_state(st.session_state)
-        list_col, detail_col = st.columns([0.66, 0.34], gap="large")
-        with list_col:
-            st.markdown("#### Saved projects")
-            selected_id = render_project_table(
+        selected = None if query.manage_mode else _selected_project(page.projects)
+        if query.manage_mode:
+            st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
+            selection = _render_table(
                 page,
-                selected_project_id=str(selected.get("id") or "") if selected else "",
-                active_project_id=active_id,
-                search=search,
-                sort=sort_value,
+                selected=selected,
+                active_id=active_id,
+                query=query,
             )
+            render_bulk_management_panel(
+                page,
+                selected_ids=selection.project_ids,
+                query=query,
+            )
+            return
+
+        list_col, detail_col = st.columns([0.70, 0.30], gap="large")
+        with list_col:
+            st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
+            selection = _render_table(
+                page,
+                selected=selected,
+                active_id=active_id,
+                query=query,
+            )
+            selected_id = selection.primary_id
             if selected_id and (not selected or selected_id != str(selected.get("id") or "")):
                 _select_project(selected_id)
                 selected = next(
@@ -144,7 +147,106 @@ def _render_cloud_project_browser() -> None:
                     selected,
                 )
         with detail_col:
-            render_selected_project_panel(selected)
+            render_selected_project_panel(selected, query=query)
+
+        if not management_ready:
+            st.caption(
+                "Basic project browsing is active. Apply the bundled Supabase organization migration "
+                "before using owner, folder and Trash features."
+            )
+
+
+def _render_table(
+    page: ProjectPage,
+    *,
+    selected: dict[str, object] | None,
+    active_id: str,
+    query: ProjectBrowserQuery,
+) -> ProjectTableSelection:
+    return render_project_table(
+        page,
+        selected_project_id=str(selected.get("id") or "") if selected else "",
+        active_project_id=active_id,
+        search=query.search,
+        sort=query.sort,
+        owner_slug=query.owner_slug,
+        folder_name=query.folder_name,
+        view=query.view,
+        manage_mode=query.manage_mode,
+    )
+
+
+def _load_project_page(
+    query: ProjectBrowserQuery,
+    *,
+    page_index: int,
+) -> tuple[ProjectPage | None, bool]:
+    try:
+        page = list_cloud_project_explorer_page(
+            page_index=page_index,
+            page_size=PROJECT_PAGE_SIZE,
+            search=query.search,
+            sort=query.sort,
+            owner_slug=query.owner_slug,
+            folder_name=query.folder_name,
+            trash_only=query.trash_only,
+        )
+        return page, True
+    except Exception:
+        can_fallback = (
+            not query.trash_only
+            and not query.owner_slug
+            and not query.folder_name
+            and query.sort in {"recent", "oldest", "name", "created_recent", "created_oldest"}
+        )
+        if not can_fallback:
+            st.error(
+                "Project organization is not available yet. Apply the bundled Supabase migration, "
+                "then refresh Project Explorer."
+            )
+            return None, False
+        try:
+            page = list_cloud_itinerary_page(
+                page_index=page_index,
+                page_size=PROJECT_PAGE_SIZE,
+                search=query.search,
+                sort=query.sort,
+            )
+        except Exception:
+            st.warning(storage_user_message("list"))
+            return None, False
+        return page, False
+
+
+def _render_empty_state(query: ProjectBrowserQuery) -> None:
+    if query.trash_only:
+        st.html(
+            """
+            <div class="cloud-project-empty-state">
+              <strong>Trash is empty</strong>
+              <span>Projects moved to Trash will appear here until restored or permanently deleted.</span>
+            </div>
+            """
+        )
+        return
+    if query.search or query.owner_slug or query.folder_name:
+        st.html(
+            """
+            <div class="cloud-project-empty-state">
+              <strong>No matching projects</strong>
+              <span>Clear or adjust the filters to see more saved itineraries.</span>
+            </div>
+            """
+        )
+        return
+    st.html(
+        """
+        <div class="cloud-project-empty-state">
+          <strong>No cloud projects saved yet</strong>
+          <span>Use Save project to create the first intentional cloud project.</span>
+        </div>
+        """
+    )
 
 
 def _selected_project(projects: tuple[dict[str, object], ...]) -> dict[str, object] | None:
@@ -164,12 +266,16 @@ def _select_project(project_id: str) -> None:
     clear_rename_candidate(st.session_state)
     clear_delete_confirmation(st.session_state)
     clear_file_delete_confirmation(st.session_state)
+    clear_bulk_action(st.session_state)
 
 
 def _render_browser_messages() -> None:
     cleanup_warning = st.session_state.pop(PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY, "")
     if cleanup_warning:
         st.warning(str(cleanup_warning))
+    warning_message = st.session_state.pop(PROJECT_STORAGE_BROWSER_WARNING_KEY, "")
+    if warning_message:
+        st.warning(str(warning_message))
     success_message = st.session_state.pop(PROJECT_STORAGE_BROWSER_SUCCESS_KEY, "")
     if success_message:
         st.success(str(success_message))

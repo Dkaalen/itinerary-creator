@@ -45,35 +45,46 @@ def test_calculator_prepares_then_downloads_excel_from_the_grid_toolbar() -> Non
 def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_selection() -> None:
     input_source = read_contract_text("app_modules/input_step.py")
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
+    controls_source = read_contract_text("app_modules/project_browser_controls.py")
     list_source = read_contract_text("app_modules/project_browser_list_ui.py")
     detail_source = read_contract_text("app_modules/project_browser_detail_ui.py")
+    bulk_source = read_contract_text("app_modules/project_browser_bulk_ui.py")
     calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
     from ui import style_app_shell
 
     css = style_app_shell.CSS
 
-    assert "Search projects" in ui_source
-    assert "Recently modified" in ui_source
-    assert "Newest created" in ui_source
-    assert "list_cloud_itinerary_page" in ui_source
+    assert "Search" in controls_source
+    assert "Recently saved" in controls_source
+    assert "Newest created" in controls_source
+    assert "Working as" in controls_source
+    assert "Manage multiple projects" in controls_source
+    assert "list_cloud_project_explorer_page" in ui_source
     assert 'st.container(border=True, key="cloud_project_explorer")' in ui_source
     assert "render_project_table(" in ui_source
-    assert "render_selected_project_panel(selected)" in ui_source
+    assert "render_selected_project_panel(selected, query=query)" in ui_source
     assert "render_open_project_workspace_if_visible()" in input_source
     assert input_source.index("render_open_project_workspace_if_visible()") > input_source.index("with project_col:")
     assert 'st.dataframe(' in list_source
     assert 'height=PROJECT_TABLE_HEIGHT' in list_source
     assert 'on_select="rerun"' in list_source
-    assert 'selection_mode="single-row"' in list_source
+    assert 'selection_mode="multi-row" if manage_mode else "single-row"' in list_source
     assert "st.popover" not in list_source
     assert "render_calculation_files" not in list_source
     assert detail_source.count("render_calculation_files(project_id)") == 1
-    assert "Duplicate" in detail_source
+    assert "Save as copy" in detail_source
+    assert "Move to Trash" in detail_source
     assert "Delete permanently" in detail_source
+    assert "Apply owner" in bulk_source
+    assert "Apply folder" in bulk_source
+    assert "Restore" in bulk_source
     assert "Prepare calculator file" in calculator_file_source
     assert "Download calculator file" in calculator_file_source
     assert "Delete file permanently" in calculator_file_source
     assert "list_cloud_calculation_files" in calculator_file_source
+    assert calculator_file_source.index("if not visible:") < calculator_file_source.index(
+        "files = list_cloud_calculation_files"
+    )
     assert "@st.dialog" not in ui_source
     assert "OPEN_PROJECT_BROWSER_VISIBLE_KEY" in ui_source
     assert ".st-key-cloud_project_explorer" in css
@@ -194,6 +205,7 @@ def test_unsaved_detection_includes_generated_workflow_edits() -> None:
     state = SessionState(
         {
             "active_saved_project": payload,
+            "project_storage_last_saved_baseline": payload,
             "itinerary_name": "Replacement itinerary",
             "raw_text_input": payload["source"]["source_input"],
             "parsed_rows": payload["current_snapshot"]["parsed_rows"],

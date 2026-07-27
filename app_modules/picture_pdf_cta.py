@@ -62,19 +62,20 @@ def _render_pending_pdf_commit(transaction) -> None:
     if transaction.timed_out:
         st.warning(transaction_timeout_copy(transaction))
         st.caption("Retry the save, create the PDF from the last saved version, or cancel and keep reviewing pictures.")
-        retry_col, saved_col, cancel_col = st.columns(3)
-        with retry_col:
-            if st.button("Retry save", type="primary", use_container_width=True, key="retry_picture_pdf_editor_commit"):
-                retry_pdf_editor_commit(st.session_state)
-                st.rerun()
-        with saved_col:
-            if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_picture_pdf_after_timeout"):
-                clear_pdf_editor_commit(st.session_state)
-                enter_export_stage_for_synced_pdf()
-        with cancel_col:
-            if st.button("Cancel", use_container_width=True, key="cancel_picture_pdf_editor_commit"):
-                clear_pdf_editor_commit(st.session_state)
-                st.rerun()
+        with st.container(key="workflow_transaction_actions_picture_pdf"):
+            retry_col, saved_col, cancel_col = st.columns([0.22, 0.56, 0.22], gap="small")
+            with retry_col:
+                if st.button("Retry save", type="primary", use_container_width=True, key="retry_picture_pdf_editor_commit"):
+                    retry_pdf_editor_commit(st.session_state)
+                    st.rerun()
+            with saved_col:
+                if st.button("Create PDF from last saved version", use_container_width=True, key="fallback_picture_pdf_after_timeout"):
+                    clear_pdf_editor_commit(st.session_state)
+                    enter_export_stage_for_synced_pdf()
+            with cancel_col:
+                if st.button("Cancel", use_container_width=True, key="cancel_picture_pdf_editor_commit"):
+                    clear_pdf_editor_commit(st.session_state)
+                    st.rerun()
         return
 
     st.info(transaction_wait_copy(transaction))

@@ -14,6 +14,11 @@ OPEN_CANDIDATE_ID_KEY = "open_project_unsaved_open_candidate_id"
 SELECTED_PROJECT_ID_KEY = "open_project_selected_project_id"
 PROJECT_PAGE_KEY = "open_project_page_index"
 PROJECT_QUERY_SIGNATURE_KEY = "open_project_query_signature"
+PROJECT_TABLE_REVISION_KEY = "open_project_table_revision"
+BULK_ACTION_KEY = "open_project_bulk_action"
+BULK_ACTION_PROJECT_IDS_KEY = "open_project_bulk_action_project_ids"
+BULK_ACTION_PROJECT_NAMES_KEY = "open_project_bulk_action_project_names"
+FOLDER_OPTIONS_CACHE_KEY = "open_project_folder_options_cache"
 
 
 def remember_delete_candidate(state: MutableMapping[str, Any], *, project_id: str, name: str) -> None:
@@ -99,10 +104,28 @@ def set_browser_page_index(state: MutableMapping[str, Any], page_index: object) 
         state[PROJECT_PAGE_KEY] = 0
 
 
-def sync_project_query(state: MutableMapping[str, Any], *, search: object, sort: object) -> bool:
+def sync_project_query(
+    state: MutableMapping[str, Any],
+    *,
+    search: object,
+    sort: object,
+    owner_slug: object = "",
+    folder_name: object = "",
+    view: object = "projects",
+    manage_mode: object = False,
+) -> bool:
     """Reset paging/selection when the list query changes."""
 
-    signature = f"{' '.join(str(search or '').split()).casefold()}|{str(sort or '').strip().casefold()}"
+    signature = "|".join(
+        (
+            " ".join(str(search or "").split()).casefold(),
+            str(sort or "").strip().casefold(),
+            str(owner_slug or "").strip().casefold(),
+            " ".join(str(folder_name or "").split()).casefold(),
+            str(view or "projects").strip().casefold(),
+            "manage" if bool(manage_mode) else "browse",
+        )
+    )
     previous = str(state.get(PROJECT_QUERY_SIGNATURE_KEY) or "")
     state[PROJECT_QUERY_SIGNATURE_KEY] = signature
     if previous == signature:
@@ -113,4 +136,77 @@ def sync_project_query(state: MutableMapping[str, Any], *, search: object, sort:
     clear_rename_candidate(state)
     clear_delete_confirmation(state)
     clear_file_delete_confirmation(state)
+    clear_bulk_action(state)
+    bump_project_table_revision(state)
     return True
+
+
+def project_table_revision(state: MutableMapping[str, Any]) -> int:
+    try:
+        return max(0, int(state.get(PROJECT_TABLE_REVISION_KEY) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def bump_project_table_revision(state: MutableMapping[str, Any]) -> int:
+    revision = project_table_revision(state) + 1
+    state[PROJECT_TABLE_REVISION_KEY] = revision
+    return revision
+
+
+def remember_bulk_action(
+    state: MutableMapping[str, Any],
+    *,
+    action: object,
+    project_ids: list[str] | tuple[str, ...],
+    project_names: list[str] | tuple[str, ...] = (),
+) -> None:
+    clean_ids = tuple(dict.fromkeys(str(value or "").strip() for value in project_ids if str(value or "").strip()))
+    state[BULK_ACTION_KEY] = str(action or "").strip()
+    state[BULK_ACTION_PROJECT_IDS_KEY] = clean_ids
+    state[BULK_ACTION_PROJECT_NAMES_KEY] = tuple(str(value or "").strip() for value in project_names)
+
+
+def bulk_action(state: MutableMapping[str, Any]) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    action = str(state.get(BULK_ACTION_KEY) or "").strip()
+    ids = tuple(
+        str(value or "").strip()
+        for value in state.get(BULK_ACTION_PROJECT_IDS_KEY, ())
+        if str(value or "").strip()
+    )
+    names = tuple(
+        str(value or "").strip()
+        for value in state.get(BULK_ACTION_PROJECT_NAMES_KEY, ())
+        if str(value or "").strip()
+    )
+    return action, ids, names
+
+
+def clear_bulk_action(state: MutableMapping[str, Any]) -> None:
+    state.pop(BULK_ACTION_KEY, None)
+    state.pop(BULK_ACTION_PROJECT_IDS_KEY, None)
+    state.pop(BULK_ACTION_PROJECT_NAMES_KEY, None)
+
+
+def cached_folder_options(state: MutableMapping[str, Any], signature: str) -> tuple[Any, ...] | None:
+    cache = state.get(FOLDER_OPTIONS_CACHE_KEY)
+    if not isinstance(cache, dict):
+        return None
+    value = cache.get(str(signature))
+    return tuple(value) if isinstance(value, (list, tuple)) else None
+
+
+def remember_folder_options(
+    state: MutableMapping[str, Any],
+    signature: str,
+    options: list[Any] | tuple[Any, ...],
+) -> None:
+    cache = state.get(FOLDER_OPTIONS_CACHE_KEY)
+    if not isinstance(cache, dict):
+        cache = {}
+    cache[str(signature)] = tuple(options)
+    state[FOLDER_OPTIONS_CACHE_KEY] = cache
+
+
+def invalidate_folder_options(state: MutableMapping[str, Any]) -> None:
+    state.pop(FOLDER_OPTIONS_CACHE_KEY, None)

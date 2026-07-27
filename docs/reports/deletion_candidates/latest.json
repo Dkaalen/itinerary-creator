@@ -1,10 +1,10 @@
 {
   "report_fingerprint": {
-    "repository_head": "6fe989ae3d78c89358dcef4c80f08cbf0c3ce940",
-    "repository_head_tree": "330f85a64ff575e3b4ef5dc51d5bd687e67b8803",
+    "repository_head": "b05b04d305c67ed80d1ca58fa10bd8bbdefc37fc",
+    "repository_head_tree": "8e2ef187017233c4cc1f10be04d08256da4a05cb",
     "working_tree_clean": false,
-    "python_source_tree_sha256": "sha256:2f5ce89644dea0420fd5d5afd963b1854f072edb87ffc322f2b5689d7b56049f",
-    "python_source_file_count": 1338
+    "python_source_tree_sha256": "sha256:e5fde372be75789f1ed0daf3911a38c6b93fc7359e87d159a716ba3ab55468db",
+    "python_source_file_count": 1351
   },
   "candidates": [],
   "held_back": [
@@ -199,11 +199,15 @@
         "app_modules/input_generation_action.py",
         "app_modules/itinerary_render_artifact.py",
         "app_modules/main_view.py",
+        "app_modules/project_browser_actions.py",
         "app_modules/project_browser_calculation_files.py",
+        "app_modules/project_browser_controls.py",
         "app_modules/project_browser_detail_ui.py",
+        "app_modules/project_browser_management_actions.py",
         "app_modules/project_browser_ui.py",
         "app_modules/project_identity.py",
         "app_modules/project_io.py",
+        "app_modules/project_persistence_state.py",
         "app_modules/project_rename_state.py",
         "app_modules/project_save_rollback.py",
         "app_modules/project_save_ui.py",
@@ -216,8 +220,10 @@
         "app_modules/saved_project_generation.py",
         "app_modules/saved_project_load_action.py",
         "app_modules/saved_project_restore.py",
+        "app_modules/saved_project_update.py",
         "app_modules/workflow_navigation.py",
         "app_modules/workflow_state.py",
+        "app_modules/workflow_transients.py",
         "tests/test_session_state_transitions.py"
       ],
       "safety_note": "still has static importers"
@@ -2654,8 +2660,13 @@
       "reason": "facade-like module with production importers",
       "static_importers": [
         "app_modules/project_browser_actions.py",
+        "app_modules/project_browser_bulk_ui.py",
         "app_modules/project_browser_calculation_files.py",
+        "app_modules/project_browser_controls.py",
         "app_modules/project_browser_detail_ui.py",
+        "app_modules/project_browser_list_ui.py",
+        "app_modules/project_browser_management_actions.py",
+        "app_modules/project_browser_paging.py",
         "app_modules/project_browser_ui.py",
         "app_modules/project_save_ui.py",
         "app_modules/project_storage_error_state.py",
@@ -2664,17 +2675,36 @@
         "app_modules/project_storage_workflow.py",
         "project_storage/http_client.py",
         "project_storage/project_browser.py",
+        "project_storage/project_management.py",
+        "project_storage/project_results.py",
         "project_storage/repository.py",
+        "project_storage/version_writer.py",
         "tests/test_failure_mode_regressions.py",
         "tests/test_foundation_cleanup_regression.py",
         "tests/test_project_browser_compact_manager.py",
         "tests/test_project_cloud_lifecycle_hardening.py",
+        "tests/test_project_explorer_management_ui.py",
         "tests/test_project_management.py",
+        "tests/test_project_organization_and_trash.py",
         "tests/test_project_storage_boundary.py",
         "tests/test_project_storage_file_writer.py",
         "tests/test_project_storage_foundation.py"
       ],
       "safety_note": "package initializer; never delete from static import evidence alone"
+    },
+    {
+      "path": "project_storage/project_results.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/project_browser_management_actions.py",
+        "app_modules/project_browser_paging.py",
+        "app_modules/project_storage_service.py",
+        "project_storage/project_browser.py",
+        "project_storage/repository.py",
+        "tests/test_project_browser_compact_manager.py",
+        "tests/test_project_explorer_management_ui.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "shared/client_text_repair.py",

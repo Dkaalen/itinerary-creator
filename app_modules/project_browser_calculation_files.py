@@ -29,6 +29,15 @@ from app_modules.session_state_keys import (
 def render_calculation_files(project_id: str) -> None:
     """Render saved calculator workbooks for one cloud project."""
 
+    visible_key = f"cloud_calculator_files_visible_{project_id}"
+    visible = bool(st.session_state.get(visible_key))
+    label = "Hide Calculator files" if visible else "Show Calculator files"
+    if st.button(label, key=f"toggle_cloud_calculator_files_{project_id}", use_container_width=True):
+        st.session_state[visible_key] = not visible
+        st.rerun()
+    if not visible:
+        return
+
     try:
         files = list_cloud_calculation_files(project_id, limit=8)
     except Exception:
@@ -37,7 +46,8 @@ def render_calculation_files(project_id: str) -> None:
     if not files:
         st.caption("No calculator files saved for this itinerary yet.")
         return
-    with st.expander(f"Calculator files ({len(files)})", expanded=False):
+    with st.container(border=True, key=f"cloud_calculator_files_{project_id}"):
+        st.caption(f"Calculator files ({len(files)})")
         for index, item in enumerate(files):
             _render_calculation_file(project_id, item, index=index)
 

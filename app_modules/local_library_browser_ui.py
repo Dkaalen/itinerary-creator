@@ -78,19 +78,20 @@ def render_local_library_record_details(row: LocalLibraryRow) -> None:
 
 def _render_filters(options: dict[str, tuple[str, ...]]) -> LocalLibraryBrowserFilters:
     st.subheader("Browse records")
-    query = st.text_input(
-        "Search",
-        placeholder="Travel element, supplier, comments, URL, or library ID",
-        key="local_library_browser_query",
-    )
-    first = st.columns(3)
-    second = st.columns(3)
-    worksheet = first[0].selectbox("Worksheet", (_ALL, *options["worksheet"]))
-    country = first[1].selectbox("Country", (_ALL, *options["country"]))
-    city = first[2].selectbox("City", (_ALL, *options["city"]))
-    row_type = second[0].selectbox("Type", (_ALL, *options["row_type"]))
-    supplier = second[1].selectbox("Supplier", (_ALL, *options["supplier"]))
-    currency = second[2].selectbox("Currency", (_ALL, *options["currency"]))
+    with st.container(key="local_library_filters"):
+        query = st.text_input(
+            "Search",
+            placeholder="Travel element, supplier, comments, URL, or library ID",
+            key="local_library_browser_query",
+        )
+        first = st.columns(3, gap="small")
+        second = st.columns(3, gap="small")
+        worksheet = first[0].selectbox("Worksheet", (_ALL, *options["worksheet"]))
+        country = first[1].selectbox("Country", (_ALL, *options["country"]))
+        city = first[2].selectbox("City", (_ALL, *options["city"]))
+        row_type = second[0].selectbox("Type", (_ALL, *options["row_type"]))
+        supplier = second[1].selectbox("Supplier", (_ALL, *options["supplier"]))
+        currency = second[2].selectbox("Currency", (_ALL, *options["currency"]))
     return LocalLibraryBrowserFilters(
         worksheet=_selected_value(worksheet),
         country=_selected_value(country),
@@ -111,24 +112,25 @@ def _reset_page_when_filters_change(filters: LocalLibraryBrowserFilters) -> None
 
 
 def _render_paging_controls(total_rows: int) -> tuple[int, int]:
-    controls = st.columns([0.3, 0.7])
-    page_size = controls[0].selectbox(
-        "Rows per page",
-        _PAGE_SIZE_OPTIONS,
-        index=1,
-        key="local_library_browser_page_size",
-    )
-    page_count = max(1, (total_rows + int(page_size) - 1) // int(page_size))
-    page_key = "local_library_browser_page"
-    current_page = min(max(1, int(st.session_state.get(page_key, 1))), page_count)
-    st.session_state[page_key] = current_page
-    page_number = controls[1].number_input(
-        "Page",
-        min_value=1,
-        max_value=page_count,
-        step=1,
-        key=page_key,
-    )
+    with st.container(key="local_library_paging"):
+        controls = st.columns([0.3, 0.7], gap="small")
+        page_size = controls[0].selectbox(
+            "Rows per page",
+            _PAGE_SIZE_OPTIONS,
+            index=1,
+            key="local_library_browser_page_size",
+        )
+        page_count = max(1, (total_rows + int(page_size) - 1) // int(page_size))
+        page_key = "local_library_browser_page"
+        current_page = min(max(1, int(st.session_state.get(page_key, 1))), page_count)
+        st.session_state[page_key] = current_page
+        page_number = controls[1].number_input(
+            "Page",
+            min_value=1,
+            max_value=page_count,
+            step=1,
+            key=page_key,
+        )
     return int(page_size), int(page_number)
 
 

@@ -11,7 +11,7 @@ button[data-testid="baseButton-secondary"],
 button[kind="primary"],
 button[data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"] {
-    min-height: 2.9rem !important;
+    min-height: 2.8rem !important;
     border-radius: 10px !important;
     font-weight: 660 !important;
     letter-spacing: -0.006em !important;
@@ -128,11 +128,11 @@ div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
 div[data-testid="stTextInput"] input,
 div[data-testid="stNumberInput"] input,
 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-    min-height: 3.55rem !important;
+    min-height: 3rem !important;
     padding-left: 1.1rem !important;
     padding-right: 1.1rem !important;
-    font-family: Georgia, "Times New Roman", serif !important;
-    font-size: 1rem !important;
+    font-family: inherit !important;
+    font-size: .96rem !important;
 }
 
 div[data-baseweb="base-input"],
@@ -145,10 +145,11 @@ div[data-baseweb="base-input"],
 }
 
 div[data-testid="stTextArea"] textarea {
-    font-size: 1rem !important;
-    line-height: 1.6 !important;
-    padding: 1.28rem 1.25rem !important;
-    min-height: 330px !important;
+    font-family: inherit !important;
+    font-size: .96rem !important;
+    line-height: 1.5 !important;
+    padding: .9rem 1rem !important;
+    min-height: 8rem !important;
 }
 
 div[data-testid="stTextArea"] textarea:focus,

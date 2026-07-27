@@ -52,6 +52,10 @@ PAGE_LAYOUT_CSS = r""".input-page-heading,
     margin-bottom: 1.75rem !important;
 }
 
+.block-container:has(.input-page-heading) div[data-testid="stTextArea"] textarea {
+    min-height: 330px !important;
+}
+
 .block-container:has(.input-page-heading) [data-testid="stWidgetLabel"] {
     margin-left: clamp(2rem, 4.4vw, 3.6rem) !important;
     margin-bottom: .56rem !important;
@@ -70,6 +74,23 @@ PAGE_LAYOUT_CSS = r""".input-page-heading,
     gap: 1.35rem !important;
     margin: 1.35rem clamp(2rem, 4.4vw, 3.6rem) 0 !important;
 }
+
+@media (max-width: 620px) {
+    .source-line {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .35rem;
+        margin-left: .75rem;
+        margin-right: .75rem;
+    }
+
+    .input-page-heading,
+    .workspace-page-heading {
+        margin-left: .75rem;
+        margin-right: .75rem;
+    }
+}
+
 
 .local-library-heading {
     padding-bottom: .35rem;

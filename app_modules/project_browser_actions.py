@@ -6,10 +6,12 @@ import streamlit as st
 
 from app_modules.project_browser_state import remember_open_candidate, remember_selected_project
 from app_modules.project_identity import active_project_id_from_state
+from app_modules.project_persistence_state import mark_cloud_project_persisted
 from app_modules.project_unsaved_state import active_project_has_unsaved_changes
 from app_modules.saved_project_load_action import load_saved_project
 from app_modules.saved_project_validation import SavedProjectError
 from app_modules.project_session_transitions import complete_project_duplicate, prepare_project_switch
+from app_modules.session_state_keys import ACTIVE_SAVED_PROJECT_KEY
 from project_storage.errors import storage_user_message
 from app_modules.project_storage_service import duplicate_cloud_project, load_latest_cloud_project_payload
 
@@ -49,6 +51,11 @@ def open_cloud_project(project_id: str) -> None:
         st.error(storage_user_message("open"))
         return
     if result.ok:
+        opened_payload = st.session_state.get(ACTIVE_SAVED_PROJECT_KEY)
+        mark_cloud_project_persisted(
+            st.session_state,
+            payload=opened_payload if isinstance(opened_payload, dict) else payload,
+        )
         prepare_project_switch(st.session_state)
         st.success(result.message or "Cloud project opened.")
         st.rerun()
