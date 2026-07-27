@@ -8,6 +8,7 @@ from __future__ import annotations
 from .ui_workflow import DAY_BRAIN_TESTS
 
 QUALITY_TESTS = (
+    "tests/test_patch19_three_stage_sanitation.py",
     "tests/test_accommodation_wording.py",
     "tests/test_content_classification_priority.py",
     "tests/test_product_rule_registry.py",
@@ -87,6 +88,7 @@ QUALITY_TESTS = (
 )
 
 PDF_TESTS = (
+    "tests/test_pdf_lazy_initialization_contract.py",
     "tests/test_sync_regression_suite1.py",
     "tests/test_pdf_render_model_regression.py",
     "tests/test_pdf6_luxury_proposal.py",

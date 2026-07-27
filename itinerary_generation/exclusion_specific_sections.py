@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from itinerary_generation.common import add_unique, get_row_type, is_optional_row, is_self_arranged, main_rows_only, optional_rows_only
 from itinerary_generation.exclusion_constants import EXCLUSION_SECTION_ORDER
 from itinerary_generation.accommodation_display_helpers import (
@@ -42,7 +42,7 @@ def _structured_item(label, row=None, row_index=0):
 
 
 def _self_arranged_accommodation_exclusion_label(row) -> str:
-    return sanitize_client_text(f"{self_arranged_accommodation_label(row)}{row_date_suffix(row)}")
+    return sanitize_customer_field(f"{self_arranged_accommodation_label(row)}{row_date_suffix(row)}", CustomerField.EXCLUSION)
 
 
 def specific_self_arranged_items(parsed_rows):
@@ -51,12 +51,12 @@ def specific_self_arranged_items(parsed_rows):
         text = f'{row.get("title", "")} {row.get("details", "")}'.lower()
         if not (is_self_arranged(row) or row.get("commercial_status") == "self_arranged" or "self transfer" in text):
             continue
-        title = sanitize_client_text(commercial_row_title(row))
+        title = sanitize_customer_field(commercial_row_title(row), CustomerField.TITLE)
         if is_self_arranged_accommodation(row):
             title = self_arranged_accommodation_label(row)
         if not title:
             continue
-        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
+        label = sanitize_customer_field(f"{title}{row_date_suffix(row)}", CustomerField.EXCLUSION)
         add_unique(items, label)
     return items
 
@@ -64,7 +64,7 @@ def specific_self_arranged_items(parsed_rows):
 def specific_optional_items(parsed_rows):
     items = []
     for row in optional_rows_only(parsed_rows or []):
-        title = sanitize_client_text(commercial_row_title(row))
+        title = sanitize_customer_field(commercial_row_title(row), CustomerField.TITLE)
         if not title:
             continue
         add_unique(items, f"{title}{row_date_suffix(row)}")
@@ -86,11 +86,11 @@ def create_specific_exclusion_sections(parsed_rows):
 
     sections = {key: [] for key, _ in EXCLUSION_SECTION_ORDER}
     for row in parsed_rows or []:
-        title = sanitize_client_text(commercial_row_title(row))
+        title = sanitize_customer_field(commercial_row_title(row), CustomerField.TITLE)
         if not title:
             continue
 
-        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
+        label = sanitize_customer_field(f"{title}{row_date_suffix(row)}", CustomerField.EXCLUSION)
         row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
         status = _commercial_status(row)
 
@@ -143,11 +143,11 @@ def create_source_aware_exclusion_sections(parsed_rows):
 
     sections = {key: [] for key, _ in EXCLUSION_SECTION_ORDER}
     for row_index, row in enumerate(parsed_rows or []):
-        title = sanitize_client_text(commercial_row_title(row))
+        title = sanitize_customer_field(commercial_row_title(row), CustomerField.TITLE)
         if not title:
             continue
 
-        label = sanitize_client_text(f"{title}{row_date_suffix(row)}")
+        label = sanitize_customer_field(f"{title}{row_date_suffix(row)}", CustomerField.EXCLUSION)
         row_type = str(row.get("group_tour_semantic_type") or get_row_type(row))
         status = _commercial_status(row)
 

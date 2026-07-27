@@ -11,7 +11,6 @@ from collections.abc import Iterable
 
 from itinerary_generation.editor_page_contract import final_section_page_id
 from itinerary_generation.render_model import RenderFinalPage, RenderFinalSection
-from text_polish import polish_client_text
 from ui.editor_sanitizer import clean_visual_editor_html
 from ui.inclusion_pages import render_inclusion_sections_inner_html
 from ui.premium_final_notes import render_premium_notes_inner_html
@@ -43,7 +42,7 @@ def render_final_page_inner_html(section: RenderFinalSection, page: RenderFinalP
         return content_html
 
     if str(getattr(section, "section_id", "") or "") == "important_travel_notes":
-        paragraphs = [polish_client_text(item) for item in normalize_list(page.paragraphs or page.items) if polish_client_text(item)]
+        paragraphs = [str(item).strip() for item in normalize_list(page.paragraphs or page.items) if str(item).strip()]
         premium_html = render_premium_notes_inner_html(paragraphs)
         if premium_html:
             return premium_html
@@ -55,7 +54,7 @@ def render_final_page_inner_html(section: RenderFinalSection, page: RenderFinalP
     if page.items:
         html_text += render_list_items(page.items, class_name="final-list")
     for paragraph in page.paragraphs or []:
-        clean_paragraph = polish_client_text(paragraph)
+        clean_paragraph = str(paragraph or "").strip()
         if clean_paragraph:
             html_text += f'<div class="body-text note-paragraph">{esc(clean_paragraph)}</div>'
     return html_text

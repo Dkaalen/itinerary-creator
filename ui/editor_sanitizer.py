@@ -1,6 +1,6 @@
 import re
 
-from itinerary_generation.clipboard_sanitizer import strip_clipboard_fragment_markers
+from shared.clipboard_sanitizer import strip_clipboard_fragment_markers
 
 
 def clean_visual_editor_html(value):

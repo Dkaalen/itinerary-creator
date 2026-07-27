@@ -22,9 +22,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 TESTS_ROOT = REPO_ROOT / "tests"
-DEFAULT_MD = REPO_ROOT / "docs/reports/test_suite_audit/latest.md"
-DEFAULT_JSON = REPO_ROOT / "docs/reports/test_suite_audit/latest.json"
+DEFAULT_MD = REPO_ROOT / ".test-runs/reports/test_suite_audit/latest.md"
+DEFAULT_JSON = REPO_ROOT / ".test-runs/reports/test_suite_audit/latest.json"
 
+from scripts.test_catalogue import validate_test_catalogue  # noqa: E402
 from scripts.test_groups import (  # noqa: E402
     CRITICAL_TESTS,
     FAST_TESTS,
@@ -151,6 +152,7 @@ def _format_list(items: Iterable[str], *, limit: int = 30) -> list[str]:
 
 def build_report() -> str:
     modules = _test_modules()
+    catalogue_report = validate_test_catalogue(REPO_ROOT)
     group_modules = {name: {_module_name(path) for path in paths} for name, paths in GROUPS.items()}
     covered_modules = set().union(*group_modules.values())
     discovered_modules = {path.name for path in modules}
@@ -183,6 +185,9 @@ def build_report() -> str:
         "===========================",
         f"Discovered test modules: {len(modules)}",
         f"Discovered test functions: {sum(count for count, _name in test_counts)}",
+        f"Catalogue valid: {int(catalogue_report.valid)}",
+        f"Catalogue issues: {len(catalogue_report.issues)}",
+        f"Uncatalogued test modules: {len(catalogue_report.uncatalogued_modules)}",
         f"Named runner groups: {', '.join(GROUPS)}",
         f"Release candidate groups: {', '.join(RELEASE_CANDIDATE_GROUPS)}",
         f"Modules covered by at least one named group: {len(covered_modules)}",

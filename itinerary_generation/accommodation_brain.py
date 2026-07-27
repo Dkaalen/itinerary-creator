@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from itinerary_generation.accommodation_display_helpers import meal_phrase, plural_nights
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_text
+from shared.source_text_cleanup import clean_supplier_text
 from text_polish import polish_client_text, polish_hotel_name, polish_title
 
 _STAR_RE = re.compile(r"\b(?P<rating>[2-5](?:\s*/\s*[2-5])?)\s*[- ]?star\b", re.IGNORECASE)

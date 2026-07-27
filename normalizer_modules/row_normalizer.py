@@ -23,25 +23,38 @@ from normalizer_modules.transport_title import normalize_transport_title
 from normalizer_modules.transport_transfer_detection import _is_route_transfer_activity
 from place_aliases import canonicalize_place_name
 from shared.client_text_repair import repair_messy_client_text
-from text_polish import expand_time_with_duration, format_duration_display, polish_client_text
+from shared.source_text_cleanup import clean_supplier_source_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
+from text_polish import expand_time_with_duration, format_duration_display
 
 TRANSPORT_TYPES = {"Transport", "Train", "Flight", "Cruise", "Ferry"}
 
 
 def protect_hotel_owned_text(value: str) -> str:
-    protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", str(value or ""), flags=re.I)
-    cleaned = repair_messy_client_text(polish_client_text(protected))
-    return cleaned.replace("__HOTEL_AURORA__", "Aurora")
+    return sanitize_customer_field(
+        repair_messy_client_text(clean_supplier_source_text(value)),
+        CustomerField.TITLE,
+    )
+
+
+_FIELD_TYPES = {
+    "city": CustomerField.LOCATION,
+    "title": CustomerField.TITLE,
+    "original_title": CustomerField.TITLE,
+    "details": CustomerField.DESCRIPTION,
+    "meeting_point": CustomerField.MEETING_POINT,
+    "end_point": CustomerField.LOCATION,
+    "luggage_included": CustomerField.DESCRIPTION,
+}
 
 
 def _clean_base_fields(row, initial_type):
-    for key in ("city", "title", "original_title", "details", "meeting_point", "end_point", "luggage_included"):
+    del initial_type  # Field semantics, not source row type, own sanitation.
+    for key, field in _FIELD_TYPES.items():
         if not row.get(key):
             continue
-        if initial_type == "Hotel" and key in {"title", "original_title", "details"}:
-            row[key] = protect_hotel_owned_text(row[key])
-        else:
-            row[key] = repair_messy_client_text(polish_client_text(row[key]))
+        source_safe = clean_supplier_source_text(row[key])
+        row[key] = sanitize_customer_field(repair_messy_client_text(source_safe), field)
 
     if row.get("duration"):
         duration = row["duration"]

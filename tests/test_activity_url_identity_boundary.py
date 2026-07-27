@@ -4,7 +4,7 @@ from calculator.calculator_state import CalculatorState
 from calculator.row_model import CalculatorRow
 from calculator.to_itinerary_input import calculator_state_to_raw_input
 from itinerary_domain.activity_products import fingerprint_activity
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from itinerary_generation.description_composer import compose_activity_description
 from itinerary_generation.titles import create_client_activity_title
 from itinerary_parser import parse_itinerary
@@ -107,7 +107,7 @@ def test_saved_damaged_url_tail_is_removed_by_final_client_boundary() -> None:
         "URL: https: //www. Mount Fløyen."
     )
 
-    cleaned = sanitize_client_text(damaged)
+    cleaned = sanitize_customer_field(damaged, CustomerField.DESCRIPTION)
 
     assert cleaned == "Ride the Fløibanen funicular and enjoy the view."
     assert "URL" not in cleaned

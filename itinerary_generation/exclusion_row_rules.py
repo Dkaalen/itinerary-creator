@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from itinerary_generation.common import get_row_type
 from itinerary_generation.date_formatting import format_client_date
 from itinerary_generation.titles import create_client_activity_title
@@ -94,5 +94,5 @@ def commercial_row_title(row):
     if not title:
         title = _transport_commercial_title(row)
     title = title or row.get("title") or row.get("original_title") or row.get("details")
-    title = sanitize_client_text(polish_title(str(title or "").strip()))
+    title = sanitize_customer_field(polish_title(str(title or "").strip()), CustomerField.TITLE)
     return title[:120].strip(" -:|")

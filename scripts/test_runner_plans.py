@@ -33,9 +33,17 @@ def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]]
 
 
 def _group_sequence_stages(group_names: tuple[str, ...]) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Compose overlapping domain lanes without re-running exact targets."""
+
     stages: list[tuple[str, tuple[str, ...]]] = []
+    registered_targets: set[str] = set()
     for group_name in group_names:
-        stages.extend(_base_stages_for_group(group_name))
+        for stage_name, targets in _base_stages_for_group(group_name):
+            unique_targets = tuple(target for target in targets if target not in registered_targets)
+            if not unique_targets:
+                continue
+            stages.append((stage_name, unique_targets))
+            registered_targets.update(unique_targets)
     return tuple(stages)
 
 

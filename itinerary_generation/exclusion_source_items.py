@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from itinerary_generation.exclusion_row_rules import commercial_row_title
 from text_polish import polish_client_text
 
@@ -30,7 +30,7 @@ def _split_exclusion_phrases(value: str) -> list[str]:
         item = re.sub(r"\bdrop\s+to\s+hotel\b", "hotel drop-off", item, flags=re.IGNORECASE)
         item = re.sub(r"\btransportation\s+to\s+meeting\s+point\b", "transport to the meeting point", item, flags=re.IGNORECASE)
         item = re.sub(r"\bfood\s+and\s+drinks\s+are\s+excluded\b", "food and drinks", item, flags=re.IGNORECASE)
-        item = sanitize_client_text(polish_client_text(item)).strip(" .:")
+        item = sanitize_customer_field(polish_client_text(item), CustomerField.EXCLUSION).strip(" .:")
         if item and item not in cleaned:
             cleaned.append(item)
     return cleaned
@@ -76,12 +76,12 @@ def _specific_cost_not_included_label(row) -> str:
     items = _row_specific_not_included_items(row)
     if not items:
         return ""
-    title = sanitize_client_text(commercial_row_title(row))
+    title = sanitize_customer_field(commercial_row_title(row), CustomerField.TITLE)
     if not title:
         return ""
     phrase_items = []
     for index, item in enumerate(items):
-        text = sanitize_client_text(str(item or "").strip())
+        text = sanitize_customer_field(str(item or "").strip(), CustomerField.EXCLUSION)
         if index > 0 and text:
             text = text[:1].lower() + text[1:]
         phrase_items.append(text)
@@ -89,4 +89,4 @@ def _specific_cost_not_included_label(row) -> str:
         detail = phrase_items[0]
     else:
         detail = ", ".join(phrase_items[:-1]) + f" and {phrase_items[-1]}"
-    return sanitize_client_text(f"{title}: {detail}")
+    return sanitize_customer_field(f"{title}: {detail}", CustomerField.EXCLUSION)

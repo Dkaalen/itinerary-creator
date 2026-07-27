@@ -15,7 +15,7 @@ from itinerary_generation.copy_decision_contract import (
     dedupe_candidates,
     finalize_decision,
 )
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_title
+from shared.source_text_cleanup import clean_supplier_title
 from text_polish import polish_title
 
 _NARROW_INCLUDED_ITEM_RE = re.compile(

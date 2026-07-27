@@ -16,20 +16,15 @@ from itinerary_generation.transport_domain.parser import (
     standardize_self_transfer_title,
     standardize_shuttle_transfer_title,
 )
-from shared.source_text_cleanup import fix_common_text
+from shared.source_text_cleanup import clean_supplier_source_text
 from shared.source_time import normalize_duration_text, normalize_time_text
-from text_polish_modules.text_cleanup import polish_hotel_name
 
 
 def _fix_common_text_for_context(value: object, *, row_type: str = "", field: str = "") -> str:
-    """Clean one source field while preserving supplier-owned hotel names."""
+    """Clean one source field without customer-copy semantic rewriting."""
 
-    if row_type == "Hotel" and field in {"title", "details", "hotel_name"}:
-        protected = re.sub(r"\bAurora\b", "__HOTEL_AURORA__", str(value or ""), flags=re.IGNORECASE)
-        cleaned = fix_common_text(protected)
-        restored = cleaned.replace("__HOTEL_AURORA__", "Aurora")
-        return polish_hotel_name(restored) if field in {"title", "hotel_name"} else restored
-    return fix_common_text(value)
+    del row_type, field
+    return clean_supplier_source_text(value)
 
 
 def standardize_source_row_text(row: dict) -> dict:
@@ -59,7 +54,7 @@ def standardize_source_row_text(row: dict) -> dict:
         if key in row and isinstance(row.get(key), list):
             cleaned_items = []
             for item in row[key]:
-                cleaned = fix_common_text(item)
+                cleaned = clean_supplier_source_text(item)
                 cleaned = normalize_time_text(cleaned) or cleaned
                 if cleaned:
                     cleaned_items.append(cleaned)

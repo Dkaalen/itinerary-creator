@@ -1,4 +1,4 @@
-from itinerary_generation.client_sanitizer import sanitize_render_document_client_output
+from itinerary_generation.final_document_sanitation import sanitize_prepared_render_document
 from itinerary_generation.render_model import RenderBlock, RenderDay, RenderDocument, RenderMetaLine
 
 
@@ -35,7 +35,7 @@ def test_field_aware_sanitizer_removes_invalid_customer_fields_without_touching_
         ],
     )
 
-    sanitize_render_document_client_output(document)
+    sanitize_prepared_render_document(document)
 
     assert document.title == "Route: the Little Mermaid"
     assert document.warnings == ["technical warning TBD"]

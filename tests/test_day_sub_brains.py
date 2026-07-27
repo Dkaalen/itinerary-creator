@@ -11,7 +11,7 @@ from itinerary_generation.day_facts import build_day_facts
 from itinerary_generation.day_intent import classify_day_intent
 from itinerary_generation.day_leisure_writer import write_leisure_copy
 from itinerary_generation.schedule_brain import build_day_schedule_profile
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_text, clean_supplier_time, clean_supplier_title
+from shared.source_text_cleanup import clean_supplier_text, clean_supplier_time, clean_supplier_title
 from itinerary_generation.title_brain import write_day_title
 from itinerary_parser import parse_itinerary
 

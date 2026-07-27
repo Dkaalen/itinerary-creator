@@ -93,5 +93,5 @@ def test_ci_workflow_sets_honest_timeout_and_buffering_env() -> None:
     text = _workflow_text()
 
     assert "PYTHONUNBUFFERED: '1'" in text
-    assert "ITINERARY_TEST_STAGE_TIMEOUT_SECONDS: '300'" in text
-    assert "ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS: '900'" in text
+    assert "ITINERARY_TEST_STAGE_TIMEOUT_SECONDS: '45'" in text
+    assert "ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS: '45'" in text

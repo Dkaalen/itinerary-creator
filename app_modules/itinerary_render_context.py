@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
@@ -16,9 +17,10 @@ from app_modules.render_final_sections_html import render_final_page_inner_html
 from app_modules.presentation_language import presentation_labels, presentation_language_from_output_edits
 from itinerary_generation.client_output_quality_gate import evaluate_prepared_client_output_quality
 from itinerary_generation.client_quality_report import ClientOutputQualityGateReport
-from itinerary_generation.client_sanitizer import sanitize_render_document_client_output
+from itinerary_generation.final_document_sanitation import sanitize_prepared_render_document
 from itinerary_generation.editor_page_contract import (
     final_section_is_hidden as contract_final_section_is_hidden,
+    stable_page_id,
     manual_pages_from_draft as contract_manual_pages_from_draft,
     page_is_hidden as contract_page_is_hidden,
     page_order_from_draft as contract_page_order_from_draft,
@@ -134,9 +136,36 @@ def _attach_document_contract(
     )
 
 
+def _project_visible_render_document(context: ItineraryRenderContext) -> RenderDocument:
+    """Derive the preview/PDF projection from the one sanitized editor document."""
+
+    document = deepcopy(context.editor_render_document)
+    document.continuity_report = context.editor_render_document.continuity_report
+    hidden = context.hidden_page_ids or set()
+    if contract_page_is_hidden(hidden, "cover"):
+        document.cover = None
+    if contract_page_is_hidden(hidden, "summary"):
+        document.summary = None
+    document.days = [
+        day for day in document.days or []
+        if not contract_page_is_hidden(hidden, stable_page_id("day", getattr(day, "day", "")))
+    ]
+    document.final_sections = [
+        section for section in document.final_sections or []
+        if not contract_final_section_is_hidden(hidden, str(getattr(section, "section_id", "") or ""))
+    ]
+    document.hidden_page_ids = sorted(hidden)
+    document.days = sorted_render_days(document.days)
+    document.page_order = render_page_order_with_editor_request(
+        document, getattr(document, "page_order", []) or []
+    )
+    return document
+
+
 def _attach_pdf_contract(context: ItineraryRenderContext) -> None:
-    _attach_document_contract(context, context.render_document, include_hidden=False)
     _attach_document_contract(context, context.editor_render_document, include_hidden=True)
+    sanitize_prepared_render_document(context.editor_render_document)
+    context.render_document = _project_visible_render_document(context)
 
 
 def _final_section_html_fragments(render_document: RenderDocument, section_id: str) -> list[str]:
@@ -273,8 +302,6 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
     )
     _attach_pdf_contract(context)
     _attach_final_page_source_warnings(context)
-    sanitize_render_document_client_output(context.render_document)
-    sanitize_render_document_client_output(context.editor_render_document)
     context.client_quality_report = evaluate_prepared_client_output_quality(
         context.render_document,
         source_rows=context.parsed_rows,
@@ -287,6 +314,7 @@ __all__ = [
     "_attach_document_contract",
     "_attach_final_page_source_warnings",
     "_attach_pdf_contract",
+    "_project_visible_render_document",
     "_final_section_is_hidden",
     "_manual_pages_from_draft",
     "_page_is_hidden",

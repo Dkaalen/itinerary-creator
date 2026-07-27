@@ -16,7 +16,7 @@ from itinerary_generation.train_details import get_train_cabin_detail
 from itinerary_generation.transport_model import get_transport_source_text
 from itinerary_generation.transport_times import get_overnight_train_schedule
 from .inclusion_utils import add_unique, clean
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_text
+from shared.source_text_cleanup import clean_supplier_text
 
 
 _SEAT_CLASS_WORDS = r"(?:standard|premier|first|second|premium|business|economy|comfort|reserved|seat|seats|class|carriage|compartment|berth|upper|lower|downstairs|upstairs)"

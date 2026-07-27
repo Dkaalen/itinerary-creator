@@ -93,6 +93,8 @@ ACTIVITY_TESTS = (
 )
 
 ARCHITECTURE_TESTS = (
+    "tests/test_bounded_test_catalogue_contract.py",
+    "tests/test_patch19_sanitation_architecture.py",
     "tests/test_patch21_27_ownership_architecture.py",
     "tests/test_architecture_consolidation.py",
     "tests/test_foundation_cleanup_regression.py",

@@ -111,7 +111,6 @@ TOP_LEVEL_COMPATIBILITY_FACADES = {
     "image_matcher.py": 40,
     "itinerary_parser.py": 40,
     "normalizer.py": 20,
-    "pdf_exporter.py": 100,
     "text_polish.py": 20,
 }
 

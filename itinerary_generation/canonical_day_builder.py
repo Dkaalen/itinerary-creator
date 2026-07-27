@@ -10,7 +10,7 @@ from itinerary_generation.content_engine import clean_client_title, sanitize_day
 from itinerary_generation.copy.visit_context import DayVisitContext
 from itinerary_generation.day_content_resolver import resolve_day_content
 from itinerary_generation.group_tour_rendering import group_tour_day_from_rows
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_title
+from shared.source_text_cleanup import clean_supplier_title
 from text_polish import polish_title
 
 

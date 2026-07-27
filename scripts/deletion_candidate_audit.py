@@ -33,7 +33,6 @@ REQUIRED_PUBLIC_SURFACES = {
     "pdf_exporter.py",
     "text_polish.py",
     "itinerary_generation/public_api.py",
-    "pdf_exporter_modules/public_api.py",
 }
 PACKAGE_INIT_BASENAME = "__init__.py"
 SCRIPT_ENTRYPOINT_ROOT = "scripts/"

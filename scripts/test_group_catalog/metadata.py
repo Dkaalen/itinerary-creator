@@ -20,6 +20,8 @@ from .ui_workflow import (
     WORKFLOW_TESTS,
 )
 
+from .domains import EXPORT_TESTS, FAILURE_MODE_TESTS, GENERATOR_TESTS, INCLUSION_TESTS, ROUTE_TESTS
+
 from .focused_workflows import (
     CALCULATOR_BROWSER_WORKFLOW_TESTS, FORMULA_WORKFLOW_TESTS, VALIDATION_WORKFLOW_TESTS,
     WORKBOOK_WORKFLOW_TESTS, REALISTIC_CALCULATOR_WORKFLOW_TESTS,
@@ -54,6 +56,11 @@ GROUPS = {
     "reconstruction": RECONSTRUCTION_WORKFLOW_TESTS,
     "generation": GENERATION_WORKFLOW_TESTS,
     "editor-pictures": EDITOR_PICTURES_WORKFLOW_TESTS,
+    "generator": GENERATOR_TESTS,
+    "routes": ROUTE_TESTS,
+    "inclusions": INCLUSION_TESTS,
+    "export": EXPORT_TESTS,
+    "failure-modes": FAILURE_MODE_TESTS,
 }
 
 GROUP_ORDER = tuple(GROUPS)
@@ -116,6 +123,11 @@ GROUP_DESCRIPTIONS = {
     "reconstruction": "saved-project reconstruction authority and supported rebuild paths",
     "generation": "Calculator handoff and hosted itinerary generation transitions",
     "editor-pictures": "editor draft, picture selection, image safety, and autosave integration",
+    "generator": "generator, render-artifact, and prepared-document ownership",
+    "routes": "Streamlit routes, transport facts, destination routes, and continuity",
+    "inclusions": "structured inclusions, exclusions, source identity, and PDF projection",
+    "export": "PDF, Excel, readiness, artifact, and export-state contracts",
+    "failure-modes": "timeouts, recovery, rollback, diagnostics, and resilient state transitions",
     "health": "instant local health check: compile/import plus the critical smoke lane",
     "release": "strong timeout-safe release candidate check without the isolated slow harness",
 }

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from text_polish import polish_client_text
 from ui.editor_sanitizer import clean_visual_editor_html
 from ui.render_helpers import esc, normalize_list
 from ui.premium_final_notes import render_premium_notes_inner_html
@@ -30,7 +29,7 @@ def render_custom_html_final_pages(title, page_htmls, page_class="final-list-pag
 
 
 def render_text_paragraph_page(title, paragraphs):
-    clean_paragraphs = [polish_client_text(item) for item in normalize_list(paragraphs) if polish_client_text(item)]
+    clean_paragraphs = [str(item).strip() for item in normalize_list(paragraphs) if str(item).strip()]
     if not clean_paragraphs:
         return ""
 

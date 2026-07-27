@@ -5,7 +5,7 @@ from PIL import Image
 
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from images.day_image_selection import select_day_images_with_overrides
-from itinerary_generation.client_sanitizer import contains_price_or_currency, normalize_important_note_paragraphs, sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, contains_price_or_currency, normalize_customer_note_paragraphs, sanitize_customer_field
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.quality_gate import evaluate_client_output_quality, render_document_text
 from itinerary_generation.render_model import RenderDocument, RenderFinalPage, RenderFinalSection
@@ -62,7 +62,7 @@ def _write_webp(path: Path) -> None:
 def test_sanitizer_removes_prices_but_keeps_optional_labels():
     text = "Optional Katla Ice Cave tour (206€/person), Optional Vök Baths entrance (55€/person), single traveler supplement fee 395€"
 
-    cleaned = sanitize_client_text(text)
+    cleaned = sanitize_customer_field(text, CustomerField.DESCRIPTION)
 
     assert "206" not in cleaned
     assert "55" not in cleaned
@@ -126,7 +126,7 @@ def test_important_notes_are_real_paragraphs_not_fragments():
         "and can be adjusted if required.",
     ]
 
-    paragraphs = normalize_important_note_paragraphs(fragments)
+    paragraphs = normalize_customer_note_paragraphs(fragments)
 
     assert paragraphs == [
         "Transport schedules including flights trains buses are subject to operational changes.",

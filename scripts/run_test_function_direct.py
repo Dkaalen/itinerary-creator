@@ -14,6 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
+
 
 def _finish(code: int) -> None:
     faulthandler.cancel_dump_traceback_later()
@@ -24,10 +26,11 @@ def _finish(code: int) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Run one no-fixture test function directly.")
-    parser.add_argument("--timeout-seconds", type=int, default=120)
+    parser.add_argument("--timeout-seconds", type=int, default=TEST_STAGE_BOUNDARY_SECONDS)
     parser.add_argument("test_file")
     parser.add_argument("test_function")
     args = parser.parse_args(argv or sys.argv[1:])
+    args.timeout_seconds = max(1, min(args.timeout_seconds, TEST_STAGE_BOUNDARY_SECONDS))
 
     os.environ.setdefault("PYTHONFAULTHANDLER", "1")
     faulthandler.enable(all_threads=True)

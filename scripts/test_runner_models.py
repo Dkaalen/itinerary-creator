@@ -16,6 +16,7 @@ class TestStageSpec:
     label: str
     command: tuple[str, ...]
     timeout_seconds: int
+    group_id: str = ""
     kind: str = "pytest"
     targets: tuple[str, ...] = ()
 
@@ -26,6 +27,7 @@ class TestStageSpec:
             "label": self.label,
             "command": list(self.command),
             "timeout_seconds": self.timeout_seconds,
+            "group_id": self.group_id,
             "kind": self.kind,
             "targets": list(self.targets),
         }
@@ -97,6 +99,8 @@ class StageRunResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "prior_median_seconds": self.prior_median_seconds,
+            "completed": not self.timed_out,
+            "counted": self.passed,
         }
 
 # Prevent pytest from mistaking imported data models for test classes.

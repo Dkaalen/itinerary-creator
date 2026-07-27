@@ -70,9 +70,14 @@ python .\scripts\run_test_group.py cloud-lifecycle
 python .\scripts\run_test_group.py reconstruction
 python .\scripts\run_test_group.py generation
 python .\scripts\run_test_group.py editor-pictures
+python .\scripts\run_test_group.py generator
+python .\scripts\run_test_group.py routes
+python .\scripts\run_test_group.py inclusions
+python .\scripts\run_test_group.py export
+python .\scripts\run_test_group.py failure-modes
 ```
 
-Use `--plan` to inspect stages and `--stage-range N-N` to rerun a specific stage. Calculator browser workflows are one node per stage; the other focused workflow stages contain no more than two modules.
+Use `--plan` to inspect stages and `--stage-range N-N` to rerun a specific stage. Calculator browser workflows are one node per stage; the other focused workflow stages contain no more than two modules. Every executable stage is capped at 45 seconds. Split an oversized catalogue stage instead of increasing that limit.
 
 ## Medium quality tests
 

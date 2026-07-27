@@ -99,7 +99,7 @@ def test_generic_text_compaction_has_one_implementation_owner() -> None:
         "itinerary_generation/journey_overview_brain.py",
         "itinerary_generation/journey_overview_evidence.py",
         "itinerary_generation/journey_overview_variation.py",
-        "itinerary_generation/supplier_cleanup_brain.py",
+        "shared/source_text_cleanup.py",
         "itinerary_generation/title_decision_helpers.py",
         "itinerary_generation/transport_safety.py",
         "shared/place_label_policy.py",

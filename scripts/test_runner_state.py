@@ -8,9 +8,10 @@ from pathlib import Path
 from statistics import median
 from typing import Any, Iterable
 
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 from scripts.test_runner_models import StageRunResult, TestPlanSpec, TestStageSpec
 
-STATE_SCHEMA_VERSION = 1
+STATE_SCHEMA_VERSION = 2
 DEFAULT_STATE_ROOT_NAME = ".test-runs"
 
 
@@ -107,6 +108,8 @@ def mark_stage_running(
     stages[stage.stage_id] = {
         "stage_id": stage.stage_id,
         "label": stage.label,
+        "group_id": stage.group_id,
+        "timeout_seconds": stage.timeout_seconds,
         "fingerprint": stage.fingerprint,
         "status": "RUNNING",
         "return_code": None,
@@ -126,7 +129,10 @@ def record_stage_result(
     result: StageRunResult,
 ) -> None:
     stages = checkpoint.setdefault("stages", {})
-    stages[stage.stage_id] = result.to_record(fingerprint=stage.fingerprint)
+    record = result.to_record(fingerprint=stage.fingerprint)
+    record["group_id"] = stage.group_id
+    record["timeout_seconds"] = stage.timeout_seconds
+    stages[stage.stage_id] = record
     save_checkpoint(state_root, checkpoint)
     append_duration_history(state_root, checkpoint["plan_name"], stage, result)
 
@@ -145,6 +151,8 @@ def append_duration_history(
         "stage_id": stage.stage_id,
         "stage_fingerprint": stage.fingerprint,
         "label": stage.label,
+        "group_id": stage.group_id,
+        "timeout_seconds": stage.timeout_seconds,
         "status": result.status,
         "elapsed_seconds": round(result.elapsed_seconds, 3),
     }
@@ -191,6 +199,8 @@ def build_summary(
     stage_rows: list[dict[str, Any]] = []
     counts = {"PASS": 0, "FAIL": 0, "TIMEOUT": 0, "NOT_RUN": 0, "RUNNING": 0}
     total_seconds = 0.0
+    group_rows: dict[str, dict[str, Any]] = {}
+
     for index, stage in enumerate(plan.stages, start=1):
         record = records.get(stage.stage_id, {}) if isinstance(records, dict) else {}
         status = str(record.get("status", "NOT_RUN"))
@@ -199,27 +209,70 @@ def build_summary(
         if status not in counts:
             status = "NOT_RUN"
         counts[status] += 1
-        elapsed = record.get("elapsed_seconds")
-        if isinstance(elapsed, (int, float)):
-            total_seconds += float(elapsed)
+
+        elapsed_value = record.get("elapsed_seconds")
+        elapsed = float(elapsed_value) if isinstance(elapsed_value, (int, float)) else None
+        if elapsed is not None:
+            total_seconds += elapsed
+        boundary_exceeded = bool(
+            elapsed is not None and elapsed > TEST_STAGE_BOUNDARY_SECONDS
+        )
+        group_id = stage.group_id or plan.name
         stage_rows.append(
             {
                 "number": index,
                 "stage_id": stage.stage_id,
+                "group_id": group_id,
                 "label": stage.label,
                 "status": status,
-                "elapsed_seconds": elapsed,
+                "elapsed_seconds": elapsed_value,
+                "timeout_seconds": stage.timeout_seconds,
+                "boundary_exceeded": boundary_exceeded,
                 "log_path": record.get("log_path", ""),
             }
         )
+
+        group = group_rows.setdefault(
+            group_id,
+            {
+                "group_id": group_id,
+                "elapsed_seconds": 0.0,
+                "stage_count": 0,
+                "passed": 0,
+                "failed": 0,
+                "timed_out": 0,
+                "not_run": 0,
+                "boundary_exceeded_stages": 0,
+            },
+        )
+        group["stage_count"] += 1
+        if elapsed is not None:
+            group["elapsed_seconds"] += elapsed
+        if status == "PASS":
+            group["passed"] += 1
+        elif status == "FAIL":
+            group["failed"] += 1
+        elif status == "TIMEOUT":
+            group["timed_out"] += 1
+        else:
+            group["not_run"] += 1
+        if boundary_exceeded:
+            group["boundary_exceeded_stages"] += 1
+
+    groups = list(group_rows.values())
+    for group in groups:
+        group["elapsed_seconds"] = round(float(group["elapsed_seconds"]), 3)
+
     return {
         "schema_version": STATE_SCHEMA_VERSION,
         "plan_name": plan.name,
         "plan_fingerprint": plan.fingerprint,
         "workspace_fingerprint": plan.workspace_fingerprint,
         "generated_at": utc_now(),
+        "stage_boundary_seconds": TEST_STAGE_BOUNDARY_SECONDS,
         "counts": counts,
         "total_recorded_stage_seconds": round(total_seconds, 3),
+        "groups": groups,
         "stages": stage_rows,
     }
 

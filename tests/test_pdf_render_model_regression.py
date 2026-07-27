@@ -13,7 +13,7 @@ sys.modules.setdefault("streamlit", streamlit_stub)
 from app_modules.itinerary_render_context import build_itinerary_render_context
 from itinerary_generation.common import group_rows_by_day
 from itinerary_generation.render_model import RenderDocument, RenderFinalPage, RenderFinalSection
-from pdf_exporter import export_render_document_to_pdf, render_document_requires_html_fallback
+from pdf_exporter import PdfExportResult, export_render_document_to_pdf, render_document_requires_html_fallback
 from ui import export_files
 
 
@@ -72,23 +72,24 @@ def test_direct_pdf_exporter_writes_from_render_document_without_html(tmp_path):
     assert pdf_path.stat().st_size > 3_000
 
 
-def test_save_pdf_file_prefers_typed_renderer_when_model_owns_content(monkeypatch, tmp_path):
+def _created_result(pdf_path: str | Path, renderer: str) -> PdfExportResult:
+    path = Path(pdf_path)
+    path.write_bytes(f"{renderer} pdf".encode("utf-8"))
+    return PdfExportResult(status="created", path=path, renderer=renderer)
+
+
+def test_save_pdf_file_delegates_prepared_document_to_supported_api(monkeypatch, tmp_path):
     context = _context({"important_travel_notes_text": "Bring passport"})
     html_path = tmp_path / "preview.html"
     html_path.write_text("<html><body>legacy preview</body></html>", encoding="utf-8")
     calls = []
 
-    def fake_typed(render_document, pdf_path, **kwargs):
-        calls.append(("typed", isinstance(render_document, RenderDocument), kwargs))
-        Path(pdf_path).write_bytes(b"typed pdf")
-
-    def fake_html(html_path_arg, pdf_path):
-        calls.append(("html", str(html_path_arg), {}))
-        Path(pdf_path).write_bytes(b"html pdf")
+    def fake_create_pdf(html_path_arg, pdf_path, **kwargs):
+        calls.append((Path(html_path_arg), Path(pdf_path), kwargs))
+        return _created_result(pdf_path, "typed")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(export_files, "export_render_document_to_pdf", fake_typed)
-    monkeypatch.setattr(export_files, "export_html_to_pdf", fake_html)
+    monkeypatch.setattr(export_files, "create_pdf", fake_create_pdf)
 
     output_path = export_files.save_pdf_file(
         html_path,
@@ -98,11 +99,13 @@ def test_save_pdf_file_prefers_typed_renderer_when_model_owns_content(monkeypatc
     )
 
     assert output_path == Path("outputs/itinerary_preview.pdf")
-    assert calls and calls[0][0] == "typed"
-    assert calls[0][1] is True
+    assert len(calls) == 1
+    assert calls[0][0] == html_path
+    assert calls[0][2]["render_document"] is context.render_document
+    assert calls[0][2]["color_data"] == context.colors
 
 
-def test_save_pdf_file_keeps_supported_final_html_on_typed_path(monkeypatch, tmp_path):
+def test_save_pdf_file_keeps_supported_final_html_on_supported_api(monkeypatch, tmp_path):
     context = _context()
     context.render_document.final_sections.append(
         RenderFinalSection(
@@ -115,26 +118,23 @@ def test_save_pdf_file_keeps_supported_final_html_on_typed_path(monkeypatch, tmp
     html_path.write_text("<html><body>edited preview</body></html>", encoding="utf-8")
     calls = []
 
-    def fake_typed(render_document, pdf_path, **kwargs):
-        calls.append("typed")
-        Path(pdf_path).write_bytes(b"typed pdf")
-
-    def fake_html(html_path_arg, pdf_path):
-        calls.append("html")
-        Path(pdf_path).write_bytes(b"html pdf")
+    def fake_create_pdf(html_path_arg, pdf_path, **kwargs):
+        calls.append(kwargs["render_document"])
+        return _created_result(pdf_path, "typed")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(export_files, "export_render_document_to_pdf", fake_typed)
-    monkeypatch.setattr(export_files, "export_html_to_pdf", fake_html)
+    monkeypatch.setattr(export_files, "create_pdf", fake_create_pdf)
 
-    output_path = export_files.save_pdf_file(html_path, render_document=context.render_document, output_edits={})
+    output_path = export_files.save_pdf_file(
+        html_path, render_document=context.render_document, output_edits={}
+    )
 
     assert output_path == Path("outputs/itinerary_preview.pdf")
-    assert calls == ["typed"]
+    assert calls == [context.render_document]
     assert render_document_requires_html_fallback(context.render_document, {}) is False
 
 
-def test_save_pdf_file_falls_back_for_unsupported_visual_editor_html(monkeypatch, tmp_path):
+def test_save_pdf_file_delegates_unsupported_editor_html_for_fallback(monkeypatch, tmp_path):
     context = _context()
     context.render_document.final_sections.append(
         RenderFinalSection(
@@ -147,22 +147,19 @@ def test_save_pdf_file_falls_back_for_unsupported_visual_editor_html(monkeypatch
     html_path.write_text("<html><body>edited preview</body></html>", encoding="utf-8")
     calls = []
 
-    def fake_typed(render_document, pdf_path, **kwargs):
-        calls.append("typed")
-        Path(pdf_path).write_bytes(b"typed pdf")
-
-    def fake_html(html_path_arg, pdf_path):
-        calls.append("html")
-        Path(pdf_path).write_bytes(b"html pdf")
+    def fake_create_pdf(html_path_arg, pdf_path, **kwargs):
+        calls.append(kwargs["render_document"])
+        return _created_result(pdf_path, "html")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(export_files, "export_render_document_to_pdf", fake_typed)
-    monkeypatch.setattr(export_files, "export_html_to_pdf", fake_html)
+    monkeypatch.setattr(export_files, "create_pdf", fake_create_pdf)
 
-    output_path = export_files.save_pdf_file(html_path, render_document=context.render_document, output_edits={})
+    output_path = export_files.save_pdf_file(
+        html_path, render_document=context.render_document, output_edits={}
+    )
 
     assert output_path == Path("outputs/itinerary_preview.pdf")
-    assert calls == ["html"]
+    assert calls == [context.render_document]
     assert render_document_requires_html_fallback(context.render_document, {}) is True
 
 

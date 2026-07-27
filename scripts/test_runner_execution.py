@@ -7,13 +7,18 @@ import sys
 import time
 from pathlib import Path
 
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 from scripts.test_runner_models import StageRunResult
 from scripts.subprocess_control import run_controlled_process
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PYTEST_FLAGS = ("-q", "--durations=10")
-DEFAULT_STAGE_TIMEOUT_SECONDS = int(
-    os.environ.get("ITINERARY_TEST_STAGE_TIMEOUT_SECONDS", "300")
+DEFAULT_STAGE_TIMEOUT_SECONDS = max(
+    1,
+    min(
+        int(os.environ.get("ITINERARY_TEST_STAGE_TIMEOUT_SECONDS", str(TEST_STAGE_BOUNDARY_SECONDS))),
+        TEST_STAGE_BOUNDARY_SECONDS,
+    ),
 )
 
 
@@ -49,6 +54,7 @@ def _run_command_result(
     *,
     env: dict[str, str] | None = None,
 ) -> StageRunResult:
+    timeout_seconds = max(1, min(timeout_seconds, TEST_STAGE_BOUNDARY_SECONDS))
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(cmd), flush=True)
     print(f"stage timeout: {timeout_seconds}s", flush=True)
@@ -67,9 +73,8 @@ def _run_command_result(
             flush=True,
         )
         print(
-            "The timed-out stage and its descendants were terminated. Run with --plan to see "
-            "the exact stage split, or increase ITINERARY_TEST_STAGE_TIMEOUT_SECONDS "
-            "for slower machines.",
+            "The timed-out stage and its descendants were terminated. Split the owning "
+            "catalogue group into smaller independent stages before rerunning it.",
             flush=True,
         )
         return StageRunResult(label=label, return_code=124, elapsed_seconds=elapsed)

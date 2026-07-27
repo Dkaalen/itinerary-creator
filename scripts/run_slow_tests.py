@@ -19,11 +19,23 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 from scripts.test_groups import slow_direct_targets
 from scripts.subprocess_control import run_controlled_process
 
 WORKER = "scripts/run_test_function_direct.py"
-TEST_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_SLOW_TEST_TIMEOUT_SECONDS", "120"))
+TEST_TIMEOUT_SECONDS = max(
+    1,
+    min(
+        int(
+            os.environ.get(
+                "ITINERARY_SLOW_TEST_TIMEOUT_SECONDS",
+                str(TEST_STAGE_BOUNDARY_SECONDS),
+            )
+        ),
+        TEST_STAGE_BOUNDARY_SECONDS,
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -56,7 +68,14 @@ def _worker_env() -> dict[str, str]:
 
 def _run_worker(relative_path: str, test_name: str) -> SlowResult:
     label = f"{relative_path}::{test_name}"
-    args = [sys.executable, WORKER, relative_path, test_name]
+    args = [
+        sys.executable,
+        WORKER,
+        "--timeout-seconds",
+        str(TEST_TIMEOUT_SECONDS),
+        relative_path,
+        test_name,
+    ]
     started = time.monotonic()
     result = run_controlled_process(
         args,

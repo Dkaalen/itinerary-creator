@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from itinerary_generation.client_sanitizer import (
-    normalize_important_note_paragraphs,
-    sanitize_client_list,
+from itinerary_domain.field_sanitation import (
+    CustomerField,
+    normalize_customer_note_paragraphs,
+    sanitize_customer_list,
 )
 from itinerary_generation.editor_page_contract import final_section_is_hidden as contract_final_section_is_hidden
 from itinerary_generation.render_model import RenderFinalPage, RenderFinalSection, RenderSection
@@ -39,13 +40,18 @@ def _paginated_structured_final_pages(sections: Any) -> list[RenderFinalPage]:
     return pages
 
 
-def _split_list_final_pages(items: list[str], *, items_per_page: int = 24) -> list[RenderFinalPage]:
-    clean_items = sanitize_client_list(items or [])
+def _split_list_final_pages(
+    items: list[str],
+    field: CustomerField,
+    *,
+    items_per_page: int = 24,
+) -> list[RenderFinalPage]:
+    clean_items = sanitize_customer_list(items or [], field)
     return [RenderFinalPage(items=clean_items[index:index + items_per_page]) for index in range(0, len(clean_items), items_per_page)]
 
 
 def _paragraph_final_pages(text: Any) -> list[RenderFinalPage]:
-    paragraphs = normalize_important_note_paragraphs(text)
+    paragraphs = normalize_customer_note_paragraphs(text)
     return [RenderFinalPage(paragraphs=paragraphs)] if paragraphs else []
 
 
@@ -85,7 +91,7 @@ def build_final_sections_for_pdf(context: Any, *, include_hidden: bool = False) 
     elif not section_hidden("whats_included") and context.output_edits.get("whats_included_html"):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_html_final_pages(context.output_edits.get("whats_included_html")), css_class="categorized-inclusions-page"))
     elif not section_hidden("whats_included") and context.manual_whats_included:
-        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_split_list_final_pages(context.whats_included)))
+        sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_split_list_final_pages(context.whats_included, CustomerField.INCLUSION)))
     elif not section_hidden("whats_included"):
         sections.append(RenderFinalSection("whats_included", _final_section_title(context, "whats_included", "What’s included"), pages=_paginated_structured_final_pages(context.categorized_inclusions), css_class="categorized-inclusions-page"))
 
@@ -111,7 +117,7 @@ def build_final_sections_for_pdf(context: Any, *, include_hidden: bool = False) 
                     details.append("Includes " + ", ".join(str(item) for item in addon.get("includes") or [] if str(item).strip()))
                 else:
                     details.append("Available as an optional experience.")
-                page_items.append("\n".join(sanitize_client_list([heading, *[detail for detail in details if detail]])))
+                page_items.append("\n".join(sanitize_customer_list([heading, *[detail for detail in details if detail]], CustomerField.DESCRIPTION)))
             if page_items:
                 optional_pages.append(RenderFinalPage(items=page_items))
         if optional_pages:
@@ -127,7 +133,7 @@ def build_final_sections_for_pdf(context: Any, *, include_hidden: bool = False) 
     ):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_html_final_pages(context.output_edits.get("whats_not_included_html")), css_class="categorized-exclusions-page"))
     elif not section_hidden("whats_not_included") and context.output_edits.get("whats_not_included_text"):
-        sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_split_list_final_pages(context.whats_not_included)))
+        sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_split_list_final_pages(context.whats_not_included, CustomerField.EXCLUSION)))
     elif not section_hidden("whats_not_included"):
         sections.append(RenderFinalSection("whats_not_included", _final_section_title(context, "whats_not_included", "What’s not included"), pages=_paginated_structured_final_pages(context.structured_whats_not_included), css_class="categorized-exclusions-page"))
 

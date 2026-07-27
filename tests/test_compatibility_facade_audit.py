@@ -7,10 +7,10 @@ REQUIRED_TOP_LEVEL_FACADES = {
     "generator": "itinerary_generation",
     "text_polish": "text_polish_modules",
     "image_matcher": "images",
-    "pdf_exporter": "pdf_exporter_modules",
 }
 
 SUPPORTED_TOP_LEVEL_APIS = {
+    "pdf_exporter": "pdf_exporter_modules",
     "itinerary_parser": "parser_modules",
     "normalizer": "normalizer_modules",
 }

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 TEST_ROOT = "tests"
 
+TEST_STAGE_BOUNDARY_SECONDS = 45
+
 EMPTY_LEGACY_TEST_MODULES = frozenset()
 
 REMAINING_STAGE_SIZE = 8
@@ -42,4 +44,9 @@ CHUNKED_GROUP_STAGE_SIZES = {
     "reconstruction": 2,
     "generation": 2,
     "editor-pictures": 2,
+    "generator": 2,
+    "routes": 2,
+    "inclusions": 2,
+    "export": 2,
+    "failure-modes": 2,
 }

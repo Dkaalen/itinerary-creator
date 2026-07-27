@@ -12,7 +12,7 @@ from typing import Mapping
 
 from itinerary_generation.activity_product_titles import activity_product_metadata
 from itinerary_generation.product_rules import find_product_match
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_title
+from shared.source_text_cleanup import clean_supplier_title
 from text_polish import polish_title
 from shared.url_metadata import strip_urls
 

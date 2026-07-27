@@ -7,7 +7,7 @@ import re
 
 from app_modules.render_context_cover_data import _safe_label
 from app_modules.presentation_language import label_for
-from itinerary_generation.client_sanitizer import normalize_important_note_paragraphs, sanitize_client_list
+from itinerary_domain.field_sanitation import CustomerField, normalize_customer_note_paragraphs, sanitize_customer_list
 from itinerary_generation.editable_draft import section_by_id
 from itinerary_generation.inclusions import create_whats_included, create_whats_not_included
 from ui.final_pages import create_optional_addons, get_important_travel_notes
@@ -42,10 +42,10 @@ def _typed_exclusion_html(typed_exclusions: dict[str, Any] | None) -> str:
 def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, Any], editor_draft: dict[str, Any], structured_document: Any) -> dict[str, Any]:
     """Build inclusion/exclusion/notes fields for render context."""
 
-    manual_whats_included = sanitize_client_list(text_to_list(output_edits.get("whats_included_text", "")))
+    manual_whats_included = sanitize_customer_list(text_to_list(output_edits.get("whats_included_text", "")), CustomerField.INCLUSION)
     whats_included = manual_whats_included or create_whats_included(parsed_rows, grouped_days)
     if output_edits.get("whats_not_included_text"):
-        whats_not_included = sanitize_client_list(text_to_list(output_edits.get("whats_not_included_text")))
+        whats_not_included = sanitize_customer_list(text_to_list(output_edits.get("whats_not_included_text")), CustomerField.EXCLUSION)
     else:
         whats_not_included = create_whats_not_included(parsed_rows)
 
@@ -83,7 +83,7 @@ def build_final_context_data(parsed_rows, grouped_days, output_edits: dict[str, 
         "typed_exclusion_html": "" if _looks_like_stale_generated_exclusion_html(_typed_exclusion_html(typed_exclusions)) else _typed_exclusion_html(typed_exclusions),
         "typed_exclusions_owned": bool(typed_exclusions) and not _looks_like_stale_generated_exclusion_html(_typed_exclusion_html(typed_exclusions)),
         "saved_exclusion_html_refreshable": _looks_like_stale_generated_exclusion_html(output_edits.get("whats_not_included_html")),
-        "important_travel_notes": normalize_important_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits, parsed_rows=parsed_rows)),
+        "important_travel_notes": normalize_customer_note_paragraphs(typed_notes.get("text") if typed_notes else get_important_travel_notes(output_edits, parsed_rows=parsed_rows)),
         "final_section_titles": final_section_titles,
     }
 

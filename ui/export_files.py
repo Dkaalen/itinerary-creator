@@ -24,8 +24,7 @@ except ModuleNotFoundError:  # pragma: no cover - lightweight test/runtime fallb
 
     st = _NoStreamlit()
 
-from pdf_exporter_modules.export_profiles import pdf_filename, resolve_pdf_export_profile
-from pdf_exporter import export_html_to_pdf, export_render_document_to_pdf, render_document_requires_html_fallback
+from pdf_exporter import create_pdf, pdf_filename, resolve_pdf_export_profile
 
 
 def build_full_html_document(itinerary_html):
@@ -78,19 +77,23 @@ def save_pdf_file(html_path, *, render_document=None, color_data=None, day_image
         fallback_base = "itinerary_preview_booknordics" if str((output_edits or {}).get("output_brand") or "agent") == "booknordics_customer" else "itinerary_preview"
         base_name = str(filename_stem or "").strip() or fallback_base
         pdf_path = outputs_folder / pdf_filename(base_name=base_name, profile=profile.as_dict())
-        if render_document is not None and not render_document_requires_html_fallback(render_document, output_edits):
-            export_render_document_to_pdf(
-                render_document,
-                pdf_path,
-                color_data=color_data,
-                day_images=day_images,
-                day_image_crop_focus=day_image_crop_focus,
-                export_profile=profile.as_dict(),
-                output_brand=str((output_edits or {}).get("output_brand") or "agent"),
-            )
-        else:
-            export_html_to_pdf(html_path, pdf_path)
-
+        result = create_pdf(
+            html_path,
+            pdf_path,
+            render_document=render_document,
+            color_data=color_data,
+            day_images=day_images,
+            day_image_crop_focus=day_image_crop_focus,
+            output_edits=output_edits or {},
+            export_profile=profile.as_dict(),
+            output_brand=str((output_edits or {}).get("output_brand") or "agent"),
+        )
+        if not result.succeeded:
+            st.error(result.message or "Could not save the PDF file to disk.")
+            if result.technical_detail:
+                with st.expander("PDF save error details"):
+                    st.error(result.technical_detail)
+            return None
         return pdf_path
     except Exception as error:
         st.error("Could not save the PDF file to disk.")

@@ -6,6 +6,7 @@ from .settings import (
     PDF_STAGE_SIZE,
     REMAINING_STAGE_SIZE,
     TEST_ROOT,
+    TEST_STAGE_BOUNDARY_SECONDS,
     TIERED_STAGE_SIZE,
 )
 from .core import (
@@ -38,6 +39,13 @@ from .focused_workflows import (
     GENERATION_WORKFLOW_TESTS,
     EDITOR_PICTURES_WORKFLOW_TESTS,
 )
+from .domains import (
+    EXPORT_TESTS,
+    FAILURE_MODE_TESTS,
+    GENERATOR_TESTS,
+    INCLUSION_TESTS,
+    ROUTE_TESTS,
+)
 from .metadata import (
     CI_MATRIX_GROUPS,
     GROUP_DESCRIPTIONS,
@@ -49,6 +57,7 @@ from .metadata import (
 
 __all__ = (
     "TEST_ROOT",
+    "TEST_STAGE_BOUNDARY_SECONDS",
     "EMPTY_LEGACY_TEST_MODULES",
     "REMAINING_STAGE_SIZE",
     "TIERED_STAGE_SIZE",
@@ -87,4 +96,9 @@ __all__ = (
     "RECONSTRUCTION_WORKFLOW_TESTS",
     "GENERATION_WORKFLOW_TESTS",
     "EDITOR_PICTURES_WORKFLOW_TESTS",
+    "GENERATOR_TESTS",
+    "ROUTE_TESTS",
+    "INCLUSION_TESTS",
+    "EXPORT_TESTS",
+    "FAILURE_MODE_TESTS",
 )

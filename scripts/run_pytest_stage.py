@@ -6,6 +6,13 @@ import argparse
 import faulthandler
 import os
 import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 
 
 def _split_args(argv: list[str]) -> tuple[list[str], list[str]]:
@@ -21,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout-seconds", type=int, required=True)
     parser.add_argument("--label", default="pytest stage")
     args = parser.parse_args(runner_args)
+    args.timeout_seconds = max(1, min(args.timeout_seconds, TEST_STAGE_BOUNDARY_SECONDS))
 
     os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
     os.environ.setdefault("PYTHONUNBUFFERED", "1")

@@ -10,6 +10,7 @@ from pathlib import Path
 from scripts.artifact_hygiene import is_artifact_noise_path
 from scripts.build_clean_zip import build_clean_zip
 from scripts.import_smoke import discover_production_modules, run_import_smoke
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -131,7 +132,7 @@ def test_clean_zip_survives_fresh_extraction(tmp_path) -> None:
         env=environment,
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=TEST_STAGE_BOUNDARY_SECONDS,
         check=False,
     )
     assert compile_result.returncode == 0, compile_result.stdout + compile_result.stderr
@@ -142,7 +143,7 @@ def test_clean_zip_survives_fresh_extraction(tmp_path) -> None:
         env=environment,
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=TEST_STAGE_BOUNDARY_SECONDS,
         check=False,
     )
     assert import_result.returncode == 0, import_result.stdout + import_result.stderr

@@ -10,6 +10,7 @@ import time
 
 from scripts.subprocess_control import run_controlled_process
 from scripts.test_runner_args import _parse_stage_range
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 from scripts.test_runner_models import StageRunResult, TestPlanSpec, TestStageSpec
 from scripts.test_runner_state import (
     build_summary,
@@ -86,6 +87,21 @@ def _print_summary(summary: dict[str, object], summary_file: Path) -> None:
             f"{int(row['number']):03d}. {row['label']}",
             flush=True,
         )
+    groups = summary.get("groups", [])
+    if isinstance(groups, list) and groups:
+        print("\nGroup totals:", flush=True)
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            warning = " BOUNDARY" if group.get("boundary_exceeded_stages") else ""
+            print(
+                f"  {str(group.get('group_id', '')):<18} "
+                f"{float(group.get('elapsed_seconds', 0.0)):7.1f}s · "
+                f"PASS {int(group.get('passed', 0))} · "
+                f"FAIL {int(group.get('failed', 0))} · "
+                f"TIMEOUT {int(group.get('timed_out', 0))}{warning}",
+                flush=True,
+            )
     print(
         "Counts: "
         f"PASS {counts.get('PASS', 0)} · FAIL {counts.get('FAIL', 0)} · "
@@ -117,6 +133,18 @@ def _checkpoint_for_run(plan: TestPlanSpec, options: RunOptions) -> dict[str, ob
 
 def run_test_plan(plan: TestPlanSpec, options: RunOptions) -> int:
     """Run selected stages, persisting state after every transition."""
+
+    oversized = [
+        stage for stage in plan.stages
+        if stage.timeout_seconds < 1 or stage.timeout_seconds > TEST_STAGE_BOUNDARY_SECONDS
+    ]
+    if oversized:
+        details = ", ".join(
+            f"{stage.label}={stage.timeout_seconds}s" for stage in oversized
+        )
+        raise ValueError(
+            f"Test stages must be bounded to {TEST_STAGE_BOUNDARY_SECONDS}s or less: {details}"
+        )
 
     selected_numbers = selected_stage_numbers(plan, options)
     selected_ids = {plan.stages[number - 1].stage_id for number in selected_numbers}
@@ -174,6 +202,12 @@ def run_test_plan(plan: TestPlanSpec, options: RunOptions) -> int:
         warning = _duration_regression(stage, elapsed, prior_median)
         if warning:
             print(warning, flush=True)
+        if elapsed > TEST_STAGE_BOUNDARY_SECONDS:
+            print(
+                f"BOUNDARY EXCEEDED: {stage.label} recorded {elapsed:.1f}s; "
+                f"split its catalogue stage before the next run.",
+                flush=True,
+            )
 
         if not result.passed:
             selected_failed = True

@@ -99,10 +99,26 @@ def _narrative_source(row: dict) -> str:
     source = re.sub(r"^\s*Day\s+\d+\s*[:\-–]\s*[^\n]+", "", source, count=1, flags=re.I).strip()
     source = STOP_SOURCE_SECTION_RE.split(source, maxsplit=1)[0]
     source = _trim_inline_metadata_sections(source)
-    # Remove leading pipe metadata lines.
-    if "|" in source.split("\n", 1)[0]:
-        parts = [p.strip() for p in re.split(r"\s*\|\s*", source) if p.strip()]
-        source = " ".join(p for p in parts if len(p.split()) > 7 and not re.search(r"\b(?:time|hrs?|meeting|includes?|tickets? only)\b", p, re.I))
+    # Remove pipe-delimited metadata from the leading source line without
+    # discarding narrative lines that follow it.  Supplier cleanup and typed
+    # field sanitation may legitimately remove a terminal ``|``; narrative
+    # extraction must therefore not depend on that punctuation artifact.
+    first_line, separator, remaining_lines = source.partition("\n")
+    if "|" in first_line:
+        first_line_parts = [
+            part.strip()
+            for part in re.split(r"\s*\|\s*", first_line)
+            if part.strip()
+        ]
+        narrative_parts = [
+            part
+            for part in first_line_parts
+            if len(part.split()) > 7
+            and not re.search(r"\b(?:time|hrs?|meeting|includes?|tickets? only)\b", part, re.I)
+        ]
+        source = " ".join(narrative_parts)
+        if separator and remaining_lines.strip():
+            source = "\n".join(part for part in (source, remaining_lines.strip()) if part)
     return source.strip()
 
 

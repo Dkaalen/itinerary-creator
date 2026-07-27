@@ -3,7 +3,7 @@
 import re
 
 from text_polish import polish_title, polish_inclusion_items, polish_inclusion_item, strip_price_fragments
-from itinerary_generation.client_sanitizer import sanitize_client_text, sanitize_client_list
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field, sanitize_customer_list
 
 from itinerary_generation.content_engine import clean_client_title, merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.inclusion_flat import clean_include_item
@@ -83,7 +83,7 @@ def _looks_like_descriptive_prose(text: str) -> bool:
 
 
 def _polish_activity_inclusion(value: str, title: str = "") -> str:
-    text = polish_inclusion_item(sanitize_client_text(strip_price_fragments(str(value or "").strip())), title)
+    text = polish_inclusion_item(sanitize_customer_field(strip_price_fragments(str(value or "").strip()), CustomerField.INCLUSION), title)
     text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")
     text = _strip_supplier_tail(text)
     lower = text.lower().strip(":? ")
@@ -103,7 +103,7 @@ def _polish_activity_inclusion(value: str, title: str = "") -> str:
         return ""
     if len(text) > 150 and "included" not in lower:
         return ""
-    text = polish_inclusion_item(clean_include_item(sanitize_client_text(text), title), title)
+    text = polish_inclusion_item(clean_include_item(sanitize_customer_field(text, CustomerField.INCLUSION), title), title)
     text = _strip_supplier_tail(text)
     if _is_supplier_only_inclusion(text):
         return ""
@@ -160,10 +160,10 @@ def activity_line(row: dict) -> str:
         title = normalize_client_day_title(title, row)
 
     date = format_client_date(row.get("start_date"))
-    title = sanitize_client_text(title)
-    heading = sanitize_client_text(f"{title} - {date}" if date else title)
+    title = sanitize_customer_field(title, CustomerField.TITLE)
+    heading = sanitize_customer_field(f"{title} - {date}" if date else title, CustomerField.TITLE)
     inclusions = clean_tallinn_ferry_inclusions(row) if is_tallinn_ferry_framework(row) else _activity_inclusion_items(row, heading)
-    inclusions = sanitize_client_list(inclusions)
+    inclusions = sanitize_customer_list(inclusions, CustomerField.INCLUSION)
     if inclusions:
         return f"{heading}\n{', '.join(inclusions)}"
     return heading

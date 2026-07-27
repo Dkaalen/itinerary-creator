@@ -13,6 +13,8 @@ import re
 import subprocess
 import sys
 
+from scripts.test_catalogue import assert_test_catalogue_valid, assert_unique_stage_targets
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
 from scripts.test_runner_models import TestPlanSpec, TestStageSpec
 from scripts.test_runner_plans import RUNNER_GROUPS, _stages_for_group
 from scripts.test_groups import group_descriptions
@@ -22,11 +24,16 @@ PYTEST_STAGE_WORKER = "scripts/run_pytest_stage.py"
 PROOF_PLAN_NAME = "proof"
 AVAILABLE_PLAN_NAMES = (*RUNNER_GROUPS, PROOF_PLAN_NAME)
 
-FAST_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_TEST_FAST_TIMEOUT_SECONDS", "180"))
-QUALITY_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_TEST_QUALITY_TIMEOUT_SECONDS", "360"))
-RENDER_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_TEST_RENDER_TIMEOUT_SECONDS", "600"))
-SLOW_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_TEST_SLOW_TIMEOUT_SECONDS", "180"))
-COMMAND_TIMEOUT_SECONDS = int(os.environ.get("ITINERARY_TEST_COMMAND_TIMEOUT_SECONDS", "360"))
+def _bounded_timeout(environment_name: str, default_seconds: int) -> int:
+    requested = int(os.environ.get(environment_name, str(default_seconds)))
+    return max(1, min(requested, TEST_STAGE_BOUNDARY_SECONDS))
+
+
+FAST_TIMEOUT_SECONDS = _bounded_timeout("ITINERARY_TEST_FAST_TIMEOUT_SECONDS", 30)
+QUALITY_TIMEOUT_SECONDS = _bounded_timeout("ITINERARY_TEST_QUALITY_TIMEOUT_SECONDS", TEST_STAGE_BOUNDARY_SECONDS)
+RENDER_TIMEOUT_SECONDS = _bounded_timeout("ITINERARY_TEST_RENDER_TIMEOUT_SECONDS", TEST_STAGE_BOUNDARY_SECONDS)
+SLOW_TIMEOUT_SECONDS = _bounded_timeout("ITINERARY_TEST_SLOW_TIMEOUT_SECONDS", TEST_STAGE_BOUNDARY_SECONDS)
+COMMAND_TIMEOUT_SECONDS = _bounded_timeout("ITINERARY_TEST_COMMAND_TIMEOUT_SECONDS", TEST_STAGE_BOUNDARY_SECONDS)
 
 
 
@@ -103,6 +110,7 @@ def pytest_stage_command(
     extra_args: tuple[str, ...],
     timeout_seconds: int,
 ) -> tuple[str, ...]:
+    timeout_seconds = max(1, min(timeout_seconds, TEST_STAGE_BOUNDARY_SECONDS))
     args = [
         sys.executable,
         PYTEST_STAGE_WORKER,
@@ -121,9 +129,23 @@ def pytest_stage_command(
     return tuple(args)
 
 
+def _stage_group_id(plan_name: str, label: str) -> str:
+    if plan_name not in {"full", "health", "release"}:
+        return plan_name
+    if label.startswith("fast safety"):
+        return "fast"
+    if label.startswith("pdf/rendering"):
+        return "pdf"
+    if label.startswith("remaining non-tiered"):
+        return "remaining"
+    prefix = label.split(" ", 1)[0]
+    return prefix if prefix else plan_name
+
+
 def _pytest_stage_specs(
     stage_rows: tuple[tuple[str, tuple[str, ...]], ...],
     *,
+    plan_name: str,
     extra_args: tuple[str, ...] = (),
 ) -> tuple[TestStageSpec, ...]:
     specs: list[TestStageSpec] = []
@@ -152,6 +174,7 @@ def _pytest_stage_specs(
                 label=label,
                 command=command,
                 timeout_seconds=timeout_seconds,
+                group_id=_stage_group_id(plan_name, label),
                 kind=kind,
                 targets=targets,
             )
@@ -243,8 +266,11 @@ def _chunked_proof_label(base_label: str, part: int, total: int) -> str:
 
 def _proof_stage_specs() -> tuple[TestStageSpec, ...]:
     staged_rows: list[tuple[str, tuple[str, ...], int, str, tuple[str, ...]]] = []
+    registered_targets: set[str] = set()
     for base_label, targets, timeout_seconds in _proof_pytest_groups():
-        chunks = tuple(targets[index : index + 2] for index in range(0, len(targets), 2))
+        unique_targets = tuple(target for target in targets if target not in registered_targets)
+        registered_targets.update(unique_targets)
+        chunks = tuple(unique_targets[index : index + 2] for index in range(0, len(unique_targets), 2))
         for part, chunk in enumerate(chunks, start=1):
             label = _chunked_proof_label(base_label, part, len(chunks))
             command = pytest_stage_command(label, chunk, (), timeout_seconds)
@@ -258,6 +284,7 @@ def _proof_stage_specs() -> tuple[TestStageSpec, ...]:
             label=label,
             command=command,
             timeout_seconds=timeout_seconds,
+            group_id="proof",
             kind=kind,
             targets=targets,
         )
@@ -266,22 +293,31 @@ def _proof_stage_specs() -> tuple[TestStageSpec, ...]:
 
 
 def build_test_plan(plan_name: str, *, extra_pytest_args: tuple[str, ...] = ()) -> TestPlanSpec:
-    """Build one plan from the central group catalog or proof manifest."""
+    """Build one validated, duplicate-free, bounded test plan."""
 
+    assert_test_catalogue_valid(REPO_ROOT)
     if plan_name == PROOF_PLAN_NAME:
         if extra_pytest_args:
             raise ValueError("The proof plan does not accept extra pytest arguments.")
+        stages = _proof_stage_specs()
+        assert_unique_stage_targets(stages)
         return TestPlanSpec(
             name=plan_name,
             description="compact release proof using the same resumable orchestrator",
-            stages=_proof_stage_specs(),
+            stages=stages,
             workspace_fingerprint=_workspace_fingerprint(),
         )
     if plan_name not in RUNNER_GROUPS:
         raise ValueError(f"Unknown test plan {plan_name!r}.")
+    stages = _pytest_stage_specs(
+        _stages_for_group(plan_name),
+        plan_name=plan_name,
+        extra_args=extra_pytest_args,
+    )
+    assert_unique_stage_targets(stages)
     return TestPlanSpec(
         name=plan_name,
         description=group_descriptions().get(plan_name, "progress-tracked validation"),
-        stages=_pytest_stage_specs(_stages_for_group(plan_name), extra_args=extra_pytest_args),
+        stages=stages,
         workspace_fingerprint=_workspace_fingerprint(),
     )

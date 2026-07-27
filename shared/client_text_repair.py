@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 
 from shared.text_cleanup_rules import apply_case_replacements, apply_common_text_replacements
-from text_polish import polish_client_text
 
 COMMON_TEXT_REWRITES: tuple[tuple[str, str], ...] = (
     (r"\btranfers\b|\btrasfer\b|\btransffer\b|\btranfer\b", "transfers"),
@@ -71,7 +70,7 @@ def repair_messy_client_text(value: str) -> str:
         text = re.sub(r"\n{3,}", "\n\n", text)
     else:
         text = re.sub(r"\s+", " ", text)
-    return polish_client_text(text).strip()
+    return text.strip()
 
 
 __all__ = ["COMMON_TEXT_REWRITES", "PLACE_REWRITES", "repair_messy_client_text"]

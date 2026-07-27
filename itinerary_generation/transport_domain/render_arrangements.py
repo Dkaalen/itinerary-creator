@@ -14,7 +14,7 @@ from itinerary_generation.transport_domain.render_sequences import drive_route_l
 from itinerary_generation.transport_domain.render_special_routes import coach_terminal_transfer_lines, inline_arrival_time, santa_claus_express_lines, self_transfer_lines
 from itinerary_generation.transport_times import get_transport_time_text
 from text_polish import format_duration_display, polish_client_text, polish_inclusion_items, polish_title
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_text, clean_supplier_time
+from shared.source_text_cleanup import clean_supplier_text, clean_supplier_time
 
 
 def get_travel_arrangement_line(row):

@@ -148,6 +148,11 @@ def test_focused_groups_exist_for_common_patch_areas() -> None:
         "reconstruction",
         "generation",
         "editor-pictures",
+        "generator",
+        "routes",
+        "inclusions",
+        "export",
+        "failure-modes",
     )
     for name in focused_group_names():
         assert GROUPS[name]

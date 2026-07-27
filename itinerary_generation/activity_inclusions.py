@@ -10,7 +10,7 @@ import re
 from itinerary_generation.inclusions import clean_include_item
 from itinerary_generation.titles import create_client_activity_title
 from text_polish import polish_inclusion_item, polish_inclusion_items, strip_price_fragments
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from itinerary_generation.content_engine import merge_compound_inclusions, sanitize_inclusion_item
 from itinerary_generation.render_text_helpers import normalize_list
 
@@ -212,7 +212,7 @@ def _polish_activity_bullet_case(value: str) -> str:
 def clean_activity_inclusion_items(items, title=""):
     clean_items = []
     for item in normalize_list(items):
-        text = polish_inclusion_item(sanitize_client_text(strip_price_fragments(str(item).strip())), title)
+        text = polish_inclusion_item(sanitize_customer_field(strip_price_fragments(str(item).strip()), CustomerField.INCLUSION), title)
         lower = text.lower().strip(":? ")
 
         text = re.split(r"\s+-\s+(?:Description|Overview)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip(" -:")

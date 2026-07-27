@@ -8,147 +8,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_PDF_PACKAGE_EXPORTS = (
-    "pdf_style_tokens",
-    "pdf_branding",
-    "pdf_style_base",
-    "pdf_style_cover",
-    "pdf_style_day",
-    "pdf_style_final_pages",
-    "pdf_style_summary",
-    "pdf_style_tables",
-    "styles",
-    "html_utils",
-    "story",
-    "day_page_guard",
-    "pdf_reportlab_config",
-    "image_constants",
-    "image_layout",
-    "background_flowables",
-    "same_page_image_flowable",
-    "image_flowables",
-    "decorative_flowables",
-    "render_tables",
-    "render_flowables",
-    "cover_page",
-    "image_paths",
-    "render_text",
-    "render_cover",
-    "render_controlled_content",
-    "render_inclusion_content",
-    "render_content_blocks",
-    "day_images",
-    "render_pages",
-    "render_content",
-    "render_glance",
-    "exporter",
-    "export_html_to_pdf",
-    "export_profiles",
+EXPECTED_PDF_SUPPORTED_API = (
+    "PdfExportProfile",
+    "PdfExportResult",
+    "create_pdf",
     "pdf_export_profile_options",
     "pdf_filename",
     "resolve_pdf_export_profile",
-    "pdf_cover_renderer",
-    "pdf_image_renderer",
-    "pdf_supported_html_renderer",
-    "pdf_day_renderer",
-    "pdf_final_section_renderer",
-    "pdf_html_support",
-    "pdf_html_fallback",
-    "pdf_image_prewarm",
-    "typed_exporter",
-    "export_render_document_to_pdf",
-    "render_document_requires_html_fallback",
-    "clean_text",
-    "has_class",
-    "para_text",
-    "add_day_image_if_possible",
-    "PDF_CROP_FOCUS_FACTORS",
-    "PDF_CROP_VERTICAL_FOCUS",
-    "PDF_IMAGE_BOTTOM_Y",
-    "PDF_IMAGE_GAP",
-    "PDF_IMAGE_HALF_OFFSET",
-    "PDF_MIN_IMAGE_HEIGHT",
-    "calculate_day_image_layout",
-    "make_cover_cropped_image",
-    "normalize_crop_focus",
-    "resolve_image_path",
-    "SamePageDayImage",
-    "render_day_section_pdf",
-    "render_general_page",
-    "render_cover_page",
-    "render_glance_page",
-    "add_bullets",
-    "add_paragraph",
-    "make_table",
-    "story_height",
-    "BODY",
-    "CARD",
-    "DEFAULT_PDF_COLORS",
-    "INK",
-    "LINE",
-    "MUTED",
-    "PAGE_BACKGROUND",
-    "apply_pdf_palette",
-    "extract_pdf_palette",
-    "hex_to_color",
-    "make_styles",
-    "page_background",
 )
 
-EXPECTED_PDF_FACADE_EXPORTS = (
-    "BODY",
-    "CARD",
-    "DEFAULT_PDF_COLORS",
-    "INK",
-    "LINE",
-    "MUTED",
-    "PAGE_BACKGROUND",
-    "PDF_CROP_FOCUS_FACTORS",
-    "PDF_CROP_VERTICAL_FOCUS",
-    "PDF_IMAGE_BOTTOM_Y",
-    "PDF_IMAGE_GAP",
-    "PDF_IMAGE_HALF_OFFSET",
-    "PDF_MIN_IMAGE_HEIGHT",
-    "SamePageDayImage",
-    "_activity_time_range_text",
-    "add_bullets",
-    "add_day_image_if_possible",
-    "add_paragraph",
-    "apply_pdf_palette",
-    "calculate_day_image_layout",
-    "clean_text",
-    "export_html_to_pdf",
-    "export_render_document_to_pdf",
-    "render_document_requires_html_fallback",
-    "extract_pdf_palette",
-    "has_class",
-    "hex_to_color",
-    "make_cover_cropped_image",
-    "make_styles",
-    "make_table",
-    "normalize_crop_focus",
-    "page_background",
-    "pdf_export_profile_options",
-    "pdf_filename",
-    "resolve_pdf_export_profile",
-    "para_text",
-    "render_content_blocks",
-    "render_cover_page",
-    "render_day_section_pdf",
-    "render_general_page",
-    "render_glance_page",
-    "resolve_image_path",
-    "story_height",
-)
-
-_HEAVY_PDF_MODULES = {
-    "pdf_exporter_modules.exporter",
-    "pdf_exporter_modules.typed_exporter",
-    "pdf_exporter_modules.styles",
-    "pdf_exporter_modules.render_content",
-    "pdf_exporter_modules.render_cover",
-    "pdf_exporter_modules.render_glance",
-}
+_HEAVY_PDF_PREFIXES = ("reportlab", "PIL", "bs4")
 
 
 def _run_probe(source: str) -> dict[str, object]:
@@ -179,58 +48,48 @@ print(json.dumps({"loaded": loaded}))
     assert result["loaded"] == ["pdf_exporter_modules"]
 
 
-def test_pdf_public_api_and_top_level_facade_imports_are_lightweight() -> None:
-    for module_name in ("pdf_exporter_modules.public_api", "pdf_exporter"):
-        result = _run_probe(
-            f"""
+def test_supported_pdf_api_import_is_lightweight() -> None:
+    result = _run_probe(
+        """
 import importlib
 import json
 import sys
 
-importlib.import_module({module_name!r})
-loaded = sorted(name for name in sys.modules if name.startswith("pdf_exporter_modules"))
-print(json.dumps({{"loaded": loaded}}))
+before = set(sys.modules)
+module = importlib.import_module("pdf_exporter")
+heavy = sorted(
+    name for name in set(sys.modules) - before
+    if name == "reportlab" or name.startswith(("reportlab.", "PIL.", "bs4."))
+)
+pdf_modules = sorted(name for name in sys.modules if name.startswith("pdf_exporter_modules"))
+print(json.dumps({"heavy": heavy, "pdf_modules": pdf_modules, "exports": list(module.__all__)}))
 """
-        )
+    )
 
-        assert _HEAVY_PDF_MODULES.isdisjoint(result["loaded"])
+    assert result["heavy"] == []
+    assert result["pdf_modules"] == [
+        "pdf_exporter_modules",
+        "pdf_exporter_modules.export_profiles",
+    ]
+    assert tuple(result["exports"]) == EXPECTED_PDF_SUPPORTED_API
 
 
-def test_pdf_package_and_facade_export_contracts_are_preserved() -> None:
+def test_pdf_package_and_supported_api_exports_are_explicit() -> None:
     import pdf_exporter
     import pdf_exporter_modules
-    from pdf_exporter_modules import public_api
 
-    assert tuple(pdf_exporter_modules.__all__) == EXPECTED_PDF_PACKAGE_EXPORTS
-    assert tuple(public_api.__all__) == EXPECTED_PDF_FACADE_EXPORTS
-    assert tuple(pdf_exporter.__all__) == EXPECTED_PDF_FACADE_EXPORTS
-
-
-def test_pdf_package_resolves_symbols_and_submodules_lazily() -> None:
-    import importlib
-
-    import pdf_exporter_modules as package
-
-    exporter = importlib.import_module("pdf_exporter_modules.exporter")
-    styles = importlib.import_module("pdf_exporter_modules.styles")
-    cover_page = importlib.import_module("pdf_exporter_modules.cover_page")
-
-    assert package.export_html_to_pdf is exporter.export_html_to_pdf
-    assert package.make_styles is styles.make_styles
-    assert package.BODY is styles.BODY
-    assert package.cover_page is cover_page
+    assert tuple(pdf_exporter_modules.__all__) == ()
+    assert tuple(pdf_exporter.__all__) == EXPECTED_PDF_SUPPORTED_API
+    assert callable(pdf_exporter.create_pdf)
+    assert callable(pdf_exporter.export_html_to_pdf)
+    assert callable(pdf_exporter.export_render_document_to_pdf)
 
 
-def test_pdf_compatibility_facades_resolve_the_same_objects_lazily() -> None:
-    import pdf_exporter
-    from pdf_exporter_modules import public_api
-    from pdf_exporter_modules.exporter import export_html_to_pdf
-    from pdf_exporter_modules.typed_exporter import export_render_document_to_pdf
+def test_retired_pdf_public_api_module_is_absent() -> None:
+    import importlib.util
 
-    assert public_api.export_html_to_pdf is export_html_to_pdf
-    assert pdf_exporter.export_html_to_pdf is export_html_to_pdf
-    assert public_api.export_render_document_to_pdf is export_render_document_to_pdf
-    assert pdf_exporter.export_render_document_to_pdf is export_render_document_to_pdf
+    assert importlib.util.find_spec("pdf_exporter_modules.public_api") is None
+
 
 EXPECTED_IMAGE_PACKAGE_EXPORTS = (
     "CITY_ALIASES",
@@ -274,6 +133,10 @@ EXPECTED_IMAGE_PACKAGE_EXPORTS = (
     "invalidate_image_bank_cache",
     "day_image_matches_from_preview_html",
     "merge_preview_image_contract",
+    "commit_selection_payload",
+    "read_selection_commit",
+    "selection_input_signature",
+    "store_selection_commit",
     "prefetch_image_bank_for_rows",
     "infer_primary_month_from_rows",
     "infer_season_from_rows",

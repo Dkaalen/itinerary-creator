@@ -1,12 +1,12 @@
 from reportlab.platypus import KeepTogether, Spacer
 
-from itinerary_generation.client_sanitizer import sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, sanitize_customer_field
 from pdf_exporter_modules.story import add_bullets
 from pdf_exporter_modules.styles import make_styles
 
 
 def test_client_sanitizer_removes_clipboard_fragment_markers():
-    assert sanitize_client_text("Included journey: StartFragmentBergen RailwayEndFragment") == "Included journey: Bergen Railway"
+    assert sanitize_customer_field("Included journey: StartFragmentBergen RailwayEndFragment", CustomerField.DESCRIPTION) == "Included journey: Bergen Railway"
 
 
 def test_pdf_bullet_items_keep_multiline_inclusion_details_together():

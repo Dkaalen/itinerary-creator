@@ -10,7 +10,6 @@ implementation is split into smaller packages. Do not delete them just because t
 | `generator.py` | `itinerary_generation` | Older tests, scripts, and app code still import high-level generation helpers from `generator`. |
 | `text_polish.py` | `text_polish_modules` | Shared text cleanup import path used broadly across parser, generation, PDF, UI, and tests. |
 | `image_matcher.py` | `images` | Stable image-matching import path used by image UI and tests. |
-| `pdf_exporter.py` | `pdf_exporter_modules.public_api` | Stable PDF export import path used by tests and legacy scripts. |
 
 ## Supported top-level APIs
 
@@ -21,6 +20,7 @@ private to their packages.
 
 | Public API | Current owner package | Contract |
 | --- | --- | --- |
+| `pdf_exporter.py` | private `pdf_exporter_modules` implementation | Supported lazy PDF creation API; heavy dependencies load only when `create_pdf` runs. |
 | `itinerary_parser.py` | `parser_modules` | Supported raw-input parsing API. |
 | `normalizer.py` | `normalizer_modules` | Supported itinerary-row normalization API. |
 
@@ -34,9 +34,9 @@ Several `itinerary_generation/*` modules also remain as compatibility paths for
 older imports while implementation details are split into focused modules.
 Examples include `day_text.py`, `day_intro_planner.py`, and `source_identity.py`.
 
-The chunky top-level export lists for `generator.py` and `pdf_exporter.py` now
-live in package-owned `public_api.py` modules so the root files remain thin
-compatibility surfaces only.
+`generator.py` retains its package-owned compatibility surface. `pdf_exporter.py`
+is instead the explicit supported API; the private PDF package has a lightweight
+initializer and no package-level `public_api.py` facade.
 
 ## Recently retired facades
 

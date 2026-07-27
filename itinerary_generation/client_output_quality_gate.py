@@ -6,7 +6,7 @@ import re
 from typing import Any, Mapping
 
 from itinerary_generation.advisor_quality_checks import advisor_quality_issues
-from itinerary_generation.client_copy_sanitation import contains_customer_copy_violation
+from itinerary_domain.field_sanitation import contains_customer_copy_violation, contains_price_or_currency
 from itinerary_generation.client_quality_content_checks import (
     bare_activity_blocks as _bare_activity_blocks,
     journey_arc_phrase_issues as _journey_arc_phrase_issues,
@@ -28,7 +28,6 @@ from itinerary_generation.client_quality_text import (
     render_document_text,
 )
 from itinerary_generation.client_quality_truth_checks import client_truth_issues
-from itinerary_generation.client_sanitizer import contains_price_or_currency
 from itinerary_generation.generation_quality_gate import BLOCKING, WARNING, ItineraryValidationIssue
 from itinerary_generation.quality_gate_patterns import (
     AURORA_REVIEW_PATTERN,

@@ -118,6 +118,14 @@ def _generic_private_transfer_route_title(text: str) -> str:
 def standardize_private_transfer_title(title, details, city):
     text = fix_common_text(details or title)
     lower = text.lower()
+
+    # Generic supplier phrases are not named airports.  This decision belongs
+    # to the transport domain rather than broad source/customer text cleanup.
+    if re.search(r"\b(?:hotel|accommodation)\s+to\s+(?:the\s+)?airport\b", lower):
+        return f"Private transfer from your hotel to {city_airport(city)}"
+    if re.search(r"\bairport\s+to\s+(?:the\s+)?(?:hotel|accommodation)\b", lower):
+        return f"Private transfer from {city_airport(city)} to your accommodation"
+
     airport = _explicit_airport_from_text(text, city)
     generic_route_title = _generic_private_transfer_route_title(text)
 

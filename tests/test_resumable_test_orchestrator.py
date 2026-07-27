@@ -99,7 +99,7 @@ def test_pytest_stage_command_uses_diagnostic_worker() -> None:
     command = pytest_stage_command("quality", ("tests/test_example.py",), ("-k", "example"), 123)
 
     assert "scripts/run_pytest_stage.py" in command
-    assert command[command.index("--timeout-seconds") + 1] == "123"
+    assert command[command.index("--timeout-seconds") + 1] == "45"
     assert command.index("--") < command.index("tests/test_example.py")
 
 

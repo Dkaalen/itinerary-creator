@@ -38,6 +38,16 @@ python scripts/run_test_plan.py --plan full --reset
 python scripts/run_test_plan.py --plan full --no-fail-fast
 ```
 
+## Catalogue validation and listing
+
+```powershell
+python scripts/test_catalogue.py
+python scripts/test_catalogue.py --list
+python scripts/test_catalogue.py --list --group export
+```
+
+Listing is static: it does not invoke pytest or create report files.
+
 ## Test-run evidence
 
 Local evidence is written under `.test-runs/` and is intentionally ignored by
@@ -68,15 +78,20 @@ Timeouts terminate the complete subprocess tree. If the outer sandbox kills
 the orchestrator, its signal handler also terminates the active stage before
 exiting, leaving the checkpoint safe to resume.
 
-Timeout classes can be adjusted without changing the manifest:
+Every executable stage is capped at 45 seconds. Environment values may reduce
+a local limit, but cannot raise it above that boundary:
 
 ```powershell
-$env:ITINERARY_TEST_FAST_TIMEOUT_SECONDS = "180"
-$env:ITINERARY_TEST_QUALITY_TIMEOUT_SECONDS = "360"
-$env:ITINERARY_TEST_RENDER_TIMEOUT_SECONDS = "600"
-$env:ITINERARY_TEST_SLOW_TIMEOUT_SECONDS = "180"
+$env:ITINERARY_TEST_FAST_TIMEOUT_SECONDS = "30"
+$env:ITINERARY_TEST_QUALITY_TIMEOUT_SECONDS = "45"
+$env:ITINERARY_TEST_RENDER_TIMEOUT_SECONDS = "45"
+$env:ITINERARY_TEST_SLOW_TIMEOUT_SECONDS = "45"
 $env:ITINERARY_TEST_HEARTBEAT_SECONDS = "20"
 ```
+
+If a stage reaches the boundary, split its catalogue registration rather than
+increasing the timeout. `summary.json` records stage and group elapsed time and
+flags boundary breaches.
 
 ## Duration baselines
 

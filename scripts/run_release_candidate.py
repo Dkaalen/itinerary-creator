@@ -14,9 +14,22 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.subprocess_control import run_controlled_process
+from scripts.test_group_catalog import TEST_STAGE_BOUNDARY_SECONDS
+from scripts.test_runner_manifest import build_test_plan
+from scripts.test_runner_orchestrator import RunOptions, run_test_plan
+from scripts.test_runner_state import DEFAULT_STATE_ROOT_NAME
 
-DEFAULT_STEP_TIMEOUT_SECONDS = int(
-    os.environ.get("ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS", "900")
+DEFAULT_STEP_TIMEOUT_SECONDS = max(
+    1,
+    min(
+        int(
+            os.environ.get(
+                "ITINERARY_RELEASE_STEP_TIMEOUT_SECONDS",
+                str(TEST_STAGE_BOUNDARY_SECONDS),
+            )
+        ),
+        TEST_STAGE_BOUNDARY_SECONDS,
+    ),
 )
 
 
@@ -29,6 +42,7 @@ def _env() -> dict[str, str]:
 
 
 def _run(label: str, command: tuple[str, ...], *, timeout_seconds: int = DEFAULT_STEP_TIMEOUT_SECONDS) -> int:
+    timeout_seconds = max(1, min(timeout_seconds, TEST_STAGE_BOUNDARY_SECONDS))
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(command), flush=True)
     started = time.monotonic()
@@ -51,6 +65,21 @@ def _run(label: str, command: tuple[str, ...], *, timeout_seconds: int = DEFAULT
     return result.return_code
 
 
+def _run_manifest_plan(plan_name: str, *, resume: bool, reset: bool) -> int:
+    """Run one bounded manifest in-process so no outer timeout kills later stages."""
+
+    print(f"\n=== {plan_name} plan ===", flush=True)
+    plan = build_test_plan(plan_name)
+    return run_test_plan(
+        plan,
+        RunOptions(
+            state_root=REPO_ROOT / DEFAULT_STATE_ROOT_NAME,
+            resume=resume,
+            reset=reset,
+        ),
+    )
+
+
 def _node_check_commands() -> list[tuple[str, tuple[str, ...]]]:
     commands: list[tuple[str, tuple[str, ...]]] = []
     for pattern in (
@@ -71,33 +100,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reset", action="store_true", help="Reset release/slow checkpoints first.")
     args = parser.parse_args(argv)
 
-    plan_flags: list[str] = []
-    if args.resume:
-        plan_flags.append("--resume")
-    if args.reset:
-        plan_flags.append("--reset")
-
-    commands: list[tuple[str, tuple[str, ...]]] = [
+    preflight_commands: list[tuple[str, tuple[str, ...]]] = [
         ("instant health check", (sys.executable, "scripts/run_health_check.py")),
         ("pytest collect-only", (sys.executable, "-m", "pytest", "--collect-only", "-q")),
         ("test-suite audit", (sys.executable, "scripts/test_suite_audit.py")),
-        (
-            "release plan",
-            (sys.executable, "scripts/run_test_plan.py", "--plan", "release", *plan_flags),
-        ),
     ]
-    if args.include_slow:
-        commands.append(
-            (
-                "isolated slow plan",
-                (sys.executable, "scripts/run_test_plan.py", "--plan", "slow", *plan_flags),
-            )
-        )
-    if not args.skip_node:
-        commands.extend(_node_check_commands())
-    commands.append(("diff whitespace check", ("git", "--no-pager", "diff", "--check")))
+    for label, command in preflight_commands:
+        code = _run(label, command)
+        if code != 0:
+            return code
 
-    for label, command in commands:
+    code = _run_manifest_plan("release", resume=args.resume, reset=args.reset)
+    if code != 0:
+        return code
+    if args.include_slow:
+        code = _run_manifest_plan("slow", resume=args.resume, reset=args.reset)
+        if code != 0:
+            return code
+
+    postflight_commands = [] if args.skip_node else _node_check_commands()
+    postflight_commands.append(("diff whitespace check", ("git", "--no-pager", "diff", "--check")))
+    for label, command in postflight_commands:
         code = _run(label, command)
         if code != 0:
             return code

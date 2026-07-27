@@ -8,7 +8,7 @@ from shared.source_time_finders import find_clock_range
 from shared.source_time_normalize import normalize_time_text
 from itinerary_generation.transport_model import get_transport_source_text
 from .inclusion_utils import clean
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_time
+from shared.source_text_cleanup import clean_supplier_time
 
 
 def get_overnight_train_schedule(row: dict) -> dict[str, str]:

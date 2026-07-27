@@ -22,7 +22,7 @@ from itinerary_generation.activity_description_helpers import get_activity_descr
 from itinerary_generation.activity_logistics import get_activity_logistics
 from itinerary_generation.render_text_helpers import normalize_list
 from itinerary_generation.product_rules import product_warning
-from itinerary_generation.supplier_cleanup_brain import clean_supplier_list, clean_supplier_text, clean_supplier_title
+from shared.source_text_cleanup import clean_supplier_list, clean_supplier_text, clean_supplier_title
 from itinerary_generation.time_display import (
     display_time_with_duration,
     get_activity_duration_label,

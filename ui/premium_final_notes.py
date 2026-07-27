@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 
-from text_polish import polish_client_text
 from ui.render_helpers import esc, normalize_list
 
 _NOTE_RULES = [
@@ -26,7 +25,7 @@ def premium_note_cards(paragraphs) -> list[tuple[str, str]]:
     cards: list[tuple[str, str]] = []
     used_titles: set[str] = set()
     for paragraph in normalize_list(paragraphs):
-        body = polish_client_text(paragraph)
+        body = str(paragraph or "").strip()
         if not body:
             continue
         title = "Travel guidance"

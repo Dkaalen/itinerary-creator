@@ -9,7 +9,7 @@ from app_modules.itinerary_html import build_itinerary_html
 from app_modules.output_brand import BOOKNORDICS_BRAND
 from app_modules.parse_workflow import parse_and_normalize_itinerary
 from itinerary_generation.common import group_rows_by_day
-from itinerary_generation.client_sanitizer import contains_price_or_currency, sanitize_client_text
+from itinerary_domain.field_sanitation import CustomerField, contains_price_or_currency, sanitize_customer_field
 from itinerary_generation.render_model import RenderFinalPage, RenderFinalSection
 from itinerary_generation.structured_model import StructuredListItem, StructuredListSection
 from itinerary_generation.transport_domain.inclusions import transport_line
@@ -111,16 +111,16 @@ def test_important_notes_refresh_legacy_defaults_and_include_independent_transfe
 def test_client_sanitizer_preserves_baggage_per_person_but_still_removes_prices():
     baggage_allowance = "Flight tickets, 1 x 23 kg checked bag, 1 x 8 kg carry-on bag per person."
 
-    assert sanitize_client_text(baggage_allowance) == baggage_allowance
+    assert sanitize_customer_field(baggage_allowance, CustomerField.DESCRIPTION) == baggage_allowance
     assert not contains_price_or_currency(baggage_allowance)
     assert not contains_price_or_currency(
         "Flight ticket, one checked bag up to 23 kg and one carry-on bag up to 8 kg per person."
     )
-    assert sanitize_client_text("Optional entrance fee EUR 50 per person.") == "Optional entrance fee."
+    assert sanitize_customer_field("Optional entrance fee EUR 50 per person.", CustomerField.DESCRIPTION) == "Optional entrance fee."
     assert contains_price_or_currency("Optional entrance EUR 50 per person.")
     assert contains_price_or_currency("Optional entrance 50 per person.")
     assert contains_price_or_currency("Checked bag fee 50 per person.")
-    assert sanitize_client_text("Ticket EUR 50 per person, includes 1 x 23 kg checked bag per person.") == (
+    assert sanitize_customer_field("Ticket EUR 50 per person, includes 1 x 23 kg checked bag per person.", CustomerField.DESCRIPTION) == (
         "Ticket, includes 1 x 23 kg checked bag per person."
     )
 
