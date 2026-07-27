@@ -68,10 +68,13 @@ def test_client_output_quality_gate_records_warning_during_html_generation(monke
     ]
     grouped = group_rows_by_day(rows)
 
-    issue = SimpleNamespace(code="forced_client_gate", message="Forced client gate failure")
-    report = SimpleNamespace(is_blocked=True, blocking_issues=(issue,))
+    assessment = SimpleNamespace(is_ready=False, rating="Major edit", reasons=("Forced client gate failure",))
+    report = SimpleNamespace(advisor_assessment=assessment)
 
-    monkeypatch.setattr("app_modules.itinerary_html.evaluate_client_output_quality", lambda *_args, **_kwargs: report)
+    monkeypatch.setattr(
+        "app_modules.itinerary_render_context.evaluate_prepared_client_output_quality",
+        lambda *_args, **_kwargs: report,
+    )
 
     html = build_itinerary_html(rows, grouped, {})
 

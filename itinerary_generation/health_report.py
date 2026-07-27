@@ -126,13 +126,18 @@ def build_itinerary_health_report(
     if parser_diagnostic_count:
         warnings.append(f"Parser diagnostics recorded: {parser_diagnostic_count} notice(s).")
 
-    structured_document = build_itinerary_document(rows)
+    continuity_report = validation_report.continuity_report
+    structured_document = build_itinerary_document(rows, continuity_report=continuity_report)
     for model_warning in structured_document.warnings:
         prefix = "Structured model"
         severity = str(model_warning.severity or "warning").title()
         warnings.append(f"{prefix} {severity}: {model_warning.message}")
 
-    issues = build_itinerary_health_issues(rows, parser_diagnostics=parser_diagnostics)
+    issues = build_itinerary_health_issues(
+        rows,
+        parser_diagnostics=parser_diagnostics,
+        continuity_report=continuity_report,
+    )
 
     advisor_rating = ""
     if client_quality_report is not None:

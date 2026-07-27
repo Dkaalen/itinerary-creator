@@ -121,3 +121,11 @@ Import preserves editable data, compatible A1 formulas, overrides, VAT values, a
 8. Browser and Python calculations match on reference, randomized, and A1 dependency vectors.
 9. Margin shortcuts produce the selected GP percentage from actual net NOK cost, including supplier commission and overrides.
 10. Project save/reload and Excel export/import preserve financial inputs, formulas, precision, and calculated results.
+
+## Financial and Excel export parity boundary
+
+Browser submissions are parsed by a browser-specific canonical row boundary. Visible supplier commission remains a percentage-point input, while hidden formula overrides—including `gp_percent_override`—already use canonical Python/Excel units and are never rescaled on return.
+
+`calculator/financial_projection.py` performs one immutable calculation pass and owns downstream financial decisions such as positive supplier-cost status and automatic versus manual sales price. `calculator/workbook_export_plan.py` maps that projection into deterministic workbook mutations. The fast package renderer and openpyxl compatibility renderer only write the plan; they do not calculate prices, exchange rates, commission, VAT, margin, chargeability, or sales-price mode.
+
+The visible workbook area follows the final contentful Calculator row plus ten editable blank rows. Preallocated blank rows, generated row identifiers, default currencies, and hidden Local Library provenance do not extend the sheet. Deliberate formulas and non-default content do.

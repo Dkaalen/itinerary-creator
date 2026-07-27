@@ -15,6 +15,7 @@ from itinerary_generation.activity_location_contract import activity_location_fa
 from itinerary_generation.common import get_day_number, get_primary_city, get_row_type
 from itinerary_generation.journey_overview_evidence import chapter_destination, chapter_experience
 from itinerary_generation.journey_overview_variation import distinct_chapter_experience
+from itinerary_generation.itinerary_continuity import ItineraryContinuityReport
 from itinerary_generation.summaries_text import _has
 from shared.text import clean_space
 
@@ -84,7 +85,7 @@ def _title_for(row: Mapping[str, object]) -> str:
     return _clean(row.get("display_title") or row.get("title") or row.get("original_title") or "")
 
 
-def _facts_for_day(day_key: str, rows: Sequence[dict]) -> DayOverviewFacts:
+def _facts_for_day(day_key: str, rows: Sequence[dict], *, canonical_city: str = "") -> DayOverviewFacts:
     activity_rows = _activity_rows(rows)
     regions: list[str] = []
     titles: list[str] = []
@@ -96,7 +97,7 @@ def _facts_for_day(day_key: str, rows: Sequence[dict]) -> DayOverviewFacts:
         if facts.excursion_region:
             regions.append(facts.excursion_region)
     row_types = {get_row_type(row) for row in rows}
-    city = get_primary_city(rows) or ("Cruise" if "Cruise" in row_types else "Journey")
+    city = canonical_city or get_primary_city(rows) or ("Cruise" if "Cruise" in row_types else "Journey")
     return DayOverviewFacts(
         day_key=day_key,
         day_number=get_day_number(day_key),
@@ -229,10 +230,22 @@ def _hub_and_spoke_chapters(days: Sequence[DayOverviewFacts]) -> list[dict[str, 
     return chapters
 
 
-def create_journey_overview(grouped_days: Mapping[str, Sequence[dict]]) -> list[dict[str, str]]:
+def create_journey_overview(
+    grouped_days: Mapping[str, Sequence[dict]],
+    *,
+    continuity_report: ItineraryContinuityReport | None = None,
+) -> list[dict[str, str]]:
     """Return the summary-page journey overview chapters."""
 
-    day_facts = [_facts_for_day(day, list(rows)) for day, rows in grouped_days.items()]
+    continuity_days = continuity_report.day_map() if continuity_report is not None else {}
+    day_facts = [
+        _facts_for_day(
+            day,
+            list(rows),
+            canonical_city=(continuity_days.get(str(day)).chapter_city if continuity_days.get(str(day)) else ""),
+        )
+        for day, rows in grouped_days.items()
+    ]
     if _is_hub_and_spoke(day_facts):
         return _hub_and_spoke_chapters(day_facts)
 
@@ -243,7 +256,12 @@ def create_journey_overview(grouped_days: Mapping[str, Sequence[dict]]) -> list[
     current_days: list[str] = []
     current_rows: list[dict] = []
     for day, rows in grouped_days.items():
-        city = chapter_destination(rows) or ("Cruise" if any(get_row_type(row) == "Cruise" for row in rows) else "Journey")
+        continuity_state = continuity_days.get(str(day))
+        city = (
+            (continuity_state.chapter_city if continuity_state else "")
+            or chapter_destination(rows)
+            or ("Cruise" if any(get_row_type(row) == "Cruise" for row in rows) else "Journey")
+        )
         if current_city is None:
             current_city = city
             current_days = [day]

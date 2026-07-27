@@ -14,7 +14,10 @@ from itinerary_generation.quality_row_selection import (
     select_important_rows,
 )
 from itinerary_generation.row_sequence import ordered_cities
-from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
+from itinerary_generation.itinerary_continuity import (
+    ItineraryContinuityReport,
+    build_itinerary_continuity_report,
+)
 from itinerary_generation.quality_gate_patterns import SUSPICIOUS_AM_PM_TIME_RANGE_RE
 
 BLOCKING = "error"
@@ -61,6 +64,7 @@ class ItineraryQualityGateReport:
 
     snapshot: ItineraryQualitySnapshot
     issues: tuple[ItineraryValidationIssue, ...] = field(default_factory=tuple)
+    continuity_report: ItineraryContinuityReport | None = None
 
     @property
     def blocking_issues(self) -> tuple[ItineraryValidationIssue, ...]:
@@ -213,6 +217,7 @@ def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:
     """Run the structural itinerary safety gate."""
     rows = as_quality_rows(parsed_rows)
     snapshot = build_quality_snapshot(rows)
+    continuity_report = build_itinerary_continuity_report(rows)
     continuity_issues = [
         ItineraryValidationIssue(
             finding.severity,
@@ -220,10 +225,14 @@ def evaluate_itinerary_quality(parsed_rows) -> ItineraryQualityGateReport:
             finding.message,
             context=finding.context,
         )
-        for finding in evaluate_itinerary_continuity(rows)
+        for finding in continuity_report.findings
     ]
     issues = tuple(_validate_snapshot(snapshot) + _source_fidelity_issues(rows) + continuity_issues)
-    return ItineraryQualityGateReport(snapshot=snapshot, issues=issues)
+    return ItineraryQualityGateReport(
+        snapshot=snapshot,
+        issues=issues,
+        continuity_report=continuity_report,
+    )
 
 
 def validate_itinerary_integrity(parsed_rows) -> list[ItineraryValidationIssue]:

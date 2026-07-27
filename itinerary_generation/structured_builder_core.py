@@ -23,7 +23,10 @@ from itinerary_generation.structured_items_builder import (
     _source_ref,
     _source_text,
 )
-from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
+from itinerary_generation.itinerary_continuity import (
+    ItineraryContinuityReport,
+    build_itinerary_continuity_report,
+)
 from itinerary_generation.structured_model import ItineraryDocument, ModelWarning
 from itinerary_generation.structured_row_helpers import _ACTIVITY_STRUCTURE_MARKERS, _has_structured_activity_supplier_text
 from itinerary_generation.structured_travel_sequences import (
@@ -45,7 +48,12 @@ from itinerary_generation.structured_warning_builder import (
     _source_signal_warnings,
 )
 
-def build_itinerary_document(parsed_rows: list[dict], grouped_days: dict[str, list[dict]] | None = None) -> ItineraryDocument:
+def build_itinerary_document(
+    parsed_rows: list[dict],
+    grouped_days: dict[str, list[dict]] | None = None,
+    *,
+    continuity_report: ItineraryContinuityReport | None = None,
+) -> ItineraryDocument:
     """Build a structured document without changing the existing render path."""
 
     rows = list(parsed_rows or [])
@@ -58,6 +66,8 @@ def build_itinerary_document(parsed_rows: list[dict], grouped_days: dict[str, li
     days = _build_days(grouped, item_ids_by_row_id, row_ids_by_object)
     travel_sequences = _build_travel_sequences(grouped, row_ids_by_object)
 
+    continuity_report = continuity_report or build_itinerary_continuity_report(rows)
+
     item_warnings: list[ModelWarning] = []
     for item in items:
         item_warnings.extend(item.warnings)
@@ -68,7 +78,7 @@ def build_itinerary_document(parsed_rows: list[dict], grouped_days: dict[str, li
             severity=finding.severity,
             source_row_ids=finding.source_row_ids,
         )
-        for finding in evaluate_itinerary_continuity(rows)
+        for finding in continuity_report.findings
     )
 
     document = ItineraryDocument(
@@ -79,6 +89,7 @@ def build_itinerary_document(parsed_rows: list[dict], grouped_days: dict[str, li
         exclusions=_exclusion_sections(rows),
         travel_sequences=travel_sequences,
         warnings=tuple(item_warnings),
+        continuity_report=continuity_report,
     )
     validation_warnings = validate_itinerary_document(document)
     if validation_warnings:

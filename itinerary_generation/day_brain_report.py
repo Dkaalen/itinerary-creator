@@ -12,6 +12,7 @@ from itinerary_generation.day_intent import DayIntent, classify_day_intent
 from itinerary_generation.day_leisure_writer import write_leisure_copy
 from itinerary_generation.day_text import create_day_intro
 from itinerary_generation.day_timeline_events import TimelineEvent, summarize_timeline_events
+from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
 
 
 def _clean(value: object) -> str:
@@ -130,7 +131,12 @@ def build_day_brain_report(grouped_days: Mapping[str, Sequence[Mapping[str, Any]
 
     items = list(grouped_days.items()) if isinstance(grouped_days, Mapping) else list(grouped_days)
     grouped = {str(day): list(rows or []) for day, rows in items}
-    visit_contexts = build_day_visit_contexts(grouped)
+    continuity_report = build_itinerary_continuity_report(
+        [row for rows in grouped.values() for row in rows]
+    )
+    visit_contexts = build_day_visit_contexts(
+        grouped, continuity_report=continuity_report
+    )
     days = [
         build_day_brain_day_report(day, rows, visit_context=visit_contexts.get(str(day)))
         for day, rows in grouped.items()
@@ -140,6 +146,7 @@ def build_day_brain_report(grouped_days: Mapping[str, Sequence[Mapping[str, Any]
         "day_count": len(days),
         "issue_count": issue_count,
         "days": days,
+        "continuity_report": _dataclass_payload(continuity_report),
     }
 
 

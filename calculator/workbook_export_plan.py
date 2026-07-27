@@ -7,12 +7,11 @@ this immutable plan to the reference workbook.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 import hashlib
 from typing import Literal, Mapping
 
 from calculator.calculator_state import CalculatorState
-from calculator.cell_formula_engine import CalculatorCellFormulaEvaluator
 from calculator.columns import DATA_END_ROW, DATA_START_ROW, TOTALS_ROW
 from calculator.currency_rates import normalize_currency_rates
 from calculator.formula_map import (
@@ -21,6 +20,7 @@ from calculator.formula_map import (
     TOTAL_FORMULAS,
     expected_row_formulas,
 )
+from calculator.financial_projection import ProjectedFinancialRow, project_calculator_financials
 from calculator.financial_rules import canonical_export_value
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
 
@@ -150,10 +150,11 @@ def build_workbook_export_plan(
 
     rates = normalize_currency_rates(currency_rates)
     currency_cells = _currency_cells(rates, rows)
-    calculator_cells = _calculator_cells(rows, rates)
+    financial_projection = project_calculator_financials(rows, rates)
+    calculator_cells = _calculator_cells(financial_projection.rows)
     properties = CALCULATION_PROPERTIES
     source_provenance = _source_provenance(rows)
-    visible_data_end_row = _visible_data_end_row(len(rows))
+    visible_data_end_row = _visible_data_end_row(rows)
     fingerprint = _plan_fingerprint(
         currency_cells, calculator_cells, properties, source_provenance, visible_data_end_row
     )
@@ -256,20 +257,19 @@ def _required_lookup_currencies(rows: tuple[CalculatorRow, ...]) -> tuple[str, .
 
 
 def _calculator_cells(
-    rows: tuple[CalculatorRow, ...],
-    rates: Mapping[str, float],
+    projected_rows: tuple[ProjectedFinancialRow, ...],
 ) -> tuple[ExportCell, ...]:
-    evaluator = CalculatorCellFormulaEvaluator(rows, rates)
     cells: list[ExportCell] = []
     commercial_line_number = 0
-    for row_offset, row_number in enumerate(range(DATA_START_ROW, DATA_END_ROW + 1)):
-        row = rows[row_offset] if row_offset < len(rows) else None
-        if row is not None and _row_has_supplier_cost(evaluator, row_number):
+    projected_by_row = {item.worksheet_row: item for item in projected_rows}
+    for row_number in range(DATA_START_ROW, DATA_END_ROW + 1):
+        projected = projected_by_row.get(row_number)
+        if projected is not None and projected.has_positive_supplier_cost:
             commercial_line_number += 1
             line_number: int | None = commercial_line_number
         else:
             line_number = None
-        cells.extend(_data_row_cells(row_number, row, evaluator, line_number))
+        cells.extend(_data_row_cells(row_number, projected, line_number))
 
     for reference, formula in {**TOTAL_FORMULAS, **PAYMENT_FORMULAS, QUOTE_CELL: QUOTE_FORMULA}.items():
         cells.append(ExportCell(reference, formula, "formula"))
@@ -280,10 +280,10 @@ def _calculator_cells(
 
 def _data_row_cells(
     row_number: int,
-    row: CalculatorRow | None,
-    evaluator: CalculatorCellFormulaEvaluator,
+    projected: ProjectedFinancialRow | None,
     commercial_line_number: int | None,
 ) -> tuple[ExportCell, ...]:
+    row = None if projected is None else projected.source
     cells: list[ExportCell] = [
         _planned_cell(f"B{row_number}", commercial_line_number, "number" if commercial_line_number is not None else "blank")
     ]
@@ -291,11 +291,9 @@ def _data_row_cells(
         value = None if row is None else _row_cell_value(row, field_name)
         cells.append(_planned_cell(f"{column}{row_number}", value, _row_value_kind(field_name, value)))
 
-    sales_value = (
-        expected_row_formulas(row_number)["Y"]
-        if row is None
-        else _sales_price_cell_value(row, row_number, evaluator)
-    )
+    sales_value = expected_row_formulas(row_number)["Y"]
+    if projected is not None and projected.sales_price_mode == "manual":
+        sales_value = projected.source.sales_price_per_unit
     cells.append(_planned_cell(f"Y{row_number}", sales_value, _numeric_or_formula_kind(sales_value)))
 
     formula_fields = dict(FORMULA_FIELD_BY_COLUMN)
@@ -313,18 +311,48 @@ def _data_row_cells(
     return tuple(cells)
 
 
+def _visible_data_end_row(rows: tuple[CalculatorRow, ...]) -> int:
+    """Keep ten editable blank rows visible after the final contentful row."""
 
-def _row_has_supplier_cost(evaluator: CalculatorCellFormulaEvaluator, row_number: int) -> bool:
-    """Return whether a row carries a positive supplier cost in NOK."""
-
-    return evaluator.evaluate_cell(f"X{row_number}") > 0
-
-
-def _visible_data_end_row(row_count: int) -> int:
-    """Keep ten editable blank rows visible after the final populated row."""
-
-    last_used_row = DATA_START_ROW + row_count - 1 if row_count else DATA_START_ROW - 1
+    last_contentful_offset = next(
+        (index for index in range(len(rows) - 1, -1, -1) if _row_has_export_content(rows[index])),
+        None,
+    )
+    last_used_row = (
+        DATA_START_ROW + last_contentful_offset
+        if last_contentful_offset is not None
+        else DATA_START_ROW - 1
+    )
     return min(DATA_END_ROW, last_used_row + 10)
+
+
+_EXPORT_DEFAULT_ONLY_FIELDS = frozenset({
+    "row_id",
+    "library_id",
+    "source_workbook",
+    "source_sheet",
+    "source_row",
+    "supplier_currency",
+    "sales_currency",
+})
+
+
+def _row_has_export_content(row: CalculatorRow) -> bool:
+    """Return whether a row intentionally occupies the visible export area."""
+
+    for field in fields(CalculatorRow):
+        if field.name in _EXPORT_DEFAULT_ONLY_FIELDS:
+            continue
+        value = getattr(row, field.name)
+        if isinstance(value, bool):
+            if value:
+                return True
+        elif isinstance(value, (int, float)):
+            if float(value) != 0.0:
+                return True
+        elif str(value or "").strip():
+            return True
+    return False
 
 
 def _row_cell_value(row: CalculatorRow, field_name: str) -> object:
@@ -344,22 +372,6 @@ def _row_value_kind(field_name: str, value: object) -> CellValueKind:
     if field_name in NUMERIC_INPUT_FIELDS:
         return _numeric_or_formula_kind(value)
     return "text"
-
-
-def _sales_price_cell_value(
-    row: CalculatorRow,
-    row_number: int,
-    evaluator: CalculatorCellFormulaEvaluator,
-) -> object:
-    value = row.sales_price_per_unit
-    automatic_formula = expected_row_formulas(row_number)["Y"]
-    if value in (None, ""):
-        return automatic_formula
-    parsed = evaluator.evaluate_expression(value, current_cell=f"Y{row_number}")
-    gross = evaluator.evaluate_cell(f"Q{row_number}")
-    if parsed == 0 and gross > 0:
-        return automatic_formula
-    return value
 
 
 def _numeric_or_formula_kind(value: object) -> CellValueKind:

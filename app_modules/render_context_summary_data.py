@@ -30,7 +30,14 @@ def _saved_journey_arc_is_usable(saved_journey_arc: Any) -> bool:
     )
 
 
-def build_summary_context_data(parsed_rows, grouped_days, output_edits: dict[str, Any], editor_draft: dict[str, Any]) -> dict[str, Any]:
+def build_summary_context_data(
+    parsed_rows,
+    grouped_days,
+    output_edits: dict[str, Any],
+    editor_draft: dict[str, Any],
+    *,
+    continuity_report=None,
+) -> dict[str, Any]:
     """Build trip-glance and journey-arc fields for render context."""
 
     typed_summary = editor_draft.get("summary", {}) if isinstance(editor_draft.get("summary"), dict) else {}
@@ -65,7 +72,7 @@ def build_summary_context_data(parsed_rows, grouped_days, output_edits: dict[str
             if isinstance(row, dict)
         ]
     else:
-        journey_arc = create_journey_arc(grouped_days)
+        journey_arc = create_journey_arc(grouped_days, continuity_report=continuity_report)
 
     return {
         "trip_glance_title": _safe_label(typed_summary.get("trip_glance_title") or output_edits.get("trip_glance_title"), label_for(output_edits, "trip_glance", "Your Trip at a Glance")),

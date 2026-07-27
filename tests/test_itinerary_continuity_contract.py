@@ -258,7 +258,9 @@ def test_continuity_policy_has_one_owner_and_shared_consumers():
     for code in policy_codes:
         assert code in owner_source
         assert all(code not in source for source in consumer_sources)
-    assert all("evaluate_itinerary_continuity(" in source for source in consumer_sources)
+    assert "build_itinerary_continuity_report(" in consumer_sources[0]
+    assert "continuity_report.findings" in consumer_sources[1]
+    assert "continuity_report" in consumer_sources[2]
 
 
 def test_true_route_coach_activity_retains_transport_classification():
@@ -316,3 +318,94 @@ Day 5\tHotel\t05.08.2026\t06.08.2026\t\t\t\t\tStockholm\tStockholm: Hotel stay -
     rows = normalize_itinerary_rows(parse_itinerary(raw))
 
     assert "route_origin_discontinuity" not in _codes(rows)
+
+
+def test_canonical_report_keeps_day_trip_inside_overnight_base() -> None:
+    from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
+
+    rows = [
+        _hotel("Day 1", "Bergen", "h1"),
+        _train("Day 2", "Bergen", "Flåm", "t1"),
+        _activity("Day 2", "Flåm", "Fjord cruise", "10:00 AM - 1:00 PM", "a1"),
+        _train("Day 2", "Flåm", "Bergen", "t2"),
+        {"day": "Day 3", "type": "Leisure", "effective_type": "Leisure", "city": "Bergen", "title": "Leisure in Bergen", "row_id": "l1"},
+    ]
+
+    report = build_itinerary_continuity_report(rows)
+    day_two = report.day_state("Day 2")
+    day_three = report.day_state("Day 3")
+
+    assert day_two is not None
+    assert day_two.chapter_city == "Bergen"
+    assert day_two.day_trip_return is True
+    assert day_two.return_visit is False
+    assert day_three is not None
+    assert day_three.return_visit is False
+
+
+def test_canonical_report_marks_genuine_return_after_leaving() -> None:
+    from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
+
+    rows = [
+        _hotel("Day 1", "Oslo", "h1"),
+        _train("Day 2", "Oslo", "Bergen", "t1"),
+        _hotel("Day 2", "Bergen", "h2"),
+        _train("Day 3", "Bergen", "Oslo", "t2"),
+        _hotel("Day 3", "Oslo", "h3"),
+    ]
+
+    report = build_itinerary_continuity_report(rows)
+    state = report.day_state("Day 3")
+
+    assert state is not None
+    assert state.chapter_city == "Oslo"
+    assert state.return_visit is True
+    assert state.visit_number == 2
+    assert state.previous_visit_days == ("Day 1",)
+
+
+def test_same_city_hotel_change_is_not_a_new_arrival() -> None:
+    from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
+
+    rows = [
+        _hotel("Day 1", "Rovaniemi", "h1"),
+        _hotel("Day 2", "Rovaniemi", "h2"),
+    ]
+
+    state = build_itinerary_continuity_report(rows).day_state("Day 2")
+
+    assert state is not None
+    assert state.same_city_accommodation_change is True
+    assert state.destination_arrival is False
+    assert state.welcome_allowed is False
+    assert state.return_visit is False
+
+
+def test_overnight_cruise_establishes_destination_for_following_hotel() -> None:
+    from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
+
+    rows = [
+        _hotel("Day 1", "Helsinki", "h1"),
+        {"day": "Day 2", "type": "Cruise", "effective_type": "Cruise", "city": "Helsinki", "title": "Overnight cruise Helsinki to Stockholm", "details": "Helsinki to Stockholm overnight cruise", "row_id": "c1"},
+        {"day": "Day 2", "type": "Leisure", "effective_type": "Leisure", "city": "Stockholm", "title": "Leisure onboard the cruise", "row_id": "l1"},
+        _hotel("Day 3", "Stockholm", "h2"),
+    ]
+
+    report = build_itinerary_continuity_report(rows)
+
+    assert {finding.code for finding in report.findings}.isdisjoint({"unexplained_destination_jump", "travel_destination_accommodation_mismatch"})
+    assert report.day_state("Day 2").overnight_place == "Stockholm"
+    assert report.day_state("Day 3").start_place == "Stockholm"
+
+
+def test_overlapping_accommodation_stays_are_reported_once_by_continuity() -> None:
+    from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
+
+    rows = [
+        {**_hotel("Day 1", "Oslo", "h1"), "title": "Hotel A", "start_date": "01/08/2026", "end_date": "04/08/2026"},
+        {**_hotel("Day 2", "Bergen", "h2"), "title": "Hotel B", "start_date": "03/08/2026", "end_date": "05/08/2026"},
+    ]
+
+    report = build_itinerary_continuity_report(rows)
+
+    assert [finding.code for finding in report.findings].count("overlapping_accommodation_stays") == 1

@@ -129,3 +129,4 @@ class RenderDocument:
     page_order: list[str] = field(default_factory=list)
     presentation_language: str = "en"
     labels: dict[str, str] = field(default_factory=dict)
+    continuity_report: Any = None

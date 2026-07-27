@@ -91,24 +91,35 @@ def merge_preview_image_contract(
     *,
     removed_days: set[str] | frozenset[str] | tuple[str, ...] = (),
 ) -> dict[str, Mapping | None]:
-    """Prefer preview-selected images while preserving explicit removals.
+    """Enrich committed selections with preview bytes without changing choice.
 
-    ``selected_matches`` comes from the server-side matcher/overrides.  The
-    preview contract is preferred for days where the user has actually reviewed
-    an image in the current preview, because it carries the embedded data URI
-    needed for PDF parity.  Explicitly removed days stay empty even if an older
-    preview HTML blob still contains an image marker.
+    The committed path remains authoritative.  Preview data is accepted only
+    when it belongs to that same path; stale preview HTML can therefore never
+    overwrite a newer automatic or deliberate manual selection.
     """
 
     explicitly_removed = {str(day) for day in (removed_days or ())}
     merged: dict[str, Mapping | None] = dict(selected_matches or {})
-    for day, match in (preview_matches or {}).items():
+    for day, preview in (preview_matches or {}).items():
         day_key = str(day)
         if day_key in explicitly_removed:
             merged[day_key] = None
             continue
-        if match:
-            merged[day_key] = dict(match)
+        selected = merged.get(day_key)
+        if not isinstance(selected, Mapping) or not isinstance(preview, Mapping):
+            # Legacy preview-only payloads remain readable only when no committed
+            # selection entry exists for that day.
+            if day_key not in merged and preview:
+                merged[day_key] = dict(preview)
+            continue
+        selected_path = str(selected.get("path") or "").strip()
+        preview_path = str(preview.get("path") or "").strip()
+        if selected_path and preview_path and Path(selected_path).resolve() != Path(preview_path).resolve():
+            continue
+        enriched = dict(selected)
+        if preview.get("data_uri"):
+            enriched["data_uri"] = preview.get("data_uri")
+        merged[day_key] = enriched
     for day in explicitly_removed:
         merged[day] = None
     return merged

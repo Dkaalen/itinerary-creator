@@ -37,6 +37,7 @@ def build_render_context_documents(
         output_edits=output_edits,
     )
     render_document = deepcopy(editor_render_document)
+    render_document.continuity_report = editor_render_document.continuity_report
     render_document.days = [
         day
         for day in (render_document.days or [])

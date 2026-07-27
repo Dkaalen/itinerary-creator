@@ -61,7 +61,12 @@ def score_rendered_output(
     score_journey_overview_logic(issues, context)
     client_quality_report = _client_quality_report(context, rows)
     _score_client_truth_contracts(issues, client_quality_report)
-    _score_day_copy_logic(issues, rows, days)
+    _score_day_copy_logic(
+        issues,
+        rows,
+        days,
+        continuity_report=getattr(context, "continuity_report", None),
+    )
     _score_transport_semantics(issues, rows, days)
     score_repetition(issues, days)
     _score_style_density(issues, segments)
@@ -216,9 +221,14 @@ def _score_hotel_star_safety(issues: list[OutputTextIssue], source_text: str, fu
         )
 
 
-def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str, Any]], days: Sequence[Any]) -> None:
+def _score_day_copy_logic(
+    issues: list[OutputTextIssue],
+    rows: Sequence[dict[str, Any]],
+    days: Sequence[Any],
+    *,
+    continuity_report: Any = None,
+) -> None:
     grouped_rows = group_rows_by_day(rows)
-    seen_cities: set[str] = set()
     for day in days:
         day_id = _clean_text(getattr(day, "day", ""))
         day_rows = grouped_rows.get(day_id, [])
@@ -287,7 +297,13 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
                 location=f"{day_id}.title",
                 excerpt=title,
             )
-        if day_city and day_city in seen_cities and title.casefold().startswith(f"welcome to {day_city}".casefold()):
+        continuity_state = continuity_report.day_state(day_id) if continuity_report is not None else None
+        if (
+            continuity_state is not None
+            and continuity_state.return_visit
+            and day_city
+            and title.casefold().startswith(f"welcome to {day_city}".casefold())
+        ):
             _add_issue(
                 issues,
                 "return_visit_welcome_title",
@@ -296,8 +312,6 @@ def _score_day_copy_logic(issues: list[OutputTextIssue], rows: Sequence[dict[str
                 location=f"{day_id}.title",
                 excerpt=title,
             )
-        if day_city:
-            seen_cities.add(day_city)
         if len(activity_rows) >= 2 and "rest of the day is open" in day_text.casefold():
             _add_issue(
                 issues,

@@ -55,6 +55,8 @@ IMAGE_TESTS = (
     "tests/test_image_match_audit.py",
     "tests/test_image_matcher_selection.py",
     "tests/test_image_matcher_selection_fallbacks.py",
+    "tests/test_image_selection_contract.py",
+    "tests/test_image_selection_ownership.py",
     "tests/test_hot_path_caching_regression.py",
     "tests/test_destination_image_delivery_regression.py",
     "tests/test_image_bank_bootstrap_regression.py",

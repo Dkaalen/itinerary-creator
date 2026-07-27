@@ -52,6 +52,10 @@ __all__ = (
     "invalidate_image_bank_cache",
     "day_image_matches_from_preview_html",
     "merge_preview_image_contract",
+    "commit_selection_payload",
+    "read_selection_commit",
+    "selection_input_signature",
+    "store_selection_commit",
     "prefetch_image_bank_for_rows",
     "infer_primary_month_from_rows",
     "infer_season_from_rows",
@@ -113,6 +117,8 @@ _MODULE_EXPORTS = frozenset(
         "replacement_options",
         "scanner",
         "seasonal_policy",
+        "selection_commit",
+        "selection_contract",
     }
 )
 
@@ -173,6 +179,10 @@ _SYMBOL_EXPORTS: dict[str, tuple[str, str]] = {
     "scan_image_bank": ("scanner", "scan_image_bank"),
     "day_image_matches_from_preview_html": ("preview_image_contract", "day_image_matches_from_preview_html"),
     "merge_preview_image_contract": ("preview_image_contract", "merge_preview_image_contract"),
+    "commit_selection_payload": ("selection_contract", "commit_selection_payload"),
+    "read_selection_commit": ("selection_commit", "read_selection_commit"),
+    "selection_input_signature": ("selection_commit", "selection_input_signature"),
+    "store_selection_commit": ("selection_commit", "store_selection_commit"),
 }
 
 

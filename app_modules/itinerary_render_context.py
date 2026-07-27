@@ -84,6 +84,7 @@ class ItineraryRenderContext:
     hidden_page_ids: set[str]
     presentation_language: str
     presentation_labels: dict[str, str]
+    continuity_report: Any
     client_quality_report: ClientOutputQualityGateReport | None = None
 
 
@@ -161,18 +162,41 @@ def _final_section_html_fragments(render_document: RenderDocument, section_id: s
 
 
 def _attach_final_page_source_warnings(context: ItineraryRenderContext) -> None:
+    inclusion_html_is_edited = bool(
+        context.typed_inclusions_owned
+        or (
+            (context.output_edits.get("whats_included_pages_html") or context.output_edits.get("whats_included_html"))
+            and not context.saved_inclusion_pages_refreshable
+        )
+    )
+    exclusion_html_is_edited = bool(
+        context.typed_exclusions_owned
+        or (
+            context.output_edits.get("whats_not_included_html")
+            and not context.saved_exclusion_html_refreshable
+        )
+    )
+
     warnings = (
-        *validate_source_aware_html_coverage(
-            html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_included"),
-            sections=context.structured_document.inclusions,
-            page_name="What's included",
-            warning_code="edited_inclusions_missing_source_identity",
+        *(
+            validate_source_aware_html_coverage(
+                html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_included"),
+                sections=context.structured_document.inclusions,
+                page_name="What's included",
+                warning_code="edited_inclusions_missing_source_identity",
+            )
+            if inclusion_html_is_edited
+            else ()
         ),
-        *validate_source_aware_html_coverage(
-            html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_not_included"),
-            sections=context.structured_document.exclusions,
-            page_name="What's not included",
-            warning_code="edited_exclusions_missing_source_identity",
+        *(
+            validate_source_aware_html_coverage(
+                html_fragments=_final_section_html_fragments(context.editor_render_document, "whats_not_included"),
+                sections=context.structured_document.exclusions,
+                page_name="What's not included",
+                warning_code="edited_exclusions_missing_source_identity",
+            )
+            if exclusion_html_is_edited
+            else ()
         ),
     )
     if not warnings:
@@ -217,7 +241,10 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         render_document_builder=_build_render_document_from_structured_document,
     )
     cover_data = build_cover_context_data(parsed_rows, grouped_days, output_edits, editor_draft)
-    summary_data = build_summary_context_data(parsed_rows, grouped_days, output_edits, editor_draft)
+    summary_data = build_summary_context_data(
+        parsed_rows, grouped_days, output_edits, editor_draft,
+        continuity_report=structured_document.continuity_report,
+    )
     final_data = build_final_context_data(
         parsed_rows,
         grouped_days,
@@ -239,6 +266,7 @@ def build_itinerary_render_context(parsed_rows, grouped_days, output_edits=None)
         hidden_page_ids=document_data["hidden_page_ids"],
         presentation_language=language_code,
         presentation_labels=dict(labels),
+        continuity_report=document_data["structured_document"].continuity_report,
         **cover_data,
         **summary_data,
         **final_data,

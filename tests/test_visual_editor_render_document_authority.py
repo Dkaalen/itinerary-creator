@@ -160,3 +160,15 @@ def test_editor_payload_builder_has_no_independent_day_or_final_generation_calls
             "build_final_pages_payload",
         }
     )
+
+
+def test_prepared_surfaces_share_one_continuity_report_instance() -> None:
+    rows = _rows()
+    grouped = group_rows_by_day(rows)
+    context = build_itinerary_render_context(rows, grouped, {"pictures_added": False})
+
+    report = context.structured_document.continuity_report
+    assert report is not None
+    assert context.continuity_report is report
+    assert context.render_document.continuity_report is report
+    assert context.editor_render_document.continuity_report is report

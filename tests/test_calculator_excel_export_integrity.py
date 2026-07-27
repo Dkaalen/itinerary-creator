@@ -58,3 +58,21 @@ def test_export_removes_stale_calculation_chain_and_references() -> None:
         content_types = archive.read("[Content_Types].xml").decode("utf-8")
     assert "calcChain" not in relationships
     assert "calcChain" not in content_types
+
+
+def test_export_visibility_ignores_preallocated_blank_rows() -> None:
+    rows = [CalculatorRow(row_id=str(index + 1)) for index in range(25)]
+    rows[0] = CalculatorRow(row_id="1", day="Day 1", type="Hotel", travel_element="Hotel")
+
+    plan = build_workbook_export_plan(CalculatorState(rows=tuple(rows)))
+
+    assert plan.visible_data_end_row == 17
+
+
+def test_export_visibility_retains_deliberate_formula_content() -> None:
+    rows = [CalculatorRow(row_id=str(index + 1)) for index in range(25)]
+    rows[10] = CalculatorRow(row_id="11", gp_percent_override="=1/3")
+
+    plan = build_workbook_export_plan(CalculatorState(rows=tuple(rows)))
+
+    assert plan.visible_data_end_row == 27

@@ -147,7 +147,8 @@ def chapter_experience(rows: Sequence[Mapping[str, object]], chapter: str) -> st
     if "tallinn" in source_l and "old town" in source_l:
         return "Tallinn Old Town day trip"
     if has_nutshell and has_food:
-        return f"{canonical_nutshell_title(rows)} and local food tour"
+        place = chapter.strip()
+        return f"Norway in a Nutshell and {place} food tour" if place else "Norway in a Nutshell and local food tour"
     if has_nutshell:
         return canonical_nutshell_title(rows)
 

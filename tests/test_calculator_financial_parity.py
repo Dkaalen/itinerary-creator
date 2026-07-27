@@ -243,3 +243,32 @@ def test_margin_shortcut_uses_actual_net_cost_and_target_gp_definition() -> None
 def test_financial_fixture_rows_are_json_safe_dataclass_inputs() -> None:
     for case in _cases():
         assert [asdict(row) for row in _rows(case)]
+
+
+def test_financial_projection_owns_export_decisions_without_mutating_state() -> None:
+    from calculator.financial_projection import project_calculator_financials
+
+    rows = (
+        CalculatorRow(row_id="1", gross_price_per_unit=100, units=2),
+        CalculatorRow(row_id="2", gross_price_per_unit=100, units=1, supplier_commission=1),
+        CalculatorRow(row_id="3", gross_price_per_unit=100, units=1, sales_price_per_unit=175),
+        CalculatorRow(row_id="4", gross_price_per_unit=100, units=1, sales_price_per_unit="=0"),
+    )
+    before = tuple(rows)
+
+    projection = project_calculator_financials(rows, {"EUR": 11, "NOK": 1})
+
+    assert tuple(item.worksheet_row for item in projection.rows) == (7, 8, 9, 10)
+    assert tuple(item.sales_price_mode for item in projection.rows) == (
+        "automatic",
+        "automatic",
+        "manual",
+        "automatic",
+    )
+    assert tuple(item.has_positive_supplier_cost for item in projection.rows) == (
+        True,
+        False,
+        True,
+        True,
+    )
+    assert rows == before

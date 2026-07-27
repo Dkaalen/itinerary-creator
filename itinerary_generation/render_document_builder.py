@@ -128,7 +128,9 @@ def build_render_document_from_document(
     from itinerary_generation.day_render_blocks import build_render_day_from_document
 
     render_grouped_days = grouped_days_with_day_optional_rows(grouped_days, parsed_rows)
-    visit_contexts = build_day_visit_contexts(grouped_days or {})
+    visit_contexts = build_day_visit_contexts(
+        grouped_days or {}, continuity_report=document.continuity_report
+    )
     warnings = [warning.message for warning in document.warnings]
     render_document = RenderDocument(
         title=create_trip_title(parsed_rows, grouped_days),
@@ -146,6 +148,7 @@ def build_render_document_from_document(
             for day, rows in render_grouped_days.items()
         ],
         warnings=warnings,
+        continuity_report=document.continuity_report,
     )
     return apply_copy_sequence_plan(render_document)
 

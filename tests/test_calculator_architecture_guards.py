@@ -324,3 +324,20 @@ def test_calculator_architecture_document_names_bounded_browser_groups() -> None
     assert "editing and caret behavior" in text
     assert "component lifecycle and messaging" in text
     assert "tests/support/calculator_browser_harness.py" in text
+
+
+def test_export_plan_maps_one_financial_projection_and_renderers_remain_passive() -> None:
+    plan_source = (ROOT / "calculator" / "workbook_export_plan.py").read_text(encoding="utf-8")
+    projection_source = (ROOT / "calculator" / "financial_projection.py").read_text(encoding="utf-8")
+    openpyxl_source = (ROOT / "calculator" / "workbook_export.py").read_text(encoding="utf-8")
+    package_source = (ROOT / "calculator" / "workbook_package_export.py").read_text(encoding="utf-8")
+
+    assert "project_calculator_financials" in plan_source
+    assert "CalculatorCellFormulaEvaluator" not in plan_source
+    assert "evaluate_expression" not in plan_source
+    assert "calculate_rows" not in plan_source
+    assert "CalculatorCellFormulaEvaluator" in projection_source
+    for renderer_source in (openpyxl_source, package_source):
+        assert "CalculatorCellFormulaEvaluator" not in renderer_source
+        assert "calculate_rows(" not in renderer_source
+        assert "sales_price_per_unit_for_margin" not in renderer_source

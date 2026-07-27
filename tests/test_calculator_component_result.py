@@ -76,3 +76,35 @@ def test_parse_calculator_grid_result_accepts_excel_upload_payload() -> None:
     assert result.action == "open_excel"
     assert result.upload_filename == "Oslo.xlsx"
     assert result.upload_content_base64 == "eGxzeA=="
+
+
+def test_browser_result_preserves_canonical_formula_overrides() -> None:
+    result = parse_calculator_grid_result(
+        json.dumps(
+            {
+                "action": "sync",
+                "rows": [
+                    {
+                        "row_id": "1",
+                        "supplier_commission": "30",
+                        "gp_percent_override": 0.3,
+                        "net_price_override": "=1/3",
+                    },
+                    {
+                        "row_id": "2",
+                        "supplier_commission": "=15+5",
+                        "gp_percent_override": "=1/3",
+                    },
+                ],
+            }
+        ),
+        "Trip",
+    )
+
+    assert result is not None
+    first, second = result.state.rows
+    assert first.supplier_commission == 0.3
+    assert first.gp_percent_override == 0.3
+    assert first.net_price_override == "=1/3"
+    assert second.supplier_commission == 0.2
+    assert second.gp_percent_override == "=1/3"

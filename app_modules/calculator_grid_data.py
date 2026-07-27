@@ -7,6 +7,7 @@ from typing import Any, Iterable, Mapping
 
 from app_modules.calculator_grid_values import (
     NUMERIC_FIELDS,
+    canonical_formula_override_value,
     PERCENT_UI_FIELDS,
     currency_or_default,
     decimal_to_percent,
@@ -77,6 +78,40 @@ def table_data_to_rows(
         rows.append(CalculatorRow(**values))
     return tuple(rows)
 
+
+
+def browser_table_data_to_rows(
+    data: Iterable[Mapping[str, Any]],
+) -> tuple[CalculatorRow, ...]:
+    """Convert browser-owned canonical row payloads into Calculator rows.
+
+    The browser displays supplier commission in percentage points, but its
+    hidden formula overrides are already canonical Python/Excel values.  This
+    parser therefore converts editable fields normally while preserving every
+    formula override without a second percentage transformation.
+    """
+
+    rows: list[CalculatorRow] = []
+    for index, item in enumerate(data, start=1):
+        row_id = text_value(item.get("row_id")) or str(index)
+        values = {field.name: getattr(CalculatorRow(row_id=row_id), field.name) for field in fields(CalculatorRow)}
+        for field_name, raw_value in item.items():
+            if field_name in FORMULA_OVERRIDE_FIELD_BY_KEY.values():
+                values[field_name] = canonical_formula_override_value(raw_value)
+                continue
+            if field_name in _ROW_FIELDS:
+                values[field_name] = field_value(field_name, raw_value)
+                continue
+            override_field = FORMULA_OVERRIDE_FIELD_BY_KEY.get(str(field_name))
+            if override_field:
+                values[override_field] = canonical_formula_override_value(raw_value)
+        if item.get("_sales_price_per_unit_touched") is False:
+            values["sales_price_per_unit"] = None
+        values["row_id"] = values.get("row_id") or row_id
+        values["supplier_currency"] = currency_or_default(values.get("supplier_currency"))
+        values["sales_currency"] = currency_or_default(values.get("sales_currency"))
+        rows.append(CalculatorRow(**values))
+    return tuple(rows)
 
 def rows_have_user_edit_changes(
     edited_rows: tuple[CalculatorRow, ...],

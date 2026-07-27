@@ -6,6 +6,9 @@ from pathlib import Path
 from collections.abc import Mapping
 
 from images.matcher import select_day_images
+from images.scanner import get_image_bank_index
+from images.selection_commit import read_selection_commit, selection_input_signature, store_selection_commit
+from images.selection_contract import commit_selection_payload
 from images.image_bank import image_bank_status_for_paths, normalize_path_key
 from images.image_overrides import normalize_image_mode
 
@@ -14,7 +17,7 @@ def day_image_match_from_path(day, path, reason="manual selection", image_bank_s
     if not path:
         return None
     path_obj = Path(path)
-    return {
+    payload = {
         "day": day,
         "path": str(path_obj),
         "score": 999,
@@ -38,7 +41,7 @@ def day_image_match_from_path(day, path, reason="manual selection", image_bank_s
             "total_score": 999,
         },
     }
-
+    return commit_selection_payload(day, payload, user_override=True, selection_reason=reason)
 
 
 def normalize_day_image_match(day, match, *, image_bank_status=None):
@@ -60,7 +63,12 @@ def normalize_day_image_match(day, match, *, image_bank_status=None):
         payload.setdefault("day", day)
         if image_bank_status is not None and not isinstance(payload.get("image_bank_status"), Mapping):
             payload["image_bank_status"] = dict(image_bank_status or {})
-        return payload
+        return commit_selection_payload(
+            day,
+            payload,
+            user_override=bool(payload.get("user_override")),
+            duplicate_policy=str(payload.get("duplicate_policy") or "unique"),
+        )
     path = str(match or "").strip()
     if not path:
         return None
@@ -105,16 +113,30 @@ def _default_images_allowed_for_final(output_edits=None) -> bool:
 
 
 def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_root, image_bank_scan_paths):
-    """Apply day image review choices while preserving no-reuse behavior."""
+    """Resolve one committed selection per day while preserving manual intent."""
 
-    overrides = (output_edits or {}).get("day_images", {}) or {}
+    if output_edits is None:
+        output_edits = {}
+    overrides = output_edits.get("day_images", {}) or {}
     bank_status = image_bank_status_for_paths(image_bank_scan_paths)
-    default_locked = bank_status.get("missing_full_bank") and not _default_images_allowed_for_final(output_edits)
+    default_allowed = _default_images_allowed_for_final(output_edits)
+    default_locked = bank_status.get("missing_full_bank") and not default_allowed
+    bank_signature = get_image_bank_index(image_bank_scan_paths).cache_key
+    input_signature = selection_input_signature(
+        grouped_days,
+        output_edits,
+        image_bank_signature=bank_signature,
+        default_images_allowed=default_allowed,
+    )
+    committed = read_selection_commit(output_edits, expected_signature=input_signature)
+    if committed is not None:
+        return committed
+
     selected = {}
     used_paths = set()
 
-    # Manual and removed choices first, so automatic selections cannot reuse a
-    # picture selected by the user on another day.
+    # Deliberate manual reuse is authoritative.  It is recorded explicitly
+    # instead of being discarded by automatic duplicate prevention.
     for day, rows in (grouped_days or {}).items():
         choice = overrides.get(day, {}) or {}
         mode = normalize_image_mode(choice.get("mode"), removed=choice.get("removed", False), path=choice.get("path", ""))
@@ -129,8 +151,15 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
             if not resolved.is_absolute():
                 resolved = (app_root / resolved).resolve()
             key = normalize_path_key(resolved)
-            if resolved.exists() and key not in used_paths:
-                selected[day] = day_image_match_from_path(day, resolved, reason="manual image selection", image_bank_status=bank_status)
+            if resolved.exists():
+                duplicate_policy = "intentional_manual_reuse" if key in used_paths else "unique"
+                selected[day] = commit_selection_payload(
+                    day,
+                    day_image_match_from_path(day, resolved, reason="manual image selection", image_bank_status=bank_status),
+                    user_override=True,
+                    duplicate_policy=duplicate_policy,
+                    selection_reason="manual image selection",
+                )
                 used_paths.add(key)
             else:
                 selected[day] = None
@@ -141,15 +170,23 @@ def select_day_images_with_overrides(grouped_days, output_edits=None, *, app_roo
         if day in selected:
             continue
         match = base_matches.get(day)
+        duplicate_policy = "unique"
         if match:
             key = normalize_path_key(match.get("path", ""))
             allows_reuse = "reused strong default" in str(match.get("reason", "")).lower()
             if key in used_paths and not allows_reuse:
                 match = None
             else:
+                if key in used_paths and allows_reuse:
+                    duplicate_policy = "safe_default_reuse"
                 used_paths.add(key)
-        selected[day] = _attach_image_bank_contract(match, bank_status)
+        match = _attach_image_bank_contract(match, bank_status)
+        selected[day] = commit_selection_payload(
+            day,
+            match,
+            duplicate_policy=duplicate_policy,
+        ) if match else None
 
+    store_selection_commit(output_edits, input_signature=input_signature, matches=selected)
     return selected
-
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable, Mapping, Sequence
 
 from itinerary_generation.destination_visit_memory import build_destination_visit_memory, canonical_memory_city
+from itinerary_generation.itinerary_continuity import ItineraryContinuityReport
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,13 @@ class DayVisitContext:
     completed_visit: bool = False
     chapter_start: bool = False
     return_visit: bool = False
+    continuity_decisions_available: bool = False
+    day_trip_return: bool = False
+    destination_arrival: bool = False
+    arrival_stay: bool = False
+    welcome_allowed: bool = False
+    same_city_accommodation_change: bool = False
+    stay_continuation: bool = False
 
     @property
     def is_return_visit(self) -> bool:
@@ -51,10 +59,14 @@ def _day_sort_key(day: object, index: int) -> tuple[int, int, str]:
     return (int(digits) if digits else index + 1_000_000, index, text)
 
 
-def build_day_visit_contexts(grouped_days: Mapping[str, Sequence[dict]] | Iterable[tuple[str, Sequence[dict]]]) -> dict[str, DayVisitContext]:
+def build_day_visit_contexts(
+    grouped_days: Mapping[str, Sequence[dict]] | Iterable[tuple[str, Sequence[dict]]],
+    *,
+    continuity_report: ItineraryContinuityReport | None = None,
+) -> dict[str, DayVisitContext]:
     """Return visit context keyed by day label for a grouped itinerary."""
 
-    memories = build_destination_visit_memory(grouped_days)
+    memories = build_destination_visit_memory(grouped_days, continuity_report=continuity_report)
     contexts: dict[str, DayVisitContext] = {}
     for day_label, memory in memories.items():
         contexts[day_label] = DayVisitContext(
@@ -70,5 +82,12 @@ def build_day_visit_contexts(grouped_days: Mapping[str, Sequence[dict]] | Iterab
             completed_visit=memory.completed_visit,
             chapter_start=memory.chapter_start,
             return_visit=memory.return_visit,
+            continuity_decisions_available=True,
+            day_trip_return=memory.day_trip_return,
+            destination_arrival=memory.destination_arrival,
+            arrival_stay=memory.arrival_stay,
+            welcome_allowed=memory.welcome_allowed,
+            same_city_accommodation_change=memory.same_city_accommodation_change,
+            stay_continuation=memory.stay_continuation,
         )
     return contexts

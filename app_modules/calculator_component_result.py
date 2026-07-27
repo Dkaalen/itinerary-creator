@@ -7,7 +7,7 @@ import json
 from math import isfinite
 from typing import Any
 
-from app_modules.calculator_grid_data import table_data_to_rows
+from app_modules.calculator_grid_data import browser_table_data_to_rows
 from calculator.calculator_state import CalculatorState
 
 
@@ -48,7 +48,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
     action = str(data.get("action") or "sync")
     if action not in _VALID_ACTIONS:
         return None
-    rows = table_data_to_rows(data.get("rows") or (), ())
+    rows = browser_table_data_to_rows(data.get("rows") or ())
     return CalculatorGridResult(
         action=action,
         state=CalculatorState(

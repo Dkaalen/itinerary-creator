@@ -29,6 +29,7 @@ def _payload_priority_key(payload: dict | None) -> tuple:
         int(breakdown.get("activity_product_score") or 0),
         int(payload.get("score") or 0),
         str(payload.get("filename", "")).lower(),
+        str(Path(payload.get("path", "")).resolve()).casefold(),
     )
 
 
@@ -252,6 +253,7 @@ def _global_assignment_priority(payload: dict) -> tuple:
         int(breakdown.get("destination_score") or 0),
         int(breakdown.get("season_score") or 0),
         str(payload.get("filename", "")).lower(),
+        str(Path(payload.get("path", "")).resolve()).casefold(),
     )
 
 

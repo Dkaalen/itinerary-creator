@@ -148,6 +148,7 @@ class ItineraryDocument:
     exclusions: tuple[StructuredListSection, ...] = ()
     travel_sequences: tuple[TravelSequence, ...] = ()
     warnings: tuple[ModelWarning, ...] = ()
+    continuity_report: Any = None
 
     def as_dict(self) -> dict:
         """Return a plain-JSON-compatible representation for debugging/tests."""

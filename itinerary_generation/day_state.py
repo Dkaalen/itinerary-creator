@@ -56,6 +56,7 @@ def build_day_state(
     """Return the sole itinerary-aware arrival/stay state for a day."""
 
     context_available = visit_context is not None
+    canonical_decisions = bool(getattr(visit_context, "continuity_decisions_available", False)) if context_available else False
     chapter_start = bool(getattr(visit_context, "chapter_start", False)) if context_available else False
     completed_visit = bool(getattr(visit_context, "completed_visit", False)) if context_available else False
     transit_only = bool(getattr(visit_context, "transit_only", False)) if context_available else False
@@ -92,7 +93,7 @@ def build_day_state(
         and has_accommodation
         and (chapter_start if context_available else True)
     )
-    destination_arrival = bool(
+    inferred_destination_arrival = bool(
         not return_visit
         and not arrival_onward
         and not chapter_continuation
@@ -102,9 +103,18 @@ def build_day_state(
             or route_arrival
         )
     )
-    arrival_stay = bool(destination_arrival and not has_route_transport)
+    destination_arrival = (
+        bool(getattr(visit_context, "destination_arrival", False))
+        if canonical_decisions
+        else inferred_destination_arrival
+    )
+    arrival_stay = (
+        bool(getattr(visit_context, "arrival_stay", False))
+        if canonical_decisions
+        else bool(destination_arrival and not has_route_transport)
+    )
 
-    same_city_accommodation_change = bool(
+    inferred_same_city_change = bool(
         same_city_change_signal
         or (
             context_available
@@ -115,9 +125,15 @@ def build_day_state(
             and _same_city(previous_overnight_city, overnight_city)
         )
     )
-    stay_continuation = bool(
-        chapter_continuation
-        and not same_city_accommodation_change
+    same_city_accommodation_change = (
+        bool(getattr(visit_context, "same_city_accommodation_change", False))
+        if canonical_decisions
+        else inferred_same_city_change
+    )
+    stay_continuation = (
+        bool(getattr(visit_context, "stay_continuation", False))
+        if canonical_decisions
+        else bool(chapter_continuation and not same_city_accommodation_change)
     )
 
     return DayState(
@@ -132,7 +148,11 @@ def build_day_state(
         arrival_onward=arrival_onward,
         destination_arrival=destination_arrival,
         arrival_stay=arrival_stay,
-        welcome_allowed=arrival_stay,
+        welcome_allowed=(
+            bool(getattr(visit_context, "welcome_allowed", False))
+            if canonical_decisions
+            else arrival_stay
+        ),
         same_city_accommodation_change=same_city_accommodation_change,
         stay_continuation=stay_continuation,
         previous_overnight_city=previous_overnight_city,

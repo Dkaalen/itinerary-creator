@@ -54,6 +54,25 @@ def field_value(field_name: str, value: Any) -> Any:
     return text_value(value)
 
 
+def canonical_formula_override_value(value: Any) -> float | str | None:
+    """Normalize a browser-submitted canonical formula override.
+
+    Browser rows already store formula overrides in the Python/Excel canonical
+    units.  In particular, ``gp_percent_override`` is a decimal rather than
+    visible percentage points, so this boundary must never divide it by 100.
+    Formula text is retained verbatim for later A1 evaluation.
+    """
+
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.casefold() in BLANK_NUMERIC_MARKERS:
+        return None
+    if text.startswith("="):
+        return text
+    return editable_number_value(text, optional=True)
+
+
 def formula_override_value(field_name: str, value: Any) -> float | str | None:
     """Normalize a formula override cell value."""
 
@@ -183,6 +202,7 @@ __all__ = [
     "OPTIONAL_NUMERIC_FIELDS",
     "PERCENT_UI_FIELDS",
     "bool_value",
+    "canonical_formula_override_value",
     "currency_or_default",
     "decimal_to_percent",
     "editable_number_value",

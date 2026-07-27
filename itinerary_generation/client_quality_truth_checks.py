@@ -12,7 +12,7 @@ import re
 from typing import Any, Iterable, Mapping
 
 from itinerary_generation.generation_quality_gate import BLOCKING, ItineraryValidationIssue
-from itinerary_generation.itinerary_continuity import evaluate_itinerary_continuity
+from itinerary_generation.itinerary_continuity import build_itinerary_continuity_report
 from itinerary_generation.schedule_occupancy import analyze_time_intervals
 from itinerary_generation.schedule_time_ranges import ParsedTimeRange, parse_time_range
 from shared.text import clean_space
@@ -262,7 +262,10 @@ def client_truth_issues(
     if _INTERNAL_COPY_RE.search(full_body):
         issues.append(ItineraryValidationIssue(BLOCKING, "internal_copy_leak", "Internal/developer wording leaked into client-facing output."))
 
-    for finding in evaluate_itinerary_continuity(source_rows):
+    continuity_report = getattr(document, "continuity_report", None)
+    if continuity_report is None and source_rows is not None:
+        continuity_report = build_itinerary_continuity_report(source_rows)
+    for finding in getattr(continuity_report, "findings", ()) or ():
         issues.append(
             ItineraryValidationIssue(
                 finding.severity,
@@ -272,7 +275,6 @@ def client_truth_issues(
             )
         )
 
-    seen_cities: set[str] = set()
     for day in days:
         day_id = _text(getattr(day, "day", ""))
         city = _text(getattr(day, "city", ""))
@@ -294,11 +296,9 @@ def client_truth_issues(
             issues.append(ItineraryValidationIssue(BLOCKING, "impossible_free_time_claim", "Free-time copy conflicts with the combined full-day or late-finishing activity schedule.", context=f"{day_id}: {leisure}"))
 
         return_match = _RETURN_RE.search(f"{getattr(day, 'title', '')}. {intro}")
-        city_key = _normalised_place(city)
-        if return_match and city_key and city_key not in seen_cities:
-            issues.append(ItineraryValidationIssue(BLOCKING, "false_return_visit", "Return-visit wording is used before the destination has appeared in an earlier chapter.", context=f"{day_id}: {city}"))
-        if city_key:
-            seen_cities.add(city_key)
+        continuity_state = continuity_report.day_state(day_id) if continuity_report is not None else None
+        if return_match and continuity_state is not None and not continuity_state.return_visit:
+            issues.append(ItineraryValidationIssue(BLOCKING, "false_return_visit", "Return-visit wording conflicts with the canonical itinerary continuity state.", context=f"{day_id}: {city}"))
 
         issues.extend(_title_consistency_issues(day))
         issues.extend(_duplicate_block_issues(day))

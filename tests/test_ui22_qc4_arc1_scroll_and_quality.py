@@ -7,6 +7,7 @@ from app_modules.itinerary_render_context import build_itinerary_render_context
 from generator import group_rows_by_day
 from itinerary_generation.quality_gate import evaluate_itinerary_quality
 from parser_modules.parser_main import parse_itinerary
+from normalizer import normalize_itinerary_rows
 
 
 NORWAY_INPUT = """
@@ -40,7 +41,7 @@ Day 12	Departure	12.08.2026		Oslo: Departure home
 
 
 def _render_context():
-    rows = parse_itinerary(NORWAY_INPUT)
+    rows = normalize_itinerary_rows(parse_itinerary(NORWAY_INPUT))
     grouped = group_rows_by_day(rows)
     return rows, build_itinerary_render_context(rows, grouped, {})
 
@@ -160,7 +161,8 @@ def test_nin1_self_transfer_to_train_station_does_not_become_fake_train_route():
     assert "Train to Bergen Bergen" not in joined
     assert "Self-arranged transfer to Bergen Railway Station" in joined
     assert "Bergen: Self-arranged transfer" not in joined
-    assert "Norway in a Nutshell to Oslo" in activity_text
+    assert "Norway in a Nutshell to Oslo" in joined
+    assert "Norway in a Nutshell to Oslo" not in activity_text
     assert "scenic water-based experience in Bergen" not in activity_text
 
 

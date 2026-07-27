@@ -9,6 +9,7 @@ from itinerary_generation.destination_registry import destination_for_alias
 from itinerary_generation.health_check_destinations import destination_review_values, is_reviewable_destination
 from itinerary_generation.health_check_models import CRITICAL, REVIEW, INFO, CONTENT_TYPES, TRANSFER_TYPES, DAY_OVERFLOW_SERVICE_LIMIT, DAY_OVERFLOW_TEXT_LIMIT, HEAVY_ACTIVITY_LIMIT, ItineraryHealthIssue, ItineraryHealthSummary
 from itinerary_generation.health_check_rows import day_text_weight, has_hotel_name, is_main_row, normalise_fingerprint, primary_day_city, route_endpoint, row_city, row_day, row_fingerprint, row_text, rows_list
+from itinerary_generation.itinerary_continuity import ItineraryContinuityReport, build_itinerary_continuity_report
 from itinerary_generation.row_filters import get_row_type
 
 
@@ -30,7 +31,7 @@ def _row_issues(row):
     return issues
 
 
-def _day_issues(grouped):
+def _day_issues(grouped, continuity_report: ItineraryContinuityReport):
     issues, ordered_cities = [], []
     for day, rows in grouped.items():
         counts = Counter(get_row_type(row) for row in rows); total = sum(1 for row in rows if get_row_type(row) in CONTENT_TYPES)
@@ -39,23 +40,37 @@ def _day_issues(grouped):
         if sum(counts.get(kind, 0) for kind in TRANSFER_TYPES) >= 3 and counts.get("Activity", 0) >= 1: issues.append(ItineraryHealthIssue("transport_heavy_day", REVIEW, f"{day}: several transfers plus activities may be unrealistic for one day.", day=str(day), row_type="Day", source="route_sanity"))
         city = primary_day_city(rows)
         if city: ordered_cities.append((str(day), city))
-    positions = defaultdict(list)
-    for index, (_day, city) in enumerate(ordered_cities): positions[normalise_fingerprint(city)].append(index)
-    for indexes in positions.values():
-        if len(indexes) >= 2 and any((b-a) > 1 for a,b in zip(indexes,indexes[1:])):
-            city = ordered_cities[indexes[0]][1]; issues.append(ItineraryHealthIssue("route_backtrack", INFO, f"Route returns to {city} after other destinations; confirm the routing is intentional.", city=city, row_type="Route", source="route_sanity"))
+    for state in continuity_report.days:
+        if state.return_visit and state.chapter_city:
+            issues.append(
+                ItineraryHealthIssue(
+                    "route_backtrack",
+                    INFO,
+                    f"Route returns to {state.chapter_city} after another destination; confirm the routing is intentional.",
+                    day=state.day,
+                    city=state.chapter_city,
+                    row_type="Route",
+                    source="itinerary_continuity",
+                )
+            )
     return issues
 
 
-def build_itinerary_health_issues(parsed_rows: Iterable[Mapping[str, Any]] | None, *, parser_diagnostics: Iterable[Mapping[str, Any]] | None = None) -> tuple[ItineraryHealthIssue, ...]:
+def build_itinerary_health_issues(
+    parsed_rows: Iterable[Mapping[str, Any]] | None,
+    *,
+    parser_diagnostics: Iterable[Mapping[str, Any]] | None = None,
+    continuity_report: ItineraryContinuityReport | None = None,
+) -> tuple[ItineraryHealthIssue, ...]:
     rows = rows_list(parsed_rows); main = [row for row in rows if is_main_row(row)]; issues = [issue for row in main for issue in _row_issues(row)]
+    continuity_report = continuity_report or build_itinerary_continuity_report(main)
     duplicates = defaultdict(list)
     for row in main:
         fingerprint = row_fingerprint(row)
         if fingerprint and fingerprint.count("|") == 2: duplicates[(row_day(row), fingerprint)].append(row)
     for group in duplicates.values():
         if len(group) >= 2: issues.append(_issue("duplicate_service", REVIEW, f"{row_day(group[0]) or 'Unknown day'}: possible duplicate {get_row_type(group[0]).lower()} service detected.", group[0]))
-    issues.extend(_day_issues(group_rows_by_day(main)))
+    issues.extend(_day_issues(group_rows_by_day(main), continuity_report))
     day_numbers = sorted({get_day_number(row.get("day", "")) for row in main if get_day_number(row.get("day", ""))})
     if day_numbers:
         missing = sorted(set(range(day_numbers[0], day_numbers[-1]+1)) - set(day_numbers))
