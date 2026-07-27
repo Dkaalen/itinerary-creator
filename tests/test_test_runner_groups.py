@@ -16,6 +16,7 @@ from scripts.test_groups import (
     GROUP_ORDER,
     HEALTH_CHECK_GROUPS,
     RELEASE_CANDIDATE_GROUPS,
+    BOUNDED_MODULE_TEST_SPLITS,
     CHUNKED_GROUP_STAGE_SIZES,
     build_full_stages,
     build_slow_stages,
@@ -56,7 +57,9 @@ def test_full_test_plan_covers_every_test_module() -> None:
 
     assert set(planned) == discovered
 
-    split_modules = slow_module_names()
+    split_modules = slow_module_names() | {
+        _module_name(path) for path in BOUNDED_MODULE_TEST_SPLITS
+    }
     unsplit_modules = [module for module in planned if module not in split_modules]
     assert len(unsplit_modules) == len(set(unsplit_modules))
 
@@ -185,12 +188,49 @@ def test_plan_mode_uses_same_stage_builder_as_runner() -> None:
         assert stages
         assert all(name.startswith(group_name) for name, _paths in stages)
         assert all(len(paths) <= max_stage_size for _name, paths in stages)
-        assert [path for _name, paths in stages for path in paths] == list(GROUPS[group_name])
+        expected_targets: list[str] = []
+        for path in GROUPS[group_name]:
+            split_names = BOUNDED_MODULE_TEST_SPLITS.get(path)
+            if split_names:
+                expected_targets.extend(f"{path}::{name}" for name in split_names)
+            else:
+                expected_targets.append(path)
+        assert [path for _name, paths in stages for path in paths] == expected_targets
 
     assert _stages_for_group("health") == _stages_for_group("critical")
     assert _stages_for_group("full") == build_full_stages(REPO_ROOT)
     assert _stages_for_group("slow") == build_slow_stages()
 
+
+
+def test_render_heavy_modules_expand_into_isolated_bounded_targets() -> None:
+    module = "tests/test_group_tour_rendering_regression.py"
+    expected = {f"{module}::{name}" for name in BOUNDED_MODULE_TEST_SPLITS[module]}
+
+    for group_name in ("activity", "architecture", "editor", "quality", "pdf"):
+        stages = _stages_for_group(group_name)
+        actual = {
+            target
+            for _name, targets in stages
+            for target in targets
+            if target.partition("::")[0] == module
+        }
+        assert actual == expected
+        assert all(
+            len(targets) == 1
+            for _name, targets in stages
+            if any(target.partition("::")[0] == module for target in targets)
+        )
+
+
+def test_parser_fixture_stages_are_split_below_the_runtime_boundary() -> None:
+    stages = _stages_for_group("parser")
+    assert CHUNKED_GROUP_STAGE_SIZES["parser"] == 2
+    assert all(len(paths) <= 2 for _name, paths in stages)
+
+    boundary_stage = next(paths for _name, paths in stages if "tests/test_parser_normalizer_boundary.py" in paths)
+    assert "tests/test_iceland_group_tour_parsing_regression.py" not in boundary_stage
+    assert "tests/test_normalizer_context_architecture.py" not in boundary_stage
 
 def test_release_plan_is_composed_from_timeout_safe_groups() -> None:
     release_stages = _stages_for_group("release")

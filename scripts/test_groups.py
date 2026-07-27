@@ -12,6 +12,7 @@ from pathlib import Path
 from scripts.test_group_catalog import (
     ACTIVITY_TESTS,
     ARCHITECTURE_TESTS,
+    BOUNDED_MODULE_TEST_SPLITS,
     CHUNKED_GROUP_STAGE_SIZES,
     CALCULATOR_BROWSER_WORKFLOW_TESTS,
     FORMULA_WORKFLOW_TESTS,
@@ -106,6 +107,44 @@ def chunked_group_stages(
         for index, chunk in enumerate(chunks, start=1)
     )
 
+def bounded_group_stages(
+    stage_prefix: str,
+    paths: tuple[str, ...],
+    stage_size: int = TIERED_STAGE_SIZE,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Chunk normal modules while isolating explicitly split heavy contracts."""
+
+    stages: list[tuple[str, tuple[str, ...]]] = []
+    pending: list[str] = []
+
+    def flush_pending() -> None:
+        if not pending:
+            return
+        stages.extend(chunked_group_stages(stage_prefix, tuple(pending), stage_size=stage_size))
+        pending.clear()
+
+    for path in paths:
+        split_names = BOUNDED_MODULE_TEST_SPLITS.get(path)
+        if not split_names:
+            pending.append(path)
+            if len(pending) >= stage_size:
+                flush_pending()
+            continue
+
+        flush_pending()
+        module_name = _module_name(path)
+        for index, test_name in enumerate(split_names, start=1):
+            stages.append(
+                (
+                    f"{stage_prefix} isolated {module_name} {index}/{len(split_names)}",
+                    (f"{path}::{test_name}",),
+                )
+            )
+
+    flush_pending()
+    return tuple(stages)
+
+
 def remaining_test_paths(
     repo_root: Path,
     already_covered: set[str] | None = None,
@@ -134,7 +173,7 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
     ):
         stage_paths = tuple(path for path in paths if _module_name(path) not in covered)
         stage_size = CHUNKED_GROUP_STAGE_SIZES.get(group_name, TIERED_STAGE_SIZE)
-        for stage_name, chunk in chunked_group_stages(
+        for stage_name, chunk in bounded_group_stages(
             stage_label,
             stage_paths,
             stage_size=stage_size,
@@ -158,7 +197,7 @@ def build_full_stages(repo_root: Path) -> tuple[tuple[str, tuple[str, ...]], ...
             covered.update(_module_name(path) for path in chunk)
 
     stage_paths = tuple(path for path in PDF_TESTS if _module_name(path) not in covered)
-    for stage_name, chunk in chunked_group_stages("pdf/rendering", stage_paths, stage_size=PDF_STAGE_SIZE):
+    for stage_name, chunk in bounded_group_stages("pdf/rendering", stage_paths, stage_size=PDF_STAGE_SIZE):
         stages.append((stage_name, chunk))
         covered.update(_module_name(path) for path in chunk)
 

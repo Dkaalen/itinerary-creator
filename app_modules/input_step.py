@@ -14,7 +14,7 @@ from app_modules.input_workspace import (
 )
 from app_modules.itinerary_name_ui import render_itinerary_name_input
 from app_modules.input_preview_table import render_supplier_rows_preview
-from app_modules.project_file_ui import render_open_project_file_action
+from app_modules.project_file_ui import render_open_project_file_action, render_open_project_workspace_if_visible
 from app_modules.project_io import load_project_json
 from app_modules.workflow_config import STAGE_COPY
 from app_modules.workflow_navigation import transition_workflow_stage
@@ -46,6 +46,7 @@ def render_input_page(app_version: str) -> None:
     with project_col:
         render_open_project_file_action()
 
+    render_open_project_workspace_if_visible()
     render_input_header()
     render_itinerary_name_input()
     render_source_label()

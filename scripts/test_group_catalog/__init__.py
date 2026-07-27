@@ -1,6 +1,7 @@
 """Public test group catalog constants."""
 
 from .settings import (
+    BOUNDED_MODULE_TEST_SPLITS,
     CHUNKED_GROUP_STAGE_SIZES,
     EMPTY_LEGACY_TEST_MODULES,
     PDF_STAGE_SIZE,
@@ -62,6 +63,7 @@ __all__ = (
     "REMAINING_STAGE_SIZE",
     "TIERED_STAGE_SIZE",
     "PDF_STAGE_SIZE",
+    "BOUNDED_MODULE_TEST_SPLITS",
     "CHUNKED_GROUP_STAGE_SIZES",
     "CRITICAL_TESTS",
     "FAST_TESTS",

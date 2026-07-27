@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-PROJECT_PAGE_SIZE = 12
+PROJECT_PAGE_SIZE = 25
 
 
 @dataclass(frozen=True)

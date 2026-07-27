@@ -11,6 +11,7 @@ from scripts.test_groups import (
     RELEASE_CANDIDATE_GROUPS,
     CHUNKED_GROUP_STAGE_SIZES,
     chunked_group_stages,
+    bounded_group_stages,
     build_full_stages,
     build_slow_stages,
     group_descriptions,
@@ -24,7 +25,7 @@ def _base_stages_for_group(group_name: str) -> tuple[tuple[str, tuple[str, ...]]
     if group_name == "slow":
         return build_slow_stages()
     if group_name in CHUNKED_GROUP_STAGE_SIZES:
-        return chunked_group_stages(
+        return bounded_group_stages(
             group_name,
             GROUPS[group_name],
             stage_size=CHUNKED_GROUP_STAGE_SIZES[group_name],

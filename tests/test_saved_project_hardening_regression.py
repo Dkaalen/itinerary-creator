@@ -176,9 +176,14 @@ def test_reopen_then_create_pdf_uses_reopened_state(monkeypatch, tmp_path) -> No
     captured: dict = {}
 
     monkeypatch.setattr(export_actions, "validate_for_generation", lambda _rows: SimpleNamespace(is_blocked=False))
+    monkeypatch.setattr(export_actions, "_row_validation_blocks_pdf", lambda _report: False)
     monkeypatch.setattr(export_actions, "_preview_contract_blocks_pdf", lambda _html, _expected_day_count: False)
     monkeypatch.setattr(export_actions, "prepare_pdf_image_contract", lambda: (True, {"full_bank_found": True}, {"Day 1": {"path": "images/oslo-replaced.webp"}, "Day 2": None}, []))
-    monkeypatch.setattr(export_actions, "_client_safety_blocks_pdf", lambda *_args, **_kwargs: False)
+    def fake_client_quality_review(*_args, **_kwargs):
+        captured["client_quality_review_shown"] = True
+        return SimpleNamespace(is_blocked=True)
+
+    monkeypatch.setattr(export_actions, "_show_client_quality_review", fake_client_quality_review)
 
     def fake_save_pdf_file(html_path, *, render_document, day_images, day_image_crop_focus, output_edits, **kwargs):
         pdf_path = tmp_path / "reopened-itinerary.pdf"
@@ -196,6 +201,7 @@ def test_reopen_then_create_pdf_uses_reopened_state(monkeypatch, tmp_path) -> No
     assert export_actions.create_pdf_from_current_preview() is True
 
     assert st.session_state["pdf_bytes"] == b"%PDF-reopened-state"
+    assert captured["client_quality_review_shown"] is True
     assert st.session_state["pdf_signature"] == export_signature_for_state(st.session_state)
     assert st.session_state["export_pdf_signature"] == export_signature_for_state(st.session_state)
     assert "Edited Oslo fjord title" in captured["titles"]

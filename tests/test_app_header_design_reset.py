@@ -60,6 +60,10 @@ def test_input_page_uses_compact_project_upload_and_calculator_entry(monkeypatch
 
     assert project_calls == [(("Open project",), {"use_container_width": True, "help": "Open a saved cloud project or backup file."})]
     assert fake_project_st.session_state[project_browser_ui.OPEN_PROJECT_BROWSER_VISIBLE_KEY] is True
+    assert workspace_calls == []
+
+    project_browser_ui.render_open_project_workspace_if_visible()
+
     assert workspace_calls == ["opened"]
 
     nav_calls = []

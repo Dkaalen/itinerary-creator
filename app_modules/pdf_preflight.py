@@ -81,12 +81,13 @@ def _warning_value(warning: Any, key: str, default: str = "") -> str:
 
 
 def _client_warning_preflight_severity(warning: Any) -> str:
-    severity = _warning_value(warning, "severity", "review").lower()
-    code = _warning_value(warning, "code", "client_output_warning").lower()
-    if severity in {"critical", "error", "blocking"}:
-        return "critical"
-    if code in {"client_price_or_currency_leak", "client_raw_supplier_fragment", "raw_supplier_fragment"}:
-        return "critical"
+    """Keep client-copy judgements advisory in the PDF workflow.
+
+    The underlying report retains its original severity for QA and readiness
+    scoring.  Export blocking is reserved for technical inability to create a
+    document, not for potentially disputable content findings.
+    """
+
     return "review"
 
 
@@ -111,9 +112,7 @@ def build_pdf_preflight_report(
         state.get("parsed_rows", []) or [],
         parser_diagnostics=state.get("parser_diagnostics", []) or [],
     ):
-        if health_issue.severity == "critical":
-            issues.append(_issue(health_issue.code, "critical", health_issue.message))
-        elif health_issue.severity == "review":
+        if health_issue.severity in {"critical", "review"}:
             issues.append(_issue(health_issue.code, "review", health_issue.message))
 
     latest_warnings = state.get("latest_client_output_warnings", [])

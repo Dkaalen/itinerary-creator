@@ -78,6 +78,11 @@ def _noop(*args: Any, **kwargs: Any) -> None:
     return None
 
 
+
+def _dataframe(*args: Any, **kwargs: Any) -> Any:
+    return types.SimpleNamespace(selection=types.SimpleNamespace(rows=[]))
+
+
 def _dialog(*args: Any, **kwargs: Any):
     def _decorator(func):
         return func
@@ -149,6 +154,8 @@ def install_streamlit_stub(*, force: bool = False):
             setattr(streamlit, name, _value_kwarg)
     if not hasattr(streamlit, "checkbox"):
         streamlit.checkbox = _checkbox
+    if not hasattr(streamlit, "dataframe"):
+        streamlit.dataframe = _dataframe
     if not hasattr(streamlit, "dialog"):
         streamlit.dialog = _dialog
 

@@ -128,9 +128,10 @@ def test_open_project_ui_renders_storage_note_without_backlog_controls(monkeypat
     )
 
     project_browser_ui.render_open_project_file_action()
+    project_browser_ui.render_open_project_workspace_if_visible()
     rendered = "\n".join(labels + captions + upload_labels)
 
-    assert "Open saved itinerary" in rendered
+    assert "Project Explorer" in rendered
     assert ".itinerary.json" in rendered
     assert "Search" not in rendered
     assert "Duplicate" not in rendered

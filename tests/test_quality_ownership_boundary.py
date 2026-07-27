@@ -147,7 +147,7 @@ def test_image_findings_extend_prepared_report_without_rerunning_document_rules(
     assert [issue.code for issue in extended.issues] == ["weak_generic_fallback", "missing_day_image"]
 
 
-def test_pdf_readiness_adds_image_findings_to_prepared_report(monkeypatch):
+def test_pdf_quality_review_adds_image_findings_without_rerunning_document_rules(monkeypatch):
     prepared = build_client_output_quality_report([])
     captured = {}
 
@@ -158,21 +158,95 @@ def test_pdf_readiness_adds_image_findings_to_prepared_report(monkeypatch):
         return report
 
     monkeypatch.setattr(pdf_export_blockers, "add_image_quality_issues", add_images)
+    monkeypatch.setattr(pdf_export_blockers, "show_review_issue_list", lambda title, issues: captured.update({"title": title, "issues": tuple(issues)}))
     context = type("Context", (), {"client_quality_report": prepared})()
 
-    blocked = pdf_export_blockers.client_safety_blocks_pdf(
+    report = pdf_export_blockers.show_client_quality_review(
         context,
         {"Day 1": {"path": "oslo.jpg"}},
         {"status": "ready"},
-        clear_pdf_artifact=lambda _reason: None,
     )
 
-    assert blocked is False
-    assert captured == {
+    assert report is prepared
+    assert captured["report"] is prepared
+    assert captured["day_images"] == {"Day 1": {"path": "oslo.jpg"}}
+    assert captured["image_bank_status"] == {"status": "ready"}
+    assert captured["issues"] == ()
+    assert "can continue" in captured["title"]
+    assert {key: captured[key] for key in ("report", "day_images", "image_bank_status")} == {
         "report": prepared,
         "day_images": {"Day 1": {"path": "oslo.jpg"}},
         "image_bank_status": {"status": "ready"},
     }
+
+
+def test_pdf_quality_review_never_converts_content_errors_into_export_blockers(monkeypatch):
+    prepared = build_client_output_quality_report(
+        [ItineraryValidationIssue("error", "unsupported_meal_claim", "Unsupported meal claim")]
+    )
+    captured = {}
+    monkeypatch.setattr(
+        pdf_export_blockers,
+        "show_review_issue_list",
+        lambda title, issues: captured.update({"title": title, "issues": tuple(issues)}),
+    )
+    context = type("Context", (), {"client_quality_report": prepared})()
+
+    report = pdf_export_blockers.show_client_quality_review(context, {}, {"full_bank_found": True})
+
+    assert report.is_blocked is True
+    assert [issue.code for issue in captured["issues"]] == ["unsupported_meal_claim"]
+    assert "can continue" in captured["title"]
+
+
+def test_pdf_row_validation_blocks_only_missing_renderable_itinerary(monkeypatch):
+    review_issue = ItineraryValidationIssue(
+        "error",
+        "overlapping_arranged_activities",
+        "Two activities overlap.",
+    )
+    missing_rows = ItineraryValidationIssue(
+        "error",
+        "no_main_itinerary_rows",
+        "No included itinerary rows are available.",
+    )
+    shown = {"review": [], "blocking": []}
+    cleared = []
+    monkeypatch.setattr(
+        pdf_export_blockers,
+        "show_review_issue_list",
+        lambda _title, issues: shown["review"].extend(issues),
+    )
+    monkeypatch.setattr(
+        pdf_export_blockers,
+        "show_issue_list",
+        lambda _title, issues: shown["blocking"].extend(issues),
+    )
+
+    review_report = type(
+        "Report",
+        (),
+        {"issues": (review_issue,), "blocking_issues": (review_issue,)},
+    )()
+    assert pdf_export_blockers.row_validation_blocks_pdf(
+        review_report,
+        clear_pdf_artifact=cleared.append,
+    ) is False
+    assert shown["review"] == [review_issue]
+    assert shown["blocking"] == []
+    assert cleared == []
+
+    technical_report = type(
+        "Report",
+        (),
+        {"issues": (missing_rows,), "blocking_issues": (missing_rows,)},
+    )()
+    assert pdf_export_blockers.row_validation_blocks_pdf(
+        technical_report,
+        clear_pdf_artifact=cleared.append,
+    ) is True
+    assert shown["blocking"] == [missing_rows]
+    assert cleared == ["Blocked by missing renderable itinerary rows"]
 
 
 def test_real_output_qa_reuses_prepared_report(monkeypatch):

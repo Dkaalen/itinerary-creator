@@ -1,4 +1,4 @@
-"""Selected-project detail panel for the compact cloud manager."""
+"""Selected-project details and actions for Project Explorer."""
 
 from __future__ import annotations
 
@@ -7,7 +7,11 @@ from typing import Any
 
 import streamlit as st
 
-from app_modules.project_browser_actions import open_cloud_project, request_open_cloud_project
+from app_modules.project_browser_actions import (
+    duplicate_cloud_project_action,
+    open_cloud_project,
+    request_open_cloud_project,
+)
 from app_modules.project_browser_calculation_files import render_calculation_files
 from app_modules.project_browser_formatting import short_storage_time
 from app_modules.project_browser_state import (
@@ -16,6 +20,8 @@ from app_modules.project_browser_state import (
     clear_rename_candidate,
     delete_candidate_id,
     open_candidate_id,
+    remember_delete_candidate,
+    remember_rename_candidate,
     rename_candidate_id,
 )
 from app_modules.project_identity import active_project_id_from_state
@@ -27,11 +33,11 @@ from app_modules.project_storage_service import delete_cloud_itinerary_result, r
 
 
 def render_selected_project_panel(project: dict[str, Any] | None) -> None:
-    """Render metadata, confirmations, and files for only one selected project."""
+    """Render metadata and actions for only the selected project."""
 
-    st.markdown("#### Project details")
+    st.markdown("#### Details")
     if not project:
-        st.caption("Select a project to view its details and saved calculator files.")
+        st.caption("Select a project row to view details and available actions.")
         return
     project_id = str(project.get("id") or "").strip()
     if not project_id:
@@ -40,29 +46,54 @@ def render_selected_project_panel(project: dict[str, Any] | None) -> None:
     name = str(project.get("name") or "Untitled itinerary")
     status = str(project.get("status") or "draft").replace("_", " ").title()
     updated = short_storage_time(project.get("updated_at") or project.get("created_at"))
+    created = short_storage_time(project.get("created_at"))
     is_active = active_project_id_from_state(st.session_state) == project_id
     st.html(
         f"""
         <div class="cloud-project-detail-card{' active' if is_active else ''}">
           <strong>{escape(name)}</strong>
-          <span>{escape(status)} · Last saved {escape(updated)}</span>
-          <small>{escape(project_id[:8])}{' · Active project' if is_active else ''}</small>
+          <dl>
+            <div><dt>Status</dt><dd>{escape(status)}{' · Active' if is_active else ''}</dd></div>
+            <div><dt>Modified</dt><dd>{escape(updated)}</dd></div>
+            <div><dt>Created</dt><dd>{escape(created)}</dd></div>
+            <div><dt>Project ID</dt><dd>{escape(project_id[:8])}</dd></div>
+          </dl>
         </div>
         """
     )
-    if st.button(
-        "Active project" if is_active else "Open project",
-        key=f"open_selected_cloud_project_{project_id}",
-        use_container_width=True,
-        type="primary",
-        disabled=is_active,
-    ):
-        request_open_cloud_project(project_id)
+    _render_project_actions(project_id, name, is_active=is_active)
     _render_open_confirmation(project_id, name)
     _render_rename_form(project_id, name)
     _render_delete_confirmation(project_id, name)
-    st.markdown("##### Calculator files")
     render_calculation_files(project_id)
+
+
+def _render_project_actions(project_id: str, name: str, *, is_active: bool) -> None:
+    open_col, rename_col, duplicate_col, delete_col = st.columns([1.35, 1, 1, 1], gap="small")
+    with open_col:
+        if st.button(
+            "Active" if is_active else "Open",
+            key=f"open_selected_cloud_project_{project_id}",
+            use_container_width=True,
+            type="primary",
+            disabled=is_active,
+        ):
+            request_open_cloud_project(project_id)
+    with rename_col:
+        if st.button("Rename", key=f"rename_selected_cloud_project_{project_id}", use_container_width=True):
+            clear_open_candidate(st.session_state)
+            clear_delete_confirmation(st.session_state)
+            remember_rename_candidate(st.session_state, project_id)
+            st.rerun()
+    with duplicate_col:
+        if st.button("Duplicate", key=f"duplicate_selected_cloud_project_{project_id}", use_container_width=True):
+            duplicate_cloud_project_action(project_id, name)
+    with delete_col:
+        if st.button("Delete", key=f"delete_selected_cloud_project_{project_id}", use_container_width=True):
+            clear_open_candidate(st.session_state)
+            clear_rename_candidate(st.session_state)
+            remember_delete_candidate(st.session_state, project_id=project_id, name=name)
+            st.rerun()
 
 
 def _render_open_confirmation(project_id: str, name: str) -> None:

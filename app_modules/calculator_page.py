@@ -32,7 +32,7 @@ from app_modules.calculator_library_controls import (
     render_local_library_refresh_control,
     render_local_library_status,
 )
-from app_modules.calculator_navigation import calculator_draft_namespace
+from app_modules.calculator_navigation import calculator_draft_namespace, render_back_to_main_page_button
 from app_modules.calculator_session_state import (
     apply_calculator_grid_result,
     calculator_state_from_session,
@@ -52,7 +52,7 @@ from calculator.calculator_state import CalculatorState
 from calculator_grid_component import render_calculator_grid
 
 _COMPONENT_KEY = "calculator_browser_grid"
-# Navigation labels are rendered by the synchronized browser grid: Back to workspace; Manage Local Library.
+# The browser grid also exposes synchronized navigation; the page-level back action remains independently available.
 
 
 def render_calculator_page(app_version: str) -> None:
@@ -172,9 +172,10 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
 
 
 def _render_calculator_topbar() -> None:
-    """Render branding only; navigation lives inside the synchronized grid."""
+    """Render page-level branding and a reliable route back to the workspace."""
 
     render_studio_brand()
+    render_back_to_main_page_button()
 
 
 def _render_calculator_header() -> None:

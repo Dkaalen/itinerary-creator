@@ -230,6 +230,8 @@ def _project_order(value: object) -> str:
     return {
         "oldest": "updated_at.asc",
         "name": "name.asc",
+        "created_recent": "created_at.desc",
+        "created_oldest": "created_at.asc",
     }.get(str(value or "").strip().casefold(), "updated_at.desc")
 
 

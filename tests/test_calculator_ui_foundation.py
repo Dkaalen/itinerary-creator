@@ -10,6 +10,7 @@ from app_modules.calculator_navigation import (
     calculator_return_is_available,
     close_calculator_page,
     open_calculator_page,
+    render_back_to_main_page_button,
 )
 from app_modules.calculator_grid_data import rows_to_table_data, table_data_to_rows
 from app_modules.calculator_state_keys import CALCULATOR_RETURN_AVAILABLE_KEY
@@ -43,6 +44,44 @@ def test_calculator_navigation_sets_standalone_page_without_changing_workflow_st
     assert state["active_app_page"] == WORKFLOW_PAGE
     assert calculator_page_is_active(state) is False
 
+
+
+def test_calculator_page_level_back_button_routes_without_clearing_state(monkeypatch) -> None:
+    from types import SimpleNamespace
+    from app_modules import calculator_navigation
+
+    preserved = CalculatorState(
+        itinerary_name="Preserved calculator",
+        rows=(CalculatorRow(row_id="1", travel_element="Oslo hotel"),),
+    )
+    state = {
+        "active_app_page": CALCULATOR_PAGE,
+        "app_stage": "input",
+        "calculator_state": preserved,
+        "calculator_draft_namespace": "session:stable",
+    }
+    calls = []
+    fake_st = SimpleNamespace(
+        session_state=state,
+        button=lambda *args, **kwargs: calls.append((args, kwargs)) or True,
+        rerun=lambda: calls.append(("rerun", {})),
+    )
+    monkeypatch.setattr(calculator_navigation, "st", fake_st)
+
+    render_back_to_main_page_button()
+
+    assert calls[0] == (
+        ("Back to main page",),
+        {
+            "use_container_width": False,
+            "help": "Return to the main itinerary workspace without clearing the Calculator.",
+            "key": "calculator_back_to_main_page",
+        },
+    )
+    assert calls[1] == ("rerun", {})
+    assert state["active_app_page"] == WORKFLOW_PAGE
+    assert state["calculator_state"] is preserved
+    assert state["calculator_draft_namespace"] == "session:stable"
 
 def test_generated_itinerary_can_return_to_preserved_calculator_state() -> None:
     calculator_state = CalculatorState(

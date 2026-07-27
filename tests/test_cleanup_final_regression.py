@@ -50,11 +50,15 @@ def test_activity_title_northern_lights_rules_are_split_from_core() -> None:
 
 
 def test_pdf_exporter_package_no_longer_imports_renderers_facade() -> None:
-    module = importlib.import_module("pdf_exporter_modules")
+    public_api = importlib.import_module("pdf_exporter")
+    private_package = importlib.import_module("pdf_exporter_modules")
 
-    assert callable(module.render_cover_page)
-    assert callable(module.render_glance_page)
-    assert callable(module.render_general_page)
+    assert callable(public_api.create_pdf)
+    assert public_api.PdfExportResult.__module__ == "pdf_exporter"
+    assert tuple(private_package.__all__) == ()
+    assert not hasattr(private_package, "render_cover_page")
+    assert not hasattr(private_package, "render_glance_page")
+    assert not hasattr(private_package, "render_general_page")
 
 
 def test_validation_proof_plan_covers_known_uncertain_lanes() -> None:

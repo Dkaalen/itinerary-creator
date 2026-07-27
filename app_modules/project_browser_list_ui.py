@@ -1,107 +1,123 @@
-"""Compact paged list for saved cloud projects."""
+"""Selectable file-explorer table for saved cloud projects."""
 
 from __future__ import annotations
 
-from html import escape
+from collections.abc import Mapping, Sequence
+from hashlib import sha1
 from typing import Any
 
 import streamlit as st
 
-from app_modules.project_browser_actions import duplicate_cloud_project_action, request_open_cloud_project
 from app_modules.project_browser_formatting import short_storage_time
 from app_modules.project_browser_paging import ProjectPage
-from app_modules.project_browser_state import (
-    clear_delete_confirmation,
-    clear_file_delete_confirmation,
-    clear_open_candidate,
-    clear_rename_candidate,
-    remember_delete_candidate,
-    remember_rename_candidate,
-    remember_selected_project,
-    selected_project_id,
-    set_browser_page_index,
-)
-from app_modules.project_identity import active_project_id_from_state
+from app_modules.project_browser_state import remember_selected_project, set_browser_page_index
+
+PROJECT_TABLE_HEIGHT = 360
 
 
-def render_project_list(page: ProjectPage) -> None:
-    """Render one compact list page and its navigation controls."""
+def render_project_table(
+    page: ProjectPage,
+    *,
+    selected_project_id: str,
+    active_project_id: str,
+    search: str,
+    sort: str,
+) -> str:
+    """Render one bounded, selectable project table and return the selected id."""
 
-    st.markdown("#### Saved projects")
-    st.caption(f"Page {page.number} · up to {page.page_size} projects")
-    for project in page.projects:
-        _render_project_row(project)
-    _render_page_navigation(page)
-
-
-def _render_project_row(project: dict[str, Any]) -> None:
-    project_id = str(project.get("id") or "").strip()
-    if not project_id:
-        return
-    name = str(project.get("name") or "Untitled itinerary")
-    status = str(project.get("status") or "draft").replace("_", " ").title()
-    updated = short_storage_time(project.get("updated_at") or project.get("created_at"))
-    is_active = active_project_id_from_state(st.session_state) == project_id
-    is_selected = selected_project_id(st.session_state) == project_id
-    st.html(
-        f"""
-        <div class="cloud-project-row{' selected' if is_selected else ''}{' active' if is_active else ''}">
-          <div><strong>{escape(name)}</strong><span>{escape(status)} · Last saved {escape(updated)}</span></div>
-          <small>{'Active' if is_active else 'Selected' if is_selected else ''}</small>
-        </div>
-        """
+    rows = project_table_rows(
+        page,
+        selected_project_id=selected_project_id,
+        active_project_id=active_project_id,
     )
-    select_col, open_col, menu_col = st.columns([0.50, 0.34, 0.16], gap="small")
-    with select_col:
-        if st.button(
-            "Selected" if is_selected else "View details",
-            key=f"select_cloud_project_{project_id}",
-            use_container_width=True,
-            disabled=is_selected,
-        ):
-            _select_project(project_id)
-    with open_col:
-        if st.button(
-            "Open",
-            key=f"open_cloud_project_{project_id}",
-            use_container_width=True,
-            type="primary" if not is_active else "secondary",
-            disabled=is_active,
-        ):
-            request_open_cloud_project(project_id)
-    with menu_col:
-        with st.popover("…", use_container_width=True):
-            if st.button("Rename", key=f"rename_cloud_project_{project_id}", use_container_width=True):
-                _select_project(project_id)
-                remember_rename_candidate(st.session_state, project_id)
-                st.rerun()
-            if st.button("Duplicate", key=f"duplicate_cloud_project_{project_id}", use_container_width=True):
-                duplicate_cloud_project_action(project_id, name)
-            if st.button("Delete", key=f"delete_cloud_project_{project_id}", use_container_width=True):
-                _select_project(project_id)
-                remember_delete_candidate(st.session_state, project_id=project_id, name=name)
-                st.rerun()
+    event = st.dataframe(
+        rows,
+        hide_index=True,
+        use_container_width=True,
+        height=PROJECT_TABLE_HEIGHT,
+        on_select="rerun",
+        selection_mode="single-row",
+        key=_project_table_key(page, search=search, sort=sort),
+    )
+    _render_page_navigation(page)
+    selected_from_event = project_id_from_table_event(event, page)
+    return selected_from_event or selected_project_id
 
 
-def _select_project(project_id: str) -> None:
-    remember_selected_project(st.session_state, project_id)
-    clear_open_candidate(st.session_state)
-    clear_rename_candidate(st.session_state)
-    clear_delete_confirmation(st.session_state)
-    clear_file_delete_confirmation(st.session_state)
+def project_table_rows(
+    page: ProjectPage,
+    *,
+    selected_project_id: str = "",
+    active_project_id: str = "",
+) -> tuple[dict[str, str], ...]:
+    """Return display-only rows without leaking durable project ids into the table."""
+
+    rows: list[dict[str, str]] = []
+    for project in page.projects:
+        project_id = str(project.get("id") or "").strip()
+        status = str(project.get("status") or "draft").replace("_", " ").title()
+        if project_id == active_project_id:
+            status = f"Active · {status}"
+        elif project_id == selected_project_id:
+            status = f"Selected · {status}"
+        rows.append(
+            {
+                "Name": str(project.get("name") or "Untitled itinerary"),
+                "Status": status,
+                "Modified": short_storage_time(project.get("updated_at") or project.get("created_at")),
+                "Created": short_storage_time(project.get("created_at")),
+            }
+        )
+    return tuple(rows)
+
+
+def project_id_from_table_event(event: object, page: ProjectPage) -> str:
+    """Resolve Streamlit's row-selection event to the page's durable project id."""
+
+    selection = event.get("selection") if isinstance(event, Mapping) else getattr(event, "selection", None)
+    rows = selection.get("rows") if isinstance(selection, Mapping) else getattr(selection, "rows", None)
+    if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)) or not rows:
+        return ""
+    try:
+        index = int(rows[0])
+    except (TypeError, ValueError):
+        return ""
+    if index < 0 or index >= len(page.projects):
+        return ""
+    return str(page.projects[index].get("id") or "").strip()
+
+
+def _project_table_key(page: ProjectPage, *, search: str, sort: str) -> str:
+    ordered_ids = "|".join(str(project.get("id") or "").strip() for project in page.projects)
+    signature = (
+        f"{' '.join(str(search or '').split()).casefold()}|"
+        f"{str(sort or '').strip().casefold()}|{ordered_ids}"
+    )
+    digest = sha1(signature.encode("utf-8")).hexdigest()[:10]
+    return f"cloud_project_table_{page.page_index}_{digest}"
 
 
 def _render_page_navigation(page: ProjectPage) -> None:
-    previous_col, page_col, next_col = st.columns([0.34, 0.32, 0.34], gap="small")
+    previous_col, status_col, next_col = st.columns([0.24, 0.52, 0.24], gap="small")
     with previous_col:
-        if st.button("Previous", key="cloud_project_page_previous", use_container_width=True, disabled=not page.has_previous):
+        if st.button(
+            "Previous",
+            key="cloud_project_page_previous",
+            use_container_width=True,
+            disabled=not page.has_previous,
+        ):
             set_browser_page_index(st.session_state, page.page_index - 1)
             remember_selected_project(st.session_state, "")
             st.rerun()
-    with page_col:
-        st.caption(f"Page {page.number}")
+    with status_col:
+        st.caption(f"Page {page.number} · {len(page.projects)} projects shown")
     with next_col:
-        if st.button("Next", key="cloud_project_page_next", use_container_width=True, disabled=not page.has_next):
+        if st.button(
+            "Next",
+            key="cloud_project_page_next",
+            use_container_width=True,
+            disabled=not page.has_next,
+        ):
             set_browser_page_index(st.session_state, page.page_index + 1)
             remember_selected_project(st.session_state, "")
             st.rerun()

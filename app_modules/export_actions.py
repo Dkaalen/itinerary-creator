@@ -13,11 +13,15 @@ from app_modules.export_render_context import day_image_crop_focus_for_grouped_d
 from app_modules.export_timing import has_pdf_export_timings, record_pdf_export_stage, reset_pdf_export_timings
 from app_modules.project_storage_workflow import save_pdf_export
 from app_modules.performance_telemetry import measure_timing, record_timing
-from app_modules.pdf_export_blockers import client_safety_blocks_pdf, preview_contract_blocks_pdf
+from app_modules.pdf_export_blockers import (
+    preview_contract_blocks_pdf,
+    row_validation_blocks_pdf,
+    show_client_quality_review,
+)
 from app_modules.pdf_export_preview_file import current_preview_html_path
 from app_modules.pdf_filename import pdf_filename_stem_from_state
 from app_modules.project_io import rebuild_current_preview
-from app_modules.validation_gate import block_generation, render_blocking_issues, validate_for_generation
+from app_modules.validation_gate import validate_for_generation
 from itinerary_generation.common import group_rows_by_day
 from ui.export_files import save_pdf_file
 
@@ -30,12 +34,18 @@ def _preview_contract_blocks_pdf(html: str, expected_day_count: int) -> bool:
     return preview_contract_blocks_pdf(html, expected_day_count, clear_pdf_artifact=clear_pdf_artifact)
 
 
-def _client_safety_blocks_pdf(pdf_render_context, image_matches: dict, image_bank_status: dict) -> bool:
-    return client_safety_blocks_pdf(
+def _row_validation_blocks_pdf(validation_report) -> bool:
+    return row_validation_blocks_pdf(
+        validation_report,
+        clear_pdf_artifact=clear_pdf_artifact,
+    )
+
+
+def _show_client_quality_review(pdf_render_context, image_matches: dict, image_bank_status: dict):
+    return show_client_quality_review(
         pdf_render_context,
         image_matches,
         image_bank_status,
-        clear_pdf_artifact=clear_pdf_artifact,
     )
 
 
@@ -47,9 +57,8 @@ def create_pdf_from_current_preview() -> bool:
 
     with record_pdf_export_stage(st.session_state, "validate_rows"):
         validation_report = validate_for_generation(st.session_state.get("parsed_rows", []))
-    if validation_report.is_blocked:
-        block_generation(validation_report)
-        render_blocking_issues(validation_report)
+        row_validation_blocked = _row_validation_blocks_pdf(validation_report)
+    if row_validation_blocked:
         return False
 
     with record_pdf_export_stage(st.session_state, "refresh_preview"):
@@ -91,10 +100,8 @@ def create_pdf_from_current_preview() -> bool:
             grouped_days_for_pdf,
             st.session_state.get("output_edits", {}) or {},
         )
-    with record_pdf_export_stage(st.session_state, "client_safety_check"):
-        client_safety_blocked = _client_safety_blocks_pdf(pdf_render_context, image_matches, current_image_bank_status)
-    if client_safety_blocked:
-        return False
+    with record_pdf_export_stage(st.session_state, "client_quality_review"):
+        _show_client_quality_review(pdf_render_context, image_matches, current_image_bank_status)
 
     with record_pdf_export_stage(st.session_state, "render_pdf"):
         with measure_timing(st.session_state, "create_pdf"):

@@ -38,7 +38,8 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert ".studio-brand-link" in style_workspace_header.CSS
     assert ".supplier-preview-panel" in style_input_workspace.SUPPLIER_PREVIEW_CSS
     assert ".calculator-heading" in style_calculator.CALCULATOR_PAGE_CSS
-    assert ".cloud-project-row" in style_project_browser.PROJECT_BROWSER_CSS
+    assert ".st-key-cloud_project_explorer" in style_project_browser.PROJECT_BROWSER_CSS
+    assert "stDataFrame" in style_project_browser.PROJECT_BROWSER_CSS
     assert ".cloud-project-detail-card" in style_project_browser.PROJECT_BROWSER_CSS
     assert "stVerticalBlockBorderWrapper" in style_project_browser.PROJECT_BROWSER_CSS
 

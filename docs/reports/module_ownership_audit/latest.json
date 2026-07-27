@@ -1,23 +1,46 @@
 {
+  "report_fingerprint": {
+    "repository_head": "6fe989ae3d78c89358dcef4c80f08cbf0c3ce940",
+    "repository_head_tree": "330f85a64ff575e3b4ef5dc51d5bd687e67b8803",
+    "working_tree_clean": false,
+    "python_source_tree_sha256": "sha256:2f5ce89644dea0420fd5d5afd963b1854f072edb87ffc322f2b5689d7b56049f",
+    "python_source_file_count": 1338
+  },
   "overworked_files": [
     {
       "file": "tests/test_calculator_frontend_parity.py",
       "line_count": 511,
       "concern": "large_module"
+    },
+    {
+      "file": "tests/test_itinerary_continuity_contract.py",
+      "line_count": 498,
+      "concern": "large_module"
+    },
+    {
+      "file": "scripts/real_output_qa/scoring.py",
+      "line_count": 463,
+      "concern": "large_module"
     }
   ],
   "long_functions": [
     {
-      "file": "itinerary_generation/destination_visit_memory.py",
-      "name": "build_destination_visit_memory",
-      "line_count": 136,
-      "start_line": 49
+      "file": "itinerary_generation/itinerary_continuity_state.py",
+      "name": "_build_day_states",
+      "line_count": 131,
+      "start_line": 33
     },
     {
       "file": "normalizer_modules/activities.py",
       "name": "normalize_activity_title",
       "line_count": 120,
       "start_line": 127
+    },
+    {
+      "file": "scripts/real_output_qa/scoring.py",
+      "name": "_score_day_copy_logic",
+      "line_count": 120,
+      "start_line": 224
     }
   ],
   "facade_like_modules": [
@@ -34,18 +57,13 @@
   ],
   "duplicate_rule_hotspots": [
     {
+      "file": "itinerary_generation/transport_domain/parser.py",
+      "line_count": 314,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/client_quality_truth_checks.py",
       "line_count": 313,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/transport_domain/parser.py",
-      "line_count": 306,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/client_sanitizer.py",
-      "line_count": 303,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -99,6 +117,11 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "shared/source_text_cleanup.py",
+      "line_count": 211,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "itinerary_generation/day_title_planner.py",
       "line_count": 208,
       "concern": "inline_regex_or_replacement_rules"
@@ -119,18 +142,8 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/client_copy_sanitation.py",
-      "line_count": 150,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
       "file": "parser_modules/title_cleanup.py",
       "line_count": 146,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "shared/source_text_cleanup.py",
-      "line_count": 144,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -144,18 +157,13 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
+      "file": "itinerary_generation/description_sources.py",
+      "line_count": 124,
+      "concern": "inline_regex_or_replacement_rules"
+    },
+    {
       "file": "text_polish_modules/text_cleanup.py",
       "line_count": 120,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/supplier_cleanup_brain.py",
-      "line_count": 111,
-      "concern": "inline_regex_or_replacement_rules"
-    },
-    {
-      "file": "itinerary_generation/description_sources.py",
-      "line_count": 108,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
@@ -169,13 +177,13 @@
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "itinerary_generation/exclusion_source_items.py",
-      "line_count": 92,
+      "file": "tests/test_cleanup_final_regression.py",
+      "line_count": 93,
       "concern": "inline_regex_or_replacement_rules"
     },
     {
-      "file": "tests/test_cleanup_final_regression.py",
-      "line_count": 89,
+      "file": "itinerary_generation/exclusion_source_items.py",
+      "line_count": 92,
       "concern": "inline_regex_or_replacement_rules"
     },
     {

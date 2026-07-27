@@ -1,14 +1,18 @@
-"""Render the compact saved-project manager and backup opener."""
+"""Render the full-width saved-project explorer and backup opener."""
 
 from __future__ import annotations
 
 import streamlit as st
 
 from app_modules.project_browser_detail_ui import render_selected_project_panel
-from app_modules.project_browser_list_ui import render_project_list
+from app_modules.project_browser_list_ui import render_project_table
 from app_modules.project_browser_paging import PROJECT_PAGE_SIZE
 from app_modules.project_browser_state import (
     browser_page_index,
+    clear_delete_confirmation,
+    clear_file_delete_confirmation,
+    clear_open_candidate,
+    clear_rename_candidate,
     remember_selected_project,
     selected_project_id,
     sync_project_query,
@@ -32,26 +36,44 @@ from app_modules.project_storage_service import list_cloud_itinerary_page
 from app_modules.project_storage_runtime import project_storage_is_configured
 
 _SORT_OPTIONS = {
-    "Recently saved": "recent",
-    "Oldest saved": "oldest",
+    "Recently modified": "recent",
+    "Oldest modified": "oldest",
     "Name A–Z": "name",
+    "Newest created": "created_recent",
+    "Oldest created": "created_oldest",
 }
 
 
-def _render_open_project_workspace() -> None:
-    """Render a fixed-height project manager without stretching the page."""
+def render_open_project_file_action() -> None:
+    """Render only the compact toolbar action that opens Project Explorer."""
 
-    st.html(
-        """
-        <div class="open-project-workspace">
-          <div class="open-project-copy">
-            <strong>Open saved itinerary</strong>
-            <span>Browse cloud projects, manage one selected project, or upload a backup file.</span>
-          </div>
-        </div>
-        """
-    )
-    close_col, _ = st.columns([0.22, 0.78])
+    if st.button("Open project", use_container_width=True, help="Open a saved cloud project or backup file."):
+        st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = True
+
+
+def render_open_project_workspace_if_visible() -> None:
+    """Render Project Explorer at page width, outside the narrow toolbar columns."""
+
+    if st.session_state.get(OPEN_PROJECT_BROWSER_VISIBLE_KEY):
+        _render_open_project_workspace()
+
+
+def _render_open_project_workspace() -> None:
+    """Render the full-width project manager without stretching the page."""
+
+    title_col, close_col = st.columns([0.84, 0.16], vertical_alignment="center")
+    with title_col:
+        st.html(
+            """
+            <div class="project-explorer-heading">
+              <span class="project-explorer-folder">▰</span>
+              <div>
+                <strong>Project Explorer</strong>
+                <span>Find, open, rename, duplicate, or remove a saved itinerary.</span>
+              </div>
+            </div>
+            """
+        )
     with close_col:
         if st.button("Close", key="close_open_project_browser", use_container_width=True):
             cancel_pending_project_json_import()
@@ -66,55 +88,61 @@ def _render_open_project_workspace() -> None:
     _render_backup_project_uploader()
 
 
-def render_open_project_file_action() -> None:
-    """Render the top-bar action and the compact project manager."""
-
-    if st.button("Open project", use_container_width=True, help="Open a saved cloud project or backup file."):
-        st.session_state[OPEN_PROJECT_BROWSER_VISIBLE_KEY] = True
-    if st.session_state.get(OPEN_PROJECT_BROWSER_VISIBLE_KEY):
-        _render_open_project_workspace()
-
-
 def _render_cloud_project_browser() -> None:
-    """Render one bounded cloud-project page and one lazy detail panel."""
+    """Render one bounded server page as a selectable file-explorer workspace."""
 
     _render_browser_messages()
-    search_col, sort_col = st.columns([0.66, 0.34], gap="small")
-    with search_col:
-        search = st.text_input(
-            "Search projects",
-            value=str(st.session_state.get(OPEN_PROJECT_SEARCH_KEY) or ""),
-            key=OPEN_PROJECT_SEARCH_KEY,
-            placeholder="Search by itinerary name…",
-        )
-    with sort_col:
-        sort_label = st.selectbox("Sort", tuple(_SORT_OPTIONS), key=OPEN_PROJECT_SORT_KEY)
-    sort_value = _SORT_OPTIONS.get(str(sort_label), "recent")
-    sync_project_query(st.session_state, search=search, sort=sort_value)
-    page_index = browser_page_index(st.session_state)
-    try:
-        page = list_cloud_itinerary_page(
-            page_index=page_index,
-            page_size=PROJECT_PAGE_SIZE,
-            search=search,
-            sort=sort_value,
-        )
-    except Exception:
-        st.warning(storage_user_message("list"))
-        return
-    if not page.projects:
-        if page.has_previous:
-            from app_modules.project_browser_state import set_browser_page_index
+    with st.container(border=True, key="cloud_project_explorer"):
+        search_col, sort_col = st.columns([0.68, 0.32], gap="small")
+        with search_col:
+            search = st.text_input(
+                "Search projects",
+                value=str(st.session_state.get(OPEN_PROJECT_SEARCH_KEY) or ""),
+                key=OPEN_PROJECT_SEARCH_KEY,
+                placeholder="Search by itinerary name…",
+            )
+        with sort_col:
+            sort_label = st.selectbox("Sort", tuple(_SORT_OPTIONS), key=OPEN_PROJECT_SORT_KEY)
+        sort_value = _SORT_OPTIONS.get(str(sort_label), "recent")
+        sync_project_query(st.session_state, search=search, sort=sort_value)
+        page_index = browser_page_index(st.session_state)
+        try:
+            page = list_cloud_itinerary_page(
+                page_index=page_index,
+                page_size=PROJECT_PAGE_SIZE,
+                search=search,
+                sort=sort_value,
+            )
+        except Exception:
+            st.warning(storage_user_message("list"))
+            return
+        if not page.projects:
+            if page.has_previous:
+                from app_modules.project_browser_state import set_browser_page_index
 
-            set_browser_page_index(st.session_state, page.page_index - 1)
-            st.rerun()
-        st.caption("No matching cloud projects." if search else "No cloud projects saved yet.")
-        return
-    selected = _selected_project(page.projects)
-    with st.container(height=480, border=True, key="cloud_project_manager"):
-        list_col, detail_col = st.columns([0.47, 0.53], gap="large")
+                set_browser_page_index(st.session_state, page.page_index - 1)
+                st.rerun()
+            st.caption("No matching cloud projects." if search else "No cloud projects saved yet.")
+            return
+
+        selected = _selected_project(page.projects)
+        active_id = active_project_id_from_state(st.session_state)
+        list_col, detail_col = st.columns([0.66, 0.34], gap="large")
         with list_col:
-            render_project_list(page)
+            st.markdown("#### Saved projects")
+            selected_id = render_project_table(
+                page,
+                selected_project_id=str(selected.get("id") or "") if selected else "",
+                active_project_id=active_id,
+                search=search,
+                sort=sort_value,
+            )
+            if selected_id and (not selected or selected_id != str(selected.get("id") or "")):
+                _select_project(selected_id)
+                selected = next(
+                    (project for project in page.projects if str(project.get("id") or "") == selected_id),
+                    selected,
+                )
         with detail_col:
             render_selected_project_panel(selected)
 
@@ -130,6 +158,14 @@ def _selected_project(projects: tuple[dict[str, object], ...]) -> dict[str, obje
     return selected
 
 
+def _select_project(project_id: str) -> None:
+    remember_selected_project(st.session_state, project_id)
+    clear_open_candidate(st.session_state)
+    clear_rename_candidate(st.session_state)
+    clear_delete_confirmation(st.session_state)
+    clear_file_delete_confirmation(st.session_state)
+
+
 def _render_browser_messages() -> None:
     cleanup_warning = st.session_state.pop(PROJECT_STORAGE_DELETE_CLEANUP_WARNING_KEY, "")
     if cleanup_warning:
@@ -140,17 +176,19 @@ def _render_browser_messages() -> None:
 
 
 def _render_backup_project_uploader() -> None:
-    uploaded_project = st.file_uploader(
-        "Upload backup .itinerary.json file",
-        type=["json"],
-        key="open_project_file_upload",
-    )
-    if uploaded_project is None:
-        return
-    if st.button("Open uploaded backup", use_container_width=True):
-        opened = request_project_json_import(uploaded_project, require_saved_project=True)
-        if opened is not False:
-            st.rerun()
+    with st.expander("Open a backup file", expanded=False):
+        st.caption("Use a .itinerary.json backup when the project is not available in cloud storage.")
+        uploaded_project = st.file_uploader(
+            "Upload backup .itinerary.json file",
+            type=["json"],
+            key="open_project_file_upload",
+        )
+        if uploaded_project is None:
+            return
+        if st.button("Open uploaded backup", use_container_width=True):
+            opened = request_project_json_import(uploaded_project, require_saved_project=True)
+            if opened is not False:
+                st.rerun()
 
 
 def _render_pending_backup_confirmation() -> bool:

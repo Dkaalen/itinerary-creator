@@ -12,4 +12,16 @@ def show_issue_list(title: str, issues) -> None:
             st.write(f"- {getattr(issue, 'message', issue)}")
 
 
-__all__ = ["show_issue_list"]
+def show_review_issue_list(title: str, issues) -> None:
+    """Show advisory findings without presenting them as export failures."""
+
+    items = tuple(issues or ())
+    if not items:
+        return
+    st.warning(title)
+    with st.expander("Show review notes"):
+        for issue in items:
+            st.write(f"- {getattr(issue, 'message', issue)}")
+
+
+__all__ = ["show_issue_list", "show_review_issue_list"]

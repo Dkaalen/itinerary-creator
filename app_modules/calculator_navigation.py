@@ -107,6 +107,27 @@ def close_calculator_page(state: MutableMapping[str, Any]) -> None:
 
     route_to_workflow(state)
 
+
+def render_back_to_main_page_button() -> None:
+    """Render a page-level escape route from Calculator to the main workspace.
+
+    The Calculator grid also emits a synchronized ``close`` action, but this
+    Streamlit-owned control remains visible even when the embedded grid has not
+    mounted, is scrolled, or is using full-screen browser layout. Routing back
+    does not clear Calculator state or its browser-draft namespace.
+    """
+
+    ui = _streamlit_api()
+    if ui.button(
+        "Back to main page",
+        use_container_width=False,
+        help="Return to the main itinerary workspace without clearing the Calculator.",
+        key="calculator_back_to_main_page",
+    ):
+        close_calculator_page(ui.session_state)
+        ui.rerun()
+
+
 def calculator_return_is_available(state: MutableMapping[str, Any]) -> bool:
     """Return whether the current itinerary was generated from Calculator state."""
 

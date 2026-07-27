@@ -12,8 +12,10 @@ def test_stab_qc_flags_duplicates_heavy_days_and_route_backtrack():
         {"day": "Day 1", "type": "Hotel", "effective_type": "Hotel", "city": "Oslo", "hotel_name": "Hotel A", "commercial_status": "included"},
         {"day": "Day 1", "type": "Activity", "effective_type": "Activity", "city": "Oslo", "title": "Walking Tour", "details": "Guided walk", "commercial_status": "included"},
         {"day": "Day 1", "type": "Activity", "effective_type": "Activity", "city": "Oslo", "title": "Walking Tour", "details": "Guided walk", "commercial_status": "included"},
+        {"day": "Day 2", "type": "Transfer", "effective_type": "Train", "city": "Oslo", "route_origin": "Oslo", "route_destination": "Bergen", "title": "Train from Oslo to Bergen", "details": "Train from Oslo to Bergen", "commercial_status": "included"},
         {"day": "Day 2", "type": "Hotel", "effective_type": "Hotel", "city": "Bergen", "hotel_name": "Hotel B", "commercial_status": "included"},
-        {"day": "Day 3", "type": "Transfer", "effective_type": "Transfer", "city": "Oslo", "title": "Private transfer from Bergen to Oslo", "details": "Private transfer from Bergen to Oslo", "commercial_status": "included"},
+        {"day": "Day 3", "type": "Transfer", "effective_type": "Transfer", "city": "Bergen", "route_origin": "Bergen", "route_destination": "Oslo", "title": "Private transfer from Bergen to Oslo", "details": "Private transfer from Bergen to Oslo", "commercial_status": "included"},
+        {"day": "Day 3", "type": "Hotel", "effective_type": "Hotel", "city": "Oslo", "hotel_name": "Hotel C", "commercial_status": "included"},
     ]
 
     codes = {issue.code for issue in build_itinerary_health_issues(rows)}
