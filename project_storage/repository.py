@@ -484,22 +484,18 @@ class ProjectStorageRepository:
         self,
         itinerary_ids: Iterable[object],
     ) -> ProjectBulkPurgeResult:
-        """Permanently purge several projects while retaining per-project outcomes."""
+        """Permanently purge active or legacy-soft-deleted projects.
+
+        The application no longer exposes a Trash lifecycle. Database records
+        are retained whenever Storage cleanup fails so the user can retry.
+        """
 
         requested_ids = _normalize_project_ids(itinerary_ids)
-        trash_state = self._project_trash_state(requested_ids)
+        existing_ids = self._existing_project_ids(requested_ids)
         items: list[ProjectPurgeItemResult] = []
         for project_id in requested_ids:
-            if project_id not in trash_state:
+            if project_id not in existing_ids:
                 items.append(ProjectPurgeItemResult(project_id=project_id, error="Project was not found."))
-                continue
-            if not trash_state[project_id]:
-                items.append(
-                    ProjectPurgeItemResult(
-                        project_id=project_id,
-                        error="Move the project to Trash before permanently deleting it.",
-                    )
-                )
                 continue
             try:
                 result = self.delete_itinerary(project_id)
@@ -516,24 +512,23 @@ class ProjectStorageRepository:
             items.append(ProjectPurgeItemResult(project_id=project_id, result=result))
         return ProjectBulkPurgeResult(items=tuple(items))
 
-    def _project_trash_state(self, requested_ids: tuple[str, ...]) -> dict[str, bool]:
-        """Return whether each existing selected project is currently in Trash."""
-
-        state: dict[str, bool] = {}
+    def _existing_project_ids(self, requested_ids: tuple[str, ...]) -> set[str]:
+        existing: set[str] = set()
         for batch in _chunks(requested_ids, _BULK_PATCH_SIZE):
             rows = self._client.rest_get(
                 "itineraries",
                 {
-                    "select": "id,deleted_at",
+                    "select": "id",
                     "id": _in_filter(batch),
                     "limit": str(len(batch)),
                 },
             )
-            for row in rows:
-                project_id = str(row.get("id") or "").strip()
-                if project_id:
-                    state[project_id] = bool(str(row.get("deleted_at") or "").strip())
-        return state
+            existing.update(
+                str(row.get("id") or "").strip()
+                for row in rows
+                if str(row.get("id") or "").strip()
+            )
+        return existing
 
     def delete_itinerary(self, itinerary_id: str) -> ProjectDeleteResult:
         """Permanently delete one project without losing failed-cleanup retry state."""

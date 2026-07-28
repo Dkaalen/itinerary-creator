@@ -87,9 +87,9 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) .stButton button {
     color: var(--ink) !important;
     border: 1px solid rgba(207, 196, 179, .78) !important;
     box-shadow: none !important;
-    font-family: Georgia, "Times New Roman", serif !important;
-    font-size: .98rem !important;
-    font-weight: 500 !important;
+    font-family: inherit !important;
+    font-size: .9rem !important;
+    font-weight: 650 !important;
 }
 
 div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) div[data-testid="stButton"] button:hover,
@@ -174,5 +174,47 @@ div[data-testid="stTextInput"] input::placeholder {
 
 [data-testid="stFileUploaderDropzone"] * {
     color: var(--ink-soft) !important;
+}
+
+/* Disabled controls must remain readable and must never retain a dark primary fill. */
+div[data-testid="stButton"] button:disabled,
+div[data-testid="stDownloadButton"] button:disabled,
+button[data-testid="baseButton-primary"]:disabled,
+button[data-testid="baseButton-secondary"]:disabled,
+button[disabled] {
+    background: #e7e4dd !important;
+    color: #65625c !important;
+    border-color: #d4cec2 !important;
+    opacity: 1 !important;
+}
+div[data-testid="stButton"] button:disabled *,
+div[data-testid="stDownloadButton"] button:disabled *,
+button[data-testid="baseButton-primary"]:disabled *,
+button[data-testid="baseButton-secondary"]:disabled *,
+button[disabled] * {
+    color: #65625c !important;
+    opacity: 1 !important;
+}
+
+/* Destructive project actions are clearly separated from primary navigation. */
+div[class*="st-key-delete_selected_cloud_project_"] button,
+.st-key-bulk_delete_projects button,
+.st-key-confirm_bulk_project_action button {
+    background: #fff5f3 !important;
+    color: #7b342e !important;
+    border-color: rgba(149, 77, 70, .42) !important;
+}
+div[class*="st-key-delete_selected_cloud_project_"] button *,
+.st-key-bulk_delete_projects button *,
+.st-key-confirm_bulk_project_action button * {
+    color: #7b342e !important;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[data-baseweb="select"]:focus-within {
+    outline: 3px solid rgba(64, 94, 121, .28) !important;
+    outline-offset: 2px !important;
 }
 """

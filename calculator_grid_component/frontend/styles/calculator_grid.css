@@ -36,10 +36,10 @@ body {
 .calculator-toolbar {
   display: grid;
   gap: 8px;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid rgba(224, 216, 202, 0.78);
-  padding: 8px 2px 10px;
+  background: #fbfaf7;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
   box-shadow: none;
 }
 .calculator-toolbar-main-row,
@@ -62,7 +62,7 @@ body {
 }
 .calculator-toolbar-tools-row {
   justify-content: flex-start;
-  gap: 14px;
+  gap: 10px;
 }
 .toolbar-group + .toolbar-group {
   position: relative;
@@ -135,7 +135,7 @@ body {
   overflow: auto;
   border: 1px solid rgba(199, 188, 170, 0.70);
   background: var(--panel);
-  border-radius: 16px;
+  border-radius: 10px;
 }
 .calculator-grid-table {
   border-collapse: separate;
@@ -230,6 +230,62 @@ tr.selected-row td.readonly { background-color: #ece4d5; }
   .toolbar-group-delivery .toolbar-group-label { grid-column: 1 / -1; }
   .toolbar-group-delivery .calc-btn { width: 100%; }
   .calc-btn { flex: 0 1 auto; }
+  .calculator-toolbar-more { margin-left: 0; }
+  .calculator-toolbar-more-panel { left: 0; right: auto; }
+}
+
+
+.calculator-toolbar-more {
+  position: relative;
+  margin-left: auto;
+}
+.calculator-toolbar-more > summary {
+  list-style: none;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(224, 216, 202, .92);
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--text);
+  font-size: .79rem;
+  font-weight: 760;
+  cursor: pointer;
+}
+.calculator-toolbar-more > summary::-webkit-details-marker { display: none; }
+.calculator-toolbar-more[open] > summary { border-color: rgba(95, 87, 77, .55); }
+@media (max-width: 900px) {
+  .calculator-toolbar-more {
+    width: fit-content;
+    margin-left: 0;
+  }
+  .calculator-toolbar-more-panel { left: 0; right: auto; }
+}
+
+.calculator-toolbar-more-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 25;
+  width: min(420px, 86vw);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(31, 38, 48, .14);
+}
+.calculator-status-row { padding: 6px 2px 4px; font-size: .78rem; }
+.calculator-dashboard {
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)) !important;
+  gap: 6px !important;
+}
+.calculator-dashboard > span, .pax-control {
+  min-height: 54px !important;
+  border-radius: 9px !important;
 }
 
 /* Spreadsheet reliability and interaction layer. */

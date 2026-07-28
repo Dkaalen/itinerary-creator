@@ -55,7 +55,7 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert "overflow-wrap: anywhere" in style_component_layout.CSS
     assert ".st-key-cloud_project_explorer" in style_project_browser.PROJECT_BROWSER_CSS
     assert "stDataFrame" in style_project_browser.PROJECT_BROWSER_CSS
-    assert ".cloud-project-detail-card" in style_project_browser_detail.CSS
+    assert ".cloud-project-selected-strip" in style_project_browser_detail.CSS
     assert "stVerticalBlockBorderWrapper" in style_project_browser.PROJECT_BROWSER_CSS
 
 

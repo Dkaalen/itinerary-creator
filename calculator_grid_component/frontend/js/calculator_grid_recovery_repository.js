@@ -49,10 +49,10 @@
   function snapshotLimit(snapshotBytes) {
     const size = Math.max(0, Number(snapshotBytes || 0));
     if (size <= 64 * 1024) return core.maxSnapshots;
-    if (size <= 192 * 1024) return 14;
-    if (size <= 512 * 1024) return 8;
-    if (size <= 1024 * 1024) return 4;
-    return 2;
+    if (size <= 192 * 1024) return Math.min(core.maxSnapshots, 4);
+    if (size <= 512 * 1024) return Math.min(core.maxSnapshots, 3);
+    if (size <= 1024 * 1024) return Math.min(core.maxSnapshots, 2);
+    return 1;
   }
 
   function rowsDelta(baseRows, targetRows) {

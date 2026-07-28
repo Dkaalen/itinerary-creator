@@ -49,22 +49,23 @@ def render_input_page(app_version: str) -> None:
             render_open_project_file_action()
 
     render_open_project_workspace_if_visible()
-    render_input_header()
-    render_itinerary_name_input()
-    render_source_label()
-    raw_text = st.text_area(
-        "Supplier text",
-        height=360,
-        placeholder="Paste itinerary rows here…",
-        key="raw_text_input",
-        label_visibility="collapsed",
-    )
-    render_supplier_rows_preview(raw_text)
+    with st.container(key="input_workspace_form"):
+        render_input_header()
+        render_itinerary_name_input()
+        render_source_label()
+        raw_text = st.text_area(
+            "Supplier text",
+            height=300,
+            placeholder="Paste itinerary rows here…",
+            key="raw_text_input",
+            label_visibility="collapsed",
+        )
+        render_supplier_rows_preview(raw_text)
 
-    with st.container(key="input_generation_actions"):
-        agent_col, customer_col = st.columns(2, gap="small")
-        generate_agent = agent_col.button("Generate agent itinerary", type="primary", use_container_width=True)
-        generate_customer = customer_col.button("Generate customer itinerary", use_container_width=True)
+        with st.container(key="input_generation_actions"):
+            agent_col, customer_col = st.columns(2, gap="small")
+            generate_agent = agent_col.button("Generate agent itinerary", type="primary", use_container_width=True)
+            generate_customer = customer_col.button("Generate customer itinerary", use_container_width=True)
     if generate_agent or generate_customer:
         if not raw_text.strip():
             st.warning("Paste the supplier rows first, then generate the itinerary.")

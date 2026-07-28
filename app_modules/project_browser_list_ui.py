@@ -12,12 +12,12 @@ from app_modules.project_browser_formatting import friendly_storage_time
 from app_modules.project_browser_paging import ProjectPage
 from app_modules.project_browser_state import (
     project_table_revision,
-    remember_selected_project,
+    selected_project_ids,
     set_browser_page_index,
 )
 from project_storage.project_metadata import project_owner_label
 
-PROJECT_TABLE_HEIGHT = 390
+PROJECT_TABLE_HEIGHT = 330
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class ProjectTableSelection:
 def render_project_table(
     page: ProjectPage,
     *,
-    selected_project_id: str,
+    selected_project_id: str = "",
     active_project_id: str,
     search: str,
     sort: str,
@@ -42,14 +42,15 @@ def render_project_table(
     folder_name: str = "",
     view: str = "projects",
 ) -> ProjectTableSelection:
-    """Render one bounded project page and return durable selected IDs."""
+    """Render one bounded page and persist only durable selected IDs.
 
-    trash_only = str(view or "").strip().casefold() == "trash"
-    rows = project_table_rows(
-        page,
-        active_project_id=active_project_id,
-        trash_only=trash_only,
-    )
+    Streamlit row indexes are converted immediately to project identifiers. An
+    explicit empty selection clears the prior selection; it never silently
+    re-selects the previous project or the first row.
+    """
+
+    del selected_project_id, view  # Retained in the signature for compatibility.
+    rows = project_table_rows(page, active_project_id=active_project_id)
     event = st.dataframe(
         rows,
         hide_index=True,
@@ -63,14 +64,16 @@ def render_project_table(
             sort=sort,
             owner_slug=owner_slug,
             folder_name=folder_name,
-            view=view,
             revision=project_table_revision(st.session_state),
         ),
-        column_config=_column_config(trash_only=trash_only),
+        column_config=_column_config(),
     )
+    selected = _selection_from_event(event, page)
+    if selected is None:
+        page_ids = {str(project.get("id") or "").strip() for project in page.projects}
+        selected = tuple(value for value in selected_project_ids(st.session_state) if value in page_ids)
     _render_page_navigation(page)
-    selected_from_event = project_ids_from_table_event(event, page)
-    return ProjectTableSelection(selected_from_event or ((selected_project_id,) if selected_project_id else ()))
+    return ProjectTableSelection(tuple(selected))
 
 
 def project_table_rows(
@@ -80,34 +83,49 @@ def project_table_rows(
     active_project_id: str = "",
     trash_only: bool = False,
 ) -> tuple[dict[str, str], ...]:
-    """Return display-only rows without leaking durable project IDs."""
+    """Return a compact display model without technical identifiers."""
 
-    del selected_project_id  # Selection is communicated by the table widget itself.
+    del selected_project_id, trash_only
     rows: list[dict[str, str]] = []
     for project in page.projects:
         project_id = str(project.get("id") or "").strip()
-        row = {
-            "Name": str(project.get("name") or "Untitled itinerary"),
-            "Owner": _owner_label(project.get("owner_slug")),
-            "Folder": str(project.get("folder_name") or "—"),
-            "Last saved": friendly_storage_time(
-                project.get("last_saved_at") or project.get("updated_at") or project.get("created_at")
-            ),
-            "By": _owner_label(project.get("updated_by")),
-        }
-        if trash_only:
-            row["Deleted"] = friendly_storage_time(project.get("deleted_at"))
-        else:
-            row["Current"] = "Open" if project_id == active_project_id else ""
-        rows.append(row)
+        name = str(project.get("name") or "Untitled itinerary")
+        if project_id and project_id == active_project_id:
+            name = f"{name} · Open"
+        rows.append(
+            {
+                "Name": name,
+                "Owner": _owner_label(project.get("owner_slug")),
+                "Folder": str(project.get("folder_name") or "—"),
+                "Last saved": friendly_storage_time(
+                    project.get("last_saved_at")
+                    or project.get("updated_at")
+                    or project.get("created_at")
+                ),
+            }
+        )
     return tuple(rows)
 
 
-def project_ids_from_table_event(event: object, page: ProjectPage) -> tuple[str, ...]:
-    """Resolve Streamlit row-selection indexes to durable project IDs."""
+def _selection_from_event(event: object, page: ProjectPage) -> tuple[str, ...] | None:
+    """Return ``None`` only when a stub/component exposes no selection payload."""
 
-    selection = event.get("selection") if isinstance(event, Mapping) else getattr(event, "selection", None)
-    rows = selection.get("rows") if isinstance(selection, Mapping) else getattr(selection, "rows", None)
+    if isinstance(event, Mapping):
+        if "selection" not in event:
+            return None
+        selection = event.get("selection")
+    else:
+        if not hasattr(event, "selection"):
+            return None
+        selection = getattr(event, "selection", None)
+    if isinstance(selection, Mapping):
+        if "rows" not in selection:
+            return None
+        rows = selection.get("rows")
+    else:
+        if selection is None or not hasattr(selection, "rows"):
+            return None
+        rows = getattr(selection, "rows", None)
     if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)):
         return ()
     project_ids: list[str] = []
@@ -124,9 +142,12 @@ def project_ids_from_table_event(event: object, page: ProjectPage) -> tuple[str,
     return tuple(project_ids)
 
 
-def project_id_from_table_event(event: object, page: ProjectPage) -> str:
-    """Compatibility helper returning only the first selected project ID."""
+def project_ids_from_table_event(event: object, page: ProjectPage) -> tuple[str, ...]:
+    selected = _selection_from_event(event, page)
+    return selected or ()
 
+
+def project_id_from_table_event(event: object, page: ProjectPage) -> str:
     selected = project_ids_from_table_event(event, page)
     return selected[0] if selected else ""
 
@@ -158,7 +179,7 @@ def _project_table_key(
 
 
 def _render_page_navigation(page: ProjectPage) -> None:
-    previous_col, status_col, next_col = st.columns([0.24, 0.52, 0.24], gap="small")
+    previous_col, status_col, next_col = st.columns([0.22, 0.56, 0.22], gap="small")
     with previous_col:
         if st.button(
             "Previous",
@@ -167,7 +188,7 @@ def _render_page_navigation(page: ProjectPage) -> None:
             disabled=not page.has_previous,
         ):
             set_browser_page_index(st.session_state, page.page_index - 1)
-            remember_selected_project(st.session_state, "")
+            remember_selected_projects(st.session_state, ())
             st.rerun()
     with status_col:
         if page.total_count is None:
@@ -187,7 +208,7 @@ def _render_page_navigation(page: ProjectPage) -> None:
             disabled=not page.has_next,
         ):
             set_browser_page_index(st.session_state, page.page_index + 1)
-            remember_selected_project(st.session_state, "")
+            remember_selected_projects(st.session_state, ())
             st.rerun()
 
 
@@ -198,21 +219,13 @@ def _owner_label(value: object) -> str:
         return "Unassigned"
 
 
-def _column_config(*, trash_only: bool) -> dict[str, object]:
-    """Return bounded column widths without making IDs visible."""
-
+def _column_config() -> dict[str, object]:
     text_column = getattr(getattr(st, "column_config", None), "TextColumn", None)
     if text_column is None:
         return {}
-    config: dict[str, object] = {
+    return {
         "Name": text_column("Name", width="large"),
         "Owner": text_column("Owner", width="small"),
-        "Folder": text_column("Folder", width="medium"),
+        "Folder": text_column("Folder/reference", width="medium"),
         "Last saved": text_column("Last saved", width="medium"),
-        "By": text_column("By", width="small"),
     }
-    if trash_only:
-        config["Deleted"] = text_column("Deleted", width="medium")
-    else:
-        config["Current"] = text_column("Current", width="small")
-    return config

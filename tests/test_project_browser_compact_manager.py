@@ -212,13 +212,12 @@ def test_manager_renders_one_bounded_page_and_one_selected_detail(monkeypatch) -
     }]
     assert table_calls == [{
         "page": page,
-        "selected_project_id": "project-1",
+        "selected_project_id": "",
         "active_project_id": "",
         "search": "",
         "sort": "recent",
         "owner_slug": "",
         "folder_name": "",
-        "view": "projects",
     }]
     assert detail_calls == [(page.projects[1], query)]
     assert st.session_state["open_project_selected_project_id"] == "project-2"
@@ -317,12 +316,10 @@ def test_project_table_rows_show_organization_and_saved_metadata_without_durable
     rows = project_table_rows(page, active_project_id="durable-project-id")
 
     assert rows == ({
-        "Name": "Norway Winter",
+        "Name": "Norway Winter · Open",
         "Owner": "Dennis",
         "Folder": "ITIN-2020",
         "Last saved": "friendly:2026-07-27T14:30:00Z",
-        "By": "Vipin",
-        "Current": "Open",
     },)
     assert "durable-project-id" not in str(rows)
 
@@ -365,7 +362,9 @@ def test_reselecting_same_project_preserves_pending_confirmation(monkeypatch) ->
         }
     )
 
-    project_browser_ui._select_project("project-1")
+    from app_modules.project_browser_state import remember_selected_projects
+
+    remember_selected_projects(st.session_state, ("project-1",))
 
     assert st.session_state["open_project_rename_candidate_id"] == "project-1"
     assert st.session_state["open_project_unsaved_open_candidate_id"] == "project-1"

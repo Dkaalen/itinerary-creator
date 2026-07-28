@@ -1,4 +1,4 @@
-"""Selected-project details and actions for Project Explorer."""
+"""Selected-project actions for Project Explorer."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from app_modules.project_browser_bulk_ui import render_pending_project_action_co
 from app_modules.project_browser_calculation_files import render_calculation_files
 from app_modules.project_browser_controls import ProjectBrowserQuery
 from app_modules.project_browser_formatting import friendly_storage_time
-from app_modules.project_browser_management_actions import apply_restore_from_trash
 from app_modules.project_browser_state import (
     clear_open_candidate,
     clear_rename_candidate,
@@ -38,111 +37,52 @@ def render_selected_project_panel(
     *,
     query: ProjectBrowserQuery | None = None,
 ) -> None:
-    """Render metadata and actions for only the selected project."""
+    """Render one compact action strip for one selected project."""
 
-    query = query or ProjectBrowserQuery()
-    st.markdown("#### Selected project")
+    del query
     if not project:
-        st.caption("Select a project row to view details and available actions.")
+        st.caption("Select one project to open, rename, copy or delete it.")
         return
     project_id = str(project.get("id") or "").strip()
     if not project_id:
-        st.caption("Select a valid project to continue.")
         return
     name = str(project.get("name") or "Untitled itinerary")
     is_active = active_project_id_from_state(st.session_state) == project_id
-    _render_project_metadata(project, name=name, is_active=is_active, trash_only=query.trash_only)
-    _render_project_actions(project_id, name, is_active=is_active, query=query)
-    if render_pending_project_action_confirmation(query):
+    _render_summary(project, name=name, is_active=is_active)
+    if render_pending_project_action_confirmation():
         return
-    if not query.trash_only:
-        _render_open_confirmation(project_id, name)
-        _render_rename_form(project_id, name)
-        render_calculation_files(project_id)
+    _render_actions(project_id, name, is_active=is_active)
+    _render_open_confirmation(project_id, name)
+    _render_rename_form(project_id, name)
+    render_calculation_files(project_id)
 
 
-def _render_project_metadata(
-    project: dict[str, Any],
-    *,
-    name: str,
-    is_active: bool,
-    trash_only: bool,
-) -> None:
+def _render_summary(project: dict[str, Any], *, name: str, is_active: bool) -> None:
     owner = _owner_label(project.get("owner_slug"))
     folder = str(project.get("folder_name") or "No folder")
     saved = friendly_storage_time(
         project.get("last_saved_at") or project.get("updated_at") or project.get("created_at")
     )
-    created = friendly_storage_time(project.get("created_at"))
     updated_by = _owner_label(project.get("updated_by"))
-    revision = str(project.get("revision") or "—")
-    deleted = friendly_storage_time(project.get("deleted_at")) if trash_only else ""
-    active_badge = '<span class="cloud-project-active-badge">Open now</span>' if is_active else ""
-    deleted_row = (
-        f"<div><dt>Deleted</dt><dd>{escape(deleted)}</dd></div>" if trash_only else ""
-    )
+    open_badge = '<span class="cloud-project-active-badge">Open now</span>' if is_active else ""
     st.html(
         f"""
-        <div class="cloud-project-detail-card{' active' if is_active else ''}">
-          <div class="cloud-project-detail-title">
-            <strong title="{escape(name)}">{escape(name)}</strong>
-            {active_badge}
+        <div class="cloud-project-selected-strip{' active' if is_active else ''}">
+          <div class="cloud-project-selected-title">
+            <strong title="{escape(name)}">{escape(name)}</strong>{open_badge}
+            <span>{escape(owner)} · {escape(folder)}</span>
           </div>
-          <div class="cloud-project-path">{escape(owner)} / {escape(folder)}</div>
-          <dl>
-            <div><dt>Last saved</dt><dd>{escape(saved)}</dd></div>
-            <div><dt>Saved by</dt><dd>{escape(updated_by)}</dd></div>
-            <div><dt>Revision</dt><dd>{escape(revision)}</dd></div>
-            <div><dt>Created</dt><dd>{escape(created)}</dd></div>
-            {deleted_row}
-          </dl>
+          <div class="cloud-project-selected-meta">
+            <span>Last saved <strong>{escape(saved)}</strong></span>
+            <span>Saved by <strong>{escape(updated_by)}</strong></span>
+          </div>
         </div>
         """
     )
 
 
-def _render_project_actions(
-    project_id: str,
-    name: str,
-    *,
-    is_active: bool,
-    query: ProjectBrowserQuery,
-) -> None:
-    if query.trash_only:
-        restore_col, delete_col = st.columns(2, gap="small")
-        with restore_col:
-            if st.button(
-                "Restore project",
-                key=f"restore_selected_cloud_project_{project_id}",
-                use_container_width=True,
-                type="primary",
-            ):
-                try:
-                    apply_restore_from_trash(
-                        st.session_state,
-                        (project_id,),
-                        actor_slug=query.actor_slug,
-                    )
-                except Exception:
-                    st.error(storage_user_message("save"))
-                else:
-                    st.rerun()
-        with delete_col:
-            if st.button(
-                "Delete permanently",
-                key=f"purge_selected_cloud_project_{project_id}",
-                use_container_width=True,
-            ):
-                remember_bulk_action(
-                    st.session_state,
-                    action="purge",
-                    project_ids=(project_id,),
-                    project_names=(name,),
-                )
-                st.rerun()
-        return
-
-    open_col, rename_col, duplicate_col, trash_col = st.columns([0.34, 0.22, 0.22, 0.22], gap="small")
+def _render_actions(project_id: str, name: str, *, is_active: bool) -> None:
+    open_col, rename_col, copy_col, delete_col = st.columns([0.34, 0.22, 0.22, 0.22], gap="small")
     with open_col:
         if st.button(
             "Project is open" if is_active else "Open project",
@@ -153,32 +93,20 @@ def _render_project_actions(
         ):
             request_open_cloud_project(project_id)
     with rename_col:
-        if st.button(
-            "Rename",
-            key=f"rename_selected_cloud_project_{project_id}",
-            use_container_width=True,
-        ):
+        if st.button("Rename", key=f"rename_selected_cloud_project_{project_id}", use_container_width=True):
             clear_open_candidate(st.session_state)
             remember_rename_candidate(st.session_state, project_id)
             st.rerun()
-    with duplicate_col:
-        if st.button(
-            "Save as copy",
-            key=f"duplicate_selected_cloud_project_{project_id}",
-            use_container_width=True,
-        ):
+    with copy_col:
+        if st.button("Save as copy", key=f"duplicate_selected_cloud_project_{project_id}", use_container_width=True):
             duplicate_cloud_project_action(project_id, name)
-    with trash_col:
-        if st.button(
-            "Move to Trash",
-            key=f"trash_selected_cloud_project_{project_id}",
-            use_container_width=True,
-        ):
+    with delete_col:
+        if st.button("Delete", key=f"delete_selected_cloud_project_{project_id}", use_container_width=True):
             clear_open_candidate(st.session_state)
             clear_rename_candidate(st.session_state)
             remember_bulk_action(
                 st.session_state,
-                action="trash",
+                action="delete",
                 project_ids=(project_id,),
                 project_names=(name,),
             )
@@ -188,22 +116,14 @@ def _render_project_actions(
 def _render_open_confirmation(project_id: str, name: str) -> None:
     if open_candidate_id(st.session_state) != project_id:
         return
-    st.warning(f"Unsaved changes in the current workspace will be left behind when opening {name}.")
+    st.warning(f"Opening {name} will replace the unsaved work currently shown in the app.")
     cancel_col, confirm_col = st.columns(2)
     with cancel_col:
-        if st.button(
-            "Keep current project",
-            key=f"cancel_open_cloud_project_{project_id}",
-            use_container_width=True,
-        ):
+        if st.button("Keep current work", key=f"cancel_open_cloud_project_{project_id}", use_container_width=True):
             clear_open_candidate(st.session_state)
             st.rerun()
     with confirm_col:
-        if st.button(
-            "Open anyway",
-            key=f"confirm_open_cloud_project_{project_id}",
-            use_container_width=True,
-        ):
+        if st.button("Open project", key=f"confirm_open_cloud_project_{project_id}", use_container_width=True):
             clear_open_candidate(st.session_state)
             open_cloud_project(project_id)
 
@@ -215,7 +135,7 @@ def _render_rename_form(project_id: str, name: str) -> None:
         new_name = st.text_input("Project name", value=name, max_chars=160)
         save_col, cancel_col = st.columns(2)
         with save_col:
-            save = st.form_submit_button("Save name", use_container_width=True)
+            save = st.form_submit_button("Save name", use_container_width=True, type="primary")
         with cancel_col:
             cancel = st.form_submit_button("Cancel", use_container_width=True)
     if cancel:

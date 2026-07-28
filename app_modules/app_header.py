@@ -6,7 +6,7 @@ import streamlit as st
 
 from app_modules.workflow_config import STAGE_LABELS
 from app_modules.workflow_navigation import transition_workflow_stage
-from app_modules.project_persistence_state import active_cloud_project_is_persisted
+from app_modules.project_persistence_state import active_cloud_project_is_persisted, last_saved_project_baseline
 from app_modules.project_unsaved_state import active_project_has_unsaved_changes
 from app_modules.session_state_keys import (
     ITINERARY_NAME_KEY,
@@ -51,7 +51,10 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
     elif active_project_has_unsaved_changes(session_state):
         saved_label = "Unsaved changes"
     else:
-        saved_label = "Cloud saved"
+        baseline = last_saved_project_baseline(session_state) or {}
+        metadata = baseline.get("metadata") if isinstance(baseline, dict) else {}
+        saved_at = str((metadata or {}).get("updated_at") or "") if isinstance(metadata, dict) else ""
+        saved_label = _saved_status_label(saved_at)
 
     st.html(
         '<div class="workspace-shell">'
@@ -64,6 +67,24 @@ def _render_app_header(app_version: str, *, stage: str) -> None:
     )
     return None
 
+
+
+def _saved_status_label(value: object) -> str:
+    from datetime import datetime, timezone
+
+    text = str(value or "").strip()
+    if not text:
+        return "Saved"
+    try:
+        saved = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return "Saved"
+    if saved.tzinfo is None:
+        saved = saved.replace(tzinfo=timezone.utc)
+    now = datetime.now(saved.tzinfo)
+    if saved.date() == now.date():
+        return f"Saved {saved.strftime('%H:%M')}"
+    return "Saved"
 
 def _render_stage_actions(stage: str) -> None:
     from app_modules.project_file_ui import render_save_project_file_action

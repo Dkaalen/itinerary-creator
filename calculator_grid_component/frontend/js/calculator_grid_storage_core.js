@@ -5,10 +5,13 @@
 
   let draftStorageKey = 'itineraryCalculatorBrowserDraft.v3.global';
   const DRAFT_STORAGE_PREFIX = 'itineraryCalculatorBrowserDraft.v3.';
-  const DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+  const DRAFT_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
   const RECOVERY_SCHEMA_VERSION = 4;
-  const RECOVERY_MAX_SNAPSHOTS = 20;
-  const RECOVERY_STORAGE_BUDGET_BYTES = 4 * 1024 * 1024;
+  const RECOVERY_MAX_SNAPSHOTS = 5;
+  const RECOVERY_STORAGE_BUDGET_BYTES = 1250 * 1024;
+  const DRAFT_MAX_BYTES = 900 * 1024;
+  const GLOBAL_STORAGE_BUDGET_BYTES = 1536 * 1024;
+  const MAX_STORED_NAMESPACES = 3;
   const storageWarnings = {draft: '', recovery: ''};
   let localRecoveryPaused = false;
 
@@ -20,7 +23,7 @@
     const unavailable = Boolean(storageWarnings.draft);
     const reduced = !unavailable && Boolean(storageWarnings.recovery);
     if (unavailable) {
-      return {state: 'unavailable', summary: 'Local recovery unavailable', detail: storageWarnings.draft};
+      return {state: 'unavailable', summary: 'Browser recovery paused', detail: storageWarnings.draft};
     }
     if (reduced) {
       return {state: 'reduced', summary: 'Local recovery reduced', detail: storageWarnings.recovery};
@@ -28,7 +31,7 @@
     return {
       state: 'available',
       summary: 'Local recovery ready',
-      detail: 'The current Calculator draft and recent recovery versions can be stored in this browser.',
+      detail: 'A small, bounded Calculator recovery draft can be stored in this browser.',
     };
   }
 
@@ -125,7 +128,9 @@
       localRecoveryPaused = false;
     }
     draftStorageKey = nextKey;
+    cleanupLegacyKeys();
     cleanupObsoleteNamespaces();
+    pruneOtherNamespacesForQuota();
     return draftStorageKey;
   }
 
@@ -133,17 +138,21 @@
     return draftStorageKey;
   }
 
+  function namespaceBytes(baseKey) {
+    return utf8Bytes(storedValue(baseKey)) + utf8Bytes(storedValue(recoveryStorageKey(baseKey)));
+  }
+
   function pruneOtherNamespacesForQuota() {
     const candidates = storedNamespaceKeys()
       .filter((baseKey) => baseKey !== draftStorageKey)
-      .map((baseKey) => ({baseKey, savedAt: namespaceLastSavedAt(baseKey)}))
+      .map((baseKey) => ({baseKey, savedAt: namespaceLastSavedAt(baseKey), bytes: namespaceBytes(baseKey)}))
       .sort((left, right) => left.savedAt - right.savedAt);
     let removed = 0;
-    for (const candidate of candidates) {
+    while (candidates.length && (storedNamespaceKeys().length > MAX_STORED_NAMESPACES || allCalculatorStorageBytes() > GLOBAL_STORAGE_BUDGET_BYTES)) {
+      const candidate = candidates.shift();
       try {
-        const key = recoveryStorageKey(candidate.baseKey);
-        if (window.localStorage.getItem(key) === null) continue;
-        window.localStorage.removeItem(key);
+        window.localStorage.removeItem(candidate.baseKey);
+        window.localStorage.removeItem(recoveryStorageKey(candidate.baseKey));
         removed += 1;
       } catch (_error) {
         break;
@@ -151,6 +160,29 @@
     }
     return removed;
   }
+
+  function allCalculatorStorageBytes() {
+    return storedNamespaceKeys().reduce((total, baseKey) => total + namespaceBytes(baseKey), 0);
+  }
+
+  function cleanupLegacyKeys() {
+    const prefixes = [
+      'itineraryCalculatorBrowserDraft.v1.',
+      'itineraryCalculatorBrowserDraft.v2.',
+      'itineraryCalculatorDraft.',
+      'calculatorDraft.',
+    ];
+    try {
+      const keys = [];
+      for (let index = 0; index < window.localStorage.length; index += 1) keys.push(window.localStorage.key(index));
+      for (const key of keys) {
+        if (prefixes.some((prefix) => String(key || '').startsWith(prefix))) window.localStorage.removeItem(key);
+      }
+    } catch (_error) {
+      // Startup guard and later quota recovery remain best-effort.
+    }
+  }
+
 
   function utf8Bytes(value) {
     const text = String(value || '');
@@ -216,13 +248,18 @@
   }
 
   window.ItineraryCalculator.define('storage.core', {
+    allCalculatorStorageBytes,
+    cleanupLegacyKeys,
     cleanupObsoleteNamespaces,
     draftMaxAgeMs: DRAFT_MAX_AGE_MS,
+    draftMaxBytes: DRAFT_MAX_BYTES,
+    globalStorageBudgetBytes: GLOBAL_STORAGE_BUDGET_BYTES,
     errorIsQuota,
     formatStorageBytes,
     getDraftStorageKey,
     isLocalRecoveryPaused: () => localRecoveryPaused,
     maxSnapshots: RECOVERY_MAX_SNAPSHOTS,
+    maxStoredNamespaces: MAX_STORED_NAMESPACES,
     pauseLocalRecovery,
     pruneOtherNamespacesForQuota,
     recoverySchemaVersion: RECOVERY_SCHEMA_VERSION,

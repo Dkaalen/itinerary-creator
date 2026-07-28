@@ -12,6 +12,7 @@ FILE_DELETE_CANDIDATE_NAME_KEY = "open_project_file_delete_candidate_name"
 RENAME_CANDIDATE_ID_KEY = "open_project_rename_candidate_id"
 OPEN_CANDIDATE_ID_KEY = "open_project_unsaved_open_candidate_id"
 SELECTED_PROJECT_ID_KEY = "open_project_selected_project_id"
+SELECTED_PROJECT_IDS_KEY = "open_project_selected_project_ids"
 PROJECT_PAGE_KEY = "open_project_page_index"
 PROJECT_QUERY_SIGNATURE_KEY = "open_project_query_signature"
 PROJECT_TABLE_REVISION_KEY = "open_project_table_revision"
@@ -73,21 +74,60 @@ def clear_open_candidate(state: MutableMapping[str, Any]) -> None:
     state.pop(OPEN_CANDIDATE_ID_KEY, None)
 
 
-def remember_selected_project(state: MutableMapping[str, Any], project_id: object) -> None:
-    clean_id = str(project_id or "").strip()
-    if clean_id:
-        state[SELECTED_PROJECT_ID_KEY] = clean_id
+def remember_selected_projects(state: MutableMapping[str, Any], project_ids: object) -> tuple[str, ...]:
+    """Persist an ordered, de-duplicated set of durable project identifiers."""
+
+    values = project_ids if isinstance(project_ids, (list, tuple, set)) else (project_ids,)
+    clean_ids = tuple(
+        dict.fromkeys(
+            str(value or "").strip()
+            for value in values
+            if str(value or "").strip()
+        )
+    )
+    if clean_ids:
+        state[SELECTED_PROJECT_IDS_KEY] = clean_ids
+        state[SELECTED_PROJECT_ID_KEY] = clean_ids[0]
     else:
+        state.pop(SELECTED_PROJECT_IDS_KEY, None)
         state.pop(SELECTED_PROJECT_ID_KEY, None)
+    return clean_ids
+
+
+def selected_project_ids(state: MutableMapping[str, Any]) -> tuple[str, ...]:
+    values = state.get(SELECTED_PROJECT_IDS_KEY)
+    if isinstance(values, (list, tuple, set)):
+        clean = tuple(
+            dict.fromkeys(
+                str(value or "").strip()
+                for value in values
+                if str(value or "").strip()
+            )
+        )
+        if clean:
+            return clean
+    legacy = str(state.get(SELECTED_PROJECT_ID_KEY) or "").strip()
+    return (legacy,) if legacy else ()
+
+
+def remember_selected_project(state: MutableMapping[str, Any], project_id: object) -> None:
+    """Compatibility helper for callers that still select one project."""
+
+    remember_selected_projects(state, (project_id,) if str(project_id or "").strip() else ())
 
 
 def selected_project_id(state: MutableMapping[str, Any]) -> str:
-    return str(state.get(SELECTED_PROJECT_ID_KEY) or "")
+    selected = selected_project_ids(state)
+    return selected[0] if selected else ""
 
 
 def clear_selected_project_if_matches(state: MutableMapping[str, Any], project_id: object) -> None:
-    if selected_project_id(state) == str(project_id or "").strip():
-        state.pop(SELECTED_PROJECT_ID_KEY, None)
+    clean_id = str(project_id or "").strip()
+    if clean_id and clean_id in set(selected_project_ids(state)):
+        remember_selected_projects(
+            state,
+            tuple(value for value in selected_project_ids(state) if value != clean_id),
+        )
 
 
 def browser_page_index(state: MutableMapping[str, Any]) -> int:
@@ -129,7 +169,7 @@ def sync_project_query(
     if previous == signature:
         return False
     set_browser_page_index(state, 0)
-    remember_selected_project(state, "")
+    remember_selected_projects(state, ())
     clear_open_candidate(state)
     clear_rename_candidate(state)
     clear_delete_confirmation(state)

@@ -68,7 +68,7 @@ CSS = r"""/* Old marketing shell and status elements are intentionally not part 
 .input-page-kicker {
     display: inline-block;
     color: var(--red-dark) !important;
-    margin-bottom: .78rem;
+    margin-bottom: .35rem;
     position: relative;
 }
 
@@ -77,7 +77,7 @@ CSS = r"""/* Old marketing shell and status elements are intentionally not part 
     display: block;
     width: 2rem;
     height: 2px;
-    margin-top: .72rem;
+    margin-top: .35rem;
     background: var(--red-dark);
 }
 
@@ -104,10 +104,10 @@ CSS = r"""/* Old marketing shell and status elements are intentionally not part 
 div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) {
     align-items: center !important;
     gap: .9rem !important;
-    margin: 0 0 clamp(3rem, 5.2vw, 4.25rem) !important;
-    padding: 1.25rem clamp(1.5rem, 3.6vw, 2.65rem) !important;
+    margin: 0 !important;
+    padding: .65rem 0 .85rem !important;
     border-bottom: 1px solid rgba(226, 217, 204, .86) !important;
-    background: rgba(255, 253, 248, .84) !important;
+    background: transparent !important;
 }
 
 .studio-brand-link,
@@ -116,10 +116,10 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) {
 .studio-brand-link:active {
     display: inline-flex;
     align-items: center;
-    gap: 1rem;
+    gap: .72rem;
     width: max-content;
     max-width: 100%;
-    min-height: 3.35rem;
+    min-height: 2.85rem;
     text-decoration: none !important;
     color: var(--ink) !important;
 }
@@ -129,8 +129,8 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) {
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 3.35rem;
-    height: 3.35rem;
+    width: 2.85rem;
+    height: 2.85rem;
     border-radius: 999px;
     background: rgba(250, 247, 241, .94);
     box-shadow: inset 0 0 0 1px rgba(226, 217, 204, .58);
@@ -139,7 +139,7 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) {
 
 .studio-brand-logo img {
     display: block;
-    width: 2.65rem;
+    width: 2.2rem;
     height: auto;
     object-fit: contain;
 }
@@ -153,7 +153,7 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) {
 .studio-brand-copy strong {
     color: var(--ink) !important;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(1.18rem, 1.65vw, 1.58rem);
+    font-size: clamp(1.08rem, 1.5vw, 1.42rem);
     font-weight: 500;
     letter-spacing: .015em;
     line-height: 1.05;

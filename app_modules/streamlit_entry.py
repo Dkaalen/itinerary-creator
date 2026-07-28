@@ -20,11 +20,13 @@ def run_streamlit_app() -> None:
     )
 
     from app_modules.app_version import APP_VERSION
+    from app_modules.browser_storage_guard import render_browser_storage_guard
     from app_modules.main_view import render_app
     from app_modules.workflow_state import ensure_workflow_defaults
     from ui.styles import apply_global_styles
 
     apply_global_styles()
+    render_browser_storage_guard(st.session_state)
     ensure_workflow_defaults(st.session_state)
     render_app(APP_VERSION, state=st.session_state)
 

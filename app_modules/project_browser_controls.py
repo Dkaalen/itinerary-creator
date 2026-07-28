@@ -1,4 +1,4 @@
-"""Compact query and working-user controls for Project Explorer."""
+"""Compact query controls for Project Explorer."""
 
 from __future__ import annotations
 
@@ -6,51 +6,31 @@ from dataclasses import dataclass
 
 import streamlit as st
 
-from app_modules.project_browser_state import (
-    cached_folder_options,
-    remember_folder_options,
-)
+from app_modules.project_browser_state import cached_folder_options, remember_folder_options
 from app_modules.project_storage_service import list_cloud_project_folders
 from app_modules.session_state_keys import (
-    OPEN_PROJECT_ACTOR_KEY,
     OPEN_PROJECT_FOLDER_FILTER_KEY,
     OPEN_PROJECT_OWNER_FILTER_KEY,
     OPEN_PROJECT_SEARCH_KEY,
     OPEN_PROJECT_SORT_KEY,
-    OPEN_PROJECT_VIEW_KEY,
 )
-from project_storage.project_metadata import (
-    PROJECT_ACTOR_SLUGS,
-    PROJECT_OWNER_LABELS,
-    PROJECT_OWNER_SLUGS,
-)
+from project_storage.project_metadata import PROJECT_OWNER_LABELS, PROJECT_OWNER_SLUGS
 
 _SORT_LABELS = {
     "recent": "Recently saved",
     "oldest": "Oldest saved",
     "name": "Name A–Z",
-    "created_recent": "Newest created",
-    "created_oldest": "Oldest created",
     "owner": "Owner",
     "folder": "Folder/reference",
-    "trash_recent": "Recently deleted",
+    "created_recent": "Newest created",
+    "created_oldest": "Oldest created",
 }
-_ACTIVE_SORTS = (
-    "recent",
-    "oldest",
-    "name",
-    "owner",
-    "folder",
-    "created_recent",
-    "created_oldest",
-)
-_TRASH_SORTS = ("trash_recent", "name", "owner", "folder", "created_recent")
-_VIEW_LABELS = {"projects": "Projects", "trash": "Trash"}
+_SORTS = tuple(_SORT_LABELS)
 
 
 @dataclass(frozen=True)
 class ProjectBrowserQuery:
-    """Applied Project Explorer query and current organizational actor."""
+    """Applied Project Explorer query."""
 
     search: str = ""
     sort: str = "recent"
@@ -61,22 +41,23 @@ class ProjectBrowserQuery:
 
     @property
     def trash_only(self) -> bool:
-        return self.view == "trash"
+        return False
 
 
 def render_project_browser_controls() -> ProjectBrowserQuery:
-    """Render compact server-query controls without searching on every keystroke."""
+    """Render one compact, submitted server-query toolbar."""
 
-    view, actor_slug = _render_mode_controls()
     folders = _folder_options()
-    sorts = _TRASH_SORTS if view == "trash" else _ACTIVE_SORTS
-    _normalize_widget_state(sorts=sorts, folders=folders)
-
+    _normalize_widget_state(folders=folders)
     with st.form("project_explorer_filter_form", border=False):
-        search_col, owner_col, folder_col, sort_col = st.columns([0.36, 0.18, 0.25, 0.21], gap="small")
+        search_col, owner_col, folder_col, sort_col = st.columns(
+            [0.37, 0.18, 0.25, 0.20],
+            gap="small",
+            vertical_alignment="bottom",
+        )
         with search_col:
             search = st.text_input(
-                "Search",
+                "Search projects",
                 key=OPEN_PROJECT_SEARCH_KEY,
                 placeholder="Name or folder/reference…",
             )
@@ -97,63 +78,35 @@ def render_project_browser_controls() -> ProjectBrowserQuery:
         with sort_col:
             sort = st.selectbox(
                 "Sort",
-                sorts,
+                _SORTS,
                 key=OPEN_PROJECT_SORT_KEY,
                 format_func=lambda value: _SORT_LABELS[value],
             )
-        apply_col, clear_col, spacer_col = st.columns([0.18, 0.18, 0.64], gap="small")
-        with apply_col:
-            apply_filters = st.form_submit_button("Apply filters", use_container_width=True, type="primary")
-        with clear_col:
-            clear_filters = st.form_submit_button("Clear", use_container_width=True)
+        action_col, reset_col, spacer_col = st.columns([0.16, 0.16, 0.68], gap="small")
+        with action_col:
+            st.form_submit_button("Apply", use_container_width=True, type="primary")
+        with reset_col:
+            reset = st.form_submit_button("Reset", use_container_width=True)
         with spacer_col:
-            st.caption("Search is applied when you press Apply filters, avoiding a cloud request for every keystroke.")
+            st.empty()
 
-    if clear_filters:
+    if reset:
         st.session_state[OPEN_PROJECT_SEARCH_KEY] = ""
         st.session_state[OPEN_PROJECT_OWNER_FILTER_KEY] = ""
         st.session_state[OPEN_PROJECT_FOLDER_FILTER_KEY] = ""
-        st.session_state[OPEN_PROJECT_SORT_KEY] = "trash_recent" if view == "trash" else "recent"
+        st.session_state[OPEN_PROJECT_SORT_KEY] = "recent"
         st.rerun()
-    if apply_filters:
-        # The form submission itself causes the rerun; this branch documents the
-        # intentional submit boundary and keeps the returned values authoritative.
-        pass
 
     return ProjectBrowserQuery(
         search=" ".join(str(search or "").split()),
-        sort=str(sort or ("trash_recent" if view == "trash" else "recent")),
+        sort=str(sort or "recent"),
         owner_slug=str(owner_slug or ""),
         folder_name=str(folder_name or ""),
-        view=view,
-        actor_slug=actor_slug,
     )
 
 
-def _render_mode_controls() -> tuple[str, str]:
-    _ensure_choice(OPEN_PROJECT_VIEW_KEY, _VIEW_LABELS, "projects")
-    _ensure_choice(OPEN_PROJECT_ACTOR_KEY, PROJECT_ACTOR_SLUGS, "dennis")
-    view_col, actor_col = st.columns([0.42, 0.58], gap="small")
-    with view_col:
-        view = st.selectbox(
-            "View",
-            tuple(_VIEW_LABELS),
-            key=OPEN_PROJECT_VIEW_KEY,
-            format_func=lambda value: _VIEW_LABELS[value],
-        )
-    with actor_col:
-        actor_slug = st.selectbox(
-            "Working as",
-            PROJECT_ACTOR_SLUGS,
-            key=OPEN_PROJECT_ACTOR_KEY,
-            format_func=lambda value: PROJECT_OWNER_LABELS[value],
-            help="Used for project organization and Trash history. This is not access control.",
-        )
-    return str(view), str(actor_slug)
-
-
 def _folder_options() -> tuple[str, ...]:
-    signature = "all|including-trash"
+    signature = "all|including-legacy-soft-deleted"
     cached = cached_folder_options(st.session_state, signature)
     if cached is not None:
         return tuple(str(value) for value in cached)
@@ -166,8 +119,8 @@ def _folder_options() -> tuple[str, ...]:
     return folders
 
 
-def _normalize_widget_state(*, sorts: tuple[str, ...], folders: tuple[str, ...]) -> None:
-    _ensure_choice(OPEN_PROJECT_SORT_KEY, sorts, sorts[0])
+def _normalize_widget_state(*, folders: tuple[str, ...]) -> None:
+    _ensure_choice(OPEN_PROJECT_SORT_KEY, _SORTS, "recent")
     _ensure_choice(OPEN_PROJECT_OWNER_FILTER_KEY, ("",) + PROJECT_OWNER_SLUGS, "")
     _ensure_choice(OPEN_PROJECT_FOLDER_FILTER_KEY, ("",) + folders, "")
 

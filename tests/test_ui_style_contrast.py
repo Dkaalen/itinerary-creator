@@ -54,7 +54,7 @@ def test_legacy_header_status_and_step_grid_stay_removed(monkeypatch):
     assert ".flow-nav," in css
     assert ".document-stage-panel," in css
     assert "display: none !important;" in css
-    assert "max-width: min(calc(100% - 3rem), 1480px)" in css
+    assert "max-width: min(calc(100% - 2rem), 1380px)" in css
     assert ".workflow-step-grid { display: none; }" not in css
     assert "data-testid=\"stSidebar\"" not in css
 
@@ -78,9 +78,9 @@ def test_open_project_calculator_and_local_library_surfaces_keep_readable_contra
 
     assert '.block-container:has(.project-explorer-heading) div[data-testid="stTextInput"] input' in css
     assert '.st-key-cloud_project_explorer [data-testid="stDataFrame"]' in css
-    assert '.cloud-project-detail-card strong' in css
-    assert 'color: #1f2630 !important;' in css
-    assert 'background: #ffffff;' in css
+    assert '.cloud-project-selected-title strong' in css
+    assert 'color: var(--ink) !important;' in css
+    assert 'background: #fff !important;' in css or 'background: var(--surface)' in css
     assert '.block-container:has(.calculator-heading) [data-testid="stExpander"]' in css
     assert '.block-container:has(.local-library-heading) [data-testid="stExpander"]' in css
     assert '.block-container:has(.calculator-heading) iframe' in css

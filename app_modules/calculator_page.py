@@ -70,15 +70,20 @@ def render_calculator_page(app_version: str) -> None:
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
     if CURRENCY_RATES_STATE_KEY not in st.session_state and library_read.currency_rates:
         st.session_state[CURRENCY_RATES_STATE_KEY] = dict(library_read.currency_rates)
-    currency_rates = render_currency_rate_editor(st.session_state)
-    render_local_library_status(library_read, refreshed=refresh_library)
-
     sync_calculator_itinerary_name_input(st.session_state)
-    itinerary_name = st.text_input(
-        "Itinerary name",
-        key=CALCULATOR_ITINERARY_NAME_INPUT_KEY,
-    )
+    with st.container(key="calculator_setup_bar"):
+        name_col, currency_col = st.columns([0.62, 0.38], gap="small", vertical_alignment="bottom")
+        with name_col:
+            itinerary_name = st.text_input(
+                "Itinerary name",
+                key=CALCULATOR_ITINERARY_NAME_INPUT_KEY,
+                placeholder="Name this calculation",
+            )
+        with currency_col:
+            currency_rates = render_currency_rate_editor(st.session_state)
     state = update_calculator_itinerary_name(st.session_state, itinerary_name)
+    with st.container(key="calculator_library_status"):
+        render_local_library_status(library_read, refreshed=refresh_library)
 
     pending_download = ready_calculation_download_payload(
         st.session_state,
@@ -214,6 +219,7 @@ def _render_calculator_header() -> None:
         <section class="workspace-page-heading calculator-heading">
           <span class="calculator-kicker">Calculator workspace</span>
           <h1>Calculator</h1>
+          <p>Build pricing, margins and itinerary rows in one workspace.</p>
         </section>
         """
     )

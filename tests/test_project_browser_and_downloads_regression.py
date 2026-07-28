@@ -57,7 +57,8 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "Search" in controls_source
     assert "Recently saved" in controls_source
     assert "Newest created" in controls_source
-    assert "Working as" in controls_source
+    assert "Working as" not in controls_source
+    assert "Owner" in controls_source
     assert "Manage multiple projects" not in controls_source
     assert "list_cloud_project_explorer_page" in ui_source
     assert 'st.container(border=True, key="cloud_project_explorer")' in ui_source
@@ -73,11 +74,13 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "render_calculation_files" not in list_source
     assert detail_source.count("render_calculation_files(project_id)") == 1
     assert "Save as copy" in detail_source
-    assert "Move to Trash" in detail_source
-    assert "Delete permanently" in detail_source
+    assert "Delete" in detail_source
+    assert "Delete permanently" not in detail_source
     assert "Change owner" in bulk_source
     assert "Move to folder/reference" in bulk_source
-    assert "Restore" in bulk_source
+    assert "Restore" not in bulk_source
+    assert "Delete projects" in bulk_source
+    assert "Delete permanently" in bulk_source
     assert "Prepare calculator file" in calculator_file_source
     assert "Download calculator file" in calculator_file_source
     assert "Delete file permanently" in calculator_file_source
@@ -89,7 +92,7 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "OPEN_PROJECT_BROWSER_VISIBLE_KEY" in ui_source
     assert ".st-key-cloud_project_explorer" in css
     assert '[data-testid="stDataFrame"]' in css
-    assert ".cloud-project-detail-card" in css
+    assert ".cloud-project-selected-strip" in css
     assert "Open a backup file" in ui_source
 
 

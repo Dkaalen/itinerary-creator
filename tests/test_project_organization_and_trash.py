@@ -518,7 +518,7 @@ def test_bulk_permanent_purge_reports_each_project_without_stopping_on_one_failu
     assert result.items[1].error == "database unavailable"
 
 
-def test_bulk_permanent_purge_rejects_active_or_missing_projects_before_cleanup(monkeypatch) -> None:
+def test_bulk_permanent_purge_accepts_active_projects_and_rejects_missing_projects(monkeypatch) -> None:
     repository = _repository(ManagementClient(trashed_ids={"project-1"}))
     deleted: list[str] = []
 
@@ -544,10 +544,10 @@ def test_bulk_permanent_purge_rejects_active_or_missing_projects_before_cleanup(
         ["project-1", "project-2", "project-missing"]
     )
 
-    assert deleted == ["project-1"]
-    assert result.deleted_ids == ("project-1",)
-    assert result.incomplete_ids == ("project-2", "project-missing")
-    assert result.items[1].error == "Move the project to Trash before permanently deleting it."
+    assert deleted == ["project-1", "project-2"]
+    assert result.deleted_ids == ("project-1", "project-2")
+    assert result.incomplete_ids == ("project-missing",)
+    assert result.items[1].complete is True
     assert result.items[2].error == "Project was not found."
 
 

@@ -87,12 +87,12 @@ div[class*="st-key-workflow_transaction_actions_"] {
 .st-key-input_generation_actions,
 .st-key-calculator_topbar,
 .st-key-local_library_topbar {
-    margin-left: clamp(2rem, 4.4vw, 3.6rem);
-    margin-right: clamp(2rem, 4.4vw, 3.6rem);
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .st-key-input_generation_actions {
-    margin-top: 1.35rem;
+    margin-top: .8rem;
 }
 
 div[class*="st-key-workflow_transaction_actions_"] {
@@ -162,8 +162,8 @@ div[class*="st-key-workflow_transaction_actions_"] {
     .st-key-input_generation_actions,
     .st-key-calculator_topbar,
     .st-key-local_library_topbar {
-        margin-left: .75rem;
-        margin-right: .75rem;
+        margin-left: 0;
+        margin-right: 0;
     }
 }
 

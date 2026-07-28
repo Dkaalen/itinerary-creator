@@ -199,7 +199,7 @@ def test_save_as_form_uses_new_identity_without_overwriting_current_project(monk
     monkeypatch.setattr(
         project_save_ui.st,
         "form_submit_button",
-        lambda label, **kwargs: label == "Save as new project",
+        lambda label, **kwargs: label == "Save as copy",
     )
     monkeypatch.setattr(
         project_save_ui,
@@ -220,6 +220,7 @@ def test_save_as_form_uses_new_identity_without_overwriting_current_project(monk
 
     monkeypatch.setattr(project_save_ui, "save_project_payload_snapshot", save)
     monkeypatch.setattr(project_save_ui.st, "success", lambda message: success_messages.append(str(message)))
+    monkeypatch.setattr(project_save_ui.st, "toast", lambda message, **kwargs: success_messages.append(str(message)))
 
     project_save_ui._render_save_as_form(key_suffix="test")
 
@@ -236,7 +237,7 @@ def test_save_as_form_uses_new_identity_without_overwriting_current_project(monk
     assert state["active_project_storage_id"] == "new-id"
     assert "project_save_as_visible" not in state
     assert "save_as_cloud_project_name_test" not in state
-    assert success_messages == ["New project saved to Supabase."]
+    assert success_messages == ["Copy saved"]
 
 
 def test_current_save_rejects_blank_project_name_before_remote_write(monkeypatch) -> None:

@@ -17,36 +17,38 @@ function buildToolbarHtml(state) {
         <div class="toolbar-group toolbar-group-delivery" aria-label="Files and output">
           <span class="toolbar-group-label">Files and output</span>
           <input class="calculator-excel-file-input" data-action="excel-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-          <button class="calc-btn" data-action="open-excel" title="Open a local calculation Excel file in this Calculator">Open Excel</button>
+          <button class="calc-btn" data-action="open-excel" title="Open a local calculation Excel file">Open Excel</button>
           <button class="${excelClass}" data-action="download" title="${excelTitle}">Download Excel</button>
-          <button class="calc-btn" data-action="generate-agent" title="Build an itinerary for an agent">Agent itinerary</button>
-          <button class="calc-btn" data-action="generate-customer" title="Build a customer-facing itinerary">Customer itinerary</button>
+          <button class="calc-btn" data-action="generate-agent">Agent itinerary</button>
+          <button class="calc-btn" data-action="generate-customer">Customer itinerary</button>
         </div>
       </div>
       <div class="calculator-toolbar-tools-row">
         <div class="toolbar-group toolbar-group-rows" aria-label="Row tools">
           <span class="toolbar-group-label">Rows</span>
-          <button class="calc-btn compact" data-action="add" data-count="1" title="Add one blank row">Add row</button>
-          <button class="calc-btn compact" data-action="add" data-count="5" title="Add five blank rows">Add 5</button>
-          <button class="calc-btn compact" data-action="insert-above" aria-label="Insert above" title="Insert a blank row above the selection">Above</button>
-          <button class="calc-btn compact" data-action="insert-below" aria-label="Insert below" title="Insert a blank row below the selection">Below</button>
-          <button class="calc-btn compact" data-action="duplicate" aria-label="Duplicate selected rows" title="Copy the selected row or rows">Duplicate</button>
-          <button class="calc-btn compact danger" data-action="delete" aria-label="Delete selected rows" title="Delete the selected row or rows">Delete</button>
+          <button class="calc-btn compact" data-action="add" data-count="1">Add row</button>
+          <button class="calc-btn compact" data-action="add" data-count="5">Add 5</button>
+          <button class="calc-btn compact" data-action="duplicate">Duplicate</button>
+          <button class="calc-btn compact danger" data-action="delete">Delete</button>
         </div>
         <div class="toolbar-group toolbar-group-edit" aria-label="Editing tools">
-          <span class="toolbar-group-label">Tools</span>
-          <button class="calc-btn compact" data-action="undo" ${undoDisabled} title="Undo the latest calculator edit">Undo</button>
-          <button class="calc-btn compact" data-action="redo" ${redoDisabled} title="Redo the latest undone edit">Redo</button>
-          <button class="calc-btn compact" data-action="fill-down" aria-label="Fill down" title="Copy the first selected cell down through the selection">Fill down</button>
-          <button class="calc-btn compact" data-action="fill-right" aria-label="Fill right" title="Copy the first selected cell across the selection">Fill right</button>
-          <button class="calc-btn compact" data-action="find-replace" title="Find or replace text in calculator cells">Find / replace</button>
+          <span class="toolbar-group-label">Edit</span>
+          <button class="calc-btn compact" data-action="undo" ${undoDisabled}>Undo</button>
+          <button class="calc-btn compact" data-action="redo" ${redoDisabled}>Redo</button>
+          <button class="calc-btn compact" data-action="find-replace">Find / replace</button>
         </div>
-        <div class="toolbar-group toolbar-group-view" aria-label="View tools">
-          <span class="toolbar-group-label">View</span>
-          <button class="calc-btn compact" data-action="version-history" title="Restore browser recovery snapshots">Versions (${(state.recoverySnapshots || []).length})</button>
-          <label class="advanced-toggle" title="Show additional financial and formula columns"><input type="checkbox" data-action="toggle-advanced" aria-label="Advanced columns" ${state.showAdvanced ? 'checked' : ''}> More columns</label>
-          <button class="calc-btn compact" data-action="toggle-fullscreen" title="Use the full browser window">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>
-        </div>
+        <details class="calculator-toolbar-more">
+          <summary>More tools</summary>
+          <div class="calculator-toolbar-more-panel">
+            <button class="calc-btn compact" data-action="insert-above">Insert above</button>
+            <button class="calc-btn compact" data-action="insert-below">Insert below</button>
+            <button class="calc-btn compact" data-action="fill-down">Fill down</button>
+            <button class="calc-btn compact" data-action="fill-right">Fill right</button>
+            <button class="calc-btn compact" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
+            <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> More columns</label>
+            <button class="calc-btn compact" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>
+          </div>
+        </details>
       </div>
     </div>
     <div class="calculator-status-row">

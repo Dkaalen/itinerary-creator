@@ -1,4 +1,4 @@
-"""Session-safe application actions for Project Explorer bulk management."""
+"""Session-safe application actions for Project Explorer management."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from app_modules.project_browser_state import (
     bump_project_table_revision,
     clear_bulk_action,
     invalidate_folder_options,
-    remember_selected_project,
+    remember_selected_projects,
 )
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.project_session_cleanup import clear_active_cloud_project_session
@@ -23,7 +23,7 @@ from app_modules.session_state_keys import (
     PROJECT_STORAGE_BROWSER_SUCCESS_KEY,
     PROJECT_STORAGE_BROWSER_WARNING_KEY,
 )
-from project_storage.project_results import ProjectBulkMutationResult, ProjectBulkPurgeResult
+from project_storage.project_results import ProjectBulkMutationResult
 
 
 def apply_owner_change(
@@ -34,9 +34,7 @@ def apply_owner_change(
     actor_slug: str,
 ) -> bool:
     result = update_cloud_project_organization(
-        tuple(project_ids),
-        owner_slug=owner_slug,
-        actor_slug=actor_slug,
+        tuple(project_ids), owner_slug=owner_slug, actor_slug=actor_slug
     )
     return _complete_mutation(
         state,
@@ -54,9 +52,7 @@ def apply_folder_change(
     actor_slug: str,
 ) -> bool:
     result = update_cloud_project_organization(
-        tuple(project_ids),
-        folder_name=folder_name,
-        actor_slug=actor_slug,
+        tuple(project_ids), folder_name=folder_name, actor_slug=actor_slug
     )
     destination = folder_name or "No folder"
     return _complete_mutation(
@@ -67,12 +63,15 @@ def apply_folder_change(
     )
 
 
+
 def apply_move_to_trash(
     state: MutableMapping[str, Any],
     project_ids: Sequence[str],
     *,
     actor_slug: str,
 ) -> bool:
+    """Legacy compatibility operation; no longer exposed by Project Explorer."""
+
     result = move_cloud_projects_to_trash(tuple(project_ids), actor_slug=actor_slug)
     completed = _complete_mutation(
         state,
@@ -91,6 +90,8 @@ def apply_restore_from_trash(
     *,
     actor_slug: str,
 ) -> bool:
+    """Legacy compatibility operation for already soft-deleted records."""
+
     result = restore_cloud_projects_from_trash(tuple(project_ids), actor_slug=actor_slug)
     return _complete_mutation(
         state,
@@ -99,14 +100,17 @@ def apply_restore_from_trash(
         invalidate_folders=True,
     )
 
-
-def apply_permanent_purge(
+def apply_delete_projects(
     state: MutableMapping[str, Any],
     project_ids: Sequence[str],
 ) -> bool:
+    """Permanently delete selected projects and preserve partial outcomes."""
+
     result = permanently_delete_cloud_projects(tuple(project_ids))
     if result is None:
-        state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = "Cloud storage is unavailable. No projects were deleted."
+        state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = (
+            "Cloud storage is unavailable. No projects were deleted."
+        )
         return False
     deleted_ids = result.deleted_ids
     if deleted_ids:
@@ -116,10 +120,18 @@ def apply_permanent_purge(
         failed = len(result.incomplete_ids)
         state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = (
             f"{failed} selected project{'s' if failed != 1 else ''} could not be fully deleted. "
-            "They remain available for cleanup or retry when their database record was retained."
+            "The retained records can be selected and retried."
         )
     _finish_management_action(state, invalidate_folders=True)
     return result.complete
+
+
+def apply_permanent_purge(
+    state: MutableMapping[str, Any], project_ids: Sequence[str]
+) -> bool:
+    """Compatibility alias for the former Trash workflow."""
+
+    return apply_delete_projects(state, project_ids)
 
 
 def _complete_mutation(
@@ -130,7 +142,9 @@ def _complete_mutation(
     invalidate_folders: bool,
 ) -> bool:
     if result is None:
-        state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = "Cloud storage is unavailable. No projects were changed."
+        state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = (
+            "Cloud storage is unavailable. No projects were changed."
+        )
         return False
     if result.affected_ids:
         state[PROJECT_STORAGE_BROWSER_SUCCESS_KEY] = success_template.format(
@@ -146,20 +160,25 @@ def _complete_mutation(
     return result.complete
 
 
-def _finish_management_action(state: MutableMapping[str, Any], *, invalidate_folders: bool) -> None:
-    remember_selected_project(state, "")
+def _finish_management_action(
+    state: MutableMapping[str, Any], *, invalidate_folders: bool
+) -> None:
+    remember_selected_projects(state, ())
     clear_bulk_action(state)
     bump_project_table_revision(state)
     if invalidate_folders:
         invalidate_folder_options(state)
 
 
-def _detach_active_project_if_affected(state: MutableMapping[str, Any], project_ids: Sequence[str]) -> None:
+def _detach_active_project_if_affected(
+    state: MutableMapping[str, Any], project_ids: Sequence[str]
+) -> None:
     active_id = active_project_id_from_state(state)
     if active_id and active_id in set(project_ids):
         clear_active_cloud_project_session(state)
         warning = (
-            "The open project was removed from cloud storage. Its current workspace remains available as unsaved work."
+            "The open project was deleted from cloud storage. "
+            "Its current workspace remains available as unsaved work."
         )
         existing = str(state.get(PROJECT_STORAGE_BROWSER_WARNING_KEY) or "").strip()
         state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = f"{existing} {warning}".strip()
@@ -171,9 +190,10 @@ def _count_label(project_ids: Sequence[str]) -> str:
 
 
 __all__ = [
+    "apply_delete_projects",
     "apply_folder_change",
     "apply_move_to_trash",
     "apply_owner_change",
-    "apply_permanent_purge",
     "apply_restore_from_trash",
+    "apply_permanent_purge",
 ]

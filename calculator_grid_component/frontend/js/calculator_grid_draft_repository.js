@@ -67,9 +67,14 @@
 
   function saveDraft(state, backendRevision) {
     if (!state || !Array.isArray(state.rows)) return false;
-    if (core.isLocalRecoveryPaused()) return true;
+    if (core.isLocalRecoveryPaused()) return false;
     const recovery = window.ItineraryCalculator.require('storage.recovery');
     const serialized = JSON.stringify(draftPayload(state, backendRevision));
+    if (core.utf8Bytes(serialized) > core.draftMaxBytes) {
+      core.pauseLocalRecovery();
+      core.setWarning('draft', 'Browser recovery storage is unavailable. Your current work remains open, but local recovery is paused.');
+      return false;
+    }
     recovery.pruneForDraft(serialized);
     try {
       window.localStorage.setItem(core.getDraftStorageKey(), serialized);
@@ -97,7 +102,8 @@
           return true;
         }
       }
-      core.setWarning('draft', 'This browser cannot store a local recovery copy right now. Calculator editing continues normally.');
+      core.pauseLocalRecovery();
+      core.setWarning('draft', 'Browser recovery storage is unavailable. Your current work remains open, but local recovery is paused.');
       core.updateStorageUsage();
       return false;
     }

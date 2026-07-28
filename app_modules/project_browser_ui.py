@@ -17,7 +17,9 @@ from app_modules.project_browser_state import (
     clear_open_candidate,
     clear_rename_candidate,
     remember_selected_project,
+    remember_selected_projects,
     selected_project_id,
+    selected_project_ids,
     set_browser_page_index,
     sync_project_query,
 )
@@ -67,7 +69,7 @@ def _render_open_project_workspace() -> None:
               <span class="project-explorer-folder">▰</span>
               <div>
                 <strong>Project Explorer</strong>
-                <span>Find, organize, open, copy, restore, or remove saved itineraries.</span>
+                <span>Find, organize, open, copy or delete saved itineraries.</span>
               </div>
             </div>
             """
@@ -88,7 +90,7 @@ def _render_open_project_workspace() -> None:
 
 
 def _render_cloud_project_browser() -> None:
-    """Render one exact-count server page as a compact file-explorer workspace."""
+    """Render one exact-count project page with durable table selection."""
 
     _render_browser_messages()
     with st.container(border=True, key="cloud_project_explorer"):
@@ -99,7 +101,7 @@ def _render_cloud_project_browser() -> None:
             sort=query.sort,
             owner_slug=query.owner_slug,
             folder_name=query.folder_name,
-            view=query.view,
+            view="projects",
         )
         page_index = browser_page_index(st.session_state)
         page, management_ready = _load_project_page(query, page_index=page_index)
@@ -113,52 +115,77 @@ def _render_cloud_project_browser() -> None:
             return
 
         active_id = active_project_id_from_state(st.session_state)
-        selected = _selected_project(page.projects)
-        st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
-        selection = _render_table(
-            page,
-            selected=selected,
-            active_id=active_id,
-            query=query,
-        )
-        selected_ids = selection.project_ids
+        st.markdown("#### Saved projects")
+        selection = _render_table(page, active_id=active_id, query=query)
+        selected_ids = _select_projects(selection.project_ids)
         if len(selected_ids) > 1:
             render_bulk_management_panel(page, selected_ids=selected_ids, query=query)
-        else:
-            selected_id = selection.primary_id
-            if selected_id:
-                if not selected or selected_id != str(selected.get("id") or ""):
-                    _select_project(selected_id)
-                selected = next(
-                    (project for project in page.projects if str(project.get("id") or "") == selected_id),
-                    selected,
-                )
+        elif len(selected_ids) == 1:
+            selected = next(
+                (
+                    project
+                    for project in page.projects
+                    if str(project.get("id") or "").strip() == selected_ids[0]
+                ),
+                None,
+            )
             render_selected_project_panel(selected, query=query)
+        else:
+            render_selected_project_panel(None, query=query)
 
         if not management_ready:
             st.caption(
                 "Basic project browsing is active. Apply the bundled Supabase organization migration "
-                "before using owner, folder and Trash features."
+                "before using owner and folder filters."
             )
 
+
+
+def _select_projects(project_ids: object) -> tuple[str, ...]:
+    """Apply durable table selection without erasing confirmations on harmless reruns."""
+
+    values = project_ids if isinstance(project_ids, (list, tuple, set)) else (project_ids,)
+    clean_ids = tuple(
+        dict.fromkeys(
+            str(value or "").strip()
+            for value in values
+            if str(value or "").strip()
+        )
+    )
+    previous = selected_project_ids(st.session_state)
+    if clean_ids == previous:
+        remember_selected_projects(st.session_state, clean_ids)
+        return clean_ids
+    remember_selected_projects(st.session_state, clean_ids)
+    clear_open_candidate(st.session_state)
+    clear_rename_candidate(st.session_state)
+    clear_delete_confirmation(st.session_state)
+    clear_file_delete_confirmation(st.session_state)
+    clear_bulk_action(st.session_state)
+    return clean_ids
+
+
+def _select_project(project_id: object) -> None:
+    """Compatibility helper for tests and older one-selection callers."""
+
+    _select_projects((project_id,) if str(project_id or "").strip() else ())
 
 def _render_table(
     page: ProjectPage,
     *,
-    selected: dict[str, object] | None,
     active_id: str,
     query: ProjectBrowserQuery,
 ) -> ProjectTableSelection:
     return render_project_table(
         page,
-        selected_project_id=str(selected.get("id") or "") if selected else "",
+        selected_project_id=selected_project_id(st.session_state),
         active_project_id=active_id,
         search=query.search,
         sort=query.sort,
         owner_slug=query.owner_slug,
         folder_name=query.folder_name,
-        view=query.view,
     )
+
 
 def _load_project_page(
     query: ProjectBrowserQuery,
@@ -173,13 +200,12 @@ def _load_project_page(
             sort=query.sort,
             owner_slug=query.owner_slug,
             folder_name=query.folder_name,
-            trash_only=query.trash_only,
+            trash_only=False,
         )
         return page, True
     except Exception:
         can_fallback = (
-            not query.trash_only
-            and not query.owner_slug
+            not query.owner_slug
             and not query.folder_name
             and query.sort in {"recent", "oldest", "name", "created_recent", "created_oldest"}
         )
@@ -203,22 +229,12 @@ def _load_project_page(
 
 
 def _render_empty_state(query: ProjectBrowserQuery) -> None:
-    if query.trash_only:
-        st.html(
-            """
-            <div class="cloud-project-empty-state">
-              <strong>Trash is empty</strong>
-              <span>Projects moved to Trash will appear here until restored or permanently deleted.</span>
-            </div>
-            """
-        )
-        return
     if query.search or query.owner_slug or query.folder_name:
         st.html(
             """
             <div class="cloud-project-empty-state">
               <strong>No matching projects</strong>
-              <span>Clear or adjust the filters to see more saved itineraries.</span>
+              <span>Reset or adjust the filters to see more saved itineraries.</span>
             </div>
             """
         )
@@ -227,35 +243,10 @@ def _render_empty_state(query: ProjectBrowserQuery) -> None:
         """
         <div class="cloud-project-empty-state">
           <strong>No cloud projects saved yet</strong>
-          <span>Use Save project to create the first intentional cloud project.</span>
+          <span>Use Save project to create the first cloud project.</span>
         </div>
         """
     )
-
-
-def _selected_project(projects: tuple[dict[str, object], ...]) -> dict[str, object] | None:
-    selected_id = selected_project_id(st.session_state)
-    selected = next((project for project in projects if str(project.get("id") or "") == selected_id), None)
-    if selected:
-        return selected
-    active_id = active_project_id_from_state(st.session_state)
-    selected = next((project for project in projects if str(project.get("id") or "") == active_id), projects[0])
-    remember_selected_project(st.session_state, selected.get("id"))
-    return selected
-
-
-def _select_project(project_id: str) -> None:
-    """Change the selected project without clearing actions on harmless reruns."""
-
-    clean_id = str(project_id or "").strip()
-    if selected_project_id(st.session_state) == clean_id:
-        return
-    remember_selected_project(st.session_state, clean_id)
-    clear_open_candidate(st.session_state)
-    clear_rename_candidate(st.session_state)
-    clear_delete_confirmation(st.session_state)
-    clear_file_delete_confirmation(st.session_state)
-    clear_bulk_action(st.session_state)
 
 
 def _render_browser_messages() -> None:

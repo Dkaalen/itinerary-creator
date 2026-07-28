@@ -118,7 +118,8 @@ def test_app_header_distinguishes_cloud_saved_from_cloud_dirty(monkeypatch):
     monkeypatch.setattr(app_header, "st", fake_st)
 
     app_header._render_app_header("v-test", stage="edit")
-    assert "Cloud saved" in calls[-1]
+    assert "Saved" in calls[-1]
+    assert "Cloud saved" not in calls[-1]
 
     session_state["output_edits"] = {"trip_title": "Edited title"}
     app_header._render_app_header("v-test", stage="edit")

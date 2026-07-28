@@ -120,8 +120,8 @@ def list_cloud_project_explorer_page(
         sort=sort,
         owner_slug=owner_slug,
         folder_name=folder_name,
-        include_trashed=trash_only,
-        trash_only=trash_only,
+        include_trashed=True,
+        trash_only=False,
     )
     return build_counted_project_page(
         result,

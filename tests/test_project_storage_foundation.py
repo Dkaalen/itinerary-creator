@@ -228,9 +228,11 @@ def test_project_browser_supports_paging_search_delete_and_lazy_file_downloads()
     assert "delete_cloud_itinerary_result" in service_source
     assert "Search" in controls_source
     assert "Manage multiple projects" not in controls_source
-    assert "Trash" in controls_source
-    assert "Move to Trash" in detail_source
-    assert "Delete permanently" in detail_source
+    assert "Trash" not in controls_source
+    assert "Move to Trash" not in detail_source
+    assert "Delete" in detail_source
+    assert "Delete" in detail_source
+    assert "Delete permanently" not in detail_source
     assert "render_calculation_files(project_id)" in detail_source
     assert "Calculator files" in calculator_file_source
 

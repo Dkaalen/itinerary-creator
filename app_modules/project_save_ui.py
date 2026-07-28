@@ -40,13 +40,31 @@ def render_save_project_file_action(*, key_suffix: str = "current") -> None:
 
 
 def _render_cloud_save_project_action(*, key_suffix: str) -> None:
+    persisted = active_cloud_project_is_persisted(st.session_state)
     with st.container(key="save_project_actions"):
-        save_col, save_as_col = st.columns([0.62, 0.38], gap="small")
-        with save_col:
-            save_label = "Save" if active_cloud_project_is_persisted(st.session_state) else "Save project"
-            save_clicked = st.button(save_label, use_container_width=True, key=f"save_cloud_project_{key_suffix}")
-        with save_as_col:
-            save_as_clicked = st.button("Save as", use_container_width=True, key=f"save_as_cloud_project_{key_suffix}")
+        if persisted:
+            save_col, save_as_col = st.columns([0.6, 0.4], gap="small")
+            with save_col:
+                save_clicked = st.button(
+                    "Save",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"save_cloud_project_{key_suffix}",
+                )
+            with save_as_col:
+                save_as_clicked = st.button(
+                    "Save as copy",
+                    use_container_width=True,
+                    key=f"save_as_cloud_project_{key_suffix}",
+                )
+        else:
+            save_clicked = st.button(
+                "Save project",
+                type="primary",
+                use_container_width=True,
+                key=f"save_cloud_project_{key_suffix}",
+            )
+            save_as_clicked = False
 
     if save_clicked:
         _save_current_cloud_project()
@@ -74,7 +92,7 @@ def _save_current_cloud_project() -> None:
         st.warning(str(error))
         return
     if save_project_payload_snapshot(st.session_state, project_file.payload, source_type="manual_save"):
-        st.success("Project saved to Supabase.")
+        _notify_saved("Project saved")
         return
     _report_failed_save(baseline)
 
@@ -96,7 +114,7 @@ def _render_save_as_form(*, key_suffix: str) -> None:
         with st.container(key="save_as_project_actions"):
             save_col, cancel_col = st.columns([0.66, 0.34], gap="small")
             with save_col:
-                save = st.form_submit_button("Save as new project", use_container_width=True)
+                save = st.form_submit_button("Save as copy", use_container_width=True, type="primary")
             with cancel_col:
                 cancel = st.form_submit_button("Cancel", use_container_width=True)
     if cancel:
@@ -125,10 +143,18 @@ def _render_save_as_form(*, key_suffix: str) -> None:
         project_was_persisted=False,
     ):
         _clear_save_as_state(key_suffix=key_suffix)
-        st.success("New project saved to Supabase.")
+        _notify_saved("Copy saved")
         return
     _report_failed_save(baseline)
 
+
+
+def _notify_saved(message: str) -> None:
+    toast = getattr(st, "toast", None)
+    if callable(toast):
+        toast(message, icon="✓")
+    else:
+        st.success(message)
 
 def _report_failed_save(baseline: dict[str, object]) -> None:
     message = str(st.session_state.get(PROJECT_STORAGE_LAST_ERROR_KEY) or storage_user_message("save"))

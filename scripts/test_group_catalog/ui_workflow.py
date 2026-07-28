@@ -128,6 +128,8 @@ UI_TESTS = (
     "tests/test_brand1_proposal_profiles.py",    "tests/test_app_header_design_reset.py",
     "tests/test_design_system_regression.py",
     "tests/test_application_layout_polish.py",
+    "tests/test_rendered_design_correction.py",
+    "tests/test_browser_storage_guard.py",
     "tests/test_itinerary_health_report.py",
     "tests/test_loading_loop_recovery.py",
     "tests/test_project_file_ui_facade.py",

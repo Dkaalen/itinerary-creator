@@ -8,7 +8,8 @@ def test_calculator_component_host_keeps_full_width_contract() -> None:
     css = style_calculator.CALCULATOR_PAGE_CSS
 
     assert '.block-container:has(.calculator-heading)' in css
-    assert 'min-width: min(100%, 980px) !important;' in css
+    assert 'min-width: 0 !important;' in css
+    assert 'min-width: min(100%, 980px) !important;' not in css
     assert 'iframe' in css
     assert 'width: 100% !important;' in css
     assert 'width: auto !important;' not in css.split('div[data-testid="stCustomComponentV1"]', 1)[-1].split('@media', 1)[0]
