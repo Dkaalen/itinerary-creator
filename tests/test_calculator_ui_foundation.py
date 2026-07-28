@@ -354,10 +354,13 @@ def test_old_streamlit_calculator_grid_config_module_is_removed() -> None:
     assert not Path("app_modules/calculator_grid_config.py").exists()
 
 
-def test_calculator_page_exposes_local_library_refresh_controls() -> None:
-    imports = _python_imported_names("app_modules/calculator_page.py")
+def test_calculator_page_owns_compact_library_refresh_navigation() -> None:
+    source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
 
-    assert "render_local_library_refresh_control" in imports
+    assert '"Refresh products"' in source
+    assert '"Local Library"' in source
+    assert '"Back to itinerary"' in source
+    assert "render_local_library_refresh_control" not in source
 
 
 def test_calculator_table_marks_automatic_sales_price_and_round_trips_it_as_none() -> None:
@@ -375,3 +378,28 @@ def test_calculator_table_marks_automatic_sales_price_and_round_trips_it_as_none
 
     restored = table_data_to_rows(table, (source,))
     assert restored[0].sales_price_per_unit is None
+
+
+def test_calculator_navigation_does_not_write_clean_browser_recovery() -> None:
+    page_source = Path("app_modules/calculator_page.py").read_text(encoding="utf-8")
+    state_source = Path(
+        "calculator_grid_component/frontend/js/calculator_grid_state_controller.js"
+    ).read_text(encoding="utf-8")
+    toolbar_source = Path(
+        "calculator_grid_component/frontend/js/calculator_grid_toolbar_render.js"
+    ).read_text(encoding="utf-8")
+    submission_source = Path(
+        "calculator_grid_component/frontend/js/calculator_grid_submission_actions.js"
+    ).read_text(encoding="utf-8")
+
+    assert "_render_app_header" not in page_source
+    assert '"Back to itinerary"' in page_source
+    assert "saveRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft" not in state_source
+    assert "if (!calculatorState?.dirty && !hasLocalDraft) return;" in state_source
+    assert "if (!calculatorState?.dirty) return;" in state_source
+    assert "if (calculatorState.dirty) window.ItineraryCalculator.storage.saveDraft" in submission_source
+    assert "Workspace synced" in toolbar_source
+    assert "Local changes" in toolbar_source
+    assert ">Open Excel<" in toolbar_source
+    assert 'data-action="close"' not in toolbar_source
+    assert 'data-action="open-library"' not in toolbar_source

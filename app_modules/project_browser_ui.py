@@ -100,7 +100,6 @@ def _render_cloud_project_browser() -> None:
             owner_slug=query.owner_slug,
             folder_name=query.folder_name,
             view=query.view,
-            manage_mode=query.manage_mode,
         )
         page_index = browser_page_index(st.session_state)
         page, management_ready = _load_project_page(query, page_index=page_index)
@@ -114,39 +113,26 @@ def _render_cloud_project_browser() -> None:
             return
 
         active_id = active_project_id_from_state(st.session_state)
-        selected = None if query.manage_mode else _selected_project(page.projects)
-        if query.manage_mode:
-            st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
-            selection = _render_table(
-                page,
-                selected=selected,
-                active_id=active_id,
-                query=query,
-            )
-            render_bulk_management_panel(
-                page,
-                selected_ids=selection.project_ids,
-                query=query,
-            )
-            return
-
-        list_col, detail_col = st.columns([0.70, 0.30], gap="large")
-        with list_col:
-            st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
-            selection = _render_table(
-                page,
-                selected=selected,
-                active_id=active_id,
-                query=query,
-            )
+        selected = _selected_project(page.projects)
+        st.markdown("#### Saved projects" if not query.trash_only else "#### Trash")
+        selection = _render_table(
+            page,
+            selected=selected,
+            active_id=active_id,
+            query=query,
+        )
+        selected_ids = selection.project_ids
+        if len(selected_ids) > 1:
+            render_bulk_management_panel(page, selected_ids=selected_ids, query=query)
+        else:
             selected_id = selection.primary_id
-            if selected_id and (not selected or selected_id != str(selected.get("id") or "")):
-                _select_project(selected_id)
+            if selected_id:
+                if not selected or selected_id != str(selected.get("id") or ""):
+                    _select_project(selected_id)
                 selected = next(
                     (project for project in page.projects if str(project.get("id") or "") == selected_id),
                     selected,
                 )
-        with detail_col:
             render_selected_project_panel(selected, query=query)
 
         if not management_ready:
@@ -172,9 +158,7 @@ def _render_table(
         owner_slug=query.owner_slug,
         folder_name=query.folder_name,
         view=query.view,
-        manage_mode=query.manage_mode,
     )
-
 
 def _load_project_page(
     query: ProjectBrowserQuery,
@@ -261,7 +245,12 @@ def _selected_project(projects: tuple[dict[str, object], ...]) -> dict[str, obje
 
 
 def _select_project(project_id: str) -> None:
-    remember_selected_project(st.session_state, project_id)
+    """Change the selected project without clearing actions on harmless reruns."""
+
+    clean_id = str(project_id or "").strip()
+    if selected_project_id(st.session_state) == clean_id:
+        return
+    remember_selected_project(st.session_state, clean_id)
     clear_open_candidate(st.session_state)
     clear_rename_candidate(st.session_state)
     clear_delete_confirmation(st.session_state)

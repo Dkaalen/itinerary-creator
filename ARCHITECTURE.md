@@ -48,7 +48,7 @@ Application styling is composed centrally by `ui/styles.py`; page modules may ex
 
 - `ui/style_forms.py` owns shared controls and compact form sizing. Large work areas such as supplier input are re-expanded only by their surface owner.
 - `ui/style_component_layout.py` owns cross-surface text fitting, shrink-safe Streamlit columns, responsive action rows, top bars, metrics and filter grids. It targets explicit `st.container(key=...)` namespaces rather than page-order selectors.
-- `ui/style_input_workspace.py`, `style_calculator.py`, `style_project_browser.py` and `style_export.py` own their respective page surfaces.
+- `ui/style_input_workspace.py`, `style_calculator.py`, `style_project_browser.py`, `style_project_browser_detail.py` and `style_export.py` own their respective page surfaces.
 - Custom editor and Calculator iframe styles remain inside their component packages and are not overridden by Streamlit page CSS.
 
 Button wrapping, mobile stacking and long-value overflow are presentation contracts only; they must not move workflow, storage, Calculator or export decisions into the style layer.

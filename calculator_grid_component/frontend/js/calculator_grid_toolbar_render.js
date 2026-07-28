@@ -14,13 +14,10 @@ function buildToolbarHtml(state) {
   return `
     <div class="calculator-toolbar">
       <div class="calculator-toolbar-main-row">
-        <div class="toolbar-group toolbar-group-navigation" aria-label="Workspace">
-          <button class="calc-btn" data-action="close" title="Return to the main workspace">Back</button>
-          <button class="calc-btn" data-action="open-library" title="View workbook source and refresh status">Local Library</button>
-        </div>
-        <div class="toolbar-group toolbar-group-delivery" aria-label="Delivery actions">
+        <div class="toolbar-group toolbar-group-delivery" aria-label="Files and output">
+          <span class="toolbar-group-label">Files and output</span>
           <input class="calculator-excel-file-input" data-action="excel-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-          <button class="calc-btn" data-action="open-excel" title="Open a local calculation Excel file in this Calculator">Open project</button>
+          <button class="calc-btn" data-action="open-excel" title="Open a local calculation Excel file in this Calculator">Open Excel</button>
           <button class="${excelClass}" data-action="download" title="${excelTitle}">Download Excel</button>
           <button class="calc-btn" data-action="generate-agent" title="Build an itinerary for an agent">Agent itinerary</button>
           <button class="calc-btn" data-action="generate-customer" title="Build a customer-facing itinerary">Customer itinerary</button>
@@ -55,7 +52,7 @@ function buildToolbarHtml(state) {
     <div class="calculator-status-row">
       <span>${escapeHtml(libraryText)}</span>
       ${excelReady ? '<span id="calculator-excel-ready-status" class="excel-ready-status">Excel ready</span>' : ''}
-      <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Unsaved changes' : 'Saved'))}</span>
+      <span id="calculator-sync-status" class="sync-status ${state.dirty ? 'dirty' : 'saved'}">${escapeHtml(state.syncStatus || (state.dirty ? 'Local changes' : 'Workspace synced'))}</span>
       ${recoveryStatusHtml}
     </div>`;
 }

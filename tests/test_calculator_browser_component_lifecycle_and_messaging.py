@@ -158,7 +158,7 @@ def test_backend_ack_clears_dirty_state_only_after_matching_request_is_accepted(
 
         assert page.evaluate("calculatorState.dirty") is False
         assert page.evaluate("activeBackendRevision") == "ack-server"
-        assert page.locator("#calculator-sync-status").text_content() == "Saved"
+        assert page.locator("#calculator-sync-status").text_content() == "Workspace synced"
     finally:
         browser.close()
         manager.stop()

@@ -68,7 +68,6 @@ OPEN_PROJECT_SORT_KEY = "open_project_sort"
 OPEN_PROJECT_OWNER_FILTER_KEY = "open_project_owner_filter"
 OPEN_PROJECT_FOLDER_FILTER_KEY = "open_project_folder_filter"
 OPEN_PROJECT_VIEW_KEY = "open_project_view"
-OPEN_PROJECT_MANAGE_MODE_KEY = "open_project_manage_mode"
 OPEN_PROJECT_ACTOR_KEY = "open_project_actor"
 PENDING_PROJECT_BACKUP_IMPORT_KEY = "pending_project_backup_import"
 

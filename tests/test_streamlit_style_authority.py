@@ -10,6 +10,7 @@ from ui import (
     style_component_layout,
     style_input_workspace,
     style_project_browser,
+    style_project_browser_detail,
     style_workspace_header,
 )
 
@@ -22,6 +23,7 @@ STYLE_MODULES = (
     Path("ui/style_component_layout.py"),
     Path("ui/style_input_workspace.py"),
     Path("ui/style_project_browser.py"),
+    Path("ui/style_project_browser_detail.py"),
 )
 
 
@@ -53,7 +55,7 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert "overflow-wrap: anywhere" in style_component_layout.CSS
     assert ".st-key-cloud_project_explorer" in style_project_browser.PROJECT_BROWSER_CSS
     assert "stDataFrame" in style_project_browser.PROJECT_BROWSER_CSS
-    assert ".cloud-project-detail-card" in style_project_browser.PROJECT_BROWSER_CSS
+    assert ".cloud-project-detail-card" in style_project_browser_detail.CSS
     assert "stVerticalBlockBorderWrapper" in style_project_browser.PROJECT_BROWSER_CSS
 
 
@@ -68,6 +70,7 @@ def test_composed_app_shell_preserves_all_split_sections_in_order() -> None:
             style_app_chrome.STREAMLIT_COMPONENT_CSS,
             style_input_workspace.SUPPLIER_PREVIEW_CSS,
             style_project_browser.PROJECT_BROWSER_CSS,
+            style_project_browser_detail.CSS,
         )
     )
 

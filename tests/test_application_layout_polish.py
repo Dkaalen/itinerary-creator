@@ -93,4 +93,5 @@ def test_calculator_back_action_can_fill_its_owned_topbar_column() -> None:
 
     assert "def render_back_to_main_page_button(*, use_container_width: bool = False)" in navigation
     assert "use_container_width=use_container_width" in navigation
-    assert "render_back_to_main_page_button(use_container_width=True)" in calculator_page
+    assert '"Back to itinerary"' in calculator_page
+    assert "close_calculator_page(st.session_state)" in calculator_page

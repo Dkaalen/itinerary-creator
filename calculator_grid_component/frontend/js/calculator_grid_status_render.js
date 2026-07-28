@@ -81,7 +81,7 @@ function refreshDownloadStateOnly() {
 function refreshSyncStatusOnly() {
   const element = document.getElementById('calculator-sync-status');
   if (!element) return;
-  element.textContent = calculatorState.syncStatus || (calculatorState.dirty ? 'Unsaved changes' : 'Saved');
+  element.textContent = calculatorState.syncStatus || (calculatorState.dirty ? 'Local changes' : 'Workspace synced');
   element.classList.toggle('dirty', Boolean(calculatorState.dirty));
   element.classList.toggle('saved', !calculatorState.dirty);
 }

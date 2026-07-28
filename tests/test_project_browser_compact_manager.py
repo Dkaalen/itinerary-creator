@@ -219,7 +219,6 @@ def test_manager_renders_one_bounded_page_and_one_selected_detail(monkeypatch) -
         "owner_slug": "",
         "folder_name": "",
         "view": "projects",
-        "manage_mode": False,
     }]
     assert detail_calls == [(page.projects[1], query)]
     assert st.session_state["open_project_selected_project_id"] == "project-2"
@@ -351,3 +350,28 @@ def test_project_table_key_changes_when_server_row_order_changes() -> None:
     assert _project_table_key(first, search="", sort="recent") != _project_table_key(
         reordered, search="", sort="recent"
     )
+
+
+def test_reselecting_same_project_preserves_pending_confirmation(monkeypatch) -> None:
+    import streamlit as st
+    from app_modules import project_browser_ui
+    from tests.support.streamlit_stub import SessionState
+
+    st.session_state = SessionState(
+        {
+            "open_project_selected_project_id": "project-1",
+            "open_project_rename_candidate_id": "project-1",
+            "open_project_unsaved_open_candidate_id": "project-1",
+        }
+    )
+
+    project_browser_ui._select_project("project-1")
+
+    assert st.session_state["open_project_rename_candidate_id"] == "project-1"
+    assert st.session_state["open_project_unsaved_open_candidate_id"] == "project-1"
+
+    project_browser_ui._select_project("project-2")
+
+    assert st.session_state["open_project_selected_project_id"] == "project-2"
+    assert "open_project_rename_candidate_id" not in st.session_state
+    assert "open_project_unsaved_open_candidate_id" not in st.session_state

@@ -14,7 +14,6 @@ from app_modules.project_storage_service import list_cloud_project_folders
 from app_modules.session_state_keys import (
     OPEN_PROJECT_ACTOR_KEY,
     OPEN_PROJECT_FOLDER_FILTER_KEY,
-    OPEN_PROJECT_MANAGE_MODE_KEY,
     OPEN_PROJECT_OWNER_FILTER_KEY,
     OPEN_PROJECT_SEARCH_KEY,
     OPEN_PROJECT_SORT_KEY,
@@ -58,7 +57,6 @@ class ProjectBrowserQuery:
     owner_slug: str = ""
     folder_name: str = ""
     view: str = "projects"
-    manage_mode: bool = False
     actor_slug: str = "dennis"
 
     @property
@@ -69,7 +67,7 @@ class ProjectBrowserQuery:
 def render_project_browser_controls() -> ProjectBrowserQuery:
     """Render compact server-query controls without searching on every keystroke."""
 
-    view, actor_slug, manage_mode = _render_mode_controls()
+    view, actor_slug = _render_mode_controls()
     folders = _folder_options()
     sorts = _TRASH_SORTS if view == "trash" else _ACTIVE_SORTS
     _normalize_widget_state(sorts=sorts, folders=folders)
@@ -128,15 +126,14 @@ def render_project_browser_controls() -> ProjectBrowserQuery:
         owner_slug=str(owner_slug or ""),
         folder_name=str(folder_name or ""),
         view=view,
-        manage_mode=manage_mode,
         actor_slug=actor_slug,
     )
 
 
-def _render_mode_controls() -> tuple[str, str, bool]:
+def _render_mode_controls() -> tuple[str, str]:
     _ensure_choice(OPEN_PROJECT_VIEW_KEY, _VIEW_LABELS, "projects")
     _ensure_choice(OPEN_PROJECT_ACTOR_KEY, PROJECT_ACTOR_SLUGS, "dennis")
-    view_col, actor_col, manage_col = st.columns([0.34, 0.33, 0.33], gap="small")
+    view_col, actor_col = st.columns([0.42, 0.58], gap="small")
     with view_col:
         view = st.selectbox(
             "View",
@@ -152,13 +149,7 @@ def _render_mode_controls() -> tuple[str, str, bool]:
             format_func=lambda value: PROJECT_OWNER_LABELS[value],
             help="Used for project organization and Trash history. This is not access control.",
         )
-    with manage_col:
-        manage_mode = st.checkbox(
-            "Manage multiple projects",
-            key=OPEN_PROJECT_MANAGE_MODE_KEY,
-            help="Select several rows to change owner/folder, move to Trash, restore or permanently delete.",
-        )
-    return str(view), str(actor_slug), bool(manage_mode)
+    return str(view), str(actor_slug)
 
 
 def _folder_options() -> tuple[str, ...]:

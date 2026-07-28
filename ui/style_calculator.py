@@ -35,7 +35,7 @@ CALCULATOR_PAGE_CSS = r""".calculator-heading {
     display: block !important;
     width: calc(100% - clamp(3rem, 6vw, 5.3rem)) !important;
     max-width: calc(100% - clamp(3rem, 6vw, 5.3rem)) !important;
-    min-width: min(100%, 980px) !important;
+    min-width: 0 !important;
     margin-left: clamp(1.5rem, 3vw, 2.65rem) !important;
     margin-right: clamp(1.5rem, 3vw, 2.65rem) !important;
 }
@@ -55,6 +55,26 @@ CALCULATOR_PAGE_CSS = r""".calculator-heading {
 .block-container:has(.calculator-heading) [data-testid="stAlert"] *,
 .block-container:has(.calculator-heading) [data-testid="stExpander"] * {
     color: var(--ink) !important;
+}
+
+.st-key-calculator_topbar {
+    margin: .25rem clamp(1.5rem, 3vw, 2.65rem) 1.1rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid rgba(207, 196, 179, .72);
+}
+.st-key-calculator_topbar button {
+    min-height: 2.75rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+    .st-key-calculator_topbar [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap;
+    }
+    .st-key-calculator_topbar [data-testid="column"] {
+        flex: 1 1 min(100%, 13rem) !important;
+        min-width: min(100%, 13rem) !important;
+    }
 }
 
 @media (max-width: 740px) {

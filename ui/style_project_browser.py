@@ -244,5 +244,6 @@ PROJECT_BROWSER_CSS = r""".st-key-cloud_project_explorer {
         flex-direction: column;
     }
 }
+
 """
 CSS = "\n".join((PROJECT_COPY_CSS, PROJECT_BROWSER_CSS))

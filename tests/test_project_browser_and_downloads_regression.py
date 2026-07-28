@@ -58,7 +58,7 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "Recently saved" in controls_source
     assert "Newest created" in controls_source
     assert "Working as" in controls_source
-    assert "Manage multiple projects" in controls_source
+    assert "Manage multiple projects" not in controls_source
     assert "list_cloud_project_explorer_page" in ui_source
     assert 'st.container(border=True, key="cloud_project_explorer")' in ui_source
     assert "render_project_table(" in ui_source
@@ -68,15 +68,15 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert 'st.dataframe(' in list_source
     assert 'height=PROJECT_TABLE_HEIGHT' in list_source
     assert 'on_select="rerun"' in list_source
-    assert 'selection_mode="multi-row" if manage_mode else "single-row"' in list_source
+    assert 'selection_mode="multi-row"' in list_source
     assert "st.popover" not in list_source
     assert "render_calculation_files" not in list_source
     assert detail_source.count("render_calculation_files(project_id)") == 1
     assert "Save as copy" in detail_source
     assert "Move to Trash" in detail_source
     assert "Delete permanently" in detail_source
-    assert "Apply owner" in bulk_source
-    assert "Apply folder" in bulk_source
+    assert "Change owner" in bulk_source
+    assert "Move to folder/reference" in bulk_source
     assert "Restore" in bulk_source
     assert "Prepare calculator file" in calculator_file_source
     assert "Download calculator file" in calculator_file_source

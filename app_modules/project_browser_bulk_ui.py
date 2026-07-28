@@ -54,8 +54,7 @@ def render_bulk_management_panel(
     if query.trash_only:
         _render_trash_actions(project_ids, project_names, query=query)
     else:
-        _render_organization_actions(project_ids, query=query)
-        _render_move_to_trash_action(project_ids, project_names)
+        _render_organization_actions(project_ids, project_names=project_names, query=query)
 
 
 def render_pending_project_action_confirmation(query: ProjectBrowserQuery) -> bool:
@@ -73,17 +72,31 @@ def render_pending_project_action_confirmation(query: ProjectBrowserQuery) -> bo
     return True
 
 
-def _render_organization_actions(project_ids: tuple[str, ...], *, query: ProjectBrowserQuery) -> None:
-    owner_col, folder_col = st.columns(2, gap="small")
-    with owner_col:
-        with st.form("bulk_project_owner_form", border=True):
+def _render_organization_actions(
+    project_ids: tuple[str, ...],
+    *,
+    project_names: tuple[str, ...],
+    query: ProjectBrowserQuery,
+) -> None:
+    action = st.selectbox(
+        "Bulk action",
+        ("owner", "folder", "trash"),
+        format_func=lambda value: {
+            "owner": "Change owner",
+            "folder": "Move to folder/reference",
+            "trash": "Move to Trash",
+        }[value],
+        key="bulk_project_action_choice",
+    )
+    if action == "owner":
+        with st.form("bulk_project_owner_form", border=False):
             owner_slug = st.selectbox(
-                "Set owner",
+                "New owner",
                 PROJECT_OWNER_SLUGS,
                 format_func=lambda value: PROJECT_OWNER_LABELS[value],
                 key="bulk_project_owner_value",
             )
-            update_owner = st.form_submit_button("Apply owner", use_container_width=True)
+            update_owner = st.form_submit_button("Apply to selected", use_container_width=True, type="primary")
         if update_owner:
             try:
                 apply_owner_change(
@@ -98,15 +111,16 @@ def _render_organization_actions(project_ids: tuple[str, ...], *, query: Project
                 st.error(storage_user_message("save"))
             else:
                 st.rerun()
-    with folder_col:
-        with st.form("bulk_project_folder_form", border=True):
+        return
+    if action == "folder":
+        with st.form("bulk_project_folder_form", border=False):
             folder_name = st.text_input(
-                "Set folder/reference",
+                "Folder/reference",
                 key="bulk_project_folder_value",
                 max_chars=80,
                 placeholder="ITIN-2020 (leave blank to clear)",
             )
-            update_folder = st.form_submit_button("Apply folder", use_container_width=True)
+            update_folder = st.form_submit_button("Apply to selected", use_container_width=True, type="primary")
         if update_folder:
             try:
                 apply_folder_change(
@@ -121,7 +135,8 @@ def _render_organization_actions(project_ids: tuple[str, ...], *, query: Project
                 st.error(storage_user_message("save"))
             else:
                 st.rerun()
-
+        return
+    _render_move_to_trash_action(project_ids, project_names)
 
 def _render_move_to_trash_action(project_ids: tuple[str, ...], project_names: tuple[str, ...]) -> None:
     if st.button(

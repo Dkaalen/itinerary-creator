@@ -70,7 +70,8 @@ def test_calculator_and_local_library_have_plain_workspace_headers() -> None:
     assert _contains("app_modules/calculator_page.py", "Calculator workspace")
     assert _contains("app_modules/calculator_page.py", "<h1>Calculator</h1>")
     assert _omits("app_modules/calculator_page.py", "Price the itinerary before it becomes a document")
-    assert _contains("app_modules/calculator_page.py", "render_back_to_main_page_button")
+    assert _contains("app_modules/calculator_page.py", "Back to itinerary")
+    assert _contains("app_modules/calculator_page.py", "close_calculator_page")
     assert _contains("app_modules/calculator_navigation.py", "Back to main page")
     assert _contains("calculator_grid_component/frontend/js/calculator_grid_toolbar_render.js", "Local Library")
     assert "_render_local_library_header" in library_calls

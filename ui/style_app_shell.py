@@ -9,6 +9,7 @@ from ui import (
     style_calculator,
     style_input_workspace,
     style_project_browser,
+    style_project_browser_detail,
     style_workspace_header,
 )
 
@@ -22,5 +23,6 @@ CSS = "".join(
         style_app_chrome.STREAMLIT_COMPONENT_CSS,
         style_input_workspace.SUPPLIER_PREVIEW_CSS,
         style_project_browser.PROJECT_BROWSER_CSS,
+        style_project_browser_detail.CSS,
     )
 )

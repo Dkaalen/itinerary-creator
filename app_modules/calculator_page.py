@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app_modules.app_header import _render_app_header
 from app_modules.calculator_action_policy import (
     calculator_action_updates_session_state,
     calculator_action_validation_issues,
@@ -28,11 +27,12 @@ from app_modules.calculator_library_transport import (
     apply_calculator_library_transport_result,
     calculator_library_browser_ack,
 )
-from app_modules.calculator_library_controls import (
-    render_local_library_refresh_control,
-    render_local_library_status,
+from app_modules.calculator_library_controls import render_local_library_status
+from app_modules.calculator_navigation import (
+    calculator_draft_namespace,
+    close_calculator_page,
+    open_local_library_page,
 )
-from app_modules.calculator_navigation import calculator_draft_namespace, render_back_to_main_page_button
 from app_modules.calculator_session_state import (
     apply_calculator_grid_result,
     calculator_state_from_session,
@@ -60,14 +60,13 @@ def render_calculator_page(app_version: str) -> None:
 
     _render_calculator_page_css()
     state = calculator_state_from_session(st.session_state)
-    _render_app_header(app_version, stage="input")
-    _render_calculator_topbar()
+    del app_version
+    refresh_library = _render_calculator_topbar()
     _render_calculator_header()
     _render_calculator_notice()
     if render_pending_calculator_import_confirmation():
         return
     _render_generation_feedback()
-    refresh_library = render_local_library_refresh_control()
     library_read = read_cached_local_library(st.session_state, force_refresh=refresh_library)
     if CURRENCY_RATES_STATE_KEY not in st.session_state and library_read.currency_rates:
         st.session_state[CURRENCY_RATES_STATE_KEY] = dict(library_read.currency_rates)
@@ -171,15 +170,42 @@ def _apply_component_result(result: CalculatorGridResult) -> CalculatorState:
     return apply_calculator_grid_result(st.session_state, result)
 
 
-def _render_calculator_topbar() -> None:
-    """Render page-level branding and a reliable route back to the workspace."""
+def _render_calculator_topbar() -> bool:
+    """Render the Calculator's single navigation and source-control bar."""
 
     with st.container(key="calculator_topbar"):
-        brand_col, back_col = st.columns([0.76, 0.24], gap="small", vertical_alignment="center")
+        brand_col, refresh_col, library_col, back_col = st.columns(
+            [0.48, 0.16, 0.16, 0.20],
+            gap="small",
+            vertical_alignment="center",
+        )
         with brand_col:
             render_studio_brand()
+        with refresh_col:
+            refresh_requested = st.button(
+                "Refresh products",
+                key="calculator_refresh_local_library",
+                help="Reload autocomplete products from the bundled Excel workbook.",
+                use_container_width=True,
+            )
+        with library_col:
+            if st.button(
+                "Local Library",
+                key="calculator_open_local_library",
+                use_container_width=True,
+            ):
+                open_local_library_page(st.session_state)
+                st.rerun()
         with back_col:
-            render_back_to_main_page_button(use_container_width=True)
+            if st.button(
+                "Back to itinerary",
+                key="calculator_back_to_itinerary",
+                help="Return without clearing the Calculator workspace.",
+                use_container_width=True,
+            ):
+                close_calculator_page(st.session_state)
+                st.rerun()
+    return bool(refresh_requested)
 
 
 def _render_calculator_header() -> None:

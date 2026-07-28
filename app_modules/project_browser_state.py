@@ -112,7 +112,6 @@ def sync_project_query(
     owner_slug: object = "",
     folder_name: object = "",
     view: object = "projects",
-    manage_mode: object = False,
 ) -> bool:
     """Reset paging/selection when the list query changes."""
 
@@ -123,7 +122,6 @@ def sync_project_query(
             str(owner_slug or "").strip().casefold(),
             " ".join(str(folder_name or "").split()).casefold(),
             str(view or "projects").strip().casefold(),
-            "manage" if bool(manage_mode) else "browse",
         )
     )
     previous = str(state.get(PROJECT_QUERY_SIGNATURE_KEY) or "")

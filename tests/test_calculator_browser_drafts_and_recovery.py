@@ -86,7 +86,7 @@ def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
 
         assert page.evaluate("calculatorState.rows[0].gross_price_per_unit") == "=10/0"
         assert page.evaluate("calculatorState.dirty") is True
-        assert page.locator("#calculator-sync-status").text_content() == "Unsaved browser draft restored"
+        assert page.locator("#calculator-sync-status").text_content() == "Local changes restored"
     finally:
         browser.close()
         manager.stop()

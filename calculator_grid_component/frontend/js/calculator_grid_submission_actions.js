@@ -12,7 +12,7 @@ function submitAction(action) {
     refreshValidationAndStatus(false);
     return;
   }
-  window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
+  if (calculatorState.dirty) window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   const requestId = beginCalculatorRequest(action);
   if (!requestId) return;
   const rows = normalizeRowsForPython(calculatorState.rows);

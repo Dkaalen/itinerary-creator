@@ -41,7 +41,6 @@ def render_project_table(
     owner_slug: str = "",
     folder_name: str = "",
     view: str = "projects",
-    manage_mode: bool = False,
 ) -> ProjectTableSelection:
     """Render one bounded project page and return durable selected IDs."""
 
@@ -57,7 +56,7 @@ def render_project_table(
         use_container_width=True,
         height=PROJECT_TABLE_HEIGHT,
         on_select="rerun",
-        selection_mode="multi-row" if manage_mode else "single-row",
+        selection_mode="multi-row",
         key=_project_table_key(
             page,
             search=search,
@@ -65,15 +64,12 @@ def render_project_table(
             owner_slug=owner_slug,
             folder_name=folder_name,
             view=view,
-            manage_mode=manage_mode,
             revision=project_table_revision(st.session_state),
         ),
         column_config=_column_config(trash_only=trash_only),
     )
     _render_page_navigation(page)
     selected_from_event = project_ids_from_table_event(event, page)
-    if manage_mode:
-        return ProjectTableSelection(selected_from_event)
     return ProjectTableSelection(selected_from_event or ((selected_project_id,) if selected_project_id else ()))
 
 
@@ -143,7 +139,6 @@ def _project_table_key(
     owner_slug: str = "",
     folder_name: str = "",
     view: str = "projects",
-    manage_mode: bool = False,
     revision: int = 0,
 ) -> str:
     ordered_ids = "|".join(str(project.get("id") or "").strip() for project in page.projects)
@@ -154,7 +149,6 @@ def _project_table_key(
             str(owner_slug or "").strip().casefold(),
             " ".join(str(folder_name or "").split()).casefold(),
             str(view or "projects").strip().casefold(),
-            "manage" if manage_mode else "browse",
             str(max(0, int(revision))),
             ordered_ids,
         )

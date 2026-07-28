@@ -19,7 +19,7 @@ function initializeState(payload) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
     hasLocalDraft = true;
     calculatorState.dirty = true;
-    calculatorState.syncStatus = 'Unsaved changes';
+    calculatorState.syncStatus = 'Local changes';
     window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
     return;
   }
@@ -48,7 +48,7 @@ function initializeState(payload) {
     activeSuggestion: null,
     validationErrors: [],
     dirty: Boolean(useStoredDraft),
-    syncStatus: useStoredDraft ? 'Unsaved browser draft restored' : 'Saved',
+    syncStatus: useStoredDraft ? 'Local changes restored' : 'Workspace synced',
     selection: useStoredDraft && storedDraft.selection ? {...storedDraft.selection} : null,
     columnWidths: useStoredDraft ? {...(storedDraft.columnWidths || {})} : {},
     showFindReplace: false,
@@ -69,7 +69,6 @@ function initializeState(payload) {
   activeProjectIdentity = incomingProjectIdentity;
   hasLocalDraft = Boolean(useStoredDraft);
   validateCalculatorState(calculatorState);
-  calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, useStoredDraft ? 'draft restored' : 'loaded');
   if (useStoredDraft) window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
   if (ackOutcome.matched && !ackOutcome.accepted) {
     calculatorState.syncStatus = ackOutcome.message || 'Older Calculator action was not applied';
@@ -115,7 +114,7 @@ function markLocalDraft(captureVersion = true, runValidation = true) {
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.pendingDownload = null;
-  calculatorState.syncStatus = 'Unsaved changes';
+  calculatorState.syncStatus = 'Local changes';
   if (runValidation) validateCalculatorState(calculatorState);
   scheduleLocalDraftSave();
   if (captureVersion) scheduleRecoverySnapshot();
@@ -134,6 +133,7 @@ function scheduleLocalDraftSave(delay = LOCAL_DRAFT_SAVE_DELAY_MS) {
 function flushLocalDraftSave() {
   window.clearTimeout(localDraftSaveTimer);
   localDraftSaveTimer = null;
+  if (!calculatorState?.dirty && !hasLocalDraft) return;
   window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
 }
 
@@ -149,6 +149,7 @@ function scheduleRecoverySnapshot(reason = 'edit', delay = RECOVERY_SNAPSHOT_DEL
 function flushRecoverySnapshot(reason = 'edit') {
   window.clearTimeout(recoverySnapshotTimer);
   recoverySnapshotTimer = null;
+  if (!calculatorState?.dirty) return;
   calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, reason);
   refreshVersionHistoryCount();
 }

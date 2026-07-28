@@ -41,7 +41,7 @@ def render_selected_project_panel(
     """Render metadata and actions for only the selected project."""
 
     query = query or ProjectBrowserQuery()
-    st.markdown("#### Details")
+    st.markdown("#### Selected project")
     if not project:
         st.caption("Select a project row to view details and available actions.")
         return
@@ -142,15 +142,16 @@ def _render_project_actions(
                 st.rerun()
         return
 
-    if st.button(
-        "Project is open" if is_active else "Open project",
-        key=f"open_selected_cloud_project_{project_id}",
-        use_container_width=True,
-        type="primary",
-        disabled=is_active,
-    ):
-        request_open_cloud_project(project_id)
-    rename_col, duplicate_col = st.columns(2, gap="small")
+    open_col, rename_col, duplicate_col, trash_col = st.columns([0.34, 0.22, 0.22, 0.22], gap="small")
+    with open_col:
+        if st.button(
+            "Project is open" if is_active else "Open project",
+            key=f"open_selected_cloud_project_{project_id}",
+            use_container_width=True,
+            type="primary",
+            disabled=is_active,
+        ):
+            request_open_cloud_project(project_id)
     with rename_col:
         if st.button(
             "Rename",
@@ -167,20 +168,21 @@ def _render_project_actions(
             use_container_width=True,
         ):
             duplicate_cloud_project_action(project_id, name)
-    if st.button(
-        "Move to Trash",
-        key=f"trash_selected_cloud_project_{project_id}",
-        use_container_width=True,
-    ):
-        clear_open_candidate(st.session_state)
-        clear_rename_candidate(st.session_state)
-        remember_bulk_action(
-            st.session_state,
-            action="trash",
-            project_ids=(project_id,),
-            project_names=(name,),
-        )
-        st.rerun()
+    with trash_col:
+        if st.button(
+            "Move to Trash",
+            key=f"trash_selected_cloud_project_{project_id}",
+            use_container_width=True,
+        ):
+            clear_open_candidate(st.session_state)
+            clear_rename_candidate(st.session_state)
+            remember_bulk_action(
+                st.session_state,
+                action="trash",
+                project_ids=(project_id,),
+                project_names=(name,),
+            )
+            st.rerun()
 
 
 def _render_open_confirmation(project_id: str, name: str) -> None:
