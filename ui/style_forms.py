@@ -5,6 +5,7 @@ CSS = r"""
 div[data-testid="stButton"] button,
 .stDownloadButton button,
 div[data-testid="stDownloadButton"] button,
+div[data-testid="stFormSubmitButton"] button,
 button[kind="secondary"],
 button[data-testid="baseButton-secondary"],
 [data-testid="stBaseButton-secondary"],
@@ -23,7 +24,8 @@ button[data-testid="baseButton-primary"],
 .stButton button:hover,
 div[data-testid="stButton"] button:hover,
 .stDownloadButton button:hover,
-div[data-testid="stDownloadButton"] button:hover {
+div[data-testid="stDownloadButton"] button:hover,
+div[data-testid="stFormSubmitButton"] button:hover {
     transform: translateY(-1px) !important;
     border-color: rgba(118, 107, 94, 0.58) !important;
     box-shadow: 0 8px 18px rgba(31, 38, 48, 0.07) !important;
@@ -33,6 +35,7 @@ div[data-testid="stDownloadButton"] button:hover {
 div[data-testid="stButton"] button[kind="primary"],
 .stDownloadButton button[kind="primary"],
 div[data-testid="stDownloadButton"] button[kind="primary"],
+div[data-testid="stFormSubmitButton"] button[kind="primary"],
 button[data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"] {
     background: var(--primary-action) !important;
@@ -44,6 +47,7 @@ button[data-testid="baseButton-primary"],
 div[data-testid="stButton"] button[kind="primary"] *,
 .stDownloadButton button[kind="primary"] *,
 div[data-testid="stDownloadButton"] button[kind="primary"] *,
+div[data-testid="stFormSubmitButton"] button[kind="primary"] *,
 button[data-testid="baseButton-primary"] *,
 [data-testid="stBaseButton-primary"] * {
     color: var(--primary-action-text) !important;
@@ -53,6 +57,7 @@ button[data-testid="baseButton-primary"] *,
 div[data-testid="stButton"] button[kind="primary"]:hover,
 .stDownloadButton button[kind="primary"]:hover,
 div[data-testid="stDownloadButton"] button[kind="primary"]:hover,
+div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
 button[data-testid="baseButton-primary"]:hover,
 [data-testid="stBaseButton-primary"]:hover {
     background: var(--primary-action-hover) !important;
@@ -62,6 +67,7 @@ button[data-testid="baseButton-primary"]:hover,
 div[data-testid="stButton"] button:not([kind="primary"]),
 .stDownloadButton button:not([kind="primary"]),
 div[data-testid="stDownloadButton"] button:not([kind="primary"]),
+div[data-testid="stFormSubmitButton"] button:not([kind="primary"]),
 button[data-testid="baseButton-secondary"],
 [data-testid="stBaseButton-secondary"] {
     background: var(--action) !important;
@@ -73,6 +79,7 @@ button[data-testid="baseButton-secondary"],
 div[data-testid="stButton"] button:not([kind="primary"]) *,
 .stDownloadButton button:not([kind="primary"]) *,
 div[data-testid="stDownloadButton"] button:not([kind="primary"]) *,
+div[data-testid="stFormSubmitButton"] button:not([kind="primary"]) *,
 button[data-testid="baseButton-secondary"] *,
 [data-testid="stBaseButton-secondary"] * {
     color: var(--action-text) !important;
@@ -99,29 +106,28 @@ div[data-testid="stHorizontalBlock"]:has(.studio-brand-link) .stButton button:ho
     box-shadow: 0 8px 18px rgba(31, 38, 48, .055) !important;
 }
 
-.stButton button:disabled,
-div[data-testid="stButton"] button:disabled,
-.stDownloadButton button:disabled,
-div[data-testid="stDownloadButton"] button:disabled,
-button:disabled,
-button[disabled] {
-    background: #eeece6 !important;
-    color: #85837a !important;
-    border-color: #ded8cc !important;
-    opacity: 1 !important;
-    box-shadow: none !important;
-    transform: none !important;
-}
-
-div[data-testid="stTextArea"] textarea,
-div[data-testid="stTextInput"] input,
-div[data-testid="stNumberInput"] input,
+/* Paint the stable BaseWeb control shell once; inner fields remain transparent. */
+div[data-testid="stTextInput"] [data-baseweb="input"],
+div[data-testid="stNumberInput"] [data-baseweb="input"],
+div[data-testid="stTextArea"] [data-baseweb="base-input"],
 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
     background: rgba(255, 253, 248, 0.72) !important;
     color: var(--ink) !important;
     border: 1px solid var(--line-strong) !important;
     border-radius: var(--radius-control) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72), var(--shadow-control) !important;
+    outline: none !important;
+    overflow: hidden !important;
+}
+
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stTextArea"] textarea {
+    background: transparent !important;
+    color: var(--ink) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     outline: none !important;
 }
 
@@ -135,15 +141,6 @@ div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
     font-size: .96rem !important;
 }
 
-div[data-baseweb="base-input"],
-[data-baseweb="input"],
-[data-baseweb="textarea"],
-[data-baseweb="select"] {
-    background: transparent !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
 div[data-testid="stTextArea"] textarea {
     font-family: inherit !important;
     font-size: .96rem !important;
@@ -152,16 +149,17 @@ div[data-testid="stTextArea"] textarea {
     min-height: 8rem !important;
 }
 
-div[data-testid="stTextArea"] textarea:focus,
-div[data-testid="stTextInput"] input:focus,
-div[data-testid="stNumberInput"] input:focus {
+div[data-testid="stTextInput"] [data-baseweb="input"]:focus-within,
+div[data-testid="stNumberInput"] [data-baseweb="input"]:focus-within,
+div[data-testid="stTextArea"] [data-baseweb="base-input"]:focus-within,
+div[data-testid="stSelectbox"] [data-baseweb="select"]:focus-within > div {
     border-color: rgba(118, 107, 94, 0.72) !important;
     box-shadow: 0 0 0 3px rgba(168, 153, 134, 0.15), inset 0 1px 0 rgba(255,255,255,.72) !important;
 }
 
 div[data-testid="stTextArea"] textarea::placeholder,
 div[data-testid="stTextInput"] input::placeholder {
-    color: #85827a !important;
+    color: #716f69 !important;
     opacity: 1 !important;
 }
 
@@ -177,8 +175,11 @@ div[data-testid="stTextInput"] input::placeholder {
 }
 
 /* Disabled controls must remain readable and must never retain a dark primary fill. */
+.stButton button:disabled,
 div[data-testid="stButton"] button:disabled,
+.stDownloadButton button:disabled,
 div[data-testid="stDownloadButton"] button:disabled,
+div[data-testid="stFormSubmitButton"] button:disabled,
 button[data-testid="baseButton-primary"]:disabled,
 button[data-testid="baseButton-secondary"]:disabled,
 button[disabled] {
@@ -186,9 +187,14 @@ button[disabled] {
     color: #65625c !important;
     border-color: #d4cec2 !important;
     opacity: 1 !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
+.stButton button:disabled *,
 div[data-testid="stButton"] button:disabled *,
+.stDownloadButton button:disabled *,
 div[data-testid="stDownloadButton"] button:disabled *,
+div[data-testid="stFormSubmitButton"] button:disabled *,
 button[data-testid="baseButton-primary"]:disabled *,
 button[data-testid="baseButton-secondary"]:disabled *,
 button[disabled] * {
@@ -199,14 +205,14 @@ button[disabled] * {
 /* Destructive project actions are clearly separated from primary navigation. */
 div[class*="st-key-delete_selected_cloud_project_"] button,
 .st-key-bulk_delete_projects button,
-.st-key-confirm_bulk_project_action button {
+div[class*="st-key-confirm_bulk_project_action_"] button {
     background: #fff5f3 !important;
     color: #7b342e !important;
     border-color: rgba(149, 77, 70, .42) !important;
 }
 div[class*="st-key-delete_selected_cloud_project_"] button *,
 .st-key-bulk_delete_projects button *,
-.st-key-confirm_bulk_project_action button * {
+div[class*="st-key-confirm_bulk_project_action_"] button * {
     color: #7b342e !important;
 }
 

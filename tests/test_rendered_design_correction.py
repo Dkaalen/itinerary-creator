@@ -61,3 +61,52 @@ def test_calculator_common_toolbar_is_visible_and_less_used_tools_are_grouped() 
     assert "More tools" in source
     assert "@media (max-width: 900px)" in css
     assert ".calculator-toolbar-more" in css
+
+
+def test_surface_styles_use_keyed_ownership_instead_of_page_heading_detection() -> None:
+    input_css = style_input_workspace.PAGE_LAYOUT_CSS
+    project_css = style_project_browser.PROJECT_BROWSER_CSS
+
+    assert ".st-key-input_workspace_form" in input_css
+    assert ".st-key-local_library_workspace" in input_css
+    assert ".block-container:has(.input-page-heading)" not in input_css
+    assert ".block-container:has(.local-library-heading)" not in input_css
+    assert ".st-key-project_explorer_workspace" in project_css
+    assert ".st-key-project_explorer_filter_fields" in project_css
+    assert ".st-key-project_explorer_bulk_actions" in project_css
+    assert ".block-container:has(.project-explorer-heading)" not in project_css
+    assert '.st-key-cloud_project_explorer [data-testid="stHorizontalBlock"]' not in project_css
+
+
+def test_shared_form_owner_paints_baseweb_shell_not_inner_input() -> None:
+    css = style_forms.CSS
+
+    assert 'div[data-testid="stTextInput"] [data-baseweb="input"]' in css
+    assert 'div[data-testid="stTextInput"] [data-baseweb="input"]:focus-within' in css
+    assert 'div[data-testid="stTextInput"] input' in css
+    assert "border: 0 !important;" in css
+    assert "background: transparent !important;" in css
+    assert '[data-baseweb="input"],\n[data-baseweb="textarea"]' not in css
+
+
+def test_project_explorer_copy_and_rows_have_explicit_owners() -> None:
+    controls = Path("app_modules/project_browser_controls.py").read_text(encoding="utf-8")
+    ui_source = Path("app_modules/project_browser_ui.py").read_text(encoding="utf-8")
+    bulk_source = Path("app_modules/project_browser_bulk_ui.py").read_text(encoding="utf-8")
+    detail_source = Path("app_modules/project_browser_detail_ui.py").read_text(encoding="utf-8")
+
+    assert 'placeholder="Name, folder or reference"' in controls
+    assert "Name or folder/reference" not in controls
+    for key in (
+        "project_explorer_workspace",
+        "project_explorer_header",
+        "project_explorer_backup",
+        "project_explorer_backup_confirmation",
+    ):
+        assert f'key="{key}"' in ui_source
+    for key in ("project_explorer_filter_fields", "project_explorer_filter_actions"):
+        assert f'key="{key}"' in controls
+    for key in ("project_explorer_bulk_actions", "project_explorer_delete_confirmation"):
+        assert f'key="{key}"' in bulk_source
+    for key in ("project_explorer_selected_actions", "project_explorer_open_confirmation"):
+        assert f'key="{key}"' in detail_source

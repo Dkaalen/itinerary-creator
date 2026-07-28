@@ -40,7 +40,7 @@ def test_text_inputs_and_placeholders_are_not_low_contrast(monkeypatch):
     css = _rendered_css(monkeypatch)
 
     assert 'div[data-testid="stTextArea"] textarea::placeholder' in css
-    assert "color: #85827a !important;" in css
+    assert "color: #716f69 !important;" in css
     assert "opacity: 1 !important;" in css
     assert "box-shadow: 0 0 0 3px rgba(168, 153, 134, 0.15), inset 0 1px 0 rgba(255,255,255,.72) !important;" in css
 
@@ -76,11 +76,11 @@ def test_product_workspace_palette_uses_quiet_luxury_tokens(monkeypatch):
 def test_open_project_calculator_and_local_library_surfaces_keep_readable_contrast(monkeypatch):
     css = _rendered_css(monkeypatch)
 
-    assert '.block-container:has(.project-explorer-heading) div[data-testid="stTextInput"] input' in css
-    assert '.st-key-cloud_project_explorer [data-testid="stDataFrame"]' in css
+    assert '.st-key-project_explorer_workspace div[data-testid="stTextInput"] [data-baseweb="input"]' in css
+    assert '.st-key-cloud_project_explorer [data-testid="stCustomComponentV1"]' in css
     assert '.cloud-project-selected-title strong' in css
     assert 'color: var(--ink) !important;' in css
     assert 'background: #fff !important;' in css or 'background: var(--surface)' in css
     assert '.block-container:has(.calculator-heading) [data-testid="stExpander"]' in css
-    assert '.block-container:has(.local-library-heading) [data-testid="stExpander"]' in css
+    assert '.st-key-local_library_workspace [data-testid="stExpander"]' in css
     assert '.block-container:has(.calculator-heading) iframe' in css

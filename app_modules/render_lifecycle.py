@@ -18,6 +18,8 @@ def mark_pdf_dirty(state: MutableMapping[str, Any], status: str = "Needs refresh
     """Invalidate PDF artifacts and retire any legacy path-based save marker."""
 
     clear_pdf_artifacts(state, status=status)
+    from app_modules.project_workspace_revision import mark_workspace_mutated
+    mark_workspace_mutated(state)
     from app_modules.project_session_cleanup import clear_project_save_marker
 
     clear_project_save_marker(state)

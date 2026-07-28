@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from app_modules.project_browser_controls import ProjectBrowserQuery
 from app_modules.project_browser_list_ui import (
     ProjectTableSelection,
-    _project_table_key,
     project_id_from_table_event,
     project_ids_from_table_event,
     project_table_rows,
@@ -20,6 +17,7 @@ from app_modules.project_browser_state import (
     sync_project_query,
 )
 from app_modules.project_storage_service import list_cloud_itinerary_page
+from project_storage.capabilities import ProjectStorageCapabilities
 from project_storage.project_results import ProjectListResult
 from project_storage.repository import _project_order
 
@@ -83,7 +81,7 @@ def test_cloud_page_uses_server_offset_sort_and_bounded_limit(monkeypatch) -> No
     assert page.has_next is True
 
 
-def test_query_change_resets_page_selection_and_open_actions() -> None:
+def test_query_change_resets_page_but_preserves_durable_selection() -> None:
     state: dict[str, object] = {}
     set_browser_page_index(state, 4)
     remember_selected_project(state, "project-4")
@@ -93,7 +91,7 @@ def test_query_change_resets_page_selection_and_open_actions() -> None:
 
     assert changed is True
     assert browser_page_index(state) == 0
-    assert selected_project_id(state) == ""
+    assert selected_project_id(state) == "project-4"
     assert "open_project_delete_candidate_id" not in state
 
 
@@ -189,12 +187,23 @@ def test_manager_renders_one_bounded_page_and_one_selected_detail(monkeypatch) -
 
     def fake_table(table_page, **kwargs):
         table_calls.append({"page": table_page, **kwargs})
-        return ProjectTableSelection(("project-2",))
+        return ProjectTableSelection(
+            project_ids=("project-2",),
+            projects=({"id": "project-2", "name": "Iceland"},),
+            action="commit_selection",
+            event_id="event-1",
+            list_revision=0,
+        )
 
     def fake_detail(project, *, query):
         detail_calls.append((project, query))
 
-    monkeypatch.setattr(project_browser_ui, "render_project_browser_controls", lambda: query)
+    monkeypatch.setattr(project_browser_ui, "render_project_browser_controls", lambda capabilities: query)
+    monkeypatch.setattr(
+        project_browser_ui,
+        "cloud_project_capabilities",
+        lambda: ProjectStorageCapabilities.full(),
+    )
     monkeypatch.setattr(project_browser_ui, "list_cloud_project_explorer_page", fake_page)
     monkeypatch.setattr(project_browser_ui, "render_project_table", fake_table)
     monkeypatch.setattr(project_browser_ui, "render_selected_project_panel", fake_detail)
@@ -208,11 +217,12 @@ def test_manager_renders_one_bounded_page_and_one_selected_detail(monkeypatch) -
         "sort": "recent",
         "owner_slug": "",
         "folder_name": "",
-        "trash_only": False,
     }]
     assert table_calls == [{
         "page": page,
         "selected_project_id": "",
+        "selected_project_ids": (),
+        "selected_projects": (),
         "active_project_id": "",
         "search": "",
         "sort": "recent",
@@ -293,7 +303,7 @@ def test_open_request_ignores_empty_local_calculator_starter_rows(monkeypatch) -
     assert "open_project_unsaved_open_candidate_id" not in st.session_state
 
 
-def test_project_table_rows_show_organization_and_saved_metadata_without_durable_ids(monkeypatch) -> None:
+def test_project_table_rows_include_durable_ids_and_display_metadata(monkeypatch) -> None:
     monkeypatch.setattr(
         "app_modules.project_browser_list_ui.friendly_storage_time",
         lambda value: f"friendly:{value}",
@@ -305,9 +315,7 @@ def test_project_table_rows_show_organization_and_saved_metadata_without_durable
                 "name": "Norway Winter",
                 "owner_slug": "dennis",
                 "folder_name": "ITIN-2020",
-                "updated_by": "vipin",
                 "last_saved_at": "2026-07-27T14:30:00Z",
-                "created_at": "2026-07-20T10:00:00Z",
             }
         ],
         page_index=0,
@@ -316,37 +324,45 @@ def test_project_table_rows_show_organization_and_saved_metadata_without_durable
     rows = project_table_rows(page, active_project_id="durable-project-id")
 
     assert rows == ({
-        "Name": "Norway Winter · Open",
-        "Owner": "Dennis",
-        "Folder": "ITIN-2020",
-        "Last saved": "friendly:2026-07-27T14:30:00Z",
+        "id": "durable-project-id",
+        "name": "Norway Winter",
+        "owner": "Dennis",
+        "folder": "ITIN-2020",
+        "last_saved": "friendly:2026-07-27T14:30:00Z",
+        "is_open": True,
     },)
-    assert "durable-project-id" not in str(rows)
 
 
-def test_project_table_event_resolves_selected_row_to_durable_project_id() -> None:
-    page = build_project_page(
-        [{"id": "project-1"}, {"id": "project-2"}],
-        page_index=0,
-    )
+def test_project_table_event_accepts_only_explicit_durable_ids() -> None:
+    event = {
+        "event_id": "event-1",
+        "action": "commit_selection",
+        "list_revision": 4,
+        "selected_project_ids": ["project-2", "project-1", "project-2"],
+        "selected_projects": [
+            {"id": "project-1", "name": "Norway"},
+            {"id": "project-2", "name": "Iceland"},
+        ],
+    }
 
-    event = SimpleNamespace(selection=SimpleNamespace(rows=[1]))
-
-    assert project_id_from_table_event(event, page) == "project-2"
-    assert project_ids_from_table_event(
-        {"selection": {"rows": [1, 0, 1]}},
-        page,
-    ) == ("project-2", "project-1")
-    assert project_id_from_table_event({"selection": {"rows": [99]}}, page) == ""
+    assert project_id_from_table_event(event) == "project-2"
+    assert project_ids_from_table_event(event) == ("project-2", "project-1")
+    assert project_ids_from_table_event({"selection": {"rows": [1]}}) == ()
 
 
-def test_project_table_key_changes_when_server_row_order_changes() -> None:
-    first = build_project_page([{"id": "project-1"}, {"id": "project-2"}], page_index=0)
-    reordered = build_project_page([{"id": "project-2"}, {"id": "project-1"}], page_index=0)
+def test_project_table_event_rejects_invalid_page_delta() -> None:
+    from app_modules.project_browser_list_ui import project_table_selection_from_event
 
-    assert _project_table_key(first, search="", sort="recent") != _project_table_key(
-        reordered, search="", sort="recent"
-    )
+    selection = project_table_selection_from_event({
+        "event_id": "event-2",
+        "action": "page",
+        "list_revision": 2,
+        "page_delta": 99,
+        "selected_project_ids": ["project-1"],
+    })
+
+    assert selection.project_ids == ("project-1",)
+    assert selection.page_delta == 0
 
 
 def test_reselecting_same_project_preserves_pending_confirmation(monkeypatch) -> None:

@@ -11,6 +11,7 @@ from app_modules.project_browser_paging import (
     build_project_page,
 )
 from app_modules.project_storage_runtime import get_project_storage_repository
+from project_storage.capabilities import ProjectStorageCapabilities
 from project_storage.delete_result import ProjectDeleteResult
 from project_storage.project_browser import (
     delete_itinerary,
@@ -21,9 +22,7 @@ from project_storage.project_browser import (
     list_project_folders,
     list_project_management_page,
     load_latest_project_payload,
-    move_projects_to_trash,
     permanently_delete_projects,
-    restore_projects_from_trash,
     update_project_organization,
 )
 from project_storage.project_management import duplicate_project, rename_project
@@ -34,6 +33,15 @@ from project_storage.project_results import (
     ProjectListResult,
 )
 
+
+
+def cloud_project_capabilities(*, refresh: bool = False) -> ProjectStorageCapabilities:
+    """Return the repository's cached optional-schema capability result."""
+
+    repository = get_project_storage_repository()
+    if repository is None:
+        return ProjectStorageCapabilities.legacy("storage_unconfigured")
+    return repository.project_management_capabilities(refresh=refresh)
 
 def list_cloud_itineraries(
     *,
@@ -76,8 +84,6 @@ def list_cloud_project_management_page(
     sort: str = "recent",
     owner_slug: str = "",
     folder_name: str = "",
-    include_trashed: bool = False,
-    trash_only: bool = False,
 ) -> ProjectListResult:
     """Return one exact-count page for the next Project Explorer UI."""
 
@@ -94,8 +100,6 @@ def list_cloud_project_management_page(
         sort=sort,
         owner_slug=owner_slug,
         folder_name=folder_name,
-        include_trashed=include_trashed,
-        trash_only=trash_only,
     )
 
 
@@ -107,7 +111,6 @@ def list_cloud_project_explorer_page(
     sort: str = "recent",
     owner_slug: str = "",
     folder_name: str = "",
-    trash_only: bool = False,
 ) -> ProjectPage:
     """Return an exact-count page ready for the Project Explorer UI."""
 
@@ -120,8 +123,6 @@ def list_cloud_project_explorer_page(
         sort=sort,
         owner_slug=owner_slug,
         folder_name=folder_name,
-        include_trashed=True,
-        trash_only=False,
     )
     return build_counted_project_page(
         result,
@@ -133,7 +134,6 @@ def list_cloud_project_explorer_page(
 def list_cloud_project_folders(
     *,
     owner_slug: str = "",
-    include_trashed: bool = False,
 ) -> tuple[ProjectFolderOption, ...]:
     repository = get_project_storage_repository()
     if repository is None:
@@ -141,19 +141,7 @@ def list_cloud_project_folders(
     return list_project_folders(
         repository,
         owner_slug=owner_slug,
-        include_trashed=include_trashed,
     )
-
-
-def move_cloud_projects_to_trash(
-    project_ids: tuple[str, ...] | list[str],
-    *,
-    actor_slug: str,
-) -> ProjectBulkMutationResult | None:
-    repository = get_project_storage_repository()
-    if repository is None:
-        return None
-    return move_projects_to_trash(repository, project_ids, actor_slug=actor_slug)
 
 
 def permanently_delete_cloud_projects(
@@ -163,17 +151,6 @@ def permanently_delete_cloud_projects(
     if repository is None:
         return None
     return permanently_delete_projects(repository, project_ids)
-
-
-def restore_cloud_projects_from_trash(
-    project_ids: tuple[str, ...] | list[str],
-    *,
-    actor_slug: str,
-) -> ProjectBulkMutationResult | None:
-    repository = get_project_storage_repository()
-    if repository is None:
-        return None
-    return restore_projects_from_trash(repository, project_ids, actor_slug=actor_slug)
 
 
 def update_cloud_project_organization(

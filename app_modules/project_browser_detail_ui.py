@@ -58,9 +58,9 @@ def render_selected_project_panel(
 
 
 def _render_summary(project: dict[str, Any], *, name: str, is_active: bool) -> None:
-    owner = _owner_label(project.get("owner_slug"))
-    folder = str(project.get("folder_name") or "No folder")
-    saved = friendly_storage_time(
+    owner = str(project.get("owner") or "").strip() or _owner_label(project.get("owner_slug"))
+    folder = str(project.get("folder") or project.get("folder_name") or "No folder")
+    saved = str(project.get("last_saved") or "").strip() or friendly_storage_time(
         project.get("last_saved_at") or project.get("updated_at") or project.get("created_at")
     )
     updated_by = _owner_label(project.get("updated_by"))
@@ -82,50 +82,52 @@ def _render_summary(project: dict[str, Any], *, name: str, is_active: bool) -> N
 
 
 def _render_actions(project_id: str, name: str, *, is_active: bool) -> None:
-    open_col, rename_col, copy_col, delete_col = st.columns([0.34, 0.22, 0.22, 0.22], gap="small")
-    with open_col:
-        if st.button(
-            "Project is open" if is_active else "Open project",
-            key=f"open_selected_cloud_project_{project_id}",
-            use_container_width=True,
-            type="primary",
-            disabled=is_active,
-        ):
-            request_open_cloud_project(project_id)
-    with rename_col:
-        if st.button("Rename", key=f"rename_selected_cloud_project_{project_id}", use_container_width=True):
-            clear_open_candidate(st.session_state)
-            remember_rename_candidate(st.session_state, project_id)
-            st.rerun()
-    with copy_col:
-        if st.button("Save as copy", key=f"duplicate_selected_cloud_project_{project_id}", use_container_width=True):
-            duplicate_cloud_project_action(project_id, name)
-    with delete_col:
-        if st.button("Delete", key=f"delete_selected_cloud_project_{project_id}", use_container_width=True):
-            clear_open_candidate(st.session_state)
-            clear_rename_candidate(st.session_state)
-            remember_bulk_action(
-                st.session_state,
-                action="delete",
-                project_ids=(project_id,),
-                project_names=(name,),
-            )
-            st.rerun()
+    with st.container(key="project_explorer_selected_actions"):
+        open_col, rename_col, copy_col, delete_col = st.columns([0.34, 0.22, 0.22, 0.22], gap="small")
+        with open_col:
+            if st.button(
+                "Project is open" if is_active else "Open project",
+                key=f"open_selected_cloud_project_{project_id}",
+                use_container_width=True,
+                type="primary",
+                disabled=is_active,
+            ):
+                request_open_cloud_project(project_id)
+        with rename_col:
+            if st.button("Rename", key=f"rename_selected_cloud_project_{project_id}", use_container_width=True):
+                clear_open_candidate(st.session_state)
+                remember_rename_candidate(st.session_state, project_id)
+                st.rerun()
+        with copy_col:
+            if st.button("Save as copy", key=f"duplicate_selected_cloud_project_{project_id}", use_container_width=True):
+                duplicate_cloud_project_action(project_id, name)
+        with delete_col:
+            if st.button("Delete", key=f"delete_selected_cloud_project_{project_id}", use_container_width=True):
+                clear_open_candidate(st.session_state)
+                clear_rename_candidate(st.session_state)
+                remember_bulk_action(
+                    st.session_state,
+                    action="delete",
+                    project_ids=(project_id,),
+                    project_names=(name,),
+                )
+                st.rerun()
 
 
 def _render_open_confirmation(project_id: str, name: str) -> None:
     if open_candidate_id(st.session_state) != project_id:
         return
-    st.warning(f"Opening {name} will replace the unsaved work currently shown in the app.")
-    cancel_col, confirm_col = st.columns(2)
-    with cancel_col:
-        if st.button("Keep current work", key=f"cancel_open_cloud_project_{project_id}", use_container_width=True):
-            clear_open_candidate(st.session_state)
-            st.rerun()
-    with confirm_col:
-        if st.button("Open project", key=f"confirm_open_cloud_project_{project_id}", use_container_width=True):
-            clear_open_candidate(st.session_state)
-            open_cloud_project(project_id)
+    with st.container(key="project_explorer_open_confirmation"):
+        st.warning(f"Opening {name} will replace the unsaved work currently shown in the app.")
+        cancel_col, confirm_col = st.columns(2)
+        with cancel_col:
+            if st.button("Keep current work", key=f"cancel_open_cloud_project_{project_id}", use_container_width=True):
+                clear_open_candidate(st.session_state)
+                st.rerun()
+        with confirm_col:
+            if st.button("Open project", key=f"confirm_open_cloud_project_{project_id}", use_container_width=True):
+                clear_open_candidate(st.session_state)
+                open_cloud_project(project_id)
 
 
 def _render_rename_form(project_id: str, name: str) -> None:

@@ -85,6 +85,9 @@ def refresh_generated_text_for_detail_level(parsed_rows, output_edits, old_detai
 
 
 def mark_output_dirty():
+    from app_modules.project_workspace_revision import mark_workspace_mutated
+
+    mark_workspace_mutated(st.session_state)
     st.session_state.pdf_bytes = None
     st.session_state.pdf_signature = None
     st.session_state.export_pdf_bytes = None

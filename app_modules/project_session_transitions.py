@@ -59,6 +59,11 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
         CURRENCY_RATES_STATE_KEY,
     )
     from app_modules.pdf_artifact_state import PDF_ARTIFACT_KEYS
+    from app_modules.project_workspace_revision import (
+        PERSISTED_BASELINE_SIGNATURES_KEY,
+        WORKSPACE_REVISION_KEY,
+        WORKSPACE_SIGNATURE_CACHE_KEY,
+    )
     from app_modules.workflow_transients import PROJECT_BOUNDARY_TRANSIENT_KEYS
 
     keys = {
@@ -92,6 +97,9 @@ def _project_switch_keys(state: Mapping[str, Any]) -> tuple[str, ...]:
         DAY_PAGE_LAYOUT_KEY,
         OPEN_PROJECT_BROWSER_VISIBLE_KEY,
         PENDING_PROJECT_BACKUP_IMPORT_KEY,
+        PERSISTED_BASELINE_SIGNATURES_KEY,
+        WORKSPACE_REVISION_KEY,
+        WORKSPACE_SIGNATURE_CACHE_KEY,
         *PDF_ARTIFACT_KEYS,
         *PROJECT_BOUNDARY_TRANSIENT_KEYS,
     }

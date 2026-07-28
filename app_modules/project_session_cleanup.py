@@ -9,6 +9,7 @@ from app_modules.calculator_state_keys import CALCULATOR_DRAFT_NAMESPACE_KEY
 from app_modules.project_identity import clear_active_project_id
 from app_modules.project_file_download_cache import clear_project_file_download_cache
 from app_modules.project_persistence_state import clear_cloud_project_persisted_state
+from app_modules.project_workspace_revision import clear_persisted_workspace_signatures
 from app_modules.workflow_transients import clear_project_boundary_transients
 from app_modules.session_state_keys import (
     ACTIVE_SAVED_PROJECT_KEY,
@@ -95,6 +96,7 @@ def clear_active_cloud_project_session(state: MutableMapping[str, Any]) -> None:
     for key in PROJECT_STORAGE_SESSION_KEYS:
         state.pop(key, None)
     clear_active_project_id(state)
+    clear_persisted_workspace_signatures(state)
     state.pop(CALCULATOR_DRAFT_NAMESPACE_KEY, None)
     clear_cloud_project_download_payloads(state)
     clear_project_file_download_cache(state)

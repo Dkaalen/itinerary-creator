@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from datetime import datetime, timezone
 import re
-from typing import Any, Iterable
+from time import monotonic
+from typing import Any, Callable, Iterable
 
 import diagnostics
 
+from project_storage.batch_delete import permanently_delete_project_batch
+from project_storage.capabilities import ProjectStorageCapabilities
 from project_storage.config import SupabaseStorageConfig
 from project_storage.delete_result import ProjectDeleteResult
-from project_storage.http_client import SupabaseHttpClient
+from project_storage.http_client import SupabaseHttpClient, SupabaseRequestError
 from project_storage.project_metadata import (
     ProjectOrganization,
     normalize_project_actor,
@@ -23,16 +27,17 @@ from project_storage.project_results import (
     ProjectBulkPurgeResult,
     ProjectFolderOption,
     ProjectListResult,
-    ProjectPurgeItemResult,
 )
 
 _MANAGEMENT_SELECT = (
     "id,name,status,created_at,updated_at,owner_slug,folder_name,created_by,"
-    "updated_by,revision,last_saved_at,deleted_at,deleted_by"
+    "updated_by,revision,last_saved_at"
 )
 _PROJECT_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _BULK_PATCH_SIZE = 100
 _FILE_PAGE_SIZE = 200
+_READ_CACHE_TTL_SECONDS = 4.0
+_READ_CACHE_LIMIT = 24
 
 
 class ProjectStorageRepository:
@@ -41,10 +46,66 @@ class ProjectStorageRepository:
     def __init__(self, config: SupabaseStorageConfig, *, client: SupabaseHttpClient | None = None) -> None:
         self._config = config
         self._client = client or SupabaseHttpClient(config)
+        self._capabilities: ProjectStorageCapabilities | None = None
+        self._read_cache: OrderedDict[tuple[Any, ...], tuple[float, Any]] = OrderedDict()
 
     @property
     def bucket(self) -> str:
         return self._config.bucket
+
+    def project_management_capabilities(self, *, refresh: bool = False) -> ProjectStorageCapabilities:
+        """Detect optional organization/folder schema once per repository session."""
+
+        if self._capabilities is not None and not refresh:
+            return self._capabilities
+        try:
+            self._client.rest_get(
+                "itineraries",
+                {
+                    "select": "id,owner_slug,folder_name,last_saved_at,deleted_at",
+                    "deleted_at": "is.null",
+                    "limit": "1",
+                },
+            )
+        except SupabaseRequestError as exc:
+            if exc.status in {400, 404}:
+                self._capabilities = ProjectStorageCapabilities.legacy()
+                return self._capabilities
+            raise
+        try:
+            self.list_project_folders()
+        except SupabaseRequestError as exc:
+            if exc.status in {400, 404}:
+                self._capabilities = ProjectStorageCapabilities.management_only()
+                return self._capabilities
+            raise
+        self._capabilities = ProjectStorageCapabilities.full()
+        return self._capabilities
+
+    def invalidate_read_cache(self) -> None:
+        """Invalidate short-lived project-list and folder query results."""
+
+        self._read_cache.clear()
+
+    def close(self) -> None:
+        """Release repository-owned network resources."""
+
+        close = getattr(self._client, "close", None)
+        if callable(close):
+            close()
+
+    def _cached_read(self, key: tuple[Any, ...], loader: Callable[[], Any]) -> Any:
+        now = monotonic()
+        cached = self._read_cache.get(key)
+        if cached is not None and now - cached[0] <= _READ_CACHE_TTL_SECONDS:
+            self._read_cache.move_to_end(key)
+            return cached[1]
+        value = loader()
+        self._read_cache[key] = (now, value)
+        self._read_cache.move_to_end(key)
+        while len(self._read_cache) > _READ_CACHE_LIMIT:
+            self._read_cache.popitem(last=False)
+        return value
 
     def create_itinerary(
         self,
@@ -65,6 +126,8 @@ class ProjectStorageRepository:
         if organization is not None:
             payload.update(_organization_insert_fields(organization))
         rows = self._client.rest_insert("itineraries", payload)
+        if rows:
+            self.invalidate_read_cache()
         return rows[0] if rows else {}
 
     def upsert_itinerary(
@@ -84,6 +147,8 @@ class ProjectStorageRepository:
         if organization is not None:
             payload.update(_organization_update_fields(organization))
         rows = self._client.rest_insert("itineraries", payload, upsert=True)
+        if rows:
+            self.invalidate_read_cache()
         return rows[0] if rows else {}
 
     def list_itineraries(
@@ -107,7 +172,9 @@ class ProjectStorageRepository:
             escaped = _escape_like(query)
             if escaped:
                 params["name"] = f"ilike.*{escaped}*"
-        return self._client.rest_get("itineraries", params)
+        key = ("legacy_projects", tuple(sorted(params.items())))
+        rows = self._cached_read(key, lambda: tuple(self._client.rest_get("itineraries", params)))
+        return [dict(row) for row in rows]
 
     def list_project_page(
         self,
@@ -118,8 +185,6 @@ class ProjectStorageRepository:
         sort: str = "recent",
         owner_slug: str = "",
         folder_name: str = "",
-        include_trashed: bool = False,
-        trash_only: bool = False,
     ) -> ProjectListResult:
         """Return an exact-count management page using the additive schema."""
 
@@ -138,40 +203,49 @@ class ProjectStorageRepository:
             params["owner_slug"] = f"eq.{normalize_project_owner(owner_slug)}"
         if folder_name:
             params["folder_name"] = f"eq.{normalize_project_folder(folder_name)}"
-        if trash_only:
-            params["deleted_at"] = "not.is.null"
-        elif not include_trashed:
-            params["deleted_at"] = "is.null"
-        rows, total = self._client.rest_get_with_count("itineraries", params)
-        return ProjectListResult(projects=tuple(rows), total_count=total)
+        params["deleted_at"] = "is.null"
+        key = ("management_projects", tuple(sorted(params.items())))
+
+        def load() -> ProjectListResult:
+            rows, total = self._client.rest_get_with_count("itineraries", params)
+            return ProjectListResult(projects=tuple(rows), total_count=total)
+
+        return self._cached_read(key, load)
 
     def list_project_folders(
         self,
         *,
         owner_slug: str = "",
-        include_trashed: bool = False,
     ) -> tuple[ProjectFolderOption, ...]:
         """Return server-owned logical folder options for Explorer filters."""
 
         clean_owner = normalize_project_owner(owner_slug) if owner_slug else None
-        rows = self._client.rest_rpc(
-            "list_project_folders",
-            {
-                "p_owner_slug": clean_owner,
-                "p_include_trashed": bool(include_trashed),
-            },
-        )
-        options: list[ProjectFolderOption] = []
-        for row in rows:
-            folder = normalize_project_folder(row.get("folder_name"))
-            if not folder:
-                continue
-            try:
-                count = max(0, int(row.get("project_count") or 0))
-            except (TypeError, ValueError):
-                count = 0
-            options.append(ProjectFolderOption(folder_name=folder, project_count=count))
-        return tuple(options)
+        key = ("project_folders", clean_owner or "")
+
+        def load() -> tuple[ProjectFolderOption, ...]:
+            rows = self._client.rest_rpc(
+                "list_project_folders",
+                {
+                    "p_owner_slug": clean_owner,
+                    "p_include_trashed": False,
+                },
+            )
+            options: list[ProjectFolderOption] = []
+            for row in rows:
+                try:
+                    folder = normalize_project_folder(row.get("folder_name"))
+                except ValueError:
+                    continue
+                if not folder:
+                    continue
+                try:
+                    count = max(0, int(row.get("project_count") or 0))
+                except (TypeError, ValueError):
+                    count = 0
+                options.append(ProjectFolderOption(folder_name=folder, project_count=count))
+            return tuple(options)
+
+        return self._cached_read(key, load)
 
     def latest_version(self, itinerary_id: str) -> dict[str, Any] | None:
         rows = self._client.rest_get(
@@ -219,6 +293,8 @@ class ProjectStorageRepository:
                 "payload": payload,
             },
         )
+        if rows:
+            self.invalidate_read_cache()
         return rows[0] if rows else {}
 
     def list_files(
@@ -304,6 +380,7 @@ class ProjectStorageRepository:
         clean_id = str(version_id or "").strip()
         if clean_id:
             self._client.rest_delete("itinerary_versions", {"id": f"eq.{clean_id}"})
+            self.invalidate_read_cache()
 
     def update_project_organization(
         self,
@@ -313,7 +390,7 @@ class ProjectStorageRepository:
         folder_name: object,
         actor_slug: object,
     ) -> dict[str, Any]:
-        """Update owner/folder metadata for one active or trashed project."""
+        """Update owner/folder metadata for one active project."""
 
         result = self.bulk_update_project_organization(
             [itinerary_id],
@@ -352,47 +429,6 @@ class ProjectStorageRepository:
             raise ValueError("Choose an owner or folder to update.")
         return self._bulk_patch_itineraries(requested_ids, payload)
 
-    def move_itineraries_to_trash(
-        self,
-        itinerary_ids: Iterable[object],
-        *,
-        actor_slug: object,
-    ) -> ProjectBulkMutationResult:
-        """Soft-delete projects without removing versions or files."""
-
-        requested_ids = _normalize_project_ids(itinerary_ids)
-        actor = normalize_project_actor(actor_slug)
-        timestamp = _utc_now_iso()
-        return self._bulk_patch_itineraries(
-            requested_ids,
-            {
-                "deleted_at": timestamp,
-                "deleted_by": actor,
-                "updated_by": actor,
-                "updated_at": timestamp,
-            },
-        )
-
-    def restore_itineraries_from_trash(
-        self,
-        itinerary_ids: Iterable[object],
-        *,
-        actor_slug: object,
-    ) -> ProjectBulkMutationResult:
-        """Restore soft-deleted projects without altering their saved content."""
-
-        requested_ids = _normalize_project_ids(itinerary_ids)
-        actor = normalize_project_actor(actor_slug)
-        return self._bulk_patch_itineraries(
-            requested_ids,
-            {
-                "deleted_at": None,
-                "deleted_by": None,
-                "updated_by": actor,
-                "updated_at": _utc_now_iso(),
-            },
-        )
-
     def _bulk_patch_itineraries(
         self,
         requested_ids: tuple[str, ...],
@@ -420,11 +456,14 @@ class ProjectStorageRepository:
             affected_ids.extend(str(row.get("id") or "").strip() for row in rows if row.get("id"))
         affected_set = set(affected_ids)
         ordered_affected = tuple(project_id for project_id in requested_ids if project_id in affected_set)
-        return ProjectBulkMutationResult(
+        result = ProjectBulkMutationResult(
             requested_ids=requested_ids,
             affected_ids=ordered_affected,
             failures=tuple(failures),
         )
+        if result.affected_ids:
+            self.invalidate_read_cache()
+        return result
 
     def delete_file(self, file_id: str, *, storage_path: str = "") -> ProjectDeleteResult:
         """Delete one registered file without orphaning an unrecoverable object."""
@@ -484,105 +523,37 @@ class ProjectStorageRepository:
         self,
         itinerary_ids: Iterable[object],
     ) -> ProjectBulkPurgeResult:
-        """Permanently purge active or legacy-soft-deleted projects.
-
-        The application no longer exposes a Trash lifecycle. Database records
-        are retained whenever Storage cleanup fails so the user can retry.
-        """
+        """Permanently purge projects with bounded file, Storage and record batches."""
 
         requested_ids = _normalize_project_ids(itinerary_ids)
-        existing_ids = self._existing_project_ids(requested_ids)
-        items: list[ProjectPurgeItemResult] = []
-        for project_id in requested_ids:
-            if project_id not in existing_ids:
-                items.append(ProjectPurgeItemResult(project_id=project_id, error="Project was not found."))
-                continue
-            try:
-                result = self.delete_itinerary(project_id)
-            except Exception as exc:
-                diagnostics.warn_exception(
-                    "project_storage_delete",
-                    "A selected itinerary could not be permanently deleted.",
-                    exc,
-                    project_id,
-                    source="project_storage.repository",
-                )
-                items.append(ProjectPurgeItemResult(project_id=project_id, error=str(exc)))
-                continue
-            items.append(ProjectPurgeItemResult(project_id=project_id, result=result))
-        return ProjectBulkPurgeResult(items=tuple(items))
-
-    def _existing_project_ids(self, requested_ids: tuple[str, ...]) -> set[str]:
-        existing: set[str] = set()
-        for batch in _chunks(requested_ids, _BULK_PATCH_SIZE):
-            rows = self._client.rest_get(
-                "itineraries",
-                {
-                    "select": "id",
-                    "id": _in_filter(batch),
-                    "limit": str(len(batch)),
-                },
-            )
-            existing.update(
-                str(row.get("id") or "").strip()
-                for row in rows
-                if str(row.get("id") or "").strip()
-            )
-        return existing
+        result = permanently_delete_project_batch(
+            client=self._client,
+            bucket=self.bucket,
+            requested_ids=requested_ids,
+        )
+        if result.deleted_ids:
+            self.invalidate_read_cache()
+        return result
 
     def delete_itinerary(self, itinerary_id: str) -> ProjectDeleteResult:
-        """Permanently delete one project without losing failed-cleanup retry state."""
+        """Permanently delete one project through the same idempotent batch owner."""
 
         clean_id = str(itinerary_id or "").strip()
         if not clean_id:
-            return ProjectDeleteResult(itinerary_id="", record_deleted=False, storage_files_deleted=False)
-
-        files = self.list_all_files(clean_id)
-        storage_paths = tuple(str(item.get("storage_path") or "").strip() for item in files)
-        storage_paths = tuple(dict.fromkeys(path for path in storage_paths if path))
-
-        if storage_paths:
-            try:
-                self.delete_storage_files(list(storage_paths))
-            except Exception as exc:
-                diagnostics.warn_exception(
-                    "project_storage_delete",
-                    "Itinerary storage cleanup failed; the project record was retained for retry.",
-                    exc,
-                    ", ".join(storage_paths),
-                    source="project_storage.repository",
-                )
-                return ProjectDeleteResult(
-                    itinerary_id=clean_id,
-                    storage_paths=storage_paths,
-                    record_deleted=False,
-                    storage_files_deleted=False,
-                    storage_error=str(exc),
-                )
-
-        try:
-            self._client.rest_delete("itineraries", {"id": f"eq.{clean_id}"})
-        except Exception as exc:
-            diagnostics.warn_exception(
-                "project_storage_delete",
-                "Itinerary record could not be removed after storage cleanup.",
-                exc,
-                clean_id,
-                source="project_storage.repository",
-            )
             return ProjectDeleteResult(
-                itinerary_id=clean_id,
-                storage_paths=storage_paths,
+                itinerary_id="",
                 record_deleted=False,
-                storage_files_deleted=True,
-                record_error=str(exc),
+                storage_files_deleted=False,
             )
-
+        result = self.permanently_delete_itineraries((clean_id,))
+        item = result.items[0]
+        if item.result is not None:
+            return item.result
         return ProjectDeleteResult(
             itinerary_id=clean_id,
-            storage_paths=storage_paths,
-            record_deleted=True,
-            storage_files_deleted=True,
+            record_deleted=False,
+            storage_files_deleted=False,
+            record_error=item.error or "Project could not be deleted.",
         )
 
 
@@ -620,7 +591,6 @@ def _management_project_order(value: object) -> str:
         "created_oldest": "created_at.asc,id.asc",
         "owner": "owner_slug.asc,last_saved_at.desc,id.asc",
         "folder": "folder_name.asc,last_saved_at.desc,id.asc",
-        "trash_recent": "deleted_at.desc,id.asc",
     }.get(str(value or "").strip().casefold(), "last_saved_at.desc,id.asc")
 
 

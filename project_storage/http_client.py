@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
+from time import perf_counter
 from typing import Any, Mapping
-from urllib import error, parse, request
+from urllib import parse
+
+from project_storage.http_transport import HttpTransport, PersistentHttpTransport
 
 from project_storage.config import SupabaseStorageConfig
 
@@ -12,13 +16,37 @@ from project_storage.config import SupabaseStorageConfig
 class SupabaseRequestError(RuntimeError):
     """Raised when Supabase returns an error response."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int | None = None,
+        endpoint: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.status = status
+        self.endpoint = endpoint
+
+
+RequestObserver = Callable[[Mapping[str, Any]], None]
+
 
 class SupabaseHttpClient:
     """Small stdlib-only client for Supabase PostgREST and Storage APIs."""
 
-    def __init__(self, config: SupabaseStorageConfig, *, timeout: float = 20.0) -> None:
+    def __init__(
+        self,
+        config: SupabaseStorageConfig,
+        *,
+        timeout: float = 20.0,
+        observer: RequestObserver | None = None,
+        transport: HttpTransport | None = None,
+    ) -> None:
         self._config = config
         self._timeout = timeout
+        self._observer = observer
+        self._request_sequence = 0
+        self._transport = transport or PersistentHttpTransport(config.url, timeout=timeout)
 
     def rest_get(self, table: str, params: dict[str, str]) -> list[dict[str, Any]]:
         query = parse.urlencode(params)
@@ -131,21 +159,108 @@ class SupabaseHttpClient:
         data: bytes | None = None,
         headers: dict[str, str] | None = None,
     ) -> tuple[bytes, dict[str, str]]:
-        url = f"{self._config.url}{path}"
         request_headers = {
             "apikey": self._config.secret_key,
             "Authorization": f"Bearer {self._config.secret_key}",
             **(headers or {}),
         }
-        req = request.Request(url, data=data, headers=request_headers, method=method)
+        self._request_sequence += 1
+        request_id = f"supabase-{self._request_sequence}"
+        started = perf_counter()
         try:
-            with request.urlopen(req, timeout=self._timeout) as response:
-                return response.read(), _normalized_headers(response.headers)
-        except error.HTTPError as exc:
-            message = exc.read().decode("utf-8", errors="replace")
-            raise SupabaseRequestError(f"Supabase {method} {path} failed: {exc.code} {message}") from exc
-        except error.URLError as exc:
-            raise SupabaseRequestError(f"Supabase {method} {path} failed: {exc.reason}") from exc
+            response = self._transport.request(
+                method,
+                path,
+                data=data,
+                headers=request_headers,
+            )
+        except Exception as exc:
+            self._notify_observer(
+                method=method,
+                path=path,
+                request_id=request_id,
+                seconds=perf_counter() - started,
+                ok=False,
+                status=None,
+                request_bytes=len(data or b""),
+                response_bytes=0,
+                error_type=type(exc).__name__,
+            )
+            raise SupabaseRequestError(
+                f"Supabase {method} {_safe_endpoint(path)} failed: {exc}",
+                endpoint=_safe_endpoint(path),
+            ) from exc
+
+        body = response.body
+        status = int(response.status)
+        ok = 200 <= status < 300
+        self._notify_observer(
+            method=method,
+            path=path,
+            request_id=request_id,
+            seconds=perf_counter() - started,
+            ok=ok,
+            status=status,
+            request_bytes=len(data or b""),
+            response_bytes=len(body),
+            error_type="" if ok else "HTTPError",
+        )
+        if not ok:
+            message = body.decode("utf-8", errors="replace")[:1000]
+            raise SupabaseRequestError(
+                f"Supabase {method} {_safe_endpoint(path)} failed: {status} {message}",
+                status=status,
+                endpoint=_safe_endpoint(path),
+            )
+        return body, _normalized_headers(response.headers)
+
+    def close(self) -> None:
+        """Release the pooled HTTP connection owned by this client."""
+
+        self._transport.close()
+
+    def _notify_observer(
+        self,
+        *,
+        method: str,
+        path: str,
+        request_id: str,
+        seconds: float,
+        ok: bool,
+        status: int | None,
+        request_bytes: int,
+        response_bytes: int,
+        error_type: str = "",
+    ) -> None:
+        if self._observer is None:
+            return
+        event = {
+            "method": str(method or "").upper(),
+            "endpoint": _safe_endpoint(path),
+            "request_id": request_id,
+            "seconds": max(0.0, float(seconds or 0.0)),
+            "ok": bool(ok),
+            "status": status,
+            "request_bytes": max(0, int(request_bytes or 0)),
+            "response_bytes": max(0, int(response_bytes or 0)),
+            "error_type": str(error_type or "")[:80],
+        }
+        try:
+            self._observer(event)
+        except Exception:
+            return
+
+
+def _safe_endpoint(path: str) -> str:
+    clean_path = str(path or "").split("?", 1)[0].strip("/")
+    parts = [part for part in clean_path.split("/") if part]
+    if parts[:3] == ["rest", "v1", "rpc"]:
+        return f"rpc:{parts[3] if len(parts) > 3 else 'unknown'}"
+    if parts[:2] == ["rest", "v1"]:
+        return f"rest:{parts[2] if len(parts) > 2 else 'unknown'}"
+    if parts[:3] == ["storage", "v1", "object"]:
+        return "storage:object"
+    return ":".join(parts[:3]) or "unknown"
 
 
 def _decode_rows(body: bytes) -> list[dict[str, Any]]:

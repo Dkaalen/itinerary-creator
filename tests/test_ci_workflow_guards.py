@@ -51,6 +51,7 @@ def test_ci_workflow_runs_real_health_gates() -> None:
         "python scripts/test_suite_audit.py",
         "node --check calculator_grid_component/frontend/js/*.js",
         "node --check visual_editor_component/frontend/js/*.js",
+        "node --check project_explorer_component/frontend/js/*.js",
         "git --no-pager diff --check",
     )
     for command in expected_commands:

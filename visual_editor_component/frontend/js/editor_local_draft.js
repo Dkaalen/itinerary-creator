@@ -1,48 +1,11 @@
-/** Browser-local editor draft persistence and recovery. */
+/** Browser-local editor draft serialization, restoration, and merge behavior. */
 const LOCAL_DRAFT_SAVE_MODE_DELTA = 'local_delta';
 const LOCAL_DRAFT_SAVE_MODE_SNAPSHOT = 'local_snapshot';
 let lastLocalDraftStoragePayload = '';
-let localDraftPersistencePaused = false;
-const LOCAL_DRAFT_PREFIX = 'itinerary-visual-editor-draft:';
-const LOCAL_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const LOCAL_DRAFT_MAX_BYTES = 700 * 1024;
-const LOCAL_DRAFT_TOTAL_BYTES = 1024 * 1024;
-const LOCAL_DRAFT_MAX_PROJECTS = 3;
 
-function draftStorageKey() {
-  const fallback = [initialPayload?.cover?.trip_title || '', initialPayload?.cover?.trip_dates || '', (initialPayload?.days || []).length].join('|');
-  return `${LOCAL_DRAFT_PREFIX}${initialPayload?.draft_id || fallback}`;
+function localDraftStorage() {
+  return ItineraryVisualEditor.require('draftStorage');
 }
-
-function localDraftBytes(value) {
-  const text = String(value || '');
-  try { return new TextEncoder().encode(text).length; } catch (err) { return text.length * 2; }
-}
-
-function pruneEditorLocalDrafts(activeKey = draftStorageKey()) {
-  const drafts = [];
-  const now = Date.now();
-  try {
-    for (let index = 0; index < localStorage.length; index += 1) {
-      const key = localStorage.key(index);
-      if (!String(key || '').startsWith(LOCAL_DRAFT_PREFIX)) continue;
-      const value = localStorage.getItem(key) || '';
-      let savedAt = 0;
-      try { savedAt = Number(JSON.parse(value)?.saved_at || 0); } catch (err) {}
-      drafts.push({key, value, savedAt, bytes: localDraftBytes(key) + localDraftBytes(value)});
-    }
-    drafts.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-    let retained = 0;
-    let total = 0;
-    drafts.forEach(item => {
-      const stale = item.savedAt && now - item.savedAt > LOCAL_DRAFT_MAX_AGE_MS;
-      const over = item.key !== activeKey && (retained >= LOCAL_DRAFT_MAX_PROJECTS || total + item.bytes > LOCAL_DRAFT_TOTAL_BYTES);
-      if (stale || over) localStorage.removeItem(item.key);
-      else { retained += 1; total += item.bytes; }
-    });
-  } catch (err) {}
-}
-
 
 function stripUploadBinaryForLocalDraft(value) {
   const copy = JSON.parse(JSON.stringify(value || {}));
@@ -90,7 +53,10 @@ function persistLocalDraft(options = {}) {
     clearTimeout(localDraftTimer);
     localDraftTimer = null;
   }
-  if (!model || !initialPayload || localDraftPersistencePaused) return;
+  if (!model || !initialPayload) return;
+  const storage = localDraftStorage();
+  const pauseReason = storage.pauseReason();
+  if (storage.isPaused() && pauseReason !== 'size') return;
   if (!options?.fullSnapshot && (!touchedKeys || !touchedKeys.size)) return;
   try {
     const snapshot = buildLocalDraftPayload(options);
@@ -104,21 +70,28 @@ function persistLocalDraft(options = {}) {
     const stableStoragePayload = JSON.stringify(storageBody);
     if (!options?.fullSnapshot && stableStoragePayload === lastLocalDraftStoragePayload) return;
     const serialized = JSON.stringify(Object.assign({saved_at: Date.now()}, storageBody));
-    if (localDraftBytes(serialized) > LOCAL_DRAFT_MAX_BYTES) {
-      localDraftPersistencePaused = true;
-      updateSaveState('dirty', {message: 'Browser recovery paused. Use Save changes to sync your work.'});
+    if (storage.bytes(serialized) > storage.maxDraftBytes()) {
+      storage.pause('size');
       return;
     }
-    pruneEditorLocalDrafts();
-    localStorage.setItem(draftStorageKey(), serialized);
-    pruneEditorLocalDrafts();
-    lastLocalDraftStoragePayload = stableStoragePayload;
-    saveState.localDraftAt = Date.now();
-  } catch (err) {
-    if (err?.name === 'QuotaExceededError' || Number(err?.code) === 22) {
-      localDraftPersistencePaused = true;
-      updateSaveState('dirty', {message: 'Browser recovery paused. Use Save changes to sync your work.'});
+    if (pauseReason === 'size' && !storage.resumeAfterSize()) return;
+    storage.prune();
+    if (!storage.write(serialized)) {
+      storage.pause('failure');
+      return;
     }
+    storage.prune();
+    lastLocalDraftStoragePayload = stableStoragePayload;
+    const localDraftAt = Date.now();
+    if (pauseReason === 'size') {
+      updateSaveState('dirty', {localRecoveryAvailable: true, message: '', localDraftAt});
+    } else {
+      saveState.localRecoveryAvailable = true;
+      saveState.message = '';
+      saveState.localDraftAt = localDraftAt;
+    }
+  } catch (_error) {
+    storage.pause('failure');
   }
 }
 
@@ -323,7 +296,7 @@ function mergeLocalDraftOntoServerPayload(localDraft) {
 function restoreLocalDraftIfAvailable() {
   if (!initialPayload) return false;
   try {
-    const raw = localStorage.getItem(draftStorageKey());
+    const raw = localDraftStorage().read();
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.model) return false;
@@ -346,12 +319,15 @@ function restoreLocalDraftIfAvailable() {
 
 function clearLocalDraft() {
   lastLocalDraftStoragePayload = '';
-  try { localStorage.removeItem(draftStorageKey()); } catch (err) {}
+  localDraftStorage().remove();
 }
 
 
 ItineraryVisualEditor.define('drafts', {
-  persist: persistLocalDraft,
-  restore: restoreLocalDraftIfAvailable,
   clear: clearLocalDraft,
+  flush: () => localDraftStorage().flush(),
+  persist: persistLocalDraft,
+  prepare: (payload) => localDraftStorage().prepare(payload),
+  read: () => localDraftStorage().read(),
+  restore: restoreLocalDraftIfAvailable,
 });

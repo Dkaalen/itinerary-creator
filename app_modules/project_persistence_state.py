@@ -6,6 +6,10 @@ from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from typing import Any
 
+from app_modules.project_workspace_revision import (
+    clear_persisted_workspace_signatures,
+    remember_persisted_workspace_signatures,
+)
 from app_modules.session_state_keys import (
     ACTIVE_PROJECT_CLOUD_PERSISTED_KEY,
     PROJECT_STORAGE_LAST_SAVED_BASELINE_KEY,
@@ -38,6 +42,7 @@ def mark_cloud_project_persisted(
 
     state[ACTIVE_PROJECT_CLOUD_PERSISTED_KEY] = True
     state[PROJECT_STORAGE_LAST_SAVED_BASELINE_KEY] = deepcopy(dict(payload))
+    remember_persisted_workspace_signatures(state, payload)
     clean_version_id = str(version_id or "").strip()
     if clean_version_id:
         state[PROJECT_STORAGE_LAST_SAVED_VERSION_ID_KEY] = clean_version_id
@@ -51,6 +56,7 @@ def clear_cloud_project_persisted_state(state: MutableMapping[str, Any]) -> None
     state.pop(ACTIVE_PROJECT_CLOUD_PERSISTED_KEY, None)
     state.pop(PROJECT_STORAGE_LAST_SAVED_BASELINE_KEY, None)
     state.pop(PROJECT_STORAGE_LAST_SAVED_VERSION_ID_KEY, None)
+    clear_persisted_workspace_signatures(state)
 
 
 __all__ = [

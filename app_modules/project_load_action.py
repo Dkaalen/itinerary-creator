@@ -7,6 +7,8 @@ import diagnostics
 
 from app_modules.itinerary_render_artifact import build_and_persist_itinerary_render_artifact
 from app_modules.parse_workflow import parse_and_normalize_itinerary
+from app_modules.project_workspace_revision import mark_workspace_mutated
+from app_modules.supplier_preview_cache import remember_supplier_rows_preview
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.render_lifecycle import clear_pdf_artifacts
@@ -35,6 +37,12 @@ def load_project(
         parser_diagnostics=state["parser_diagnostics"],
     )
     state["itinerary_validation_report"] = validation_report
+    remember_supplier_rows_preview(
+        state,
+        raw_text,
+        parsed_rows,
+        parser_diagnostics=state["parser_diagnostics"],
+    )
 
     if validation_report.is_blocked:
         return WorkflowActionResult(
@@ -64,6 +72,7 @@ def load_project(
     )
     state["last_generated_raw_text"] = raw_text
     state["raw_text_input"] = raw_text
+    mark_workspace_mutated(state)
     clear_pdf_artifacts(state, status="Not created")
 
     build_and_persist_itinerary_render_artifact(

@@ -65,6 +65,7 @@ class ProjectPurgeItemResult:
     project_id: str
     result: ProjectDeleteResult | None = None
     error: str = ""
+    already_absent: bool = False
 
     @property
     def record_deleted(self) -> bool:
@@ -72,7 +73,11 @@ class ProjectPurgeItemResult:
 
     @property
     def complete(self) -> bool:
-        return bool(self.result and self.result.complete and not self.error)
+        return bool(self.already_absent or (self.result and self.result.complete and not self.error))
+
+    @property
+    def deleted_or_absent(self) -> bool:
+        return self.record_deleted or self.already_absent
 
 
 @dataclass(frozen=True)
@@ -87,7 +92,7 @@ class ProjectBulkPurgeResult:
 
     @property
     def deleted_ids(self) -> tuple[str, ...]:
-        return tuple(item.project_id for item in self.items if item.record_deleted)
+        return tuple(item.project_id for item in self.items if item.deleted_or_absent)
 
     @property
     def incomplete_ids(self) -> tuple[str, ...]:

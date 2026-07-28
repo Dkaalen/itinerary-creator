@@ -2,32 +2,100 @@
 
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from html import escape
 from typing import Any
 
 import streamlit as st
 
+import diagnostics
 from app_modules.parse_workflow import parse_and_normalize_itinerary
+from app_modules.performance_telemetry import measure_timing, record_trace, telemetry_is_active
+from app_modules.session_state_keys import OPEN_PROJECT_BROWSER_VISIBLE_KEY
+from app_modules.supplier_preview_cache import (
+    SupplierRowsPreview,
+    cached_supplier_rows_preview,
+    clear_supplier_preview_cache,
+    remember_supplier_rows_preview,
+)
 
 _PREVIEW_LIMIT = 18
 
 
-def render_supplier_rows_preview(raw_text: str) -> None:
-    """Render a compact, read-only parse preview for pasted supplier rows."""
+def render_supplier_rows_preview(raw_text: str) -> SupplierRowsPreview | None:
+    """Render and return one session-cached parse preview for pasted supplier rows."""
 
-    text = str(raw_text or "").strip()
+    source_text = str(raw_text or "")
+    text = source_text.strip()
     if not text:
-        return
+        return None
+    session = st.session_state
+    cached = cached_supplier_rows_preview(session, source_text)
+    if cached is not None:
+        _record_cache_trace(session, "supplier_preview_cache_hit", source_text, cached)
+        _render_preview(cached)
+        return cached
+
+    if bool(session.get(OPEN_PROJECT_BROWSER_VISIBLE_KEY)):
+        if telemetry_is_active(session):
+            record_trace(
+                session,
+                "supplier_preview_deferred",
+                source_characters=len(source_text),
+                reason="project_explorer_open",
+            )
+        st.caption("The parsed preview will update after Project Explorer is closed.")
+        return None
+
+    telemetry_state = session if telemetry_is_active(session) else None
     try:
-        rows = parse_and_normalize_itinerary(text)
-    except Exception:
+        with diagnostics.capture_warnings() as captured_warnings:
+            with measure_timing(telemetry_state, "supplier_preview_parse"):
+                rows = parse_and_normalize_itinerary(text, state=telemetry_state)
+        parser_diagnostics = [dict(item) for item in captured_warnings]
+    except Exception as exc:
+        if telemetry_state is not None:
+            record_trace(
+                telemetry_state,
+                "supplier_preview_failed",
+                source_characters=len(source_text),
+                error_type=type(exc).__name__,
+            )
         st.caption("Preview unavailable. Generate will still validate the pasted rows.")
-        return
-    if not rows:
+        return None
+    preview = remember_supplier_rows_preview(
+        session,
+        source_text,
+        rows,
+        parser_diagnostics=parser_diagnostics,
+    )
+    if preview is None:
+        return None
+    _record_cache_trace(session, "supplier_preview_cache_miss", source_text, preview)
+    _render_preview(preview)
+    return preview
+
+
+def _render_preview(preview: SupplierRowsPreview) -> None:
+    if not preview.rows:
         st.caption("No itinerary rows detected yet.")
         return
+    st.html(_preview_html(list(preview.rows)))
 
-    st.html(_preview_html(rows))
+
+def _record_cache_trace(
+    state: MutableMapping[str, Any],
+    event: str,
+    text: str,
+    preview: SupplierRowsPreview,
+) -> None:
+    if telemetry_is_active(state):
+        record_trace(
+            state,
+            event,
+            source_characters=len(text),
+            row_count=len(preview.rows),
+        )
 
 
 def _preview_html(rows: list[dict[str, Any]]) -> str:
@@ -72,3 +140,6 @@ def _row_html(row: dict[str, Any]) -> str:
 def _cell(value: object) -> str:
     text = " ".join(str(value or "").split())
     return escape(text[:180])
+
+
+__all__ = ["SupplierRowsPreview", "clear_supplier_preview_cache", "render_supplier_rows_preview"]

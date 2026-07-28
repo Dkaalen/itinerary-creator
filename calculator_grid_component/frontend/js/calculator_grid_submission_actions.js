@@ -41,10 +41,16 @@ document.addEventListener('visibilitychange', () => {
   flushRecoverySnapshot();
 });
 
-window.addEventListener('beforeunload', (event) => {
+function flushCalculatorRecoveryForPageExit() {
   if (!calculatorState?.dirty) return;
   flushLocalDraftSave();
   flushRecoverySnapshot();
+}
+
+window.addEventListener('pagehide', flushCalculatorRecoveryForPageExit);
+window.addEventListener('beforeunload', (event) => {
+  if (!calculatorState?.dirty) return;
+  flushCalculatorRecoveryForPageExit();
   event.preventDefault();
   event.returnValue = '';
 });

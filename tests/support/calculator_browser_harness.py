@@ -9,8 +9,10 @@ from typing import Any
 
 import pytest
 
+from app_modules.browser_storage_contract import browser_storage_contract
 from calculator.financial_rules import financial_rules_payload
 from calculator.library_ranking import local_library_ranking_spec_payload
+from tests.support.browser_storage_harness import fake_indexed_db_script
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import sync_playwright
@@ -44,7 +46,7 @@ def calculator_frontend_html() -> str:
         Object.defineProperty(window, 'sessionStorage', {value: storageApi(sessionStore)});
       })();
     </script>"""
-    return f"<html><head><style>{css}</style></head><body><div id='root'></div>{storage}{scripts}</body></html>"
+    return f"<html><head><style>{css}</style></head><body><div id='root'></div>{storage}{fake_indexed_db_script()}{scripts}</body></html>"
 
 
 def calculator_payload(
@@ -66,6 +68,7 @@ def calculator_payload(
         "library_status": "Ready",
         "library_rows": library_rows or [],
         "library_ranking_spec": local_library_ranking_spec_payload(),
+        "browser_storage_contract": browser_storage_contract(),
     }
 
 
@@ -114,6 +117,7 @@ def recovery_payload(*, revision: str = "recovery-test") -> dict[str, Any]:
         "library_status": "Ready",
         "library_rows": [],
         "library_ranking_spec": local_library_ranking_spec_payload(),
+        "browser_storage_contract": browser_storage_contract(),
     }
 
 
@@ -123,32 +127,3 @@ def open_recovery_browser_page(*, revision: str = "recovery-test"):
     payload = recovery_payload(revision=revision)
     manager, browser, page = open_calculator_browser_page(payload)
     return manager, browser, page, payload
-
-
-def install_storage_quota(page: Any, limit_bytes: int) -> None:
-    """Install the deterministic localStorage quota used by recovery tests."""
-
-    page.evaluate(
-        """limitBytes => {
-          const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
-          const originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
-          const knownKeys = () => [window.ItineraryCalculator.storage.getDraftStorageKey(), window.ItineraryCalculator.storage.recoveryStorageKey()];
-          window.localStorage.setItem = (key, value) => {
-            const candidateKey = String(key);
-            const candidateValue = String(value);
-            let total = 0;
-            for (const knownKey of knownKeys()) {
-              const storedValue = knownKey === candidateKey
-                ? candidateValue
-                : (window.localStorage.getItem(knownKey) || '');
-              if (storedValue) total += (knownKey.length + storedValue.length) * 2;
-            }
-            if (total > limitBytes) {
-              throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
-            }
-            originalSetItem(candidateKey, candidateValue);
-          };
-          window.localStorage.removeItem = (key) => originalRemoveItem(String(key));
-        }""",
-        limit_bytes,
-    )

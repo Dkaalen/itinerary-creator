@@ -19,7 +19,7 @@ Saved project files now include a compact `calculator_snapshot` payload. It stor
 - calculator rows
 - active currency rates
 
-Browser localStorage remains a short-term recovery layer for the custom grid, but project files and Streamlit session state are now the durable source of truth.
+A bounded IndexedDB store remains a short-term recovery layer for the custom grid, while project files and Streamlit session state are the durable source of truth. Only one-time migration metadata and unrelated framework settings may remain in localStorage.
 
 ## Image-bank readiness model
 

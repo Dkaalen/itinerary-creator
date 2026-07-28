@@ -11,13 +11,16 @@ function renderError(error) {
 }
 
 let componentHasReceivedRender = false;
+let calculatorRenderSequence = 0;
 
-function handleStreamlitRender(event) {
+async function handleStreamlitRender(event) {
   if (!event.data || event.data.type !== 'streamlit:render') return;
   componentHasReceivedRender = true;
   markStreamlitRenderReceived();
+  const renderSequence = ++calculatorRenderSequence;
   try {
-    initializeState((event.data.args || {}).payload || {});
+    await initializeState((event.data.args || {}).payload || {});
+    if (renderSequence !== calculatorRenderSequence) return;
     rerender();
   } catch (error) {
     console.error(error);

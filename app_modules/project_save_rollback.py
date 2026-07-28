@@ -6,6 +6,11 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from typing import Any
 
+from app_modules.project_workspace_revision import (
+    PERSISTED_BASELINE_SIGNATURES_KEY,
+    WORKSPACE_REVISION_KEY,
+    WORKSPACE_SIGNATURE_CACHE_KEY,
+)
 from app_modules.session_state_keys import (
     ACTIVE_PROJECT_CLOUD_PERSISTED_KEY,
     ACTIVE_PROJECT_STORAGE_ID_KEY,
@@ -26,6 +31,9 @@ _PROJECT_SAVE_BASELINE_KEYS = (
     PROJECT_STORAGE_LAST_SAVED_VERSION_ID_KEY,
     ITINERARY_NAME_KEY,
     ITINERARY_NAME_INPUT_KEY,
+    PERSISTED_BASELINE_SIGNATURES_KEY,
+    WORKSPACE_REVISION_KEY,
+    WORKSPACE_SIGNATURE_CACHE_KEY,
 )
 _MISSING = object()
 

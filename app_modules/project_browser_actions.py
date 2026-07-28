@@ -77,9 +77,10 @@ def duplicate_cloud_project_action(project_id: str, name: str) -> None:
     if not result:
         st.warning("Cloud storage is unavailable. Project was not duplicated.")
         return
-    from app_modules.project_browser_state import set_browser_page_index
+    from app_modules.project_browser_state import bump_project_table_revision, set_browser_page_index
 
     set_browser_page_index(st.session_state, 0)
     remember_selected_project(st.session_state, result.get("project_id"))
+    bump_project_table_revision(st.session_state)
     complete_project_duplicate(st.session_state, name=result["name"])
     st.rerun()

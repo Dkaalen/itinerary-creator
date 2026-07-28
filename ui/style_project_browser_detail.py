@@ -39,7 +39,9 @@ CSS = r"""
     font-size: .64rem;
     font-weight: 760;
 }
-.st-key-cloud_project_explorer [data-testid="stForm"] { max-width: 42rem; }
+div[class*="st-key-rename_cloud_project_form_"] [data-testid="stForm"] {
+    max-width: 42rem;
+}
 
 @media (max-width: 760px) {
     .cloud-project-selected-strip { grid-template-columns: 1fr; }

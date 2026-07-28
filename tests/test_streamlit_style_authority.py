@@ -53,8 +53,9 @@ def test_streamlit_style_authority_is_split_by_surface() -> None:
     assert ".calculator-heading" in style_calculator.CALCULATOR_PAGE_CSS
     assert ".st-key-workflow_stage_actions" in style_component_layout.CSS
     assert "overflow-wrap: anywhere" in style_component_layout.CSS
+    assert ".st-key-project_explorer_workspace" in style_project_browser.PROJECT_BROWSER_CSS
     assert ".st-key-cloud_project_explorer" in style_project_browser.PROJECT_BROWSER_CSS
-    assert "stDataFrame" in style_project_browser.PROJECT_BROWSER_CSS
+    assert "stCustomComponentV1" in style_project_browser.PROJECT_BROWSER_CSS
     assert ".cloud-project-selected-strip" in style_project_browser_detail.CSS
     assert "stVerticalBlockBorderWrapper" in style_project_browser.PROJECT_BROWSER_CSS
 

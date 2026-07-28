@@ -33,7 +33,6 @@ class ProjectBrowserRepository(Protocol):
         self,
         *,
         owner_slug: str = "",
-        include_trashed: bool = False,
     ) -> tuple[ProjectFolderOption, ...]: ...
 
     def list_files(
@@ -51,20 +50,6 @@ class ProjectBrowserRepository(Protocol):
     def delete_file(self, file_id: str, *, storage_path: str = "") -> ProjectDeleteResult: ...
 
     def latest_version(self, itinerary_id: str) -> dict[str, Any] | None: ...
-
-    def move_itineraries_to_trash(
-        self,
-        itinerary_ids: Iterable[object],
-        *,
-        actor_slug: object,
-    ) -> ProjectBulkMutationResult: ...
-
-    def restore_itineraries_from_trash(
-        self,
-        itinerary_ids: Iterable[object],
-        *,
-        actor_slug: object,
-    ) -> ProjectBulkMutationResult: ...
 
     def bulk_update_project_organization(
         self,
@@ -103,8 +88,6 @@ def list_project_management_page(
     sort: str = "recent",
     owner_slug: str = "",
     folder_name: str = "",
-    include_trashed: bool = False,
-    trash_only: bool = False,
 ) -> ProjectListResult:
     """Return exact-count owner/folder-aware project rows."""
 
@@ -115,8 +98,6 @@ def list_project_management_page(
         sort=sort,
         owner_slug=owner_slug,
         folder_name=folder_name,
-        include_trashed=include_trashed,
-        trash_only=trash_only,
     )
 
 
@@ -124,13 +105,11 @@ def list_project_folders(
     repository: ProjectBrowserRepository,
     *,
     owner_slug: str = "",
-    include_trashed: bool = False,
 ) -> tuple[ProjectFolderOption, ...]:
     """Return logical folder/reference options for Explorer filters."""
 
     return repository.list_project_folders(
         owner_slug=owner_slug,
-        include_trashed=include_trashed,
     )
 
 
@@ -161,28 +140,6 @@ def delete_itinerary(repository: ProjectBrowserRepository, itinerary_id: str) ->
     """Permanently delete one itinerary and best-effort cleanup its files."""
 
     return repository.delete_itinerary(str(itinerary_id or "").strip())
-
-
-def move_projects_to_trash(
-    repository: ProjectBrowserRepository,
-    itinerary_ids: Iterable[object],
-    *,
-    actor_slug: object,
-) -> ProjectBulkMutationResult:
-    """Soft-delete several projects while preserving versions and files."""
-
-    return repository.move_itineraries_to_trash(itinerary_ids, actor_slug=actor_slug)
-
-
-def restore_projects_from_trash(
-    repository: ProjectBrowserRepository,
-    itinerary_ids: Iterable[object],
-    *,
-    actor_slug: object,
-) -> ProjectBulkMutationResult:
-    """Restore several projects from Trash."""
-
-    return repository.restore_itineraries_from_trash(itinerary_ids, actor_slug=actor_slug)
 
 
 def update_project_organization(

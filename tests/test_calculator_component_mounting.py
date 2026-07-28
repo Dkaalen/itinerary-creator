@@ -75,13 +75,17 @@ def test_calculator_component_persists_browser_draft_across_page_changes() -> No
     index_source = read_contract_text(FRONTEND_DIR / "index.html")
 
     assert "js/calculator_grid_storage_api.js" in index_source
-    assert "itineraryCalculatorBrowserDraft.v3." in source
+    assert "initializeStorage" in source
+    assert "writeDraftRaw" in source
+    assert "window.localStorage.setItem" not in source
     assert "window.ItineraryCalculator.storage.setDraftStorageKey(payload.draft_storage_key)" in source
     assert "window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);" in source
     assert "activeDraftStorageKey" in source
     assert "incomingDraftStorageKey === activeDraftStorageKey" in source
     assert "window.ItineraryCalculator.storage.loadDraft()" in source
     assert "window.ItineraryCalculator.storage.shouldRestoreDraft(storedDraft, incomingRows, incomingRevision)" in source
+    assert "flushCalculatorRecoveryForPageExit" in source
+    assert "window.addEventListener('pagehide', flushCalculatorRecoveryForPageExit)" in source
 
 
 def test_component_bridge_queues_session_messages_until_first_render() -> None:

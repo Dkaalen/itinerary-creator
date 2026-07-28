@@ -57,9 +57,16 @@ function showEditorError(err) {
   root.innerHTML = `<div class="editor-shell"><div class="editor-error"><strong>The editable preview could not render safely.</strong><div>${esc(message)}</div><div style="margin-top:8px">Your itinerary data is still in the app. Refresh the preview or generate the itinerary again after saving.</div></div></div>`;
   syncEditorFrameHeight();
 }
-function safeRender(payload, commitNonce = null) {
+let visualEditorRenderSequence = 0;
+
+async function safeRender(payload, commitNonce = null) {
+  const renderSequence = ++visualEditorRenderSequence;
   try {
-    render(payload, commitNonce);
+    await ItineraryVisualEditor.require('drafts').prepare(payload || {});
+    if (renderSequence !== visualEditorRenderSequence) return;
+    const renderPayload = Object.assign({}, payload || {});
+    delete renderPayload.browser_storage_contract;
+    render(renderPayload, commitNonce);
   } catch (err) {
     console.error(err);
     showEditorError(err);

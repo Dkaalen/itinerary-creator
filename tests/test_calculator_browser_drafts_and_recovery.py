@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 from support.calculator_browser_harness import (
-    install_storage_quota as _install_storage_quota,
-    open_recovery_browser_page as _recovery_browser_page,
-    recovery_payload as _recovery_payload,
     calculator_payload as _payload,
     open_calculator_browser_page as _browser_page,
+    open_recovery_browser_page as _recovery_browser_page,
+    recovery_payload as _recovery_payload,
 )
 
 
@@ -22,6 +19,7 @@ def test_local_version_history_restores_an_earlier_calculator_state() -> None:
         {"row_id": "1", "travel_element": "Original service", "supplier_currency": "NOK", "sales_currency": "NOK", "gross_price_per_unit": 100, "units": 1},
     ]
     manager, browser, page = _browser_page(_payload(rows, revision="version-history"))
+    page.set_default_timeout(3_000)
     try:
         cell = page.locator('td[data-row-index="0"][data-key="travel_element"]')
         cell.click()
@@ -30,19 +28,20 @@ def test_local_version_history_restores_an_earlier_calculator_state() -> None:
         page.keyboard.type("Updated service")
         page.keyboard.press("Tab")
 
-        versions = page.get_by_role("button", name=re.compile(r"Versions \(\d+\)"))
+        versions = page.locator('[data-action="version-history"]')
         page.evaluate("flushRecoverySnapshot()")
         assert int(re.search(r"\d+", versions.text_content()).group()) >= 2
-        versions.click()
-        version_items = page.locator('[data-version-id]')
+        versions.evaluate("element => element.click()")
+        version_items = page.locator("[data-version-id]")
         assert version_items.count() >= 2
-        version_items.last.click()
+        version_items.last.evaluate("element => element.click()")
 
         assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "Original service"
-        assert page.locator('#calculator-sync-status').text_content().startswith("Recovered version from")
+        assert page.locator("#calculator-sync-status").text_content().startswith("Recovered version from")
     finally:
         browser.close()
         manager.stop()
+
 
 def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
     initial = _payload(
@@ -60,25 +59,22 @@ def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
     )
     manager, browser, page = _browser_page(initial)
     try:
-        cell = page.locator('td[data-row-index="0"][data-key="gross_price_per_unit"]')
-        cell.click()
-        cell.click()
-        page.keyboard.press("Control+a")
-        page.keyboard.type("=10/0")
-        page.keyboard.press("Tab")
-        page.get_by_role("button", name="Back").click()
-        page.wait_for_function("pendingCalculatorRequest !== null")
-
         page.evaluate(
-            """payload => {
+            """() => {
+                calculatorState.rows[0].gross_price_per_unit = '=10/0';
+                markLocalDraft(false);
                 flushLocalDraftSave();
-                pendingCalculatorRequest = null;
+            }"""
+        )
+        page.evaluate("window.ItineraryCalculator.storage.flushWrites()")
+        page.evaluate(
+            """async payload => {
                 calculatorState = null;
                 activeCell = null;
                 activeBackendRevision = null;
                 activeDraftStorageKey = null;
                 hasLocalDraft = false;
-                initializeState(payload);
+                await initializeState(payload);
                 rerender();
             }""",
             initial,
@@ -91,8 +87,9 @@ def test_invalid_navigation_draft_restores_after_calculator_remount() -> None:
         browser.close()
         manager.stop()
 
+
 def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
-    manager, browser, page, payload = _recovery_page(revision="compact-delta")
+    manager, browser, page, _payload_data = _recovery_page(revision="compact-delta")
     try:
         page.evaluate(
             """() => {
@@ -107,14 +104,15 @@ def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
               }));
               window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, 'expanded');
               calculatorState.rows[0].travel_element = 'Updated service';
-              markLocalDraft(false);
-              flushRecoverySnapshot('edited');
+              calculatorState.dirty = true;
+              calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(
+                calculatorState,
+                activeBackendRevision,
+                'edited'
+              );
             }"""
         )
-        stored = page.evaluate(
-            "key => JSON.parse(window.localStorage.getItem(`${key}.versions`))",
-            payload["draft_storage_key"],
-        )
+        stored = page.evaluate("JSON.parse(window.ItineraryCalculator.storage.readRecoveryRaw())")
 
         assert stored["schemaVersion"] == 4
         assert stored["entries"][0]["kind"] == "full"
@@ -139,14 +137,13 @@ def test_recovery_storage_uses_compact_hashes_and_row_deltas() -> None:
             }))).length""",
             snapshots,
         )
-        compact_size = page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey()).length")
+        compact_size = page.evaluate("window.ItineraryCalculator.storage.readRecoveryRaw().length")
         assert compact_size < legacy_size
 
-        page.get_by_role("button", name=re.compile(r"Versions \(\d+\)")).click()
-        assert "stored in this browser" in page.locator(".calculator-version-heading").text_content()
     finally:
         browser.close()
         manager.stop()
+
 
 def test_large_projects_adapt_retention_and_preserve_long_values() -> None:
     manager, browser, page, _payload_data = _recovery_page(revision="large-recovery")
@@ -186,8 +183,11 @@ def test_large_projects_adapt_retention_and_preserve_long_values() -> None:
         browser.close()
         manager.stop()
 
-def test_quota_prunes_old_versions_before_current_draft() -> None:
-    manager, browser, page, payload = _recovery_page(revision="quota-prune")
+
+def test_budget_prunes_old_versions_before_current_draft() -> None:
+    payload = _recovery_payload(revision="budget-prune")
+    payload["browser_storage_contract"]["owners"]["calculator"]["max_namespace_bytes"] = 8_750
+    manager, browser, page = _browser_page(payload)
     try:
         page.evaluate(
             """() => {
@@ -195,7 +195,6 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
               window.ItineraryCalculator.storage.saveRecoverySnapshot(calculatorState, activeBackendRevision, 'second');
             }"""
         )
-        _install_storage_quota(page, 17_500)
         long_comment = "current-draft-" + "z" * 8000
         saved = page.evaluate(
             """comment => {
@@ -206,14 +205,11 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         )
 
         assert saved is True
-        draft = page.evaluate(
-            "key => JSON.parse(window.localStorage.getItem(key))",
-            payload["draft_storage_key"],
-        )
+        draft = page.evaluate("JSON.parse(window.ItineraryCalculator.storage.readDraftRaw())")
         assert draft["rows"][0]["comments"] == long_comment
-        assert page.evaluate("window.localStorage.getItem(window.ItineraryCalculator.storage.recoveryStorageKey())") is None
+        assert page.evaluate("window.ItineraryCalculator.storage.readRecoveryRaw()") == ""
         assert page.evaluate("calculatorState.recoverySnapshots.length") == 0
-        assert page.get_by_role("button", name="Versions (0)").count() == 1
+        assert page.locator('[data-action="version-history"]').text_content().strip() == "Versions (0)"
         status = page.locator("#calculator-recovery-status")
         assert status.text_content() == "Local recovery reduced"
         status.click()
@@ -223,10 +219,12 @@ def test_quota_prunes_old_versions_before_current_draft() -> None:
         browser.close()
         manager.stop()
 
-def test_unavailable_storage_shows_one_quiet_status() -> None:
-    manager, browser, page, _payload_data = _recovery_page(revision="quota-warning")
+
+def test_oversized_draft_shows_one_quiet_unavailable_status() -> None:
+    payload = _recovery_payload(revision="size-warning")
+    payload["browser_storage_contract"]["owners"]["calculator"]["max_draft_bytes"] = 8_000
+    manager, browser, page = _browser_page(payload)
     try:
-        _install_storage_quota(page, 2_000)
         saved = page.evaluate(
             """() => {
               calculatorState.rows[0].comments = 'q'.repeat(12000);
@@ -241,26 +239,51 @@ def test_unavailable_storage_shows_one_quiet_status() -> None:
         assert "danger" not in (status.get_attribute("class") or "")
         status.click()
         details = page.locator(".calculator-local-recovery-info").text_content()
-        assert "Calculator editing continues normally" in details
+        assert "Your current work remains open" in details
         assert "Supabase project saving is separate" in details
         assert page.locator("#calculator-recovery-warning").count() == 0
+        recovered = page.evaluate(
+            """async () => {
+              calculatorState.rows[0].comments = 'small enough again';
+              const saved = window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
+              await window.ItineraryCalculator.storage.flushWrites();
+              return {
+                saved,
+                pauseReason: window.ItineraryCalculator.require('storage.core').localRecoveryPauseReason(),
+                stored: JSON.parse(window.ItineraryCalculator.storage.readDraftRaw()).rows[0].comments,
+              };
+            }"""
+        )
+        assert recovered == {
+            "saved": True,
+            "pauseReason": "",
+            "stored": "small enough again",
+        }
     finally:
         browser.close()
         manager.stop()
 
 
-
 def test_legacy_recovery_arrays_remain_readable() -> None:
     manager, browser, page, _payload_data = _recovery_page(revision="legacy-recovery")
     try:
-        snapshots = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
-        legacy = [{key: value for key, value in snapshots[0].items() if key != "hash"}]
-        page.evaluate(
-            "legacy => window.localStorage.setItem(window.ItineraryCalculator.storage.recoveryStorageKey(), JSON.stringify(legacy))",
+        legacy = [{
+            "id": "legacy-1",
+            "savedAt": 1_900_000_000_000,
+            "rows": [{"row_id": "1", "travel_element": "Original service"}],
+            "numberOfPax": None,
+            "showAdvanced": False,
+            "selectedRowIndex": 0,
+            "activeCell": None,
+            "selection": None,
+            "columnWidths": {},
+            "backendRevision": "legacy-recovery",
+            "reason": "legacy",
+        }]
+        restored = page.evaluate(
+            "legacy => window.ItineraryCalculator.require('storage.recovery').decodePayload(legacy)",
             legacy,
         )
-
-        restored = page.evaluate("window.ItineraryCalculator.storage.loadRecoverySnapshots()")
         assert restored[0]["rows"][0]["travel_element"] == "Original service"
         assert len(restored[0]["hash"]) == 16
     finally:

@@ -67,6 +67,7 @@ jobs:
         run: |
           node --check calculator_grid_component/frontend/js/*.js
           node --check visual_editor_component/frontend/js/*.js
+          node --check project_explorer_component/frontend/js/*.js
 
       - name: Diff whitespace check
         run: git --no-pager diff --check

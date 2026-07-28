@@ -1,20 +1,20 @@
 {
   "report_fingerprint": {
-    "repository_head": "ae9a4f3010832e7909fcff9c991b0a3a1bda77bb",
-    "repository_head_tree": "602b85330874cd21b348092204f23b2ab2fc53f0",
+    "repository_head": "ed1bc7f7e7527908c5641332082a205ed48c0889",
+    "repository_head_tree": "754c99cd3dba00dc6f959bd5a0d1db51ae086d48",
     "working_tree_clean": false,
-    "python_source_tree_sha256": "sha256:6a362445beb011634a452030d27beb5058b9ad9522e5a09775c75632f85100d7",
-    "python_source_file_count": 1355
+    "python_source_tree_sha256": "sha256:ccc16c5d0f4c29ff9a27d4105574d81aa35e93dab5ba0cbf599b9a3b2bb44886",
+    "python_source_file_count": 1372
   },
   "overworked_files": [
     {
       "file": "project_storage/repository.py",
-      "line_count": 668,
+      "line_count": 638,
       "concern": "large_module"
     },
     {
       "file": "tests/test_project_organization_and_trash.py",
-      "line_count": 561,
+      "line_count": 633,
       "concern": "large_module"
     },
     {
@@ -35,10 +35,28 @@
   ],
   "long_functions": [
     {
+      "file": "app_modules/browser_storage_guard.py",
+      "name": "_guard_script",
+      "line_count": 181,
+      "start_line": 12
+    },
+    {
       "file": "itinerary_generation/itinerary_continuity_state.py",
       "name": "_build_day_states",
       "line_count": 131,
       "start_line": 33
+    },
+    {
+      "file": "tests/support/browser_storage_harness.py",
+      "name": "fake_indexed_db_script",
+      "line_count": 125,
+      "start_line": 6
+    },
+    {
+      "file": "project_storage/batch_delete.py",
+      "name": "permanently_delete_project_batch",
+      "line_count": 123,
+      "start_line": 19
     },
     {
       "file": "normalizer_modules/activities.py",

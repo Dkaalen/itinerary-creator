@@ -10,6 +10,9 @@ from typing import Any
 
 import pytest
 
+from app_modules.browser_storage_contract import browser_storage_contract
+from tests.support.browser_storage_harness import fake_indexed_db_script
+
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import sync_playwright
 
@@ -70,6 +73,7 @@ def visual_editor_frontend_html() -> str:
         + "\n".join(css_chunks)
         + "</style></head><body><div id='root'></div>"
         + storage
+        + fake_indexed_db_script()
         + embedded_scripts
         + startup
         + "</body></html>"
@@ -80,6 +84,7 @@ def visual_editor_payload() -> dict[str, Any]:
     """Build a small production-shaped RenderDocument editor payload."""
 
     return {
+        "browser_storage_contract": browser_storage_contract(),
         "draft_id": "visual-editor-browser-test",
         "brand": {
             "company_name": "Booknordics",
@@ -182,7 +187,7 @@ def open_bootstrapped_visual_editor_browser_page():
 
     def fulfill_local_asset(route) -> None:
         url = route.request.url
-        relative = url.split("https://visual-editor.test/", 1)[1].split("?", 1)[0]
+        relative = url.split("http://127.0.0.1:8766/", 1)[1].split("?", 1)[0]
         requested_assets.append(relative)
         path = (FRONTEND_ROOT / relative).resolve()
         if FRONTEND_ROOT not in path.parents and path != FRONTEND_ROOT:
@@ -197,10 +202,10 @@ def open_bootstrapped_visual_editor_browser_page():
             content_type=mimetypes.guess_type(path.name)[0] or "text/plain",
         )
 
-    page.route("https://visual-editor.test/**", fulfill_local_asset)
+    page.route("http://127.0.0.1:8766/**", fulfill_local_asset)
     page.on("pageerror", lambda error: page_errors.append(str(error)))
     index = (FRONTEND_ROOT / "index.html").read_text(encoding="utf-8")
-    index = index.replace("<head>", '<head><base href="https://visual-editor.test/">', 1)
+    index = index.replace("<head>", '<head><base href="http://127.0.0.1:8766/">', 1)
     page.set_content(index, wait_until="load")
     page.wait_for_function("window.ItineraryVisualEditor?.isReady() === true")
     return manager, browser, page, requested_assets, page_errors

@@ -17,23 +17,24 @@ def render_local_library_page(app_version: str) -> None:
 
     _render_app_header(app_version, stage="input")
     _render_local_library_topbar()
-    _render_local_library_header()
+    with st.container(key="local_library_workspace"):
+        _render_local_library_header()
 
-    st.info(
-        "Local Library records are maintained in the bundled Excel workbook. "
-        "Edit the workbook and redeploy the app to change these records."
-    )
-    advanced = st.expander("Advanced diagnostics")
-    refresh_requested = advanced.button(
-        "Refresh Local Library",
-        use_container_width=True,
-        key="local_library_browser_refresh",
-    )
-    library_read = read_cached_local_library(st.session_state, force_refresh=refresh_requested)
-    with advanced:
-        render_local_library_source_status(library_read, refreshed=refresh_requested)
+        st.info(
+            "Local Library records are maintained in the bundled Excel workbook. "
+            "Edit the workbook and redeploy the app to change these records."
+        )
+        advanced = st.expander("Advanced diagnostics")
+        refresh_requested = advanced.button(
+            "Refresh Local Library",
+            use_container_width=True,
+            key="local_library_browser_refresh",
+        )
+        library_read = read_cached_local_library(st.session_state, force_refresh=refresh_requested)
+        with advanced:
+            render_local_library_source_status(library_read, refreshed=refresh_requested)
 
-    render_local_library_browser(library_read)
+        render_local_library_browser(library_read)
 
 
 def _render_local_library_topbar() -> None:

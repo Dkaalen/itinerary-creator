@@ -8,6 +8,8 @@ configuration problems can be identified instead of being swallowed silently.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 _warnings: list[dict[str, str]] = []
 
 
@@ -42,3 +44,17 @@ def warn_exception(category, message, error, raw_value="", *, source=""):
 
 def get_warnings():
     return list(_warnings)
+
+
+@contextmanager
+def capture_warnings():
+    """Collect warnings for one isolated parse without mutating the active run."""
+
+    global _warnings
+    previous = _warnings
+    captured: list[dict[str, str]] = []
+    _warnings = captured
+    try:
+        yield captured
+    finally:
+        _warnings = previous

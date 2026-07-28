@@ -100,6 +100,7 @@ def test_visual_editor_frontend_assets_are_split_by_responsibility():
         "styles/editor_debug.css": ["Visual editor debug-only readiness", ".review-center"],
         "styles/editor_responsive.css": ["Visual editor responsive", "@media"],
         "js/state.js": ["let initialPayload", "AUTOSAVE_IDLE_GRACE_MS"],
+        "js/editor_draft_storage.js": ["function prepareLocalDraftStorage", "function writeVisualDraftRaw"],
         "js/editor_local_draft.js": ["function restoreLocalDraftIfAvailable", "function persistLocalDraft"],
         "js/images.js": ["function imageHtml", "function adjustDayImages"],
         "js/editor_image_tools.js": ["function coverImageControls", "canvas-image-tools"],

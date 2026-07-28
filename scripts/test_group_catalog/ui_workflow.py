@@ -107,6 +107,7 @@ UI_TESTS = (
     "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_project_browser_compact_manager.py",
     "tests/test_project_explorer_management_ui.py",
+    "tests/test_project_explorer_browser_selection.py",
     "tests/test_project_browser_state.py",
     "tests/test_ui_style_contrast.py",
     "tests/test_calculator_layout_regression.py",
@@ -129,6 +130,7 @@ UI_TESTS = (
     "tests/test_design_system_regression.py",
     "tests/test_application_layout_polish.py",
     "tests/test_rendered_design_correction.py",
+    "tests/test_rendered_streamlit_style_contract.py",
     "tests/test_browser_storage_guard.py",
     "tests/test_itinerary_health_report.py",
     "tests/test_loading_loop_recovery.py",
@@ -138,6 +140,7 @@ UI_TESTS = (
     "tests/test_generation_settings_and_preview_split.py",
     "tests/test_cover_background_selection.py",
     "tests/test_optimization_product_batch_foundation.py",
+    "tests/test_patch6_performance_and_state.py",
 
 )
 
@@ -207,6 +210,7 @@ CALCULATOR_TESTS = (
 )
 
 STORAGE_TESTS = (
+    "tests/test_browser_storage_indexeddb_contract.py",
     "tests/test_project_management.py",
     "tests/test_project_save_rollback.py",
     "tests/test_project_save_as_and_persistence.py",
@@ -216,6 +220,7 @@ STORAGE_TESTS = (
     "tests/test_project_storage_file_writer.py",
     "tests/test_project_storage_foundation.py",
     "tests/test_project_organization_and_trash.py",
+    "tests/test_project_storage_capabilities_and_batching.py",
     "tests/test_project_storage_boundary.py",
     "tests/test_project_file_mvp_regression.py",
     "tests/test_current_edited_version_save_regression.py",
@@ -223,6 +228,7 @@ STORAGE_TESTS = (
     "tests/test_project_browser_and_downloads_regression.py",
     "tests/test_project_browser_compact_manager.py",
     "tests/test_project_explorer_management_ui.py",
+    "tests/test_project_explorer_browser_selection.py",
     "tests/test_project_browser_state.py",
     "tests/test_project_cloud_lifecycle_hardening.py",    "tests/test_backlog_storage_decision_regression.py",
     "tests/test_local_draft_delta_regression.py",

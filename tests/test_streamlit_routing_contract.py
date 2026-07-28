@@ -269,12 +269,17 @@ def test_calculator_component_is_declared_only_on_first_render(monkeypatch) -> N
     monkeypatch.setitem(sys.modules, "streamlit.components.v1", components_v1_module)
     monkeypatch.setattr(bridge, "_calculator_grid", None)
 
-    assert bridge.render_calculator_grid({"rows": []}, key="first") == "result"
-    assert bridge.render_calculator_grid({"rows": [1]}, key="second") == "result"
+    first_payload = {"rows": []}
+    second_payload = {"rows": [1]}
+    assert bridge.render_calculator_grid(first_payload, key="first") == "result"
+    assert bridge.render_calculator_grid(second_payload, key="second") == "result"
     assert len(declarations) == 1
     assert declarations[0][0] == "calculator_grid"
     assert declarations[0][1].endswith("calculator_grid_component/frontend")
     assert [render["key"] for render in renders] == ["first", "second"]
+    assert all("browser_storage_contract" in render["payload"] for render in renders)
+    assert "browser_storage_contract" not in first_payload
+    assert "browser_storage_contract" not in second_payload
 
 
 def test_streamlit_bootstrap_orders_configuration_before_ui_and_routing(monkeypatch) -> None:

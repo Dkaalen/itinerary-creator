@@ -112,6 +112,11 @@ def reset_workflow_state(state: MutableMapping[str, Any], *, clear_raw_text: boo
     from app_modules.calculator_session_state import clear_calculator_project_state
 
     clear_calculator_project_state(state)
+    from app_modules.supplier_preview_cache import clear_supplier_preview_cache
+    from app_modules.project_workspace_revision import clear_workspace_revision_state
+
+    clear_supplier_preview_cache(state)
+    clear_workspace_revision_state(state)
     for key, value in DEFAULT_WORKFLOW_SESSION_STATE.items():
         state[key] = _copy_default(value)
     if clear_raw_text:

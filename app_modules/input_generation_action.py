@@ -19,7 +19,14 @@ from app_modules.session_state_keys import (
 )
 
 
-def generate_supplier_itinerary(state: MutableMapping[str, Any], raw_text: str, output_brand: str = "agent") -> bool:
+def generate_supplier_itinerary(
+    state: MutableMapping[str, Any],
+    raw_text: str,
+    output_brand: str = "agent",
+    *,
+    prepared_parsed_rows: list[dict] | None = None,
+    prepared_parser_diagnostics: list[dict] | None = None,
+) -> bool:
     """Generate an itinerary from supplier text and render blocking issues."""
 
     sync_itinerary_name_from_input(state)
@@ -28,7 +35,16 @@ def generate_supplier_itinerary(state: MutableMapping[str, Any], raw_text: str, 
     state[TONE_PRESET_KEY] = DEFAULT_TONE_PRESET
     state[REQUESTED_PRESENTATION_LANGUAGE_KEY] = DEFAULT_PRESENTATION_LANGUAGE
     state[REQUESTED_TONE_PRESET_KEY] = DEFAULT_TONE_PRESET
-    result = generate_itinerary(state, raw_text)
+    result = (
+        generate_itinerary(state, raw_text)
+        if prepared_parsed_rows is None
+        else generate_itinerary(
+            state,
+            raw_text,
+            prepared_parsed_rows=prepared_parsed_rows,
+            prepared_parser_diagnostics=prepared_parser_diagnostics,
+        )
+    )
     if not result.ok:
         validation_report = (result.payload or {}).get("validation_report")
         if validation_report is not None:

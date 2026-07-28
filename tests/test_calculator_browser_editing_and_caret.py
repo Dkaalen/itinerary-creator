@@ -86,17 +86,11 @@ def test_large_grid_text_typing_avoids_full_recalculation_and_per_key_draft_writ
         page.evaluate(
             """() => {
                 window.__calculateRowsCalls = 0;
-                window.__draftSaveCalls = 0;
+                window.__fakeIndexedDbPutCount = 0;
                 const originalCalculateRows = calculateRows;
-                const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
-                const activeDraftKey = window.ItineraryCalculator.storage.getDraftStorageKey();
                 calculateRows = (...args) => {
                     window.__calculateRowsCalls += 1;
                     return originalCalculateRows(...args);
-                };
-                window.localStorage.setItem = (key, value) => {
-                    if (String(key) === activeDraftKey) window.__draftSaveCalls += 1;
-                    return originalSetItem(String(key), String(value));
                 };
             }"""
         )
@@ -107,7 +101,7 @@ def test_large_grid_text_typing_avoids_full_recalculation_and_per_key_draft_writ
 
         assert cell.text_content().strip() == "Oslo arrival hotel"
         assert page.evaluate("window.__calculateRowsCalls") == 0
-        assert page.evaluate("window.__draftSaveCalls") == 1
+        assert page.evaluate("window.__fakeIndexedDbPutCount") == 2
     finally:
         browser.close()
         manager.stop()

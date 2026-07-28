@@ -166,6 +166,10 @@ function persistPendingEditorDraftBeforeUnload() {
 function initializeEditorLifecycle() {
   if (editorLifecycleInitialized) return;
   editorLifecycleInitialized = true;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') persistPendingEditorDraftBeforeUnload();
+  });
+  window.addEventListener('pagehide', persistPendingEditorDraftBeforeUnload);
   window.addEventListener('beforeunload', persistPendingEditorDraftBeforeUnload);
 }
 

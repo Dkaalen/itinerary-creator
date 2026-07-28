@@ -12,7 +12,7 @@ def _text(relative_path: str) -> str:
 def test_general_textareas_are_compact_but_supplier_input_keeps_working_height() -> None:
     assert "min-height: 8rem !important;" in style_forms.CSS
     assert "min-height: 330px !important;" not in style_forms.CSS
-    assert '.block-container:has(.input-page-heading) div[data-testid="stTextArea"] textarea' in style_input_workspace.PAGE_LAYOUT_CSS
+    assert '.st-key-input_workspace_form div[data-testid="stTextArea"] textarea' in style_input_workspace.PAGE_LAYOUT_CSS
     assert "min-height: 280px !important;" in style_input_workspace.PAGE_LAYOUT_CSS
     assert "min-height: 240px !important;" in style_input_workspace.PAGE_LAYOUT_CSS
 

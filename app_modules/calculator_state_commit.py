@@ -22,6 +22,7 @@ from app_modules.calculator_state_keys import (
 )
 from calculator.calculator_state import CalculatorState
 from calculator.state_revision import calculator_state_revision
+from app_modules.project_workspace_revision import mark_workspace_mutated
 
 _CURRENCY_RATE_WIDGET_PREFIX = "calculator_currency_rate_"
 
@@ -111,6 +112,14 @@ def commit_calculator_state(
         else None
     )
     changed = previous_state != request.state
+    previous_rates = None
+    if normalized_rates is not None:
+        current_rates = session_state.get(CURRENCY_RATES_STATE_KEY)
+        try:
+            previous_rates = _normalize_currency_rates(current_rates if isinstance(current_rates, Mapping) else {})
+        except (TypeError, ValueError):
+            previous_rates = {}
+    rates_changed = normalized_rates is not None and previous_rates != normalized_rates
 
     if normalized_rates is not None:
         _replace_currency_rates(session_state, normalized_rates)
@@ -121,6 +130,8 @@ def commit_calculator_state(
         session_state[CALCULATOR_ITINERARY_NAME_SYNC_REQUIRED_KEY] = True
     if request.clear_ready_download and changed:
         session_state.pop(CALCULATOR_READY_DOWNLOAD_KEY, None)
+    if changed or rates_changed:
+        mark_workspace_mutated(session_state)
 
     server_revision = calculator_state_revision(request.state)
     return CalculatorStateCommitResult(

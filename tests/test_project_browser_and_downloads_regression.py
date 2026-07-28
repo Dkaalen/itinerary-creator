@@ -47,6 +47,8 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     ui_source = read_contract_text("app_modules/project_browser_ui.py")
     controls_source = read_contract_text("app_modules/project_browser_controls.py")
     list_source = read_contract_text("app_modules/project_browser_list_ui.py")
+    component_source = read_contract_text("project_explorer_component/frontend/js/project_explorer_state.js")
+    component_render_source = read_contract_text("project_explorer_component/frontend/js/project_explorer_render.js")
     detail_source = read_contract_text("app_modules/project_browser_detail_ui.py")
     bulk_source = read_contract_text("app_modules/project_browser_bulk_ui.py")
     calculator_file_source = read_contract_text("app_modules/project_browser_calculation_files.py")
@@ -66,10 +68,13 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "render_selected_project_panel(selected, query=query)" in ui_source
     assert "render_open_project_workspace_if_visible()" in input_source
     assert input_source.index("render_open_project_workspace_if_visible()") > input_source.index("with project_col:")
-    assert 'st.dataframe(' in list_source
-    assert 'height=PROJECT_TABLE_HEIGHT' in list_source
-    assert 'on_select="rerun"' in list_source
-    assert 'selection_mode="multi-row"' in list_source
+    assert "render_project_explorer_table" in list_source
+    assert 'st.dataframe(' not in list_source
+    assert 'on_select="rerun"' not in list_source
+    assert 'selection_mode="multi-row"' not in list_source
+    assert "selectedIds: new Set()" in component_source
+    assert "emitProjectExplorerAction('commit_selection')" in component_render_source
+    assert "emitProjectExplorerAction('page'" in component_render_source
     assert "st.popover" not in list_source
     assert "render_calculation_files" not in list_source
     assert detail_source.count("render_calculation_files(project_id)") == 1
@@ -91,7 +96,7 @@ def test_open_project_manager_is_full_width_selectable_and_loads_files_only_for_
     assert "@st.dialog" not in ui_source
     assert "OPEN_PROJECT_BROWSER_VISIBLE_KEY" in ui_source
     assert ".st-key-cloud_project_explorer" in css
-    assert '[data-testid="stDataFrame"]' in css
+    assert ".st-key-cloud_project_explorer" in css
     assert ".cloud-project-selected-strip" in css
     assert "Open a backup file" in ui_source
 

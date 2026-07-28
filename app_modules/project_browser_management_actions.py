@@ -9,14 +9,19 @@ from app_modules.project_browser_state import (
     bump_project_table_revision,
     clear_bulk_action,
     invalidate_folder_options,
+    project_action_token_fingerprint,
     remember_selected_projects,
+)
+from app_modules.performance_telemetry import (
+    measure_timing,
+    new_operation_id,
+    record_trace,
+    telemetry_is_active,
 )
 from app_modules.project_identity import active_project_id_from_state
 from app_modules.project_session_cleanup import clear_active_cloud_project_session
 from app_modules.project_storage_service import (
-    move_cloud_projects_to_trash,
     permanently_delete_cloud_projects,
-    restore_cloud_projects_from_trash,
     update_cloud_project_organization,
 )
 from app_modules.session_state_keys import (
@@ -64,50 +69,55 @@ def apply_folder_change(
 
 
 
-def apply_move_to_trash(
-    state: MutableMapping[str, Any],
-    project_ids: Sequence[str],
-    *,
-    actor_slug: str,
-) -> bool:
-    """Legacy compatibility operation; no longer exposed by Project Explorer."""
-
-    result = move_cloud_projects_to_trash(tuple(project_ids), actor_slug=actor_slug)
-    completed = _complete_mutation(
-        state,
-        result,
-        success_template="Moved {count} to Trash.",
-        invalidate_folders=True,
-    )
-    if result is not None:
-        _detach_active_project_if_affected(state, result.affected_ids)
-    return completed
-
-
-def apply_restore_from_trash(
-    state: MutableMapping[str, Any],
-    project_ids: Sequence[str],
-    *,
-    actor_slug: str,
-) -> bool:
-    """Legacy compatibility operation for already soft-deleted records."""
-
-    result = restore_cloud_projects_from_trash(tuple(project_ids), actor_slug=actor_slug)
-    return _complete_mutation(
-        state,
-        result,
-        success_template="Restored {count}.",
-        invalidate_folders=True,
-    )
-
 def apply_delete_projects(
     state: MutableMapping[str, Any],
     project_ids: Sequence[str],
+    *,
+    confirmation_token: str = "",
 ) -> bool:
     """Permanently delete selected projects and preserve partial outcomes."""
 
-    result = permanently_delete_cloud_projects(tuple(project_ids))
+    clean_ids = tuple(str(project_id or "").strip() for project_id in project_ids if str(project_id or "").strip())
+    operation_id = new_operation_id("delete")
+    telemetry_state = state if telemetry_is_active(state) else None
+    if telemetry_state is not None:
+        record_trace(
+            telemetry_state,
+            "project_delete_started",
+            operation_id=operation_id,
+            project_ids=clean_ids,
+            project_count=len(clean_ids),
+            confirmation_token_id=project_action_token_fingerprint(confirmation_token),
+        )
+    try:
+        with measure_timing(
+            telemetry_state,
+            "project_delete_batch",
+            count=len(clean_ids),
+            note=operation_id,
+        ):
+            result = permanently_delete_cloud_projects(clean_ids)
+    except Exception as exc:
+        if telemetry_state is not None:
+            record_trace(
+                telemetry_state,
+                "project_delete_failed",
+                operation_id=operation_id,
+                project_ids=clean_ids,
+                error_type=type(exc).__name__,
+                confirmation_token_id=project_action_token_fingerprint(confirmation_token),
+            )
+        raise
     if result is None:
+        if telemetry_state is not None:
+            record_trace(
+                telemetry_state,
+                "project_delete_completed",
+                operation_id=operation_id,
+                project_ids=clean_ids,
+                outcome="storage_unavailable",
+                confirmation_token_id=project_action_token_fingerprint(confirmation_token),
+            )
         state[PROJECT_STORAGE_BROWSER_WARNING_KEY] = (
             "Cloud storage is unavailable. No projects were deleted."
         )
@@ -122,16 +132,25 @@ def apply_delete_projects(
             f"{failed} selected project{'s' if failed != 1 else ''} could not be fully deleted. "
             "The retained records can be selected and retried."
         )
-    _finish_management_action(state, invalidate_folders=True)
+    if telemetry_state is not None:
+        record_trace(
+            telemetry_state,
+            "project_delete_completed",
+            operation_id=operation_id,
+            project_ids=clean_ids,
+            deleted_project_ids=result.deleted_ids,
+            incomplete_project_ids=result.incomplete_ids,
+            outcome="complete" if result.complete else "partial",
+            confirmation_token_id=project_action_token_fingerprint(confirmation_token),
+        )
+    if result.complete:
+        remember_selected_projects(state, ())
+    else:
+        remember_selected_projects(state, result.incomplete_ids)
+    clear_bulk_action(state)
+    bump_project_table_revision(state)
+    invalidate_folder_options(state)
     return result.complete
-
-
-def apply_permanent_purge(
-    state: MutableMapping[str, Any], project_ids: Sequence[str]
-) -> bool:
-    """Compatibility alias for the former Trash workflow."""
-
-    return apply_delete_projects(state, project_ids)
 
 
 def _complete_mutation(
@@ -156,18 +175,16 @@ def _complete_mutation(
             f"{missed} selected project{'s' if missed != 1 else ''} could not be updated. "
             "Refresh the list and retry the remaining selection."
         )
-    _finish_management_action(state, invalidate_folders=invalidate_folders)
-    return result.complete
-
-
-def _finish_management_action(
-    state: MutableMapping[str, Any], *, invalidate_folders: bool
-) -> None:
-    remember_selected_projects(state, ())
+    if result.complete:
+        remember_selected_projects(state, ())
+    else:
+        remember_selected_projects(state, result.missing_ids)
     clear_bulk_action(state)
     bump_project_table_revision(state)
     if invalidate_folders:
         invalidate_folder_options(state)
+    return result.complete
+
 
 
 def _detach_active_project_if_affected(
@@ -192,8 +209,5 @@ def _count_label(project_ids: Sequence[str]) -> str:
 __all__ = [
     "apply_delete_projects",
     "apply_folder_change",
-    "apply_move_to_trash",
     "apply_owner_change",
-    "apply_restore_from_trash",
-    "apply_permanent_purge",
 ]

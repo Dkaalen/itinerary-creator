@@ -8,6 +8,7 @@ import pytest
 from project_storage.config import SupabaseStorageConfig
 from project_storage.delete_result import ProjectDeleteResult
 from project_storage.http_client import SupabaseHttpClient
+from project_storage.http_transport import HttpTransportResponse
 from project_storage.project_metadata import (
     PROJECT_OWNER_SLUGS,
     ProjectOrganization,
@@ -45,8 +46,19 @@ class ManagementClient:
         self.gets.append((table, dict(params)))
         if table == "itinerary_files":
             offset = int(params.get("offset", 0))
-            limit = int(params.get("limit", 200))
-            return self.files[offset : offset + limit]
+            limit = int(params.get("limit", 500))
+            expression = str(params.get("itinerary_id") or "")
+            project_ids = (
+                expression.removeprefix("in.(").removesuffix(")").split(",")
+                if expression.startswith("in.(")
+                else [expression.removeprefix("eq.")]
+            )
+            rows = []
+            for item in self.files:
+                project_id = str(item.get("itinerary_id") or (project_ids[0] if len(project_ids) == 1 else ""))
+                if project_id in project_ids:
+                    rows.append({**item, "itinerary_id": project_id})
+            return rows[offset : offset + limit]
         if table == "itineraries":
             expression = str(params.get("id") or "")
             if expression.startswith("in.("):
@@ -236,6 +248,40 @@ def test_counted_http_reads_parse_postgrest_content_range(monkeypatch) -> None:
     assert calls[0][2]["Prefer"] == "count=exact"
 
 
+def test_http_observer_reports_safe_endpoint_without_query_values() -> None:
+    events: list[dict] = []
+
+    class Transport:
+        def request(self, method, path, *, data, headers):
+            assert "Private+Client+Name" in path
+            assert headers["apikey"] == "secret"
+            return HttpTransportResponse(
+                status=200,
+                headers={"content-type": "application/json"},
+                body=b'[{"id":"project-1"}]',
+            )
+
+        def close(self):
+            return None
+
+    client = SupabaseHttpClient(
+        SupabaseStorageConfig(url="https://example.supabase.co", secret_key="secret", bucket="files"),
+        observer=lambda event: events.append(dict(event)),
+        transport=Transport(),
+    )
+
+    rows = client.rest_get("itineraries", {"name": "eq.Private Client Name"})
+
+    assert rows == [{"id": "project-1"}]
+    assert len(events) == 1
+    assert events[0]["endpoint"] == "rest:itineraries"
+    assert events[0]["method"] == "GET"
+    assert events[0]["ok"] is True
+    assert events[0]["status"] == 200
+    assert "Private Client Name" not in str(events[0])
+    assert "secret" not in str(events[0]).casefold()
+
+
 def test_http_rpc_calls_only_the_named_postgrest_function(monkeypatch) -> None:
     client = SupabaseHttpClient(
         SupabaseStorageConfig(url="https://example.supabase.co", secret_key="secret", bucket="files")
@@ -323,7 +369,7 @@ def test_folder_options_are_server_owned_counted_and_owner_filtered() -> None:
     client = ManagementClient()
     repository = _repository(client)
 
-    options = repository.list_project_folders(owner_slug="Dennis", include_trashed=False)
+    options = repository.list_project_folders(owner_slug="Dennis")
 
     assert [(option.folder_name, option.project_count) for option in options] == [
         ("ITIN-2020", 3),
@@ -349,23 +395,27 @@ def test_management_search_strips_postgrest_filter_grammar() -> None:
     assert ",deleted_at." not in params["or"]
 
 
-def test_trash_query_is_explicit_and_does_not_mix_active_rows() -> None:
+def test_management_query_always_excludes_soft_deleted_rows() -> None:
     client = ManagementClient()
     repository = _repository(client)
 
-    repository.list_project_page(trash_only=True, sort="trash_recent")
+    repository.list_project_page(sort="recent")
 
     params = client.count_gets[0][1]
-    assert params["deleted_at"] == "not.is.null"
-    assert params["order"] == "deleted_at.desc,id.asc"
+    assert params["deleted_at"] == "is.null"
+    assert params["order"] == "last_saved_at.desc,id.asc"
 
 
-def test_bulk_trash_deduplicates_ids_and_batches_large_mutations() -> None:
+def test_bulk_organization_deduplicates_ids_and_batches_large_mutations() -> None:
     client = ManagementClient()
     repository = _repository(client)
     project_ids = [f"project-{index}" for index in range(205)] + ["project-7"]
 
-    result = repository.move_itineraries_to_trash(project_ids, actor_slug="Dennis")
+    result = repository.bulk_update_project_organization(
+        project_ids,
+        owner_slug="Shared",
+        actor_slug="Dennis",
+    )
 
     assert result.requested_count == 205
     assert result.affected_count == 205
@@ -378,17 +428,22 @@ def test_bulk_trash_deduplicates_ids_and_batches_large_mutations() -> None:
     ]
     for table, _filters, payload in client.updates:
         assert table == "itineraries"
-        assert payload["deleted_by"] == "dennis"
+        assert payload["owner_slug"] == "shared"
         assert payload["updated_by"] == "dennis"
-        assert payload["deleted_at"]
+        assert "deleted_at" not in payload
+        assert "deleted_by" not in payload
 
 
-def test_bulk_mutation_returns_completed_and_failed_batches_without_hiding_partial_success() -> None:
+def test_bulk_organization_returns_completed_and_failed_batches_without_hiding_partial_success() -> None:
     client = ManagementClient(update_failures={1})
     repository = _repository(client)
     project_ids = [f"project-{index}" for index in range(205)]
 
-    result = repository.move_itineraries_to_trash(project_ids, actor_slug="Dennis")
+    result = repository.bulk_update_project_organization(
+        project_ids,
+        folder_name="ITIN-2020",
+        actor_slug="Dennis",
+    )
 
     assert result.affected_count == 105
     assert result.complete is False
@@ -398,11 +453,10 @@ def test_bulk_mutation_returns_completed_and_failed_batches_without_hiding_parti
     assert result.missing_ids == tuple(f"project-{index}" for index in range(100, 200))
 
 
-def test_restore_and_bulk_organization_preserve_separate_lifecycle_fields() -> None:
+def test_bulk_organization_does_not_mutate_legacy_lifecycle_fields() -> None:
     client = ManagementClient()
     repository = _repository(client)
 
-    restored = repository.restore_itineraries_from_trash(["project-1", "project-2"], actor_slug="Vipin")
     organized = repository.bulk_update_project_organization(
         ["project-1", "project-2"],
         owner_slug="Shared",
@@ -410,30 +464,29 @@ def test_restore_and_bulk_organization_preserve_separate_lifecycle_fields() -> N
         actor_slug="Christer",
     )
 
-    assert restored.complete is True
-    restore_payload = client.updates[0][2]
-    assert restore_payload["deleted_at"] is None
-    assert restore_payload["deleted_by"] is None
-    assert restore_payload["updated_by"] == "vipin"
-
     assert organized.complete is True
-    organization_payload = client.updates[1][2]
+    organization_payload = client.updates[0][2]
     assert organization_payload["owner_slug"] == "shared"
     assert organization_payload["folder_name"] == "ITIN-2020"
     assert organization_payload["updated_by"] == "christer"
+    assert "deleted_at" not in organization_payload
+    assert "deleted_by" not in organization_payload
 
 
-def test_bulk_mutations_reject_empty_or_unsafe_project_ids_before_network_calls() -> None:
+def test_bulk_organization_rejects_empty_or_unsafe_project_ids_before_network_calls() -> None:
     client = ManagementClient()
     repository = _repository(client)
 
     with pytest.raises(ValueError, match="Select at least one"):
-        repository.move_itineraries_to_trash([], actor_slug="Dennis")
+        repository.bulk_update_project_organization([], owner_slug="Dennis", actor_slug="Dennis")
     with pytest.raises(ValueError, match="identifiers"):
-        repository.restore_itineraries_from_trash(["project-1),deleted_at.not.is.null"], actor_slug="Dennis")
+        repository.bulk_update_project_organization(
+            ["project-1),deleted_at.not.is.null"],
+            owner_slug="Dennis",
+            actor_slug="Dennis",
+        )
 
     assert client.updates == []
-
 
 def test_permanent_delete_enumerates_more_than_200_files_and_batches_storage_cleanup() -> None:
     files = [
@@ -452,7 +505,8 @@ def test_permanent_delete_enumerates_more_than_200_files_and_batches_storage_cle
     assert result.complete is True
     assert len(result.storage_paths) == 205
     file_gets = [params for table, params in client.gets if table == "itinerary_files"]
-    assert [params["offset"] for params in file_gets] == ["0", "200"]
+    assert [params["offset"] for params in file_gets] == ["0"]
+    assert file_gets[0]["itinerary_id"] == "eq.project-1"
     assert client.deletes == [("itineraries", {"id": "eq.project-1"})]
     assert [len(paths) for _bucket, paths in client.storage_deletes] == [100, 100, 5]
 
@@ -462,7 +516,15 @@ def test_permanent_delete_reports_database_failure_after_storage_cleanup() -> No
 
     class Client:
         def rest_get(self, table, params):
-            return [{"id": "file-1", "storage_path": "itineraries/project-1/file.pdf"}]
+            if table == "itineraries":
+                return [{"id": "project-1"}]
+            return [
+                {
+                    "id": "file-1",
+                    "itinerary_id": "project-1",
+                    "storage_path": "itineraries/project-1/file.pdf",
+                }
+            ]
 
         def storage_delete(self, bucket, paths):
             calls.append(("storage", tuple(paths)))
@@ -486,52 +548,17 @@ def test_permanent_delete_reports_database_failure_after_storage_cleanup() -> No
     ]
 
 
-def test_bulk_permanent_purge_reports_each_project_without_stopping_on_one_failure(monkeypatch) -> None:
-    repository = _repository(
-        ManagementClient(trashed_ids={"project-1", "project-2", "project-3"})
-    )
-
-    def delete_one(project_id: str) -> ProjectDeleteResult:
-        if project_id == "project-2":
-            raise RuntimeError("database unavailable")
-        if project_id == "project-3":
-            return ProjectDeleteResult(
-                itinerary_id=project_id,
-                record_deleted=True,
-                storage_files_deleted=False,
-                storage_error="storage cleanup failed",
-            )
-        return ProjectDeleteResult(
-            itinerary_id=project_id,
-            record_deleted=True,
-            storage_files_deleted=True,
-        )
-
-    monkeypatch.setattr(repository, "delete_itinerary", delete_one)
-
-    result = repository.permanently_delete_itineraries(["project-1", "project-2", "project-3"])
-
-    assert result.requested_ids == ("project-1", "project-2", "project-3")
-    assert result.deleted_ids == ("project-1", "project-3")
-    assert result.incomplete_ids == ("project-2", "project-3")
-    assert result.complete is False
-    assert result.items[1].error == "database unavailable"
-
-
-def test_bulk_permanent_purge_accepts_active_projects_and_rejects_missing_projects(monkeypatch) -> None:
-    repository = _repository(ManagementClient(trashed_ids={"project-1"}))
-    deleted: list[str] = []
-
-    def delete_one(project_id: str) -> ProjectDeleteResult:
-        deleted.append(project_id)
-        return ProjectDeleteResult(
-            itinerary_id=project_id,
-            record_deleted=True,
-            storage_files_deleted=True,
-        )
-
-    monkeypatch.setattr(repository, "delete_itinerary", delete_one)
-    original_rest_get = repository._client.rest_get
+def test_bulk_permanent_purge_batches_projects_and_is_idempotent_for_missing_records() -> None:
+    files = [
+        {
+            "id": f"file-{project_id}",
+            "itinerary_id": project_id,
+            "storage_path": f"itineraries/{project_id}/file.pdf",
+        }
+        for project_id in ("project-1", "project-2")
+    ]
+    client = ManagementClient(files=files)
+    original_rest_get = client.rest_get
 
     def rest_get(table, params):
         rows = original_rest_get(table, params)
@@ -539,16 +566,61 @@ def test_bulk_permanent_purge_accepts_active_projects_and_rejects_missing_projec
             return [row for row in rows if row.get("id") != "project-missing"]
         return rows
 
-    repository._client.rest_get = rest_get
+    client.rest_get = rest_get
+
+    def rest_delete(table, params):
+        client.deletes.append((table, dict(params)))
+        return [{"id": "project-1"}, {"id": "project-2"}]
+
+    client.rest_delete = rest_delete
+    repository = _repository(client)
+
     result = repository.permanently_delete_itineraries(
         ["project-1", "project-2", "project-missing"]
     )
 
-    assert deleted == ["project-1", "project-2"]
-    assert result.deleted_ids == ("project-1", "project-2")
-    assert result.incomplete_ids == ("project-missing",)
-    assert result.items[1].complete is True
-    assert result.items[2].error == "Project was not found."
+    assert result.deleted_ids == ("project-1", "project-2", "project-missing")
+    assert result.incomplete_ids == ()
+    assert result.items[2].already_absent is True
+    assert len([call for call in client.gets if call[0] == "itinerary_files"]) == 1
+    assert client.storage_deletes == [
+        (
+            "itinerary-files",
+            (
+                "itineraries/project-1/file.pdf",
+                "itineraries/project-2/file.pdf",
+            ),
+        )
+    ]
+    assert client.deletes == [
+        ("itineraries", {"id": "in.(project-1,project-2,project-missing)"})
+    ]
+
+
+def test_bulk_permanent_purge_retains_only_projects_in_failed_storage_batch() -> None:
+    class Client(ManagementClient):
+        def storage_delete(self, bucket, paths):
+            self.storage_deletes.append((bucket, tuple(paths)))
+            if any("project-2" in path for path in paths):
+                raise RuntimeError("storage unavailable")
+
+    files = [
+        {
+            "id": f"file-{project_id}",
+            "itinerary_id": project_id,
+            "storage_path": f"itineraries/{project_id}/file.pdf",
+        }
+        for project_id in ("project-1", "project-2")
+    ]
+    client = Client(files=files)
+    repository = _repository(client)
+
+    result = repository.permanently_delete_itineraries(["project-1", "project-2"])
+
+    assert result.deleted_ids == ()
+    assert result.incomplete_ids == ("project-1", "project-2")
+    assert client.deletes == []
+    assert "storage unavailable" in result.items[0].result.storage_error
 
 
 def test_current_explorer_list_order_has_stable_id_tie_breaker() -> None:

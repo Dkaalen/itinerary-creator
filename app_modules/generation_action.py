@@ -10,7 +10,9 @@ from app_modules.generation_settings import build_initial_output_edits, consume_
 from app_modules.parse_workflow import get_duplicate_count, parse_and_normalize_itinerary
 from app_modules.performance_telemetry import measure_timing, reset_performance_telemetry
 from app_modules.project_file_download_cache import clear_project_file_download_cache
+from app_modules.project_workspace_revision import mark_workspace_mutated
 from app_modules.saved_project_generation import create_generated_baseline_project_if_named
+from app_modules.supplier_preview_cache import remember_supplier_rows_preview
 from app_modules.validation_gate import validate_for_generation
 from app_modules.workflow_result import WorkflowActionResult
 from app_modules.render_lifecycle import clear_pdf_artifacts
@@ -34,6 +36,7 @@ def _parse_and_review(
     raw_text: str,
     *,
     prepared_parsed_rows: list[dict] | None = None,
+    prepared_parser_diagnostics: list[dict] | None = None,
 ) -> tuple[list[dict], Any]:
     """Parse supplier input and store review diagnostics."""
 
@@ -44,7 +47,11 @@ def _parse_and_review(
         else parse_and_normalize_itinerary(raw_text, state=state)
     )
     validation_report = validate_for_generation(parsed_rows)
-    state[PARSER_DIAGNOSTICS_KEY] = diagnostics.get_warnings()
+    state[PARSER_DIAGNOSTICS_KEY] = (
+        [dict(item) for item in prepared_parser_diagnostics]
+        if prepared_parsed_rows is not None and prepared_parser_diagnostics is not None
+        else diagnostics.get_warnings()
+    )
     state[STRUCTURED_INPUT_REVIEW_KEY] = build_structured_input_review(
         parsed_rows,
         parser_diagnostics=state[PARSER_DIAGNOSTICS_KEY],
@@ -77,6 +84,7 @@ def generate_itinerary(
     raw_text: str,
     *,
     prepared_parsed_rows: list[dict] | None = None,
+    prepared_parser_diagnostics: list[dict] | None = None,
 ) -> WorkflowActionResult:
     """Parse supplier text and build the first editable itinerary preview."""
 
@@ -88,6 +96,13 @@ def generate_itinerary(
         state,
         raw_text,
         prepared_parsed_rows=prepared_parsed_rows,
+        prepared_parser_diagnostics=prepared_parser_diagnostics,
+    )
+    remember_supplier_rows_preview(
+        state,
+        raw_text,
+        parsed_rows,
+        parser_diagnostics=state.get(PARSER_DIAGNOSTICS_KEY) or (),
     )
     if validation_report.is_blocked:
         return WorkflowActionResult(
@@ -105,6 +120,7 @@ def generate_itinerary(
     state[PARSED_ROWS_KEY] = parsed_rows
     state[OUTPUT_EDITS_KEY] = output_edits
     state[LAST_GENERATED_RAW_TEXT_KEY] = raw_text
+    mark_workspace_mutated(state)
     clear_pdf_artifacts(state, status="Not created")
     clear_project_file_download_cache(state)
 

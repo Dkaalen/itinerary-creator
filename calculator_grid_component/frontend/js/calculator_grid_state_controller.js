@@ -6,10 +6,12 @@ let activeProjectIdentity = null;
 let hasLocalDraft = false;
 let localDraftSaveTimer = null;
 let recoverySnapshotTimer = null;
+let recoveryBaselineState = null;
 const LOCAL_DRAFT_SAVE_DELAY_MS = 400;
 const RECOVERY_SNAPSHOT_DELAY_MS = 2500;
 
-function initializeState(payload) {
+async function initializeState(payload) {
+  await window.ItineraryCalculator.storage.initializeStorage(payload.browser_storage_contract, payload.draft_storage_key);
   setActiveFinancialRules(payload.financial_rules || DEFAULT_FINANCIAL_RULES);
   const incomingDraftStorageKey = window.ItineraryCalculator.storage.setDraftStorageKey(payload.draft_storage_key);
   const incomingProjectIdentity = String(payload.project_identity || "");
@@ -19,7 +21,7 @@ function initializeState(payload) {
     mergeBackendPayloadWithoutRows(payload, incomingRevision);
     hasLocalDraft = true;
     calculatorState.dirty = true;
-    calculatorState.syncStatus = 'Local changes';
+    calculatorState.syncStatus = 'Unsaved changes';
     window.ItineraryCalculator.storage.saveDraft(calculatorState, activeBackendRevision);
     return;
   }
@@ -64,6 +66,15 @@ function initializeState(payload) {
     redoStack: []
   };
   activeCell = useStoredDraft && storedDraft.activeCell ? {...storedDraft.activeCell} : null;
+  recoveryBaselineState = (calculatorState.recoverySnapshots || []).length ? null : {
+    rows: cloneRows(calculatorState.rows),
+    numberOfPax: calculatorState.numberOfPax ?? null,
+    showAdvanced: Boolean(calculatorState.showAdvanced),
+    selectedRowIndex: Number(calculatorState.selectedRowIndex || 0),
+    selection: calculatorState.selection ? {...calculatorState.selection} : null,
+    columnWidths: {...(calculatorState.columnWidths || {})},
+    recoveryActiveCell: activeCell ? {...activeCell} : null,
+  };
   activeBackendRevision = incomingRevision;
   activeDraftStorageKey = incomingDraftStorageKey;
   activeProjectIdentity = incomingProjectIdentity;
@@ -109,12 +120,21 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
 }
 
 function markLocalDraft(captureVersion = true, runValidation = true) {
+  if (recoveryBaselineState) {
+    calculatorState.recoverySnapshots = window.ItineraryCalculator.storage.saveRecoverySnapshot(
+      recoveryBaselineState,
+      activeBackendRevision,
+      'baseline'
+    );
+    recoveryBaselineState = null;
+    refreshVersionHistoryCount();
+  }
   noteCalculatorLocalEdit();
   window.ItineraryCalculator.storage.resumeLocalRecovery();
   hasLocalDraft = true;
   calculatorState.dirty = true;
   calculatorState.pendingDownload = null;
-  calculatorState.syncStatus = 'Local changes';
+  calculatorState.syncStatus = 'Unsaved changes';
   if (runValidation) validateCalculatorState(calculatorState);
   scheduleLocalDraftSave();
   if (captureVersion) scheduleRecoverySnapshot();

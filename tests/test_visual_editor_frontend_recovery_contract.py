@@ -49,8 +49,12 @@ def test_visual_editor_frontend_has_autosave_and_text_first_contract():
 
     assert "Edit itinerary text" in editor_html
     assert "Browser recovery saves while you work" in editor_html
-    assert "localStorage.setItem" in editor_html
+    assert "window.indexedDB" in editor_html
+    assert "writeVisualDraftRaw" in editor_html
+    assert "localStorage.setItem" not in editor_html
     assert "beforeunload" in editor_html
+    assert "visibilitychange" in editor_html
+    assert "pagehide" in editor_html
     assert "picturesAdded" in editor_html
     assert "Applying changes…" in editor_html
 
@@ -156,3 +160,15 @@ def test_render_document_reads_typed_day_titles_without_legacy_mirror():
 
     assert context.render_document.days[0].title == "Edited Preview Title"
     assert context.render_document.days[0].intro == "Edited preview intro."
+
+
+def test_visual_editor_bridge_injects_storage_contract_without_mutating_payload(monkeypatch):
+    import visual_editor_component.editor_bridge as bridge
+
+    calls = []
+    monkeypatch.setattr(bridge, "_visual_page_editor", lambda **kwargs: calls.append(kwargs) or "result")
+    payload = {"draft_id": "visual-test"}
+
+    assert bridge.render_visual_page_editor(payload, key="editor-key") == "result"
+    assert "browser_storage_contract" not in payload
+    assert calls[0]["payload"]["browser_storage_contract"]["owners"]["visual_editor"]["current_prefix"] == "itinerary-visual-editor-draft:"

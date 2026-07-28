@@ -205,7 +205,7 @@ def test_rejected_stale_request_loads_new_backend_state_and_keeps_old_draft_reco
 
         assert page.locator('td[data-row-index="0"][data-key="travel_element"]').text_content().strip() == "New backend"
         assert "not applied" in page.locator("#calculator-sync-status").text_content()
-        stored = page.evaluate("key => JSON.parse(window.localStorage.getItem(key))", initial["draft_storage_key"])
+        stored = page.evaluate("JSON.parse(window.ItineraryCalculator.storage.readDraftRaw())")
         assert stored["rows"][0]["travel_element"] == "Unsaved browser edit"
     finally:
         browser.close()

@@ -9,6 +9,7 @@
       'js/editor_html_utils.js',
       'js/editor_save_state.js',
       'js/editor_scroll_state.js',
+      'js/editor_draft_storage.js',
       'js/editor_local_draft.js',
       'js/editor_editable_markup.js',
       'js/editor_dirty_state.js',
@@ -98,6 +99,7 @@
     const requiredModules = Object.freeze([
       'state',
       'payload',
+      'draftStorage',
       'drafts',
       'pages',
       'renderer',

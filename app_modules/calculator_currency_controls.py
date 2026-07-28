@@ -8,6 +8,7 @@ import streamlit as st
 
 from calculator.currency_rates import DEFAULT_CURRENCY_RATES, normalize_currency_rates
 from app_modules.calculator_state_keys import CURRENCY_RATES_STATE_KEY
+from app_modules.project_workspace_revision import mark_workspace_mutated
 
 
 def currency_rates_from_session(session_state: MutableMapping[str, object]) -> dict[str, float]:
@@ -40,9 +41,14 @@ def render_currency_rate_editor(session_state: MutableMapping[str, object]) -> d
                         )
                     )
         if st.button("Reset currency rates", use_container_width=True):
+            if rates != dict(DEFAULT_CURRENCY_RATES):
+                mark_workspace_mutated(session_state)
             session_state[CURRENCY_RATES_STATE_KEY] = dict(DEFAULT_CURRENCY_RATES)
             st.rerun()
-        rates = normalize_currency_rates(updated)
+        updated_rates = normalize_currency_rates(updated)
+        if updated_rates != rates:
+            mark_workspace_mutated(session_state)
+        rates = updated_rates
         session_state[CURRENCY_RATES_STATE_KEY] = rates
     return rates
 

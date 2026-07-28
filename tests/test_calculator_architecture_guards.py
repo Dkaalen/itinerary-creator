@@ -315,7 +315,7 @@ def test_calculator_browser_workflows_are_bounded_and_share_one_harness() -> Non
     assert "def open_blank_calculator_browser_page(" in harness_source
     assert "def open_calculator_browser_page(" in harness_source
     assert "def open_recovery_browser_page(" in harness_source
-    assert "def install_storage_quota(" in harness_source
+    assert "fake_indexed_db_script" in harness_source
 
 
 def test_calculator_architecture_document_names_bounded_browser_groups() -> None:

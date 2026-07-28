@@ -14,6 +14,7 @@ from app_modules.input_workspace import (
 )
 from app_modules.itinerary_name_ui import render_itinerary_name_input
 from app_modules.input_preview_table import render_supplier_rows_preview
+from app_modules.project_workspace_revision import mark_workspace_mutated
 from app_modules.project_file_ui import render_open_project_file_action, render_open_project_workspace_if_visible
 from app_modules.project_io import load_project_json
 from app_modules.workflow_config import STAGE_COPY
@@ -59,8 +60,10 @@ def render_input_page(app_version: str) -> None:
             placeholder="Paste itinerary rows here…",
             key="raw_text_input",
             label_visibility="collapsed",
+            on_change=mark_workspace_mutated,
+            args=(st.session_state,),
         )
-        render_supplier_rows_preview(raw_text)
+        preview = render_supplier_rows_preview(raw_text)
 
         with st.container(key="input_generation_actions"):
             agent_col, customer_col = st.columns(2, gap="small")
@@ -72,7 +75,15 @@ def render_input_page(app_version: str) -> None:
             return
         output_brand = "booknordics_customer" if generate_customer else "agent"
         with st.spinner("Building your itinerary…"):
-            generated = generate_supplier_itinerary(st.session_state, raw_text, output_brand)
+            generated = generate_supplier_itinerary(
+                st.session_state,
+                raw_text,
+                output_brand,
+                prepared_parsed_rows=list(preview.rows) if preview is not None else None,
+                prepared_parser_diagnostics=(
+                    list(preview.parser_diagnostics) if preview is not None else None
+                ),
+            )
         if generated:
             _set_stage("edit")
             st.rerun()

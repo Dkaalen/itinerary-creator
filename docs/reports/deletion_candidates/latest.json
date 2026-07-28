@@ -1,10 +1,10 @@
 {
   "report_fingerprint": {
-    "repository_head": "ae9a4f3010832e7909fcff9c991b0a3a1bda77bb",
-    "repository_head_tree": "602b85330874cd21b348092204f23b2ab2fc53f0",
+    "repository_head": "ed1bc7f7e7527908c5641332082a205ed48c0889",
+    "repository_head_tree": "754c99cd3dba00dc6f959bd5a0d1db51ae086d48",
     "working_tree_clean": false,
-    "python_source_tree_sha256": "sha256:6a362445beb011634a452030d27beb5058b9ad9522e5a09775c75632f85100d7",
-    "python_source_file_count": 1355
+    "python_source_tree_sha256": "sha256:ccc16c5d0f4c29ff9a27d4105574d81aa35e93dab5ba0cbf599b9a3b2bb44886",
+    "python_source_file_count": 1372
   },
   "candidates": [],
   "held_back": [
@@ -15,11 +15,26 @@
       "safety_note": "production application entrypoint"
     },
     {
+      "path": "app_modules/browser_storage_contract.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/browser_storage_guard.py",
+        "calculator_grid_component/__init__.py",
+        "tests/support/calculator_browser_harness.py",
+        "tests/support/visual_editor_browser_harness.py",
+        "tests/test_browser_storage_guard.py",
+        "tests/test_browser_storage_indexeddb_contract.py",
+        "visual_editor_component/editor_bridge.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
       "path": "app_modules/browser_storage_guard.py",
       "reason": "facade-like module with production importers",
       "static_importers": [
         "app_modules/streamlit_entry.py",
-        "tests/test_browser_storage_guard.py"
+        "tests/test_browser_storage_guard.py",
+        "tests/test_browser_storage_indexeddb_contract.py"
       ],
       "safety_note": "still has static importers"
     },
@@ -206,9 +221,11 @@
         "app_modules/image_projection_state.py",
         "app_modules/image_stage_action.py",
         "app_modules/input_generation_action.py",
+        "app_modules/input_preview_table.py",
         "app_modules/itinerary_render_artifact.py",
         "app_modules/main_view.py",
         "app_modules/project_browser_actions.py",
+        "app_modules/project_browser_bulk_ui.py",
         "app_modules/project_browser_calculation_files.py",
         "app_modules/project_browser_controls.py",
         "app_modules/project_browser_detail_ui.py",
@@ -224,6 +241,7 @@
         "app_modules/project_session_transitions.py",
         "app_modules/project_storage_workflow.py",
         "app_modules/project_unsaved_state.py",
+        "app_modules/project_workspace_revision.py",
         "app_modules/saved_project_current_state.py",
         "app_modules/saved_project_file_action.py",
         "app_modules/saved_project_generation.py",
@@ -233,6 +251,8 @@
         "app_modules/workflow_navigation.py",
         "app_modules/workflow_state.py",
         "app_modules/workflow_transients.py",
+        "scripts/measure_optimization_baseline.py",
+        "tests/test_patch6_performance_and_state.py",
         "tests/test_session_state_transitions.py"
       ],
       "safety_note": "still has static importers"
@@ -290,6 +310,7 @@
         "app_modules/project_rename_state.py",
         "app_modules/project_storage_workflow.py",
         "app_modules/project_unsaved_state.py",
+        "app_modules/project_workspace_revision.py",
         "app_modules/saved_project_calculator_state.py",
         "app_modules/saved_project_validation.py",
         "calculator/calculations.py",
@@ -2682,24 +2703,52 @@
         "app_modules/project_storage_runtime.py",
         "app_modules/project_storage_service.py",
         "app_modules/project_storage_workflow.py",
+        "project_storage/batch_delete.py",
         "project_storage/http_client.py",
         "project_storage/project_browser.py",
         "project_storage/project_management.py",
         "project_storage/project_results.py",
         "project_storage/repository.py",
         "project_storage/version_writer.py",
+        "scripts/measure_optimization_baseline.py",
         "tests/test_failure_mode_regressions.py",
         "tests/test_foundation_cleanup_regression.py",
+        "tests/test_patch6_performance_and_state.py",
         "tests/test_project_browser_compact_manager.py",
         "tests/test_project_cloud_lifecycle_hardening.py",
         "tests/test_project_explorer_management_ui.py",
         "tests/test_project_management.py",
         "tests/test_project_organization_and_trash.py",
         "tests/test_project_storage_boundary.py",
+        "tests/test_project_storage_capabilities_and_batching.py",
         "tests/test_project_storage_file_writer.py",
         "tests/test_project_storage_foundation.py"
       ],
       "safety_note": "package initializer; never delete from static import evidence alone"
+    },
+    {
+      "path": "project_storage/capabilities.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "app_modules/project_browser_controls.py",
+        "app_modules/project_browser_ui.py",
+        "app_modules/project_storage_service.py",
+        "project_storage/repository.py",
+        "tests/test_project_browser_compact_manager.py",
+        "tests/test_project_explorer_management_ui.py",
+        "tests/test_project_storage_capabilities_and_batching.py"
+      ],
+      "safety_note": "still has static importers"
+    },
+    {
+      "path": "project_storage/http_transport.py",
+      "reason": "facade-like module with production importers",
+      "static_importers": [
+        "project_storage/http_client.py",
+        "tests/test_project_organization_and_trash.py",
+        "tests/test_project_storage_capabilities_and_batching.py"
+      ],
+      "safety_note": "still has static importers"
     },
     {
       "path": "project_storage/project_results.py",
@@ -2708,10 +2757,12 @@
         "app_modules/project_browser_management_actions.py",
         "app_modules/project_browser_paging.py",
         "app_modules/project_storage_service.py",
+        "project_storage/batch_delete.py",
         "project_storage/project_browser.py",
         "project_storage/repository.py",
         "tests/test_project_browser_compact_manager.py",
-        "tests/test_project_explorer_management_ui.py"
+        "tests/test_project_explorer_management_ui.py",
+        "tests/test_project_storage_capabilities_and_batching.py"
       ],
       "safety_note": "still has static importers"
     },

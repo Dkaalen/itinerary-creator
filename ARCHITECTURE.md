@@ -36,6 +36,8 @@ Cross-workflow session decisions are split by responsibility rather than collect
 - `workflow_navigation.py` owns application routes, workflow-stage normalization, and visible-stage resolution.
 - `calculator_lifecycle.py` owns local Calculator import and Calculator-to-generator transitions.
 - `project_session_transitions.py` owns transactional project open, switch, duplicate, delete, and save-failure state.
+- `project_workspace_revision.py` owns mutation revisions and cached component signatures for exact unsaved-state comparison; mutation owners advance the revision, while save/open boundaries persist or restore the matching baseline signatures.
+- `supplier_preview_cache.py` owns the one-entry exact-source supplier preview cache, including isolated parser diagnostics; hard project boundaries clear it and generation/restoration may reseed it from canonical rows.
 - `render_lifecycle.py` owns PDF and export-artifact invalidation.
 - `image_projection_state.py` projects committed itinerary rows for image matching without mutating workflow state.
 - `workflow_state.py` owns only defaults, clean reset, and plain snapshots.
@@ -58,7 +60,7 @@ Button wrapping, mobile stacking and long-value overflow are presentation contra
 The saved-project subsystem keeps transport, persistence, application state and UI responsibilities separate:
 
 - `project_storage/http_client.py` owns the minimal PostgREST and Supabase Storage transport, including counted reads, explicit RPC calls and filtered patch operations.
-- `project_storage/repository.py` owns itinerary metadata, version payloads, registered files, deterministic listing, owner/folder updates and permanent cleanup. Legacy soft-delete methods and fields remain compatibility-only for the deployed schema; they are not the current Project Explorer lifecycle. The repository has no Streamlit dependency.
+- `project_storage/repository.py` owns itinerary metadata, version payloads, registered files, deterministic active-row listing, owner/folder updates and permanent cleanup. It retains only the deployed schema filter needed to exclude older soft-deleted records; no Trash mutation API remains. The repository has no Streamlit dependency.
 - `project_storage/project_metadata.py` owns normalized owner, actor and logical folder/reference values. These labels organize work but do not authenticate users or grant access.
 - `project_storage/project_results.py` owns immutable exact-count, bulk mutation and purge outcomes.
 - `project_storage/version_writer.py` owns consistency-preserving project/version writes and compensating rollback.

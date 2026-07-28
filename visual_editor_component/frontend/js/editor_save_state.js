@@ -23,6 +23,9 @@ function saveStatusLabel() {
 
 function saveStatusDetail() {
   if (saveState.error) return saveState.error;
+  if (saveState.state === 'dirty' && saveState.localRecoveryAvailable === false) {
+    return saveState.message || 'Browser recovery is paused. Use Save changes to sync your work.';
+  }
   if (saveState.state === 'dirty') return 'Browser recovery draft is saved locally. Use Save changes when you want to sync to the app.';
   if (saveState.state === 'saving' || saveState.state === 'autosaving') return 'Sending a compact editor delta to the app.';
   if (saveState.state === 'recovered') return 'A matching browser draft was restored and can be synced with Save changes.';

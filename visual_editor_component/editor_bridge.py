@@ -3,6 +3,8 @@
 from pathlib import Path
 import streamlit.components.v1 as components
 
+from app_modules.browser_storage_contract import browser_storage_contract
+
 _COMPONENT_DIR = Path(__file__).resolve().parent / "frontend"
 
 _visual_page_editor = components.declare_component(
@@ -18,4 +20,6 @@ def render_visual_page_editor(payload, key="visual_page_editor", commit_nonce=No
     or when Streamlit requests a commit before PDF export. Until then
     editing stays local in the browser and does not trigger reruns.
     """
-    return _visual_page_editor(payload=payload, commit_nonce=commit_nonce, key=key, default=None)
+    component_payload = dict(payload or {})
+    component_payload["browser_storage_contract"] = browser_storage_contract()
+    return _visual_page_editor(payload=component_payload, commit_nonce=commit_nonce, key=key, default=None)

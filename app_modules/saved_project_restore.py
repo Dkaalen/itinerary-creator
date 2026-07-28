@@ -7,9 +7,11 @@ from typing import Any
 
 from app_modules.itinerary_render_artifact import build_and_persist_itinerary_render_artifact
 from app_modules.project_file_download_cache import clear_project_file_download_cache
+from app_modules.project_workspace_revision import mark_workspace_mutated, reset_workspace_revision
 from app_modules.saved_project_calculator_state import restore_calculator_snapshot_to_state
 from app_modules.saved_project_model import SavedItineraryProject
 from app_modules.saved_project_serialization import saved_project_to_dict
+from app_modules.supplier_preview_cache import remember_supplier_rows_preview
 from app_modules.session_state_keys import (
     DAY_PAGE_LAYOUT_KEY,
     DETAIL_LEVEL_KEY,
@@ -45,6 +47,7 @@ def restore_saved_project_to_state(
     """Replace the active itinerary project from one validated saved snapshot."""
 
     clear_project_boundary_transients(state)
+    reset_workspace_revision(state)
     state[PARSED_ROWS_KEY] = parsed_rows
     state[OUTPUT_EDITS_KEY] = output_edits
     state[DETAIL_LEVEL_KEY] = output_edits["detail_level"]
@@ -54,11 +57,18 @@ def restore_saved_project_to_state(
     state[LAST_GENERATED_RAW_TEXT_KEY] = saved_project.source.source_input
     state[RAW_TEXT_INPUT_KEY] = saved_project.source.source_input
     state[PARSER_DIAGNOSTICS_KEY] = []
+    remember_supplier_rows_preview(
+        state,
+        saved_project.source.source_input,
+        parsed_rows,
+        parser_diagnostics=(),
+    )
     state[STRUCTURED_INPUT_REVIEW_KEY] = build_structured_input_review(parsed_rows, parser_diagnostics=[])
     state[ITINERARY_VALIDATION_REPORT_KEY] = validation_report
     state[ITINERARY_NAME_KEY] = saved_project.metadata.itinerary_name
     state[ITINERARY_NAME_INPUT_KEY] = saved_project.metadata.itinerary_name
     restore_calculator_snapshot_to_state(state, _calculator_snapshot_payload(saved_project.calculator_snapshot))
+    mark_workspace_mutated(state)
     clear_pdf_artifacts(state, status="Not created")
     clear_project_file_download_cache(state)
 

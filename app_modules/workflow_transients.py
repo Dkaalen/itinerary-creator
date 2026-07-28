@@ -14,6 +14,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from app_modules.session_state_keys import PROJECT_SAVE_AS_NAME_KEY_PREFIX, PROJECT_SAVE_AS_VISIBLE_KEY
+from app_modules.supplier_preview_cache import SUPPLIER_PREVIEW_CACHE_KEY
 
 PROJECT_BOUNDARY_TRANSIENT_KEYS: tuple[str, ...] = (
     "parser_diagnostics",
@@ -50,6 +51,7 @@ PROJECT_BOUNDARY_TRANSIENT_KEYS: tuple[str, ...] = (
     "_pdf_export_timings",
     "_performance_telemetry",
     "_project_file_download_cache",
+    SUPPLIER_PREVIEW_CACHE_KEY,
     PROJECT_SAVE_AS_VISIBLE_KEY,
 )
 

@@ -34,7 +34,10 @@ def test_generation_buttons_share_one_pipeline_and_only_set_brand():
 
     assert "Generate agent itinerary" in source
     assert "Generate customer itinerary" in source
-    assert "generate_supplier_itinerary(st.session_state, raw_text, output_brand)" in source
+    assert source.count("generate_supplier_itinerary(") == 1
+    assert "prepared_parsed_rows=list(preview.rows)" in source
+    assert "prepared_parser_diagnostics=" in source
+    assert "preview = render_supplier_rows_preview(raw_text)" in source
     assert 'output_brand = "booknordics_customer" if generate_customer else "agent"' in source
     assert "output_brand" in source
 
