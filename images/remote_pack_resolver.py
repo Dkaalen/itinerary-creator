@@ -10,6 +10,11 @@ from images.remote_distribution_config import normalise_lookup
 from images.remote_distribution_models import DestinationRequest, DistributionError, ResolvedDestinationPack
 
 
+NUTSHELL_DESTINATION = "Norway in a Nutshell"
+NUTSHELL_COUNTRY = "Norway"
+NUTSHELL_LOOKUP = normalise_lookup(NUTSHELL_DESTINATION)
+
+
 def coerce_request(value: Any) -> DestinationRequest | None:
     if isinstance(value, DestinationRequest):
         destination = value.destination
@@ -35,6 +40,30 @@ def _row_type(value: Mapping[str, Any]) -> str:
 
 def _row_city(value: Mapping[str, Any]) -> str:
     return str(value.get("city") or value.get("destination") or value.get("location") or "").strip()
+
+
+def _rows_require_nutshell_pack(rows: Sequence[Mapping[str, Any]]) -> bool:
+    """Return whether the dedicated Norway in a Nutshell image pack is required."""
+
+    searchable_fields = (
+        "city",
+        "destination",
+        "location",
+        "title",
+        "original_title",
+        "details",
+        "description",
+        "display_description",
+        "service_label",
+        "includes",
+    )
+    for row in rows or []:
+        if not isinstance(row, Mapping):
+            continue
+        text = normalise_lookup(" ".join(str(row.get(field) or "") for field in searchable_fields))
+        if NUTSHELL_LOOKUP in text:
+            return True
+    return False
 
 
 def _destination_from_rows_for_pack_request(rows: Sequence[Mapping[str, Any]]) -> str:
@@ -95,6 +124,15 @@ def destination_requests_from_rows(rows_or_grouped_days: Any) -> list[Destinatio
             city = _destination_from_rows_for_pack_request(rows)
             if city:
                 direct_values.append({"destination": city, "country": country_for_place(city)})
+
+    specialty_rows = [
+        row
+        for _day, rows in grouped_items
+        for row in rows
+    ]
+    specialty_rows.extend(value for value in direct_values if isinstance(value, Mapping))
+    if _rows_require_nutshell_pack(specialty_rows):
+        direct_values.append({"destination": NUTSHELL_DESTINATION, "country": NUTSHELL_COUNTRY})
 
     selected: list[DestinationRequest] = []
     seen: set[tuple[str, str]] = set()
