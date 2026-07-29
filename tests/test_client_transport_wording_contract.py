@@ -98,6 +98,25 @@ def test_service_names_cannot_become_route_origins_or_day_intro_copy() -> None:
     assert "Bergen Line" not in rail_wording.origin
 
 
+
+def test_terminal_destination_is_locality_level_in_day_narrative_for_any_day() -> None:
+    coach = {
+        "day": "Day 2",
+        "type": "Transfer",
+        "effective_type": "Transfer",
+        "city": "Levi",
+        "title": "Coach Transfer to Levi",
+        "original_title": "Coach Rovaniemi Bus Station to Levi Bus Station",
+        "details": "Coach Rovaniemi Bus Station to Levi Bus Station | Departure 11:40",
+    }
+
+    wording = build_client_transport_wording(coach)
+
+    assert wording.arrangement_title == "Coach Transfer from Rovaniemi Bus Station to Levi Bus Station"
+    assert wording.day_title == "Coach Transfer to Levi"
+    assert wording.travel_phrase == "Travel from Rovaniemi Bus Station towards Levi today by coach"
+    assert "Levi Bus Station" not in wording.travel_phrase
+
 def test_local_transfer_supports_arrival_day_without_owning_route_narrative() -> None:
     transfer = _row(
         "Day 1\tTransfer\t01.01.2027\t\tOslo: Private transfer from Oslo Airport to your accommodation"

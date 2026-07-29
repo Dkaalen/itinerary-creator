@@ -120,3 +120,12 @@ def component_values(page) -> list[dict[str, Any]]:
         ".filter(message => message.type === 'streamlit:setComponentValue')"
         ".map(message => message.value)"
     )
+
+
+def wait_for_component_values(page, count: int = 1) -> list[dict[str, Any]]:
+    page.wait_for_function(
+        "expected => window.__projectExplorerMessages"
+        ".filter(message => message.type === 'streamlit:setComponentValue').length >= expected",
+        arg=count,
+    )
+    return component_values(page)

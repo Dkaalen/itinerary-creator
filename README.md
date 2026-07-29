@@ -11,6 +11,10 @@ python -m pip install -r requirements-dev.txt
 streamlit run app.py
 ```
 
+## Configure secrets
+
+Copy `.streamlit/secrets.example.toml` to `.streamlit/secrets.toml` for local development and replace the placeholders through your local secret store. The real `secrets.toml` is ignored and must never be committed. Configure the same values in Streamlit Cloud's protected secrets before deployment. If a credential is ever committed, rotate or revoke it; deleting the file from the latest commit is not sufficient.
+
 ## Test
 
 Fast patch checks:

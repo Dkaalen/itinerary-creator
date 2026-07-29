@@ -55,8 +55,9 @@ def render_page_order_with_editor_request(render_document: Any, requested_order:
     """Return a render page order that respects editor page movement safely.
 
     The editor owns page visibility and user-requested page placement.  The
-    renderer still owns generated itinerary-day ordering, because exporting Day
-    2 after Day 5 is never a valid document state.  This helper merges those
+    renderer still owns generated itinerary-day ordering, because exporting a
+    lower-numbered day after a higher-numbered day is never a valid document
+    state.  This helper merges those
     responsibilities: final/custom pages can move around generated days, while
     generated day slots are always filled in canonical day-number order.
     """

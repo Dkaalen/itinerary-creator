@@ -131,6 +131,45 @@ def test_unsaved_change_detection_compares_current_calculator_to_snapshot() -> N
     assert active_project_has_unsaved_changes(session) is True
 
 
+
+def test_unsaved_change_detection_includes_authoritative_trip_start_date() -> None:
+    payload = _payload()
+    saved_state = add_row(
+        create_calculator_state("Nordic Journey"),
+        CalculatorRow(row_id="1", travel_element="Hotel", gross_price_per_unit=100, units=2),
+    )
+    payload["calculator_snapshot"] = calculator_state_to_dict(
+        saved_state.with_trip_start_date("2026-02-01")
+    )
+    session = {
+        "active_saved_project": payload,
+        "project_storage_last_saved_baseline": payload,
+        "itinerary_name": "Nordic Journey",
+        "calculator_state": saved_state.with_trip_start_date("2026-02-01"),
+        "calculator_currency_rates": {},
+    }
+
+    assert active_project_has_unsaved_changes(session) is False
+
+    session["calculator_state"] = saved_state.with_trip_start_date("2026-02-02")
+
+    assert active_project_has_unsaved_changes(session) is True
+
+
+def test_blank_calculator_trip_start_is_still_real_unsaved_work_against_saved_project() -> None:
+    payload = _payload()
+    blank_saved = create_calculator_state("Nordic Journey").with_trip_start_date("2026-03-01")
+    payload["calculator_snapshot"] = calculator_state_to_dict(blank_saved)
+    session = {
+        "active_saved_project": payload,
+        "project_storage_last_saved_baseline": payload,
+        "itinerary_name": "Nordic Journey",
+        "calculator_state": blank_saved.with_trip_start_date("2026-03-02"),
+        "calculator_currency_rates": {},
+    }
+
+    assert active_project_has_unsaved_changes(session) is True
+
 def test_unsaved_change_detection_includes_currency_rates() -> None:
     payload = _payload()
     payload["calculator_snapshot"]["currency_rates"] = {"NOK": 1, "EUR": 11.5}

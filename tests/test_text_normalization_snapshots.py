@@ -91,7 +91,7 @@ def test_generic_text_compaction_has_one_implementation_owner() -> None:
         "itinerary_generation/copy_decision_contract.py",
         "itinerary_generation/day_city_facts.py",
         "itinerary_generation/day_copy_qa.py",
-        "itinerary_generation/day_intro_writer.py",
+        "itinerary_generation/day_intro_context.py",
         "itinerary_generation/day_render_activity_blocks.py",
         "itinerary_generation/day_row_selectors.py",
         "itinerary_generation/day_timeline_events.py",

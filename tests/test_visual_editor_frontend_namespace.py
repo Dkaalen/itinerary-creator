@@ -218,6 +218,64 @@ def test_visual_editor_page_edit_save_reset_and_hidden_page_flow_in_chromium() -
         manager.stop()
 
 
+
+def test_visual_editor_picture_transition_keeps_generated_day_pages_visible_in_chromium() -> None:
+    payload = visual_editor_payload()
+    manager, browser, page, _payload = open_visual_editor_browser_page(payload)
+    try:
+        title = page.locator('[data-edit-key="days.0.title"]')
+        title.evaluate(
+            """element => {
+              element.textContent = 'Edited arrival title';
+              element.dispatchEvent(new InputEvent('input', {bubbles: true, inputType: 'insertText'}));
+            }"""
+        )
+        page.wait_for_function(
+            "window.ItineraryVisualEditor.require('state').snapshot().touchedKeys.includes('days.0.title')"
+        )
+
+        assert page.evaluate(
+            "window.ItineraryVisualEditor.require('autosave').saveChanges('apply-before-pictures')"
+        ) is True
+        page.evaluate(
+            """async () => {
+              await window.ItineraryVisualEditor.require('drafts').flush();
+            }"""
+        )
+
+        picture_payload = json.loads(json.dumps(payload))
+        picture_payload["workflow"]["pictures_added"] = True
+        for day in picture_payload["days"]:
+            day["image"] = {
+                "mode": "auto",
+                "data_uri": "data:image/png;base64,AAAA",
+                "auto_data_uri": "data:image/png;base64,AAAA",
+                "crop_focus": "top",
+            }
+
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', "
+            "{data: {type: 'streamlit:render', args: {payload}}}))",
+            picture_payload,
+        )
+        page.wait_for_function(
+            "window.ItineraryVisualEditor.require('state').snapshot().model.workflow.pictures_added === true"
+        )
+
+        assert page.locator(".day-page").count() == len(payload["days"])
+        assert page.locator('[data-page-id="day-day-1"]').count() == 1
+        assert page.locator('[data-page-id="day-day-2"]').count() == 1
+        assert page.locator('[data-edit-key="days.0.title"]').inner_text() == "Edited arrival title"
+
+        generated_pages = page.evaluate(
+            "window.ItineraryVisualEditor.require('state').snapshot().model.document_pages"
+            ".filter(page => page.page_type === 'generated_day')"
+        )
+        assert [item["is_hidden"] for item in generated_pages] == [False, False]
+    finally:
+        browser.close()
+        manager.stop()
+
 def test_visual_editor_indexeddb_failure_keeps_current_edit_and_reports_paused_recovery() -> None:
     manager, browser, page, _payload = open_visual_editor_browser_page()
     try:

@@ -176,6 +176,7 @@ def _calculator_payload_digest(payload: Mapping[str, Any]) -> str:
         "schema_version": int(payload.get("schema_version") or 1),
         "itinerary_name": _clean_text(payload.get("itinerary_name")),
         "number_of_pax": payload.get("number_of_pax"),
+        "trip_start_date": _clean_text(payload.get("trip_start_date")),
         "rows": payload.get("rows") or [],
     }
     return _digest(compact)

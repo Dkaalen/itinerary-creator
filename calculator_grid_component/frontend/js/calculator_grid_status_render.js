@@ -80,6 +80,33 @@ function refreshDownloadStateOnly() {
   if (!ready) document.getElementById('calculator-excel-ready-status')?.remove();
 }
 
+
+function showCalculatorGenerationLoading(action) {
+  const shell = document.querySelector('.calculator-grid-shell');
+  if (!shell) return;
+  hideCalculatorGenerationLoading();
+  const customer = action === 'generate_customer';
+  const overlay = document.createElement('div');
+  overlay.id = 'calculator-generation-loading';
+  overlay.className = 'calculator-generation-loading';
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'assertive');
+  overlay.setAttribute('aria-busy', 'true');
+  overlay.innerHTML = `
+    <div class="calculator-generation-loading-card">
+      <span class="calculator-generation-spinner" aria-hidden="true"></span>
+      <div>
+        <strong>Generating ${customer ? 'customer' : 'agent'} itinerary…</strong>
+        <span>The latest Calculator rows are being prepared and written into the itinerary. Keep this page open.</span>
+      </div>
+    </div>`;
+  shell.appendChild(overlay);
+}
+
+function hideCalculatorGenerationLoading() {
+  document.getElementById('calculator-generation-loading')?.remove();
+}
+
 function refreshSyncStatusOnly() {
   const element = document.getElementById('calculator-sync-status');
   if (!element) return;

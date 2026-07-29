@@ -92,6 +92,10 @@ def test_route_point_parser_split_keeps_known_route_patterns() -> None:
     assert extract_route_points("Train: Oslo to Bergen") == ("Oslo", "Bergen")
     assert extract_route_points("Day train, Rovaniemi - Helsinki") == ("Rovaniemi", "Helsinki")
     assert extract_route_points("Flight Bergen o Svolvær self-arranged") == ("Bergen", "Svolvær")
+    assert extract_route_points("Coach Rovaniemi Bus Station to Levi Bus Station | Departure 11:40") == (
+        "Rovaniemi Bus Station",
+        "Levi Bus Station",
+    )
 
 
 def test_test_group_hygiene_moves_core_quality_modules_out_of_full_only() -> None:

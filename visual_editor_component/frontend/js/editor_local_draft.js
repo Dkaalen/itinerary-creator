@@ -178,7 +178,8 @@ function localDraftDayPageId(day, index) {
 }
 
 function cloneLocalDraftValue(value) {
-  return JSON.parse(JSON.stringify(value || {}));
+  if (value === undefined) return undefined;
+  return JSON.parse(JSON.stringify(value));
 }
 
 function pageMatchesLocalDraftDay(page, dayIdentity, pageId) {

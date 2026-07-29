@@ -182,10 +182,14 @@ def _travel_phrase(facts: TransportRouteFacts, mode: str, source_lower: str) -> 
     }.get(mode, "")
     overnight = bool(re.search(r"\b(?:overnight|night\s+train|sleeper|sleeping)\b", source_lower))
     verb = "Travel overnight" if overnight else "Travel"
-    if facts.origin and facts.destination:
-        phrase = f"{verb} from {facts.origin} to {facts.destination}"
-    elif facts.destination:
-        phrase = f"Continue to {facts.destination}"
+    destination = base_destination_from_terminal(facts.destination) or facts.destination
+    if facts.origin and destination:
+        if mode == "coach" and not overnight:
+            phrase = f"{verb} from {facts.origin} towards {destination} today"
+        else:
+            phrase = f"{verb} from {facts.origin} to {destination}"
+    elif destination:
+        phrase = f"Continue to {destination}"
     else:
         return ""
     if mode_label:

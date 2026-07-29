@@ -366,6 +366,75 @@ def test_generation_allows_financial_errors_when_itinerary_fields_are_complete()
         browser.close()
         manager.stop()
 
+
+def test_generation_request_shows_immediate_blocking_progress_until_server_render() -> None:
+    payload = _payload(
+        [{
+            "row_id": "8",
+            "day": "Day 1",
+            "type": "Hotel",
+            "travel_element": "Oslo hotel",
+            "supplier_currency": "NOK",
+            "sales_currency": "NOK",
+        }],
+        revision="generation-progress",
+    )
+    manager, browser, page = _browser_page(payload)
+    try:
+        page.evaluate(
+            """() => {
+                window.__calculatorComponentValues = [];
+                window.addEventListener('message', (event) => {
+                    if (event.data?.type === 'streamlit:setComponentValue') {
+                        window.__calculatorComponentValues.push(JSON.parse(event.data.value));
+                    }
+                });
+            }"""
+        )
+        page.get_by_role("button", name="Agent itinerary").click()
+        page.wait_for_function("window.__calculatorComponentValues.length === 1")
+
+        overlay = page.locator("#calculator-generation-loading")
+        assert overlay.count() == 1
+        assert overlay.get_attribute("aria-busy") == "true"
+        assert "Generating agent itinerary" in overlay.text_content()
+        assert page.locator("#calculator-sync-status").text_content() == "Generating itinerary…"
+
+        page.evaluate(
+            "payload => window.dispatchEvent(new MessageEvent('message', {data: {type: 'streamlit:render', args: {payload}}}))",
+            payload,
+        )
+        page.wait_for_selector('td[data-key="travel_element"]')
+        assert page.locator("#calculator-generation-loading").count() == 0
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_generation_progress_clears_when_component_submission_fails() -> None:
+    manager, browser, page = _browser_page(
+        _payload(
+            [{
+                "row_id": "9",
+                "day": "Day 1",
+                "type": "Hotel",
+                "travel_element": "Oslo hotel",
+                "supplier_currency": "NOK",
+                "sales_currency": "NOK",
+            }],
+            revision="generation-progress-failure",
+        )
+    )
+    try:
+        page.evaluate("Streamlit.setComponentValue = () => false")
+        page.get_by_role("button", name="Agent itinerary").click()
+
+        assert page.locator("#calculator-generation-loading").count() == 0
+        assert page.locator("#calculator-sync-status").text_content() == "Calculator session is reconnecting"
+    finally:
+        browser.close()
+        manager.stop()
+
 def test_transient_ack_keeps_invalid_browser_draft_on_same_backend_revision() -> None:
     initial = _payload(
         [{

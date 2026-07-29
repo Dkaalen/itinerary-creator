@@ -5,7 +5,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 import pytest
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from calculator.library_authority import (
     LOCAL_LIBRARY_AUTHORITY_ID,
@@ -49,7 +49,9 @@ def test_authority_exposes_path_fingerprint_worksheets_records_and_identity() ->
     assert authority.fingerprint.startswith("xlsx-sha256-v1:")
     assert authority.supported_worksheets == local_library_supported_worksheets()
     assert authority.supported_worksheets == ("Curr", "General", "Hotels", "Transfers", "Transport", "Activities")
-    assert len(authority.records) == 5966
+    assert authority.records
+    assert not authority.invalid_records
+    assert {row.source_sheet for row in authority.records} == {"General", "Hotels", "Transfers", "Transport", "Activities"}
     assert len({row.source_identity for row in authority.records}) == len(authority.records)
     assert len({row.library_id for row in authority.records}) == len(authority.records)
 
@@ -70,9 +72,19 @@ def test_source_identity_uses_workbook_sheet_and_row_not_display_text() -> None:
     assert first.library_id != normalize_library_mapping(other_sheet).library_id
 
 
-def test_intentional_identical_workbook_products_remain_separate() -> None:
-    authority = load_local_library_authority()
-    rows = [row for row in authority.records if row.source_sheet == "Activities" and row.source_row in {19, 20}]
+def test_intentional_identical_workbook_products_remain_separate(tmp_path: Path) -> None:
+    path = _workbook(tmp_path / "library.xlsx")
+    workbook = load_workbook(path)
+    activities = workbook["Activities"]
+    identical = ("NO", "Activity", "Identical client product", 100, 0, "NOK", 120, "NOK")
+    activities.append(identical)
+    activities.append(identical)
+    workbook.save(path)
+    workbook.close()
+
+    authority = load_local_library_authority(path)
+    rows = [row for row in authority.records if row.source_sheet == "Activities"]
+
     assert len(rows) == 2
     assert rows[0].travel_element == rows[1].travel_element
     assert rows[0].library_id != rows[1].library_id

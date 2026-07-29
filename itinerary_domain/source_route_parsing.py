@@ -217,6 +217,7 @@ def extract_route_points(text):
         _named_group_route_points(
             route_source,
             r"^\s*(?:train|bus|coach|flight)\s+(?P<origin>[A-Za-zÀ-ÿøØåÅäöÖ .'-]{2,35}?)\s+(?P<destination>[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿøØåÅäÄöÖ .'-]{2,35}?)(?:\s*[|,;.]|\s+\d|$)",
+            require_match=lambda value: not bool(re.search(r"\s+to\s+", value, flags=re.IGNORECASE)),
         ),
         _named_group_route_points(
             route_source,

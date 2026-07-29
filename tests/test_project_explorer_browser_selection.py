@@ -4,6 +4,7 @@ from tests.support.project_explorer_browser_harness import (
     component_values,
     open_project_explorer_browser_page,
     project_explorer_payload,
+    wait_for_component_values,
 )
 
 
@@ -18,7 +19,7 @@ def test_rapid_checkbox_selection_stays_in_browser_until_explicit_review() -> No
         assert page.locator("[data-selection-count]").inner_text() == "3 projects selected"
 
         page.locator('[data-action="commit"]').click()
-        values = component_values(page)
+        values = wait_for_component_values(page)
         assert len(values) == 1
         assert values[0]["action"] == "commit_selection"
         assert values[0]["selected_project_ids"] == ["project-1", "project-2", "project-3"]
@@ -60,7 +61,7 @@ def test_page_action_submits_selection_once_with_durable_ids() -> None:
         page.locator('[data-project-select="project-3"]').check()
         page.locator('[data-action="next"]').click()
 
-        values = component_values(page)
+        values = wait_for_component_values(page)
         assert len(values) == 1
         assert values[0]["action"] == "page"
         assert values[0]["page_delta"] == 1
@@ -117,7 +118,7 @@ def test_clear_selection_is_explicit_and_submits_no_project_ids() -> None:
     try:
         page.locator('[data-action="clear"]').click()
 
-        values = component_values(page)
+        values = wait_for_component_values(page)
         assert len(values) == 1
         assert values[0]["action"] == "clear_selection"
         assert values[0]["selected_project_ids"] == []

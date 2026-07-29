@@ -153,6 +153,7 @@ ARCHITECTURE_TESTS = (
     "tests/test_structural_cleanup_tools.py",
     "tests/test_arch_cleanup_facades.py",
     "tests/test_code_cleanup_hygiene_regression.py",
+    "tests/test_repository_secret_policy.py",
     "tests/test_compatibility_deletion_boundary.py",
     "tests/test_generation_architecture_cleanup.py",
     "tests/test_parser_architecture_cleanup.py",

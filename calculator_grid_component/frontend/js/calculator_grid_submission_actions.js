@@ -16,8 +16,10 @@ function submitAction(action) {
   const requestId = beginCalculatorRequest(action);
   if (!requestId) return;
   const rows = normalizeRowsForPython(calculatorState.rows);
-  calculatorState.syncStatus = action === 'sync' ? 'Syncing…' : 'Preparing latest grid…';
+  const generationRequested = action === 'generate_agent' || action === 'generate_customer';
+  calculatorState.syncStatus = generationRequested ? 'Generating itinerary…' : (action === 'sync' ? 'Syncing…' : 'Preparing latest grid…');
   refreshSyncStatusOnly();
+  if (generationRequested) showCalculatorGenerationLoading(action);
   const sent = Streamlit.setComponentValue(JSON.stringify({
     action,
     request_id: requestId,
@@ -31,6 +33,7 @@ function submitAction(action) {
   }));
   if (!sent) {
     cancelCalculatorRequest(requestId);
+    if (generationRequested) hideCalculatorGenerationLoading();
     calculatorState.syncStatus = 'Calculator session is reconnecting';
     refreshSyncStatusOnly();
   }

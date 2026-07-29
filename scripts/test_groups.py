@@ -114,13 +114,13 @@ def bounded_group_stages(
 ) -> tuple[tuple[str, tuple[str, ...]], ...]:
     """Chunk normal modules while isolating explicitly split heavy contracts."""
 
-    stages: list[tuple[str, tuple[str, ...]]] = []
+    staged_targets: list[tuple[str | None, tuple[str, ...]]] = []
     pending: list[str] = []
 
     def flush_pending() -> None:
         if not pending:
             return
-        stages.extend(chunked_group_stages(stage_prefix, tuple(pending), stage_size=stage_size))
+        staged_targets.append((None, tuple(pending)))
         pending.clear()
 
     for path in paths:
@@ -134,7 +134,7 @@ def bounded_group_stages(
         flush_pending()
         module_name = _module_name(path)
         for index, test_name in enumerate(split_names, start=1):
-            stages.append(
+            staged_targets.append(
                 (
                     f"{stage_prefix} isolated {module_name} {index}/{len(split_names)}",
                     (f"{path}::{test_name}",),
@@ -142,6 +142,18 @@ def bounded_group_stages(
             )
 
     flush_pending()
+    ordinary_total = sum(label is None for label, _targets in staged_targets)
+    ordinary_index = 0
+    stages: list[tuple[str, tuple[str, ...]]] = []
+    for label, targets in staged_targets:
+        if label is None:
+            ordinary_index += 1
+            label = (
+                stage_prefix
+                if ordinary_total == 1
+                else f"{stage_prefix} {ordinary_index}/{ordinary_total}"
+            )
+        stages.append((label, targets))
     return tuple(stages)
 
 
