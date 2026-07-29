@@ -29,7 +29,7 @@ function handleCellInput(event) {
   const key = cell.dataset.key;
   const recalculated = updateRowValue(rowIndex, key, cell.textContent || '');
   markLocalDraft(false, false);
-  if (key === 'day' || key === 'from_date') refreshDateCells();
+  if (key === 'day' || key === 'from_date' || key === 'to_date') refreshDateCells();
   if (recalculated) {
     refreshDefaultedEditableCells(rowIndex);
     refreshFormulaCells(calculatorUsesA1References() ? null : rowIndex);
@@ -60,6 +60,7 @@ function handleCellBlur(event) {
   }
   commitCellEdit();
   setCellEditingMode(cell, false);
+  if (key === 'from_date' || key === 'to_date') refreshDateCells();
   refreshSelectionClasses();
 }
 
@@ -77,7 +78,7 @@ function columnKind(key) {
   return column?.kind || 'text';
 }
 
-function updateRowValue(rowIndex, key, rawValue, recalculate = true) {
+function updateRowValue(rowIndex, key, rawValue, recalculate = true, options = {}) {
   const row = calculatorState.rows[rowIndex];
   if (!row) return;
   const kind = columnKind(key);
@@ -87,14 +88,28 @@ function updateRowValue(rowIndex, key, rawValue, recalculate = true) {
   if (key === 'units') row._units_touched = true;
   if (key === 'sales_price_per_unit') row._sales_price_per_unit_touched = String(rawValue ?? '').trim() !== '';
   if (key === 'day') markDayChanged(row);
-  if (key === 'from_date') markDateManualState(row, key, rawValue);
+  const changesTripStart = key === 'from_date' && parseDayNumber(row.day) === 1 && Boolean(parseGridDate(rawValue));
+  if (key === 'from_date' || key === 'to_date') {
+    if (changesTripStart) {
+      row.from_date_mode = DATE_MODE_LINKED;
+      row.from_date_offset = 0;
+    } else {
+      markDateManualState(row, key, rawValue);
+    }
+  }
   if (kind === 'checkbox') row[key] = Boolean(rawValue);
   else if (kind === 'numberOptional') row[key] = optionalNumericStorageValue(rawValue);
   else if (kind === 'formula' || kind === 'formulaPercent') row[formulaOverrideKey(key)] = formulaOverrideValue(rawValue, kind);
   else if (kind === 'percent') row[key] = rawValue === '' ? '' : percentPointInputValue(rawValue);
   else if (kind === 'number') row[key] = rawValue === '' ? '' : numericStorageValue(rawValue);
   else row[key] = normalizedTextValue(key, rawValue);
-  if (key === 'day' || key === 'from_date') autofillDatesFromArrival(calculatorState.rows);
+  if (changesTripStart && options.deferDateAutofill) {
+    calculatorState._pendingTripStartDate = String(rawValue || '').trim();
+  } else if (changesTripStart) {
+    setTripStartDate(calculatorState, rawValue);
+  } else if ((key === 'day' || key === 'from_date' || key === 'to_date') && !options.deferDateAutofill) {
+    autofillDatesFromArrival(calculatorState.rows, calculatorState.tripStartDate);
+  }
   const needsCalculation = recalculate && calculatorInputAffectsCalculations(key);
   if (needsCalculation) {
     calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
@@ -151,9 +166,16 @@ function markSelectedRow(rowIndex) {
 
 function refreshDateCells() {
   for (let index = 0; index < calculatorState.rows.length; index += 1) {
-    const cell = document.querySelector(`td[data-row-index="${index}"][data-key="from_date"]`);
-    if (!cell || document.activeElement === cell) continue;
-    setCellDisplayText(cell, calculatorState.rows[index].from_date || '');
+    for (const key of ['from_date', 'to_date']) {
+      const cell = document.querySelector(`td[data-row-index="${index}"][data-key="${key}"]`);
+      if (!cell || document.activeElement === cell) continue;
+      setCellDisplayText(cell, calculatorState.rows[index][key] || '');
+      const mode = dateCellMode(calculatorState.rows[index], key);
+      cell.classList.toggle('date-linked', mode === DATE_MODE_LINKED);
+      cell.classList.toggle('date-locked', mode === DATE_MODE_LOCKED);
+      const value = calculatorState.rows[index][key] || '';
+      cell.title = mode ? `${mode === DATE_MODE_LINKED ? 'Linked to trip start' : 'Locked date'} · ${value}` : value;
+    }
   }
 }
 

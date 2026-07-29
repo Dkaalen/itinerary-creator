@@ -289,3 +289,54 @@ def test_legacy_recovery_arrays_remain_readable() -> None:
     finally:
         browser.close()
         manager.stop()
+
+
+
+def test_local_draft_restores_trip_start_and_date_link_ownership() -> None:
+    initial = _payload(
+        [
+            {
+                "row_id": "1", "day": "Day 1", "from_date": "01.01.2026",
+                "from_date_mode": "linked", "from_date_offset": 0,
+                "supplier_currency": "NOK", "sales_currency": "EUR",
+            },
+            {
+                "row_id": "2", "day": "Day 2", "from_date": "02.01.2026",
+                "from_date_mode": "linked", "from_date_offset": 1,
+                "supplier_currency": "NOK", "sales_currency": "EUR",
+            },
+        ],
+        revision="trip-date-draft-remount",
+        trip_start_date="2026-01-01",
+    )
+    manager, browser, page = _browser_page(initial)
+    try:
+        page.evaluate(
+            """() => {
+                setTripStartDate(calculatorState, '2026-02-01');
+                markLocalDraft(false);
+                flushLocalDraftSave();
+            }"""
+        )
+        page.evaluate("window.ItineraryCalculator.storage.flushWrites()")
+        page.evaluate(
+            """async payload => {
+                calculatorState = null;
+                activeCell = null;
+                activeBackendRevision = null;
+                activeDraftStorageKey = null;
+                hasLocalDraft = false;
+                await initializeState(payload);
+                rerender();
+            }""",
+            initial,
+        )
+
+        assert page.evaluate("calculatorState.tripStartDate") == "2026-02-01"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "02.02.2026"
+        assert page.evaluate("calculatorState.rows[1].from_date_mode") == "linked"
+        assert page.evaluate("calculatorState.rows[1].from_date_offset") == 1
+        assert page.locator('[data-action="set-trip-start"]').input_value() == "2026-02-01"
+    finally:
+        browser.close()
+        manager.stop()

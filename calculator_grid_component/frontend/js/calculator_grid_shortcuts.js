@@ -12,7 +12,7 @@ function handleGlobalCalculatorShortcut(event) {
     redoCalculatorChange();
   } else if (key === 'd') {
     event.preventDefault();
-    fillSelection('down');
+    fillSelection(event.shiftKey ? 'seriesDown' : 'down');
   } else if (key === 'r') {
     event.preventDefault();
     fillSelection('right');

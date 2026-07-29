@@ -25,10 +25,12 @@ NUMERIC_FIELDS = {
 }
 BOOLEAN_FIELDS = {"manual_booking", "non_refundable", "refundable"}
 OPTIONAL_NUMERIC_FIELDS = {"sales_price_per_unit"}
+OPTIONAL_INTEGER_FIELDS = {"from_date_offset", "to_date_offset"}
 BLANK_NUMERIC_MARKERS = {"", "none", "nan", "null"}
 DEFAULT_ONLY_TEXT_FIELDS = {
     "row_id", "library_id", "source_workbook", "source_sheet", "source_row",
     "supplier_currency", "sales_currency",
+    "from_date_mode", "from_date_offset", "to_date_mode", "to_date_offset",
 }
 PERCENT_UI_FIELDS = {"supplier_commission"}
 
@@ -38,6 +40,13 @@ def field_value(field_name: str, value: Any) -> Any:
 
     if field_name == "source_row":
         if value in (None, ""):
+            return None
+    if field_name in OPTIONAL_INTEGER_FIELDS:
+        if value in (None, ""):
+            return None
+        try:
+            return int(float(str(value)))
+        except (TypeError, ValueError):
             return None
         try:
             return int(float(str(value)))
@@ -200,6 +209,7 @@ __all__ = [
     "DEFAULT_ONLY_TEXT_FIELDS",
     "NUMERIC_FIELDS",
     "OPTIONAL_NUMERIC_FIELDS",
+    "OPTIONAL_INTEGER_FIELDS",
     "PERCENT_UI_FIELDS",
     "bool_value",
     "canonical_formula_override_value",

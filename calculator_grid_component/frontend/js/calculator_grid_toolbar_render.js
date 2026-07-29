@@ -42,8 +42,11 @@ function buildToolbarHtml(state) {
           <div class="calculator-toolbar-more-panel">
             <button class="calc-btn compact" data-action="insert-above">Insert above</button>
             <button class="calc-btn compact" data-action="insert-below">Insert below</button>
-            <button class="calc-btn compact" data-action="fill-down">Fill down</button>
-            <button class="calc-btn compact" data-action="fill-right">Fill right</button>
+            <button class="calc-btn compact" data-action="fill-down" title="Repeat the top selected value down (Ctrl+D)">Fill down</button>
+            <button class="calc-btn compact" data-action="fill-series-down" title="Continue a numbered sequence such as Day 1, Day 2 (Ctrl+Shift+D)">Fill sequence</button>
+            <button class="calc-btn compact" data-action="fill-right" title="Repeat the left selected value to the right (Ctrl+R)">Fill right</button>
+            <button class="calc-btn compact" data-action="link-dates" title="Link selected From/To date cells to the trip start">Link dates</button>
+            <button class="calc-btn compact" data-action="lock-dates" title="Keep selected From/To date cells fixed when the trip start changes">Lock dates</button>
             <button class="calc-btn compact" data-action="version-history">Versions (${(state.recoverySnapshots || []).length})</button>
             <label class="advanced-toggle"><input type="checkbox" data-action="toggle-advanced" ${state.showAdvanced ? 'checked' : ''}> More columns</label>
             <button class="calc-btn compact" data-action="toggle-fullscreen">${calculatorFullscreen ? 'Exit full screen' : 'Full screen'}</button>

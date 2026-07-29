@@ -45,7 +45,7 @@ function undoCalculatorChange() {
   calculatorState.redoStack.push(currentStateSnapshot());
   restoreStateSnapshot(snapshot);
   markLocalDraft();
-  rerender();
+  rerender({skipCalculation: true});
 }
 
 function redoCalculatorChange() {
@@ -55,5 +55,5 @@ function redoCalculatorChange() {
   calculatorState.undoStack.push(currentStateSnapshot());
   restoreStateSnapshot(snapshot);
   markLocalDraft();
-  rerender();
+  rerender({skipCalculation: true});
 }

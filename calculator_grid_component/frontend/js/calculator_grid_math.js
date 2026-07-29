@@ -350,11 +350,21 @@ function calculateTotals(rows) {
 function calculateDashboard(state) {
   const totals = calculateTotals(state.rows);
   const pax = positiveIntegerOrNull(state.numberOfPax);
+  const eurRate = currencyRate('EUR', state.currencyRates || DEFAULT_RATES);
+  const totalCostEur = eurRate > 0 ? roundMoney(totals.net_price_nok / eurRate) : null;
+  const totalSalesEur = eurRate > 0 ? roundMoney(totals.sales_price_nok_total / eurRate) : null;
+  const profitEur = eurRate > 0 ? roundMoney(totals.gp_nok / eurRate) : null;
   return {
     ...totals,
     number_of_pax: pax,
     cost_per_pax: pax ? roundMoney(totals.net_price_nok / pax) : null,
     sales_per_pax: pax ? roundMoney(totals.sales_price_nok_total / pax) : null,
+    total_cost_eur: totalCostEur,
+    total_sales_eur: totalSalesEur,
+    profit_eur: profitEur,
+    cost_per_pax_eur: pax && totalCostEur !== null ? roundMoney(totalCostEur / pax) : null,
+    sales_per_pax_eur: pax && totalSalesEur !== null ? roundMoney(totalSalesEur / pax) : null,
+    eur_rate: eurRate,
     currency_exposure: calculateCurrencyExposure(state.rows)
   };
 }

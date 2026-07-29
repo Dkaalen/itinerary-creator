@@ -150,7 +150,14 @@ function finishFillDrag() {
     for (let col = source.left; col <= source.right; col += 1) values.push(copyableCellValue(calculatorState.rows[row], columns[col]));
     sourceValues.push(values);
   }
+  const verticalSeries = source.left === source.right
+    ? inferTextNumberSeries(sourceValues.map((values) => values[0]))
+    : null;
+  const horizontalSeries = source.top === source.bottom
+    ? inferTextNumberSeries(sourceValues[0])
+    : null;
   recordHistory();
+  let dateAutofillNeeded = false;
   for (let row = target.top; row <= target.bottom; row += 1) {
     for (let col = target.left; col <= target.right; col += 1) {
       if (row >= source.top && row <= source.bottom && col >= source.left && col <= source.right) continue;
@@ -159,14 +166,26 @@ function finishFillDrag() {
       const sourceRow = source.top + sourceRowOffset;
       const sourceColumn = columns[source.left + sourceColOffset];
       const targetColumn = columns[col];
-      const value = translatedCellValue(sourceValues[sourceRowOffset][sourceColOffset], sourceRow, sourceColumn, row, targetColumn);
-      updateRowValue(row, targetColumn.key, value, false);
+      let value;
+      if (verticalSeries && col === source.left) {
+        value = formatTextNumberSeries(verticalSeries, row - source.top);
+      } else if (horizontalSeries && row === source.top) {
+        value = formatTextNumberSeries(horizontalSeries, col - source.left);
+      } else {
+        value = translatedCellValue(sourceValues[sourceRowOffset][sourceColOffset], sourceRow, sourceColumn, row, targetColumn);
+      }
+      if (targetColumn.key === 'day' || targetColumn.key === 'from_date') dateAutofillNeeded = true;
+      updateRowValue(row, targetColumn.key, value, false, {deferDateAutofill: true});
     }
+  }
+  if (dateAutofillNeeded) {
+    applyDeferredTripStartDate(calculatorState);
+    autofillDatesFromArrival(calculatorState.rows, calculatorState.tripStartDate);
   }
   calculatorState.rows = calculateRows(calculatorState.rows, calculatorState.currencyRates);
   validateCalculatorState(calculatorState);
   markLocalDraft();
-  rerender();
+  rerender({skipCalculation: true});
 }
 
 function beginColumnResize(event) {

@@ -23,6 +23,7 @@
     return {
       rows: snapshot.rows,
       numberOfPax: snapshot.numberOfPax ?? null,
+      tripStartDate: snapshot.tripStartDate || '',
       showAdvanced: Boolean(snapshot.showAdvanced),
       columnWidths: {...(snapshot.columnWidths || {})},
     };
@@ -33,6 +34,7 @@
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       rows: normalizeRowsForPython(state.rows),
       numberOfPax: state.numberOfPax ?? null,
+      tripStartDate: state.tripStartDate || '',
       showAdvanced: Boolean(state.showAdvanced),
       selectedRowIndex: Number(state.selectedRowIndex || 0),
       activeCell: Object.prototype.hasOwnProperty.call(state, 'recoveryActiveCell')
@@ -86,6 +88,7 @@
     return {
       id: String(snapshot.id || ''),
       numberOfPax: snapshot.numberOfPax ?? null,
+      tripStartDate: snapshot.tripStartDate || '',
       showAdvanced: Boolean(snapshot.showAdvanced),
       selectedRowIndex: Number(snapshot.selectedRowIndex || 0),
       activeCell: snapshot.activeCell ? {...snapshot.activeCell} : null,
@@ -224,6 +227,7 @@
     recordHistory();
     calculatorState.rows = calculateRows(cloneRows(snapshot.rows), calculatorState.currencyRates);
     calculatorState.numberOfPax = snapshot.numberOfPax ?? null;
+    calculatorState.tripStartDate = snapshot.tripStartDate || '';
     calculatorState.showAdvanced = Boolean(snapshot.showAdvanced);
     calculatorState.selectedRowIndex = Number(snapshot.selectedRowIndex || 0);
     calculatorState.selection = snapshot.selection ? {...snapshot.selection} : null;

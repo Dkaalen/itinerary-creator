@@ -84,6 +84,7 @@ def build_calculator_grid_payload(
     return {
         "itinerary_name": state.itinerary_name,
         "number_of_pax": state.number_of_pax,
+        "trip_start_date": state.trip_start_date,
         "rows": rows_to_table_data(state.rows, show_advanced=True, currency_rates=active_rates),
         "state_revision": calculator_state_revision(state),
         "draft_storage_key": _draft_storage_key(draft_namespace),

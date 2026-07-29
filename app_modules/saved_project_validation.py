@@ -115,7 +115,7 @@ def _validate_calculator_snapshot(snapshot: Mapping[str, Any] | None) -> None:
         return
     if snapshot.get("kind") not in {None, "booknordics_calculator_state"}:
         raise SavedProjectError("Saved project calculator snapshot kind is not supported.")
-    if int(snapshot.get("schema_version") or 1) not in {1, 2, 3}:
+    if int(snapshot.get("schema_version") or 1) not in {1, 2, 3, 4}:
         raise SavedProjectError("Saved project calculator snapshot schema version is not supported.")
     pax = snapshot.get("number_of_pax")
     if pax not in (None, ""):

@@ -23,6 +23,7 @@ from calculator.formula_map import (
 from calculator.financial_projection import ProjectedFinancialRow, project_calculator_financials
 from calculator.financial_rules import canonical_export_value
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
+from calculator.workbook_date_metadata import date_metadata_json
 
 CellValueKind = Literal["blank", "boolean", "formula", "number", "text"]
 
@@ -114,6 +115,7 @@ class WorkbookExportPlan:
     calculator_cells: tuple[ExportCell, ...]
     calculation_properties: tuple[tuple[str, object], ...]
     source_provenance: tuple[ExportSourceProvenance, ...]
+    date_metadata_json: str
     visible_data_end_row: int
     fingerprint: str
 
@@ -154,15 +156,22 @@ def build_workbook_export_plan(
     calculator_cells = _calculator_cells(financial_projection.rows)
     properties = CALCULATION_PROPERTIES
     source_provenance = _source_provenance(rows)
+    date_metadata = date_metadata_json(state)
     visible_data_end_row = _visible_data_end_row(rows)
     fingerprint = _plan_fingerprint(
-        currency_cells, calculator_cells, properties, source_provenance, visible_data_end_row
+        currency_cells,
+        calculator_cells,
+        properties,
+        source_provenance,
+        date_metadata,
+        visible_data_end_row,
     )
     return WorkbookExportPlan(
         currency_cells=currency_cells,
         calculator_cells=calculator_cells,
         calculation_properties=properties,
         source_provenance=source_provenance,
+        date_metadata_json=date_metadata,
         visible_data_end_row=visible_data_end_row,
         fingerprint=fingerprint,
     )
@@ -391,6 +400,7 @@ def _plan_fingerprint(
     calculator_cells: tuple[ExportCell, ...],
     properties: tuple[tuple[str, object], ...],
     source_provenance: tuple[ExportSourceProvenance, ...],
+    date_metadata: str,
     visible_data_end_row: int,
 ) -> str:
     digest = hashlib.sha256()
@@ -404,6 +414,8 @@ def _plan_fingerprint(
     for item in source_provenance:
         digest.update(repr(item).encode("utf-8"))
         digest.update(b"\0")
+    digest.update(date_metadata.encode("utf-8"))
+    digest.update(b"\0")
     digest.update(f"visible_data_end_row={visible_data_end_row}".encode("ascii"))
     digest.update(b"\0")
     for name, value in properties:

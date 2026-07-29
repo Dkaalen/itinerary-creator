@@ -104,3 +104,39 @@ def test_export_import_keeps_converted_default_sales_price_automatic() -> None:
     totals = calculate_totals(imported.state.rows, imported.currency_rates)
     assert totals.sales_price_nok_total == 1200
     assert totals.gp_nok == 0
+
+
+def test_export_import_preserves_trip_start_and_locked_date_relationships() -> None:
+    state = CalculatorState(
+        itinerary_name="Dynamic dates",
+        trip_start_date="2026-02-01",
+        rows=(
+            CalculatorRow(
+                row_id="1",
+                day="Day 1",
+                from_date="01.02.2026",
+                from_date_mode="linked",
+                from_date_offset=0,
+            ),
+            CalculatorRow(
+                row_id="2",
+                day="Day 2",
+                from_date="10.02.2026",
+                from_date_mode="locked",
+                to_date="12.02.2026",
+                to_date_mode="linked",
+                to_date_offset=11,
+            ),
+        ),
+    )
+
+    exported = export_calculation_workbook(state, currency_rates={"NOK": 1, "EUR": 12})
+    imported = import_calculation_workbook(exported.content, filename=exported.filename)
+
+    assert imported.state.trip_start_date == "2026-02-01"
+    assert imported.state.rows[0].from_date_mode == "linked"
+    assert imported.state.rows[0].from_date_offset == 0
+    assert imported.state.rows[1].from_date_mode == "locked"
+    assert imported.state.rows[1].from_date_offset is None
+    assert imported.state.rows[1].to_date_mode == "linked"
+    assert imported.state.rows[1].to_date_offset == 11

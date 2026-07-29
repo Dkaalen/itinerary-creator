@@ -34,17 +34,19 @@ function refreshVersionHistoryCount() {
 
 function dashboardTotalsHtml(state) {
   const totals = calculateDashboard(state);
-  const costPerPax = totals.cost_per_pax === null ? '—' : formatNumber(totals.cost_per_pax, 2);
-  const salesPerPax = totals.sales_per_pax === null ? '—' : formatNumber(totals.sales_per_pax, 2);
+  const euroValue = (value) => value === null ? '—' : `€${formatNumber(value, 2)}`;
+  const costPerPax = euroValue(totals.cost_per_pax_eur);
+  const salesPerPax = euroValue(totals.sales_per_pax_eur);
   const paxValue = state.numberOfPax === null || state.numberOfPax === undefined ? '' : String(state.numberOfPax);
   return `
     <div class="calculator-dashboard">
+      <label class="trip-start-control">Trip start<input type="date" data-action="set-trip-start" value="${escapeHtml(state.tripStartDate || '')}"></label>
       <label class="pax-control">No. of pax<input type="number" min="1" step="1" data-action="set-pax" value="${escapeHtml(paxValue)}" placeholder="Optional"></label>
-      <span>Total cost NOK <strong>${formatNumber(totals.net_price_nok, 2)}</strong></span>
-      <span>Cost per pax <strong>${costPerPax}</strong></span>
-      <span>Total sales NOK <strong>${formatNumber(totals.sales_price_nok_total, 2)}</strong></span>
-      <span>Sales per pax <strong>${salesPerPax}</strong></span>
-      <span>Profit / GP NOK <strong>${formatNumber(totals.gp_nok, 2)}</strong></span>
+      <span>Total cost EUR <strong>${euroValue(totals.total_cost_eur)}</strong><small>NOK ${formatNumber(totals.net_price_nok, 2)}</small></span>
+      <span>Cost per pax EUR <strong>${costPerPax}</strong>${totals.cost_per_pax === null ? '' : `<small>NOK ${formatNumber(totals.cost_per_pax, 2)}</small>`}</span>
+      <span>Total sales EUR <strong>${euroValue(totals.total_sales_eur)}</strong><small>NOK ${formatNumber(totals.sales_price_nok_total, 2)}</small></span>
+      <span>Sales per pax EUR <strong>${salesPerPax}</strong>${totals.sales_per_pax === null ? '' : `<small>NOK ${formatNumber(totals.sales_per_pax, 2)}</small>`}</span>
+      <span>Profit / GP EUR <strong>${euroValue(totals.profit_eur)}</strong><small>NOK ${formatNumber(totals.gp_nok, 2)}</small></span>
       <span>Margin <strong>${(totals.gp_percent * 100).toFixed(1)}%</strong></span>
     </div>
     <div class="calculator-vat-summary">

@@ -54,6 +54,7 @@ def parse_calculator_grid_result(raw_result: object, itinerary_name: str) -> Cal
         state=CalculatorState(
             itinerary_name=itinerary_name,
             number_of_pax=_pax_value(data.get("number_of_pax")),
+            trip_start_date=str(data.get("trip_start_date") or ""),
             rows=rows,
         ),
         show_advanced=bool(data.get("show_advanced")),

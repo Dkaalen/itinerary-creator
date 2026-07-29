@@ -54,12 +54,14 @@ def calculator_payload(
     *,
     library_rows: list[dict[str, Any]] | None = None,
     revision: str = "browser-test",
+    trip_start_date: str = "",
 ) -> dict[str, Any]:
     """Build the normal production-like payload used by browser interaction tests."""
 
     return {
         "rows": rows,
         "number_of_pax": None,
+        "trip_start_date": trip_start_date,
         "state_revision": revision,
         "draft_storage_key": f"calculator.browser.test.{revision}",
         "show_advanced": False,

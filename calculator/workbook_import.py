@@ -16,6 +16,7 @@ from calculator.columns import DATA_END_ROW, DATA_START_ROW
 from calculator.formula_map import expected_row_formulas
 from calculator.financial_rules import unwrap_canonical_export_formula
 from calculator.row_model import FORMULA_OVERRIDE_FIELD_BY_KEY, CalculatorRow
+from calculator.workbook_date_metadata import apply_date_metadata, read_date_metadata_xml
 from calculator.workbook_export_plan import FORMULA_FIELD_BY_COLUMN, ROW_VALUE_COLUMNS
 
 _MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -23,6 +24,7 @@ _NS = {"x": _MAIN_NS}
 _CURR_SHEET = "xl/worksheets/sheet1.xml"
 _KALK_SHEET = "xl/worksheets/sheet2.xml"
 _SHARED_STRINGS = "xl/sharedStrings.xml"
+_CUSTOM_PROPERTIES = "docProps/custom.xml"
 
 _ROW_VALUE_COLUMNS = dict(ROW_VALUE_COLUMNS)
 _FORMULA_FIELD_BY_COLUMN = dict(FORMULA_FIELD_BY_COLUMN)
@@ -77,14 +79,24 @@ def import_calculation_workbook(
             shared_strings = _read_shared_strings(workbook)
             currency_cells = _read_sheet_cells(workbook.read(_CURR_SHEET), shared_strings)
             calculator_cells = _read_sheet_cells(workbook.read(_KALK_SHEET), shared_strings)
+            date_metadata = (
+                read_date_metadata_xml(workbook.read(_CUSTOM_PROPERTIES))
+                if _CUSTOM_PROPERTIES in workbook.namelist()
+                else None
+            )
     except BadZipFile as error:
         raise ValueError("The selected file is not a valid Excel workbook.") from error
 
     currency_rates = _read_currency_rates(currency_cells)
     rows, warnings = _read_calculator_rows(calculator_cells)
     itinerary_name = _itinerary_name_from_filename(filename)
+    trip_start_date, linked_rows = apply_date_metadata(rows, date_metadata)
     return WorkbookImportResult(
-        state=CalculatorState(itinerary_name=itinerary_name, rows=rows),
+        state=CalculatorState(
+            itinerary_name=itinerary_name,
+            trip_start_date=trip_start_date,
+            rows=linked_rows,
+        ),
         currency_rates=currency_rates,
         warnings=warnings,
     )

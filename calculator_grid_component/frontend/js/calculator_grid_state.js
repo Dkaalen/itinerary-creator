@@ -15,6 +15,10 @@ function createBlankRow(rowId) {
     type: '',
     from_date: '',
     to_date: '',
+    from_date_mode: '',
+    from_date_offset: null,
+    to_date_mode: '',
+    to_date_offset: null,
     from_time: '',
     to_time: '',
     supplier: '',
@@ -65,6 +69,15 @@ function normalizeRowsForPython(rows) {
     for (const key of Object.keys(clean)) {
       if (key.startsWith('_')) delete clean[key];
     }
+    for (const [modeKey, offsetKey] of [
+      ['from_date_mode', 'from_date_offset'],
+      ['to_date_mode', 'to_date_offset'],
+    ]) {
+      if (!clean[modeKey] && (clean[offsetKey] === null || clean[offsetKey] === undefined)) {
+        delete clean[modeKey];
+        delete clean[offsetKey];
+      }
+    }
     return clean;
   });
 }
@@ -73,6 +86,7 @@ function currentStateSnapshot() {
   return {
     rows: normalizeRowsForPython(calculatorState.rows),
     numberOfPax: calculatorState.numberOfPax,
+    tripStartDate: calculatorState.tripStartDate || '',
     showAdvanced: calculatorState.showAdvanced,
     selectedRowIndex: calculatorState.selectedRowIndex,
     activeCell: activeCell ? {...activeCell} : null,
@@ -84,6 +98,7 @@ function currentStateSnapshot() {
 function restoreStateSnapshot(snapshot) {
   calculatorState.rows = calculateRows(cloneRows(snapshot.rows || []), calculatorState.currencyRates);
   calculatorState.numberOfPax = snapshot.numberOfPax ?? null;
+  calculatorState.tripStartDate = snapshot.tripStartDate || '';
   calculatorState.showAdvanced = Boolean(snapshot.showAdvanced);
   calculatorState.selectedRowIndex = Number(snapshot.selectedRowIndex || 0);
   activeCell = snapshot.activeCell ? {...snapshot.activeCell} : null;

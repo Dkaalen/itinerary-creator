@@ -141,6 +141,10 @@ def _row_to_table_data(
     )
     data: dict[str, Any] = {
         "_sales_price_per_unit_touched": not sales_price_is_default,
+        "from_date_mode": row.from_date_mode,
+        "from_date_offset": row.from_date_offset,
+        "to_date_mode": row.to_date_mode,
+        "to_date_offset": row.to_date_offset,
         "library_id": row.library_id,
         "source_workbook": row.source_workbook,
         "source_sheet": row.source_sheet,

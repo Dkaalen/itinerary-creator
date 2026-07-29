@@ -344,8 +344,9 @@ def test_calculator_component_supports_keyboard_navigation_and_totals_panel() ->
     assert 'id="calculator-dashboard-container"' in render_source
     assert "calculator-dashboard" in dashboard_classes
     assert "calculator-grid-hint" not in status_source
-    assert "Total cost NOK" in status_source
-    assert "Profit / GP NOK" in status_source
+    assert "Total cost EUR" in status_source
+    assert "Profit / GP EUR" in status_source
+    assert "NOK ${formatNumber(totals.net_price_nok, 2)}" in status_source
     assert "Cost per pax" in status_source
     assert "Sales per pax" in status_source
 

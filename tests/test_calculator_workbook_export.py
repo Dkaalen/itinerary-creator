@@ -307,6 +307,7 @@ def test_download_export_preserves_reference_package_outside_approved_cells() ->
         }
         assert changed_parts == {
             "[Content_Types].xml",
+            "docProps/custom.xml",
             "xl/_rels/workbook.xml.rels",
             "xl/worksheets/sheet1.xml",
             "xl/worksheets/sheet2.xml",

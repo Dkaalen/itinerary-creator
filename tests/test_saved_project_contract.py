@@ -129,6 +129,7 @@ def test_saved_project_round_trip_preserves_current_calculator_snapshot() -> Non
     state[CALCULATOR_STATE_KEY] = CalculatorState(
         itinerary_name="Calculator Group",
         number_of_pax=21,
+        trip_start_date="2026-02-01",
         rows=(
             CalculatorRow(
                 row_id="1",
@@ -137,6 +138,11 @@ def test_saved_project_round_trip_preserves_current_calculator_snapshot() -> Non
                 units=2,
                 supplier_currency="EUR",
                 sales_currency="NOK",
+                from_date="01.02.2026",
+                from_date_mode="linked",
+                from_date_offset=0,
+                to_date="05.02.2026",
+                to_date_mode="locked",
             ),
         ),
     )
@@ -146,9 +152,13 @@ def test_saved_project_round_trip_preserves_current_calculator_snapshot() -> Non
     restored = saved_project_from_dict(json.loads(payload_json))
     snapshot = restored.calculator_snapshot
 
-    assert snapshot.schema_version == 3
+    assert snapshot.schema_version == 4
     assert snapshot.number_of_pax == 21
+    assert snapshot.trip_start_date == "2026-02-01"
     assert snapshot.rows[0]["travel_element"] == "Oslo hotel"
+    assert snapshot.rows[0]["from_date_mode"] == "linked"
+    assert snapshot.rows[0]["from_date_offset"] == 0
+    assert snapshot.rows[0]["to_date_mode"] == "locked"
     assert snapshot.currency_rates["EUR"] == 12.5
 
 

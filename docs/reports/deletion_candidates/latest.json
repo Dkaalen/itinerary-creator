@@ -1,10 +1,10 @@
 {
   "report_fingerprint": {
-    "repository_head": "ed1bc7f7e7527908c5641332082a205ed48c0889",
-    "repository_head_tree": "754c99cd3dba00dc6f959bd5a0d1db51ae086d48",
+    "repository_head": "3a58eb95f4fe720e50a0b8c45a5c81e943c1b5ca",
+    "repository_head_tree": "276c7c77d11b8f4a7d0600eca37864a2c26a63e3",
     "working_tree_clean": false,
-    "python_source_tree_sha256": "sha256:ccc16c5d0f4c29ff9a27d4105574d81aa35e93dab5ba0cbf599b9a3b2bb44886",
-    "python_source_file_count": 1372
+    "python_source_tree_sha256": "sha256:b11c191b26bd79e03a6dca5f289181e6efe01bb50c998b9a8317bcd9b9fa634e",
+    "python_source_file_count": 1374
   },
   "candidates": [],
   "held_back": [
@@ -317,6 +317,7 @@
         "calculator/calculator_state.py",
         "calculator/cell_formula_engine.py",
         "calculator/currency_rates.py",
+        "calculator/date_links.py",
         "calculator/financial_projection.py",
         "calculator/financial_rules.py",
         "calculator/formula_map.py",
@@ -340,6 +341,7 @@
         "calculator/template_structure.py",
         "calculator/to_itinerary_input.py",
         "calculator/validation.py",
+        "calculator/workbook_date_metadata.py",
         "calculator/workbook_export.py",
         "calculator/workbook_export_plan.py",
         "calculator/workbook_import.py",

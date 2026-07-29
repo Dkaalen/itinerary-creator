@@ -78,6 +78,10 @@ class CalculatorRow:
     type: str = ""
     from_date: str = ""
     to_date: str = ""
+    from_date_mode: str = ""
+    from_date_offset: int | None = None
+    to_date_mode: str = ""
+    to_date_offset: int | None = None
     from_time: str = ""
     to_time: str = ""
     supplier: str = ""

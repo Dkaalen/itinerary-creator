@@ -1,5 +1,5 @@
-function rerender() {
-  calculateRows(calculatorState.rows, calculatorState.currencyRates);
+function rerender(options = {}) {
+  if (!options.skipCalculation) calculateRows(calculatorState.rows, calculatorState.currencyRates);
   renderShell(calculatorState);
   bindEvents();
   requestAnimationFrame(maybeAutoDownloadPreparedExcel);

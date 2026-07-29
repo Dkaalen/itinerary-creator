@@ -11,6 +11,7 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
             "action": "download",
             "show_advanced": True,
             "number_of_pax": 14,
+            "trip_start_date": "2026-02-01",
             "client_state_revision": "abc123",
             "request_id": "request-1",
             "rows": [
@@ -24,6 +25,8 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
                     "supplier_commission": "15",
                     "supplier_currency": "EUR",
                     "sales_currency": "EUR",
+                    "from_date_mode": "linked",
+                    "from_date_offset": 0,
                 }
             ],
         }
@@ -36,10 +39,13 @@ def test_parse_calculator_grid_result_returns_action_and_state() -> None:
     assert result.show_advanced is True
     assert result.state.itinerary_name == "Trip"
     assert result.state.number_of_pax == 14
+    assert result.state.trip_start_date == "2026-02-01"
     assert result.client_state_revision == "abc123"
     assert result.request_id == "request-1"
     assert result.state.rows[0].travel_element == "Oslo hotel"
     assert result.state.rows[0].supplier_commission == 0.15
+    assert result.state.rows[0].from_date_mode == "linked"
+    assert result.state.rows[0].from_date_offset == 0
 
 
 def test_parse_calculator_grid_result_ignores_unknown_actions() -> None:

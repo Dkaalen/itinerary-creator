@@ -61,8 +61,10 @@ function cellHtml(row, rowIndex, column, colIndex) {
   const widthStyle = `style="width:${width}px; min-width:${width}px; max-width:${width}px"`;
   const error = validationErrorForCell(rowIndex, column.key);
   const hasOverride = Boolean(column.formula && row[formulaOverrideKey(column.key)] !== null && row[formulaOverrideKey(column.key)] !== undefined);
-  const classes = [stickyColumnClass(colIndex), error ? 'invalid-cell' : '', hasOverride ? 'override-cell' : '', cellIsSelected(rowIndex, column.key) ? 'selected-cell' : ''].filter(Boolean).join(' ');
-  const titleText = error ? error.message : hasOverride ? `Manual override active · ${cellTitle(raw, column)}` : cellTitle(raw, column);
+  const dateMode = dateCellMode(row, column.key);
+  const classes = [stickyColumnClass(colIndex), error ? 'invalid-cell' : '', hasOverride ? 'override-cell' : '', dateMode ? `date-${dateMode}` : '', cellIsSelected(rowIndex, column.key) ? 'selected-cell' : ''].filter(Boolean).join(' ');
+  const dateTitle = dateMode ? `${dateMode === DATE_MODE_LINKED ? 'Linked to trip start' : 'Locked date'} · ` : '';
+  const titleText = error ? error.message : hasOverride ? `Manual override active · ${cellTitle(raw, column)}` : `${dateTitle}${cellTitle(raw, column)}`;
   const title = `title="${escapeHtml(titleText)}" aria-invalid="${error ? 'true' : 'false'}"`;
   if (column.formula) {
     const override = row[formulaOverrideKey(column.key)];

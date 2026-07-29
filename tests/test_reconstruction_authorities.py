@@ -27,10 +27,16 @@ def _calculator_state() -> CalculatorState:
     return CalculatorState(
         itinerary_name="Norway Restore",
         number_of_pax=4,
+        trip_start_date="2026-09-01",
         rows=(
             CalculatorRow(
                 row_id="1",
                 day="Day 1",
+                from_date="01.09.2026",
+                from_date_mode="linked",
+                from_date_offset=0,
+                to_date="03.09.2026",
+                to_date_mode="locked",
                 type="Activity",
                 travel_element="Oslo Fjord Cruise",
                 gross_price_per_unit=100,
@@ -83,6 +89,7 @@ def test_calculator_snapshot_import_and_browser_recovery_share_one_workspace_res
         {
             "itinerary_name": target.itinerary_name,
             "number_of_pax": target.number_of_pax,
+            "trip_start_date": target.trip_start_date,
             "rows": [row.__dict__ for row in target.rows],
             "currency_rates": {"NOK": 1.0, "EUR": 11.4},
         },

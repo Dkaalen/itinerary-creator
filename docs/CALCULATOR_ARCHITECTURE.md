@@ -5,7 +5,7 @@
 - `calculator/financial_rules.py` owns the versioned precision, commission scale, margin basis, formula-result kinds, and Excel precision-wrapper contract.
 - `calculator/cell_formula_engine.py` is the authoritative financial engine and A1 dependency evaluator.
 - `calculator/calculations.py` aggregates canonical row, total, and dashboard results.
-- `calculator_grid_component/frontend/js/calculator_grid_math.js` is the immediate browser preview and is parity-tested against Python.
+- `calculator_grid_component/frontend/js/calculator_grid_math.js` is the immediate browser preview and is parity-tested against Python. Canonical row formulas remain NOK-based; the dashboard converts those totals through the saved EUR→NOK rate for EUR-first presentation.
 - `calculator/formula_map.py` owns canonical Excel formulas.
 - `calculator/workbook_export_plan.py` owns all calculator-to-workbook mappings, value kinds, formulas, currency rows, totals, payments, and blank-row decisions.
 - `calculator/workbook_package_export.py` is the production package-renderer facade; it owns orchestration and the bounded export cache only.
@@ -16,6 +16,8 @@
 - `calculator/workbook_export.py` retains an openpyxl renderer only as a mutable-workbook compatibility and parity-check API.
 - `calculator/workbook_import.py` reads compatible calculation workbooks without rebuilding them.
 - `calculator/state_serialization.py` owns JSON backup/schema migration.
+- `calculator/date_links.py` owns the authoritative trip start, day-number offsets, and linked-versus-locked date relationships.
+- `calculator/workbook_date_metadata.py` owns durable XLSX metadata for those date relationships; the visible workbook dates remain ordinary editable cells.
 - `app_modules/saved_project_calculator_state.py` is the cloud-project persistence boundary.
 - `calculator_grid_component/frontend/js/calculator_grid_keyboard.js` owns grid key handling and cell-to-cell navigation; `calculator_grid_cell_editing.js` owns edit commits and input behavior, not navigation.
 
@@ -50,8 +52,12 @@ The retired multi-domain owners `calculator_grid_library.js` and `calculator_gri
 
 The grid has two explicit modes:
 
-- **Selection mode:** arrows move between cells; the first click on fetched or pre-filled data focuses the grid.
-- **Edit mode:** click the active cell, double-click, press `F2`/`Enter`, or type; arrows move the caret.
+- **Selection mode:** arrows move between cells; the first click on fetched or pre-filled data focuses the grid. Shift+Arrow extends one durable rectangular selection. Copy and paste operate on that selection: one copied value broadcasts across the selected range, compatible copied rectangles repeat across the destination, and external tab-separated blocks paste from the selected range’s top-left cell.
+- **Edit mode:** click the active cell, double-click, press `F2`/`Enter`, or type; arrows move the caret and clipboard paste inserts plain text at the caret.
+
+`Ctrl+D` repeats the top selected values down, `Ctrl+R` repeats the left selected values to the right, and `Ctrl+Shift+D` continues text-number sequences such as `Day 1`, `Day 2`. Dragging the fill handle uses the same numbered-series recognition while ordinary text remains a repeated fill. Every paste or fill records one history snapshot, so one Undo restores the complete operation. Bulk grid operations defer date propagation and financial recalculation until all destination cells have been updated, then perform one calculation and one render. Internal grid copies carry source coordinates for relative formula translation while plain TSV remains the cross-application clipboard contract.
+
+The dashboard trip-start field is the authoritative itinerary date. Date cells explicitly carry either **linked** ownership with a day offset or **locked** ownership. Changing the trip start—or editing the linked Day 1 From date—shifts all linked From/To dates in one undoable operation while locked dates remain unchanged. Editing another date manually locks that cell; the Link dates and Lock dates actions let the user change ownership deliberately. Legacy backups and workbooks infer conservative relationships from Day labels and existing dates. Trip start, ownership modes, and offsets persist through cloud projects, JSON backups, project-scoped IndexedDB recovery, and internal XLSX metadata.
 
 Browser edits are written to a project-scoped IndexedDB draft and synchronized to Streamlit after a short debounce. Opening a saved project selects its durable project namespace, while deleting the active cloud project or importing a local workbook detaches that namespace so the next unsaved workspace receives a fresh session key. Reopening an Excel workbook or Calculator backup is confirmation-gated whenever the latest browser/backend Calculator state differs from the saved snapshot or contains meaningful detached rows; clean workspaces still reopen directly. A capped local recovery history stores meaningful committed versions. The current draft has quota priority, inactive-project recovery histories are pruned before the active history, and only expired recognized Calculator namespaces are removed automatically. Local recovery failures remain non-blocking and are shown as a quiet status with details that distinguish browser recovery from Supabase project saving. The version panel can clear either recovery versions alone or all local recovery data for the active project; a full clear remains in effect until the next local edit. Save, export, generate, library navigation, and workspace navigation flush the latest state first.
 
@@ -107,7 +113,7 @@ The bundled `Calculation-template-Mal.xlsx` is the visual and structural source 
 8. Reuses unchanged package bytes through a bounded, template-aware in-process cache.
 9. Stages one browser-ready base64 workbook payload for direct component download; cloud project persistence is a separate workflow.
 
-Import preserves editable data, compatible A1 formulas, overrides, VAT values, and currency rates. Export → import → recalculate must preserve totals.
+Import preserves editable data, compatible A1 formulas, overrides, VAT values, currency rates, and Calculator-owned date relationships. Date-link metadata is internal and does not replace or hide the visible Excel date cells. Export → import → recalculate must preserve totals and linked/locked date ownership.
 
 ## Invariants
 
@@ -121,6 +127,8 @@ Import preserves editable data, compatible A1 formulas, overrides, VAT values, a
 8. Browser and Python calculations match on reference, randomized, and A1 dependency vectors.
 9. Margin shortcuts produce the selected GP percentage from actual net NOK cost, including supplier commission and overrides.
 10. Project save/reload and Excel export/import preserve financial inputs, formulas, precision, and calculated results.
+11. Changing the authoritative trip start shifts linked dates only; manually locked dates remain fixed through save, recovery, and Excel round-trips.
+12. EUR is the primary dashboard presentation currency, while NOK remains the canonical formula and secondary audit currency.
 
 ## Financial and Excel export parity boundary
 

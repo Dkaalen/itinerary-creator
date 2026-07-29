@@ -36,10 +36,15 @@ class CalculatorDashboard:
     total_cost_nok: float
     total_sales_nok: float
     profit_nok: float
+    total_cost_eur: float | None
+    total_sales_eur: float | None
+    profit_eur: float | None
     margin_percent: float
     number_of_pax: int | None
     cost_per_pax: float | None
     sales_per_pax: float | None
+    cost_per_pax_eur: float | None
+    sales_per_pax_eur: float | None
 
 
 def calculate_row(
@@ -109,14 +114,25 @@ def calculate_dashboard(
     pax = _positive_whole_pax_or_none(number_of_pax)
     cost_per_pax = round_money(total_cost / pax) if pax else None
     sales_per_pax = round_money(total_sales / pax) if pax else None
+    eur_rate = lookup_currency_rate_decimal("EUR", currency_rates)
+    total_cost_eur = round_money(total_cost / eur_rate) if eur_rate > 0 else None
+    total_sales_eur = round_money(total_sales / eur_rate) if eur_rate > 0 else None
+    profit_eur = round_money(profit / eur_rate) if eur_rate > 0 else None
+    cost_per_pax_eur = round_money(total_cost_eur / pax) if pax and total_cost_eur is not None else None
+    sales_per_pax_eur = round_money(total_sales_eur / pax) if pax and total_sales_eur is not None else None
     return CalculatorDashboard(
         total_cost_nok=as_float(total_cost),
         total_sales_nok=as_float(total_sales),
         profit_nok=as_float(profit),
+        total_cost_eur=as_float(total_cost_eur) if total_cost_eur is not None else None,
+        total_sales_eur=as_float(total_sales_eur) if total_sales_eur is not None else None,
+        profit_eur=as_float(profit_eur) if profit_eur is not None else None,
         margin_percent=as_float(margin),
         number_of_pax=pax,
         cost_per_pax=as_float(cost_per_pax) if cost_per_pax is not None else None,
         sales_per_pax=as_float(sales_per_pax) if sales_per_pax is not None else None,
+        cost_per_pax_eur=as_float(cost_per_pax_eur) if cost_per_pax_eur is not None else None,
+        sales_per_pax_eur=as_float(sales_per_pax_eur) if sales_per_pax_eur is not None else None,
     )
 
 

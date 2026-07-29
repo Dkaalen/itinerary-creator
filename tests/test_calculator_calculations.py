@@ -179,6 +179,29 @@ def test_dashboard_pax_values_are_display_only() -> None:
     assert without_pax.sales_per_pax is None
 
 
+def test_dashboard_derives_eur_first_values_from_authoritative_rate() -> None:
+    from calculator.calculations import calculate_dashboard
+
+    rows = [
+        CalculatorRow(
+            gross_price_per_unit=1200,
+            units=1,
+            supplier_currency="NOK",
+            sales_price_per_unit=1800,
+            sales_currency="NOK",
+        )
+    ]
+
+    dashboard = calculate_dashboard(rows, 2, {"NOK": 1, "EUR": 12})
+
+    assert dashboard.total_cost_nok == 1200
+    assert dashboard.total_cost_eur == 100
+    assert dashboard.total_sales_eur == 150
+    assert dashboard.profit_eur == 50
+    assert dashboard.cost_per_pax_eur == 50
+    assert dashboard.sales_per_pax_eur == 75
+
+
 def test_calculator_rounds_spreadsheet_expressions_with_decimal_precision() -> None:
     calculated = calculate_row(
         CalculatorRow(

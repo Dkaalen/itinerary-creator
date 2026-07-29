@@ -14,6 +14,7 @@ from zipfile import ZipFile
 
 from calculator.template_structure import default_template_path
 from calculator.workbook_export_plan import WorkbookExportPlan
+from calculator.workbook_date_metadata import patch_date_metadata_xml
 from calculator.workbook_package_cell_changes import generate_cell_changes
 from calculator.workbook_package_integrity import remove_calc_chain_content_type, remove_calc_chain_relationship
 from calculator.workbook_recalculation_xml import patch_workbook_calculation_properties
@@ -83,14 +84,16 @@ def export_reference_workbook_package(
                 source.read(_CONTENT_TYPES_PART).decode("utf-8")
             ).encode("utf-8"),
         }
-        if plan.source_provenance:
-            replacements[_CUSTOM_PROPERTIES_PART] = patch_custom_properties_xml(
-                source.read(_CUSTOM_PROPERTIES_PART).decode("utf-8"),
-                plan.source_provenance,
-            ).encode("utf-8")
+        if plan.source_provenance or plan.date_metadata_json:
+            custom_xml = source.read(_CUSTOM_PROPERTIES_PART).decode("utf-8")
+            custom_xml = patch_custom_properties_xml(custom_xml, plan.source_provenance)
+            custom_xml = patch_date_metadata_xml(custom_xml, plan.date_metadata_json)
+            replacements[_CUSTOM_PROPERTIES_PART] = custom_xml.encode("utf-8")
         content = clone_xlsx_package(source, replacements, deleted_parts=_DELETED_PARTS)
 
-    changed_parts = _BASE_CHANGED_PARTS + ((_CUSTOM_PROPERTIES_PART,) if plan.source_provenance else ())
+    changed_parts = _BASE_CHANGED_PARTS + (
+        (_CUSTOM_PROPERTIES_PART,) if plan.source_provenance or plan.date_metadata_json else ()
+    )
     result = PackageExportResult(content=content, changed_parts=changed_parts, deleted_parts=_DELETED_PARTS)
     _EXPORT_CACHE[cache_key] = result
     _EXPORT_CACHE.move_to_end(cache_key)

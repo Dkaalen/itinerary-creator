@@ -15,6 +15,7 @@ class CalculatorState:
 
     itinerary_name: str = ""
     number_of_pax: int | str | None = None
+    trip_start_date: str = ""
     rows: tuple[CalculatorRow, ...] = ()
 
     def with_itinerary_name(self, itinerary_name: str) -> "CalculatorState":
@@ -27,6 +28,11 @@ class CalculatorState:
 
         normalized = None if number_of_pax in (None, 0) else int(number_of_pax)
         return replace(self, number_of_pax=normalized)
+
+    def with_trip_start_date(self, trip_start_date: str) -> "CalculatorState":
+        """Return a copy with the authoritative itinerary start date."""
+
+        return replace(self, trip_start_date=str(trip_start_date or "").strip())
 
 
 def create_calculator_state(itinerary_name: str = "") -> CalculatorState:

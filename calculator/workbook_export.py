@@ -20,6 +20,7 @@ from calculator.workbook_export_plan import (
     build_workbook_export_plan,
     ensure_workbook_export_capacity,
 )
+from calculator.workbook_date_metadata import CUSTOM_PROPERTY_NAME as DATE_CUSTOM_PROPERTY_NAME
 from calculator.workbook_package_export import export_reference_workbook_package
 from calculator.workbook_provenance import CUSTOM_PROPERTY_NAME, provenance_json
 from calculator.workbook_template import load_calculation_template
@@ -89,6 +90,7 @@ def build_calculation_workbook(
     workbook = load_calculation_template(template_path)
     _apply_export_plan(workbook, plan)
     _apply_source_provenance(workbook, plan)
+    _apply_date_metadata(workbook, plan)
     _restore_excel_advanced_view(workbook[KALK_SHEET_NAME])
     return workbook
 
@@ -118,6 +120,16 @@ def _apply_source_provenance(workbook: Workbook, plan: WorkbookExportPlan) -> No
     if plan.source_provenance:
         workbook.custom_doc_props.append(
             StringProperty(name=CUSTOM_PROPERTY_NAME, value=provenance_json(plan.source_provenance))
+        )
+
+
+def _apply_date_metadata(workbook: Workbook, plan: WorkbookExportPlan) -> None:
+    existing = next((prop for prop in workbook.custom_doc_props if prop.name == DATE_CUSTOM_PROPERTY_NAME), None)
+    if existing is not None:
+        workbook.custom_doc_props.props.remove(existing)
+    if plan.date_metadata_json:
+        workbook.custom_doc_props.append(
+            StringProperty(name=DATE_CUSTOM_PROPERTY_NAME, value=plan.date_metadata_json)
         )
 
 

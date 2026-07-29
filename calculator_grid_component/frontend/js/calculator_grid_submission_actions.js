@@ -23,6 +23,7 @@ function submitAction(action) {
     request_id: requestId,
     rows,
     number_of_pax: calculatorState.numberOfPax ?? null,
+    trip_start_date: calculatorState.tripStartDate || '',
     show_advanced: calculatorState.showAdvanced,
     client_state_revision: activeBackendRevision,
     project_identity: activeProjectIdentity,

@@ -29,7 +29,10 @@ function bindEvents() {
   document.querySelector('[data-action="undo"]')?.addEventListener('click', undoCalculatorChange);
   document.querySelector('[data-action="redo"]')?.addEventListener('click', redoCalculatorChange);
   document.querySelector('[data-action="fill-down"]')?.addEventListener('click', () => fillSelection('down'));
+  document.querySelector('[data-action="fill-series-down"]')?.addEventListener('click', () => fillSelection('seriesDown'));
   document.querySelector('[data-action="fill-right"]')?.addEventListener('click', () => fillSelection('right'));
+  document.querySelector('[data-action="link-dates"]')?.addEventListener('click', () => setSelectedDateMode(DATE_MODE_LINKED));
+  document.querySelector('[data-action="lock-dates"]')?.addEventListener('click', () => setSelectedDateMode(DATE_MODE_LOCKED));
   document.querySelector('[data-action="find-replace"]')?.addEventListener('click', () => toggleFindReplace());
   document.querySelector('[data-action="version-history"]')?.addEventListener('click', () => { calculatorState.showVersionHistory = !calculatorState.showVersionHistory; rerender(); });
   document.querySelector('[data-action="local-recovery-details"]')?.addEventListener('click', openCalculatorRecoveryDetails);
@@ -68,6 +71,16 @@ function bindEvents() {
     refreshValidationAndStatus();
   });
   paxInput?.addEventListener('blur', commitCellEdit);
+
+  const tripStartInput = document.querySelector('[data-action="set-trip-start"]');
+  tripStartInput?.addEventListener('focus', beginCellEdit);
+  tripStartInput?.addEventListener('change', (event) => {
+    if (!setTripStartDate(calculatorState, event.target.value)) return;
+    commitCellEdit();
+    markLocalDraft();
+    rerender({skipCalculation: true});
+  });
+  tripStartInput?.addEventListener('blur', commitCellEdit);
 
   const formulaBar = document.querySelector('[data-action="formula-bar"]');
   formulaBar?.addEventListener('focus', beginCellEdit);

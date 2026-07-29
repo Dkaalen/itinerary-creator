@@ -7,7 +7,7 @@ function handleCellKeydown(event) {
     if (event.key === 'Escape') {
       event.preventDefault();
       activeCellEditing = false;
-      if (cancelCellEdit()) rerender();
+      if (cancelCellEdit()) rerender({skipCalculation: true});
       else setCellEditingMode(cell, false);
       return;
     }

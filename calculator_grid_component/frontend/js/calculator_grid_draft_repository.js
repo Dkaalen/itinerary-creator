@@ -27,6 +27,7 @@
       schemaVersion: core.recoverySchemaVersion(),
       rows: normalizeRowsForPython(state.rows),
       numberOfPax: state.numberOfPax ?? null,
+      tripStartDate: state.tripStartDate || '',
       showAdvanced: Boolean(state.showAdvanced),
       selectedRowIndex: Number(state.selectedRowIndex || 0),
       activeCell: activeCell ? {...activeCell} : null,
@@ -73,7 +74,11 @@
   }
 
   function rowHasUserContent(row) {
-    const ignored = new Set(['row_id', 'library_id', 'source_workbook', 'source_sheet', 'source_row', 'supplier_currency', 'sales_currency']);
+    const ignored = new Set([
+      'row_id', 'library_id', 'source_workbook', 'source_sheet', 'source_row',
+      'supplier_currency', 'sales_currency',
+      'from_date_mode', 'from_date_offset', 'to_date_mode', 'to_date_offset'
+    ]);
     for (const [key, value] of Object.entries(row || {})) {
       if (ignored.has(key) || key.startsWith('_') || key.endsWith('_override')) continue;
       if (typeof value === 'boolean') {

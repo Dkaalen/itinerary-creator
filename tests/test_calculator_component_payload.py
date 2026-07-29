@@ -36,6 +36,7 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
     state = CalculatorState(
         itinerary_name="Trip",
         number_of_pax=12,
+        trip_start_date="2026-02-01",
         rows=(CalculatorRow(row_id="1", travel_element="hotel", gross_price_per_unit=100, units=2),),
     )
     library_read = LocalLibraryReadResult(
@@ -63,6 +64,7 @@ def test_calculator_component_payload_includes_rows_library_and_status() -> None
 
     assert payload["itinerary_name"] == "Trip"
     assert payload["number_of_pax"] == 12
+    assert payload["trip_start_date"] == "2026-02-01"
     assert payload["show_advanced"] is True
     assert isinstance(payload["state_revision"], str)
     assert len(payload["state_revision"]) == 16
@@ -88,6 +90,7 @@ def test_calculator_component_payload_revision_changes_when_rows_change() -> Non
     first = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="hotel"),))
     second = CalculatorState(itinerary_name="Trip", rows=(CalculatorRow(row_id="1", travel_element="museum"),))
     pax_changed = CalculatorState(itinerary_name="Trip", number_of_pax=20, rows=first.rows)
+    trip_start_changed = CalculatorState(itinerary_name="Trip", trip_start_date="2026-02-01", rows=first.rows)
 
     first_payload = build_calculator_grid_payload(first, library_read)
     repeat_payload = build_calculator_grid_payload(first, library_read)
@@ -95,12 +98,14 @@ def test_calculator_component_payload_revision_changes_when_rows_change() -> Non
     advanced_payload = build_calculator_grid_payload(first, library_read, show_advanced=True)
     changed_rates_payload = build_calculator_grid_payload(first, library_read, currency_rates={"NOK": 1, "EUR": 99})
     pax_payload = build_calculator_grid_payload(pax_changed, library_read)
+    trip_start_payload = build_calculator_grid_payload(trip_start_changed, library_read)
 
     assert first_payload["state_revision"] == repeat_payload["state_revision"]
     assert first_payload["state_revision"] != second_payload["state_revision"]
     assert first_payload["state_revision"] == advanced_payload["state_revision"]
     assert first_payload["state_revision"] == changed_rates_payload["state_revision"]
     assert first_payload["state_revision"] != pax_payload["state_revision"]
+    assert first_payload["state_revision"] != trip_start_payload["state_revision"]
 
 
 def test_calculator_component_payload_reuses_prepared_library_rows() -> None:

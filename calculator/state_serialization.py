@@ -8,10 +8,11 @@ from math import isfinite
 from typing import Any, Mapping
 
 from calculator.calculator_state import CalculatorState, add_row, create_calculator_state
+from calculator.date_links import initialize_date_relationships
 from calculator.row_model import CalculatorRow
 
-CALCULATOR_BACKUP_SCHEMA_VERSION = 3
-SUPPORTED_CALCULATOR_BACKUP_SCHEMA_VERSIONS = frozenset({1, 2, 3})
+CALCULATOR_BACKUP_SCHEMA_VERSION = 4
+SUPPORTED_CALCULATOR_BACKUP_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4})
 _ROW_FIELD_NAMES = {field.name for field in fields(CalculatorRow)}
 
 
@@ -23,6 +24,7 @@ def calculator_state_to_dict(state: CalculatorState) -> dict[str, Any]:
         "kind": "booknordics_calculator_state",
         "itinerary_name": state.itinerary_name,
         "number_of_pax": state.number_of_pax,
+        "trip_start_date": state.trip_start_date,
         "rows": [_row_to_dict(row) for row in state.rows],
     }
 
@@ -42,9 +44,14 @@ def calculator_state_to_json(state: CalculatorState) -> str:
 def calculator_state_from_dict(payload: Mapping[str, Any]) -> CalculatorState:
     """Build current calculator state from a supported backup payload."""
 
+    try:
+        source_version = int(payload.get("schema_version") or 1)
+    except (TypeError, ValueError):
+        source_version = 1
     migrated = migrate_calculator_state_payload(payload)
     state = create_calculator_state(str(migrated.get("itinerary_name") or ""))
     state = state.with_number_of_pax(_optional_positive_int(migrated.get("number_of_pax")))
+    state = state.with_trip_start_date(str(migrated.get("trip_start_date") or ""))
     rows_payload = migrated.get("rows") or []
     if not isinstance(rows_payload, list):
         raise ValueError("Calculator backup rows must be a list.")
@@ -53,7 +60,15 @@ def calculator_state_from_dict(payload: Mapping[str, Any]) -> CalculatorState:
         if not isinstance(row_payload, Mapping):
             continue
         state = add_row(state, _row_from_dict(row_payload))
-    return state
+    if source_version >= CALCULATOR_BACKUP_SCHEMA_VERSION:
+        return state
+    trip_start_date, rows = initialize_date_relationships(state.rows, state.trip_start_date)
+    return CalculatorState(
+        itinerary_name=state.itinerary_name,
+        number_of_pax=state.number_of_pax,
+        trip_start_date=trip_start_date,
+        rows=rows,
+    )
 
 
 def calculator_state_from_json(payload_json: str | bytes) -> CalculatorState:
@@ -98,12 +113,36 @@ def migrate_calculator_state_payload(payload: Mapping[str, Any]) -> dict[str, An
                 if isinstance(row, Mapping) else row
                 for row in rows
             ]
-    migrated["schema_version"] = 3
+        version = 3
+    if version == 3:
+        migrated["trip_start_date"] = str(migrated.get("trip_start_date") or "")
+        rows = migrated.get("rows")
+        if isinstance(rows, list):
+            migrated["rows"] = [
+                {
+                    **dict(row),
+                    "from_date_mode": str(row.get("from_date_mode") or ""),
+                    "from_date_offset": row.get("from_date_offset"),
+                    "to_date_mode": str(row.get("to_date_mode") or ""),
+                    "to_date_offset": row.get("to_date_offset"),
+                }
+                if isinstance(row, Mapping) else row
+                for row in rows
+            ]
+    migrated["schema_version"] = 4
     return migrated
 
 
 def _row_to_dict(row: CalculatorRow) -> dict[str, Any]:
-    return {field_name: getattr(row, field_name) for field_name in _ROW_FIELD_NAMES}
+    payload = {field_name: getattr(row, field_name) for field_name in _ROW_FIELD_NAMES}
+    for mode_field, offset_field in (
+        ("from_date_mode", "from_date_offset"),
+        ("to_date_mode", "to_date_offset"),
+    ):
+        if not payload.get(mode_field) and payload.get(offset_field) is None:
+            payload.pop(mode_field, None)
+            payload.pop(offset_field, None)
+    return payload
 
 
 def _row_from_dict(payload: Mapping[str, Any]) -> CalculatorRow:

@@ -130,3 +130,155 @@ def test_sales_margin_shortcut_uses_converted_gross_price() -> None:
     finally:
         browser.close()
         manager.stop()
+
+
+def test_trip_start_shifts_linked_dates_and_preserves_locked_dates_with_one_undo() -> None:
+    rows = [
+        {
+            "row_id": "1", "day": "Day 1", "from_date": "01.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 0,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+        {
+            "row_id": "2", "day": "Day 2", "from_date": "02.01.2026", "to_date": "05.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 1,
+            "to_date_mode": "linked", "to_date_offset": 4,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+        {
+            "row_id": "3", "day": "Day 3", "from_date": "15.01.2026",
+            "from_date_mode": "locked", "from_date_offset": None,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+    ]
+    manager, browser, page = _browser_page(
+        _payload(rows, revision="trip-start-shift", trip_start_date="2026-01-01")
+    )
+    try:
+        trip_start = page.locator('[data-action="set-trip-start"]')
+        trip_start.fill("2026-02-01")
+        trip_start.dispatch_event("change")
+
+        assert page.evaluate("calculatorState.tripStartDate") == "2026-02-01"
+        assert page.evaluate("calculatorState.rows[0].from_date") == "01.02.2026"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "02.02.2026"
+        assert page.evaluate("calculatorState.rows[1].to_date") == "05.02.2026"
+        assert page.evaluate("calculatorState.rows[2].from_date") == "15.01.2026"
+
+        page.get_by_role("button", name="Undo").click()
+        assert page.evaluate("calculatorState.tripStartDate") == "2026-01-01"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "02.01.2026"
+        assert page.evaluate("calculatorState.rows[1].to_date") == "05.01.2026"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_manual_date_edit_locks_cell_and_link_dates_rejoins_trip_sequence() -> None:
+    rows = [
+        {
+            "row_id": "1", "day": "Day 1", "from_date": "01.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 0,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+        {
+            "row_id": "2", "day": "Day 2", "from_date": "02.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 1,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+    ]
+    manager, browser, page = _browser_page(
+        _payload(rows, revision="date-lock-relink", trip_start_date="2026-01-01")
+    )
+    try:
+        date_cell = page.locator('td[data-row-index="1"][data-key="from_date"]')
+        date_cell.click()
+        date_cell.click()
+        page.keyboard.press("Control+a")
+        page.keyboard.type("10.01.2026")
+        page.keyboard.press("Tab")
+
+        assert page.evaluate("calculatorState.rows[1].from_date_mode") == "locked"
+        assert date_cell.get_attribute("title").startswith("Locked date")
+
+        trip_start = page.locator('[data-action="set-trip-start"]')
+        trip_start.fill("2026-02-01")
+        trip_start.dispatch_event("change")
+        assert page.evaluate("calculatorState.rows[1].from_date") == "10.01.2026"
+
+        date_cell.click()
+        page.locator(".calculator-toolbar-more > summary").click()
+        page.get_by_role("button", name="Link dates").click()
+        assert page.evaluate("calculatorState.rows[1].from_date_mode") == "linked"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "02.02.2026"
+    finally:
+        browser.close()
+        manager.stop()
+
+
+def test_dashboard_presents_eur_first_and_retains_nok_as_secondary_context() -> None:
+    payload = _payload(
+        [{
+            "row_id": "1",
+            "gross_price_per_unit": 1200,
+            "units": 1,
+            "supplier_currency": "NOK",
+            "sales_price_per_unit": 1800,
+            "sales_currency": "NOK",
+        }],
+        revision="eur-first-dashboard",
+    )
+    payload["currency_rates"] = {"NOK": 1, "EUR": 12}
+    manager, browser, page = _browser_page(payload)
+    try:
+        dashboard_text = page.locator(".calculator-dashboard").inner_text()
+        assert "Total cost EUR\n€100.00\nNOK 1,200.00" in dashboard_text
+        assert "Total sales EUR\n€150.00\nNOK 1,800.00" in dashboard_text
+        assert "Profit / GP EUR\n€50.00\nNOK 600.00" in dashboard_text
+        assert "Total cost NOK" not in dashboard_text
+    finally:
+        browser.close()
+        manager.stop()
+
+
+
+def test_editing_day_one_date_updates_trip_start_and_all_linked_dates() -> None:
+    rows = [
+        {
+            "row_id": "1", "day": "Day 1", "from_date": "01.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 0,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+        {
+            "row_id": "2", "day": "Day 2", "from_date": "02.01.2026", "to_date": "04.01.2026",
+            "from_date_mode": "linked", "from_date_offset": 1,
+            "to_date_mode": "linked", "to_date_offset": 3,
+            "supplier_currency": "NOK", "sales_currency": "EUR",
+        },
+    ]
+    manager, browser, page = _browser_page(
+        _payload(rows, revision="day-one-authority", trip_start_date="2026-01-01")
+    )
+    try:
+        page.evaluate(
+            """() => {
+                recordHistory();
+                updateRowValue(0, 'from_date', '10.02.2026', false);
+                markLocalDraft();
+                rerender({skipCalculation: true});
+            }"""
+        )
+
+        assert page.locator('[data-action="set-trip-start"]').input_value() == "2026-02-10"
+        assert page.evaluate("calculatorState.tripStartDate") == "2026-02-10"
+        assert page.evaluate("calculatorState.rows[0].from_date") == "10.02.2026"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "11.02.2026"
+        assert page.evaluate("calculatorState.rows[1].to_date") == "13.02.2026"
+
+        page.get_by_role("button", name="Undo").click()
+        assert page.evaluate("calculatorState.tripStartDate") == "2026-01-01"
+        assert page.evaluate("calculatorState.rows[1].from_date") == "02.01.2026"
+        assert page.evaluate("calculatorState.rows[1].to_date") == "04.01.2026"
+    finally:
+        browser.close()
+        manager.stop()

@@ -36,9 +36,14 @@ async function initializeState(payload) {
   const storedDraft = window.ItineraryCalculator.storage.loadDraft();
   const useStoredDraft = window.ItineraryCalculator.storage.shouldRestoreDraft(storedDraft, incomingRows, incomingRevision);
   const rows = calculateRows(useStoredDraft ? cloneRows(storedDraft.rows) : incomingRows, payload.currency_rates || DEFAULT_RATES);
+  const tripStartDate = initializeDateRelationships(
+    rows,
+    useStoredDraft ? storedDraft.tripStartDate || '' : payload.trip_start_date || ''
+  );
   calculatorState = {
     rows: rows.length ? rows : addRows([], 25),
     numberOfPax: useStoredDraft ? storedDraft.numberOfPax ?? null : payload.number_of_pax ?? null,
+    tripStartDate,
     libraryRows: libraryBundle.rows,
     libraryIndex: libraryBundle.index,
     libraryRankingSpec: payload.library_ranking_spec || {},
@@ -69,6 +74,7 @@ async function initializeState(payload) {
   recoveryBaselineState = (calculatorState.recoverySnapshots || []).length ? null : {
     rows: cloneRows(calculatorState.rows),
     numberOfPax: calculatorState.numberOfPax ?? null,
+    tripStartDate: calculatorState.tripStartDate || '',
     showAdvanced: Boolean(calculatorState.showAdvanced),
     selectedRowIndex: Number(calculatorState.selectedRowIndex || 0),
     selection: calculatorState.selection ? {...calculatorState.selection} : null,
@@ -112,6 +118,8 @@ function mergeBackendPayloadWithoutRows(payload, incomingRevision) {
   // edits. Any workbook prepared from the backend copy is therefore stale.
   calculatorState.pendingDownload = null;
   calculatorState.numberOfPax = calculatorState.numberOfPax ?? payload.number_of_pax ?? null;
+  calculatorState.tripStartDate = calculatorState.tripStartDate || payload.trip_start_date || '';
+  initializeDateRelationships(calculatorState.rows, calculatorState.tripStartDate);
   activeBackendRevision = incomingRevision;
   activeDraftStorageKey = window.ItineraryCalculator.storage.getDraftStorageKey();
   activeProjectIdentity = String(payload.project_identity || activeProjectIdentity || "");

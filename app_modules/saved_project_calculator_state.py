@@ -13,7 +13,7 @@ from calculator.currency_rates import normalize_currency_rates
 from calculator.state_serialization import calculator_state_from_dict, calculator_state_to_dict
 
 CALCULATOR_SNAPSHOT_KIND = "booknordics_calculator_state"
-CALCULATOR_SNAPSHOT_SCHEMA_VERSION = 2
+CALCULATOR_SNAPSHOT_SCHEMA_VERSION = 4
 
 
 def calculator_snapshot_from_workflow_state(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -39,6 +39,7 @@ def normalize_calculator_snapshot(payload: Mapping[str, Any] | None) -> dict[str
         "kind": str(raw.get("kind") or CALCULATOR_SNAPSHOT_KIND),
         "itinerary_name": str(raw.get("itinerary_name") or ""),
         "number_of_pax": raw.get("number_of_pax"),
+        "trip_start_date": str(raw.get("trip_start_date") or ""),
         "rows": [dict(row) for row in rows if isinstance(row, Mapping)],
         "currency_rates": normalize_currency_rates(raw.get("currency_rates")),
     }
@@ -78,7 +79,11 @@ def calculator_snapshot_has_rows(payload: Mapping[str, Any] | None) -> bool:
 
 
 def _row_has_user_content(row: Mapping[str, Any]) -> bool:
-    ignored = {"row_id", "library_id", "source_workbook", "source_sheet", "source_row", "supplier_currency", "sales_currency"}
+    ignored = {
+        "row_id", "library_id", "source_workbook", "source_sheet", "source_row",
+        "supplier_currency", "sales_currency",
+        "from_date_mode", "from_date_offset", "to_date_mode", "to_date_offset",
+    }
     for key, value in row.items():
         if key in ignored or str(key).endswith("_override"):
             continue
